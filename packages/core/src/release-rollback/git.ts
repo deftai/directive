@@ -106,7 +106,7 @@ export function gitRevertReleaseCommit(
     false,
     `git revert ${releasePrepSha.slice(0, 12)} conflicted: ${stderr}${abortNote}. ` +
       `Manual recovery: re-run \`git revert ${releasePrepSha} --no-edit\`, ` +
-      "resolve conflicts (typically CHANGELOG.md / ROADMAP.md), " +
+      "resolve conflicts (typically CHANGELOG.md / ROADMAP.md; the revert restores changelog.d/ fragments), " +
       "`git revert --continue`, then `git push origin <base-branch>`. " +
       "See the Manual recovery section in scripts/release_rollback.py.",
   ];

@@ -762,7 +762,7 @@ describe("hook-dispatch pin≠installed recovery (#6013 / #5893)", () => {
     expect(msg.startsWith("npm i -g")).toBe(false);
   });
 
-  it("keeps fail-closed for package-manager install shells (no #5956 allow-list)", () => {
+  it("keeps install shells fail-closed when pin mismatch is not marked the only fault", () => {
     const out: string[] = [];
     const code = run(["--host", "grok", "--event", "tool.before", "--project-root=/project"], {
       readStdin: () =>
@@ -779,6 +779,89 @@ describe("hook-dispatch pin≠installed recovery (#6013 / #5893)", () => {
     expect(code).toBe(0);
     const wire = JSON.parse(out.join("")) as { decision?: string; reason?: string };
     expect(wire.decision).toBe("deny");
+    expect(wire.reason ?? "").toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+  });
+});
+
+describe("hook-dispatch pin-mismatch recovery admit (#6313)", () => {
+  const PIN_LINE = "Directive hook refuse: pinned runtime does not match the installed runtime";
+
+  function cheapResult(pinMismatch: boolean): CheapInSyncResult {
+    return pinMismatch
+      ? {
+          ok: false,
+          pinVersion: "0.129.9",
+          installedVersion: "0.129.8",
+          identityMatch: false,
+          readinessValid: false,
+          failClosed: true,
+          pinMismatchOnly: true,
+          allowSetup: false,
+          recoveryGuidance: PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE,
+        }
+      : {
+          ok: true,
+          pinVersion: "0.129.9",
+          installedVersion: "0.129.9",
+          identityMatch: true,
+          readinessValid: true,
+          failClosed: false,
+          pinMismatchOnly: false,
+          allowSetup: true,
+          recoveryGuidance: null,
+        };
+  }
+
+  function dispatch(
+    command: string,
+    cheap: () => CheapInSyncResult,
+    workdir?: string,
+  ): { decision?: string; reason?: string } {
+    const out: string[] = [];
+    run(["--host", "grok", "--event", "tool.before", "--project-root=/project"], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: "run_terminal_command",
+          tool_input: { command, ...(workdir !== undefined ? { cwd: workdir } : {}) },
+        }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+      launchingCheckoutRoot: () => "/project",
+      cheapInSync: cheap,
+    });
+    const raw = out.join("").trim();
+    return raw.length === 0 ? {} : (JSON.parse(raw) as { decision?: string; reason?: string });
+  }
+
+  it("admits pnpm install --frozen-lockfile at the root, then the next command once installed", () => {
+    let installed = false;
+    const cheap = () => cheapResult(!installed);
+
+    const admitted = dispatch("pnpm install --frozen-lockfile", cheap, "/project");
+    expect(admitted.decision).not.toBe("deny");
+    expect(admitted.reason ?? "").not.toContain(PIN_LINE);
+
+    installed = true;
+    const next = dispatch("echo hi", cheap, "/project");
+    expect(next.reason ?? "").not.toContain(PIN_LINE);
+  });
+
+  it.each([
+    ["any other command", "echo hi", undefined],
+    [
+      "install chained with another command",
+      "pnpm install --frozen-lockfile && echo hi",
+      undefined,
+    ],
+    ["install in a different directory", "pnpm install --frozen-lockfile", "/project/sub"],
+    ["install after a directory change", "cd sub && pnpm install --frozen-lockfile", undefined],
+    ["the global install", "npm i -g @deftai/directive", undefined],
+    ["the repair", "directive install --repair", undefined],
+  ])("refuses %s with the same recovery text", (_label, command, workdir) => {
+    const wire = dispatch(command, () => cheapResult(true), workdir);
+    expect(wire.decision).toBe("deny");
+    expect(wire.reason ?? "").toContain(PIN_LINE);
     expect(wire.reason ?? "").toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
   });
 });

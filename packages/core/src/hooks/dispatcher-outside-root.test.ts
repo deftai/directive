@@ -8,9 +8,20 @@
  * harvest whose every target is outside fenceRoot.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import ts from "typescript";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import {
@@ -20,6 +31,7 @@ import {
   isOutsideProjectRootWrite,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
 } from "./index.js";
+import { classifyOutsideEveryCheckoutTarget } from "./outside-every-checkout.js";
 
 const temps: string[] = [];
 const sharedTemps: string[] = [];
@@ -262,7 +274,9 @@ describe("#6189 (g) linked worktrees", () => {
     git(primary, ["worktree", "add", "--detach", "-q", nested]);
     const sibling = join(base, "sibling");
     git(primary, ["worktree", "add", "--detach", "-q", sibling]);
-    const outside = mkdtempSync(join(tmpdir(), "hook-6189-scratch-"));
+    // `deft` keeps this scratch out of the #6376 outside-every-checkout class, so
+    // the #6189 gate path below is still the one under test.
+    const outside = mkdtempSync(join(tmpdir(), "deft-hook-6189-scratch-"));
     sharedTemps.push(outside);
     fx = { primary, nested, sibling, outside };
   }, 60_000);
@@ -394,5 +408,225 @@ describe("#6189 (h) ready story with empty merge-base file_scope (activation-PR 
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toContain(POSITIVE_GOVERNING_ALLOW_REQUIRED);
+  });
+});
+
+/**
+ * #6376 item 12: every file or folder that non-test Directive code creates under
+ * the OS temp directory carries `deft` in its created name, so the
+ * outside-every-checkout class (exclusion item 5) never admits it.
+ */
+const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
+const TEMP_NAME_SOURCE_ROOTS = ["packages/core/src", "packages/runtime/src", "packages/cli/src"];
+
+function listNonTestSources(dir: string): string[] {
+  const outFiles: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules" || entry.name === "dist") continue;
+      outFiles.push(...listNonTestSources(full));
+    } else if (
+      entry.name.endsWith(".ts") &&
+      !entry.name.endsWith(".d.ts") &&
+      !/\.(test|spec)\.ts$/.test(entry.name)
+    ) {
+      outFiles.push(full);
+    }
+  }
+  return outFiles;
+}
+
+function isTmpdirCall(node: ts.Node): boolean {
+  if (!ts.isCallExpression(node) || node.arguments.length > 0) return false;
+  const callee = node.expression;
+  if (ts.isIdentifier(callee)) return callee.text === "tmpdir";
+  return ts.isPropertyAccessExpression(callee) && callee.name.text === "tmpdir";
+}
+
+function calleeName(call: ts.CallExpression): string | null {
+  const callee = call.expression;
+  if (ts.isIdentifier(callee)) return callee.text;
+  if (ts.isPropertyAccessExpression(callee)) return callee.name.text;
+  return null;
+}
+
+function unwrap(node: ts.Node): ts.Node {
+  let current = node;
+  while (
+    current.parent !== undefined &&
+    (ts.isParenthesizedExpression(current.parent) ||
+      (ts.isBinaryExpression(current.parent) &&
+        (current.parent.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+          current.parent.operatorToken.kind === ts.SyntaxKind.BarBarToken)) ||
+      (ts.isConditionalExpression(current.parent) && current.parent.condition !== current))
+  ) {
+    current = current.parent;
+  }
+  return current;
+}
+
+function allCalls(sf: ts.SourceFile): ts.CallExpression[] {
+  const calls: ts.CallExpression[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) calls.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return calls;
+}
+
+/** Name of the binding that holds a function (declaration name or `const x = … ?? (fn)`). */
+function functionBindingName(fn: ts.Node): string | null {
+  if (ts.isFunctionDeclaration(fn)) return fn.name?.text ?? null;
+  const holder = unwrap(fn);
+  const parent = holder.parent;
+  if (parent !== undefined && ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
+    return parent.name.text;
+  }
+  return null;
+}
+
+function nameCarriesDeft(expr: ts.Expression, sf: ts.SourceFile, depth = 0): boolean {
+  if (depth > 4) return false;
+  if (ts.isParenthesizedExpression(expr)) return nameCarriesDeft(expr.expression, sf, depth);
+  if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) {
+    return /deft/i.test(expr.text);
+  }
+  if (ts.isTemplateExpression(expr)) {
+    return [expr.head.text, ...expr.templateSpans.map((s) => s.literal.text)].some((t) =>
+      /deft/i.test(t),
+    );
+  }
+  if (ts.isConditionalExpression(expr)) {
+    return nameCarriesDeft(expr.whenTrue, sf, depth) && nameCarriesDeft(expr.whenFalse, sf, depth);
+  }
+  if (ts.isCallExpression(expr)) return calleeName(expr) === "deftTempName";
+  if (ts.isIdentifier(expr)) {
+    // A parameter of a local function: every in-file call must pass a deft name.
+    let scope: ts.Node | undefined = expr.parent;
+    while (scope !== undefined && !ts.isFunctionLike(scope)) scope = scope.parent;
+    if (scope === undefined) return false;
+    const fn = scope as ts.SignatureDeclaration;
+    const index = fn.parameters.findIndex(
+      (p) => ts.isIdentifier(p.name) && p.name.text === expr.text,
+    );
+    if (index < 0) return false;
+    const binding = functionBindingName(fn);
+    if (binding === null) return false;
+    const sites = allCalls(sf).filter(
+      (c) => ts.isIdentifier(c.expression) && c.expression.text === binding,
+    );
+    return (
+      sites.length > 0 &&
+      sites.every((c) => {
+        const arg = c.arguments[index];
+        return arg !== undefined && nameCarriesDeft(arg, sf, depth + 1);
+      })
+    );
+  }
+  return false;
+}
+
+/** Created-name expressions for one `tmpdir()` use, or null when the shape is unknown. */
+function createdNames(call: ts.CallExpression, sf: ts.SourceFile): ts.Expression[] | null {
+  const holder = unwrap(call);
+  const parent = holder.parent;
+  if (parent !== undefined && ts.isCallExpression(parent) && parent.arguments[0] === holder) {
+    const name = calleeName(parent);
+    if ((name === "join" || name === "resolve") && parent.arguments[1] !== undefined) {
+      return [parent.arguments[1]];
+    }
+    return null;
+  }
+  if (parent !== undefined && ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
+    const alias = parent.name.text;
+    const names = allCalls(sf)
+      .filter((c) => {
+        const first = c.arguments[0];
+        const name = calleeName(c);
+        return (
+          (name === "join" || name === "resolve") &&
+          first !== undefined &&
+          ts.isIdentifier(first) &&
+          first.text === alias &&
+          c.arguments[1] !== undefined
+        );
+      })
+      .map((c) => c.arguments[1] as ts.Expression);
+    return names.length > 0 ? names : null;
+  }
+  return null;
+}
+
+/** Locations (`file:line`) of temp-directory creations whose name lacks `deft`. */
+function scanTempNameViolations(text: string, fileName: string): string[] {
+  const sf = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true);
+  const violations: string[] = [];
+  for (const call of allCalls(sf)) {
+    if (!isTmpdirCall(call)) continue;
+    const names = createdNames(call, sf);
+    if (names === null || !names.every((n) => nameCarriesDeft(n, sf))) {
+      const line = sf.getLineAndCharacterOfPosition(call.getStart()).line + 1;
+      violations.push(`${fileName}:${line}`);
+    }
+  }
+  return violations;
+}
+
+describe("Directive temp names carry deft (#6376 item 12)", () => {
+  it("finds no non-test temp-directory creation whose name lacks deft", () => {
+    const violations: string[] = [];
+    for (const root of TEMP_NAME_SOURCE_ROOTS) {
+      for (const file of listNonTestSources(join(REPO_ROOT, root))) {
+        violations.push(...scanTempNameViolations(readFileSync(file, "utf8"), file));
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it("fails on a temp-directory folder whose name lacks deft", () => {
+    const bad = 'const d = mkdtempSync(join(tmpdir(), "mge-put-"));';
+    expect(scanTempNameViolations(bad, "bad.ts")).toEqual(["bad.ts:1"]);
+    const unknownShape = "const d = tmpdir();";
+    expect(scanTempNameViolations(unknownShape, "shape.ts")).toEqual(["shape.ts:1"]);
+    const param = [
+      "function make(prefix: string) { return mkdtempSync(join(tmpdir(), prefix)); }",
+      'make("deft-a-"); make("plain-");',
+    ].join("\n");
+    expect(scanTempNameViolations(param, "param.ts")).toEqual(["param.ts:1"]);
+  });
+
+  it("accepts the shapes Directive uses", () => {
+    const good = `
+const a = mkdtempSync(join(tmpdir(), "deft-a-"));
+const b = mkdtempSync(join(tmpdir(), \`deft-b-\${x}-\`));
+const c = join(cache ?? tmpdir(), "deft", "backups");
+const base = env.X ? env.X : tmpdir();
+const f = join(base, \`deft-recovery-\${uid}\`);
+const m = seams.m ?? ((p: string) => mkdtempSync(join(tmpdir(), p)));
+m("deft-e2e-");
+const t = mkdtempSync(join(os.tmpdir(), q ? \`deft-t-\${q}-\` : "deft-t-"));
+const h = mkdtempSync(join(tmpdir(), deftTempName(prefix)));
+`;
+    expect(scanTempNameViolations(good, "good.ts")).toEqual([]);
+  });
+
+  it("keeps the request files of gh.ts and gh-rest.ts out of the class", () => {
+    const ghSource = readFileSync(
+      join(REPO_ROOT, "packages/core/src/pr-merge-readiness/gh.ts"),
+      "utf8",
+    );
+    const restSource = readFileSync(join(REPO_ROOT, "packages/core/src/scm/gh-rest.ts"), "utf8");
+    expect(ghSource).toContain('"deft-mge-put-"');
+    expect(restSource).toContain('"deft-gh-rest-payload-"');
+    const t = realpathSync.native(tmpdir());
+    const seamsFor = { tmpdir: () => t, homedir: () => t, runtimePackageDir: null };
+    for (const file of [
+      join(t, "deft-mge-put-abc", "protection.json"),
+      join(t, "deft-gh-rest-payload-abc", "payload.json"),
+    ]) {
+      expect(classifyOutsideEveryCheckoutTarget(P, file, {}, seamsFor).inClass).toBe(false);
+    }
   });
 });

@@ -161,6 +161,31 @@ The blockquote captures the operator's one-sentence release narrative (recommend
 
 ! Move items from `[Unreleased]` to versioned section during release.
 
+## Fragments (`changelog.d/`, #6314)
+
+A change can record its entry in its own fragment file instead of a line in `CHANGELOG.md`, so parallel PRs do not edit the same file.
+
+- File: `changelog.d/<issue>-<slug>.md` (one level deep; lowercase letters, digits, `.`, `_`, `-`). Two changes for one issue use different slugs.
+- Format: the first line is `section: <Subsection>` (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed` or `Security`); then one or more entries, each starting with `- `, with indented continuation lines.
+- Invalid: an empty file, an unknown section, a line that starts with `#`, a symlink, or a non-regular file.
+
+```markdown
+section: Added
+- **Fragments**: parallel PRs add changelog entries without conflicts (#6314)
+```
+
+The unreleased entries are the `[Unreleased]` lines of `CHANGELOG.md` plus the entries of all valid fragments, by subsection. Every tool that reads `[Unreleased]` reads this effective view.
+
+`plan.policy.changelog.mode` selects the form: `inline` (default, a line in `CHANGELOG.md`), `either` (cutover) or `fragments`. Inspect with `deft policy:show --field=plan.policy.changelog.mode`; set with `deft policy:set-changelog-mode -- --mode inline|either|fragments --confirm`.
+
+### Gate and release (#6315)
+
+- `verify:changelog-unreleased` compares the change set with the merge base. `inline`: it adds a `- ` line under `[Unreleased]`. `fragments`: it adds at least one valid fragment absent at the merge base, and does not change `CHANGELOG.md`. `either`: it adds exactly one of the two forms. Fragments that other changes put on the branch never count.
+- ! In every mode, a change only adds fragments: it never modifies, renames or deletes a fragment present at the merge base, and every fragment it adds is valid. A lifecycle-only change set stays exempt (#680).
+- ! A story that adds an entry lists its own fragment path (`changelog.d/<issue>-<slug>.md`) in `file_scope`. `swarm:readiness` is unchanged: a shared path, directory or glob still overlaps.
+- The release folds the fragments into the promoted section (subsection order, then file name) and deletes them in the release commit. It refuses an invalid or symlinked fragment, an entry line held by two fragments, and a changelog that already holds the version. After a failure between the write and the commit, restore `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD and rerun; `--allow-dirty` is not a recovery path.
+- Cutover: this repository runs `either` (operator decision, 2026-11-15). The move to `fragments` comes later, after a release is cut with fragments, and is the operator's call.
+
 ## Breaking Changes
 
 ! Clearly mark breaking changes:

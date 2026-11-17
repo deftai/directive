@@ -3937,25 +3937,90 @@ describe("runtime authority policy (#1394)", () => {
     expect(decision.code).not.toBe("prospective-scope-cover-deny");
   });
 
-  it("refuses git commit checkout retargets for prospective scope-cover (#5656)", () => {
+  it("refuses commit targets it cannot resolve to one checkout and names both forms (#6278)", () => {
+    for (const command of [
+      "git -C other/worktree commit -m msg",
+      "git --git-dir=/other/.git commit -m msg",
+      "GIT_WORK_TREE=/other git commit -m msg",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        readySeams({
+          inspectScope: () => READY_SCOPE,
+          loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+          listStagedRelPaths: () => [],
+        }),
+      );
+      expect(decision, command).toMatchObject({
+        verdict: "deny",
+        code: "prospective-scope-cover-deny",
+      });
+      expect(decision.message).toMatch(/cannot be resolved to one checkout/);
+      expect(decision.message).toContain("git -C <absolute path> commit");
+      expect(decision.message).toContain("cd <absolute path> && git commit");
+    }
+  });
+
+  it("denies a named commit target that does not exist, before reading any index (#6278)", () => {
+    const missing = join(tmpdir(), "deft-6278-missing-target", "wt");
+    const listStagedRelPaths = vi.fn(() => ["src/a.ts"]);
     const decision = decideHook(
       {
         host: "grok",
         event: "tool.before",
         projectRoot: "/project",
-        payload: {
-          tool_name: "Bash",
-          tool_input: { command: "git -C /other/worktree commit -m msg" },
-        },
+        payload: { tool_name: "Bash", tool_input: { command: `git -C "${missing}" commit -m x` } },
       },
       readySeams({
         inspectScope: () => READY_SCOPE,
         loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
-        listStagedRelPaths: () => [],
+        listStagedRelPaths,
       }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
-    expect(decision.message).toMatch(/-C|--git-dir|--work-tree/);
+    expect(decision.message).toMatch(/does not exist/);
+    expect(listStagedRelPaths).not.toHaveBeenCalled();
+  });
+
+  it("evaluateProspectiveScopeCover denies a refused worktree binding without falling back (#6247)", () => {
+    const inspectScope = vi.fn(() => READY_SCOPE);
+    const refused = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      resolveStoryBinding: () => ({
+        kind: "refuse",
+        failureKind: "env_pin_conflict",
+        message:
+          "Worktree story binding refused (env_pin_conflict): x. Repair: clear the pin (#6233).",
+      }),
+    });
+    expect(refused.ok).toBe(false);
+    expect(refused.message).toContain("(env_pin_conflict)");
+    expect(inspectScope).not.toHaveBeenCalled();
+
+    const bound = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      resolveStoryBinding: () => ({
+        kind: "bound",
+        path: "/project/xbrief/active/s.json",
+        storyId: "s",
+      }),
+    });
+    expect(bound.ok).toBe(true);
+    expect(inspectScope).toHaveBeenCalledWith(resolve("/project"), {
+      env: {},
+      boundPath: "/project/xbrief/active/s.json",
+    });
   });
 
   it("prospective scope-cover includes staged deletions (#5656)", () => {
@@ -7804,6 +7869,42 @@ describe("Prefer-A #5890 retirement-shaped zero-eligible", () => {
     expect(decision.message).not.toMatch(
       /set DEFT_ACTIVE_SCOPE|pin DEFT_ACTIVE_SCOPE|Recovery: set/i,
     );
+  });
+
+  it("gates a changelog.d fragment-only Write like CHANGELOG.md (#6314)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/changelog.d/6314-x.md" },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/leftover-land/);
+    expect(decision.message).toMatch(/named residual/);
+  });
+
+  it("does not treat a nested changelog.d Write as retirement-shaped (#6314)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/changelog.d/sub/x.md" },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision.message ?? "").not.toMatch(/leftover-land/);
   });
 
   it("gates completed+CHANGELOG ApplyPatch the same way", () => {

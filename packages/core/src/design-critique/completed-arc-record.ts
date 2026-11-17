@@ -48,7 +48,30 @@ import {
 export type ThreadComment = {
   readonly id: number;
   readonly body: string;
+  /** REST `created_at` of the same comment row as `body` (#6477). */
+  readonly created_at?: string;
+  /** REST `updated_at` of the same comment row as `body` (#6477). */
+  readonly updated_at?: string;
 };
+
+/**
+ * One thread comment from one REST row: id, body and the row's own
+ * `created_at` / `updated_at` strings, never a timestamp from another row or
+ * from the body (#6477). A non-string timestamp is left out.
+ */
+export function threadCommentFromRow(
+  id: number,
+  body: string,
+  row: { readonly created_at?: unknown; readonly updated_at?: unknown },
+): ThreadComment {
+  const comment: { id: number; body: string; created_at?: string; updated_at?: string } = {
+    id,
+    body,
+  };
+  if (typeof row.created_at === "string") comment.created_at = row.created_at;
+  if (typeof row.updated_at === "string") comment.updated_at = row.updated_at;
+  return comment;
+}
 
 /**
  * Closed reason set, published in `content/contracts/design-critique.md`
@@ -1664,12 +1687,17 @@ const SYNTHESIS_NO_COMMA_NEAR_MISS_RE =
 
 /** Map REST issue comments onto the completed-arc ThreadComment shape. */
 export function threadCommentsFromIssueComments(
-  comments: readonly { readonly id?: number; readonly body?: string }[],
+  comments: readonly {
+    readonly id?: number;
+    readonly body?: string;
+    readonly created_at?: unknown;
+    readonly updated_at?: unknown;
+  }[],
 ): ThreadComment[] {
   const out: ThreadComment[] = [];
   for (const comment of comments) {
     if (typeof comment.id === "number" && typeof comment.body === "string") {
-      out.push({ id: comment.id, body: comment.body });
+      out.push(threadCommentFromRow(comment.id, comment.body, comment));
     }
   }
   return out;

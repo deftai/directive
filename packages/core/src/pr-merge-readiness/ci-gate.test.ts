@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildCiSummaryLine, evaluateCiGate, isBotReviewCheck } from "./ci-gate.js";
+import {
+  advisoryBotReviewFailures,
+  buildCiSummaryLine,
+  evaluateCiGate,
+  isBotReviewCheck,
+  isRedCompletedRun,
+  newestRunPerCheck,
+} from "./ci-gate.js";
 import type { CheckRunRecord } from "./gh.js";
 import { DEFAULT_CAPACITY_STALL_MS } from "./runner-capacity-stall.js";
 
@@ -446,5 +453,128 @@ describe("evaluateCiGate absent required contexts (#3234)", () => {
     });
     expect(result.summary.ready_state).toBe("ready");
     expect(result.summary.absent_required).toEqual([]);
+  });
+});
+
+describe("newest run per (app id, check name) (#6336)", () => {
+  const GHA = 15368;
+
+  it("an older failed run and a newer passed run of one check count as passing", () => {
+    const runs = [
+      run({ name: "closing-keywords", appId: GHA, runId: 100, conclusion: "failure" }),
+      run({ name: "closing-keywords", appId: GHA, runId: 200, conclusion: "success" }),
+    ];
+    const result = evaluateCiGate(runs, { nowMs: NOW });
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.summary.failed_required).toEqual([]);
+    expect(result.summary.checked_count).toBe(1);
+  });
+
+  it("keeps the newest created_at before the run id", () => {
+    const older = run({
+      name: "docs-impact",
+      appId: GHA,
+      runId: 900,
+      created_at: new Date(NOW - 120_000).toISOString(),
+      conclusion: "success",
+    });
+    const newer = run({
+      name: "docs-impact",
+      appId: GHA,
+      runId: 800,
+      created_at: new Date(NOW - 60_000).toISOString(),
+      conclusion: "failure",
+    });
+    expect(newestRunPerCheck([older, newer])).toEqual([newer]);
+    expect(newestRunPerCheck([newer, older])).toEqual([newer]);
+  });
+
+  it("uses the higher run id when created_at is equal or absent", () => {
+    const a = run({ name: "smoke", appId: GHA, runId: 5, created_at: null, conclusion: "failure" });
+    const b = run({ name: "smoke", appId: GHA, runId: 6, created_at: null, conclusion: "success" });
+    expect(newestRunPerCheck([b, a])).toEqual([b]);
+    const noId = run({ name: "smoke", appId: GHA, created_at: null, conclusion: "failure" });
+    expect(newestRunPerCheck([noId, a])).toEqual([a]);
+    expect(newestRunPerCheck([a, noId])).toEqual([a]);
+  });
+
+  it("a newest run that is skipped counts as passing", () => {
+    const runs = [
+      run({ name: "Merge gate (GH-hosted failover)", appId: GHA, runId: 1, conclusion: "failure" }),
+      run({ name: "Merge gate (GH-hosted failover)", appId: GHA, runId: 2, conclusion: "skipped" }),
+    ];
+    expect(evaluateCiGate(runs, { nowMs: NOW }).summary.ready_state).toBe("ready");
+  });
+
+  it("a failed check from one app is not cleared by a passing same-name check from another app", () => {
+    const runs = [
+      run({ name: "Analyze (go)", appId: GHA, runId: 1, conclusion: "failure" }),
+      run({ name: "Analyze (go)", appId: 57789, runId: 2, conclusion: "success" }),
+    ];
+    const result = evaluateCiGate(runs, { nowMs: NOW });
+    expect(result.summary.ready_state).toBe("ci_failures");
+    expect(result.summary.failed_required).toEqual(["Analyze (go) (failure)"]);
+  });
+
+  it("reads PR #6319's inventory (older red runs, newer green runs) as ready", () => {
+    const pairs: [string, number, string][] = [
+      ["Merge gate (task check)", 132675144619, "failure"],
+      ["Merge gate (task check)", 132676320336, "success"],
+      ["closing-keywords", 132675005865, "failure"],
+      ["closing-keywords", 132676039469, "success"],
+      ["docs-impact", 132675005882, "failure"],
+      ["docs-impact", 132676039640, "success"],
+      ["Merge gate (Blacksmith primary)", 132675073310, "failure"],
+      ["Merge gate (Blacksmith primary)", 132676319882, "success"],
+    ];
+    const runs = pairs.map(([name, runId, conclusion]) =>
+      run({ name, appId: GHA, runId, conclusion, created_at: null }),
+    );
+    const result = evaluateCiGate(runs, { nowMs: NOW });
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.failures).toEqual([]);
+  });
+});
+
+describe("every red conclusion is a named failure (#6336)", () => {
+  for (const conclusion of ["startup_failure", "action_required", "stale"]) {
+    it(`counts a completed ${conclusion} run as failed`, () => {
+      const result = evaluateCiGate([run({ name: "Merge gate (task check)", conclusion })], {
+        nowMs: NOW,
+      });
+      expect(result.summary.ready_state).toBe("ci_failures");
+      expect(result.summary.failed_required).toEqual([`Merge gate (task check) (${conclusion})`]);
+      expect(result.failures.join(" ")).toContain("Merge gate (task check)");
+    });
+  }
+
+  it("a red check that is not a required context still counts", () => {
+    const result = evaluateCiGate(
+      [run({ name: "smoke", conclusion: "failure" }), run({ name: "required-ci" })],
+      { nowMs: NOW, requiredContexts: ["required-ci"] },
+    );
+    expect(result.summary.ready_state).toBe("ci_failures");
+    expect(result.summary.failed_required).toEqual(["smoke (failure)"]);
+  });
+
+  it("isRedCompletedRun keeps success, neutral, skipped, cancelled and pending out", () => {
+    for (const conclusion of ["success", "neutral", "skipped", "cancelled", "none"]) {
+      expect(isRedCompletedRun(run({ name: "x", conclusion }))).toBe(false);
+    }
+    expect(isRedCompletedRun(run({ name: "x", status: "in_progress", conclusion: "none" }))).toBe(
+      false,
+    );
+    expect(isRedCompletedRun(run({ name: "x", conclusion: "" }))).toBe(false);
+    expect(isRedCompletedRun(run({ name: "x", conclusion: "timed_out" }))).toBe(true);
+  });
+
+  it("a red bot review check is advisory and not counted", () => {
+    const runs = [
+      run({ name: "SLizard", appId: 3532919, conclusion: "failure" }),
+      run({ name: "TypeScript (build + lint + test)" }),
+    ];
+    expect(evaluateCiGate(runs, { nowMs: NOW }).summary.ready_state).toBe("ready");
+    expect(advisoryBotReviewFailures(runs)).toEqual(["SLizard (failure)"]);
+    expect(advisoryBotReviewFailures([run({ name: "Greptile Review" })])).toEqual([]);
   });
 });

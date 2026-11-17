@@ -10,9 +10,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- chore(dogfood): pin Directive to 0.129.13.
+
+### Fixed
+
+### Removed
+
+## [0.129.13] - 2026-11-17
+
+> pre-rule design arcs ingest again, pr:wait-mergeable-and-merge --wait waits in the merge queue, finalize close-out by story, one story line per brief, and a steadier master gate.
+
+### Added
+
+- Merge queue setup playbook (`content/docs/github-merge-queue-setup.md`), with known issues and ways to save queue rounds. `scm/github.md` and the review-cycle merge step link it, and `pr:wait-mergeable-and-merge` prints one advisory line naming it on a strict branch with no queue. AGENTS.md and the swarm skill now say to run `swarm:pre-dispatch` (begin) before any implementation worker (#6366, #6379).
+- `pr:wait-mergeable-and-merge --wait`: in merge-queue mode, after enqueue or with `--resume`, the verb reads the queue every 60 seconds until the PR merges or leaves the queue, three reads in a row fail, or `--cap-minutes` passes, and reports the stop reason. Without `--wait` nothing changes (#6423).
+
+### Changed
+- chore(dogfood): pin Directive to 0.129.12.
+- Minted the intent-constraint record for the #6423 merge-queue wait (60 s between reads, 3 failed reads in a row). Refs #6423.
+
+### Fixed
+
+- Authz: a quoted heredoc body line that ends in a backslash no longer hides the commands after the heredoc from the zip / protected-destination check. The heredoc lexer is now shared with the commit-shape check (#6187).
+- **Swarm close-out works by story**: `swarm:finalize-cohort` and `swarm:complete-cohort` exit 0 after a correct sweep when no launch record lists the story, and keep the session lease. Close-out removes only the closed stories' worker registrations, marks them in the launch record's `closed_story_ids`, and releases the launcher lease once every story of the session's records is closed; it refuses a run that mixes two launch records. `swarm:launch` shares one lock with close-out and rolls back only what that attempt created, and a failure after the sweep moved briefs says the move is on disk and lists each moved brief (#6422)
+- `pr:check-closing-keywords` and `--write-story-line` now ask a story brief that names several issues for one story line, for the issue completion anchors on, so its product PR completes with no operator grant. Refs #6468.
+- **Arcs accepted before the harvest-digest rule ingest again**: a clean pain-audit with no `harvest-digest:` line now counts for a lean with acceptance criteria or slices when the lean comment's `updated_at` is strictly before the audit's `created_at`, both from the same GitHub comment rows. `issue:ingest`, the design-critique chip and `verify:ac` share the test. An edited lean or a missing or malformed timestamp is refused as before (#6477)
+- **Flaky pre-PR controller tests**: `controller.test.ts` now freezes `Date` for each test, so a second boundary between the command-phase and reviewer-report fills no longer trips the phase-order check and turns master's merge gate red (#6484)
+
+### Removed
+
+## [0.129.12] - 2026-11-17
+
+> scope-provenance in seconds instead of minutes, hook writes outside every checkout without the launching ritual, and no consumer deposits in the framework repository.
+
+### Added
+
+### Changed
+- chore(dogfood): pin Directive to 0.129.11.
+- Hooks: a Write or Edit to a file in the OS temp directory or an ordinary home folder outside every checkout is no longer refused for a stale session ritual or another session's lease (decision `write-outside-every-checkout-ready`), and a ritual refusal names the judged checkout with one `--project-root` recovery command. Directive temp folders now all carry `deft` in their names (#6376).
+- Minted the intent-constraint record for the #6378 per-call git timeout (120 s default, 1000000 s maximum, four enforce-mode throw sites). Refs #6378.
+
+### Fixed
+
+- **No consumer deposits in the framework repository**: `ensureGitattributes` no longer writes the consumer `.gitattributes` block in a checkout of this repository (linked worktrees and dogfood `.deft/core` included), so install, setup repair and `session:start` leave the tracked file alone. The pack-migrate verbs (`task packs:render-skills` and the other `render-*` tasks) take the skills directory, `REFERENCES.md` and the output path from the checkout they run in when it is this repository; explicit flags still win, and consumer projects resolve as before (#6337)
+- `verify:scope-provenance` reads the lifecycle census in a few batched `git cat-file` reads instead of one `git show` per brief, so it finishes in seconds instead of minutes. It prints one stderr line per phase (`--quiet` hides them), and each git call has a 120-second limit (`--git-timeout-seconds`, `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS`) that only warns in this release (#6378).
+
+### Removed
+
+## [0.129.11] - 2026-11-16
+
+> Wave 2b: in-PR story completion, plan upkeep and batched plans, faster session start, worktree-bound commits, per-story spec-drift rows, and SLizard label answers.
+
+### Added
+- `swarm:pre-dispatch` begin now writes a story-binding record for the worker's linked worktree (path or branch target), so solo, hand-started and large story workers commit in-scope files with several briefs active and no `DEFT_ACTIVE_SCOPE`; a merge commit of the fetched default branch is admitted for files that arrive unchanged, and `file_scope` still comes from the merge base (#6379).
+- Ordered plan stays current: readers derive the plan cursor from completed briefs, `scope:complete` prints one `plan-sequence:` line, and `plan-sequence:insert` adds an unplanned fix; under `requireBoundPrePrPush: true`, insert, replace and clear need a single-use `plan-sequence-approval` grant (#6205).
+- A story's last product PR can complete the story with `scope:complete --in-pr`, so no separate completion PR is needed; the human product merge plus the identity join on the landing commit is the completion proof, and stories whose acceptance rests on a merge keep the post-merge path (#6277).
+- `scope:promote`, `scope:activate` and `xbrief:preflight` now list the clauses that `scope:complete` will hold to deploy, smoke, UAT or observed-behaviour evidence, using the same classifier, so the wording or `x-directive/requires` can be fixed in the brief PR. Advisory only; exit codes are unchanged (#6272).
+- `issue:ingest` writes the acceptance clauses itself: one per item of the accepted lean's Bound remedy and Acceptance Criteria lists, or one per body sentence. Leans can split items across slice issues, and pain-audits record a `harvest-digest:` (#6333). One-time cost: a Spec-path brief that is still only in a working tree fails `verify:ac` until it is ingested again (`task issue:ingest -- <N>`).
+- The review-cycle skill records an answered SLizard finding with the bot's `@slizard label` command, one comment per round (`fp` after the head-blob check, `risk` under the HEAD-policy rule), and names the clearing sequence: label, acknowledgement, `@slizard review`, `pr:merge-ready`. The old line "A one-line falsification reply … is enough" now says that line is the label reason. The SLizard gate's blocked message prints the actionable fingerprints and names that sequence before `--skip-slizard`; its decisions do not change (#6377).
+
+### Changed
+- Mutation `session:start` no longer refuses a session for owed completions. The inventory still runs; one always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed` (the form that runs; `task swarm:finalize-owed` never existed), and `--json` carries `finalize_owed_count`. Only an unresolvable repository still refuses (#6409; #5914 part 1).
+- chore(dogfood): pin Directive to 0.129.10.
+- chore(xbrief): widen the #6361 brief to `known-machine.ts` (import-cycle fix) and land its one-PR mint record (#6361).
+- After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
+- **Spec-drift row files**: each story completion writes its spec-drift rows to its own file, `xbrief/.audit/spec-drift/<scopeId>.json`, and no longer appends to `xbrief/.audit/spec-drift-ledger.json`, so parallel completion PRs merge without a manual merge round. The rewrite proof reads both fingerprints from the story's own delivery commits. An authority-record PR carries `deft-story-part: N` (#6335)
+- Minted the intent-constraint record for the #6379 story-binding lock stale age (300000 ms). Refs #6379.
+
+### Fixed
+- The finalize-owed scan in `session:start` and `swarm:finalize-owed` reads origin issue state from one paged open-issue list instead of one `gh api issues/N` call per brief, so cold `session:start` no longer spends minutes there; a failed list keeps items unverified or unknown, never closed (#5927).
+- `scope:complete` judges a `delivery-identity-attest` grant's expiry at the transition clock, not wall time; this turns master CI green again (#6398).
+- `git commit` of planning files only (`docs/design/*.md`, `docs/decisions/*.md`, proposed/pending/completed/cancelled briefs, decision records, `CHANGELOG.md`, a shape-checked `.deft/plan-sequence.json`) is no longer denied for want of a ready scope. Recovery: upgrade, commit these before `scope:promote`, then commit root plan/specification/PROJECT-DEFINITION and `active/` changes separately; any other path keeps today's rules (#5839).
+- `verify:class-checks` and `verify:evaluator-surface --base-ref` read one candidate tree: the working tree against the merge base, plus untracked files. A reverted protected path passes before its commit, and base-only commits stay out (#6336).
+- An approved parallel wave in the ordered plan now runs in parallel: push and `swarm:launch` admit every pending entry of the current batch. Before, `batching_allowed: true` was stored but had no effect (a misleading setting and lost throughput, not a security issue). To use it, give the entries that run together the same `batch` label; `plan-sequence:current` lists the batch, and `set` refuses unlabeled or split batches. While a plan file is present, `swarm:launch` also checks its real roster, solo included, against the current entry or batch (#4433).
+- fix(scope): a one-PR story now has a worker path. The write fence admits a brief absent from the merge base when the merge-base level is `mint` and the same-PR record matches that exact brief (same checks as CI, never cached), `swarm:launch -- --base-branch <branch>` accepts such a brief from the pushed branch and builds the dest from it, and `task policy:set-one-pr-scope-proof` works. Refs #6361.
+- `pr:watch` and the merge verbs score the newest run per check and app, count every red conclusion as a named failure, and `pr:watch` names missing required checks and prints red bot checks as advisory; pre-PR `lint_iteration` runs `verify:class-checks` and `verify:evaluator-surface`; `verify:intent-constraint` lists every fact; `pre-pr:run --complete` names a missing PR; the body hash ignores CRLF and trailing newlines (#6336).
+- **finalize-cohort / design-critique playbook**: a finalize run stopped by a killed run's leftover branch now names that branch and worktree and prints the commands that remove them; the playbook says how to capture launcher output without a redirect and names the two-step Claude CLI seat launch (#6421, #6410, #6412)
+
+### Removed
+
+## [0.129.10] - 2026-11-16
+
+> Wave 2a: changelog fragments, a merge queue, story lines and operator recovery for completion, worker commits in their own worktree, and the one-PR level without a human merge.
+
+### Added
+- **Story lines for product PRs of an active story (#6316).** New `deft-story-part: N` line for a PR that is part of a story and does not complete it. `pr:check-closing-keywords` fails a product PR of a running story with neither line, and a body with both. `--body-file <path> --write-story-line [--part]` and `pre-pr:run --body-file` write the line. PR templates stop advising `Closes #N` for an active story. Refs #6310.
+- feat(merge): `pr:wait-mergeable-and-merge` detects a required merge queue and enqueues with `--match-head-commit` (no `--admin`), skips the stale-base and master-gate waits, and reports one result (`merged` / `queued` / `awaiting-admission` / `head-changed` / `removed` / `inactive`) with a `--resume` command. CI runs on `merge_group`, PR-context checks skip there, and a `merge_group`-only job reports `Greptile Review`. Pre-PR no longer refuses while master's gate is pending, and `verify:pr-closeout-attestable` reads briefs at the PR head SHA instead of requiring local HEAD to match. Refs #6295.
+- Parallel changes can record release notes in separate changelog fragments, so they no longer edit the same file (#6314). Changelog checks and release citation scans include valid fragments. Projects choose the entry form with `deft policy:set-changelog-mode`; the default stays a line in `CHANGELOG.md`, and enforcement follows in a later change.
+- **Story completion: partial PRs refused, duplicate marks settled, operator attestation (#6317).** `scope:complete` and `swarm:finalize-cohort` now refuse a PR marked `deft-story-part: N` (it does not complete the story) and refuse when the PR body as of merge cannot be read. When two merged PRs both carry `deft-story: N`, only the one named by `productPullRequest` in the brief on the delivery branch completes; finalize names both instead of guessing. For merged work with no usable mark, an operator can attest it: `deft authz:grant -- --template delivery-identity-attest --target <owner>/<repo>#<pr>@<sha> --plan-ref <scopeId>`. Refs #6310.
+- The review-cycle and pre-PR skills record that no PR class skips the review bot: activation and widen PRs keep review for their new acceptance text, mint-record and cancel PRs for their authority. Completion rides in the last product PR (#6277); the rest batch under #6303 (#6280).
+- Changelog fragments now count at the gate and at release (#6315). `verify:changelog-unreleased` follows `plan.policy.changelog.mode`: a change adds its own fragment, a line, or (in `either`) exactly one of the two, and never edits a fragment already on master. The release folds fragments into the new version and deletes them in the release commit. This repository now runs mode `either`.
+- **An operator can defer an acceptance clause without editing the active brief (#6318).** Run `deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> --deferred-to <issue> --reason <text>`; `scope:complete` and finalize then record those items as `deferred` to that issue instead of stamping merge evidence. If the clause text changes or the grant expires unused, completion refuses and asks for a new grant. Refs #6310.
+
+### Changed
+- The one-PR `mint` level no longer needs `requireHumanMerge: true` on the merge base (#6354), so an agent or the merge queue may merge the PR. Every record check stays, and a change set that edits `onePrScopeProof` or `requireHumanMerge` still cannot use the path. The admit block names the control: the human merge, or else the local mint gate and the write fence (CI verifies nothing human). Refs #6354.
+- This repository turns the #1193 human merge gate off again (`plan.policy.requireHumanMerge: false`, via `policy:allow-bot-merge`), so agents may merge their own clean PRs.
+- This repository sets `plan.policy.onePrScopeProof: mint` (#6273), so a single maintainer can land a brief, its human mint record and its code in one PR. Refs #6327.
+- Minted the intent-constraint record for the #6295 merge-queue exit code (3) and GraphQL floor (500 points). Refs #6295.
 - chore(dogfood): pin Directive to 0.129.9.
 
 ### Fixed
+- fix(scope-provenance): `verify:scope-provenance` no longer fails with ENOBUFS when `xbrief/PROJECT-DEFINITION.xbrief.json` at the merge base is larger than 1 MiB; the one-PR gate now reads the policy. Coverage-applicability reads large PROJECT-DEFINITION blobs the same way (#6349).
+- fix(hooks): after a pin bump, the pin-mismatch refusal now admits the project install it names (`pnpm install --frozen-lockfile`, `npm install`, `npm ci`) as a simple command at the project root, when pin ≠ installed is the only fault (#6313).
+- fix(hooks): a worker can commit in its linked worktree with `git -C <absolute path> commit` or `cd <absolute path> && git commit`. The commit gate reads that checkout's staged files and its worktree story binding, so several active briefs no longer refuse the commit as `multiple-eligible`; it refuses a target it cannot resolve to one checkout (relative, repeated or variable path, git location overrides). The preamble and Claude Code host notes say to name the worktree in every git command and not to write git through the PowerShell tool (#6278, #6247, #6291).
 
 ### Removed
 
@@ -8038,7 +8138,11 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.9...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.13...HEAD
+[0.129.13]: https://github.com/deftai/directive/compare/v0.129.12...v0.129.13
+[0.129.12]: https://github.com/deftai/directive/compare/v0.129.11...v0.129.12
+[0.129.11]: https://github.com/deftai/directive/compare/v0.129.10...v0.129.11
+[0.129.10]: https://github.com/deftai/directive/compare/v0.129.9...v0.129.10
 [0.129.9]: https://github.com/deftai/directive/compare/v0.129.8...v0.129.9
 [0.129.8]: https://github.com/deftai/directive/compare/v0.129.7...v0.129.8
 [0.129.7]: https://github.com/deftai/directive/compare/v0.129.6...v0.129.7

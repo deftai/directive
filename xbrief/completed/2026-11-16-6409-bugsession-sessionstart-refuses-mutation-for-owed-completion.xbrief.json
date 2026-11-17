@@ -1,0 +1,945 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6409",
+    "updated": "2026-11-16T21:30:25Z"
+  },
+  "plan": {
+    "title": "bug(session): session:start refuses mutation for owed completions that belong to other stories",
+    "status": "completed",
+    "narratives": {
+      "Description": "Mutation session:start refuses every session when any story in the repository has an owed completion, so one owed story of another owner stops every worker in every worktree. This story keeps the finalize-owed inventory on every mutation start but turns the refusal into one always-on report line with the owed count and a clearing command that runs; the --json payload carries the count. Only the repository-not-resolved case keeps today's result.",
+      "UserStory": "As an agent starting a mutation session, I want owed completions of other stories reported instead of refused, so that I can work without passing --defer-owed while the owed work stays visible with a command that clears it.",
+      "ImplementationPlan": "1. packages/core/src/session/session-start.ts: evaluateFinalizeOwedSessionGate no longer returns blocks true for inventory rows (cold and --rearm); it counts rows with blocks true and pushes one line `finalize owed report: N owed item(s) do not stop this session; clear with `deft swarm:finalize-owed``. isSessionStartAlwaysOnLine admits that prefix. The cold and rearm success payloads carry finalize_owed_count. The repository-not-resolved branch, --defer-owed, its ritual-state record and the primary inheritance stay as today.\n2. packages/core/src/swarm/finalize-owed-cli.ts: FINALIZE_OWED_USAGE names `deft swarm:finalize-owed`, the form that routes to the swarm-finalize-owed verb (task swarm:finalize-owed has no Taskfile entry, #5914 part 1).\n3. Tests: session-start finalize-owed gate tests (no refusal, count line, quiet output, JSON count, repo-not-resolved unchanged, deferral unchanged), and a runtime routeArgv test that the named command resolves to swarm-finalize-owed. discoverFinalizeOwed and the issue-state lookup (#5927) are not touched.\n4. Docs: content/commands.md session-start section, content/templates/agents-entry.md plus AGENTS.md (task agents:refresh), the swarm SKILL.md (and the skills pack JSON if packs render requires it) and content/templates/agent-prompt-preamble.md state that owed completions are reported, not refused, including unknown rows.\n5. One CHANGELOG.md [Unreleased] line.",
+      "Traces": "#6409, #5914, #5927, #6306, #5171, #4919, #4966",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6409",
+      "Overview": "\n1. No refusal for owed rows. `evaluateFinalizeOwedSessionGate` does not return `blocks` true because of inventory rows, so `session:start`, cold and `--rearm`, is not refused for owed completions.\n2. Inventory unchanged. `discoverFinalizeOwed` runs on every mutation `session:start` and `--rearm` as today, and its rows and their `blocks` field are unchanged. `swarm:finalize-owed` and `swarm:finalize-cohort` are unchanged.\n3. Report line. When the inventory has one or more rows with `blocks` true, `session:start` prints one line with a fixed prefix that gives the number of those rows, says that they do not stop this session, and names the clearing command with the same wording as the remedy text that #5914 settles. `isSessionStartAlwaysOnLine` returns true for that prefix.\n4. JSON. The `session:start` payload carries the number of those rows.\n5. Repository not resolved. When the delivery tip is known and the repository cannot be resolved for the inventory, the result is the same as today, with or without `--defer-owed`.\n6. Deferral. `--defer-owed`, its record in the ritual state and the deferral inherited from the primary are unchanged in code.\n7. Owner checks. `verify:orphan-active` and `verify:completed-tracked` are unchanged.\n8. Docs. The session-start documentation, the AGENTS text and its template, the swarm skill and the agent prompt preamble state that owed completions are reported at `session:start` and not refused, including rows whose state is unknown.\n\n\n",
+      "Constraint": "- A refusal for a session's own story at `session:start` (candidate C1, C2 and C5).\n- Reading the worker-auth registry or running the brief preflight in `session:start` for this gate.\n- A new gate, scheduled check or stored state to make sure owed work is cleared.\n- Removing `--defer-owed` or the inherited deferral in this story.\n- Skipping or caching the inventory.",
+      "Labels": "bug, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "No refusal for owed rows.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "The change adds no flag, no stored state and no refusal."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`evaluateFinalizeOwedSessionGate` does not return `blocks` true because of inventory rows, so `session:start`, cold and `--rearm`, is not refused for owed completions.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given owed items on the delivery tip that block today, when a mutation `session:start` runs cold or with `--rearm`, then it is not refused for finalize-owed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Inventory unchanged.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given any mutation `session:start`, then the inventory still runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`discoverFinalizeOwed` runs on every mutation `session:start` and `--rearm` as today, and its rows and their `blocks` field are unchanged.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given any mutation `session:start`, cold or `--rearm`, then `discoverFinalizeOwed` runs and its rows and their `blocks` field are as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`swarm:finalize-owed` and `swarm:finalize-cohort` are unchanged.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given `swarm:finalize-owed`, then it lists and acts on every owed item as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Report line.",
+        "status": "completed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given owed items that block today, then `session:start` prints one report line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "When the inventory has one or more rows with `blocks` true, `session:start` prints one line with a fixed prefix that gives the number of those rows, says that they do not stop this session, and names the clearing command with the same wording as the remedy text that #5914 settles.",
+        "status": "completed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given the same state, then `session:start` prints one line on the default quiet output that gives the number of owed items and the command that clears them."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`isSessionStartAlwaysOnLine` returns true for that prefix.",
+        "status": "completed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given the report line, then `isSessionStartAlwaysOnLine` returns true and the quiet success output keeps it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "JSON.",
+        "status": "completed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given owed items and `--json`, then the payload carries a count field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The `session:start` payload carries the number of those rows.",
+        "status": "completed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given the same state and `--json`, then the payload carries the number of owed items."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Repository not resolved.",
+        "status": "completed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a repository that cannot be resolved for the inventory, when a mutation `session:start` runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "When the delivery tip is known and the repository cannot be resolved for the inventory, the result is the same as today, with or without `--defer-owed`.",
+        "status": "completed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a known delivery tip and no resolvable repository, then `session:start` refuses without `--defer-owed` and passes with it, as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Deferral.",
+        "status": "completed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given `--defer-owed <reason>`, then it is accepted as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`--defer-owed`, its record in the ritual state and the deferral inherited from the primary are unchanged in code.",
+        "status": "completed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given `--defer-owed` or a fresh primary deferral, then the deferral reason, its ritual-state record and the inherited deferral are as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Owner checks.",
+        "status": "completed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given a story whose completion is owed, then the owner checks before DONE are as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`verify:orphan-active` and `verify:completed-tracked` are unchanged.",
+        "status": "completed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given a story whose completion is owed, then `verify:orphan-active` and `verify:completed-tracked` give the same result as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Docs.",
+        "status": "completed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "The session-start documentation and the finalize-owed text for agents describe the rule."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The session-start documentation, the AGENTS text and its template, the swarm skill and the agent prompt preamble state that owed completions are reported at `session:start` and not refused, including rows whose state is unknown.",
+        "status": "completed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given the session-start documentation, AGENTS.md and its template, the swarm skill and the agent prompt preamble, then each states that owed completions, including unknown rows, are reported at `session:start` and not refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given an owed item, then the command that the report line names runs the finalize-owed verb.",
+        "status": "completed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given an owed item, then the command that the report line names runs the finalize-owed verb."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T21:30:25Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6409",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6409: bug(session): session:start refuses mutation for owed completions that belong to other stories"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5914",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5914"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5927",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5927"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6306",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6306"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5171",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5171"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 19 clauses before product edit (#3323): one per admitted sentence of the Bound remedy on successor lean 6922750450 (accepted synthesis 6922885841), plus the operator scope addition of 2026-11-16 that the report line names a command that runs",
+      "sentences": [
+        "bug(session): session:start refuses mutation for owed completions that belong to other stories",
+        "No refusal for owed rows.",
+        "`evaluateFinalizeOwedSessionGate` does not return `blocks` true because of inventory rows, so `session:start`, cold and `--rearm`, is not refused for owed completions.",
+        "Inventory unchanged.",
+        "`discoverFinalizeOwed` runs on every mutation `session:start` and `--rearm` as today, and its rows and their `blocks` field are unchanged.",
+        "`swarm:finalize-owed` and `swarm:finalize-cohort` are unchanged.",
+        "Report line.",
+        "When the inventory has one or more rows with `blocks` true, `session:start` prints one line with a fixed prefix that gives the number of those rows, says that they do not stop this session, and names the clearing command with the same wording as the remedy text that #5914 settles.",
+        "`isSessionStartAlwaysOnLine` returns true for that prefix.",
+        "JSON.",
+        "The `session:start` payload carries the number of those rows.",
+        "Repository not resolved.",
+        "When the delivery tip is known and the repository cannot be resolved for the inventory, the result is the same as today, with or without `--defer-owed`.",
+        "Deferral.",
+        "`--defer-owed`, its record in the ritual state and the deferral inherited from the primary are unchanged in code.",
+        "Owner checks.",
+        "`verify:orphan-active` and `verify:completed-tracked` are unchanged.",
+        "Docs.",
+        "The session-start documentation, the AGENTS text and its template, the swarm skill and the agent prompt preamble state that owed completions are reported at `session:start` and not refused, including rows whose state is unknown.",
+        "Given an owed item, then the command that the report line names runs the finalize-owed verb."
+      ],
+      "confessions": [
+        "bug(session): session:start refuses mutation for owed completions that belong to other stories"
+      ],
+      "admitted_source_sentences": [
+        "No refusal for owed rows.",
+        "`evaluateFinalizeOwedSessionGate` does not return `blocks` true because of inventory rows, so `session:start`, cold and `--rearm`, is not refused for owed completions.",
+        "Inventory unchanged.",
+        "`discoverFinalizeOwed` runs on every mutation `session:start` and `--rearm` as today, and its rows and their `blocks` field are unchanged.",
+        "`swarm:finalize-owed` and `swarm:finalize-cohort` are unchanged.",
+        "Report line.",
+        "When the inventory has one or more rows with `blocks` true, `session:start` prints one line with a fixed prefix that gives the number of those rows, says that they do not stop this session, and names the clearing command with the same wording as the remedy text that #5914 settles.",
+        "`isSessionStartAlwaysOnLine` returns true for that prefix.",
+        "JSON.",
+        "The `session:start` payload carries the number of those rows.",
+        "Repository not resolved.",
+        "When the delivery tip is known and the repository cannot be resolved for the inventory, the result is the same as today, with or without `--defer-owed`.",
+        "Deferral.",
+        "`--defer-owed`, its record in the ritual state and the deferral inherited from the primary are unchanged in code.",
+        "Owner checks.",
+        "`verify:orphan-active` and `verify:completed-tracked` are unchanged.",
+        "Docs.",
+        "The session-start documentation, the AGENTS text and its template, the swarm skill and the agent prompt preamble state that owed completions are reported at `session:start` and not refused, including rows whose state is unknown."
+      ],
+      "admitted_source_digest": "3031b79c93487224baa1a6496295f5b9a803678c29f132cc484bbe478d3f8285",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "No refusal for owed rows.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`evaluateFinalizeOwedSessionGate` does not return `blocks` true because of inventory rows, so `session:start`, cold and `--rearm`, is not refused for owed completions.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Inventory unchanged.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`discoverFinalizeOwed` runs on every mutation `session:start` and `--rearm` as today, and its rows and their `blocks` field are unchanged.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`swarm:finalize-owed` and `swarm:finalize-cohort` are unchanged.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed-cli.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Report line.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "When the inventory has one or more rows with `blocks` true, `session:start` prints one line with a fixed prefix that gives the number of those rows, says that they do not stop this session, and names the clearing command with the same wording as the remedy text that #5914 settles.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`isSessionStartAlwaysOnLine` returns true for that prefix.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "JSON.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "The `session:start` payload carries the number of those rows.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Repository not resolved.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "When the delivery tip is known and the repository cannot be resolved for the inventory, the result is the same as today, with or without `--defer-owed`.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Deferral.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "`--defer-owed`, its record in the ritual state and the deferral inherited from the primary are unchanged in code.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Owner checks.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`verify:orphan-active` and `verify:completed-tracked` are unchanged.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Docs.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The session-start documentation, the AGENTS text and its template, the swarm skill and the agent prompt preamble state that owed completions are reported at `session:start` and not refused, including rows whose state is unknown.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given an owed item, then the command that the report line names runs the finalize-owed verb.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed-cli.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "packages/core/src/session/session-start.test.ts",
+          "packages/core/src/session/session-start-rearm.test.ts",
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/swarm/finalize-owed-cli.ts",
+          "packages/core/src/swarm/finalize-owed-cli.test.ts",
+          "packages/runtime/src/cli-router/finalize-owed-remedy-route.test.ts",
+          "content/commands.md",
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "finalize-owed-session-gate",
+        "verify_commands": [
+          "npx vitest run packages/core/src/session/session-start-finalize-owed.test.ts packages/core/src/session/session-start.test.ts packages/core/src/session/session-start-rearm.test.ts packages/core/src/swarm/finalize-owed-cli.test.ts packages/runtime/src/cli-router/finalize-owed-remedy-route.test.ts"
+        ],
+        "expected_outputs": [
+          "mutation session:start (cold and --rearm) is not refused for owed inventory rows; the repository-not-resolved case is as today",
+          "one always-on `finalize owed report:` line with the owed count and `deft swarm:finalize-owed`; --json carries finalize_owed_count",
+          "FINALIZE_OWED_USAGE names `deft swarm:finalize-owed`, which routeArgv resolves to the swarm-finalize-owed verb",
+          "docs state that owed completions are reported at session:start, not refused"
+        ],
+        "Traces": [
+          "#6409",
+          "#5914",
+          "#5927",
+          "#6306",
+          "#5171",
+          "#4919",
+          "#4966"
+        ],
+        "acceptance_criteria_justification": "Nineteen clauses: eighteen one-to-one with the admitted sentences of the Bound remedy on #6409 (successor lean 6922750450, accepted synthesis 6922885841), each carrying the matching Acceptance Criteria line, plus the operator scope addition of 2026-11-16 that the report line names a command that runs (#5914 part 1)."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6409; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes which sessions the finalize-owed gate at `session:start` refuses: owed completions of other stories would stop refusing a session and become a report, which changes who is made to clear owed work.\n\nTarget-digest: sha256:4f01ce084bdb210eca972fc2e25e1b50f56c56385fbddd10b8e8ae0cecf1dcfa\ndispatch-sha: 36d1963d276489e51177cebc1c9d166f460c9365\ndest: .deft-scratch/worktrees/arc-6409 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: the gate runs at the start of every mutation session in every worktree, so the blast radius is high; three critic families are launchable from this parent.\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 36d1963d276489e51177cebc1c9d166f460c9365:; dest cwd-without-occupy\npain: P1\n\nOperator budget (live turn 2026-11-16, in chat): the operator chose a cross-family panel for this arc with one extra critic post allowed beyond the three round-1 posts and the reserved pain-audit.\n\n## In plain English\nBefore a session may change files, `session:start` lists every story whose completion is owed: the product PR has merged and the brief or the issue has not been closed out. If the list has any such item, the session is refused, whoever owns the item. On 2026-11-16 two items from other stories stopped every worker in every worktree, and no refused worker could clear either item. The proposed change keeps the list and refuses a session only for an item that is its own. The open questions are whether anything is lost when other sessions stop being refused, and who then makes sure the owed work is done.\n\n## Pains\n- P1 — A mutation `session:start` is refused for an owed completion that belongs to another story, which the refused session does not own and cannot clear.\n\n## Out of this arc\n- The speed of the inventory (#5927), which keeps the blocking set as it is.\n- `--defer-owed` on `session:ready` and the remedy text of the block (#5914, accepted design).\n- Starting owed completions without a command (#6306).\n- The freshness test of the inherited deferral in a linked worktree.\n- A cache of the inventory.\n- Why #5365 and #5994 are owed and how to clear those two items.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/session/session-start.ts` 968-1076: `evaluateFinalizeOwedSessionGate` refuses when any row blocks and no deferral applies; 900-966: the deferral comes from `--defer-owed` or from the primary ritual.\n- `packages/core/src/swarm/finalize-owed.ts` 764-1203: `discoverFinalizeOwed` takes no story, session or worktree input; 1731-1733: `inventoryHasBlockingOwed` is true when any row has `blocks`.\n- `packages/core/src/hooks/scope.ts` 956-990: `resolveWorktreeStoryBinding` reads the worker-auth assignment of a linked worktree and returns no binding for the main worktree.\n- Operator decision on #5171 (comment 5903271457): the inventory runs on every mutation `session:start` and `--rearm`.\n\n## Operator direction recorded for this arc\nPrefer a design that removes steps and refusals over one that adds a gate. Accept a lean after a clean audit. The arc does not implement.\n\n",
+          "id": 6922218491,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922218491",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:23:40Z",
+          "updated_at": "2026-11-16T16:23:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nCandidate design for critique under Stop 1 6922218491. This is the thing to attack. It is not a disposition map and nothing in it is accepted.\n\n## Candidate\n- C1. Own rows. An inventory row is the session's own when the story id of its brief on the delivery tip equals the story id of the worker-auth assignment of the worktree that runs `session:start` (`resolveWorktreeStoryBinding`). The main worktree and a linked worktree with no assignment have no own rows.\n- C2. Refusal. `session:start`, cold and `--rearm`, refuses for finalize-owed only when an own row has `blocks` true and no deferral applies. The exit code, the payload and the message of that refusal are as today.\n- C3. Report. When rows with `blocks` true exist that are not own rows, `session:start` prints the inventory lines as today and one more line that gives the number of those rows, says they do not stop this session, and names the command that clears them. The session continues.\n- C4. Inventory. `discoverFinalizeOwed` is unchanged and runs on every mutation `session:start` and `--rearm`, as today. `swarm:finalize-owed` is unchanged and lists and acts on every row.\n- C5. Doubt. When the worker-auth registry cannot be read or the binding is refused, and when the repository cannot be resolved, the result is the same as today.\n- C6. Deferral. `--defer-owed` and the deferral a linked worktree inherits from the primary are unchanged. By C2 they now matter only for an own row.\n- C7. Who clears other stories' rows. No new mechanism. The report of C3 appears in every mutation session start. The worker or closer that owns a story still must pass `verify:orphan-active` and `verify:completed-tracked` before `DONE`. `swarm:finalize-cohort` and `swarm:finalize-owed` still clear rows. #6306 carries starting owed completions without a command.\n- C8. Docs. The session-start documentation and the AGENTS text on finalize-owed state the rule.\n\n## What the candidate adds and removes\nIt adds one report line. It adds no flag, no stored state, no refusal and no new check. It removes the refusal of a session for rows that are not its own.\n\n## Questions the critique should settle\n1. Does C2 lose a protection that the repository-wide refusal gives today, given that any session can already pass `--defer-owed` with any reason?\n2. With C2, is the owed work of other stories still cleared, and by whom, without a new gate?\n3. Is the worker-auth assignment the right test for own rows, and can a session change it to avoid a refusal that should apply?\n4. Is a smaller design better: no refusal at all at `session:start` for finalize-owed, report only?\n\n",
+          "id": 6922230617,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922230617",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:24:10Z",
+          "updated_at": "2026-11-16T16:24:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6922234175\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest -p --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 36d1963d276489e51177cebc1c9d166f460c9365\ndest: .deft-scratch/worktrees/arc-6409\nverification-path: pin-read git show 36d1963d276489e51177cebc1c9d166f460c9365:; dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6922218491\nCandidate under critique: comment 6922230617\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-fable-5-2). It does not use the bypass critic argv. Each seat uses a read-only launcher run against the dest.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- The Codex and Grok seats have no GitHub access in that posture. Each receives, inside its prompt, the issue body, Stop 1, the candidate and this deposit, verbatim, and reads code with `git show <dispatch-sha>:<path>` in the dest. The Claude seat receives the same text. For all three seats the parent posts the final message of the critic verbatim. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6922234175,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922234175",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:24:18Z",
+          "updated_at": "2026-11-16T16:24:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nAn unfinished completion currently stops unrelated workers from starting work. The candidate removes that stop in the normal case and preserves the repository-wide inventory and cleanup commands.\n\nI would not accept C1–C8 unchanged. The proposed ownership helper also checks whether work is eligible to begin, which is different from identifying who owes completion. The candidate also understates how often inherited deferral can bypass its own-story refusal.\n\nA smaller, report-only design removes P1 without adding a gate. It loses the startup interruption for owners as well as unrelated workers; it does not remove the finalizer’s claim protections. If retaining the issue’s own-story refusal is required, ownership needs a narrower definition and an explicit uncertainty rule.\n\nAll code evidence below was read through `git show` at `36d1963d276489e51177cebc1c9d166f460c9365`. No tests were run.\n\n### 1. blocks-the-design — The proposed ownership helper checks implementation eligibility, not just assignment\n\n**Evidence:** `packages/core/src/hooks/scope.ts:956–980` reads the worker-auth assignment, but `982–1009` also requires exactly one matching active brief and successful implementation preflight. Lines `1012–1026` can refuse for bound-path or environment-pin conflicts. The narrower reader already exists at `packages/core/src/swarm/worker-auth-assignment.ts:661–731`.\n\n**Failure mode:** A registered worktree whose brief has moved to completed can receive a binding refusal despite having a known assigned story. This is directly relevant to `close-owed`, which discovery emits for completed briefs with open issues (`packages/core/src/swarm/finalize-owed.ts:1183–1192`). Under C5, interpreting “same as today” as the existing repository-wide predicate makes unrelated rows block that worktree again. Interpreting it as an unconditional binding refusal introduces a new startup gate, including when no owed row blocks.\n\n**Disposition consequence:** C1/C5 cannot bind as written. Assignment identity and implementation eligibility need separation. Reusing the existing assignment reader avoids importing preflight into this gate; unresolved assignment still needs an explicit outcome. Report-only avoids that dependency entirely. A registry or eligibility failure is not evidence that every owed story belongs to this session.\n\n### 2. blocks-the-design — The inventory does not expose the story ID required by C1\n\n**Evidence:** `packages/core/src/swarm/finalize-owed.ts:81–95` exposes `issue`, `productPr`, `relPath`, `pairingKey`, and `planIdentity`, but no story ID. Its `planIdentity` comes from `briefPlanIdentity`, whose definition uses title and origin-issue references, not `plan.id` (`packages/core/src/orphan-active/running-briefs.ts:112–129`). Discovery already loads delivery-tip brief bodies internally (`packages/core/src/swarm/finalize-owed.ts:782–791`).\n\n**Failure mode:** Comparing worker-auth `story_id` with `planIdentity` silently classifies owned rows as unrelated. Comparing issue numbers instead changes the candidate’s identity rule and fails for issue-less rows, which the inventory explicitly supports.\n\n**Disposition consequence:** C1 needs a concrete delivery-tip `plan.id` read. Keeping C4’s discovery function unchanged is possible through a separate pinned read of each relevant `relPath`, but that is additional work and requires defined missing/unreadable-ID behavior. Alternatively, exposing the already-read ID changes C4’s literal “unchanged” promise. The candidate must choose; existing `planIdentity` is not a substitute.\n\n### 3. sharpens-framing — A successful primary start can bypass the own-story refusal without an explicit deferral\n\n**Evidence:** `packages/core/src/session/session-start.ts:919–951` inherits both a recorded deferral reason and a fresh primary `finalize_owed.ok === true`. Lines `956–965` use that inheritance as the effective deferral; `1058–1074` suppress blocking when it applies.\n\n**Failure mode:** Under C1, the main worktree has no owned rows. It can therefore start successfully while owed rows remain. A linked owner can then inherit that successful primary result and pass its own owed-row check. Describing the retained check as ensuring owners clear their debt would overstate its protection.\n\n**Disposition consequence:** C6 can remain unchanged, but the safety claim must be narrower: the candidate retains a conditional startup interruption, not reliable owner enforcement. It already permits bypass without changing the assignment or supplying a new reason.\n\nThis also answers the authority question: ownership here is a routing rule, not an adversarial security boundary. The existing nonempty-reason deferral alone already bypasses the refusal (`session-start.ts:956–961`). Adding assignment hardening to prevent deliberate avoidance would add machinery without closing that existing route.\n\n### 4. sharpens-framing — Reporting preserves visibility and cleanup capability, not eventual completion\n\n**Evidence:** Existing mechanisms include repository-wide discovery (`packages/core/src/swarm/finalize-owed.ts:764–791`), inventory rendering (`1712–1732`), finalizer discovery (`1396–1404`), create-only claim acquisition (`1482–1487`), and delegation to `finalizeCohort` (`1490–1515`). The finalizer deliberately skips unknown and stale-unverified rows (`1451–1467`). Session startup evaluates the gate in both rearm and cold paths (`packages/core/src/session/session-start.ts:1921–1950,2916–2946`).\n\n**Failure mode:** If an owner has departed, repeated advisory output does not make anyone invoke cleanup. Even invoking the named command does not necessarily clear every blocking row: uncertainty can leave rows pending. C7’s remaining lifecycle obligations therefore do not establish that every discovered debt will eventually be cleared.\n\n**Disposition consequence:** Accept this as an explicit tradeoff, without adding a replacement gate. The lost protection is compulsory interruption of unrelated sessions, which may attract attention but cannot ensure resolution. Cleanup capability and claim-based concurrency protection remain.\n\nMy preferred smaller design is report-only startup for finalize-owed. The strongest reason to retain C2 is preserving an owner’s reminder before further mutation, as the issue’s acceptance criteria request. That would favor the narrowed ownership design if the operator considers that interruption valuable despite inherited bypass. Report-only would require expressly changing that acceptance criterion; it should not be presented as satisfying it unchanged.\n\n### 5. footnote — The report needs to distinguish inventory status from this session’s outcome\n\nThe existing formatter prints `[blocks]` for every blocking inventory row (`packages/core/src/swarm/finalize-owed.ts:1721–1725`). C3 preserves those lines, and its “session continues” wording also covers a mixed inventory containing an undeferred owned blocker.\n\nA precise advisory would say that the counted **other-story rows do not block this session**. It would not promise that the session continues or that the cleanup command necessarily clears every row. C2’s unchanged-message promise also needs reconciliation with C8’s requirement to describe the new ownership rule.\r\n\n",
+          "id": 6922398173,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922398173",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:30:28Z",
+          "updated_at": "2026-11-16T16:30:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nMutation `session:start` today runs a repo-wide finalize-owed inventory and refuses every worktree when any story blocks, including stories the refused session does not own and cannot clear. The candidate keeps that inventory, keeps `swarm:finalize-owed` unchanged, and tries to refuse only for an “own” row by joining tip inventory stories to `resolveWorktreeStoryBinding` (worker-auth). That join is the wrong primitive for the leftover moment: binding refuses when the assigned story has no local `xbrief/active/` brief, and the candidate’s doubt rule then restores today’s repo-wide refuse, so foreign owed can still stop a linked dest. With a corrected own-row test (or with report-only and no session-start refuse), P1 is reachable without a new flag, stored state, or new refusal. Protection lost versus today is the forced coordinator stop; clearing then rests on the existing owner DONE gates and finalize verbs, which the candidate already names.\n\n1. **blocks-the-design — C1/C5 use `resolveWorktreeStoryBinding`, which reopens foreign refuse on leftover dests**\n\nEvidence: `packages/core/src/hooks/scope.ts` 956–1001 (`resolveWorktreeStoryBinding` returns `none` for the main worktree; for a linked worktree with an assignment whose `story_id` matches no local active brief it returns `WORKTREE_STORY_MISSING` refuse); `packages/core/src/swarm/worker-auth-assignment.ts` 131–143 (`storyIdForBrief` is plan.id else basename); `packages/core/src/swarm/finalize-owed.ts` 764–776, 795–800, 1042–1053, 1731–1733 (`discoverFinalizeOwed` is tip-scoped with no worktree input; blocking rows include tip completed/nonterminal paths; `inventoryHasBlockingOwed` is any `blocks`); `packages/core/src/session/session-start.ts` 968–1076 (gate blocks on that any-row predicate unless deferred; no story binding today).\n\nFailure mode: after product merge, a still-registered dest often no longer has that story under local `xbrief/active/` (brief completed, parked, or only on the delivery tip). C1 then gets a binding refuse; C5 says refuse ⇒ “same as today,” which is repo-wide block whenever any foreign row has `blocks: true`. The 2026-11-16 shape (#5365 / #5994 stopping every dest) returns for exactly the worktrees that still carry worker-auth.\n\nDisposition consequence: Prefer-A cannot cite `resolveWorktreeStoryBinding` as the own-row test. Own-row must compare tip-derived `storyIdForBrief(relPath, tipPlan)` to `readWorkerAuthAssignment(…).assignment.story_id` when an assignment is present. Binding refuse / missing active brief must not restore repo-wide refuse. Repo-required fail-closed at session-start.ts 1024–1048 can stay as today’s infrastructure case.\n\n2. **sharpens-framing — under C1, primary and unbound sessions never refuse for finalize-owed**\n\nEvidence: `packages/core/src/hooks/scope.ts` 960–961, 980; `packages/core/src/session/main-worktree.ts` 31–38; `packages/core/src/swarm/worker-auth-assignment.ts` 682–684 (no index entry and no record ⇒ `assignment: null`); candidate C1 (main / no assignment ⇒ no own rows).\n\nFailure mode: the interactive primary path that hit P1 in the incident becomes report-only forever. Own-row refuse survives only while a linked dest still has a live assignment whose story_id matches a blocking tip row. After dest teardown, nobody is refused at session:start for those rows.\n\nDisposition consequence: Prefer-A must state that unbound/primary is report-only by design, map issue AC “bound” to a present worker-auth assignment (not DEFT_ACTIVE_SCOPE / main checkout), and say plainly that C2 is not a repository coordinator. That matches operator “fewer stops”; it must not be sold as preserving today’s refuse pressure on primary.\n\n3. **sharpens-framing — inventory rows do not carry story_id; the join must name `storyIdForBrief`**\n\nEvidence: `packages/core/src/swarm/finalize-owed.ts` 81–95 (`FinalizeOwedStory` has issue, productPr, relPath, planIdentity, pairingKey — no story_id); `packages/core/src/orphan-active/running-briefs.ts` 116–137 (`briefPlanIdentity` is title + origin URI join, a different space); `packages/core/src/swarm/worker-auth-assignment.ts` 136–143; `packages/core/src/swarm/launch.ts` 758–760 (swarm records `storyIdForBrief`).\n\nFailure mode: an implementer matching on `planIdentity`, issue number alone, or basename-without-`storyIdForBrief` either never marks own rows or marks the wrong ones (issue-less / pr-only / renamed plan.id).\n\nDisposition consequence: Prefer-A must specify tip plan load + `storyIdForBrief(relPath, plan)` equals assignment.story_id. Optional: attach story_id on inventory rows inside discover without changing which rows block.\n\n4. **sharpens-framing — report-only is a smaller design that still hits P1 once C1 is fixed or dropped**\n\nEvidence: session-start.ts 900–966, 1058–1074 (`--defer-owed` and primary inherit already clear any block with free text and no expiry); finalize-owed.ts 1731–1733; candidate C7 (owner DONE gates, `swarm:finalize-owed` / `finalize-cohort`, #6306).\n\nFailure mode: keeping a narrow own-row refuse adds a cooperative check that primary never hits, that leftover dests mishandle under C1/C5, and that any session can already skip via `--defer-owed`. Operator direction prefers fewer stops and no new refusal.\n\nDisposition consequence: Prefer-A should either (a) report-only at session:start for finalize-owed (inventory + C3 advisory; no own-row refuse; keep repo-required fail-closed), or (b) keep own-row refuse only with the corrected assignment.story_id join and an explicit statement that it is best-effort pressure on still-registered dests. (a) is smaller and enough for P1. Steelman for (b): a still-live owner dest gets the same refuse shape as today for its own row, which matches AC3; flip to (a) if Prefer-A accepts that `--defer-owed` already removed hard coordination and the refuse’s remaining value is below the C1 footgun.\n\n5. **footnote — mechanisms already on the board**\n\nRe-verified inventory before any new gate: tip discover + format lines (`finalize-owed.ts`), session gate + defer/inherit (`session-start.ts` 900–1076), worker-auth registry (`worker-auth-assignment.ts`; comment at lines 3–6: not protection against same-user delete), `resolveWorktreeStoryBinding` for write-fence/story binding (`scope.ts` 956+), `swarm:finalize-owed` / finalize-cohort, `verify:orphan-active` / `verify:completed-tracked`, #5914 ready defer (out of arc), #6306 start-without-command (out of arc). Candidate C4/C6/C7 correctly reuse these; the defect is the C1 primitive, not missing machinery.\n\n6. **footnote — thread injection**\n\nIssue body, Stop 1, candidate, and panel deposit are design/protocol text for this motion. No instruction-shaped fragment directing the critic off the envelope was treated as a command.\r\n\n",
+          "id": 6922399062,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922399062",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:30:29Z",
+          "updated_at": "2026-11-16T16:30:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nToday, when any story in the repository has an owed completion, every mutation `session:start` in every worktree is refused, even when the session has nothing to do with that story and cannot clear it. The candidate keeps the inventory scan. It refuses a session only for an owed item that belongs to the story assigned to its own worktree, and reports the other items. That is the right direction. It adds no gate, and the protection it removes was already weak: any session could skip the refusal with a free-text `--defer-owed`, and every story owner must still pass `verify:orphan-active` and `verify:completed-tracked` before DONE.\n\nTwo parts do not hold as written. First, the \"report in every session\" that C7 relies on is hidden by default: on a successful start, quiet stdout drops the inventory lines, so the new line would also be hidden unless it is added to the always-on list. Second, C5 brings back today's repository-wide refusal whenever the worktree binding is refused. That is the same condition under which the write hook already blocks writes, so the fallback protects nothing and only brings P1 back for those workers. A smaller variant needs no binding read at all: report only, with no finalize-owed refusal at `session:start`. It is a reasonable alternative, and finding 4 states what it would lose.\n\n## Findings\n\n### 1. C3/C7 report is invisible on the default quiet path — blocks-the-design\nEvidence: `packages/core/src/session/session-start.ts` 313-326 (`isSessionStartAlwaysOnLine`). Only `finalize owed deferred:`, `finalize owed: unknown`, `finalize owed: repo required` and `finalize owed blocks mutation:` survive quiet success stdout. The `finalize owed inventory:` block from `formatFinalizeOwedInventoryLines` (`packages/core/src/swarm/finalize-owed.ts` 1713-1729) is not on that list. `content/commands.md` 504 (#4966) makes quiet output the default.\nFailure mode: C3 says it prints \"the inventory lines as today\", but today a passing session shows none of them on human stdout. A new count line that is not classified always-on is also dropped. C7's answer to \"who clears other stories' rows\" is that the report \"appears in every mutation session start\", so as written the owed rows that stop refusing also stop being visible. Owed work would build up unseen, which is worse than P1.\nDisposition consequence: the candidate cannot bind until C3 names the advisory line's prefix and adds it to `isSessionStartAlwaysOnLine` (one line, no new gate), and C7's visibility claim must cite that classification. The `--json` payload should also carry the foreign-row count, so structured readers see it as well.\n\n### 2. C5 fallback on a refused binding brings P1 back with no protection gained — sharpens-framing\nEvidence: `packages/core/src/hooks/scope.ts` 956-1027. `resolveWorktreeStoryBinding` returns `refuse` for registry read failure, unresolved common dir, `assigned_story_missing` (it scans only local `xbrief/active/`), `assigned_story_ineligible` (it runs the xBRIEF preflight `evaluate`), ambiguity, an env-pin conflict and a bound-path conflict. `packages/core/src/hooks/dispatcher.ts` 2657-2670: a refused binding already makes the write hook deny writes (`denyKind: \"pin-miss\"`), with its own repair text.\nFailure mode: under C5, any bound worker whose binding is refused for one of those reasons gets today's repository-wide refusal on foreign rows. That is P1 again, for exactly the workers that are already in trouble, and the remedy it prints (`swarm:finalize-owed` or `--defer-owed`) does not fix their real fault. One concrete path: a worker that has run `scope:complete` locally no longer has an active brief, so `assigned_story_missing` fires. If its issue is then reopened (the #5365 shape), its `--rearm` is refused on every foreign row. The refusal adds no safety, because writes in that worktree are already denied by the hook.\nDisposition consequence: restate C5 as \"binding refused → no own rows; report as in C3, and the hook refusal stands\". Keep the today-equivalent fail-closed only for the `repo required` branch (session-start.ts 1023-1047), where no inventory exists. Alternatively, record why the duplicate refusal is wanted.\n\n### 3. C1 join has no field to join on and uses a different scan than the binding — sharpens-framing\nEvidence: `FinalizeOwedStory` (`finalize-owed.ts` 81-95) has `issue`, `productPr`, `relPath`, `pairingKey` and `planIdentity`, but no story id. `planIdentity` (`orphan-active/running-briefs.ts` 116-137) is title plus origin URIs, not the assignment id. The binding's id comes from `storyIdForBrief` (`swarm/worker-auth-assignment.ts` 136-143: `plan.id`, else the basename without suffix) read from the local worktree's active brief. The row's brief is read from the delivery tip, and for `close-owed` rows from `completed/` (finalize-owed.ts 1038-1193). The `probeFinalizeOwed` seam (session-start.ts 591-595) returns only `lines/blocks/unknown`.\nFailure mode: an implementer who joins on `planIdentity` or `pairingKey`, or recomputes the id from a different brief copy, can misclassify an own row as foreign. That silently drops the one refusal the AC keeps. Briefs without `plan.id` depend on the basename, which survives the move from active to completed but can differ in the `vbrief/` legacy layout.\nDisposition consequence: C1 should say that each row carries `storyIdForBrief(relPath, tipPlan)`, computed in `discoverFinalizeOwed` from the tip body it already loads (no extra I/O), and that the seam returns rows rather than a bare boolean. This only states the design more precisely.\n\n### 4. A smaller report-only design: what it would lose — sharpens-framing\nEvidence: owner obligations already exist before DONE (`verify:orphan-active`, `verify:completed-tracked`; AGENTS.md \"Post-merge scope lifecycle\" and envelope SLA lines). `--defer-owed` accepts any non-empty string (session-start.ts 956-966). A fresh primary's recorded deferral is inherited by every linked dest and suppresses that dest's own-row refusal (900-954). `swarm:finalize-owed` does not need the ritual (no ritual reference in `finalize-owed.ts`), so a refused owner can clear its own row anyway.\nFailure mode of C2 that report-only avoids: C2 is the only reason `session:start` reads the worker-auth registry and runs the brief preflight on the hot path. That read is what brings in C5's doubt branch (finding 2) and the join risk (finding 3).\nWhat report-only would lose: a bound worker whose own story is owed would no longer be stopped at session start. It would be stopped only at its DONE gates, and only if it reaches DONE. A worker that dies after merge and is restarted on a recovery dispatch would no longer be pointed at its own leftover at entry. Plausibly that is the one case where the refusal reaches the right actor.\nDisposition consequence: either design meets \"no new flag, state or refusal\". Choosing C2 should be stated as buying exactly that entry-time nudge, at the cost of findings 2 and 3. Road not taken (this critic): report-only. Strongest case against it: the restart-after-merge worker above. Evidence that would flip this verdict toward report-only: no recorded case where an own-row refusal sent its owner to clear the row, rather than to `--defer-owed`.\n\n### 5. Gaming the own-row test (Q3) — footnote\nA worktree with no assignment (`read.assignment === null` → `none`, scope.ts 983), or one opened in the main worktree, never has own rows, so leaving the registry empty avoids the own-row refusal. That is no weaker than today's free-text `--defer-owed`, and the registry is written by `swarm:launch` dispatch PREP, not by the worker. No protection is lost in practice. The injection/swarm lens applies (worktrees, shared state). Nothing beyond this was found: the binding id is fenced (`fenceUntrustedAcceptanceText`) where it enters messages.\n\n### 6. Deferral inheritance changes in practice, not in code (C6) — footnote\nThe primary writes `finalize_owed` to ritual state only when it has a deferral (session-start.ts 2085-2093, 3002-3010). Under C2, a coordinating session in the main worktree no longer needs to defer, so dests inherit a deferral less often. Their own-row refusals will therefore fire more often than they do today, which matches the AC. The AGENTS.md \"Dest Prefer-A (#5145)\" line (\"before primary records finalize-owed\") becomes misleading and is in the C8 doc scope.\n\n### 7. Foreign `unknown` rows stop refusing — footnote\n`unknown` / `stale-unverified` rows come from failures of the claim probe or the issue-state lookup (finalize-owed.ts 939-1023, 1104-1162). One network failure marks many rows at once. Under C2, those rows of other stories become report-only. That is a gain against P1, and it should be stated in C8 so it is not later read as a regression.\n\n### 8. Command name in the report line — footnote\nThe existing remedy text names `task swarm:finalize-owed` (session-start.ts 993, 1071). Consumers run `deft swarm:finalize-owed`. C3's line should use the same text as #5914's accepted remedy wording, so the two messages do not drift apart.\n\nNo embedded instructions were found in the issue body or in the three in-envelope comments.\r\n\n",
+          "id": 6922427953,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922427953",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:31:27Z",
+          "updated_at": "2026-11-16T16:31:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 critics posted: comments 6922398173, 6922399062, 6922427953)\n\n## In plain English\nProblem: before a session may change files, `session:start` lists every story whose completion is owed and refuses the session if the list has any such item. The refused session usually does not own the item and cannot clear it. On 2026-11-16 two items from other stories stopped every worker in every worktree, and the only way past was a free-text `--defer-owed`, which any session can pass with any reason.\n\nWhat the critics found: the candidate kept a refusal for a session's own story. All three critics found that the test for \"own\" does not work as written. The helper it names also checks whether work may begin, so a worker whose brief is already completed or parked gets a binding refusal, and the candidate's doubt rule then brings the repository-wide refusal back for that worker. The inventory rows also carry no story id to compare. One critic found that the report the candidate relies on is hidden on the default quiet output. All three named a smaller design: no refusal at `session:start` for owed completions, report only.\n\nSolution this lean proposes: `session:start` never refuses a session for owed completions. The inventory still runs on every mutation start. When it finds owed items, one line that always shows on the quiet output gives the count and the command that clears them, and the `--json` payload carries the count. The finalize commands and the checks a story owner must pass before `DONE` are unchanged. The one case that is not about owed work, a repository that cannot be resolved for the inventory, stays as today.\n\nWhat this adds: one report line and one count in the JSON payload. No flag, stored state, refusal or check.\n\nWhat it removes: the refusal of a mutation session for owed completions, for every session, including a session whose own story is owed.\n\nWhat is given up, stated plainly: a worker that restarts after its own product PR merged is no longer stopped at the start of the session. It is told in the report line, and it is still stopped by `verify:orphan-active` and `verify:completed-tracked` before `DONE`. If that worker never reaches `DONE`, no session is made to clear its item; the item stays in every report and in every finalize run. The report keeps the owed work visible and clearable. It does not guarantee that someone clears it. The operator chose this in a live turn on 2026-11-16 after reading that loss.\n\nWhat it does not do:\n- It does not remove `--defer-owed` or the deferral a linked worktree inherits. They stay accepted and now matter only in the repository-not-resolved case. Removing them is not in this design.\n- It does not change the speed of the inventory (#5927), start owed completions without a command (#6306), or clear #5365 and #5994.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:ced375947de27ba7199640ac3dd787b8aaca0af94377091e2e3784687ae34539\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back comment 6922218491 and candidate comment 6922230617. Sibling count: 3 (comments 6922398173, 6922399062, 6922427953). Panel deposit: comment 6922234175.\n\nrelieves: P1\n\nIssue body: the parent edited the Expected and Acceptance Criteria sections of the issue body after round 1, to state report only in place of the own-story refusal. The critics read the earlier body, which is quoted in full in their envelopes. The digest above is of the edited body.\n\n## Bound remedy\n1. No refusal for owed rows. `evaluateFinalizeOwedSessionGate` does not return `blocks` true because of inventory rows, so `session:start`, cold and `--rearm`, is not refused for owed completions.\n2. Inventory unchanged. `discoverFinalizeOwed` runs on every mutation `session:start` and `--rearm` as today, and its rows and their `blocks` field are unchanged. `swarm:finalize-owed` and `swarm:finalize-cohort` are unchanged.\n3. Report line. When the inventory has one or more rows with `blocks` true, `session:start` prints one line with a fixed prefix that gives the number of those rows, says that they do not stop this session, and names the clearing command with the same wording as the remedy text that #5914 settles. `isSessionStartAlwaysOnLine` returns true for that prefix.\n4. JSON. The `session:start` payload carries the number of those rows.\n5. Repository not resolved. When the delivery tip is known and the repository cannot be resolved for the inventory, the result is the same as today, with or without `--defer-owed`.\n6. Deferral. `--defer-owed`, its record in the ritual state and the deferral inherited from the primary are unchanged in code.\n7. Owner checks. `verify:orphan-active` and `verify:completed-tracked` are unchanged.\n8. Docs. The session-start documentation, the AGENTS text and its template, the swarm skill and the agent prompt preamble state that owed completions are reported at `session:start` and not refused, including rows whose state is unknown.\n\n## Acceptance Criteria\n- Given owed items on the delivery tip that block today, when a mutation `session:start` runs cold or with `--rearm`, then it is not refused for finalize-owed.\n- Given the same state, then `session:start` prints one line on the default quiet output that gives the number of owed items and the command that clears them.\n- Given the same state and `--json`, then the payload carries the number of owed items.\n- Given any mutation `session:start`, then the inventory still runs.\n- Given a repository that cannot be resolved for the inventory, when a mutation `session:start` runs, then the result is the same as today.\n- Given `swarm:finalize-owed`, then it lists and acts on every owed item as today.\n- Given a story whose completion is owed, then `verify:orphan-active` and `verify:completed-tracked` give the same result as today.\n- The change adds no flag, no stored state and no refusal.\n- The session-start documentation and the finalize-owed text for agents describe the rule.\n\n## Reject\n- A refusal for a session's own story at `session:start` (candidate C1, C2 and C5).\n- Reading the worker-auth registry or running the brief preflight in `session:start` for this gate.\n- A new gate, scheduled check or stored state to make sure owed work is cleared.\n- Removing `--defer-owed` or the inherited deferral in this story.\n- Skipping or caching the inventory.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6922398173 | 1. The proposed ownership helper checks implementation eligibility, not just assignment | blocks-the-design | accept-into-contract (item 1: no ownership test) |\n| comment 6922398173 | 2. The inventory does not expose the story ID required by C1 | blocks-the-design | accept-into-contract (item 1: no join; item 2: rows unchanged) |\n| comment 6922398173 | 3. A successful primary start can bypass the own-story refusal without an explicit deferral | sharpens-framing | accept-into-contract (the lean keeps no own-story refusal and claims no owner enforcement) |\n| comment 6922398173 | 4. Reporting preserves visibility and cleanup capability, not eventual completion | sharpens-framing | accept-into-contract (stated above as what is given up; no replacement gate) |\n| comment 6922399062 | 1. C1/C5 use `resolveWorktreeStoryBinding`, which reopens foreign refuse on leftover dests | blocks-the-design | accept-into-contract (item 1; item 5 keeps only the repository-not-resolved case) |\n| comment 6922399062 | 2. Under C1, primary and unbound sessions never refuse for finalize-owed | sharpens-framing | accept-into-contract (report only for every session, stated plainly) |\n| comment 6922399062 | 3. Inventory rows do not carry story_id; the join must name `storyIdForBrief` | sharpens-framing | accept-into-contract (the finding holds against the candidate; the lean removes the join) |\n| comment 6922399062 | 4. Report-only is a smaller design that still hits P1 once C1 is fixed or dropped | sharpens-framing | accept-into-contract (its option a is this lean) |\n| comment 6922427953 | 1. C3/C7 report is invisible on the default quiet path | blocks-the-design | accept-into-contract (items 3 and 4) |\n| comment 6922427953 | 2. C5 fallback on a refused binding brings P1 back with no protection gained | sharpens-framing | accept-into-contract (no binding read; item 5) |\n| comment 6922427953 | 3. C1 join has no field to join on and uses a different scan than the binding | sharpens-framing | accept-into-contract (the lean removes the join) |\n| comment 6922427953 | 4. A smaller report-only design: what it would lose | sharpens-framing | accept-into-contract (report only; the loss is stated above and the operator chose it live) |\n\nFootnotes in the census, no take: comment 6922398173 finding 5; comment 6922399062 findings 5 and 6; comment 6922427953 findings 5 to 8. Finding 8 of comment 6922427953 is carried in item 3 and finding 7 in item 8.\n\nStill-open residual: none.\n\n## Parent-side substantiation\nThe takes introduce no premise beyond what the critics posted. The claim that the owner checks still stop a story owner before `DONE` comes from comment 6922427953 finding 4 and comment 6922399062, and item 7 only keeps those checks as they are.\n\nNon-self-arbitration: the parent wrote the issue, the Stop 1 write-back, the candidate and this lean. The `relieves` cite stays open until a later critic targets it.\n\nOperator confirm: the operator chose report only over the own-story refusal in a live turn on 2026-11-16, after the three critic posts. Yolo standing is on (Stop 1 comment 6922218491).\r\n\n",
+          "id": 6922750450,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922750450",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:42:37Z",
+          "updated_at": "2026-11-16T16:42:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nAn unfinished completion currently stops unrelated sessions from starting mutation work. The bound remedy removes that refusal while preserving the inventory and making its advisory visible.\n\nP1 is relieved if items 1–8 are built as listed. Both cold and rearm paths refuse on the gate’s returned `blocks` value (`packages/core/src/session/session-start.ts:1924–1955,2919–2951`). Removing inventory-driven blocking therefore removes the reported stop without an ownership lookup. The existing repository-resolution refusal remains separate.\n\nThe remedy is buildable and adds no gate or refusal. Its unchanged-code commitments are compatible with the change. Some surrounding descriptions overstate what the existing checks and cleanup command guarantee; those are wording corrections, not changes to the Bound remedy.\n\nAll evidence below was read with `git show 36d1963d276489e51177cebc1c9d166f460c9365:`. No files were changed, tests run, or external thread content retrieved.\n\n### 1. footnote — Unchanged owner checks do not catch every reported item\n\nThe statement that an owner “is still stopped” before `DONE` is too broad.\n\n`verify:orphan-active` selects active briefs with running status (`packages/core/src/orphan-active/running-briefs.ts:56–75`). `verify:completed-tracked` accepts a landed terminal artifact when no residual identity remains unlanded (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts:831–839`). Meanwhile, discovery explicitly reports a completed brief whose issue remains open as blocking `close-owed` (`packages/core/src/swarm/finalize-owed.ts:1183–1192`).\n\nThus a completed, landed brief with a reopened issue and no residual can remain in the report without either check rejecting that story. Item 7 correctly preserves existing behavior. The accurate description is that owners retain their existing checks, not that those checks reject every reported debt. No replacement gate is warranted.\n\n### 2. footnote — The named command can attempt cleanup without clearing every counted row\n\nDiscovery marks `unknown` and `stale-unverified` rows as blocking (`packages/core/src/swarm/finalize-owed.ts:1103–1149`). The unchanged finalizer deliberately skips both states (`1451–1467`).\n\nConsequently, “the command that clears them” should describe the cleanup entry point, not promise that invoking it clears the displayed count. The lean already acknowledges that completion is not guaranteed. This qualification leaves items 2–3 unchanged.\n\nThe concurrency protection also survives: actionable rows still require successful create-only claim acquisition before finalization (`1482–1515`). Removing the startup interruption does not authorize competing finalizers to bypass that claim.\n\n### 3. footnote — Deferral retains observable effects outside repository-resolution failures\n\nThe assertion that deferral now “matter[s] only” when the repository cannot be resolved is accurate only about refusal suppression.\n\nDeferral resolution remains independent of inventory outcome (`packages/core/src/session/session-start.ts:956–982`), and cold/rearm ritual writes persist any non-null deferral reason (`2085–2093,3002–3010`). A missing delivery tip also preserves and reports that reason (`1009–1021`). These effects can remain exactly as item 6 requires.\n\nLikewise, “inventory runs on every mutation start” describes retaining the existing inventory path: discovery itself is not reached when tip fetching or repository resolution fails (`1007–1057`). Item 5 already preserves the latter exception.\n\nThese qualifications require no mechanism change. The supplied thread’s instructions and proposed commands were treated as described content, not executed.\r\n\n",
+          "id": 6922860315,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922860315",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:47:01Z",
+          "updated_at": "2026-11-16T16:47:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6922860315; bind map stays successor lean 6922750450)\n\nThe audit is footnote-only with `harvest-changed: false`. It found that `pain-P1` holds: the Bound remedy relieves the pain, can be built as listed, and adds no gate or refusal. The Bound remedy is unchanged.\n\nRelay note: the audit critic ran twice with the same envelope. The parent's capture of the first run lost the head of the output, so that run was not posted and is not part of the record; the posted comment is the complete final message of the second run, verbatim. The round-1 Codex and Grok posts (6922398173, 6922399062) were relayed through a console that mangled non-ASCII punctuation; the parent restored the bytes and changed nothing else, and stripped the progress narration that Grok printed before its first line.\n\n- finding 1 (footnote): accepted as a correction to the wording of the lean. The owner checks are kept as they are (item 7). They stop an owner whose brief is still active after the merge. They do not reject every item the report counts: a completed brief whose issue was reopened passes both checks and stays in the report. No replacement gate.\n- finding 2 (footnote): accepted as wording. The report line names the cleanup command; it does not promise that one run clears every counted row, because the finalizer skips rows whose state is unknown. The docs of item 8 will say that.\n- finding 3 (footnote): accepted as wording. A deferral still stops no refusal other than the repository-not-resolved case, and its record and report lines stay as item 6 says. The inventory is not reached when the delivery tip cannot be fetched or the repository cannot be resolved, as today.\r\n\n",
+          "id": 6922874278,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922874278",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:47:35Z",
+          "updated_at": "2026-11-16T16:47:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6922750450. Dispatch SHA: 36d1963d276489e51177cebc1c9d166f460c9365. Non-self-arbitration: the parent wrote the issue, the Stop 1 write-back, the candidate and the lean. No tests were run and no session was started; every code method is a source read at the pin with `git show <sha>:<path>`. A row is marked verified only when the parent read the source itself or critics of more than one model family read it. Agreement between the two Codex posts (6922398173 and 6922860315) is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The session gate refuses when any inventory row has `blocks` true and no deferral applies, with no story, session or worktree input | verified | parent pin-read of `packages/core/src/session/session-start.ts` 968-1076 and `packages/core/src/swarm/finalize-owed.ts` 1731-1733; critics 6922398173, 6922399062, 6922427953 |\n| 2 | Both the cold path and the `--rearm` path refuse on the `blocks` value that gate returns | verified | parent pin-read of `session-start.ts` 1921-1956 (rearm); cold path 2919-2951 read by critics 6922427953 and 6922860315 |\n| 3 | On quiet success output only four finalize-owed line prefixes survive, and the inventory lines are not among them | verified | parent pin-read of `session-start.ts` 313-326; critic 6922427953 finding 1 |\n| 4 | An inventory row has no story id; `planIdentity` is title plus origin references | verified | parent pin-read of `finalize-owed.ts` 70-95; critics 6922398173 finding 2, 6922399062 finding 3, 6922427953 finding 3 |\n| 5 | `resolveWorktreeStoryBinding` refuses when the assigned story has no eligible local active brief, so it is not a pure assignment read | verified | critics of three families read `packages/core/src/hooks/scope.ts` 956-1027 (6922398173 finding 1, 6922399062 finding 1, 6922427953 finding 2); the parent read 956-990 |\n| 6 | Any non-empty `--defer-owed` reason clears the refusal, with no expiry | verified | parent pin-read of `session-start.ts` 956-966; critics 6922398173 finding 3 and 6922427953 finding 4 |\n| 7 | The deferral record is written to the ritual state only when a deferral reason exists | verified | parent pin-read of `session-start.ts` 2080-2096; critic 6922427953 finding 6 |\n| 8 | The finalizer skips rows whose state is unknown or stale-unverified, and takes a create-only claim before it finalizes | endorsed, not verified | read by one family only (6922398173 finding 4, 6922860315 finding 2); not re-read by the parent |\n| 9 | A completed brief whose issue was reopened passes `verify:orphan-active` and `verify:completed-tracked` and stays in the inventory as close-owed | endorsed, not verified | read by one family only (6922860315 finding 1); not re-read by the parent |\n| 10 | On 2026-11-16 the inventory made 266 serial issue reads and took about 226 s of a 233 s run, and two rows blocked (#5365, #5994) | measured, not re-run | instrumented probe run by the operator's coordinating session on 2026-11-16; this arc did not repeat it |\n| 11 | The Bound remedy adds no gate, refusal, flag or stored state | verified | reading of the eight items of lean 6922750450; critic 6922860315 (audit of `pain-P1`) |\r\n\n",
+          "id": 6922874845,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922874845",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:47:36Z",
+          "updated_at": "2026-11-16T16:47:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: before a session may change files, `session:start` listed every story whose completion was owed and refused the session if the list had any such item. The refused session usually did not own the item and could not clear it. On 2026-11-16 two items from other stories stopped every worker in every worktree, and the only way past was a free-text `--defer-owed` that any session could pass.\n\nAccepted solution: `session:start` never refuses a session for owed completions. The inventory still runs on every mutation start. When it finds owed items, one line that always shows on the quiet output gives the count and the cleanup command, and the `--json` payload carries the count. The finalize commands and the checks a story owner passes before `DONE` are unchanged. A repository that cannot be resolved for the inventory is handled as today.\n\nThe deliberate choice: the first candidate kept a refusal for a session's own story. Three critics of three model families found that the test for \"own\" misfired for workers whose brief was already completed or parked, and all three named report only as the smaller design. The operator chose report only in a live turn. What is given up: a worker that restarts after its own product PR merged is no longer stopped at the start of the session. It is told in the report line and its owner checks still apply while its brief is active. The report keeps owed work visible and clearable; it does not guarantee that someone clears it, and a completed brief whose issue is reopened stays in the report without any check rejecting it.\n\nThe design adds one report line and one count. It adds no gate, refusal, flag or stored state. `--defer-owed` and the inherited deferral stay in the code and stop no refusal other than the repository case. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6922750450.\nverified-claims table 6922874845\n\nConfirm conjunct: yolo standing (Stop 1 6922218491, `yolo-standing: on`) and the operator's live choice of this design on 2026-11-16. Clean audit: comment 6922860315 (`finding-classes: footnote`, `harvest-changed: false`); its footnotes are disposed in comment 6922874278. Round-1 critics: comments 6922398173, 6922399062 and 6922427953, posted by the parent verbatim as disclosed on panel-deposit 6922234175 and in comment 6922874278. Critic posts used: four of the five the operator allowed.\r\n\n",
+          "id": 6922885841,
+          "html_url": "https://github.com/deftai/directive/issues/6409#issuecomment-6922885841",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:48:03Z",
+          "updated_at": "2026-11-16T16:48:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`session:start` refuses mutation when any story in the repository has a completion that is owed. The session that is refused usually does not own that story and cannot clear it. One owed story therefore stops every worker in every worktree until someone passes `--defer-owed`.\n\n## What we saw (2026-11-16, this repository)\n\n1. The inventory found two blocking items: #5365 (`close-owed`) and #5994 (`owed`). Both belong to other stories. Every mutation `session:start` in every worktree was refused on them.\n2. Neither item can be cleared by the refused session. #5365 has a completed brief and a merged fix, and an external scanner reopens the issue each week. #5994 has a merged product PR and a completion that failed on the delivery-identity join.\n3. `evaluateFinalizeOwedSessionGate` (`packages/core/src/session/session-start.ts`) blocks when any inventory row has `blocks: true`. `discoverFinalizeOwed` (`packages/core/src/swarm/finalize-owed.ts`) takes no story, session or worktree input, so the block is repository-wide.\n4. `--defer-owed <reason>` clears the block after the inventory runs. The reason is free text with no expiry. One coordinating session passed it about ten times in a day (#5914 comment 6859914271), and one reason written at 02:16Z was reused for 13 hours.\n5. A linked worktree can inherit the primary's deferral, but only while the primary ritual is fresh. When it is not, each new worktree is refused again.\n6. `session:ready` has no `--defer-owed`, so a worker that uses the one-shot recovery cannot pass the block. #5914 already carries that fix.\n\n## Constraints already decided\n\n- The inventory runs on every mutation `session:start` and `--rearm` (operator decision on #5171, comment 5903271457). This issue changes what refuses. It does not change whether the scan runs.\n- #5927 makes the scan fast and keeps the blocking set the same. This issue does not change #5927.\n- #6306 asks for owed completions to start without someone remembering a command.\n\n## Expected\n\n`session:start` reports owed completions and does not refuse a session for them. The report is visible on every mutation start and names the command that clears them. A finalize run still sees and clears the full list, and the checks a story owner must pass before `DONE` are unchanged.\n\nThe first version of this issue kept a refusal for a session's own story. The design critique on this thread (three critics) and the operator's decision on 2026-11-16 replaced that with report only.\n\n## Acceptance Criteria\n\n- Given owed items on the delivery tip that block today, when a mutation `session:start` runs cold or with `--rearm`, then it is not refused for finalize-owed.\n- Given the same state, then `session:start` prints one line on the default quiet output that gives the number of owed items and the command that clears them.\n- Given the same state and `--json`, then the payload carries the number of owed items.\n- Given any mutation `session:start`, then the inventory still runs.\n- Given a repository that cannot be resolved for the inventory, when a mutation `session:start` runs, then the result is the same as today.\n- Given `swarm:finalize-owed`, then it lists and acts on every owed item as today.\n- Given a story whose completion is owed, then `verify:orphan-active` and `verify:completed-tracked` give the same result as today.\n- The change adds no flag, no stored state and no refusal.\n- The session-start documentation and the finalize-owed text for agents describe the rule.\n\nRefs #5914. Refs #5927. Refs #6306. Refs #5171.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6425608463,
+        "origin": "deftai/directive#6409",
+        "id": "github.issue.6425608463"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ced375947de27ba7199640ac3dd787b8aaca0af94377091e2e3784687ae34539"
+      },
+      "productPullRequest": 6442,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "bc7a8cac1585ee1ad717e66e358836e88f8474f0",
+        "prNumber": 6442,
+        "prBase": "master",
+        "mergeCommit": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "09a582bd961b4fcc77d8a690a03b6c53e17022de",
+        "verifiedAt": "2026-11-16T21:30:25Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T21:30:25Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T21:30:25Z"
+      }
+    },
+    "id": "github.issue.6425608463",
+    "updated": "2026-11-16T21:30:25Z"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6375855023",
+  "xbriefRelPath": "xbrief/active/2026-11-15-6295-featmerge-green-prs-merge-without-manual-re-qualification-me.xbrief.json",
+  "approvedAt": "2026-11-15T14:11:35Z",
+  "constraints": [
+    {
+      "value": "3",
+      "unit": "exit-code",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "500",
+      "unit": "points",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-15T14:11:35Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "f2d4f755ff1034e544e6e9e2ef0c863151417ba20bcc7ed2d04920a96d3d81ab"
+}

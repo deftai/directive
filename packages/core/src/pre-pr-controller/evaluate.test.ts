@@ -68,6 +68,15 @@ function startPassingRun(
         exitCode: 0,
         inputHash: record.inputHash,
         skipReason: null,
+        // #6336: lint_iteration records both CI gate results.
+        ...(spec.id === "lint_iteration"
+          ? {
+              gateChecks: [
+                { gate: "verify:class-checks" as const, exitCode: 0, message: "clean" },
+                { gate: "verify:evaluator-surface" as const, exitCode: 0, message: "skip" },
+              ],
+            }
+          : {}),
       });
     } else {
       submitReviewerReport(store, id, {

@@ -13,12 +13,14 @@ import { type ScanFlag, scan } from "../cache/scanner.js";
 import { leanCarriesSpecPathToken } from "../design-critique/auto-stamp-chip.js";
 import {
   assertCompletedArcAllowsIngest,
+  type CompletedArcVerdict,
   DesignCritiqueIngestBlockedError,
   evaluateCompletedArcRecord,
   evaluateTargetDigestAdmission,
   hasOperativeTargetDigestLine,
   setPendingIngestDiagnosticOverlay,
   type ThreadComment,
+  threadCommentFromRow,
 } from "../design-critique/completed-arc-record.js";
 import {
   classifyDesignCritiqueIngestPosture,
@@ -29,7 +31,12 @@ import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/project
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
 import { stampIntendedPlacement } from "../preflight/intended-placement.js";
-import { stampAcceptanceFromLiteralCapture } from "../product-first-done-gate/index.js";
+import {
+  ADMITTED_SOURCE_DIGEST_KEY,
+  ADMITTED_SOURCE_SENTENCES_KEY,
+  digestAdmittedSourceSentences,
+  stampAcceptanceFromLiteralCapture,
+} from "../product-first-done-gate/index.js";
 import { emitRunSummaryEvent } from "../run-summary/emit.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { bindPlanItemIdsToClauses } from "../scope/acceptance-evidence.js";
@@ -48,7 +55,6 @@ import {
 } from "../umbrella-current-shape/index.js";
 import { slugify, TODAY } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
-import { stampDerivedClausesOnAcceptance } from "../verify-ac/clauses.js";
 import {
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
@@ -58,16 +64,15 @@ import {
   VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
 import {
-  applyClauseQualityForIngest,
   applyEmptyAfterHarvestNoticeForIngest,
   emitAcceptanceStampFromPlan,
 } from "./clause-derivation.js";
 import {
-  extractBoundRemedyHarvest,
   extractRequirementsSectionItems,
   findAcHeading,
   parseCheckboxItems,
   parseListItems,
+  parseSliceLine,
   sliceAcSection,
   stripCodeBlocks,
   stripFencedCodeBlocks,
@@ -98,6 +103,12 @@ import {
   residualIdMatchesRestIssue,
   selectMostRecentOwnedHit,
 } from "./residual-identity.js";
+import {
+  attachSpecPathSourceRecord,
+  findSpecPathSliceHolders,
+  harvestSpecPathLean,
+  type SpecPathSourceRecord,
+} from "./spec-path-source.js";
 
 /** Reference type pointing at the canonical current-shape comment permalink (#1870). */
 export const CURRENT_SHAPE_REF_TYPE = "x-xbrief/current-shape" as const;
@@ -1506,6 +1517,99 @@ function scanUntrustedIngestText(issueNumber: number, text: string): string {
   return scanResult.transformed_content;
 }
 
+function asPlainRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function collapseWhitespace(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function statementClauseRows(texts: readonly string[]): Record<string, unknown>[] {
+  return texts.map((text, index) => ({
+    id: index + 1,
+    text,
+    artifact_path: null,
+    ambiguous: false,
+    provenance: "statement",
+  }));
+}
+
+/**
+ * #6333 item 2: a harvested brief has one identity unit per list item. The plan
+ * item, the clause text, the pin entry and the #3550 sentence list entry are
+ * the item title, ids `clause.1..N` in list order. No task-statement derivation
+ * runs, and the issue title and Description are not on the sentence list.
+ */
+function applyHarvestedItemClauses(plan: Record<string, unknown>): void {
+  const items = Array.isArray(plan.items) ? plan.items : [];
+  const titles: string[] = [];
+  const rows: Record<string, unknown>[] = [];
+  for (const raw of items) {
+    const rec = asPlainRecord(raw);
+    const title = rec === null ? "" : collapseWhitespace(String(rec.title ?? ""));
+    if (rec === null || title.length === 0) {
+      continue;
+    }
+    titles.push(title);
+    rows.push(rec);
+  }
+  if (titles.length === 0) {
+    return;
+  }
+  const acceptance = asPlainRecord(plan.acceptance) ?? { commands: [], none_stated: true };
+  plan.acceptance = {
+    ...acceptance,
+    source_rung: acceptance.none_stated === false ? acceptance.source_rung : "derived",
+    derived_reason: `one clause per harvested lean item (${titles.length}), in list order (#6333)`,
+    sentences: titles,
+    [ADMITTED_SOURCE_SENTENCES_KEY]: titles,
+    [ADMITTED_SOURCE_DIGEST_KEY]: digestAdmittedSourceSentences(titles),
+    clauses: statementClauseRows(titles),
+    ambiguity_attestation: "none_found",
+  };
+  rows.forEach((rec, index) => {
+    rec.id = `clause.${index + 1}`;
+  });
+}
+
+/**
+ * #6333 item 7: on the body route ingest writes one clause per sentence-list
+ * entry, same text, in order (title sentence and reference lines included).
+ * The pin and its extractor do not change; a pinned sentence the list folded
+ * into another spelling still gets its own same-text clause.
+ */
+function applySentenceListClauses(plan: Record<string, unknown>): void {
+  const acceptance = asPlainRecord(plan.acceptance);
+  if (acceptance === null) {
+    return;
+  }
+  const strings = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
+      : [];
+  const texts = strings(acceptance.sentences).map(collapseWhitespace);
+  const known = new Set(texts);
+  for (const pinned of strings(acceptance[ADMITTED_SOURCE_SENTENCES_KEY]).map(collapseWhitespace)) {
+    if (!known.has(pinned)) {
+      known.add(pinned);
+      texts.push(pinned);
+    }
+  }
+  if (texts.length === 0) {
+    return;
+  }
+  plan.acceptance = {
+    ...acceptance,
+    source_rung: acceptance.none_stated === false ? acceptance.source_rung : "derived",
+    derived_reason: `one clause per sentence-list entry (${texts.length}), in order (#6333)`,
+    clauses: statementClauseRows(texts),
+    ambiguity_attestation: "none_found",
+  };
+}
+
 export function buildIssueVbrief(
   issue: Record<string, unknown>,
   status: IngestStatus,
@@ -1712,16 +1816,16 @@ export function buildIssueVbrief(
     Object.assign(plan, attached.plan);
     // #3284: stamp plan.acceptance from captured literals (stated or none_stated floor).
     Object.assign(plan, stampAcceptanceFromLiteralCapture(plan));
-    // #3323: when no commands were stated, derive numbered clauses before product edit.
-    const derived = stampDerivedClausesOnAcceptance(
-      plan,
-      [title, harvestSource ?? overviewSource].filter((s) => s.length > 0).join("\n\n"),
-    );
-    Object.assign(plan, derived.plan);
-    applyClauseQualityForIngest(plan);
   } else {
     // No body: still record none_stated acceptance so absence is a decision.
     Object.assign(plan, stampAcceptanceFromLiteralCapture(plan));
+  }
+  // #6333: one clause per admitted unit. A harvested brief uses the item
+  // titles (item 2); the body route uses its sentence list (item 7).
+  if (specPathHarvest !== undefined) {
+    applyHarvestedItemClauses(plan);
+  } else {
+    applySentenceListClauses(plan);
   }
   // #4671: empty plan.items after harvest must not print silent CREATED.
   applyEmptyAfterHarvestNoticeForIngest(plan);
@@ -2094,7 +2198,7 @@ function threadCommentsFromIssue(issue: Record<string, unknown>): ThreadComment[
     const id = Number(rec.id);
     if (!Number.isSafeInteger(id) || id <= 0) continue;
     const body = typeof rec.body === "string" ? rec.body : "";
-    out.push({ id, body });
+    out.push(threadCommentFromRow(id, body, rec));
   }
   return out;
 }
@@ -2290,6 +2394,141 @@ export function classifyOwningBriefPaths(
   ];
 }
 
+/** harvestSpecPathLean reason for an empty Bound remedy list (#4361 refusal kept). */
+const EMPTY_BOUND_REMEDY_REASON = "cited successor lean has no Bound-remedy list";
+
+type SliceIngestRoute =
+  | {
+      readonly ok: true;
+      readonly harvest: {
+        readonly items: readonly Record<string, string>[];
+        readonly sourceText: string;
+        readonly constraintLines: readonly string[];
+      };
+      readonly record: SpecPathSourceRecord;
+      readonly admittedDigest: string | null;
+      readonly labels: readonly string[];
+    }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * #6333 item 6: a slice issue ingests its share of the parent's accepted lean.
+ * Requires the parent's completed-arc record, harvests that label from the cited
+ * lean, checks the Target-digest against the parent body, and refuses a label
+ * that another brief already records for the same parent and lean.
+ */
+function resolveSliceIngest(input: {
+  readonly number: number;
+  readonly parent: number;
+  readonly label: string;
+  readonly repoUrl: string;
+  readonly vbriefDir: string;
+  readonly scmCall?: ScmCallFn;
+  readonly cwd?: string | null;
+  readonly cacheRoot?: string | null;
+}): SliceIngestRoute {
+  const refuse = (detail: string): SliceIngestRoute => ({
+    ok: false,
+    message: `#${input.number} slice ingest refused: ${detail} -- nothing written.`,
+  });
+  const repo = repoSlugFromUrl(input.repoUrl);
+  if (repo === null) {
+    return refuse("slice ingest needs a GitHub repository to read the parent issue");
+  }
+  if (input.parent === input.number) {
+    return refuse("the slice line names this issue as its own parent");
+  }
+  const parentIssue = fetchIssue(repo, input.parent, {
+    scmCall: input.scmCall,
+    cwd: input.cwd,
+    cacheRoot: input.cacheRoot,
+  });
+  if (parentIssue === null) {
+    return refuse(`parent #${input.parent} could not be read`);
+  }
+  const parentComments = threadCommentsFromIssue(parentIssue);
+  const parentVerdict = assertCompletedArcAllowsIngest({
+    issueNumber: input.parent,
+    labels: issueLabelNames(parentIssue),
+    comments: parentComments,
+  });
+  if (parentVerdict.status !== "complete") {
+    return refuse(`parent #${input.parent} has no completed-arc record`);
+  }
+  const leanBody =
+    parentComments.find((comment) => comment.id === parentVerdict.citedLeanId)?.body ?? "";
+  if (!leanCarriesSpecPathToken(leanBody)) {
+    return refuse(
+      `the cited lean ${parentVerdict.citedLeanId} of #${input.parent} is not Spec-path`,
+    );
+  }
+  const harvested = harvestSpecPathLean(leanBody, { kind: "label", label: input.label });
+  if (!harvested.ok) {
+    return refuse(harvested.reason);
+  }
+  let admittedDigest: string | null = null;
+  if (hasOperativeTargetDigestLine(leanBody)) {
+    const pin = evaluateTargetDigestAdmission({
+      citedLeanBody: leanBody,
+      liveIssueBody: fetchLiveIssueBodyForAdmission(input.parent, input.repoUrl, {
+        scmCall: input.scmCall,
+        cwd: input.cwd,
+      }),
+    });
+    if (pin.status === "blocked") {
+      return refuse(`parent #${input.parent} Target-digest: ${pin.detail}`);
+    }
+    if (pin.status === "match") {
+      admittedDigest = pin.digest;
+    }
+  }
+  const holder = findSpecPathSliceHolders(input.vbriefDir, {
+    repo,
+    issue: input.parent,
+    leanCommentId: parentVerdict.citedLeanId,
+  }).get(input.label);
+  if (holder !== undefined) {
+    return refuse(
+      `slice '${input.label}' of #${input.parent} lean ${parentVerdict.citedLeanId} is already recorded by ${holder}`,
+    );
+  }
+  return {
+    ok: true,
+    harvest: {
+      items: harvested.items.map((item) => ({ title: item.title, status: item.status })),
+      sourceText: harvested.sourceText,
+      constraintLines: harvested.constraintLines,
+    },
+    record: {
+      repo,
+      issue: input.parent,
+      leanCommentId: parentVerdict.citedLeanId,
+      harvestDigest: harvested.harvestDigest,
+      slice: input.label,
+    },
+    admittedDigest,
+    labels: harvested.labels,
+  };
+}
+
+/** #6333 item 6: print the slice labels of this design that no brief records. */
+function printUnclaimedSliceLabels(
+  vbriefDir: string,
+  record: SpecPathSourceRecord,
+  labels: readonly string[],
+): void {
+  if (labels.length === 0) {
+    return;
+  }
+  const holders = findSpecPathSliceHolders(vbriefDir, record);
+  const unclaimed = labels.filter((label) => label !== record.slice && !holders.has(label));
+  if (unclaimed.length > 0) {
+    process.stdout.write(
+      `issue:ingest: slice label(s) of #${record.issue} lean ${record.leanCommentId} that no brief records: ${unclaimed.join(", ")}\n`,
+    );
+  }
+}
+
 export function ingestOne(
   issue: Record<string, unknown>,
   options: {
@@ -2389,13 +2628,24 @@ export function ingestOne(
     });
     const comments = threadCommentsFromIssue(enriched);
     const labels = issueLabelNames(enriched);
-    const preview = evaluateCompletedArcRecord({ comments, issueNumber: number });
     const issueBody = typeof enriched.body === "string" ? enriched.body : "";
-    const ingestPosture = classifyDesignCritiqueIngestPosture({
-      verdict: preview,
-      issueBody,
-      comments,
-    });
+    // #6333 item 8: a slice line selects the slice route before any arc on
+    // this issue's own thread; then a Spec-path arc; then the body route.
+    const sliceLine = parseSliceLine(issueBody);
+    if (sliceLine.kind === "malformed") {
+      return ["refused", null, `#${number} slice ingest refused: ${sliceLine.detail}`];
+    }
+    const sliceRoute = sliceLine.kind === "slice";
+    const preview: CompletedArcVerdict = sliceRoute
+      ? { status: "not-in-arc" }
+      : evaluateCompletedArcRecord({ comments, issueNumber: number });
+    const ingestPosture = sliceRoute
+      ? null
+      : classifyDesignCritiqueIngestPosture({
+          verdict: preview,
+          issueBody,
+          comments,
+        });
     if (ingestPosture !== null) {
       const projectRootForSummary =
         resolveProjectRoot(options.cwd ?? undefined) ??
@@ -2421,11 +2671,13 @@ export function ingestOne(
         }).text,
       );
     }
-    const verdict = assertCompletedArcAllowsIngest({
-      issueNumber: number,
-      labels,
-      comments,
-    });
+    const verdict: CompletedArcVerdict = sliceRoute
+      ? { status: "not-in-arc" }
+      : assertCompletedArcAllowsIngest({
+          issueNumber: number,
+          labels,
+          comments,
+        });
     let admittedDigest: string | null = null;
     let specPathHarvest:
       | {
@@ -2435,23 +2687,69 @@ export function ingestOne(
         }
       | undefined;
     let leanCommentId: number | null = null;
+    let specPathSource: SpecPathSourceRecord | null = null;
+    let sliceLabels: readonly string[] = [];
+    if (sliceLine.kind === "slice") {
+      const routed = resolveSliceIngest({
+        number,
+        parent: sliceLine.parent,
+        label: sliceLine.label,
+        repoUrl: options.repoUrl,
+        vbriefDir: options.vbriefDir,
+        scmCall: options.scmCall,
+        cwd: options.cwd,
+        cacheRoot: options.cacheRoot,
+      });
+      if (!routed.ok) {
+        return ["refused", null, routed.message];
+      }
+      specPathHarvest = routed.harvest;
+      specPathSource = routed.record;
+      leanCommentId = routed.record.leanCommentId;
+      admittedDigest = routed.admittedDigest;
+      sliceLabels = routed.labels;
+    }
     if (verdict.status === "complete") {
       leanCommentId = verdict.citedLeanId;
       const cited = comments.find((comment) => comment.id === verdict.citedLeanId);
       const citedBody = cited?.body ?? "";
       if (leanCarriesSpecPathToken(citedBody)) {
-        const harvested = extractBoundRemedyHarvest(citedBody);
-        if (harvested.items.length === 0) {
+        // #6333 item 1: Bound remedy items, then Acceptance Criteria items, or
+        // the unlabeled items when the lean carries a Slices section.
+        const harvested = harvestSpecPathLean(citedBody, { kind: "unlabeled" });
+        if (!harvested.ok && harvested.reason === EMPTY_BOUND_REMEDY_REASON) {
           throw new RecutHarvestRefusedError(
             number,
             "cited successor lean has no Bound-remedy list",
           );
+        }
+        if (!harvested.ok) {
+          return [
+            "refused",
+            null,
+            `issue:ingest refused #${number}: ${harvested.reason} -- nothing written.`,
+          ];
+        }
+        if (repoSlug === null) {
+          return [
+            "refused",
+            null,
+            `issue:ingest refused #${number}: cannot record the Spec-path source without a GitHub repository -- nothing written.`,
+          ];
         }
         specPathHarvest = {
           items: harvested.items.map((item) => ({ title: item.title, status: item.status })),
           sourceText: harvested.sourceText,
           constraintLines: harvested.constraintLines,
         };
+        specPathSource = {
+          repo: repoSlug,
+          issue: number,
+          leanCommentId: verdict.citedLeanId,
+          harvestDigest: harvested.harvestDigest,
+          slice: null,
+        };
+        sliceLabels = harvested.labels;
       }
       if (hasOperativeTargetDigestLine(citedBody)) {
         const liveBody = fetchLiveIssueBodyForAdmission(number, options.repoUrl, {
@@ -2562,6 +2860,11 @@ export function ingestOne(
     });
     if (admittedDigest !== null) {
       attachAdmittedTargetDigest(vbrief.plan, admittedDigest);
+    }
+    if (specPathSource !== null) {
+      // #6333 item 4: new Spec-path and slice ingests always write the record.
+      attachSpecPathSourceRecord(vbrief.plan as Record<string, unknown>, specPathSource);
+      printUnclaimedSliceLabels(options.vbriefDir, specPathSource, sliceLabels);
     }
     const filename = targetFilename(
       number,

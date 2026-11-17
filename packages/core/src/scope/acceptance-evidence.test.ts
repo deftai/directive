@@ -15,12 +15,15 @@ import {
   SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
 } from "../check/rapid-zero-verified.js";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
+import { evaluateScopeProvenance } from "../scope-provenance/evaluate.js";
+import { mintApprovedScopeArtifacts } from "../scope-provenance/mint-artifacts.js";
 import { ITEM_CORE, scanVbrief } from "../vbrief-validate/conformance.js";
 import { collectPlanItemAcceptanceSurface } from "../verify-ac/clauses.js";
 import {
   ACCEPTANCE_DISPOSITION_KEY,
   ACCEPTANCE_EVIDENCE_KEY,
   ACCEPTANCE_REQUIRES_KEY,
+  applyGrantedDispositions,
   bindPlanItemIdsToClauses,
   CLAUSE_KEYED_ITEM_ID_PREFIX,
   clauseKeyedItemId,
@@ -31,16 +34,19 @@ import {
   fenceUntrustedAcceptanceText,
   formatAcceptanceCompletionListing,
   formatScopeStatus,
+  formatStrictAxisAdvisory,
   HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION,
   HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
   inferRequiredStrictAxes,
   isClauseKeyedTitleFollowsIdPlaceholder,
   isEvidenceKindSuitable,
   itemDeclaresMergeRequirement,
+  listStrictAxisRequirements,
   MERGE_POINTER_SHAPE_REMEDIATION,
   migrateNoneStatedForHistoricalShip,
   persistClauseKeyedPendingItems,
   readNamespacedAcceptanceFields,
+  restoreGrantedDispositionOriginals,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
   stampDeclaredMergeEvidence,
   stampDeclaredTestEvidence,
@@ -48,6 +54,7 @@ import {
   stampMergeFromCompletionProvenance,
   stampNamespacedDisposition,
   stampNamespacedEvidence,
+  strictAxisAdvisoryLines,
   TEST_POINTER_SHAPE_REMEDIATION,
   UAT_POINTER_SHAPE_REMEDIATION,
 } from "./acceptance-evidence.js";
@@ -3619,5 +3626,262 @@ describe("historical ship-closeout (#5403)", () => {
     });
     expect(result.skipped[0]?.reason).toBe("undeclared-merge");
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+});
+
+describe("grant-covered dispositions in complete-prep (#6318)", () => {
+  const SHA = "6340".repeat(10);
+  const grantRecord = {
+    disposition: "deferred" as const,
+    reason: "operator correction",
+    provenance: {
+      kind: "operator-cli",
+      actor: "operator",
+      mintedAt: "2026-11-15T10:00:00Z",
+      mintedVia: "deft authz:grant",
+      eventRef: "template:acceptance-disposition",
+      grantId: "grant-6318",
+    },
+    recorded_at: "2026-11-15T12:00:00Z",
+    deferred_to: "#6400",
+  };
+
+  function plan(): Record<string, unknown> {
+    return {
+      id: "github.issue.6318",
+      title: "story",
+      status: "running",
+      acceptance: {
+        clauses: [
+          { id: 1, text: "Merge tip ancestry" },
+          { id: 2, text: "Deferred clause text." },
+        ],
+      },
+      items: [
+        {
+          id: "clause.1",
+          title: "Merge tip ancestry",
+          status: "pending",
+          [ACCEPTANCE_REQUIRES_KEY]: "merge",
+        },
+      ],
+    };
+  }
+
+  function byId(p: Record<string, unknown>, id: string): Record<string, unknown> | undefined {
+    return (p.items as Record<string, unknown>[]).find((item) => item.id === id);
+  }
+
+  it("clause.2: a deferral on a clause with no plan item applies after persist and the merge stamper skips it", () => {
+    const p = plan();
+    persistClauseKeyedPendingItems(p);
+    const applied = applyGrantedDispositions(p, [{ itemId: "clause:2", record: grantRecord }]);
+    expect(applied.appliedIds).toEqual(["clause:2"]);
+    expect(applied.missingIds).toEqual([]);
+    const stamp = stampDeclaredMergeEvidence(p, {
+      recorded_by: "scope:complete",
+      mergeCommit: SHA,
+      projectRoot: "/repo",
+      deliveryBranch: "master",
+      verifyAncestry: () => ({ ok: true, error: null, remoteTip: SHA }),
+      admitUndeclaredMerge: true,
+    });
+    expect(stamp.stampedIds).toEqual(["clause.1"]);
+    expect(stamp.skipped).toContainEqual({ clauseId: 2, reason: "already-stamped" });
+    const gate = evaluateAcceptanceEvidenceGate(p);
+    expect(gate.ok).toBe(true);
+    const report = gate.reports.find((r) => r.title === "clause.2");
+    expect(report?.outcome).toBe("disposition");
+    expect(report?.disposition).toMatchObject({
+      disposition: "deferred",
+      deferred_to: "#6400",
+      provenance: { grantId: "grant-6318" },
+    });
+    expect(byId(p, "clause.2")?.[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("restores covered items to their pre-apply fields for the mid-flight write", () => {
+    const p = plan();
+    const prior = {
+      kind: "merge",
+      pointer: SHA,
+      recorded_at: "2026-11-14T00:00:00Z",
+      recorded_by: "scope:complete",
+    };
+    (p.items as Record<string, unknown>[]).push({
+      id: "clause.2",
+      title: "Deferred clause text.",
+      status: "pending",
+      [ACCEPTANCE_EVIDENCE_KEY]: prior,
+    });
+    const applied = applyGrantedDispositions(p, [
+      { itemId: "clause.2", record: grantRecord },
+      { itemId: "nope", record: grantRecord },
+    ]);
+    expect(applied.missingIds).toEqual(["nope"]);
+    expect(byId(p, "clause.2")?.[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+    const midFlight = structuredClone(p);
+    restoreGrantedDispositionOriginals(midFlight, applied.originals);
+    expect(byId(midFlight, "clause.2")?.[ACCEPTANCE_EVIDENCE_KEY]).toEqual(prior);
+    expect(byId(midFlight, "clause.2")?.[ACCEPTANCE_DISPOSITION_KEY]).toBeUndefined();
+    // The in-memory plan keeps the disposition for the completed/ write.
+    expect(byId(p, "clause.2")?.[ACCEPTANCE_DISPOSITION_KEY]).toMatchObject({
+      disposition: "deferred",
+    });
+    // An item missing from the copy is skipped.
+    restoreGrantedDispositionOriginals({ items: [] }, applied.originals);
+  });
+
+  it("clause.7: a hand-written disposition on an active brief is still refused by membership", () => {
+    const payload = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        ...plan(),
+        narratives: { Description: "story" },
+        metadata: { swarm: { file_scope: ["packages/core/src/scope"] } },
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/6318",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+      },
+    };
+    const live = structuredClone(payload);
+    stampNamespacedDisposition(
+      (live.plan.items as Record<string, unknown>[])[0] as Record<string, unknown>,
+      grantRecord,
+    );
+    const mintRoot = mkdtempSync(join(tmpdir(), "accept-ev-6318-"));
+    const evalRoot = mkdtempSync(join(tmpdir(), "accept-ev-6318-eval-"));
+    try {
+      const rel = "xbrief/active/story.xbrief.json";
+      const minted = mintApprovedScopeArtifacts({
+        xbriefRelPath: rel,
+        payload,
+        rawText: `${JSON.stringify(payload)}\n`,
+        projectRoot: mintRoot,
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-11-15T00:00:00Z" },
+        extract: { projectRoot: mintRoot, approvedReposSeed: ["deftai/directive"] },
+      });
+      const result = evaluateScopeProvenance(evalRoot, {
+        changedFiles: [rel],
+        activeXbriefs: new Map([[rel, JSON.stringify(live)]]),
+        approvedRecords: [minted.record],
+        baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
+        readAtBase: (path) =>
+          path.endsWith(".intent.json") ? JSON.stringify(minted.preimage) : null,
+        enforce: true,
+      });
+      expect(result.exitCode).toBe(1);
+      expect(
+        result.findings.some((f) => f.kind === "unclassified-key" || f.kind === "intent-drift"),
+      ).toBe(true);
+    } finally {
+      rmSync(mintRoot, { recursive: true, force: true });
+      rmSync(evalRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("strict-axis listing before completion (#6272)", () => {
+  const strictPlan = (): Record<string, unknown> => ({
+    title: "T",
+    status: "running",
+    items: [
+      {
+        id: "clause.1",
+        title: "clause.1",
+        status: "pending",
+        narrative: { Acceptance: "The service answers after deployment to staging." },
+      },
+      { id: "clause.2", title: "Unit tests cover the parser.", status: "pending" },
+      {
+        id: "clause.3",
+        title: "Run the smoke check after deploy.",
+        status: "pending",
+        subItems: [{ id: "clause.3a", title: "UAT sign-off recorded.", status: "pending" }],
+      },
+      {
+        id: "clause.4",
+        title: "deploy note",
+        status: "pending",
+        [ACCEPTANCE_REQUIRES_KEY]: "merge",
+      },
+      { id: "clause.5", title: "Edit .github/workflows/deploy-dev.yml.", status: "pending" },
+    ],
+  });
+
+  it("clause.2: lists per-item axes from the plan text alone", () => {
+    expect(listStrictAxisRequirements(strictPlan())).toEqual([
+      { path: "plan.items[0]", id: "clause.1", axes: ["deploy"] },
+      { path: "plan.items[2]", id: "clause.3", axes: ["smoke", "deploy"] },
+      { path: "plan.items[2].subItems[0]", id: "clause.3a", axes: ["uat"] },
+    ]);
+    expect(listStrictAxisRequirements(null)).toEqual([]);
+    expect(listStrictAxisRequirements({ items: [null, "x", { title: "smoke" }] })).toEqual([
+      { path: "plan.items[2]", id: null, axes: ["smoke"] },
+    ]);
+  });
+
+  it("clause.11: the listing and the completion gate use the same function", () => {
+    const plan = strictPlan();
+    const listed = listStrictAxisRequirements(plan);
+    // Listing axes equal inferRequiredStrictAxes (the gate's function) per item.
+    const items = plan.items as Record<string, unknown>[];
+    const third = items[2] as Record<string, unknown>;
+    const sub = (third.subItems as Record<string, unknown>[])[0] as Record<string, unknown>;
+    expect(listed.map((r) => r.axes)).toEqual(
+      [items[0], third, sub].map((item) =>
+        inferRequiredStrictAxes(item as Record<string, unknown>),
+      ),
+    );
+    // The gate refuses review evidence on exactly the listed items, with the same axes.
+    const reviewEvidence = {
+      kind: "review",
+      pointer: "PR #1",
+      recorded_at: "2026-08-10T12:00:00Z",
+      recorded_by: "vitest",
+    };
+    const stamp = (items: unknown): void => {
+      if (!Array.isArray(items)) return;
+      for (const item of items as Record<string, unknown>[]) {
+        delete item[ACCEPTANCE_REQUIRES_KEY];
+        item[ACCEPTANCE_EVIDENCE_KEY] = { ...reviewEvidence };
+        stamp(item.subItems);
+      }
+    };
+    const gatePlan = strictPlan();
+    stamp(gatePlan.items);
+    const gate = evaluateAcceptanceEvidenceGate(gatePlan);
+    const refused = gate.reports
+      .filter((r) => r.outcome === "invalid")
+      .map((r) => ({ path: r.path, axes: /\[([^\]]+)\]/.exec(r.detail)?.[1] }));
+    const listedForGate = listStrictAxisRequirements(gatePlan).map((r) => ({
+      path: r.path,
+      axes: r.axes.join("|"),
+    }));
+    expect(refused).toEqual(listedForGate);
+    expect(listedForGate.map((r) => r.path)).toContain("plan.items[3]");
+  });
+
+  it("clause.6: formats clause ids, axes and the x-directive/requires pointer", () => {
+    const lines = strictAxisAdvisoryLines({ plan: strictPlan() });
+    expect(lines[0]).toMatch(/3 clause\(s\) will need strict-axis evidence at scope:complete/);
+    expect(lines).toContain("  clause.1: deploy");
+    expect(lines).toContain("  clause.3: smoke, deploy");
+    expect(lines.at(-1)).toContain(ACCEPTANCE_REQUIRES_KEY);
+    expect(lines.at(-1)).toContain("exit code unchanged");
+    expect(strictAxisAdvisoryLines(strictPlan())).toEqual(lines);
+    expect(formatStrictAxisAdvisory([])).toEqual([]);
+    expect(strictAxisAdvisoryLines("not an object")).toEqual([]);
+    expect(formatStrictAxisAdvisory([{ path: "plan.items[9]", id: null, axes: ["uat"] }])[1]).toBe(
+      "  plan.items[9]: uat",
+    );
+  });
+
+  it("clause.12: identifiers such as deploy-dev.yml are not listed (#6270 classifier)", () => {
+    const ids = listStrictAxisRequirements(strictPlan()).map((r) => r.id);
+    expect(ids).not.toContain("clause.5");
   });
 });

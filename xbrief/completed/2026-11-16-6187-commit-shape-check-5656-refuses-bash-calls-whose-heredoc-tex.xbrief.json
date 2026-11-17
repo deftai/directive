@@ -1,0 +1,505 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6187",
+    "updated": "2026-11-17T15:14:45Z"
+  },
+  "plan": {
+    "title": "Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command",
+    "status": "completed",
+    "narratives": {
+      "Description": "The #5656 commit-shape check reads the whole Bash command text, so a heredoc body that only names a commit command (for example a note appended to a file) is treated as a commit and can be refused with the -a/pathspecs message. This story exports the authz preprocess chain (line continuations removed, then heredoc bodies removed) from `packages/core/src/authz/classify.ts` and runs it inside every commit-shape detector in `packages/core/src/hooks/commit-target.ts` before tokenizing. Real commits, compound `cd <abs> && git commit -F <file>` forms and -a/pathspec refusals stay as they are; non-heredoc string literals stay residual.",
+      "UserStory": "As a worker agent writing notes through Bash, I want heredoc text that only names a commit command to be ignored by the commit-shape check, so that I can record the real cause without rewording it.",
+      "ImplementationPlan": "One product PR (deft-story: 6187). 1. `packages/core/src/authz/classify.ts`: add one exported helper that returns `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command))`, and use it at the two existing authz call sites. 2. `packages/core/src/hooks/commit-target.ts`: one private function tokenizes the sanitized command; `commandHasGitCommitSubcommand`, `commandHasGitCommitIndexMutatingForm` and `resolveCommitTarget` (the checkout-retarget detector since #6278) all use it, so the prospective-cover entry in dispatcher.ts, which calls them, sees the same sanitized text. 3. Fixtures in `packages/core/src/hooks/commit-target.test.ts` and an end-to-end hook test in the new `packages/core/src/hooks/dispatcher-commit-heredoc.test.ts`. 4. Changelog fragment `changelog.d/6187-commit-shape-heredoc-bodies.md`. The detectors moved from dispatcher.ts to commit-target.ts after the lean was written (#6278), so the lean's dispatcher.ts / dispatcher.test.ts rows map to commit-target.ts and a new dispatcher test file; dispatcher.ts itself needs no edit.",
+      "Traces": "#6187, #5656, #6278, #6471",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6187",
+      "Overview": "\n\n- relieves: P1, P2, P3 — Shared sanitize: export/share the authz preprocess chain `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` (quoted and unquoted delimiters; preserve commands before/after; unclosed early-return residual); do not fork a third lexer.\n- relieves: P1, P2, P3 — Detector-wide apply: every exported #5656 detector (`commandHasGitCommitSubcommand`, index-mutating, checkout-retarget) and the prospective-cover entry must run that shared sanitize before split/token scan so production entry and unit-test helper calls cannot diverge.\n- relieves: P1, P2, P3 — Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; line-continued heredoc opener covered via shared chain; unclosed heredoc residual stays residual.\n- CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n\n",
+      "Constraint": "- Disable the commit-shape gate\n- Docs-only “reword the note” guidance as the product fix\n- Strip only quoted heredocs and leave unquoted bodies matched\n- Full shell AST / new parser as co-equal ship for this ticket\n- Absorb #6185 launch-root / multi-eligible write binding into this Bound\n- Treat non-heredoc string-literal / obscured non-heredoc forms as in-scope (remain residual / hooks-installed / `--no-verify`)",
+      "Labels": "bug, agent-experience, process, harness, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "relieves: P1, P2, P3 — Shared sanitize: export/share the authz preprocess chain `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` (quoted and unquoted delimiters; preserve commands before/after; unclosed early-return residual); do not fork a third lexer.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/authz/classify.ts, when the commit-shape detectors need the heredoc strip, then they import one exported helper from it that runs line-continuation removal and then heredoc-body removal, the authz zip and protected-dest classifiers call the same helper, and packages/core/src/hooks/commit-target.ts holds no heredoc lexer of its own."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d6f0d5528c4ef2d1f86f2e85e1cecd907d8b7e4",
+          "recorded_at": "2026-11-17T15:14:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "relieves: P1, P2, P3 — Detector-wide apply: every exported #5656 detector (`commandHasGitCommitSubcommand`, index-mutating, checkout-retarget) and the prospective-cover entry must run that shared sanitize before split/token scan so production entry and unit-test helper calls cannot diverge.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when `commandHasGitCommitSubcommand`, `commandHasGitCommitIndexMutatingForm` or `resolveCommitTarget` reads a command, then each tokenizes the sanitized command from the shared helper, so a heredoc note gives the same answer when called directly and through the prospective-cover entry in dispatcher.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d6f0d5528c4ef2d1f86f2e85e1cecd907d8b7e4",
+          "recorded_at": "2026-11-17T15:14:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "relieves: P1, P2, P3 — Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; line-continued heredoc opener covered via shared chain; unclosed heredoc residual stays residual.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the fixtures in packages/core/src/hooks/commit-target.test.ts and packages/core/src/hooks/dispatcher-commit-heredoc.test.ts, then: the issue repro (quoted and unquoted delimiter, `&&` and a fake `-F <file>` with trailing prose in the body) matches neither the subcommand nor the index-mutating detector and the hook does not refuse it; a real `cd <abs> && git commit -F <file>` still matches the subcommand, stays non-mutating and resolves to the named checkout; real `-am` and trailing pathspecs still refuse; a commit after a heredoc that closes still matches; a line-continued heredoc opener is stripped; text after an unclosed heredoc opener stays dropped as the authz residual does."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d6f0d5528c4ef2d1f86f2e85e1cecd907d8b7e4",
+          "recorded_at": "2026-11-17T15:14:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given changelog.d/6187-commit-shape-heredoc-bodies.md, then it holds one Unreleased line that names the heredoc false-positive fix and cites #6187 and #5656."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d6f0d5528c4ef2d1f86f2e85e1cecd907d8b7e4",
+          "recorded_at": "2026-11-17T15:14:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "harness",
+      "urgent",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6187",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6187: Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6185",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6185"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (4), in list order (#6333)",
+      "sentences": [
+        "relieves: P1, P2, P3 — Shared sanitize: export/share the authz preprocess chain `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` (quoted and unquoted delimiters; preserve commands before/after; unclosed early-return residual); do not fork a third lexer.",
+        "relieves: P1, P2, P3 — Detector-wide apply: every exported #5656 detector (`commandHasGitCommitSubcommand`, index-mutating, checkout-retarget) and the prospective-cover entry must run that shared sanitize before split/token scan so production entry and unit-test helper calls cannot diverge.",
+        "relieves: P1, P2, P3 — Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; line-continued heredoc opener covered via shared chain; unclosed heredoc residual stays residual.",
+        "CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1, P2, P3 — Shared sanitize: export/share the authz preprocess chain `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` (quoted and unquoted delimiters; preserve commands before/after; unclosed early-return residual); do not fork a third lexer.",
+        "relieves: P1, P2, P3 — Detector-wide apply: every exported #5656 detector (`commandHasGitCommitSubcommand`, index-mutating, checkout-retarget) and the prospective-cover entry must run that shared sanitize before split/token scan so production entry and unit-test helper calls cannot diverge.",
+        "relieves: P1, P2, P3 — Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; line-continued heredoc opener covered via shared chain; unclosed heredoc residual stays residual.",
+        "CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656."
+      ],
+      "admitted_source_digest": "cd699800acd85b1d70a5e3e30a3f58193aecc531cf0e71f9001a2ce0567795d2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1, P2, P3 — Shared sanitize: export/share the authz preprocess chain `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` (quoted and unquoted delimiters; preserve commands before/after; unclosed early-return residual); do not fork a third lexer.",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1, P2, P3 — Detector-wide apply: every exported #5656 detector (`commandHasGitCommitSubcommand`, index-mutating, checkout-retarget) and the prospective-cover entry must run that shared sanitize before split/token scan so production entry and unit-test helper calls cannot diverge.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1, P2, P3 — Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; line-continued heredoc opener covered via shared chain; unclosed heredoc residual stays residual.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656.",
+          "artifact_path": "changelog.d/6187-commit-shape-heredoc-bodies.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher-commit-heredoc.test.ts",
+          "changelog.d/6187-commit-shape-heredoc-bodies.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "commit-shape-heredoc-body-false-positive",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/commit-target.test.ts packages/core/src/hooks/dispatcher-commit-heredoc.test.ts packages/core/src/authz/classify.test.ts"
+        ],
+        "expected_outputs": [
+          "a Bash call whose heredoc body only names a commit command is not a commit to the #5656 detectors or the hook",
+          "real commits, compound cd-and-commit forms and -a/pathspec refusals are unchanged",
+          "one changelog fragment changelog.d/6187-commit-shape-heredoc-bodies.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft — conflict_group commit-shape-heredoc-body-false-positive\nSpec-path: Prefer-A draft #6187\nTarget-digest: sha256:659a19ff907e42a8ce115ea4c0fd03ac1a4ff67d3a3cb0e9ab245914e3837150\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\ndest: .deft-scratch/worktrees/arc-6187\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\n## In plain English\n\nThe #5656 commit-shape gate must classify only commands the shell will run. Text inside a recognized heredoc body is data, so a note that merely names a commit command must not fire the commit check. Strip heredoc bodies before the existing detectors; keep real compound commits and -a/pathspec refuses.\n\n## Bound remedy\n\n- Strip recognized heredoc bodies (quoted and unquoted delimiters; preserve commands before/after) before `commandHasGitCommitSubcommand` / index-mutating / checkout-retarget / prospective cover — reuse or share the authz `zipShellWithoutHereDocBodies` pattern (export/shared helper; do not fork a third lexer).\n- Apply the strip once at the commit-shape entry so every #5656 detector sees the same sanitized command.\n- Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; unclosed heredoc residual stays residual.\n- CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Reject\n\n- Disable the commit-shape gate\n- Docs-only “reword the note” guidance as the product fix\n- Strip only quoted heredocs and leave unquoted bodies matched\n- Full shell AST / new parser as co-equal ship for this ticket\n- Absorb #6185 launch-root / multi-eligible write binding into this Bound\n- Treat obscured non-heredoc forms as in-scope (remain hooks-installed / `--no-verify` residual)\n\n## Footnotes (non-mechanism)\n\n- Live tip repro on dispatch-sha: quoted heredoc mentioning a commit returns hasCommit true (false positive). Trailing prose after a fake `-F` token can flip index-mutating and emit the -a/pathspecs deny message seen in the issue.\n- Issue Related line cites #6185 for compound-commit refuse; open #6185 is a different launch-root bug. Prefer-A keeps compound detection; do not retarget that issue here.\n- Authz already strips heredoc bodies for zip/protected-dest classification; Prefer-A is share-or-export that strip into the hooks commit-shape path.\n\nFiled for @MScottAdams\n\n",
+          "id": 6807906781,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6807906781",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:52:05Z",
+          "updated_at": "2026-11-11T21:52:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate\ncharter: open critique\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\nspend-why: high blast-radius false refuse of non-git Bash (promise:gates / agent-experience); remedy shape open enough for panel\narc-mode: no-ingest\nmateriality-bar: open\nyolo-standing: on\nTarget-kind: issue\nCeiling-kind: comment-id\nclosed-findings: none\ndual-stop-reserved: pain-P1,pain-P2,pain-P3\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a: + dest .deft-scratch/worktrees/arc-6187 cwd-without-occupy\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\nprefer-a-draft: 6807906781\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\npain: P1, P2, P3\n\n- P1: Quoted heredoc body that merely mentions a commit command falsely trips #5656 commit-shape (hasCommit true on non-executed text).\n- P2: Agents recording the failing command in notes / memory / issue bodies via Bash are refused, so they reword and hide the real cause.\n- P3: Split on `&&` / newlines before heredoc strip creates fake commit parts; trailing prose after a fake `-F` token can emit the index-mutating (-a/pathspecs) deny message.\n\n## In plain English\n\nGate for no-ingest YOLO panel on #6187: strip heredoc data before commit-shape matching so notes can name the command without being treated as a commit.\n\nFiled for @MScottAdams\n\n",
+          "id": 6807907162,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6807907162",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:52:07Z",
+          "updated_at": "2026-11-11T21:52:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=1\nreason: native spawn_subagent denied (no active xBRIEF for process-only arc); Claude/Codex CLI sticky-denied with dest-rooted grok recovery after that recorded native miss; Grok dest-rooted pong OK\nseat-families: grok\nreduced-panel: unavailable/hang class (Codex+Claude unlaunchable this host turn)\narc-mode: no-ingest\nprefer-a-draft: 6807906781\nstop-1: 6807907162\n\nFiled for @MScottAdams\n\n",
+          "id": 6807937199,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6807937199",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:53:38Z",
+          "updated_at": "2026-11-11T21:53:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nfinding-classes: sharpening\n\nOpen critique of Prefer-A draft 6807906781 (conflict_group commit-shape-heredoc-body-false-positive). Ceiling 6807907162. Pin-read `git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a:` for hooks commit-shape + authz heredoc strip. No product implement.\n\n## Inventory (existing mechanisms)\n\n- `commandHasGitCommitSubcommand` / `commandHasGitCommitIndexMutatingForm` / `commandHasGitCommitCheckoutRetarget` / `decideProspectiveGitCommitScopeCover` in `packages/core/src/hooks/dispatcher.ts` (#5656). Detectors split the raw command on `&&` / `||` / `;` / newlines, then token-scan each part. Obscured forms stay hooks-installed / `--no-verify` residual by comment.\n- Authz already sanitizes shell text for zip/protected-dest via private `zipShellWithoutLineContinuations` then `zipShellWithoutHereDocBodies` in `packages/core/src/authz/classify.ts` (quoted and unquoted delimiters; preserves commands before/after; unclosed heredoc returns early). Hooks already import `../authz` — share/export that strip; do not fork a third lexer.\n- Existing #5656 fixtures cover compound status-then-commit, index-mutating refuse, and quoted message allow; no heredoc-body false-positive fixture yet.\n\n## Re-verify\n\nIssue repro with a body that names a compound commit-with-file form splits into a fake commit part before any heredoc strip. That matches Prefer-A / Stop 1 P1–P3: hasCommit true on non-executed text; trailing tokens after a fake file-message flag can trip index-mutating and emit the pathspecs deny. Prefer-A strip-first at commit-shape entry is the correct order relative to those detectors. Reject list is right: keep real compound detection (#6185 stays separate); do not disable the gate; do not docs-only; do not quoted-only strip; do not full AST as co-equal ship.\n\n## Findings\n\n### F1 — Sanitize inside exported detectors (or one shared wrapper they all call)\nclass: sharpens-framing\nevidence: Prefer-A says strip once at the commit-shape entry before `commandHasGitCommitSubcommand` / index-mutating / checkout-retarget / prospective cover. Production entry is `decideProspectiveGitCommitScopeCover`; unit tests call the exported detectors on raw strings (`dispatcher.test.ts` #5656 cases). Prefer-A proof fixtures name those same detectors for the heredoc non-match.\nfailure mode: Strip only inside `decideProspective…... while exported helpers stay raw → fixtures that call helpers diverge from production, or green helper tests leave the live false-positive.\ndisposition: Bound can bind; sharpen the limb to require one shared sanitize used by every exported detector (and thus by the entry), so entry and fixtures cannot diverge.\n\n### F2 — Share the authz preprocess chain, not only the heredoc symbol\nclass: sharpens-framing\nevidence: Authz call sites run `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command))`. Prefer-A Bound names only `zipShellWithoutHereDocBodies`. Authz fixtures already cover continued-delimiter forms.\nfailure mode: Line-continued heredoc openers stay unrecognized; body text that names a commit still false-refuses after Prefer-A lands.\ndisposition: Bound can bind; sharpen the share limb to the same preprocess chain (line-continuations then heredoc), matching authz.\n\n### F3 — Scope Issue Expected “other string literals” as residual\nclass: sharpens-framing\nevidence: Issue Expected says quoted heredoc bodies and other string literals must not trip the commit check. Prefer-A Bound is heredoc-only; Reject already parks obscured non-heredoc forms as residual.\nfailure mode: Silent under-delivery vs Expected, or later scope creep into quote-aware compound splitting under this ticket.\ndisposition: Bound can bind; state operatively (Reject or leftover footnote) that non-heredoc string-literal mentions stay residual for this conflict_group.\n\n## Injection / swarm lens\n\nClassifier input is untrusted Bash command text (authority-adjacent gate). Over-strip → false allow of a real commit. Deterministic control is Prefer-A as written once F1/F2 land: reuse the authz recognized-heredoc lexer, strip before detector split, keep unclosed/obscured residual, and prove real compound commit-with-file plus index-mutating forms still refuse. Reviewer attention is not the control.\n\n## Road-not-taken / steelman\n\nFull shell AST (Reject): stronger “commands the shell will run” semantics across quotes and nesting. Flip only if Prefer-A fixtures still leave material false positives on common agent note forms after the shared strip lands. Quoted-only strip (Reject): would clear the issue’s quoted NOTE repro with less lexer surface, but leaves unquoted heredoc bodies matched — Prefer-A correctly rejects that.\n\n## Verdict\n\nNo `blocks-the-design`. Prefer-A mechanism (share authz heredoc strip; apply before #5656 detectors; fixtures for repro + real compound + index-mutating forms; keep #6185 out) relieves P1–P3. Absorb F1–F3 as Bound sharpening (or Reject/leftover for F3) under KISS/#5783 — short limb wording, not a second design essay.\n\nFiled for @MScottAdams\n\n",
+          "id": 6808075733,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6808075733",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T22:00:53Z",
+          "updated_at": "2026-11-11T22:00:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound — conflict_group commit-shape-heredoc-body-false-positive\nSpec-path: Prefer-A Bound #6187\nTarget-digest: sha256:659a19ff907e42a8ce115ea4c0fd03ac1a4ff67d3a3cb0e9ab245914e3837150\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\ndest: .deft-scratch/worktrees/arc-6187\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1 (amended from N≥3; reduced panel — Grok only)\nspend-ask: resolved\nspend-amend: 6807937199\nprefer-a-draft: 6807906781\nstop-1: 6807907162\nRound-1: Grok 6808075733 (Claude/Codex unlaunchable this host turn)\nKISS ceiling: #5783 Prefer-A Bound 6280270826\nmove-forward: yes\n\n## In plain English\n\nThe #5656 commit-shape gate must classify only commands the shell will run. Strip recognized heredoc bodies with the same authz preprocess chain (line-continuations then heredoc) before every exported commit-shape detector, so a note that merely names a commit does not fire the check. Keep real compound commits and -a/pathspec refuses. Non-heredoc string-literal mentions stay residual on this ticket.\n\n## Bound remedy\n\n- relieves: P1, P2, P3 — Shared sanitize: export/share the authz preprocess chain `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` (quoted and unquoted delimiters; preserve commands before/after; unclosed early-return residual); do not fork a third lexer.\n- relieves: P1, P2, P3 — Detector-wide apply: every exported #5656 detector (`commandHasGitCommitSubcommand`, index-mutating, checkout-retarget) and the prospective-cover entry must run that shared sanitize before split/token scan so production entry and unit-test helper calls cannot diverge.\n- relieves: P1, P2, P3 — Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; line-continued heredoc opener covered via shared chain; unclosed heredoc residual stays residual.\n- CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Accept-into-contract (Round-1)\n\n- Grok F1 sharpens-framing: sanitize inside every exported detector / shared wrapper (absorbed limb 2).\n- Grok F2 sharpens-framing: share full authz preprocess chain including line-continuations (absorbed limb 1).\n- Grok F3 sharpens-framing: non-heredoc string literals residual for this conflict_group (Reject + plain-English).\n\n## Reject\n\n- Disable the commit-shape gate\n- Docs-only “reword the note” guidance as the product fix\n- Strip only quoted heredocs and leave unquoted bodies matched\n- Full shell AST / new parser as co-equal ship for this ticket\n- Absorb #6185 launch-root / multi-eligible write binding into this Bound\n- Treat non-heredoc string-literal / obscured non-heredoc forms as in-scope (remain residual / hooks-installed / `--no-verify`)\n\n## file_scope (lean)\n\n- packages/core/src/authz/classify.ts (export or share preprocess strip helpers)\n- packages/core/src/hooks/dispatcher.ts (#5656 detectors + prospective cover entry)\n- packages/core/src/hooks/dispatcher.test.ts (heredoc false-positive + compound + mutating fixtures)\n- CHANGELOG.md\n\n## Footnotes (non-mechanism)\n\n- Live tip repro on dispatch-sha: quoted heredoc mentioning a commit returns hasCommit true (false positive). Trailing prose after a fake `-F` token can flip index-mutating.\n- Issue Related line cites #6185 for compound-commit refuse; open #6185 is a different launch-root bug. Prefer-A keeps compound detection.\n\nFiled for @MScottAdams\n\n",
+          "id": 6808087408,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6808087408",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T22:01:29Z",
+          "updated_at": "2026-11-11T22:01:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Bound relieves (6808087408). Ceiling inclusive 6808087408. Pin-read `git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a:` for authz preprocess + #5656 detectors. Round-1 Grok 6808075733 absorbed as Bound sharpening. No product implement.\n\n## Inventory (existing mechanisms)\n\n- Exported #5656 detectors in `packages/core/src/hooks/dispatcher.ts`: `commandHasGitCommitSubcommand`, `commandHasGitCommitIndexMutatingForm`, `commandHasGitCommitCheckoutRetarget`; production entry `decideProspectiveGitCommitScopeCover` calls them on the raw shell command. Each detector splits on `&&` / `||` / `;` / newlines then token-scans — no heredoc strip today.\n- Authz already runs private `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` in `packages/core/src/authz/classify.ts` (quoted and unquoted delimiters; preserves commands before/after; unclosed early-return). Helpers are not exported.\n- #5656 fixtures cover compound status-then-commit, index-mutating refuse, quoted `-m`; no heredoc-body false-positive fixture yet.\n\n## Pain-audit\n\n### pain-P1 — Quoted heredoc body merely mentioning a commit\nStop 1: hasCommit true on non-executed heredoc text.\nBound: shared authz preprocess chain + detector-wide sanitize before split/token scan; proof fixture that quoted-heredoc note (including `&&` inside the body) must not match subcommand/index-mutating.\nVerdict: **relieves**. Strip removes the body before the detectors that currently match it. Round-1 F1/F2 are already Bound limbs, not open gaps.\n\n### pain-P2 — Agents refused when recording the failing command via Bash\nStop 1: notes/memory/issue bodies that name the command are refused, so agents reword and hide the cause.\nBound: same sanitize + fixtures; Reject keeps docs-only \"reword the note\" out of the product fix.\nVerdict: **relieves**. P2 is the agent-experience consequence of P1's false hasCommit; clearing the false positive restores the note path without a second mechanism.\n\n### pain-P3 — Split before strip → fake commit parts / index-mutating deny\nStop 1: `&&` / newlines inside the body create fake commit parts; trailing prose after a fake `-F` can emit the -a/pathspecs deny.\nBound: sanitize before every exported detector's split; fixtures require heredoc note non-match for index-mutating and keep real `-am` / pathspecs refuse; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating.\nVerdict: **relieves**. Order (strip then split) is the failure-mode fix; compound detection stays for real commits (#6185 remains separate per Reject).\n\n## Injection / swarm lens\n\nClassifier input is untrusted Bash text at an authority-adjacent gate. Over-strip → false allow of a real commit. Bound's deterministic control is reuse of the authz recognized-heredoc lexer, apply before detector split, keep unclosed/obscured residual, and prove real compound + index-mutating still refuse. Reviewer attention is not the control.\n\n## Verdict\n\nNo `blocks-the-design` / `sharpens-framing`. Prefer-A Bound `## Bound remedy` honestly relieves P1–P3 as written. `harvest-changed: false` — no Bound-remedy mechanism change. Writing-bar (#3368): naming/docs/CHANGELOG limb stays non-mechanism.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6808132411,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6808132411",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T22:03:50Z",
+          "updated_at": "2026-11-11T22:03:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ntakes: Prefer-A Bound 6808087408\nPA: Grok 6808132411 — finding-classes: none; harvest-changed: false\nreduced-panel: N=1 (spend-amend 6807937199; Claude/Codex unlaunchable)\narc-mode: no-ingest\nmove-forward: yes\n\nFiled for @MScottAdams\n\n",
+          "id": 6808144355,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6808144355",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T22:04:28Z",
+          "updated_at": "2026-11-11T22:04:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| P1: quoted heredoc mentioning a commit falsely trips #5656 hasCommit | Live tip repro on dispatch-sha e514bc81; Round-1 Grok 6808075733 inventory; Stop 1 | verified |\n| P2: agents cannot literally record the failing command via Bash notes | Issue Impact; same false-positive path | verified |\n| P3: pre-strip `&&`/newline split creates fake commit parts; trailing prose can emit index-mutating deny | dispatcher.ts split before strip; Round-1 re-verify | verified |\n| Prefer-A Bound 6808087408 relieves P1–P3 via shared authz preprocess + detector-wide sanitize | Bound limbs; PA 6808132411 finding-classes: none harvest-changed: false | verified |\n| Real compound commit-with-file and -am/pathspecs remain in scope (not disabled) | Bound proof fixtures + Reject | verified |\n| #6185 launch-root kept out of this conflict_group | Bound Reject / footnotes | verified |\n| Reduced panel N=1 (Grok only) after Claude/Codex sticky-deny | spend-amend 6807937199 | recorded |\n\nsuccessor lean: 6808087408\nRound-1: 6808075733\nPA: 6808132411\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\narc-mode: no-ingest\n\nFiled for @MScottAdams\n\n",
+          "id": 6808144630,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6808144630",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T22:04:29Z",
+          "updated_at": "2026-11-11T22:04:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 6808087408 honestly relieves Stop 1 P1–P3 with shared authz preprocess + detector-wide sanitize, PA cleared with finding-classes: none and harvest-changed: false, and Reject keeps #6185 / non-heredoc literals / gate-disable out of scope.\n\nsuccessor lean: 6808087408\nverified-claims table: 6808144630\n\n## In plain English\n\nCritique complete for no-ingest arc #6187. The next-build contract is Prefer-A Bound 6808087408: strip heredoc bodies with the authz line-continuation+heredoc chain inside every #5656 detector before matching, prove the note repro admits while real commits still refuse, leave other string literals residual. Ingest remains a separate operator verb.\n\n## Citations\n\n- Prefer-A draft: 6807906781\n- Stop 1: 6807907162\n- spend-amend: 6807937199\n- Round-1 Grok: 6808075733\n- Prefer-A Bound: 6808087408\n- PA Grok: 6808132411\n- Verified-claims table: 6808144630\n- dest: .deft-scratch/worktrees/arc-6187 @ e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\n- conflict_group: commit-shape-heredoc-body-false-positive\n- reduced-panel: N=1\n\nFiled for @MScottAdams\n\n",
+          "id": 6808144984,
+          "html_url": "https://github.com/deftai/directive/issues/6187#issuecomment-6808144984",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T22:04:30Z",
+          "updated_at": "2026-11-11T22:04:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe #5656 commit-shape check in the PreToolUse Bash hook matches the commit command anywhere in the raw command text, including inside a quoted heredoc body. A Bash call that only appends notes to a file outside the repository, and runs no git command, is refused when the note mentions a commit command.\n\nDirective version: 0.129.6. Host: Claude Code.\n\nNote: this report writes the command as `<git-commit>` because the bug itself refuses any Bash call, including the one that files this issue, whose text contains the literal command.\n\n## Repro\n\n```sh\ncat >> /path/outside/repo/notes.md <<'NOTE'\n- the hook refuses `cd <wt> && <git-commit> -F <file>`; a standalone commit works\nNOTE\n```\n\n(with the real command text in place of `<git-commit>`)\n\nResult:\n\n```\nDirective denied Bash: <git-commit> -a/--all/-am/--include or pathspecs change the file set after the pre-tool index snapshot (#5656). Stage the intended paths first (git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs.\n```\n\nNo git command runs. The heredoc delimiter is quoted, so the shell neither expands nor executes the body.\n\n## Expected\n\nThe check classifies only commands the shell will run. Text inside a quoted heredoc body, or inside other string literals, is not refused by the commit check.\n\n## Impact\n\nAgents recording what they learned (memory files, notes, issue bodies) are refused when the note names the command that failed. They then reword the text or switch tools, which hides the real cause from the next reader.\n\n## Related\n\n#6185 (follow-up comment): the same check also refuses a commit inside a compound command (`cd <wt> && <git-commit> -F <file>`), so agents whose shell cwd does not persist between calls cannot commit. That looks like the same matcher.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6319836133,
+        "origin": "deftai/directive#6187",
+        "id": "github.issue.6319836133"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "659a19ff907e42a8ce115ea4c0fd03ac1a4ff67d3a3cb0e9ab245914e3837150"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6187,
+        "leanCommentId": 6808087408,
+        "harvestDigest": "cd699800acd85b1d70a5e3e30a3f58193aecc531cf0e71f9001a2ce0567795d2",
+        "slice": null
+      },
+      "productPullRequest": 6481,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ef9e85662e369f276756de04ce3c28e0d6baff3e",
+        "prNumber": 6481,
+        "prBase": "master",
+        "mergeCommit": "6d6f0d5528c4ef2d1f86f2e85e1cecd907d8b7e4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2db6eeb4f2da1747d08090c6ebc7ebf46cc33595",
+        "verifiedAt": "2026-11-17T15:14:45Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YmFmYzNkMzMtNmFiMS00N2ZlLTg5ODktMzk3ZWI4OTJmNWRl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6499
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T15:14:45Z",
+      "completedSessionId": "host:claude:v1:YmFmYzNkMzMtNmFiMS00N2ZlLTg5ODktMzk3ZWI4OTJmNWRl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T15:14:45Z"
+      }
+    },
+    "id": "github.issue.6319836133",
+    "updated": "2026-11-17T15:14:45Z"
+  }
+}

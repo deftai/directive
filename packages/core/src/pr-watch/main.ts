@@ -292,6 +292,14 @@ export function watchResultToJson(result: WatchResult): Record<string, unknown> 
     elapsed_seconds: result.elapsedSeconds,
     poll_count: result.pollCount,
   };
+  // #6336 item 3: name missing required contexts and advisory bot checks
+  // (keys appear only when non-empty, so the stable shape is unchanged).
+  if (p.ciAbsentRequired !== undefined && p.ciAbsentRequired.length > 0) {
+    payload.ci_absent_required = [...p.ciAbsentRequired];
+  }
+  if (p.ciAdvisoryChecks !== undefined && p.ciAdvisoryChecks.length > 0) {
+    payload.ci_advisory_checks = [...p.ciAdvisoryChecks];
+  }
   // #3180: static status URLs on weather-class ci_ready_state (no network fetch).
   const statusUrls = platformStatusUrlsForWeather(p.ciReadyState);
   if (statusUrls !== null) {
@@ -709,7 +717,10 @@ function defaultWatchSleep(seconds: number): void {
 export function printWatchHuman(result: WatchResult): string {
   const p = result.probe;
   const lines: string[] = [];
-  lines.push(`PR #${result.prNumber} pr:watch verdict: ${result.verdict}`);
+  // #6336 item 2: the verdict line names the failed checks.
+  const failedSuffix =
+    p.ciFailedChecks.length > 0 ? ` (failed: ${p.ciFailedChecks.join("; ")})` : "";
+  lines.push(`PR #${result.prNumber} pr:watch verdict: ${result.verdict}${failedSuffix}`);
   lines.push(`  HEAD SHA:           ${p.headSha ?? "<unknown>"}`);
   lines.push(`  Greptile reviewed:  ${p.lastReviewedSha ?? "<not parsed>"}`);
   lines.push(`  SHA match:          ${p.shaMatch}`);
@@ -727,6 +738,12 @@ export function printWatchHuman(result: WatchResult): string {
   }
   if (p.ciCapacityStalledChecks.length > 0) {
     lines.push(`  Capacity-stalled:   ${p.ciCapacityStalledChecks.join("; ")}`);
+  }
+  if (p.ciAbsentRequired !== undefined && p.ciAbsentRequired.length > 0) {
+    lines.push(`  Missing required:   ${p.ciAbsentRequired.join("; ")} (no check-run on HEAD)`);
+  }
+  if (p.ciAdvisoryChecks !== undefined && p.ciAdvisoryChecks.length > 0) {
+    lines.push(`  Advisory (bot):     ${p.ciAdvisoryChecks.join("; ")} (not counted)`);
   }
   // #3180: probe these pages before workflow thrash on weather states.
   const statusUrls = platformStatusUrlsForWeather(p.ciReadyState);

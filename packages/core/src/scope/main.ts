@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
@@ -9,6 +9,7 @@ import { releaseWorkClaimForBrief } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { interceptHelp } from "../triage/help/index.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
+import { strictAxisAdvisoryLines } from "./acceptance-evidence.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
 import { BIND_CLAUSE_ACTION, bindClauseOnBrief } from "./bind-clause.js";
@@ -67,6 +68,8 @@ export interface LifecycleArgs {
   deliveryEvidence?: DeliveryEvidenceInput;
   /** Clause ids for scope:bind-clause (#4986). */
   clauseIds?: number[];
+  /** In-PR completion for scope:complete (#6277). */
+  inPr?: boolean;
 }
 
 export interface DemoteArgs {
@@ -88,11 +91,30 @@ export interface UndoArgs {
   projectRoot?: string;
 }
 
+/**
+ * Strict-axis advisory for a brief on disk (#6272). Best-effort: an unreadable
+ * or malformed brief yields no lines. Never changes an exit code.
+ */
+function briefStrictAxisAdvisory(path: string): string[] {
+  try {
+    return strictAxisAdvisoryLines(JSON.parse(readFileSync(path, "utf8")) as unknown);
+  } catch {
+    return [];
+  }
+}
+
+function writeLines(lines: readonly string[]): void {
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+}
+
 const LIFECYCLE_USAGE_STDERR =
   "usage: deft scope:<action> [file] [--batch] [--from-issue N] [--repo OWNER/NAME]\n" +
   "                          [--force] [--project-root PATH] [--strict] [--force-no-cache]\n" +
   "                          [--path PATH]\n" +
   "  complete also accepts: --merge-commit SHA --pr N [--pr-base BRANCH] [--delivery-branch BRANCH]\n" +
+  "  complete --in-pr completes the story inside its last product PR (lands-with-product; #6277)\n" +
   "  stamp-evidence is evidence-only: no --pr / --merge-commit / disposition argv (#4840)\n" +
   "  bind-clause binds selected --clause ids onto --path under file_scope (#4986)\n" +
   "  actions: activate, bind-clause, block, cancel, complete, fail, promote, restore, stamp-evidence, unblock\n" +
@@ -130,13 +152,16 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   let deliveryBranch: string | undefined;
   let repo: string | undefined;
   let mergedAt: string | undefined;
+  let inPr = false;
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === undefined) {
       return { args: null, error: "usage" };
     }
     if (arg === "--") continue;
-    if (arg === "--force") {
+    if (arg === "--in-pr") {
+      inPr = true;
+    } else if (arg === "--force") {
       force = true;
     } else if (arg === "--batch") {
       batch = true;
@@ -261,6 +286,17 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
           verifier: "scope:complete",
         }
       : undefined;
+  // #6277: --in-pr is a scope:complete mode with no merge evidence or disposition.
+  if (
+    inPr &&
+    (action !== "complete" ||
+      batch ||
+      fromIssue !== undefined ||
+      deliveryEvidence !== undefined ||
+      nonDeliveryDisposition !== undefined)
+  ) {
+    return { args: null, error: "usage" };
+  }
   if (batch) {
     if (action !== "promote") {
       return { args: null, error: "usage" };
@@ -349,6 +385,7 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       force,
       nonDeliveryDisposition,
       deliveryEvidence,
+      ...(inPr ? { inPr: true } : {}),
     },
   };
 }
@@ -385,6 +422,7 @@ export function lifecycleMain(argv: string[]): number {
     clauseIds,
     nonDeliveryDisposition,
     deliveryEvidence,
+    inPr,
   } = parsed.args;
 
   if (batch === true && action === "promote") {
@@ -481,6 +519,8 @@ export function lifecycleMain(argv: string[]): number {
             "audit: scope-lifecycle.jsonl entry tagged wip_cap_override (#1124).\n",
         );
       }
+      // #6272: advisory only; read the promoted brief (promote may stamp clauses).
+      writeLines(briefStrictAxisAdvisory(promoteResult.destPath ?? filePath));
       return 0;
     }
     process.stderr.write(
@@ -529,10 +569,14 @@ export function lifecycleMain(argv: string[]): number {
     nonDeliveryDisposition,
     deliveryEvidence,
     verifier: "scope:complete",
+    ...(inPr === true ? { inPr: true } : {}),
   };
+  // #6272: read before the move; activate does not change item text.
+  const activateAdvisory = action === "activate" ? briefStrictAxisAdvisory(filePath) : [];
   const result = runTransition(action, filePath, new Date(), transitionOptions);
   if (result.ok) {
     process.stdout.write(`${result.message}\n`);
+    writeLines(activateAdvisory);
     if (action === "complete") {
       try {
         const completedPath = completedPathForScopeMove(filePath);

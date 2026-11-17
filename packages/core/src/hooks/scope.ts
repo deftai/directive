@@ -5,6 +5,10 @@ import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-iden
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
 import {
+  evaluateSmallChangeLaneGate,
+  type SmallChangeLaneGateResult,
+} from "../policy/small-change-lane.js";
+import {
   hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromMergeBase,
@@ -12,6 +16,13 @@ import {
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+import {
+  discoverInRangeLandsWithProductMoves,
+  type InRangeLandsWithProductMove,
+  listBranchChangedPaths,
+  pinNamesLandsWithProductMove,
+  soleLandsWithProductMove,
+} from "../scope/lands-with-product.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   liveOccupant,
@@ -19,6 +30,10 @@ import {
   type OccupancyRecord,
   occupancyAdmission,
 } from "../session/occupancy.js";
+import {
+  type ReadStoryBindingRecordResult,
+  readStoryBindingRecord,
+} from "../swarm/story-binding-record.js";
 import {
   FAILURE_DUPLICATE_ASSIGNMENT,
   FAILURE_REGISTRY_CORRUPTION,
@@ -29,6 +44,13 @@ import {
 } from "../swarm/worker-auth-assignment.js";
 
 export { hasPositiveGoverningStoryAllow } from "../policy/write-fence.js";
+
+/**
+ * Parent repair for a linked worktree with no story binding (#6379): begin
+ * writes the worktree's story-binding record.
+ */
+export const PRE_DISPATCH_BEGIN_REPAIR =
+  "`deft swarm:pre-dispatch -- --scope-id <story> --target-id <worktree-or-branch>` (begin)";
 
 /**
  * Deny copy when a selected brief lacks positive governing allow (#5656).
@@ -43,6 +65,29 @@ export const POSITIVE_GOVERNING_ALLOW_REQUIRED =
   "Recovery: for a newly written proposal, run `deft scope:promote -- <path>` then " +
   "`deft scope:activate -- <path>` (auto-promote from proposed/ is refused); " +
   "for an already-pending xBRIEF run `deft scope:activate -- <path>`.";
+
+/**
+ * Deny copy for a brief absent from the merge base when the merge-base one-PR
+ * level is on and the mint does not admit it (#6361). Lifecycle moves would
+ * rewrite the brief and void the mint, so the recovery names the mint only.
+ */
+export function formatOnePrMintNotAdmitted(reason: string): string {
+  return (
+    "Directive denied this mutation: the selected running scope is not on the merge base, " +
+    "and its one-PR mint does not admit it (#6361 / #6273): " +
+    `${fenceUntrustedAcceptanceText(reason)}. ` +
+    "Recovery: the human mints the current brief bytes with " +
+    "`deft scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm`; " +
+    "any edit to the brief after the mint needs a new mint."
+  );
+}
+
+/** Positive-allow deny copy for a fence view: mint reason when it has one (#5656 / #6361). */
+export function formatPositiveGoverningAllowDeny(fence: StoryWriteFenceView): string {
+  const mint = fence.onePrMint;
+  if (mint !== undefined && !mint.admitted) return formatOnePrMintNotAdmitted(mint.reason);
+  return POSITIVE_GOVERNING_ALLOW_REQUIRED;
+}
 
 /** Hook/process env pin for the dispatched story when more than one brief is active (#4007). */
 export const ACTIVE_SCOPE_PIN_ENV = "DEFT_ACTIVE_SCOPE";
@@ -207,7 +252,9 @@ function formatMultipleActiveMessage(eligible: readonly EligibleScope[]): string
     `Multiple active xBRIEF artifacts are eligible (${names}). ` +
     "The write fence cannot bind the first-sorted story: a cohort would share that " +
     "story's file_scope and over-permit every other worker (#4007). " +
-    `Parent/operator: pin ${ACTIVE_SCOPE_PIN_ENV} to the dispatched story before spawn ` +
+    `Parent/operator: for a linked worktree, run ${PRE_DISPATCH_BEGIN_REPAIR} before spawn ` +
+    "(begin records the worktree's story, #6379); otherwise " +
+    `pin ${ACTIVE_SCOPE_PIN_ENV} to the dispatched story before spawn ` +
     `(or demote/complete competitors / run \`deft ${BLOCK_SCOPE_VERB} -- <brief>\`), ` +
     "and ensure the pin is visible to the hook environ that measured the deny " +
     "(process.env / spawn stdin env bag); restart the host when only User/system env was updated." +
@@ -571,6 +618,20 @@ export function resolveSoftMissingAcTargets(
   projectRoot: string,
   options?: ResolveSoftMissingAcTargetsOptions,
 ): SoftMissingAcTargetResolution {
+  // #6277 Bound 6: on the check / pre-PR path, a change set that moves its story
+  // brief to completed/ as lands-with-product names that brief as the story. An
+  // explicit pin keeps priority; a pin to the moved brief (either path) follows it.
+  if (options?.branchBind !== undefined) {
+    const bindRoot = options.branchBind.projectRoot ?? projectRoot;
+    const landed = soleLandsWithProductMove(bindRoot);
+    const explicitPin = pinFrom(options);
+    if (
+      landed !== null &&
+      (explicitPin.length === 0 || pinNamesLandsWithProductMove(bindRoot, explicitPin, landed))
+    ) {
+      return { kind: "one", path: join(bindRoot, ...landed.completedRel.split("/")) };
+    }
+  }
   const scanned =
     options?.scannedPaths !== undefined
       ? [...options.scannedPaths]
@@ -889,16 +950,27 @@ function admitUntiedWithWorkerAuth(
  *   whose validated reader reports no assignment. The caller keeps today's
  *   selection (env pin, spawn bound path, single eligible, multiple-eligible).
  * - `bound`: the assignment's `story_id` matches exactly one active brief and
- *   that brief is implementation-eligible.
+ *   that brief is implementation-eligible; or, on an active-folder miss, it
+ *   matches exactly one lands-with-product move from an in-range containing
+ *   commit (#6480). That hit carries `landsWithProductMove`, and `path` is the
+ *   brief's pre-move `active/` path, so the fence reads its merge-base blob
+ *   (or the one-PR mint gate on the containing commit).
  * - `refuse`: the reader failed, the assigned story is missing, ineligible or
  *   ambiguous, or an env pin / spawn bound path names a different story.
  *
  * There is no `untied` outcome and no branch-token match: only the assignment
- * record binds a story here.
+ * record, or else the story-binding record that `swarm:pre-dispatch` begin
+ * writes (#6379), binds a story here.
  */
 export type WorktreeStoryBinding =
   | { readonly kind: "none" }
-  | { readonly kind: "bound"; readonly path: string; readonly storyId: string }
+  | {
+      readonly kind: "bound";
+      readonly path: string;
+      readonly storyId: string;
+      /** Set when the story was admitted through its in-PR completion move (#6480). */
+      readonly landsWithProductMove?: InRangeLandsWithProductMove;
+    }
   | { readonly kind: "refuse"; readonly failureKind: string; readonly message: string };
 
 /** Refusal kinds the resolver adds to the reader's own failure kinds (#6233). */
@@ -916,10 +988,28 @@ export interface ResolveWorktreeStoryBindingOptions {
   readonly boundPath?: string | null;
   /** Injectable worker-auth reader (tests). */
   readonly readWorkerAuthAssignment?: (cwd: string) => ReadWorkerAuthAssignmentResult;
+  /** Injectable story-binding record reader (tests, #6379). */
+  readonly readStoryBindingRecord?: (
+    cwd: string,
+    commonDir: string | null,
+  ) => ReadStoryBindingRecordResult;
   /** Injectable linked-worktree predicate (tests). */
   readonly isLinkedWorktree?: (root: string) => boolean;
   /** Injectable eligibility check (tests); defaults to the xBRIEF preflight evaluator. */
   readonly isEligible?: (briefPath: string) => { readonly ok: boolean; readonly message: string };
+  /** Injectable in-range lands-with-product move oracle (tests, #6480). */
+  readonly discoverMovedBriefs?: (worktreeRoot: string) => readonly InRangeLandsWithProductMove[];
+  /** Injectable branch change-set reader for the refusal repair text (tests, #6480). */
+  readonly listChangedPaths?: (worktreeRoot: string) => readonly string[] | null;
+  /**
+   * Injectable small-change lane recheck for a moved brief (tests, #6480);
+   * defaults to `evaluateSmallChangeLaneGate` on the completed brief.
+   */
+  readonly checkSmallChangeLane?: (
+    plan: Record<string, unknown>,
+    worktreeRoot: string,
+    completedPath: string,
+  ) => SmallChangeLaneGateResult;
 }
 
 function refuseBinding(failureKind: string, detail: string, repair: string): WorktreeStoryBinding {
@@ -946,6 +1036,138 @@ export function registryFailureRepair(failureKind: string, reRegister: string): 
     );
   }
   return reRegister;
+}
+
+/** Scope note for a story the binding admitted through its in-PR completion move (#6480). */
+export function inPrCompletionScopeMessage(binding: {
+  readonly storyId: string;
+  readonly landsWithProductMove?: { readonly completedRel: string };
+}): string {
+  const completed = binding.landsWithProductMove?.completedRel ?? "";
+  return (
+    `Worktree story ${fenceUntrustedAcceptanceText(binding.storyId)} admitted through its ` +
+    `in-PR completion move to ${fenceActiveScopeName(completed)} (#6480).`
+  );
+}
+
+/**
+ * True when a `completed/` brief in this branch's change set carries the
+ * assigned story id. Only shapes the refusal text (#6480): such a story must
+ * not be told to re-activate its brief. Never admits anything.
+ */
+function storyCompletedInChangeSet(
+  worktreeRoot: string,
+  storyId: string,
+  options: ResolveWorktreeStoryBindingOptions,
+): boolean {
+  const changed = (options.listChangedPaths ?? listBranchChangedPaths)(worktreeRoot) ?? [];
+  return changed.some((rel) => {
+    const posix = rel.replace(/\\/g, "/");
+    if (!/^(xbrief|vbrief)\/completed\/[^/]+$/.test(posix)) return false;
+    const path = join(worktreeRoot, ...posix.split("/"));
+    return existsSync(path) && briefStoryId({ path, data: readBriefRecord(path) }) === storyId;
+  });
+}
+
+/**
+ * Active-folder miss (#6480): admit the assigned story only when its id equals
+ * the story id of exactly one in-range lands-with-product move. This matches
+ * the assigned id and never calls `soleLandsWithProductMove`, so another
+ * story's move is not a new assignment. The hit skips the eligibility check
+ * (the brief is no longer under active/), and pins are matched with
+ * `pinNamesLandsWithProductMove`. Any other miss keeps today's refusal.
+ */
+function resolveMovedStoryBinding(
+  worktreeRoot: string,
+  storyId: string,
+  source: string,
+  options: ResolveWorktreeStoryBindingOptions,
+): WorktreeStoryBinding {
+  const fencedId = fenceUntrustedAcceptanceText(storyId);
+  const discovered =
+    storyId.length === 0
+      ? []
+      : (options.discoverMovedBriefs ?? discoverInRangeLandsWithProductMoves)(worktreeRoot);
+  const moves = discovered.filter(
+    (move) =>
+      briefStoryId({
+        path: join(worktreeRoot, ...move.completedRel.split("/")),
+        data: { plan: move.plan },
+      }) === storyId,
+  );
+  if (moves.length > 1) {
+    return refuseBinding(
+      WORKTREE_STORY_AMBIGUOUS,
+      `assigned story ${fencedId} matches ${moves.length} briefs moved to completed/ in this change set (${moves.map((move) => fenceActiveScopeName(move.completedRel)).join(", ")}).`,
+      "give each brief a unique plan.id",
+    );
+  }
+  const move = moves[0];
+  if (move === undefined) {
+    if (storyId.length > 0 && storyCompletedInChangeSet(worktreeRoot, storyId, options)) {
+      return refuseBinding(
+        WORKTREE_STORY_MISSING,
+        `assigned story ${fencedId} has its brief under completed/ in this change set, but not as a lands-with-product move from a commit at or after the merge base that still has it under active/.`,
+        `do not re-activate a completed brief; the parent binds this worktree to its current story with ${PRE_DISPATCH_BEGIN_REPAIR}`,
+      );
+    }
+    return refuseBinding(
+      WORKTREE_STORY_MISSING,
+      `assigned story ${fencedId} matches no brief under xbrief/active/ in this worktree.`,
+      "activate the assigned story's brief in this worktree (`deft scope:activate -- <brief>`)",
+    );
+  }
+  const moved = fenceActiveScopeName(move.completedRel);
+  const bound = options.boundPath?.trim() ?? "";
+  if (bound.length > 0 && !pinNamesLandsWithProductMove(worktreeRoot, bound, move)) {
+    return refuseBinding(
+      WORKTREE_STORY_BOUND_PATH_CONFLICT,
+      `the spawn bound path ${fencePinValue(bound)} names a different story than the ${source} ${fencedId} (moved to ${moved}).`,
+      "spawn into the worktree registered for that story",
+    );
+  }
+  const envPin = (options.env ?? process.env)[ACTIVE_SCOPE_PIN_ENV]?.trim() ?? "";
+  if (envPin.length > 0 && !pinNamesLandsWithProductMove(worktreeRoot, envPin, move)) {
+    return refuseBinding(
+      WORKTREE_STORY_ENV_PIN_CONFLICT,
+      `${ACTIVE_SCOPE_PIN_ENV} ${fencePinValue(envPin)} names a different story than the ${source} ${fencedId} (moved to ${moved}).`,
+      `clear ${ACTIVE_SCOPE_PIN_ENV} for this worker (the ${source} names its story)`,
+    );
+  }
+  // The eligibility check is skipped for the moved brief, but its small-change
+  // lane bound still holds: review fixes after the move are rechecked against
+  // the completed brief and the current worktree diff (#6204 / #6480).
+  const completedPath = join(worktreeRoot, ...move.completedRel.split("/"));
+  const lane = (options.checkSmallChangeLane ?? defaultSmallChangeLane)(
+    move.plan,
+    worktreeRoot,
+    completedPath,
+  );
+  if (!lane.ok) {
+    return {
+      kind: "refuse",
+      failureKind: WORKTREE_STORY_INELIGIBLE,
+      message: `Worktree story binding refused (${WORKTREE_STORY_INELIGIBLE}): assigned story ${fencedId} (moved to ${moved}) is outside its small-change lane: ${lane.message} (#6480).`,
+    };
+  }
+  return {
+    kind: "bound",
+    path: join(worktreeRoot, ...move.activeRel.split("/")),
+    storyId,
+    landsWithProductMove: move,
+  };
+}
+
+function defaultSmallChangeLane(
+  plan: Record<string, unknown>,
+  worktreeRoot: string,
+  completedPath: string,
+): SmallChangeLaneGateResult {
+  return evaluateSmallChangeLaneGate(plan, {
+    projectRoot: worktreeRoot,
+    gate: "xbrief:preflight",
+    briefPath: completedPath,
+  });
 }
 
 function defaultEligible(briefPath: string): { ok: boolean; message: string } {
@@ -977,9 +1199,29 @@ export function resolveWorktreeStoryBinding(
       "run the write from a worktree where `git rev-parse --git-common-dir` succeeds",
     );
   }
-  if (read.assignment === null) return { kind: "none" };
+  // Read order (#6379 item 4): the worker-auth assignment, else the
+  // story-binding record that `swarm:pre-dispatch` begin writes. Both go
+  // through the same checks and refusals below.
+  let source = "worktree assignment";
+  let assignedStoryId: string;
+  if (read.assignment !== null) {
+    assignedStoryId = read.assignment.story_id;
+  } else {
+    const recordReader = options.readStoryBindingRecord ?? readStoryBindingRecord;
+    const record = recordReader(worktreeRoot, read.commonDir);
+    if (!record.ok) {
+      return refuseBinding(
+        record.failureKind,
+        `the story-binding record cannot say which story this linked worktree belongs to: ${fenceUntrustedAcceptanceText(record.detail)}.`,
+        `the parent runs ${PRE_DISPATCH_BEGIN_REPAIR} for this worktree (begin rewrites its story-binding record)`,
+      );
+    }
+    if (record.record === null) return { kind: "none" };
+    assignedStoryId = record.record.story_id;
+    source = "worktree story-binding record";
+  }
 
-  const storyId = read.assignment.story_id.trim();
+  const storyId = assignedStoryId.trim();
   const fencedId = fenceUntrustedAcceptanceText(storyId);
   const scanned = listActiveLifecycleArtifacts(worktreeRoot).paths;
   const owners = scanned.filter(
@@ -994,11 +1236,7 @@ export function resolveWorktreeStoryBinding(
   }
   const owner = owners[0];
   if (owner === undefined) {
-    return refuseBinding(
-      WORKTREE_STORY_MISSING,
-      `assigned story ${fencedId} matches no brief under xbrief/active/ in this worktree.`,
-      "activate the assigned story's brief in this worktree (`deft scope:activate -- <brief>`)",
-    );
+    return resolveMovedStoryBinding(worktreeRoot, storyId, source, options);
   }
   const eligible = (options.isEligible ?? defaultEligible)(owner);
   if (!eligible.ok) {
@@ -1013,7 +1251,7 @@ export function resolveWorktreeStoryBinding(
   if (bound.length > 0 && matchPinnedActiveScope(worktreeRoot, bound, scanned) !== owner) {
     return refuseBinding(
       WORKTREE_STORY_BOUND_PATH_CONFLICT,
-      `the spawn bound path ${fencePinValue(bound)} names a different story than the worktree assignment ${fencedId}.`,
+      `the spawn bound path ${fencePinValue(bound)} names a different story than the ${source} ${fencedId}.`,
       "spawn into the worktree registered for that story",
     );
   }
@@ -1021,8 +1259,8 @@ export function resolveWorktreeStoryBinding(
   if (envPin.length > 0 && matchPinnedActiveScope(worktreeRoot, envPin, scanned) !== owner) {
     return refuseBinding(
       WORKTREE_STORY_ENV_PIN_CONFLICT,
-      `${ACTIVE_SCOPE_PIN_ENV} ${fencePinValue(envPin)} names a different story than the worktree assignment ${fencedId}.`,
-      `clear ${ACTIVE_SCOPE_PIN_ENV} for this worker (the worktree assignment names its story)`,
+      `${ACTIVE_SCOPE_PIN_ENV} ${fencePinValue(envPin)} names a different story than the ${source} ${fencedId}.`,
+      `clear ${ACTIVE_SCOPE_PIN_ENV} for this worker (the ${source} names its story)`,
     );
   }
   return { kind: "bound", path: owner, storyId };

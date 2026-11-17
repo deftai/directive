@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -14,6 +15,8 @@ import * as containedWriteMod from "../fs/contained-write.js";
 import { ContainedWriteError, ContainedWriteErrorCode } from "../fs/contained-write.js";
 import * as projectionContainment from "../fs/projection-containment.js";
 import * as clauseDerivation from "../intake/clause-derivation.js";
+import { mintAcceptanceDispositionTemplateGrant } from "../policy/acceptance-disposition-grant.js";
+import { mintDeliveryIdentityAttestTemplateGrant } from "../policy/delivery-identity-attest-grant.js";
 import * as specGuardMod from "../policy/spec-guard.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import type { GitRunner } from "../session/git.js";
@@ -2947,5 +2950,811 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
       expect(result.message).toContain("crossed after admit");
       expect(existsSync(path)).toBe(true);
     }
+  });
+});
+
+describe("scope:complete identity join for part-line, same-mark and attested PRs (#6317)", () => {
+  const ISSUE = 6270;
+  const REPO = "deftai/directive";
+  const PLAN_ID = "github.issue.6270";
+  const MERGED_AT = "2026-11-14T10:00:00Z";
+  const SHA = (pr: number) => String(pr).padStart(4, "0").repeat(10);
+  const mark = `deft-story: ${ISSUE}`;
+  const part = `deft-story-part: ${ISSUE}`;
+  const name = `2026-11-15-${ISSUE}-story.xbrief.json`;
+  const bases: string[] = [];
+  afterEach(() => {
+    for (const base of bases.splice(0)) {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  function realGit(cwd: string, args: string[]): string {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  }
+
+  /** Main clone plus linked worktrees; every checkout carries the xbrief folders. */
+  function cloneWithDests(...dests: string[]): Record<string, string> {
+    const base = mkdtempSync(join(tmpdir(), "scope-6317-"));
+    bases.push(base);
+    const main = join(base, "main");
+    mkdirSync(main);
+    realGit(main, ["init", "-q"]);
+    realGit(main, ["config", "user.email", "test@example.com"]);
+    realGit(main, ["config", "user.name", "test"]);
+    writeFileSync(join(main, "README.md"), "x\n", "utf8");
+    realGit(main, ["add", "README.md"]);
+    realGit(main, ["commit", "-q", "-m", "init"]);
+    const roots: Record<string, string> = { main };
+    for (const dest of dests) {
+      roots[dest] = join(base, dest);
+      realGit(main, ["worktree", "add", "-q", "-b", `b-${dest}`, roots[dest] as string]);
+    }
+    for (const root of Object.values(roots)) {
+      for (const folder of ["active", "completed"]) {
+        mkdirSync(join(root, "xbrief", folder), { recursive: true });
+      }
+    }
+    return roots;
+  }
+
+  function writeStory(root: string, productPullRequest?: number): string {
+    const path = join(root, "xbrief", "active", name);
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: PLAN_ID,
+        title: "two-PR story",
+        status: "running",
+        references: [
+          { uri: `https://github.com/${REPO}/issues/${ISSUE}`, type: "x-xbrief/github-issue" },
+        ],
+        metadata: {
+          kind: "story",
+          swarm: { file_scope: ["packages/core/src/x.ts"] },
+          ...(productPullRequest !== undefined ? { productPullRequest } : {}),
+        },
+        items: [],
+      },
+    });
+    return path;
+  }
+
+  /** Delivery-branch git: ancestry ok; `git show origin/master:<path>` serves `blobStamp`. */
+  function deliveryGit(blobStamp: number | null | "absent"): GitRunner {
+    return (_cwd, args) => {
+      const joined = args.join(" ");
+      if (args[0] === "show") {
+        if (blobStamp === "absent") return { code: 128, stdout: "", stderr: "fatal: no path" };
+        const metadata = blobStamp === null ? {} : { productPullRequest: blobStamp };
+        return { code: 0, stdout: JSON.stringify({ plan: { metadata } }), stderr: "" };
+      }
+      if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("origin/")) {
+        return { code: 0, stdout: "deliverytip", stderr: "" };
+      }
+      if (joined.includes("symbolic-ref")) {
+        return { code: 0, stdout: "origin/master", stderr: "" };
+      }
+      return { code: 0, stdout: "ok", stderr: "" };
+    };
+  }
+
+  const merged = (number: number, body: string): MergedPrListNode => ({
+    number,
+    mergedAt: MERGED_AT,
+    body,
+    lastEditedAt: null,
+  });
+
+  function complete(
+    path: string,
+    opts: {
+      prs: Record<number, string>;
+      pr?: number;
+      blob?: number | null | "absent";
+      finalize?: boolean;
+    },
+  ) {
+    return runTransition("complete", path, new Date("2026-11-15T12:00:00.000Z"), {
+      runGit: deliveryGit(opts.blob === undefined ? "absent" : opts.blob),
+      fetchPrPayload: (n: number, repo: string) => {
+        const body = opts.prs[n];
+        return body === undefined || repo !== REPO
+          ? null
+          : {
+              merged_at: MERGED_AT,
+              merge_commit_sha: SHA(n),
+              base: { ref: "master" },
+              head: { sha: `head${n}` },
+              body,
+            };
+      },
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+      fetchClosingIssueIds: () => [{ repository: REPO, issueNumber: ISSUE }],
+      mergeTimeForge: staticMergeTimeForge({
+        merged: Object.entries(opts.prs).map(([n, body]) => merged(Number(n), body)),
+      }),
+      deliveryEvidence:
+        opts.pr === undefined
+          ? null
+          : { prNumber: opts.pr, mergeCommit: SHA(opts.pr), mergedAt: MERGED_AT },
+      ...(opts.finalize === true
+        ? { assumeEvidenceValidated: true, verifier: "swarm:finalize-cohort" }
+        : {}),
+    });
+  }
+
+  function provenance(root: string): Record<string, unknown> {
+    const data = JSON.parse(readFileSync(join(root, "xbrief", "completed", name), "utf8")) as {
+      plan: { metadata: { completionProvenance: Record<string, unknown> } };
+    };
+    return data.plan.metadata.completionProvenance;
+  }
+
+  it("clause.1: with only a part-line PR merged, --pr, finalize, auto-discovery and an attestation all refuse", () => {
+    const { main } = cloneWithDests();
+    const path = writeStory(main, 6301);
+    const prs = { 6301: `Refs #${ISSUE}\n${part}` };
+    const byPr = complete(path, { prs, pr: 6301 });
+    expect(byPr.ok).toBe(false);
+    expect(byPr.message).toMatch(/partial delivery/);
+    const byFinalize = complete(path, { prs, pr: 6301, finalize: true });
+    expect(byFinalize.ok).toBe(false);
+    expect(byFinalize.message).toMatch(/partial delivery/);
+    const byDiscovery = complete(path, { prs });
+    expect(byDiscovery.ok).toBe(false);
+    expect(byDiscovery.message).toMatch(/partial delivery/);
+
+    const minted = mintDeliveryIdentityAttestTemplateGrant({
+      projectRoot: main,
+      target: `${REPO}#6301@${SHA(6301)}`,
+      planRef: PLAN_ID,
+    });
+    expect(minted.ok).toBe(true);
+    const attested = complete(path, { prs, pr: 6301 });
+    expect(attested.ok).toBe(false);
+    expect(attested.message).toMatch(/operator attestation included/);
+    expect(existsSync(path)).toBe(true);
+  });
+
+  it("clause.3: a second PR that merges with the mark completes and provenance lists the part-line PR", () => {
+    const { main } = cloneWithDests();
+    const path = writeStory(main);
+    const result = complete(path, {
+      prs: { 6301: `Refs #${ISSUE}\n${part}`, 6302: mark },
+      pr: 6302,
+    });
+    expect(result.ok).toBe(true);
+    expect(provenance(main)).toMatchObject({
+      identityBasis: "merge-time-mark",
+      prNumber: 6302,
+      partLinePrs: [6301],
+    });
+  });
+
+  it("clause.4: two marked PRs complete only by the fetched delivery-branch stamp, by --pr, discovery and finalize", () => {
+    const prs = { 6302: mark, 6303: mark };
+    const runs: [string, Parameters<typeof complete>[1]][] = [
+      ["--pr", { prs, pr: 6303, blob: 6303 }],
+      ["auto-discovery", { prs, blob: 6303 }],
+      ["finalize", { prs, pr: 6303, blob: 6303, finalize: true }],
+    ];
+    for (const [label, opts] of runs) {
+      const { main } = cloneWithDests();
+      const path = writeStory(main, 6303);
+      const result = complete(path, opts);
+      expect(result.ok, label).toBe(true);
+      expect(provenance(main), label).toMatchObject({ prNumber: 6303, competingMarkedPrs: [6302] });
+    }
+
+    const { main } = cloneWithDests();
+    const path = writeStory(main, 6303);
+    const other = complete(path, { prs, pr: 6302, blob: 6303 });
+    expect(other.ok).toBe(false);
+    expect(other.message).toMatch(/#6303 also carry a sole/);
+    // A working-tree stamp that differs from the fetched blob does not win.
+    const workingTree = complete(path, { prs, blob: 6302 });
+    expect(workingTree.ok).toBe(false);
+    expect(workingTree.message).toMatch(/is #6302, not #6303/);
+    // Unstamped on the delivery branch: refuse and name the competitor.
+    const unstamped = complete(path, { prs, pr: 6303, blob: null, finalize: true });
+    expect(unstamped.ok).toBe(false);
+    expect(unstamped.message).toMatch(/#6302 also carry a sole/);
+    expect(unstamped.message).toMatch(/is unset, not #6303/);
+    expect(existsSync(path)).toBe(true);
+  });
+
+  it("clause.6: an attested PR completes from the primary, a linked dest and finalize; a dest-minted grant is found from the primary", () => {
+    const prs = { 6304: `Refs #${ISSUE}` };
+    const target = `${REPO}#6304@${SHA(6304)}`;
+
+    // Minted from a linked dest, completed from the primary clone.
+    const primary = cloneWithDests("dest");
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: primary.dest as string,
+        target,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    const fromPrimary = complete(writeStory(primary.main as string), { prs, pr: 6304 });
+    expect(fromPrimary.ok).toBe(true);
+    expect(fromPrimary.message).toMatch(/recorded as used/);
+    expect(provenance(primary.main as string)).toMatchObject({
+      identityBasis: "operator-attested",
+      attestationGrantId: expect.any(String),
+    });
+
+    // Minted from the primary, completed from a linked dest.
+    const dest = cloneWithDests("dest");
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: dest.main as string,
+        target,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    expect(complete(writeStory(dest.dest as string), { prs, pr: 6304 }).ok).toBe(true);
+
+    // Through finalize: the lifecycle checkout is another linked worktree.
+    const fin = cloneWithDests("dest", "lifecycle");
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: fin.dest as string,
+        target,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    const viaFinalize = complete(writeStory(fin.lifecycle as string), {
+      prs,
+      pr: 6304,
+      finalize: true,
+    });
+    expect(viaFinalize.ok).toBe(true);
+    expect(provenance(fin.lifecycle as string)).toMatchObject({
+      identityBasis: "operator-attested",
+      verifier: "swarm:finalize-cohort",
+    });
+  });
+});
+
+describe("scope:complete applies operator acceptance-disposition grants (#6318)", () => {
+  const ISSUE = 6318;
+  const REPO = "deftai/directive";
+  const PLAN_ID = "github.issue.6318";
+  const MERGED_AT = "2026-11-15T10:00:00Z";
+  const PR = 6340;
+  const SHA = "6340".repeat(10);
+  const NOW = new Date("2026-11-15T12:00:00.000Z");
+  const DEFERRED = "Deferred clause text.";
+  const name = `2026-11-15-${ISSUE}-story.xbrief.json`;
+  const bases: string[] = [];
+  afterEach(() => {
+    for (const base of bases.splice(0)) {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  function realGit(cwd: string, args: string[]): string {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  }
+
+  /** Main clone plus linked worktrees; every checkout carries the xbrief folders. */
+  function cloneWithDests(...dests: string[]): Record<string, string> {
+    const base = mkdtempSync(join(tmpdir(), "scope-6318-"));
+    bases.push(base);
+    const main = join(base, "main");
+    mkdirSync(main);
+    realGit(main, ["init", "-q"]);
+    realGit(main, ["config", "user.email", "test@example.com"]);
+    realGit(main, ["config", "user.name", "test"]);
+    writeFileSync(join(main, "README.md"), "x\n", "utf8");
+    realGit(main, ["add", "README.md"]);
+    realGit(main, ["commit", "-q", "-m", "init"]);
+    const roots: Record<string, string> = { main };
+    for (const dest of dests) {
+      roots[dest] = join(base, dest);
+      realGit(main, ["worktree", "add", "-q", "-b", `b-${dest}`, roots[dest] as string]);
+    }
+    for (const root of Object.values(roots)) {
+      for (const folder of ["active", "completed"]) {
+        mkdirSync(join(root, "xbrief", folder), { recursive: true });
+      }
+      mkdirSync(join(root, "src"), { recursive: true });
+      writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    }
+    return roots;
+  }
+
+  const mergeEvidence = {
+    kind: "merge",
+    pointer: SHA,
+    recorded_at: "2026-11-15T10:30:00Z",
+    recorded_by: "scope:complete",
+  };
+
+  /**
+   * Clause 1 is a merge item; clause 2 is the deferred clause and has a plan
+   * item only when `withDeferredItem`; clause 3 (smoke) cannot take merge
+   * evidence, so acceptance refuses while it is open.
+   */
+  function writeStory(
+    root: string,
+    opts: { withDeferredItem?: boolean; openSmoke?: boolean; preStamped?: boolean } = {},
+  ): string {
+    const items: Record<string, unknown>[] = [
+      {
+        id: "clause.1",
+        title: "Merge tip ancestry",
+        status: "pending",
+        "x-directive/requires": "merge",
+        ...(opts.preStamped === true ? { "x-directive/evidence": mergeEvidence } : {}),
+      },
+    ];
+    if (opts.withDeferredItem === true) {
+      items.push({ id: "clause.2", title: DEFERRED, status: "pending" });
+    }
+    const clauses: Record<string, unknown>[] = [
+      { id: 1, text: "Merge tip ancestry", artifact_path: "src/product.txt", ambiguous: false },
+      { id: 2, text: DEFERRED, artifact_path: null, ambiguous: false },
+    ];
+    if (opts.openSmoke === true) {
+      items.push({ id: "clause.3", title: "Smoke test passes after deploy", status: "pending" });
+      clauses.push({
+        id: 3,
+        text: "Smoke test passes after deploy",
+        artifact_path: null,
+        ambiguous: false,
+      });
+    }
+    const path = join(root, "xbrief", "active", name);
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: PLAN_ID,
+        title: "deferral story",
+        status: "running",
+        references: [
+          { uri: `https://github.com/${REPO}/issues/${ISSUE}`, type: "x-xbrief/github-issue" },
+        ],
+        metadata: {
+          kind: "story",
+          swarm: { file_scope: ["src/product.txt"], verify_commands: ["task check"] },
+        },
+        items,
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses,
+        },
+      },
+    });
+    return path;
+  }
+
+  const deliveryGit: GitRunner = (_cwd, args) => {
+    const joined = args.join(" ");
+    if (args[0] === "show") return { code: 128, stdout: "", stderr: "fatal: no path" };
+    if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+      return { code: 0, stdout: "", stderr: "" };
+    }
+    if (joined.includes("rev-parse") && joined.includes("origin/")) {
+      return { code: 0, stdout: "deliverytip", stderr: "" };
+    }
+    if (joined.includes("symbolic-ref")) {
+      return { code: 0, stdout: "origin/master", stderr: "" };
+    }
+    return { code: 0, stdout: "ok", stderr: "" };
+  };
+
+  function complete(path: string, opts: { finalize?: boolean } = {}) {
+    const body = `deft-story: ${ISSUE}`;
+    return runTransition("complete", path, NOW, {
+      runGit: deliveryGit,
+      fetchPrPayload: (n: number, repo: string) =>
+        n === PR && repo === REPO
+          ? {
+              merged_at: MERGED_AT,
+              merge_commit_sha: SHA,
+              base: { ref: "master" },
+              head: { sha: "headsha" },
+              body,
+            }
+          : null,
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+      fetchClosingIssueIds: () => [{ repository: REPO, issueNumber: ISSUE }],
+      mergeTimeForge: staticMergeTimeForge({
+        merged: [{ number: PR, mergedAt: MERGED_AT, body, lastEditedAt: null }],
+      }),
+      deliveryEvidence: { prNumber: PR, mergeCommit: SHA, mergedAt: MERGED_AT },
+      acceptanceRunner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+      ...(opts.finalize === true
+        ? { assumeEvidenceValidated: true, verifier: "swarm:finalize-cohort" }
+        : {}),
+    });
+  }
+
+  function mint(projectRoot: string, now: Date) {
+    const minted = mintAcceptanceDispositionTemplateGrant({
+      projectRoot,
+      planRef: PLAN_ID,
+      storyIds: ["clause.2"],
+      deferredTo: "#6400",
+      reason: "operator correction",
+      now,
+    });
+    if (!minted.ok) throw new Error(minted.reason);
+    return minted;
+  }
+
+  function items(path: string): Record<string, Record<string, unknown>> {
+    const data = JSON.parse(readFileSync(path, "utf8")) as {
+      plan: { items: Record<string, unknown>[] };
+    };
+    return Object.fromEntries(data.plan.items.map((item) => [String(item.id), item]));
+  }
+
+  function grantUsedAt(root: string, grantId: string): string | null {
+    const data = JSON.parse(
+      readFileSync(join(root, ".deft", "authz", "grants", `${grantId}.json`), "utf8"),
+    ) as { semantics: { usedAt: string | null } };
+    return data.semantics.usedAt;
+  }
+
+  it("clause.1 / clause.2: a granted deferral completes from the primary, a linked dest and finalize with no merge evidence on that item", () => {
+    const roots = cloneWithDests("dest", "lifecycle");
+    // The active brief is on every checkout (it landed on the delivery branch).
+    for (const checkout of Object.values(roots)) writeStory(checkout);
+    // Minted from a linked dest: one store at the main clone.
+    const minted = mint(roots.dest as string, NOW);
+    const runs: [string, string, boolean][] = [
+      ["primary", "main", false],
+      ["linked dest (replay)", "dest", false],
+      ["finalize (replay)", "lifecycle", true],
+    ];
+    for (const [label, where, finalize] of runs) {
+      const root = roots[where] as string;
+      const result = complete(join(root, "xbrief", "active", name), { finalize });
+      expect(result.ok, `${label}: ${result.message}`).toBe(true);
+      const done = items(join(root, "xbrief", "completed", name));
+      expect(done["clause.1"]?.["x-directive/evidence"], label).toMatchObject({ kind: "merge" });
+      expect(done["clause.2"]?.["x-directive/evidence"], label).toBeUndefined();
+      expect(done["clause.2"]?.["x-directive/disposition"], label).toMatchObject({
+        disposition: "deferred",
+        reason: "operator correction",
+        deferred_to: "#6400",
+        provenance: { kind: "operator-cli", grantId: minted.grant.id },
+      });
+      expect(grantUsedAt(roots.main as string, minted.grant.id), label).not.toBeNull();
+      if (where === "main") {
+        expect(result.message).toMatch(/Acceptance-disposition grant\(s\) .* recorded as used/);
+      }
+    }
+  });
+
+  it("clause.3: an acceptance refusal leaves the active brief unchanged and the grant unused", () => {
+    const { main } = cloneWithDests();
+    const root = main as string;
+    const path = writeStory(root, { withDeferredItem: true, openSmoke: true, preStamped: true });
+    const minted = mint(root, NOW);
+    const before = readFileSync(path, "utf8");
+    const result = complete(path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Acceptance evidence required/);
+    expect(readFileSync(path, "utf8")).toBe(before);
+    expect(existsSync(join(root, "xbrief", "completed", name))).toBe(false);
+    expect(grantUsedAt(root, minted.grant.id)).toBeNull();
+  });
+
+  it("clause.3: the mid-flight active write keeps merge stamps but leaves the deferral out", () => {
+    const { main } = cloneWithDests();
+    const root = main as string;
+    const path = writeStory(root, { openSmoke: true });
+    const minted = mint(root, NOW);
+    const result = complete(path);
+    expect(result.ok).toBe(false);
+    const active = items(path);
+    expect(active["clause.1"]?.["x-directive/evidence"]).toMatchObject({ kind: "merge" });
+    expect(active["clause.2"]).toMatchObject({ id: "clause.2", status: "pending" });
+    expect(active["clause.2"]?.["x-directive/disposition"]).toBeUndefined();
+    expect(active["clause.2"]?.["x-directive/evidence"]).toBeUndefined();
+    expect(grantUsedAt(root, minted.grant.id)).toBeNull();
+  });
+
+  it("clause.4: an expired unused grant refuses completion; after a re-mint from a linked dest it passes", () => {
+    const { main, dest } = cloneWithDests("dest");
+    const root = main as string;
+    const path = writeStory(root);
+    writeStory(dest as string);
+    const old = mint(root, new Date("2026-11-13T00:00:00Z"));
+    const before = readFileSync(path, "utf8");
+    const refused = complete(path);
+    expect(refused.ok).toBe(false);
+    expect(refused.message).toMatch(
+      new RegExp(`${old.grant.id}.*expired.*re-mint with .*authz:revoke -- ${old.grant.id}`),
+    );
+    expect(readFileSync(path, "utf8")).toBe(before);
+    const fresh = mint(dest as string, new Date("2026-11-15T11:00:00Z"));
+    const passed = complete(path);
+    expect(passed.ok, passed.message).toBe(true);
+    expect(items(join(root, "xbrief", "completed", name))["clause.2"]).toMatchObject({
+      "x-directive/disposition": { provenance: { grantId: fresh.grant.id } },
+    });
+    expect(grantUsedAt(root, old.grant.id)).toBeNull();
+  });
+
+  it("refuses a first use after the clause text changed and names a re-mint", () => {
+    const { main } = cloneWithDests();
+    const root = main as string;
+    const path = writeStory(root);
+    mint(root, NOW);
+    const raw = JSON.parse(readFileSync(path, "utf8")) as {
+      plan: { acceptance: { clauses: Record<string, unknown>[] } };
+    };
+    (raw.plan.acceptance.clauses[1] as Record<string, unknown>).text = "Reworded clause.";
+    writeFile(path, raw);
+    const result = complete(path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/text of clause\.2 changed.*re-mint/);
+  });
+});
+
+describe("scope:complete restamp replays acceptance-disposition grants (#6343 review)", () => {
+  it("restamps a completed deferral while the clause text matches and refuses after it changed", () => {
+    const base = mkdtempSync(join(tmpdir(), "scope-6318-restamp-"));
+    try {
+      const main = join(base, "main");
+      mkdirSync(main);
+      for (const args of [
+        ["init", "-q"],
+        ["config", "user.email", "test@example.com"],
+        ["config", "user.name", "test"],
+      ]) {
+        execFileSync("git", args, { cwd: main });
+      }
+      for (const folder of ["active", "completed"]) {
+        mkdirSync(join(main, "xbrief", folder), { recursive: true });
+      }
+      mkdirSync(join(main, "src"), { recursive: true });
+      writeFileSync(join(main, "src", "product.txt"), "v1\n", "utf8");
+      const name = "2026-11-15-6318-restamp.xbrief.json";
+      const body = "deft-story: 6318";
+      const sha = "6340".repeat(10);
+      writeFile(join(main, "xbrief", "active", name), {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "github.issue.6318",
+          title: "deferral story",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/6318",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: {
+            kind: "story",
+            swarm: { file_scope: ["src/product.txt"], verify_commands: ["task check"] },
+          },
+          items: [
+            {
+              id: "clause.1",
+              title: "Merge tip ancestry",
+              status: "pending",
+              "x-directive/requires": "merge",
+            },
+          ],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "Merge tip ancestry",
+                artifact_path: "src/product.txt",
+                ambiguous: false,
+              },
+              { id: 2, text: "Deferred clause text.", artifact_path: null, ambiguous: false },
+            ],
+          },
+        },
+      });
+      const minted = mintAcceptanceDispositionTemplateGrant({
+        projectRoot: main,
+        planRef: "github.issue.6318",
+        storyIds: ["clause.2"],
+        deferredTo: "#6400",
+        reason: "operator correction",
+        now: new Date("2026-11-15T12:00:00.000Z"),
+      });
+      if (!minted.ok) throw new Error(minted.reason);
+      const complete = (path: string) =>
+        runTransition("complete", path, new Date("2026-11-15T12:00:00.000Z"), {
+          runGit: (_cwd, args) => {
+            const joined = args.join(" ");
+            if (args[0] === "show") return { code: 128, stdout: "", stderr: "no path" };
+            if (joined.includes("rev-parse") && joined.includes("origin/")) {
+              return { code: 0, stdout: "deliverytip", stderr: "" };
+            }
+            if (joined.includes("symbolic-ref")) {
+              return { code: 0, stdout: "origin/master", stderr: "" };
+            }
+            return { code: 0, stdout: "", stderr: "" };
+          },
+          fetchPrPayload: (n: number) =>
+            n === 6340
+              ? {
+                  merged_at: "2026-11-15T10:00:00Z",
+                  merge_commit_sha: sha,
+                  base: { ref: "master" },
+                  head: { sha: "headsha" },
+                  body,
+                }
+              : null,
+          fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+          fetchClosingIssueIds: () => [{ repository: "deftai/directive", issueNumber: 6318 }],
+          mergeTimeForge: staticMergeTimeForge({
+            merged: [{ number: 6340, mergedAt: "2026-11-15T10:00:00Z", body, lastEditedAt: null }],
+          }),
+          deliveryEvidence: { prNumber: 6340, mergeCommit: sha, mergedAt: "2026-11-15T10:00:00Z" },
+          acceptanceRunner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+        });
+      const first = complete(join(main, "xbrief", "active", name));
+      expect(first.ok, first.message).toBe(true);
+      const done = join(main, "xbrief", "completed", name);
+      const replay = complete(done);
+      expect(replay.ok, replay.message).toBe(true);
+      expect(replay.message).toMatch(/Restamped/);
+      const raw = JSON.parse(readFileSync(done, "utf8")) as {
+        plan: { acceptance: { clauses: Record<string, unknown>[] } };
+      };
+      (raw.plan.acceptance.clauses[1] as Record<string, unknown>).text = "Reworded clause.";
+      writeFile(done, raw);
+      const refused = complete(done);
+      expect(refused.ok).toBe(false);
+      expect(refused.message).toMatch(
+        /restamp\): the text of clause\.2 changed.*mint a replacement for the completed brief/,
+      );
+      // Recovery: a replacement minted for the completed brief lets the restamp pass.
+      const replacement = mintAcceptanceDispositionTemplateGrant({
+        projectRoot: main,
+        planRef: "github.issue.6318",
+        storyIds: ["clause.2"],
+        deferredTo: "#6400",
+        reason: "operator correction after rewording",
+        now: new Date("2026-11-15T12:00:01.000Z"),
+      });
+      if (!replacement.ok) throw new Error(replacement.reason);
+      const recovered = complete(done);
+      expect(recovered.ok, recovered.message).toBe(true);
+      expect(readFileSync(done, "utf8")).toContain(replacement.grant.id);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("scope:complete plan cursor catch-up (#6205)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  /** Plan whose first entry is the story completed by writeVbrief's default name. */
+  function seedPlan(at: string, body?: string): string {
+    const path = join(at, ".deft", "plan-sequence.json");
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(
+      path,
+      body ??
+        JSON.stringify({
+          sequence_id: "seq",
+          sequence_kind: "swarm",
+          entries: [
+            { id: "story", kind: "story", status: "pending" },
+            { id: "next-story", kind: "story", status: "pending" },
+          ],
+          current_index: 0,
+          batching_allowed: false,
+          continuation_past_final: false,
+          exhausted: false,
+          authorized_by: "operator",
+          created_at: "2026-11-16T00:00:00Z",
+          updated_at: "2026-11-16T00:00:00Z",
+          generation: 1,
+          source_revision: "",
+        }),
+    );
+    return path;
+  }
+
+  const untracked = { isPlanTracked: () => false };
+
+  it("clause.6: prints one advanced line and moves the stored cursor", () => {
+    root = makeRepo();
+    const plan = seedPlan(root);
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file, undefined, { planAdvanceSeams: untracked });
+    expect(result.ok, result.message).toBe(true);
+    const lines = result.message.split("\n").filter((l) => l.startsWith("plan-sequence:"));
+    expect(lines).toEqual([
+      "plan-sequence: advanced (current story:next-story index=1 generation=2)",
+    ]);
+    expect(JSON.parse(readFileSync(plan, "utf8")).current_index).toBe(1);
+  });
+
+  it("clause.5 / clause.7: a store failure during completion leaves the completion in place", () => {
+    root = makeRepo();
+    const plan = seedPlan(root);
+    const before = readFileSync(plan, "utf8");
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file, undefined, {
+      planAdvanceSeams: {
+        ...untracked,
+        writePlan: () => ({
+          ok: false,
+          code: "persist-error",
+          current_generation: 1,
+          source_revision: "",
+          message: "injected plan write failure",
+        }),
+      },
+    });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).toContain("plan-sequence: store-failed (injected plan write failure");
+    expect(existsSync(join(root, "xbrief", "completed", "2026-01-01-story.xbrief.json"))).toBe(
+      true,
+    );
+    expect(existsSync(file)).toBe(false);
+    expect(readFileSync(plan, "utf8")).toBe(before);
+  });
+
+  it("clause.5: an unreadable plan never fails the completion", () => {
+    root = makeRepo();
+    seedPlan(root, "{not json");
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file);
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).toMatch(/plan-sequence: store-failed \(/);
+  });
+
+  it("clause.6: prints no-sequence without a plan file", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("plan-sequence: no-sequence");
+  });
+
+  it("clause.6: a restamp of a completed brief reports and attempts the same catch-up", () => {
+    root = makeRepo();
+    const plan = seedPlan(root);
+    const done = writeVbrief(root, "completed", "completed");
+    const result = runTransition("complete", done, undefined, { planAdvanceSeams: untracked });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).toContain("Restamped");
+    expect(result.message).toContain("plan-sequence: advanced (current story:next-story");
+    expect(JSON.parse(readFileSync(plan, "utf8")).current_index).toBe(1);
+  });
+
+  it("clause.5: scope:cancel does not read the plan", () => {
+    root = makeRepo();
+    seedPlan(root, "{not json");
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("cancel", file, undefined, {
+      skipCancelShippedOriginRefuse: true,
+    });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).not.toContain("plan-sequence:");
   });
 });

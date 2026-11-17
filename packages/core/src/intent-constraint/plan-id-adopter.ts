@@ -3,21 +3,30 @@
  *
  * Demand-site only: when a gate would config-refuse unresolved planId under
  * multi-running or multi-mint, adopt the unique running plan.id owned by the
- * sole distinct `deft-story: N` mark on the PR body. Never synthesizes plan.id.
- * Does not change #4864 finalize delivery-bind semantics.
+ * sole distinct `deft-story: N` mark (or `deft-story-part: N` line, #6316) on the
+ * PR body. Never synthesizes plan.id. Does not change #4864 finalize delivery-bind
+ * semantics; the part line selects the mint only.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { defaultRunGh, fetchPrBodyRest, type RunGhFn } from "../docs/docs-impact.js";
 import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
-import { parseAllDeftStoryMarks, resolveLiveRepoSlug } from "../pr-closing-keywords/main.js";
+import {
+  findStoryLineConflicts,
+  findUnparseableDeftStoryPartLines,
+  parseAllDeftStoryMarks,
+  parseAllDeftStoryPartLines,
+  resolveLiveRepoSlug,
+  WRITE_STORY_LINE_COMMAND,
+} from "../pr-closing-keywords/main.js";
 
 /** Observable bad-pin + PR context suppress wording (shared). */
 export const BAD_PIN_PR_SUPPRESS_MESSAGE =
   "DEFT_ACTIVE_SCOPE is set but is not a running xBRIEF; PR deft-story plan-id adoption was suppressed — pass --plan-id or clear the pin";
 
 const WHOLE_STORY_BIND_HINT =
-  "A deft-story: N mark asserts #4864 delivery bind (metadata.productPullRequest must equal this PR before leftover finalize); satisfying that bind closes the whole story at cohort finalize — only use the mark on the PR that is the delivery for #N. Adoption does not alter finalize semantics.";
+  "A deft-story: N mark asserts #4864 delivery bind (metadata.productPullRequest must equal this PR before leftover finalize); satisfying that bind closes the whole story at cohort finalize — only use the mark on the PR that completes #N. Any other product PR of the story carries deft-story-part: N, which never completes it (#6316); do not use Closes #N for an active story. " +
+  `Write the line with ${WRITE_STORY_LINE_COMMAND}. Adoption does not alter finalize semantics.`;
 
 export type DigitPrContext =
   | { readonly kind: "none" }
@@ -270,7 +279,10 @@ export function tryAdoptPlanIdFromPrStory(options: PrStoryAdoptionOptions): PrSt
     };
   }
 
-  const unparseable = findUnparseableDeftStoryMarks(pull.body);
+  const unparseable = [
+    ...findUnparseableDeftStoryMarks(pull.body),
+    ...findUnparseableDeftStoryPartLines(pull.body),
+  ];
   if (unparseable.length > 0) {
     return {
       kind: "config",
@@ -278,19 +290,33 @@ export function tryAdoptPlanIdFromPrStory(options: PrStoryAdoptionOptions): PrSt
         `PR #${prCtx.pr} has unparseable deft-story mark value(s) ${unparseable
           .map((v) => JSON.stringify(v))
           .join(", ")}; ` +
-        "deft-story requires a positive decimal issue number (plan-id shaped values are refused). " +
+        "deft-story and deft-story-part require a positive decimal issue number (plan-id shaped values are refused). " +
         WHOLE_STORY_BIND_HINT,
     };
   }
 
-  // parseAllDeftStoryMarks already Set-dedupes; sole = exactly one distinct N.
-  const marks = parseAllDeftStoryMarks(pull.body);
+  const conflicts = findStoryLineConflicts(pull.body);
+  if (conflicts.length > 0) {
+    return {
+      kind: "config",
+      message:
+        `PR #${prCtx.pr} carries both deft-story and deft-story-part for ${conflicts.join(", ")}; ` +
+        "keep one. " +
+        WHOLE_STORY_BIND_HINT,
+    };
+  }
+
+  // A sole part line selects the mint the same way as the mark, for mint selection
+  // only (#6316); it never asserts delivery bind. Both parsers Set-dedupe.
+  const marks = [
+    ...new Set([...parseAllDeftStoryMarks(pull.body), ...parseAllDeftStoryPartLines(pull.body)]),
+  ].sort((a, b) => a - b);
   if (marks.length === 0) {
     return {
       kind: "config",
       message:
         `PR #${prCtx.pr} has no deft-story: N mark for plan-id adoption under multi-running/multi-mint; ` +
-        "add a sole deft-story: N (positive issue number) or pass --plan-id / pin DEFT_ACTIVE_SCOPE. " +
+        "add a sole deft-story: N or deft-story-part: N (positive issue number) or pass --plan-id / pin DEFT_ACTIVE_SCOPE. " +
         WHOLE_STORY_BIND_HINT,
     };
   }

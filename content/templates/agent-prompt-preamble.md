@@ -62,7 +62,7 @@ A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `
 
 When the operator supplies an ordered plan (delivery sequence, cohort, checklist, review batch, or phase list), continuation language is bounded by that sequence — not by the triage queue, skill chaining, or adjacent backlog memory.
 
-! Record the active sequence with `deft plan-sequence:set --file <json>` (persists `.deft/plan-sequence.json`). Inspect with `deft plan-sequence:current`; advance with `deft plan-sequence:advance`; clear with `deft plan-sequence:clear`.
+! Record the active sequence with `deft plan-sequence:set --file <json>` (persists `.deft/plan-sequence.json`). Inspect with `deft plan-sequence:current`; advance with `deft plan-sequence:advance`; clear with `deft plan-sequence:clear`. An entry whose brief is in `completed/` is finished: readers derive the next entry, so an entry with a brief needs no advance (#6205). Add an unplanned fix with `deft plan-sequence:insert`; under `requireBoundPrePrPush: true`, insert, replace and clear need an operator `plan-sequence-approval` grant.
 
 ! Before creating or dispatching a new external work unit (PR, branch, story activation, sub-agent implementation task), when a sequence is active run `deft verify:plan-sequence --target-kind <kind> --target <id-or-title>`. Exit non-zero means fail closed.
 
@@ -74,7 +74,7 @@ When the operator supplies an ordered plan (delivery sequence, cohort, checklist
 
 ! Skill-exit chaining instructions are advisory entrypoints only — they do not authorize adjacent work unless it matches the current ordered-plan entry or a fresh operator directive.
 
-! Review-cycle exit returns to the ordered-plan context and authorizes at most the next sequence entry (after `plan-sequence:advance` for the completed PR). Cohort/build flows stop after the final approved entry.
+! Review-cycle exit returns to the ordered-plan context and authorizes at most the next sequence entry (derived once the brief is completed; `plan-sequence:advance` only for an entry with no brief). Cohort/build flows stop after the final approved entry.
 
 ⊗ Reuse triage queue `continuationNumbers` / `continuationOrder` for ordered-plan state — those fields are for `[RESUME]` / stale-defer ordering only.
 
@@ -260,6 +260,14 @@ Reference: issue #2563; swarm skill Platform Requirements; env scrub + stdio inh
 
 ! Issue-body read-modify-write on win32: `deft scm:body:issue:fetch --out-file` then edit the body file then `deft scm:body:issue:edit --body-file` (fail-closed postcondition verify, #2607). ⊗ Capture-concat of `gh api repos/.../issues/<N> --jq .body` into PowerShell variables — PS string[]/$OFS collapses newlines to spaces and silently destroys live bodies (#2744, #2087, #2741, #1492). Detail: `content/scm/github.md` § #2744.
 
+## 3.10 Git commands name your worktree (#6291 / #6278)
+
+Your shell may start in, and reset to, the parent's cwd on every call (Claude Code in-session sub-agents do), so a cwd-relative git command can act on a sibling worktree.
+
+! Name your worktree's absolute path in every git command: `git -C <absolute worktree path> …`, or one leading `cd <absolute worktree path> && …` in the same call. On Windows Bash use the MSYS form (`/c/…`) or a drive path. The commit gate judges a commit on the checkout these forms name and refuses a relative, repeated or variable target (#6278).
+
+⊗ Git writes (add, commit, reset, checkout, stash, push) through the PowerShell tool (Claude Code's `PowerShell`). The Directive hook matcher does not inspect that tool, so no gate sees the write; use the Bash tool for git (#6291).
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:
@@ -310,6 +318,7 @@ Worked example (cloud background review-monitor on PR #1037):
 ## Unit of work
 
 drive-to: merge-ready on PR #1037 (repo: deftai/deftvisage, branch: fix/visage-repo-org-scoping)
+story line: `deft-story: N` on the PR that completes story N, `deft-story-part: N` on any other product PR of it; never `Closes #N` for an active story. Write it with `task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]` before the PR opens (#6316).
 
 ## Mandates
 
@@ -501,7 +510,7 @@ If you (the worker) need to spawn a sub-agent yourself:
 - Destructive operations (worktree removal, branch deletion, force-push) run alone, never in parallel.
 - Each sub-agent receives its own dispatch envelope including this preamble (or a reference to it).
 - Each child dispatch MUST carry its own `## Worker metadata` section per §2.6 when backend routing applies: set `dispatch_provider` and `worker_role` for the child's actual harness and role; propagate or override `selected_backend` / `routing_policy` so audit trails remain reconstructable at every tree depth (#1531).
-- Coordinate shared append-only files (CHANGELOG, lessons.md) with explicit ownership at dispatch time.
+- Coordinate shared append-only files (CHANGELOG, lessons.md) with explicit ownership at dispatch time. Under `plan.policy.changelog.mode` `either` / `fragments`, each story lists its own `changelog.d/<issue>-<slug>.md` path in `file_scope` instead (#6315).
 - Sub-agents inherit the parent worker's credential policy: when the parent dispatch is `github_auth_mode: injected-token`, children MUST use the injected token; when `host-gh`, children inherit the same host-gh authorisation. They MUST NOT mint or fall back to a different credential mode than the parent envelope specifies. Identity separation per §8 cascades through the spawn tree.
 
 ### Orchestrator dispatch doctrine (#1880)
@@ -712,6 +721,8 @@ Cross-links: swarm Phase 5 completion-notification / parent handback (`skills/de
 Dispatchers (this orchestrator, swarm Phase 4 dispatch, monitor agents, scheduled / cloud runs) run in a headless worker context and MUST set `DEFT_SESSION_RITUAL_SKIP=1` for dispatched implementation workers. The interactive parent session remains responsible for `deft session:start`; worker processes bypass the local `.deft/ritual-state.json` gate explicitly so they do not need per-clone interactive ritual state. When the bypass would hide a stale/missing ritual state, `deft verify:session-ritual` prints a warning to stderr; preserve that warning in the dispatch log.
 
 ! **Dest leaf ceremony (#5145):** Linked dest Prefer-A inherits primary top-level `finalize_owed` (deferred or ok) so dest `--rearm` skips tip inventory after the head ceremony without dest `--defer-owed`. Primary/main `--rearm` alone still needs `--defer-owed=<reason>`. Standalone linked worktrees without a primary `finalize_owed` record still fail-close. Keep `--defer=cache_fresh=…` soft paths. ⊗ Stampede N dest cold tip inventories before primary records `finalize_owed` / before Prefer-A is on tip.
+
+! **Owed completions are reported, not refused (#6409):** mutation `session:start` (cold / `--rearm`) runs the finalize-owed inventory every time, and owed rows, `unknown` included, never refuse a worker. One always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed`; `--json` carries `finalize_owed_count`. Only an unresolvable repository still refuses (`--defer-owed` clears it). The owner checks before `DONE` (§11) are unchanged.
 
 Dispatchers MUST run `deft verify:cache-fresh --for-issue <N>` immediately before any `start_agent` invocation that will dispatch an implementation sub-agent for upstream issue N, and MUST refuse dispatch on any non-zero exit. The cache gate follows the session ritual gate in the canonical pre-`start_agent` gate stack documented in `AGENTS.md` (`verify:session-ritual` -> Story Start Gate -> Implementation Intent Gate -> `verify:cache-fresh` -> branch-policy gate -> `start_agent`).
 

@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { extractSkipCiIncidentCitationsFromChangelog } from "./auto-hatch.js";
-import { probeSkipCiIncidentLedger } from "./coverage-debt-ledger.js";
+import { probeOpenCoverageDebtLedger, probeSkipCiIncidentLedger } from "./coverage-debt-ledger.js";
 import { parseAllowUnpaidSkipCiArgv, validateSkipCiUnpaidLedger } from "./skip-ci-incident.js";
 
 describe("skip-ci CHANGELOG spend scan (#5239 S1)", () => {
@@ -129,5 +132,38 @@ describe("parseAllowUnpaidSkipCiArgv", () => {
       kind: "valid",
       issue: 5239,
     });
+  });
+});
+
+describe("ledger scans read the effective [Unreleased] view (#6314)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
+  });
+  function project(fragment: string | null): string {
+    const r = mkdtempSync(join(tmpdir(), "deft-ledger-6314-"));
+    roots.push(r);
+    writeFileSync(join(r, "CHANGELOG.md"), "## [Unreleased]\n\n### Fixed\n\n## [0.1.0]\n\n- old\n");
+    if (fragment !== null) {
+      mkdirSync(join(r, "changelog.d"));
+      writeFileSync(join(r, "changelog.d", "6314-x.md"), fragment);
+    }
+    return r;
+  }
+
+  it("skip-ci spend scan sees a citation in a changelog.d fragment", () => {
+    const seams = { viewIssueState: () => "CLOSED" as const, whichGh: () => null };
+    expect(probeSkipCiIncidentLedger("o/r", project(null), 6314, seams).unpaid).toEqual([]);
+    const withFragment = project("section: Fixed\n- Cut with --allow-skip-ci=#6314 after a hang\n");
+    expect(probeSkipCiIncidentLedger("o/r", withFragment, 6314, seams).unpaid).toEqual([
+      { issue: 6314, reasons: ["changelog_spent"] },
+    ]);
+  });
+
+  it("coverage-debt citation scan sees a citation in a changelog.d fragment", () => {
+    const seams = { whichGh: () => null };
+    expect(probeOpenCoverageDebtLedger("o/r", project(null), seams)).toEqual([]);
+    const withFragment = project("section: Changed\n- Ships under --allow-coverage-debt=#6400\n");
+    expect(probeOpenCoverageDebtLedger("o/r", withFragment, seams)).toEqual([6400]);
   });
 });

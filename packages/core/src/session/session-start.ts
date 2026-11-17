@@ -82,11 +82,12 @@ import {
 import { workClaimSessionScanLines } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import {
+  countBlockingOwed,
   createFinalizeClaimRunner,
   discoverFinalizeOwed,
+  FINALIZE_OWED_COMMAND,
   fetchDeliveryTipPrivate,
   formatFinalizeOwedInventoryLines,
-  inventoryHasBlockingOwed,
 } from "../swarm/finalize-owed.js";
 import { parseGitHubRemoteRepo } from "../text/redos-safe.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
@@ -324,6 +325,7 @@ export function isSessionStartAlwaysOnLine(line: string): boolean {
   if (line === "finalize owed: unknown") return true;
   if (line.startsWith("finalize owed: repo required")) return true;
   if (line.startsWith("finalize owed blocks mutation:")) return true;
+  if (line.startsWith(FINALIZE_OWED_REPORT_PREFIX)) return true;
 
   if (line.startsWith("[deft branch]") && !line.startsWith("[deft branch] checkout=")) {
     return true;
@@ -576,7 +578,8 @@ export interface SessionStartOptions {
   readonly allowOptionalNetwork?: boolean;
   /**
    * #4919: recorded deferral for finalize-owed gate (`--defer-owed <reason>`).
-   * When set, blocking owed/close-owed/stale inventory does not refuse mutation.
+   * Owed inventory rows never refuse mutation (#6409); the deferral now only
+   * clears the repository-not-resolved refusal and is still recorded.
    */
   readonly deferOwedReason?: string | null;
   /**
@@ -586,12 +589,17 @@ export interface SessionStartOptions {
   readonly isLinkedWorktree?: (projectRoot: string) => boolean;
   /**
    * #4919: test/prod seam for owed inventory. Default runs private tip fetch + discover.
-   * Read-only / requirements postures never call this.
+   * Read-only / requirements postures never call this. `blocks` means the
+   * inventory has rows with `blocks` true (reported, not refused, #6409);
+   * `owedCount` is their number (default: inventory lines tagged `[blocks]`);
+   * `repoRequired` stands in for the repository-not-resolved branch.
    */
   readonly probeFinalizeOwed?: (projectRoot: string) => {
     readonly lines: readonly string[];
     readonly blocks: boolean;
     readonly unknown: boolean;
+    readonly owedCount?: number;
+    readonly repoRequired?: boolean;
   };
   /** Process env for network opt-in resolution (tests inject). */
   readonly env?: NodeJS.ProcessEnv;
@@ -872,11 +880,27 @@ function restampSteps(
   return out;
 }
 
+/** #6409: always-on prefix of the owed-completions report line. */
+export const FINALIZE_OWED_REPORT_PREFIX = "finalize owed report:";
+
 /**
- * Finalize-owed session gate (#4919 Recut item 7).
+ * #6409: one report line for rows with `blocks` true. They do not refuse the
+ * session; the line names the cleanup entry point (one run need not clear
+ * every row: unknown / stale-unverified rows are skipped by the finalizer).
+ */
+export function formatFinalizeOwedReportLine(owedCount: number): string {
+  return (
+    `${FINALIZE_OWED_REPORT_PREFIX} ${String(owedCount)} owed item(s) do not stop this session;` +
+    ` clear with \`${FINALIZE_OWED_COMMAND}\``
+  );
+}
+
+/**
+ * Finalize-owed session gate (#4919 Recut item 7; report-only since #6409).
  * Private tip fetch (not allowOptionalNetwork). Prints full inventory on any
- * non-backlog hit; blocks mutation on owed/close-owed/stale/stale-unverified
- * unless deferred.
+ * non-backlog hit and one always-on report line with the count of rows with
+ * `blocks` true. Owed rows never refuse mutation; the only refusal left is the
+ * repository-not-resolved case, unless deferred.
  */
 function resolveFinalizeOwedRepo(
   projectRoot: string,
@@ -965,42 +989,104 @@ function resolveEffectiveDeferOwedReason(
   return inheritDeferOwedFromPrimary(projectRoot, options);
 }
 
+export interface FinalizeOwedSessionGateResult {
+  lines: string[];
+  /** True only for the repository-not-resolved refusal (#6409: owed rows never refuse). */
+  blocks: boolean;
+  unknown: boolean;
+  deferred: boolean;
+  deferReason: string | null;
+  /** Number of inventory rows with `blocks` true (#6409 report + `--json`). */
+  owedCount: number;
+}
+
+/** Repository-not-resolved branch: unchanged by #6409 (fail closed unless deferred, #4919). */
+function finalizeOwedRepoRequiredResult(
+  deferred: boolean,
+  deferReason: string | null,
+): FinalizeOwedSessionGateResult {
+  const repoLine =
+    "finalize owed: repo required (set GH_REPO / GITHUB_REPOSITORY or configure origin)";
+  if (deferred && deferReason !== null) {
+    return {
+      lines: [repoLine, `finalize owed deferred: ${deferReason}`],
+      blocks: false,
+      unknown: true,
+      deferred: true,
+      deferReason,
+      owedCount: 0,
+    };
+  }
+  return {
+    lines: [
+      repoLine,
+      "finalize owed blocks mutation: run `task swarm:finalize-owed` or pass --defer-owed <reason>",
+    ],
+    blocks: true,
+    unknown: true,
+    deferred: false,
+    deferReason: null,
+    owedCount: 0,
+  };
+}
+
+/**
+ * #6409: owed inventory rows are reported, never refused. The deferred line is
+ * kept as today when blocking rows exist and a deferral applies.
+ */
+function finalizeOwedReportResult(input: {
+  readonly lines: readonly string[];
+  readonly owedCount: number;
+  readonly unknown: boolean;
+  readonly deferred: boolean;
+  readonly deferReason: string | null;
+}): FinalizeOwedSessionGateResult {
+  const lines = [...input.lines];
+  if (input.owedCount > 0) {
+    if (input.deferred && input.deferReason !== null) {
+      lines.push(`finalize owed deferred: ${input.deferReason}`);
+    }
+    lines.push(formatFinalizeOwedReportLine(input.owedCount));
+  }
+  return {
+    lines,
+    blocks: false,
+    unknown: input.unknown,
+    deferred: input.deferred,
+    deferReason: input.deferred ? input.deferReason : null,
+    owedCount: input.owedCount,
+  };
+}
+
+function countBlocksTaggedLines(lines: readonly string[]): number {
+  return lines.filter((line) => line.includes("[blocks]")).length;
+}
+
 export function evaluateFinalizeOwedSessionGate(
   projectRoot: string,
   options: Pick<
     SessionStartOptions,
     "probeFinalizeOwed" | "runGit" | "env" | "deferOwedReason" | "isLinkedWorktree"
   >,
-): {
-  lines: string[];
-  blocks: boolean;
-  unknown: boolean;
-  deferred: boolean;
-  deferReason: string | null;
-} {
+): FinalizeOwedSessionGateResult {
   const deferReason = resolveEffectiveDeferOwedReason(projectRoot, options);
   const deferred = deferReason !== null;
-  // #5171: reverse Prefer-A #5145 inventory skip. Defer / dest-inherit only clear
-  // blocks after a real inventory (blocks: blocking && !deferred). Inventory stays
-  // on every mutation session:start / --rearm; no first-ship day-cache.
+  // #5171: inventory stays on every mutation session:start / --rearm; no
+  // first-ship day-cache. #6409: rows with `blocks` true are reported, not refused.
   if (options.probeFinalizeOwed !== undefined) {
     const probed = options.probeFinalizeOwed(projectRoot);
-    const lines = [...probed.lines];
-    if (probed.blocks && deferred && deferReason !== null) {
-      lines.push(`finalize owed deferred: ${deferReason}`);
+    if (probed.repoRequired === true) {
+      return finalizeOwedRepoRequiredResult(deferred, deferReason);
     }
-    if (probed.blocks && !deferred) {
-      lines.push(
-        "finalize owed blocks mutation: run `task swarm:finalize-owed` or pass --defer-owed <reason>",
-      );
-    }
-    return {
-      lines,
-      blocks: probed.blocks && !deferred,
+    const tagged = countBlocksTaggedLines(probed.lines);
+    const owedCount = probed.owedCount ?? (probed.blocks ? Math.max(1, tagged) : 0);
+    return finalizeOwedReportResult({
+      lines: probed.lines,
+      owedCount,
       unknown: probed.unknown,
       deferred,
-      deferReason: deferred ? deferReason : null,
-    };
+      deferReason,
+    });
   }
   const runGit = options.runGit ?? defaultGitRunner;
   const env = options.env ?? process.env;
@@ -1018,34 +1104,13 @@ export function evaluateFinalizeOwedSessionGate(
       unknown: true,
       deferred,
       deferReason: deferred ? deferReason : null,
+      owedCount: 0,
     };
   }
   const repo = resolveFinalizeOwedRepo(projectRoot, env, runGit);
   if (repo.length === 0) {
     // Fail closed: tip is known but mutation cannot inventory owed without a repo (#4919).
-    const lines = [
-      "finalize owed: repo required (set GH_REPO / GITHUB_REPOSITORY or configure origin)",
-      "finalize owed blocks mutation: run `task swarm:finalize-owed` or pass --defer-owed <reason>",
-    ];
-    if (deferred && deferReason !== null) {
-      return {
-        lines: [
-          "finalize owed: repo required (set GH_REPO / GITHUB_REPOSITORY or configure origin)",
-          `finalize owed deferred: ${deferReason}`,
-        ],
-        blocks: false,
-        unknown: true,
-        deferred: true,
-        deferReason,
-      };
-    }
-    return {
-      lines,
-      blocks: true,
-      unknown: true,
-      deferred: false,
-      deferReason: null,
-    };
+    return finalizeOwedRepoRequiredResult(deferred, deferReason);
   }
   const claimRunner = createFinalizeClaimRunner();
   const inventory = discoverFinalizeOwed(projectRoot, {
@@ -1055,24 +1120,13 @@ export function evaluateFinalizeOwedSessionGate(
     runGit,
     claimRunner,
   });
-  const lines = formatFinalizeOwedInventoryLines(inventory);
-  const blocking = inventoryHasBlockingOwed(inventory);
-  const hasUnknown = inventory.stories.some((s) => s.state === "unknown");
-  if (blocking && deferred && deferReason !== null) {
-    lines.push(`finalize owed deferred: ${deferReason}`);
-  }
-  if (blocking && !deferred) {
-    lines.push(
-      "finalize owed blocks mutation: run `task swarm:finalize-owed` or pass --defer-owed <reason>",
-    );
-  }
-  return {
-    lines,
-    blocks: blocking && !deferred,
-    unknown: hasUnknown,
+  return finalizeOwedReportResult({
+    lines: formatFinalizeOwedInventoryLines(inventory),
+    owedCount: countBlockingOwed(inventory),
+    unknown: inventory.stories.some((s) => s.state === "unknown"),
     deferred,
-    deferReason: deferred ? deferReason : null,
-  };
+    deferReason,
+  });
 }
 
 /** Resolve whether optional session:start network work is enabled (#2991). */
@@ -1919,7 +1973,8 @@ function runSessionRearm(
   pushLifecycleVisibleAdvisory(lines, projectRoot, options, runGit);
 
   // #4919 / #5375 Bound 5: re-arm finalize-owed is a named exclusive step.
-  // Inventory always runs (#5171); defer only clears the block — not skipped.
+  // Inventory always runs (#5171). Owed rows are reported, not refused (#6409);
+  // `blocks` is only the repository-not-resolved case.
   const finalizeStarted = performance.now();
   const owedGate = evaluateFinalizeOwedSessionGate(projectRoot, options);
   pushExclusiveStep(stepTimings, "finalize_owed", finalizeStarted, {
@@ -2196,6 +2251,8 @@ function runSessionRearm(
       posture: MUTATION_POSTURE,
       ceremony_tier: REARM_CEREMONY_TIER,
       rearm_eligible: true,
+      // #6409: rows with `blocks` true, reported (not refused).
+      finalize_owed_count: owedGate.owedCount,
       state_path: statePath,
       ...(freshnessBind ? { freshness: freshnessBind } : {}),
       // #4966: structured checkout fields for quiet-default go-signal (additive).
@@ -2914,7 +2971,8 @@ export function runSessionStart(
   pushExclusiveStep(stepTimings, "product_signal_consent", consentStarted);
 
   // #4919 / #5375 Bound 5: finalize-owed is a named exclusive step.
-  // Inventory always runs (#5171); defer only clears the block — not skipped.
+  // Inventory always runs (#5171). Owed rows are reported, not refused (#6409);
+  // `blocks` is only the repository-not-resolved case.
   const finalizeStarted = performance.now();
   const owedGate = evaluateFinalizeOwedSessionGate(projectRoot, options);
   pushExclusiveStep(stepTimings, "finalize_owed", finalizeStarted, {
@@ -3161,6 +3219,8 @@ export function runSessionStart(
     posture: MUTATION_POSTURE,
     ceremony_tier: COLD_CEREMONY_TIER,
     ceremony_dial: dialDict,
+    // #6409: rows with `blocks` true, reported (not refused).
+    finalize_owed_count: owedGate.owedCount,
     ...(preflightDict !== null ? { toolchain_preflight: preflightDict } : {}),
     ...(orientationBundle !== null
       ? {

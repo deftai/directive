@@ -228,8 +228,10 @@ function ensureRepo(
     }
     return { ok: true, repo };
   }
-  const prefix = projectId ? `${projectId}-` : "tutorial-";
-  const repo = mkdtempSync(join(tmpdir(), prefix));
+  // #6376: every Directive temp name carries `deft`.
+  const repo = mkdtempSync(
+    join(tmpdir(), projectId ? `deft-tutorial-${projectId}-` : "deft-tutorial-"),
+  );
   const err = disposableRepoError(repo, projectRoot);
   if (err !== null) {
     rmSync(repo, { recursive: true, force: true });

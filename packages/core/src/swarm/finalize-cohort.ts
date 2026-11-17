@@ -30,16 +30,20 @@ import {
   classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
   defaultFetchPrChangedFiles,
+  defaultMergeTimeForge,
   evidenceFromPrPayload,
   type FetchPrChangedFilesFn,
   isDeliveryBriefLandPath,
+  type MergeTimeForge,
   type PrChangedFile,
   SPEC_DRIFT_LEDGER_REL,
+  SPEC_DRIFT_ROWS_DIR_REL,
+  scanSoleMarkCompetitors,
   verifyDeliveryAncestry,
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
 import { materializeRetainedBrief, SOURCE_RECOVERY_REMEDIATION } from "./brief-transport.js";
-import { completeCohort, type SweepResult } from "./complete-cohort.js";
+import { completeCohort, lifecycleMoveOnDiskLines, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   cancelledBriefReferencesIssue,
@@ -139,6 +143,8 @@ export interface FinalizeCohortArgs {
   readonly pmRunner?: WorktreePmRunner;
   /** Test seam: PR changed-files lookup for the lifecycle-shaped PR guard (#6212). */
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
+  /** Test seam: merged-PR reads for the operator-bind same-mark scan (#6317). */
+  readonly mergeTimeForge?: MergeTimeForge;
 }
 
 /**
@@ -1041,7 +1047,7 @@ function ensureFeatureBranch(
   projectRoot: string,
   branchName: string,
   runGit: typeof runText,
-): { ok: boolean; error: string | null; branch: string | null } {
+): { ok: boolean; error: string | null; branch: string | null; createFailed?: boolean } {
   const branchCheck = evaluateBranchPolicy(projectRoot);
   if (branchCheck.exitCode === 1) {
     const create = runGit(["git", "switch", "-c", branchName], { cwd: projectRoot });
@@ -1050,6 +1056,7 @@ function ensureFeatureBranch(
         ok: false,
         error: `git switch -c ${branchName} failed: ${create.stderr.trim()}`,
         branch: null,
+        createFailed: true,
       };
     }
     return { ok: true, error: null, branch: branchName };
@@ -1068,11 +1075,114 @@ function ensureFeatureBranch(
         ok: false,
         error: `git switch -c ${branchName} failed: ${create.stderr.trim()}`,
         branch: null,
+        createFailed: true,
       };
     }
     return { ok: true, error: null, branch: branchName };
   }
   return { ok: true, error: null, branch: currentBranch };
+}
+
+/** POSIX single-quoted shell word: `$`, backticks and `"` stay literal when pasted. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * The registered worktree that has `branchName` checked out, from
+ * `git worktree list --porcelain`. `main` is true for the first block (the main
+ * worktree), which `git worktree remove` cannot remove.
+ */
+function worktreeHoldingBranch(
+  porcelain: string,
+  branchName: string,
+): { readonly path: string; readonly main: boolean } | null {
+  const target = `branch refs/heads/${branchName}`;
+  let current: string | null = null;
+  let index = -1;
+  // Keep the path bytes as git printed them: only the line ending is removed.
+  for (const line of porcelain.split(/\r?\n/)) {
+    if (line.startsWith("worktree ")) {
+      current = line.slice("worktree ".length);
+      index += 1;
+    } else if (line.length === 0) {
+      current = null;
+    } else if (line === target && current !== null) {
+      return { path: current, main: index === 0 };
+    }
+  }
+  return null;
+}
+
+/**
+ * Report-only leftover of a finalize run that did not finish (#6421).
+ *
+ * A killed run leaves its lifecycle worktree and its local `swarm/finalize/<label>`
+ * branch, so the next run's `git switch -c` fails. A run cannot tell a killed run
+ * from a live one, so this only names the leftover and the commands that remove
+ * it. It runs read-only git commands and changes nothing.
+ *
+ * Returns null, so the stop keeps today's text, when the local branch is absent,
+ * when origin has the branch (`ls-remote` asks origin itself, so a branch pushed
+ * from another clone or a removed tracking ref still counts; an open PR always
+ * has a pushed head), or when origin cannot be read.
+ */
+export function describeFinalizeBranchLeftover(
+  projectRoot: string,
+  branchName: string,
+  runGit: typeof runText,
+): string | null {
+  const local = runGit(["git", "rev-parse", "--verify", "--quiet", `refs/heads/${branchName}`], {
+    cwd: projectRoot,
+  });
+  if (local.returncode !== 0 || local.stdout.trim().length === 0) {
+    return null;
+  }
+  const remote = runGit(["git", "ls-remote", "--heads", "origin", `refs/heads/${branchName}`], {
+    cwd: projectRoot,
+  });
+  if (remote.returncode !== 0 || remote.stdout.trim().length > 0) {
+    return null;
+  }
+  const listed = runGit(["git", "worktree", "list", "--porcelain"], { cwd: projectRoot });
+  const holder = listed.returncode === 0 ? worktreeHoldingBranch(listed.stdout, branchName) : null;
+  const root = shellQuote(projectRoot);
+  const commands: string[] = [];
+  if (holder?.main) {
+    // The main worktree cannot be removed; move it off the branch instead.
+    commands.push(`git -C ${shellQuote(holder.path)} switch --detach`);
+  } else if (holder !== null) {
+    // Scoped to the named holder. `worktree remove --force` also drops a
+    // registration whose folder is gone; a repo-wide `worktree prune` would
+    // reach other worktrees.
+    commands.push(`git -C ${root} worktree remove --force ${shellQuote(holder.path)}`);
+  }
+  commands.push(`git -C ${root} branch -D ${shellQuote(branchName)}`);
+  const held = holder === null ? "" : ` (checked out in worktree ${holder.path})`;
+  return (
+    `Leftover of a finalize run that did not finish (#6421): local branch ${branchName}${held} ` +
+    "is not on origin. If no other finalize run for this cohort is still running, remove it, " +
+    `then re-run: ${commands.join(" && ")}`
+  );
+}
+
+/**
+ * Error for a failed finalize branch setup. A failed branch creation
+ * (`createFailed`) gets the leftover report (#6421) appended; every other text
+ * is as before.
+ */
+export function finalizeBranchSetupError(
+  projectRoot: string,
+  branchName: string,
+  result: { readonly error: string | null; readonly createFailed?: boolean },
+  runGit: typeof runText,
+): string {
+  const text = result.error ?? "branch setup failed";
+  if (result.createFailed !== true) {
+    return text;
+  }
+  const leftover = describeFinalizeBranchLeftover(projectRoot, branchName, runGit);
+  return leftover === null ? text : `${text} ${leftover}`;
 }
 
 /**
@@ -1100,6 +1210,23 @@ function derivedLifecycleRelsFromSweep(
     // the same lifecycle commit as the completed briefs (#680 P5 / #6231).
     if (sweep.stories.some((rec) => rec.ok)) {
       out.push(SPEC_DRIFT_LEDGER_REL);
+      // #6335: completions write per-story row files; they travel in the same
+      // commit. The folder markers cover `git status` collapsing a new untracked
+      // folder (`?? xbrief/.audit/spec-drift/`, or `?? xbrief/.audit/` when nothing
+      // under .audit/ is tracked yet). The post-staging check still compares exact
+      // staged paths, so the markers admit no other file.
+      const rowsDir = join(projectRoot, ...SPEC_DRIFT_ROWS_DIR_REL.split("/"));
+      if (existsSync(rowsDir)) {
+        out.push(`${SPEC_DRIFT_ROWS_DIR_REL}/`);
+        out.push(`${SPEC_DRIFT_ROWS_DIR_REL.slice(0, SPEC_DRIFT_ROWS_DIR_REL.lastIndexOf("/"))}/`);
+        try {
+          for (const name of readdirSync(rowsDir)) {
+            if (name.endsWith(".json")) out.push(`${SPEC_DRIFT_ROWS_DIR_REL}/${name}`);
+          }
+        } catch {
+          /* unreadable folder — git add below still stages, the diff gate decides */
+        }
+      }
     }
     for (const rec of [...sweep.stories, ...sweep.parents]) {
       if (!rec.ok || rec.path.trim().length === 0) {
@@ -1609,6 +1736,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const fetchPrChangedFiles: FetchPrChangedFilesFn =
     args.fetchPrChangedFiles ??
     ((prNumber, repository) => defaultFetchPrChangedFiles(prNumber, repository, runGh));
+  let liveMergeTimeForge: MergeTimeForge | null = null;
+  const mergeTimeForge = (): MergeTimeForge => {
+    liveMergeTimeForge ??= args.mergeTimeForge ?? defaultMergeTimeForge(runGh);
+    return liveMergeTimeForge;
+  };
   const runGit = args.runGit ?? runText;
   const gitRunner = asGitRunner(runGit);
   const prNumbers = [...(args.prNumbers ?? [])].sort((a, b) => a - b);
@@ -1914,7 +2046,25 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
               } else if (isLifecycleShapedPr(prFiles)) {
                 reason = `PR #${String(prNumber)} changes only lifecycle paths: briefs, CHANGELOG.md, spec-drift ledger`;
               } else {
-                bound = true;
+                // #6317: no bind when another merged, non-excluded PR carries the
+                // same mark; refuse and name both. An incomplete scan fails closed.
+                const scan = scanSoleMarkCompetitors({
+                  repository: repo,
+                  issueNumber: issue,
+                  candidatePr: prNumber,
+                  forge: mergeTimeForge(),
+                });
+                if (!scan.ok) {
+                  reason = `same-mark scan for PR #${String(prNumber)} failed: ${scan.error}`;
+                  lookupFailed = true;
+                } else if (scan.competitors.length > 0) {
+                  const others = scan.competitors.map((n) => `#${String(n)}`).join(", ");
+                  reason =
+                    `PR #${String(prNumber)} and merged PR ${others} carry the same mark; ` +
+                    `stamp metadata.productPullRequest on the delivery branch to choose one (#6317)`;
+                } else {
+                  bound = true;
+                }
               }
             }
           }
@@ -2366,7 +2516,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             const branchName = `swarm/finalize/${deriveLabel(args.label, prNumbers, storyTokens)}`;
             const branchResult = ensureFeatureBranch(prepared.checkout, branchName, runGit);
             if (!branchResult.ok) {
-              errors.push(branchResult.error ?? "branch setup failed");
+              errors.push(finalizeBranchSetupError(projectRoot, branchName, branchResult, runGit));
               skipSweep = true;
             } else {
               branch = branchResult.branch;
@@ -2457,13 +2607,20 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       });
       sweep = sweepResult.sweep;
       if (sweepResult.exitCode !== 0) {
+        // #6422 item 11: a close-out failure after a clean sweep is not a failed sweep.
+        const sweepClean =
+          sweep !== null && [...sweep.stories, ...sweep.parents].every((rec) => rec.ok);
+        const headline = sweepClean
+          ? "cohort close-out failed after a clean lifecycle sweep"
+          : "cohort completion sweep failed";
         errors.push(
           lifecycleInstall === null
-            ? "cohort completion sweep failed."
-            : `cohort completion sweep failed (${formatLifecycleInstallDisposition(lifecycleInstall)}).`,
+            ? `${headline}.`
+            : `${headline} (${formatLifecycleInstallDisposition(lifecycleInstall)}).`,
         );
         if (sweep !== null) {
           errors.push(...sweepDetailLines(sweep));
+          errors.push(...lifecycleMoveOnDiskLines(sweep));
         } else if (sweepResult.stdout.trim().length > 0) {
           errors.push(sweepResult.stdout.trim());
         }

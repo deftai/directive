@@ -36,17 +36,13 @@ export function resolveVersion(frameworkRoot?: string): string {
 }
 
 /**
- * Resolve the framework root for a CLI command running against `projectRoot`.
- *
- * Priority: explicit `--deft-root` / `--framework-root` → `DEFT_ROOT` env →
- * maintainer source checkout at `projectRoot` (when `main.md` + framework markers
- * are present, even if a dogfood `.deft/core` deposit also exists) → consumer
- * deposit (`.deft/core`, legacy `deft/`) → maintainer checkout walk
- * (`resolveDefaultFrameworkRoot`).
- *
- * Refs #2146 (npm global `deft` must not default to `node_modules/vbrief/schemas`).
+ * True when `projectRoot` is a checkout of the framework source repository:
+ * `main.md` plus every `DEFT_REPO_POSITIVE_MARKERS` file. Linked worktrees
+ * carry the same tracked files, and a dogfood `.deft/core` or `deft/` deposit
+ * does not change the answer. Shared by the deposit writer and the pack-migrate
+ * verbs (#6337).
  */
-function isFrameworkSourceCheckoutAt(projectRoot: string): boolean {
+export function isFrameworkSourceCheckoutAt(projectRoot: string): boolean {
   try {
     if (!statSync(join(projectRoot, "main.md")).isFile()) {
       return false;
@@ -63,6 +59,17 @@ function isFrameworkSourceCheckoutAt(projectRoot: string): boolean {
   });
 }
 
+/**
+ * Resolve the framework root for a CLI command running against `projectRoot`.
+ *
+ * Priority: explicit `--deft-root` / `--framework-root` → `DEFT_ROOT` env →
+ * maintainer source checkout at `projectRoot` (when `main.md` + framework markers
+ * are present, even if a dogfood `.deft/core` deposit also exists) → consumer
+ * deposit (`.deft/core`, legacy `deft/`) → maintainer checkout walk
+ * (`resolveDefaultFrameworkRoot`).
+ *
+ * Refs #2146 (npm global `deft` must not default to `node_modules/vbrief/schemas`).
+ */
 export function resolveFrameworkRootForProject(
   projectRoot: string,
   explicitRoot?: string | null,

@@ -28,7 +28,7 @@ rationale: "Replace this quoted sentence with the actual documentation-impact ra
 ## Checklist
 
 - [ ] Prefer `deft check`; else `task deft:check` on an include-only consumer. One gate, not two runs (validate + lint + test; see `coding/testing.md`)
-- [ ] `CHANGELOG.md` has an `[Unreleased]` entry covering these changes
+- [ ] Changelog entry covering these changes: a line under `CHANGELOG.md` `[Unreleased]`, or a `changelog.d/<issue>-<slug>.md` fragment, as `plan.policy.changelog.mode` allows; a story that adds an entry lists its own fragment path in `file_scope`
 - [ ] All affected vBRIEFs pass `task vbrief:validate`
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) format
 - [ ] No secrets or `.env` content in the diff
@@ -37,9 +37,14 @@ rationale: "Replace this quoted sentence with the actual documentation-impact ra
 
 ## Related Issues
 
-<!-- Use closing keywords so GitHub auto-closes on squash merge:
-Closes #N
-Relates to #M
+<!-- Active story (running brief in xbrief/active/): do not use Closes #N; the
+brief completes after merge and finalize closes the issue. Write Refs #N plus
+exactly one story line on its own line (#6316):
+  deft-story: N        on the PR that completes the story
+  deft-story-part: N   on any other product PR of the story
+task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]
+writes the line. Use Closes #N only for an issue with no active story, when its
+full DoD is met. Relates to #M for context.
 -->
 
 ## Testing

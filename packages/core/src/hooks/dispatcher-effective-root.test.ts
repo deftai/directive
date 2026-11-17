@@ -859,9 +859,14 @@ describe("story file_scope relativises against the write target worktree (#3794 
   });
 });
 
-/** A directory inside no Git working tree, for the no-toplevel fallback (#4013). */
+/**
+ * A directory inside no Git working tree, for the no-toplevel fallback (#4013).
+ * Its name carries `deft`, so it is outside the #6376 outside-every-checkout
+ * class and keeps today's payload-root gating; the class itself is covered in
+ * dispatcher-outside-every-checkout.test.ts.
+ */
 function outsideDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "hook-4013-outside-"));
+  const dir = mkdtempSync(join(tmpdir(), "deft-hook-4013-outside-"));
   ephemeralTemps.push(dir);
   return dir;
 }

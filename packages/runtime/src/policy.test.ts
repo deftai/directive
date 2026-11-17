@@ -319,11 +319,66 @@ describe("run show + set integration", async () => {
     expect(off.out).toContain("onePrScopeProof=off");
   });
 
+  it("set-one-pr-scope-proof usage names both controls, no precondition (#6354)", async () => {
+    const usage = captureRun(["set-one-pr-scope-proof", "--project-root", project()]);
+    expect(usage.code).toBe(1);
+    expect(usage.out).toContain("usage: policy set-one-pr-scope-proof");
+    expect(usage.out).toContain("with requireHumanMerge=true the human merge is the control");
+    expect(usage.out).toContain("local mint gate and the write fence");
+    expect(usage.out).not.toContain("mint needs requireHumanMerge=true");
+  });
+
   it("set-one-pr-scope-proof rejects an unknown level at parse (#6273)", async () => {
     expect(parseArgs(["set-one-pr-scope-proof", "--set", "bogus"]).error).toContain(
       "expected off|mint",
     );
     expect(parseArgs(["set-one-pr-scope-proof", "--set", "signed"]).onePrScopeProof).toBe("signed");
+  });
+
+  it("policy:show reports changelog.mode inline by default (#6314)", async () => {
+    const r = project();
+    const show = captureRun(["show", "--field=plan.policy.changelog.mode", "--project-root", r]);
+    expect(show.code).toBe(0);
+    expect(show.out).toContain("plan.policy.changelog.mode");
+    expect(show.out).toContain("inline");
+  });
+
+  it("set-changelog-mode needs --confirm, accepts only the three modes (#6314)", async () => {
+    const r = project();
+    const usage = captureRun(["set-changelog-mode", "--project-root", r]);
+    expect(usage.code).toBe(1);
+    expect(usage.out).toContain("--mode inline|either|fragments");
+
+    const dry = captureRun(["set-changelog-mode", "--mode", "either", "--project-root", r]);
+    expect(dry.code).toBe(1);
+    expect(dry.out).toContain("--confirm");
+
+    const bad = captureRun(["set-changelog-mode", "--mode=both", "--confirm", "--project-root", r]);
+    expect(bad.code).toBe(2);
+    expect(bad.out).toContain("inline|either|fragments");
+
+    const set = captureRun([
+      "set-changelog-mode",
+      "--mode=fragments",
+      "--confirm",
+      "--actor",
+      "test",
+      "--note=cutover",
+      "--project-root",
+      r,
+    ]);
+    expect(set.code).toBe(0);
+    expect(set.out).toContain("changelog.mode=fragments");
+    const show = captureRun(["show", "--field=changelog.mode", "--project-root", r]);
+    expect(show.out).toContain("fragments");
+  });
+
+  it("set-changelog-mode parse errors (#6314)", async () => {
+    expect(parseArgs(["set-changelog-mode", "--bogus"]).error).toContain("unrecognized argument");
+    expect(parseArgs(["set-changelog-mode", "--mode"]).error).toContain("expected one argument");
+    expect(parseArgs(["set-changelog-mode", "--confirm=yes"]).error).toContain("unrecognized");
+    const ok = parseArgs(["set-changelog-mode", "--", "--mode", "either", "--note", "n"]);
+    expect(ok).toMatchObject({ cmd: "set-changelog-mode", changelogMode: "either", note: "n" });
   });
 
   it("refuses allow-destructive-gh-verbs without confirm", async () => {

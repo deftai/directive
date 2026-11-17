@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -20,8 +21,14 @@ import { deriveUnmarkedFinalizeAdmit } from "../orphan-active/evaluate.js";
 import { firstMergedPrRef } from "../orphan-active/refs.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import { isDeliveryBriefLandExcluded } from "../scope/delivery-evidence.js";
+import {
+  isDeliveryBriefLandExcluded,
+  type MergedPrListNode,
+  type MergeTimeForge,
+  type PrFileEntry,
+} from "../scope/delivery-evidence.js";
 import { runTransition } from "../scope/transition.js";
+import { applyWorktreeOccupancy, readOccupancy } from "../session/occupancy.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   evaluateFinalizeClassMergeCarveOut,
@@ -40,6 +47,28 @@ import {
 } from "./finalize-owed.js";
 import type { TextCaptureResult } from "./subprocess.js";
 import type { WorktreePmRunner } from "./worktree-pm-install.js";
+
+/** Offline merged-PR reads for the #6317 operator-bind same-mark scan. */
+function markForge(
+  merged: readonly MergedPrListNode[] = [],
+  files: Readonly<Record<number, readonly PrFileEntry[]>> = {},
+): MergeTimeForge {
+  const page = <T>(nodes: readonly T[]) => ({
+    ok: true as const,
+    nodes,
+    hasNextPage: false,
+    endCursor: null,
+  });
+  return {
+    listMergedPrsPage: () => page(merged),
+    fetchBodyRevisionsPage: () => page([]),
+    fetchConnectionEventsPage: () => page([]),
+    fetchPrFilesPage: (_repo, n) =>
+      page(files[n] ?? [{ status: "modified", filename: "packages/core/src/x.ts" }]),
+    probeRateLimit: () => ({ graphqlRemaining: 5000, coreRemaining: 5000 }),
+    nowMs: () => 0,
+  };
+}
 
 function writeActiveStory(
   project: string,
@@ -667,6 +696,70 @@ describe("finalizeCohort", () => {
         },
         landedCompleted: ["xbrief/completed/story-l.xbrief.json"],
         statusShort: " M xbrief/.audit/spec-drift-ledger.json\n",
+      }),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.exitCode).toBe(0);
+    expect(committed).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("carries spec-drift row files in the lifecycle commit (#6335)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6335-rows-"));
+    const storyPath = writeActiveStory(project, "story-r", 2225);
+    mkdirSync(join(project, "xbrief", ".audit", "spec-drift"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".audit", "spec-drift", "story-r.json"), "{}\n");
+    writeFileSync(join(project, "xbrief", ".audit", "spec-drift", "notes.txt"), "x\n");
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-r",
+      repo: "deftai/directive",
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-r.xbrief.json"],
+        statusShort: "?? xbrief/.audit/spec-drift/\nA  xbrief/.audit/spec-drift/story-r.json\n",
+      }),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.exitCode).toBe(0);
+    expect(committed).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("carries the first row file when nothing under xbrief/.audit/ is tracked (#6335)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6335-unseeded-"));
+    const storyPath = writeActiveStory(project, "story-u", 2225);
+    mkdirSync(join(project, "xbrief", ".audit", "spec-drift"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".audit", "spec-drift", "story-u.json"), "{}\n");
+    // Real git collapses a wholly untracked folder to its top untracked parent.
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    const realStatus = execFileSync("git", ["status", "--short", "--", "xbrief/.audit/"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(realStatus.trim()).toBe("?? xbrief/.audit/");
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-u",
+      repo: "deftai/directive",
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-u.xbrief.json"],
+        statusShort: realStatus,
       }),
       runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
       landProbeLimit: 1,
@@ -1586,6 +1679,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.result.errors.filter((e) => e.includes("does not bind PR delivery"))).toEqual([]);
     expect(result.result.story_paths).toContain(storyPath);
@@ -1601,6 +1695,67 @@ describe("finalizeCohort", () => {
     const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
       .plan;
     expect(productPullRequestFromPlan(plan)).toBe(6300);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses the operator bind and names both PRs when another merged PR carries the same mark (#6317)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6317-competitor-"));
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
+    const listed = (number: number, body: string) => ({
+      number,
+      mergedAt: "2026-11-12T10:00:00Z",
+      body,
+      lastEditedAt: null,
+    });
+    const run = (forge: MergeTimeForge) =>
+      finalizeCohort({
+        projectRoot: project,
+        storyTokens: ["6212"],
+        prNumbers: [6300],
+        repo: "deftai/directive",
+        noCommit: true,
+        deliveryBranch: "master",
+        runGh: mockRunGh({
+          6300: { merged: true, closingIssues: [], body: "Refs #6212\n\ndeft-story: 6212\n" },
+        }),
+        runGit: mockRunGit(),
+        fetchPrChangedFiles: productFiles,
+        mergeTimeForge: forge,
+      });
+
+    const competing = run(
+      markForge(
+        [
+          listed(6300, "deft-story: 6212"),
+          listed(6290, "deft-story: 6212"),
+          // A part-line PR and a brief-only marked PR are not competitors.
+          listed(6280, "deft-story-part: 6212"),
+          listed(6270, "deft-story: 6212"),
+        ],
+        { 6270: [{ status: "modified", filename: "xbrief/active/story-6212.xbrief.json" }] },
+      ),
+    );
+    expect(competing.result.refused_marks?.map((m) => m.detail)).toEqual([
+      "#6212: deft-story mark on PR #6300 does not bind PR delivery " +
+        "(PR #6300 and merged PR #6290 carry the same mark; stamp metadata.productPullRequest " +
+        "on the delivery branch to choose one (#6317)) (#4864).",
+    ]);
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBeNull();
+
+    // An incomplete scan fails closed for the whole batch, like a failed file lookup.
+    const failing: MergeTimeForge = {
+      ...markForge(),
+      listMergedPrsPage: () => ({ ok: false, error: "secondary rate limit" }),
+    };
+    const incomplete = run(failing);
+    expect(
+      incomplete.result.errors.some((e) =>
+        e.includes("same-mark scan for PR #6300 failed: merged-PR scan: secondary rate limit"),
+      ),
+    ).toBe(true);
+    expect(productPullRequestFromPlan(plan)).toBeNull();
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1632,6 +1787,7 @@ describe("finalizeCohort", () => {
       },
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     // Refused #7000 is non-fatal: no error, exit INCOMPLETE, pending on refused_marks.
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
@@ -1674,6 +1830,12 @@ describe("finalizeCohort", () => {
         { status: "removed", filename: "xbrief/active/a.json" },
         { status: "modified", filename: "xbrief/.audit/spec-drift-ledger.json" },
       ],
+      [
+        { status: "added", filename: "xbrief/completed/a.json" },
+        { status: "removed", filename: "xbrief/active/a.json" },
+        { status: "added", filename: "xbrief/.audit/spec-drift/a.json" },
+      ],
+      [{ status: "modified", filename: ".deft/intent-constraint/a.json" }],
       [{ status: "added", filename: "xbrief/cancelled/a.json" }],
       [{ status: "added", filename: "xbrief/active/nested/a.json" }],
       [{ status: "modified", filename: "xbrief/.audit/authority-events.jsonl" }],
@@ -1686,6 +1848,9 @@ describe("finalizeCohort", () => {
     for (const files of samples) {
       expect(isLifecycleShapedPr(files)).toBe(isDeliveryBriefLandExcluded(files));
     }
+    // #6335: completed brief + row files is lifecycle-shaped; an authority record is not.
+    expect(isLifecycleShapedPr(samples[3] ?? [])).toBe(true);
+    expect(isLifecycleShapedPr(samples[4] ?? [])).toBe(false);
   });
 
   it("does not bind an operator-story mark on a brief-plus-ledger-only PR (#680 F1)", () => {
@@ -1752,6 +1917,7 @@ describe("finalizeCohort", () => {
         landedCompleted: ["xbrief/completed/story-6212.xbrief.json"],
       }),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
       landProbeLimit: 1,
       sleep: () => {},
     });
@@ -1810,6 +1976,7 @@ describe("finalizeCohort", () => {
         landedCompleted: ["xbrief/completed/story-6212.xbrief.json"],
       }),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
       landProbeLimit: 1,
       sleep: () => {},
     });
@@ -1860,6 +2027,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.result.errors).toEqual([]);
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
@@ -1890,6 +2058,7 @@ describe("finalizeCohort", () => {
       runGh,
       runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-6212.xbrief.json"] }),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
       landProbeLimit: 1,
       sleep: () => {},
     });
@@ -1954,6 +2123,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.exitCode).toBe(EXIT_GATE_FAILED);
     expect(result.result.errors.some((e) => e.includes("is not the delivery branch"))).toBe(true);
@@ -1980,6 +2150,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
     expect(result.result.errors).toEqual([]);
@@ -4071,5 +4242,59 @@ describe("finalize-cohort lifecycle checkout package install (#5882)", () => {
     expect(outcome.exitCode).toBe(EXIT_GATE_FAILED);
     expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     expect(outcome.result.errors.some((e) => /outer-visible pin missing/i.test(e))).toBe(true);
+  });
+});
+
+describe("finalize close-out of a story swarm:launch did not launch (#6422)", () => {
+  const SESSION = "host:claude:v1:ZmluYWxpemUtNjQyMg";
+
+  beforeEach(() => {
+    vi.mocked(runTransition).mockClear();
+  });
+
+  function gitProject(prefix: string): string {
+    const project = mkdtempSync(join(tmpdir(), prefix));
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    return project;
+  }
+
+  it("exits 0 after a correct sweep and keeps the session lease (AC 12)", () => {
+    const project = gitProject("sw-finalize-6422-");
+    const storyPath = writeActiveStory(project, "story-unlaunched", 6422);
+    expect(applyWorktreeOccupancy(project, { sessionId: SESSION, intent: "mutation" }).code).toBe(
+      0,
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      noCommit: true,
+    });
+    expect(result.exitCode).toBe(EXIT_OK);
+    expect(result.stdout).not.toContain("missing or belongs to a different cohort");
+    expect(readOccupancy(project)?.sessionId).toBe(SESSION);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("says a close-out failure after a clean sweep left the move on disk (AC 32)", () => {
+    const project = gitProject("sw-finalize-6422-fail-");
+    const storyPath = writeActiveStory(project, "story-bad-record", 6422);
+    const dir = join(project, ".deft", "swarm-launch-occupancy");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "broken.json"), "{oops", "utf8");
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      noCommit: true,
+    });
+    expect(result.exitCode).toBe(EXIT_GATE_FAILED);
+    const errors = result.result.errors.join("\n");
+    expect(errors).toContain("cohort close-out failed after a clean lifecycle sweep");
+    expect(errors).not.toContain("cohort completion sweep failed");
+    expect(errors).toContain("broken.json");
+    expect(errors).toContain("already on disk");
+    expect(errors).toContain(
+      "xbrief/active/story-bad-record.xbrief.json -> xbrief/completed/story-bad-record.xbrief.json",
+    );
+    rmSync(project, { recursive: true, force: true });
   });
 });

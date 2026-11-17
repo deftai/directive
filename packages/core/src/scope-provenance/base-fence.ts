@@ -26,8 +26,13 @@
  * precommitment). The production fence below stays merge-base.
  */
 
+import { CHANGELOG_FILE_REL, isChangelogEntryPath } from "../changelog/entry-path.js";
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
-import { isCompletionMoveShaped, SPEC_DRIFT_LEDGER_REL } from "../scope/delivery-evidence.js";
+import {
+  isCompletionMoveShaped,
+  isSpecDriftRowFilePath,
+  SPEC_DRIFT_LEDGER_REL,
+} from "../scope/delivery-evidence.js";
 import {
   DEFAULT_FIXTURE_ROOTS,
   DEFAULT_SOURCE_ROOTS,
@@ -36,7 +41,8 @@ import {
 import { normalizeFileScope } from "./digest.js";
 
 /** Free path that never spends production allowance. */
-export const CHANGELOG_REL = "CHANGELOG.md";
+/** Root changelog path; path tests use `isChangelogEntryPath` (#6314). */
+export const CHANGELOG_REL = CHANGELOG_FILE_REL;
 
 /** Floor/cap are #4956 product bounds; non-NumericLiteral init avoids mint ceremony. */
 export const PRODUCTION_ALLOWANCE_FLOOR = Number("2");
@@ -174,7 +180,7 @@ export function evaluateProductionScopeFence(
     const rel = raw.replace(/\\/g, "/").replace(/^\.\//, "");
     if (rel.length === 0 || seen.has(rel)) continue;
     seen.add(rel);
-    if (rel === CHANGELOG_REL) continue;
+    if (isChangelogEntryPath(rel)) continue;
     if (isTestOrFixturePath(rel, testRoots, fixtureRoots)) continue;
     if (!isProductionRootPath(rel, sourceRoots)) continue;
     if (pathMatchesFileScope(rel, baseScope)) continue;
@@ -357,16 +363,17 @@ export function evaluateApprovedScopeMembership(
   // #680 P5 / #6231: the spec-drift ledger is scope:complete verb output. It is
   // free only when the whole change set is a completion move (delivery-brief-land
   // paths with a completed/ brief), so it never carries other paths past membership.
+  // The per-story row files under xbrief/.audit/spec-drift/ join it (#6335).
   const ledgerFree = isCompletionMoveShaped(
     input.changedFiles.map((raw) => normalizeMembershipRel(raw)).filter((rel) => rel.length > 0),
   );
 
   const isFreePath = (rel: string): boolean => {
     if (rel === xbriefRel) return true;
-    if (rel === CHANGELOG_REL) return true;
+    if (isChangelogEntryPath(rel)) return true;
     if (peerXbriefs.has(rel)) return true;
     if (lifecycleExempt.has(rel)) return true;
-    if (ledgerFree && rel === SPEC_DRIFT_LEDGER_REL) return true;
+    if (ledgerFree && (rel === SPEC_DRIFT_LEDGER_REL || isSpecDriftRowFilePath(rel))) return true;
     return false;
   };
 

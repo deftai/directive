@@ -11,6 +11,10 @@
  *   deft authz:grant -- --template release-publish --target 0.30.0 [--confirm]
  *   deft authz:grant -- --template finish-loop [--confirm]
  *   deft authz:grant -- --template spec-drift-override --target <baseline> --plan-ref <scopeId> --story-ids <ids> [--confirm]
+ *   deft authz:grant -- --template delivery-identity-attest --target <owner>/<repo>#<pr>@<merge_commit_sha> \\
+ *       --plan-ref <scopeId> [--confirm]
+ *   deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> \\
+ *       --deferred-to <issue> --reason <text> [--confirm]
  *   deft authz:grant -- --template gate-override --target <refuseCode> --plan-ref <attemptId> \\
  *       --base-sha <sha> --head-sha <sha> --tree-hash <hash> [--confirm]
  *   deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> [--repo owner/name] [--confirm]
@@ -53,8 +57,22 @@ import {
 } from "@deftai/directive-core/authz";
 import { uatCampaignEndSeal } from "@deftai/directive-core/authz/campaign-end-seal";
 import {
+  isPlanSequenceApprovalTemplateName,
+  mintPlanSequenceApprovalGrant,
+  PLAN_SEQUENCE_APPROVAL_TEMPLATE_NAME,
+} from "@deftai/directive-core/plan-sequence";
+import {
+  ACCEPTANCE_DISPOSITION_TEMPLATE_NAME,
+  DELIVERY_IDENTITY_ATTEST_TEMPLATE_NAME,
+  isAcceptanceDispositionTemplateName,
+  isDeliveryIdentityAttestTemplateName,
   isSpecDriftOverrideTemplateName,
+  listAcceptanceDispositionGrants,
+  listDeliveryIdentityAttestGrants,
+  mintAcceptanceDispositionTemplateGrant,
+  mintDeliveryIdentityAttestTemplateGrant,
   mintSpecDriftOverrideTemplateGrant,
+  resolveDeliveryIdentityAttestStore,
   SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME,
 } from "@deftai/directive-core/policy";
 import {
@@ -104,7 +122,23 @@ interface Parsed {
   format: "text" | "json";
   /** Explicit operator confirm for non-TTY / agent shells (#3110). */
   confirm: boolean;
+  /** acceptance-disposition target issue (#6318). */
+  deferredTo: string | null;
+  /** acceptance-disposition reason (#6318). */
+  reason: string | null;
+  /** plan-sequence-approval: the plan's generation (#6205). */
+  generation: number | null;
+  /** plan-sequence-approval insert: entry index (#6205). */
+  position: number | null;
+  /** plan-sequence-approval insert: entry title, bound to the grant (#6205). */
+  title: string | null;
   error?: string;
+}
+
+/** Non-negative integer flag value, or null when malformed. */
+function parseIndexFlag(raw: string | undefined): number | null {
+  if (raw === undefined || !/^(0|[1-9]\d*)$/.test(raw.trim())) return null;
+  return Number(raw.trim());
 }
 
 function parseOps(raw: string): AuthzOperation[] {
@@ -150,6 +184,11 @@ function parseArgv(argv: string[]): Parsed {
     evaluatorId: null,
     format: "text",
     confirm: false,
+    deferredTo: null,
+    reason: null,
+    generation: null,
+    position: null,
+    title: null,
   };
 
   const args = [...argv];
@@ -300,6 +339,27 @@ function parseArgv(argv: string[]): Parsed {
       base.confirm = true;
       continue;
     }
+    if (a === "--deferred-to" || a === "--deferredTo") {
+      base.deferredTo = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--reason") {
+      base.reason = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--title") {
+      base.title = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--generation" || a === "--position") {
+      const value = parseIndexFlag(args[++i]);
+      if (value === null) {
+        return { ...base, error: `${a} requires a non-negative integer` };
+      }
+      if (a === "--generation") base.generation = value;
+      else base.position = value;
+      continue;
+    }
     if (!a.startsWith("-") && base.cmd === "revoke" && base.grantId === null) {
       base.grantId = a;
       continue;
@@ -321,6 +381,12 @@ function helpText(): string {
     "      [--stories 2944] [--plan-ref <id>] [--repo owner/name] [--branch <b>] [--expires ISO] [--confirm]",
     "  deft authz:grant -- --template release-publish --target 0.30.0 [--actor <name>] [--expires ISO] [--confirm]",
     "  deft authz:grant -- --template finish-loop [--actor <name>] [--expires ISO] [--confirm]",
+    "  deft authz:grant -- --template delivery-identity-attest \\",
+    "      --target <owner>/<repo>#<pr>@<merge_commit_sha> --plan-ref <scopeId> [--confirm]",
+    "  deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> \\",
+    "      --story-ids <itemIds> --deferred-to <issue> --reason <text> [--confirm]",
+    "  deft authz:grant -- --template plan-sequence-approval --target <insert:<kind>:<id>|replace|clear> \\",
+    "      --plan-ref <sequence_id> --generation <n> [--position <n>] [--issue-ids <n>] [--title <t>] [--repo owner/name] [--confirm]",
     "  deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> \\",
     "      [--repo owner/name] [--expires ISO] [--single-use] [--actor <name>] [--confirm]",
     "  deft authz:revoke -- <grant-id> [--confirm]",
@@ -409,7 +475,19 @@ export function main(
       case "show": {
         const snap = showAuthzSnapshot(args.projectRoot);
         if (args.format === "json") {
-          process.stdout.write(`${JSON.stringify(snap, null, 2)}\n`);
+          // #6317: delivery-identity-attest grants live in the main clone store.
+          const attest = listDeliveryIdentityAttestGrants(args.projectRoot);
+          const deliveryIdentityAttest = attest.ok
+            ? { storeRoot: attest.root, grants: attest.grants }
+            : { storeRoot: null, error: attest.reason, grants: [] };
+          // #6318: acceptance-disposition grants share that store.
+          const deferrals = listAcceptanceDispositionGrants(args.projectRoot);
+          const acceptanceDisposition = deferrals.ok
+            ? { storeRoot: deferrals.root, grants: deferrals.grants }
+            : { storeRoot: null, error: deferrals.reason, grants: [] };
+          process.stdout.write(
+            `${JSON.stringify({ ...snap, deliveryIdentityAttest, acceptanceDisposition }, null, 2)}\n`,
+          );
           return 0;
         }
         const uat = snap.state.uat;
@@ -435,6 +513,8 @@ export function main(
         if (rejected > 0) {
           process.stdout.write(`(${rejected} grant file(s) present but not active/human-origin)\n`);
         }
+        writeDeliveryIdentityAttestShow(args.projectRoot);
+        writeAcceptanceDispositionShow(args.projectRoot);
         return 0;
       }
       case "uat-start": {
@@ -694,6 +774,60 @@ export function main(
           );
           return 0;
         }
+        // Acceptance-disposition deferral (#6318): policy module, main clone store.
+        if (args.template !== null && isAcceptanceDispositionTemplateName(args.template)) {
+          return grantAcceptanceDisposition(args, gateConfirm);
+        }
+        // Ordered-plan write approval (#6205): plan-sequence module, main clone store.
+        if (args.template !== null && isPlanSequenceApprovalTemplateName(args.template)) {
+          return grantPlanSequenceApproval(args, gateConfirm);
+        }
+        // Delivery-identity attestation (#6317): policy module, main clone store.
+        if (args.template !== null && isDeliveryIdentityAttestTemplateName(args.template)) {
+          if (args.target === null || args.target.trim().length === 0) {
+            process.stderr.write(
+              "authz:grant --template delivery-identity-attest requires --target <owner>/<repo>#<pr>@<merge_commit_sha>\n",
+            );
+            return 2;
+          }
+          if (args.planRef === null || args.planRef.trim().length === 0) {
+            process.stderr.write(
+              "authz:grant --template delivery-identity-attest requires --plan-ref <scopeId>\n",
+            );
+            return 2;
+          }
+          const blockedAttest = gateConfirm();
+          if (blockedAttest !== null) return blockedAttest;
+          const mintedAttest = mintDeliveryIdentityAttestTemplateGrant({
+            projectRoot: args.projectRoot,
+            target: args.target,
+            planRef: args.planRef,
+            actor: args.actor,
+            expiresAt: args.expiresAt,
+            branch: args.branch,
+          });
+          if (!mintedAttest.ok) {
+            process.stderr.write(`authz:grant: ${mintedAttest.reason}\n`);
+            return 2;
+          }
+          const attestGrant = mintedAttest.grant;
+          process.stdout.write(
+            `✓ human-origin grant minted id=${attestGrant.id} origin=${attestGrant.origin.kind} ` +
+              `template=${DELIVERY_IDENTITY_ATTEST_TEMPLATE_NAME}\n`,
+          );
+          process.stdout.write(
+            `  plan=${attestGrant.scope.planRef} surfaces=${attestGrant.scope.surfaces.join(", ")} ` +
+              `expires=${attestGrant.semantics.expiresAt ?? "-"}\n`,
+          );
+          process.stdout.write(
+            "  Basis: operator-attested for this PR, merge commit and plan only; first use is " +
+              "recorded when the completed/ write succeeds.\n",
+          );
+          process.stdout.write(
+            `  Store: ${mintedAttest.storeRoot} (main clone, .deft/authz/grants)\n`,
+          );
+          return 0;
+        }
         // Spec-drift override hatch (#5350): policy module, not authz/** (class 4).
         if (args.template !== null && isSpecDriftOverrideTemplateName(args.template)) {
           if (args.target === null || args.target.trim().length === 0) {
@@ -752,7 +886,7 @@ export function main(
         if (args.template !== null && args.template.trim().length > 0) {
           if (!isAfkTemplateName(args.template)) {
             process.stderr.write(
-              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}, ${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}, ${GATE_OVERRIDE_TEMPLATE_NAME}\n`,
+              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}, ${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}, ${GATE_OVERRIDE_TEMPLATE_NAME}, ${DELIVERY_IDENTITY_ATTEST_TEMPLATE_NAME}, ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME}, ${PLAN_SEQUENCE_APPROVAL_TEMPLATE_NAME}\n`,
             );
             return 2;
           }
@@ -808,7 +942,7 @@ export function main(
         }
         if (args.operations.length === 0) {
           process.stderr.write(
-            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override|gate-override>, " +
+            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override|gate-override|delivery-identity-attest|acceptance-disposition|plan-sequence-approval>, " +
               "or --parent + --draft (structural scope:decompose apply)\n",
           );
           return 2;
@@ -856,10 +990,19 @@ export function main(
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
         }
-        const revokedResult = revokeGrant({
+        let revokedResult = revokeGrant({
           projectRoot: args.projectRoot,
           grantId: args.grantId,
         });
+        // #6317 / #6318: a grant absent here may live in the main clone store
+        // (delivery-identity-attest, acceptance-disposition), so revoke from a
+        // linked dest finds it.
+        if (revokedResult.ok && revokedResult.grant === null) {
+          const mainStore = resolveDeliveryIdentityAttestStore(args.projectRoot);
+          if (mainStore.ok && resolve(mainStore.root) !== resolve(args.projectRoot)) {
+            revokedResult = revokeGrant({ projectRoot: mainStore.root, grantId: args.grantId });
+          }
+        }
         if (!revokedResult.ok) {
           process.stderr.write(`authz:revoke: ${revokedResult.reason}\n`);
           return 2;
@@ -881,6 +1024,149 @@ export function main(
   } catch (err) {
     process.stderr.write(`authz: ${String(err)}\n`);
     return 1;
+  }
+}
+
+/** authz:show text section for main-clone delivery-identity-attest grants (#6317). */
+function writeDeliveryIdentityAttestShow(projectRoot: string): void {
+  const attest = listDeliveryIdentityAttestGrants(projectRoot);
+  if (!attest.ok) {
+    process.stdout.write(`Delivery-identity-attest grants: store unresolved (${attest.reason})\n`);
+    return;
+  }
+  process.stdout.write(
+    `Delivery-identity-attest grants (main clone store ${attest.root}): ${attest.grants.length}\n`,
+  );
+  for (const g of attest.grants) {
+    const state =
+      g.semantics.revokedAt !== null
+        ? `revoked=${g.semantics.revokedAt}`
+        : g.semantics.usedAt !== null
+          ? `used=${g.semantics.usedAt}`
+          : `expires=${g.semantics.expiresAt ?? "-"}`;
+    process.stdout.write(
+      `  - ${g.id} plan=${g.scope.planRef ?? "-"} ${state} surfaces=${g.scope.surfaces.join("|")}\n`,
+    );
+  }
+}
+
+/** Mint an acceptance-disposition grant from parsed argv (#6318). */
+function grantAcceptanceDisposition(args: Parsed, gateConfirm: () => number | null): number {
+  const missing =
+    args.planRef === null || args.planRef.trim().length === 0
+      ? "--plan-ref <scopeId>"
+      : args.storyIds.length === 0
+        ? "--story-ids <itemIds>"
+        : args.deferredTo === null || args.deferredTo.trim().length === 0
+          ? "--deferred-to <issue>"
+          : args.reason === null || args.reason.trim().length === 0
+            ? "--reason <text>"
+            : null;
+  if (missing !== null) {
+    process.stderr.write(`authz:grant --template acceptance-disposition requires ${missing}\n`);
+    return 2;
+  }
+  const blocked = gateConfirm();
+  if (blocked !== null) return blocked;
+  const minted = mintAcceptanceDispositionTemplateGrant({
+    projectRoot: args.projectRoot,
+    planRef: args.planRef as string,
+    storyIds: args.storyIds,
+    deferredTo: args.deferredTo as string,
+    reason: args.reason as string,
+    actor: args.actor,
+    expiresAt: args.expiresAt,
+    branch: args.branch,
+  });
+  if (!minted.ok) {
+    process.stderr.write(`authz:grant: ${minted.reason}\n`);
+    return 2;
+  }
+  const grant = minted.grant;
+  process.stdout.write(
+    `✓ human-origin grant minted id=${grant.id} origin=${grant.origin.kind} ` +
+      `template=${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME}\n`,
+  );
+  process.stdout.write(
+    `  plan=${grant.scope.planRef} items=${minted.itemIds.join(",")} ` +
+      `expires=${grant.semantics.expiresAt ?? "-"}\n`,
+  );
+  process.stdout.write(
+    "  scope:complete writes these items as deferred with this grant id, only while each " +
+      "covered text still matches; first use is recorded when the completed/ write succeeds.\n",
+  );
+  process.stdout.write(`  Store: ${minted.storeRoot} (main clone, .deft/authz/grants)\n`);
+  return 0;
+}
+
+/** Mint a single-use plan-sequence-approval grant from parsed argv (#6205). */
+function grantPlanSequenceApproval(args: Parsed, gateConfirm: () => number | null): number {
+  const missing =
+    args.target === null || args.target.trim().length === 0
+      ? "--target <insert:<kind>:<id>|replace|clear>"
+      : args.planRef === null || args.planRef.trim().length === 0
+        ? "--plan-ref <sequence_id>"
+        : args.generation === null
+          ? "--generation <n>"
+          : null;
+  if (missing !== null) {
+    process.stderr.write(`authz:grant --template plan-sequence-approval requires ${missing}\n`);
+    return 2;
+  }
+  const blocked = gateConfirm();
+  if (blocked !== null) return blocked;
+  const minted = mintPlanSequenceApprovalGrant({
+    projectRoot: args.projectRoot,
+    target: args.target as string,
+    sequenceId: args.planRef as string,
+    generation: args.generation,
+    position: args.position,
+    issue: args.issueIds[0] ?? null,
+    title: args.title,
+    repo: args.repo,
+    actor: args.actor,
+    expiresAt: args.expiresAt,
+  });
+  if (!minted.ok) {
+    process.stderr.write(`authz:grant: ${minted.reason}\n`);
+    return 2;
+  }
+  const grant = minted.grant;
+  process.stdout.write(
+    `✓ human-origin grant minted id=${grant.id} origin=${grant.origin.kind} ` +
+      `template=${PLAN_SEQUENCE_APPROVAL_TEMPLATE_NAME}\n`,
+  );
+  process.stdout.write(
+    `  plan=${grant.scope.planRef} repo=${grant.scope.repo} binds=${grant.scope.surfaces.join("|")} ` +
+      `expires=${grant.semantics.expiresAt ?? "-"}\n`,
+  );
+  process.stdout.write(
+    "  Single-use: spent by the one plan-sequence write it binds; a failed write leaves it unspent.\n",
+  );
+  process.stdout.write(`  Store: ${minted.storeRoot} (main clone, .deft/authz/grants)\n`);
+  return 0;
+}
+
+/** authz:show text section for main-clone acceptance-disposition grants (#6318). */
+function writeAcceptanceDispositionShow(projectRoot: string): void {
+  const listed = listAcceptanceDispositionGrants(projectRoot);
+  if (!listed.ok) {
+    process.stdout.write(`Acceptance-disposition grants: store unresolved (${listed.reason})\n`);
+    return;
+  }
+  process.stdout.write(
+    `Acceptance-disposition grants (main clone store ${listed.root}): ${listed.grants.length}\n`,
+  );
+  for (const g of listed.grants) {
+    const state =
+      g.semantics.revokedAt !== null
+        ? `revoked=${g.semantics.revokedAt}`
+        : g.semantics.usedAt !== null
+          ? `used=${g.semantics.usedAt}`
+          : `expires=${g.semantics.expiresAt ?? "-"}`;
+    process.stdout.write(
+      `  - ${g.id} plan=${g.scope.planRef ?? "-"} items=${g.scope.storyIds.join(",")} ${state}\n`,
+    );
   }
 }
 

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, readdirSync, readlinkSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readlinkSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   type AuthzDecision,
@@ -18,6 +18,7 @@ import {
   utcIso,
 } from "../authz/index.js";
 import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/protected-dest-realpath.js";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
@@ -60,6 +61,7 @@ import {
   resolveWriteFence,
   type StoryWriteFenceView,
 } from "../policy/write-fence.js";
+import { HOOK_COMPACT_HEAL_TRIGGER } from "../run-summary/types.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   appendSoftAgentsRebindToMessage,
@@ -79,6 +81,7 @@ import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   type ApplyingHostTransport,
   evaluateApplyingHostLifecycleAdmission,
+  evaluateOccupancyCeremonyEligibility,
   evaluateOccupancyWriteGate,
   formatOccupancyLeaseViewNote,
   liveOccupant,
@@ -89,7 +92,10 @@ import {
   resolveOccupancyLeaseRoot,
   type SessionEndReleaseResult,
 } from "../session/occupancy.js";
-import { occupancyAwareDenialMessage } from "../session/occupancy-recovery.js";
+import {
+  fillRecoveryCommandSessionId,
+  occupancyAwareDenialMessage,
+} from "../session/occupancy-recovery.js";
 import {
   ENV_SESSION_POSTURE,
   isRequirementsPosture,
@@ -101,6 +107,7 @@ import {
 } from "../session/posture.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
+import { formatSessionStartRecoveryCommand } from "../session/session-start.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
   allocatedWorktreeMatches,
@@ -115,6 +122,7 @@ import {
 } from "../session/spawn-occupancy.js";
 import {
   type DetectWorkSelection,
+  healCompactMarkForOwnerWrite,
   inspectSessionRitual,
   type RitualRunner,
   type VerifyResult,
@@ -163,6 +171,11 @@ import {
 } from "./classify/index.js";
 import { GROK_SPAWN_WRITING_SKIP_CLASS_FIELD, PROCESS_ONLY_FLAG_KEYS } from "./classify/payload.js";
 import {
+  COMMIT_TARGET_ACCEPTED_FORMS,
+  commandHasGitCommitIndexMutatingForm,
+  resolveCommitTarget,
+} from "./commit-target.js";
+import {
   type CursorPlanChoiceDeps,
   defaultCursorPlanChoiceDeps,
   isCursorPlanChoiceManagedPath,
@@ -182,12 +195,27 @@ import {
 } from "./dispatcher-plan-choice.js";
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
+import { excuseMergeArrivals } from "./merge-commit-excuse.js";
+import {
+  allTargetsOutsideEveryCheckout,
+  OUTSIDE_EVERY_CHECKOUT_READY_CODE,
+  type OutsideEveryCheckoutSeams,
+  targetsKeepOriginalSpelling,
+} from "./outside-every-checkout.js";
 import { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite } from "./outside-project-root.js";
 import {
   type OwnerLivenessInput,
   type OwnerLivenessOutcome,
   restampOwnerLivenessOnHookEvent,
 } from "./owner-liveness.js";
+import {
+  classifyPlanningPublicationSet,
+  type ListStagedIndexEntriesResult,
+  listStagedIndexEntries,
+  readStagedBlob,
+  type StagedIndexEntry,
+  stagedRelPathsFromEntries,
+} from "./planning-publication.js";
 import {
   appliesGrokSpawnDestContract,
   isAssistPosture,
@@ -201,10 +229,12 @@ import {
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
+  formatPositiveGoverningAllowDeny,
   type InspectActiveScopeOptions,
+  inPrCompletionScopeMessage,
   inspectActiveScope,
-  POSITIVE_GOVERNING_ALLOW_REQUIRED,
   resolveWorktreeStoryBinding,
+  type WorktreeStoryBinding,
 } from "./scope.js";
 import {
   classifyShellWriteTargets,
@@ -339,6 +369,8 @@ export type HookDecisionCode =
   | "write-completed-ready"
   /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
   | "write-assist-scratch-ready"
+  /** Direct write whose every target is outside every checkout (#6376). */
+  | "write-outside-every-checkout-ready"
   /** Tracked docs/specs after occupancy under requirements posture (#4444). */
   | "write-requirements-ready"
   | "write-requirements-out-of-class"
@@ -740,6 +772,8 @@ export interface HookPolicySeams {
   readonly prepareArcDest?: typeof prepareGithubOnlyDest;
   /** Test seam for Cursor planning-choice store/clock (#4973). */
   readonly cursorPlanChoice?: CursorPlanChoiceDeps;
+  /** Test seams for the outside-every-checkout class test (#6376). */
+  readonly outsideEveryCheckout?: OutsideEveryCheckoutSeams;
   /**
    * Tip seam for #5278 `evaluatePreCancel` green (#5281 Prefer-A).
    * When absent, equivalent `.deft-scratch/subagent-kill-attestation/` is required.
@@ -765,9 +799,18 @@ export interface HookPolicySeams {
   }) => string;
   /**
    * Test seam for #5656 prospective git-commit scope-cover staged paths.
-   * Defaults to `git diff --cached --name-only`.
+   * Paths only: no planning-publication admission (#5839). Without either
+   * staged seam the hook reads `listStagedIndexEntries`.
    */
   readonly listStagedRelPaths?: (projectRoot: string) => readonly string[];
+  /**
+   * Widened staged seam (#5839): staged index entries with change kind, mode
+   * and blob. Wins over `listStagedRelPaths`; defaults to
+   * `listStagedIndexEntries` when neither seam is set.
+   */
+  readonly listStagedIndexEntries?: (projectRoot: string) => ListStagedIndexEntriesResult;
+  /** Index blob reader for the planning-publication plan-sequence check (#5839). */
+  readonly readStagedBlob?: (projectRoot: string, blob: string) => string | null;
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -874,17 +917,16 @@ function allMutationTargetsAreCompletedLifecycleWrites(
   return allMutationTargetsMatch(projectRoot, payload, isCompletedLifecycleWrite);
 }
 
-/** Exact CHANGELOG.md relative path for Prefer-A #5890 retirement-shaped harvest. */
-const CHANGELOG_REL = "CHANGELOG.md";
-
+/** Changelog entry path (#6314) for Prefer-A #5890 retirement-shaped harvest. */
 function isChangelogRelPath(relPosix: string): boolean {
   const p = relPosix.replace(/\\/g, "/").replace(/^\.\//, "");
-  return p === CHANGELOG_REL;
+  return isChangelogEntryPath(p);
 }
 
 /**
  * Prefer-A #5890 retirement-shaped harvest: every target is completed/ lifecycle
- * or CHANGELOG.md, and at least one is CHANGELOG.md. Pure completed/ is exempt
+ * or a changelog entry path, and at least one is a changelog entry path
+ * (`CHANGELOG.md` or `changelog.d/<name>.md`, #6314). Pure completed/ is exempt
  * upstream (#4422) before inspectActiveScope; cancelled/ and product paths stay
  * on the ungated zero-eligible arm.
  */
@@ -1208,6 +1250,50 @@ export function projectRootFromHookPayload(payload: unknown, fallback: string): 
 /** Interpolate both roots so a deny names the tree that was judged (#3794). */
 export function formatHookRootNote(payloadRoot: string, effectiveRoot: string): string {
   return `payloadRoot=${payloadRoot} effectiveRoot=${effectiveRoot}`;
+}
+
+/**
+ * A path as one literal shell argument (#6376), or null when no spelling is
+ * literal in both POSIX shells and PowerShell. Plain paths print bare; other
+ * paths are single-quoted, which neither shell expands (`$`, backticks, `"`).
+ * A path holding a single quote or a control character gets no command.
+ */
+function printedPathArg(path: string): string | null {
+  if (/^[A-Za-z0-9_.:\\/+-]+$/.test(path)) return path;
+  for (const ch of path) {
+    const code = ch.charCodeAt(0);
+    if (ch === "'" || code < 0x20 || code === 0x7f) return null;
+  }
+  return `'${path}'`;
+}
+
+/**
+ * Ritual denial recovery that names the judged checkout (#6376). Appends the
+ * checkout and one `session:start` command carrying `--project-root` for it, so
+ * the command runs as printed from any directory. When occupancy does not admit
+ * the ceremony for this actor (#4290), only the checkout is named: a command
+ * the occupancy gate would refuse is never printed.
+ */
+export function formatJudgedCheckoutRecovery(
+  text: string,
+  judgedRoot: string,
+  tier: "rearm" | "cold",
+  sessionId: string | null | undefined,
+  admitCeremony: boolean,
+): string {
+  const named = `Judged checkout: ${judgedRoot}.`;
+  if (!admitCeremony) return `${text} ${named}`;
+  const rootArg = printedPathArg(judgedRoot);
+  if (rootArg === null) {
+    return `${text} ${named} Run the recovery from that checkout; its path cannot be printed as a literal shell argument.`;
+  }
+  const command =
+    `${fillRecoveryCommandSessionId(formatSessionStartRecoveryCommand(tier), sessionId)} ` +
+    `--project-root=${rootArg}`;
+  return (
+    `${text} ${named} Recovery for that checkout (runs as printed from any directory; ` +
+    `the commands above act on the current directory): \`${command}\`.`
+  );
 }
 
 /** Why a mutation target was refused, so the deny message can be specific (#3794). */
@@ -2021,6 +2107,11 @@ function inspectMutationGates(
     /** When true, authz permission checks run but single-use grants are not spent (#6136). */
     deferGrantConsume?: boolean;
     pendingConsumeOut?: string[];
+    /**
+     * Bare host direct-write surface only (#6376). Shell reissue, MCP and proxy
+     * writes never set it, so the outside-every-checkout class cannot reach them.
+     */
+    outsideEveryCheckoutEligible?: boolean;
   },
 ): HookDecision {
   // payloadRoot stays authoritative for authz grant scoping, the authz audit
@@ -2129,6 +2220,55 @@ function inspectMutationGates(
     }
   }
 
+  // #6376: a bare direct write whose every target is proven to be outside every
+  // checkout (OS temp directory or an ordinary home folder; see
+  // outside-every-checkout.ts) skips occupancy, the gated ritual, active scope and
+  // the story write fence. admitMutationTargetSet already ran above, unchanged.
+  // Authz and runtime authority run on the payload root as on the assist-scratch
+  // path; the #1193 intent ceiling that the mutation path evaluates after the
+  // ritual runs here too, so its result is unchanged. No lease refresh, no
+  // product-mutation marker. Any doubt falls through to the gates below.
+  if (
+    options.outsideEveryCheckoutEligible === true &&
+    !isSpawnTool(toolName) &&
+    // The harvest trims and decodes targets; a target whose original spelling
+    // differs is judged as today, never under its trimmed name (#6376).
+    targetsKeepOriginalSpelling(input.payload, mutationTargets) &&
+    allTargetsOutsideEveryCheckout(payloadRoot, mutationTargets, environ, {
+      runGit: dispatchGit,
+      ...seams.outsideEveryCheckout,
+    })
+  ) {
+    const authzDeny = authzForMutationTargets(input, toolName, seams, {
+      isDirectWrite: true,
+      scopePath: null,
+      runGit: dispatchGit,
+      projectRoot,
+      deferGrantConsume: options.deferGrantConsume === true,
+      pendingConsumeOut: options.pendingConsumeOut,
+    });
+    if (authzDeny !== null) return authzDeny;
+    const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null, payloadRoot);
+    if (runtimeDeny !== null) return runtimeDeny;
+    const intent = evaluateIntentCeilingFromEnv("implement", environ);
+    if (!intent.allowed) {
+      return deny(input, "intent-ceiling-deny", toolName, intent.reason);
+    }
+    return {
+      verdict: "allow",
+      code: OUTSIDE_EVERY_CHECKOUT_READY_CODE,
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message:
+        `Directive write gate allowed ${toolName}: every target is outside every checkout ` +
+        "(OS temp directory or an ordinary home folder), so occupancy and the session " +
+        "ritual were not required (#6376).",
+      scopePath: null,
+    };
+  }
+
   const actor = isSpawnTool(toolName) ? null : resolveMutationActor(input, environ);
   const occupancyGate = isSpawnTool(toolName)
     ? {
@@ -2168,6 +2308,24 @@ function inspectMutationGates(
         env: environ,
       },
       recoveryTier,
+    );
+  // #6279: ritual denials print recovery commands with the caller's id, after
+  // the occupancy-aware rewrite so stripped commands stay stripped.
+  // #6376: they also name the judged checkout and print one command for it.
+  const ritualRecoveryText = (message: string, recoveryTier: "rearm" | "cold"): string =>
+    formatJudgedCheckoutRecovery(
+      fillRecoveryCommandSessionId(
+        occupancyAwareText(message, recoveryTier),
+        actor?.sessionId ?? environ.DEFT_SESSION_ID,
+      ),
+      effectiveRoot,
+      recoveryTier,
+      actor?.sessionId ?? environ.DEFT_SESSION_ID,
+      // Same eligibility the occupancy-aware rewrite applied (#4290).
+      evaluateOccupancyCeremonyEligibility(effectiveRoot, {
+        sessionId: actor?.sessionId ?? environ.DEFT_SESSION_ID,
+        env: environ,
+      }).admitCeremony,
     );
 
   const ritualDetailForOccupancyDeny = (): VerifyResult | null => {
@@ -2362,7 +2520,7 @@ function inspectMutationGates(
         input,
         "ritual-not-ready",
         toolName,
-        occupancyAwareText(
+        ritualRecoveryText(
           `Directive could not inspect the gated session ritual: ${String(cause)}.${rootsNote}`,
           "cold",
         ),
@@ -2400,7 +2558,7 @@ function inspectMutationGates(
         input,
         "occupancy-ritual-mismatch",
         toolName,
-        occupancyAwareText(
+        ritualRecoveryText(
           `Directive denied ${toolName}: ${detail}. ` +
             "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +
             "otherwise run `deft session:start --session-id=<same-session-id>` for a cold ceremony. " +
@@ -2412,6 +2570,39 @@ function inspectMutationGates(
     }
   }
   if (ritual !== undefined && ritual.code !== 0) {
+    // #6279: the live-lease owner that is also the ritual's bound session gets
+    // its pre-compaction clock back and one denial carrying the alignment lines.
+    if (actor !== null && occupancyGate.occupant !== null) {
+      const heal = healCompactMarkForOwnerWrite(effectiveRoot, {
+        callerSessionId: actor.sessionId,
+        callerIdentityIssue: actor.issue !== null,
+        admitted: occupancyGate.admitted,
+        boundSessionId: ritual.boundSessionId,
+        stillLiveOwner: () =>
+          evaluateOccupancyWriteGate(effectiveRoot, {
+            sessionId: actor.sessionId,
+            env: actor.hostAuthoritative ? {} : environ,
+            leaseRoot: effectiveRoot,
+          }).admitted === "owner"
+            ? null
+            : "the occupancy lease is no longer held by this session",
+        runGit: dispatchGit,
+      });
+      if (heal.kind !== "none") {
+        if (heal.kind === "healed") {
+          emitSessionRitualBlockedProcessCost(
+            { toolName, code: HOOK_COMPACT_HEAL_TRIGGER, recoveryTier: "rearm" },
+            { projectRoot },
+          );
+        }
+        return deny(
+          input,
+          "ritual-not-ready",
+          toolName,
+          `Directive denied ${toolName}: ${heal.message}${rootsNote}`,
+        );
+      }
+    }
     // #2992: prefer re-arm recovery when age/compact stale; cold when bind invalid.
     const recoveryTier = ritual.recoveryTier === "rearm" ? "rearm" : "cold";
     // #2994: best-effort local process-cost; never changes deny verdict.
@@ -2428,7 +2619,7 @@ function inspectMutationGates(
       input,
       "ritual-not-ready",
       toolName,
-      occupancyAwareText(
+      ritualRecoveryText(
         `Directive denied ${toolName}: ${ritual.message}${rootsNote}`,
         recoveryTier,
       ),
@@ -2500,7 +2691,7 @@ function inspectMutationGates(
         input,
         "occupancy-ritual-mismatch",
         toolName,
-        occupancyAwareText(
+        ritualRecoveryText(
           `Directive denied ${toolName}: final lease owner ${finalExpectedOwner} does not match ` +
             `the exact verified ritual owner ${ritual?.boundSessionId ?? "<unbound>"}. ` +
             "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +
@@ -2600,6 +2791,16 @@ function inspectMutationGates(
         path: null,
         message: worktreeBinding.message,
         denyKind: "pin-miss",
+      };
+    } else if (worktreeBinding.kind === "bound" && worktreeBinding.landsWithProductMove) {
+      // #6480: the story was admitted through its in-PR completion move; its
+      // brief is no longer under active/, so skip inspectActiveScope and its
+      // active-folder and running-status refusals. The implement intent
+      // ceiling below still applies.
+      scope = {
+        ready: true,
+        path: worktreeBinding.path,
+        message: inPrCompletionScopeMessage(worktreeBinding),
       };
     } else {
       const boundPath = worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
@@ -2744,7 +2945,7 @@ function inspectMutationGates(
       input,
       denyCode,
       toolName,
-      `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`,
+      `${formatPositiveGoverningAllowDeny(fence)}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`,
       scope.path,
     );
   };
@@ -4825,6 +5026,8 @@ function routeHookDecision(
   return inspectMutationGates(input, toolName, seams, {
     proposedLifecycleExempt: true,
     observation,
+    // #6376: only the bare host direct-write surface reaches the class.
+    outsideEveryCheckoutEligible: !isMcpTool(toolName),
   });
 }
 
@@ -4897,112 +5100,16 @@ function composeCursorSessionStartAdditionalContext(
   return parts.join("\n\n");
 }
 
-/**
- * Detect `git commit` as the git subcommand in a Shell command string (#5656).
- * Handles common agent forms (env prefixes, -C/-c globals, &&/; compounds).
- * Obscured forms remain a hooks-installed / `--no-verify` residual.
- */
-export function commandHasGitCommitSubcommand(command: string): boolean {
-  const normalized = command.replace(/\r\n/g, "\n");
-  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
-    const words = part
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
-    let i = 0;
-    while (i < words.length) {
-      const envTok = words[i];
-      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
-      i++;
-    }
-    if (i >= words.length) continue;
-    const binTok = words[i];
-    if (binTok === undefined) continue;
-    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
-    if (bin !== "git" && bin !== "git.exe") continue;
-    i++;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "-C" || w === "-c" || w === "--git-dir" || w === "--work-tree") {
-        i += 2;
-        continue;
-      }
-      if (
-        w.startsWith("--git-dir=") ||
-        w.startsWith("--work-tree=") ||
-        (w.startsWith("-c") && w.includes("="))
-      ) {
-        i += 1;
-        continue;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      // Non-commit git subcommands must not stop compound scanning (#5656):
-      // `git status && git commit` still needs the later commit part.
-      if (w.toLowerCase() === "commit") return true;
-      break;
-    }
-  }
-  return false;
-}
-
-/**
- * True when a Shell git commit retargets checkout via -C / --git-dir / --work-tree.
- * Prospective scope-cover reads the index at projectRoot; refuse retargets (#5656).
- */
-export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
-  if (!commandHasGitCommitSubcommand(command)) return false;
-  const normalized = command.replace(/\r\n/g, "\n");
-  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
-    const words = part
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
-    let i = 0;
-    while (i < words.length) {
-      const envTok = words[i];
-      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
-      i++;
-    }
-    if (i >= words.length) continue;
-    const binTok = words[i];
-    if (binTok === undefined) continue;
-    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
-    if (bin !== "git" && bin !== "git.exe") continue;
-    i++;
-    let sawRetarget = false;
-    let sub: string | undefined;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
-        sawRetarget = true;
-        i += 2;
-        continue;
-      }
-      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
-        sawRetarget = true;
-        i += 1;
-        continue;
-      }
-      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
-        i += w === "-c" ? 2 : 1;
-        continue;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      sub = w.toLowerCase();
-      break;
-    }
-    if (sub === "commit" && sawRetarget) return true;
-  }
-  return false;
-}
+// Commit recognition, target resolution and the index-mutating check share one
+// quote-aware tokenizer in ./commit-target.ts (#6278); re-exported for callers.
+export {
+  COMMIT_TARGET_ACCEPTED_FORMS,
+  commandHasGitCommitIndexMutatingForm,
+  commandHasGitCommitSubcommand,
+  resolveCommitTarget,
+  splitShellArgvPreservingQuotes,
+  tokenizeShellCommand,
+} from "./commit-target.js";
 
 /** Staged index list result — no throw; caller maps `ok:false` to deny (#5656). */
 export type ListStagedRelPathsResult =
@@ -5039,150 +5146,69 @@ export function listStagedRelPathsIncludingDeletes(projectRoot: string): ListSta
   }
 }
 
-/** Quote-aware argv split so `-m "fix the bug"` stays one message token (#5656). */
-export function splitShellArgvPreservingQuotes(part: string): string[] {
-  const out: string[] = [];
-  let cur = "";
-  let quote: '"' | "'" | null = null;
-  let tokenHadQuote = false;
-  const flush = (): void => {
-    if (cur.length > 0 || tokenHadQuote) {
-      out.push(cur);
-      cur = "";
-      tokenHadQuote = false;
-    }
-  };
-  for (let i = 0; i < part.length; i++) {
-    const ch = part[i];
-    if (ch === undefined) continue;
-    if (quote !== null) {
-      if (ch === quote) {
-        quote = null;
-        continue;
-      }
-      if (ch === "\\" && quote === '"' && i + 1 < part.length) {
-        cur += part[i + 1] ?? "";
-        i += 1;
-        continue;
-      }
-      cur += ch;
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      quote = ch;
-      tokenHadQuote = true;
-      continue;
-    }
-    if (/\s/.test(ch)) {
-      flush();
-      continue;
-    }
-    cur += ch;
+/** Commit-target admission result: the checkout root to judge, or a deny (#6278). */
+type CommitTargetRootResult =
+  | { readonly ok: true; readonly root: string }
+  | { readonly ok: false; readonly code: HookDecisionCode; readonly message: string };
+
+function isExistingDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
   }
-  flush();
-  return out;
 }
 
 /**
- * True when a Shell git commit uses -a/--all/-am/--include or trailing pathspecs
- * that can change the checked file set after the pre-tool index snapshot (#5656).
+ * Admit a named commit target through the existing #3794 root admission (#6278).
+ * The path must exist and share `--git-common-dir` with the payload root. There
+ * is no non-repository fallback for a commit target: a path outside every
+ * checkout, or a payload root that is not a repository, is refused.
  */
-export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
-  if (!commandHasGitCommitSubcommand(command)) return false;
-  const normalized = command.replace(/\r\n/g, "\n");
-  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
-    const words = splitShellArgvPreservingQuotes(part.trim());
-    let i = 0;
-    while (i < words.length) {
-      const envTok = words[i];
-      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
-      i++;
-    }
-    if (i >= words.length) continue;
-    const binTok = words[i];
-    if (binTok === undefined) continue;
-    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
-    if (bin !== "git" && bin !== "git.exe") continue;
-    i++;
-    let sub: string | undefined;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
-        i += 2;
-        continue;
-      }
-      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
-        i += 1;
-        continue;
-      }
-      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
-        i += w === "-c" ? 2 : 1;
-        continue;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      sub = w.toLowerCase();
-      i += 1;
-      break;
-    }
-    if (sub !== "commit") continue;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "--") {
-        return i + 1 < words.length;
-      }
-      if (w === "-a" || w === "--all" || w === "-i" || w === "--include" || w === "-am") {
-        return true;
-      }
-      if (w.startsWith("--message=") || w.startsWith("--file=") || w.startsWith("--author=")) {
-        i += 1;
-        continue;
-      }
-      if (
-        w === "-m" ||
-        w === "-F" ||
-        w === "--message" ||
-        w === "--file" ||
-        w === "--author" ||
-        w === "--date" ||
-        w === "-c" ||
-        w === "-C" ||
-        w === "--reuse-message" ||
-        w === "--reedit-message" ||
-        w === "--fix" ||
-        w === "--cleanup" ||
-        w === "--untracked-files"
-      ) {
-        i += 2;
-        continue;
-      }
-      // Attached value-taking shorts (-mMSG / -Ffile / -cSHA / -CSHA) before
-      // combined-flag scan so letters inside the value are not treated as -a/-i
-      // (#5656 Greptile: `git commit -m"fix parser"` / `-Fmessage.txt`).
-      if (w.startsWith("-") && !w.startsWith("--") && /^[mFcC].+/.test(w.slice(1))) {
-        i += 1;
-        continue;
-      }
-      if (w.startsWith("-") && !w.startsWith("--") && /[ai]/.test(w.slice(1))) {
-        return true;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      return true;
-    }
+function admitCommitTargetRoot(
+  payloadRoot: string,
+  named: string,
+  runGit: GitRunner,
+): CommitTargetRootResult {
+  if (!isExistingDirectory(named)) {
+    return {
+      ok: false,
+      code: "prospective-scope-cover-deny",
+      message: `the commit target ${named} does not exist or is not a directory`,
+    };
   }
-  return false;
+  const admission = admitEffectiveHookRoot(payloadRoot, named, runGit);
+  const candidate = admission.candidate ?? "<none>";
+  if (admission.foreign) {
+    const reason =
+      admission.refusal === "unproven-identity"
+        ? "resolved to a separate Git working tree whose repository identity could not be read"
+        : "is in a different Git repository than the hook payload root";
+    return {
+      ok: false,
+      code: "foreign-repository-deny",
+      message: `the commit target ${reason} (candidate=${candidate})`,
+    };
+  }
+  if (admission.candidate === null || admission.root !== admission.candidate) {
+    return {
+      ok: false,
+      code: "prospective-scope-cover-deny",
+      message:
+        `the commit target ${named} is not a checkout of the hook payload root's repository ` +
+        `(candidate=${candidate})`,
+    };
+  }
+  return { ok: true, root: admission.root };
 }
 
 /**
  * Shell `git commit` → prospective staged/index scope-cover (#5656 limb 3).
- * Returns deny when cover fails; null when the command is not a git commit.
+ * The target root is the checkout the commit names (`git -C <abs>` or one
+ * `cd <abs> &&`), admitted through `admitEffectiveHookRoot`; a commit with
+ * neither is judged at the hook project root as before (#6278). Staged paths and
+ * the worktree story binding are read on that root (#6247). Returns deny when
+ * cover fails; null when the command is not a git commit.
  */
 function decideProspectiveGitCommitScopeCover(
   input: HookDispatchInput,
@@ -5190,15 +5216,16 @@ function decideProspectiveGitCommitScopeCover(
   seams: HookPolicySeams,
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
-  if (command === null || !commandHasGitCommitSubcommand(command)) return null;
-  if (commandHasGitCommitCheckoutRetarget(command)) {
+  if (command === null) return null;
+  const target = resolveCommitTarget(command);
+  if (target === null) return null;
+  if (target.kind === "unresolvable") {
     return deny(
       input,
       "prospective-scope-cover-deny",
       toolName,
-      `Directive denied ${toolName}: git commit with -C/--git-dir/--work-tree retargets the checkout; ` +
-        "prospective scope-cover reads the index at the hook project root and refuses retargets (#5656). " +
-        "Run the commit in the scoped checkout without checkout-changing globals.",
+      `Directive denied ${toolName}: the git commit target cannot be resolved to one checkout: ` +
+        `${target.reason} (#6278). ${COMMIT_TARGET_ACCEPTED_FORMS}`,
     );
   }
   if (commandHasGitCommitIndexMutatingForm(command)) {
@@ -5211,31 +5238,61 @@ function decideProspectiveGitCommitScopeCover(
         "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs.",
     );
   }
-  const projectRoot = resolve(input.projectRoot);
+  // The payload root stays the identity for authz, kill-switch and deny(); only
+  // the index and story selection move to the target root (#6278).
+  const payloadRoot = resolve(input.projectRoot);
+  let targetRoot = payloadRoot;
+  if (target.kind === "named") {
+    const runGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
+    const admitted = admitCommitTargetRoot(payloadRoot, target.path, runGit);
+    if (!admitted.ok) {
+      return deny(
+        input,
+        admitted.code,
+        toolName,
+        `Directive denied ${toolName}: ${admitted.message} (#6278). payloadRoot=${payloadRoot}`,
+      );
+    }
+    targetRoot = admitted.root;
+  }
+  const rootsNote =
+    targetRoot === payloadRoot ? "" : ` ${formatHookRootNote(payloadRoot, targetRoot)}`;
   let staged: readonly string[];
-  if (seams.listStagedRelPaths) {
-    staged = seams.listStagedRelPaths(projectRoot);
+  let stagedEntries: readonly StagedIndexEntry[] | undefined;
+  if (seams.listStagedRelPaths && !seams.listStagedIndexEntries) {
+    staged = seams.listStagedRelPaths(targetRoot);
   } else {
-    const listed = listStagedRelPathsIncludingDeletes(projectRoot);
+    const listed = (seams.listStagedIndexEntries ?? listStagedIndexEntries)(targetRoot);
     if (!listed.ok) {
       return deny(
         input,
         "prospective-scope-cover-deny",
         toolName,
-        `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}`,
+        `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}${rootsNote}`,
       );
     }
-    staged = listed.paths;
+    stagedEntries = listed.entries;
+    staged = stagedRelPathsFromEntries(listed.entries);
   }
+  const environ = input.environ ?? process.env;
   const cover = evaluateProspectiveScopeCover({
-    projectRoot,
+    projectRoot: targetRoot,
     stagedRelPaths: staged,
+    ...(stagedEntries !== undefined ? { stagedEntries } : {}),
+    ...(seams.readStagedBlob !== undefined ? { readStagedBlob: seams.readStagedBlob } : {}),
     inspectScope: seams.inspectScope,
     loadStoryWriteFence: seams.loadStoryWriteFence,
-    env: input.environ ?? process.env,
+    env: environ,
+    resolveStoryBinding: (root) =>
+      resolveWorktreeStoryBinding(root, {
+        env: environ,
+        ...(seams.readWorkerAuthAssignment !== undefined
+          ? { readWorkerAuthAssignment: seams.readWorkerAuthAssignment }
+          : {}),
+      }),
   });
   if (cover.ok) return null;
-  return deny(input, "prospective-scope-cover-deny", toolName, cover.message);
+  return deny(input, "prospective-scope-cover-deny", toolName, `${cover.message}${rootsNote}`);
 }
 
 /**
@@ -5244,6 +5301,8 @@ function decideProspectiveGitCommitScopeCover(
  * allow `file_scope`. Does not rewrite or bless historical uncovered commits.
  * Lifecycle/installer-only staged sets skip product coverage (setup deposits +
  * xBRIEF lifecycle commits before the first activate) (#5656 Greptile).
+ * A planning-publication staged set (#5839, see ./planning-publication.ts) is
+ * admitted before the story binding and ready-scope guard.
  * Reachability residuals: `verify:hooks-installed` and `--no-verify`.
  */
 export interface ProspectiveScopeCoverInput {
@@ -5256,6 +5315,22 @@ export interface ProspectiveScopeCoverInput {
     scopePath: string | null,
   ) => StoryWriteFenceView;
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Worktree story binding on `projectRoot` (#6247 / #6233): `bound` selects
+   * that story, `refuse` denies with the resolver's reason, `none` keeps the
+   * earlier selection. Defaults to `resolveWorktreeStoryBinding(projectRoot)`.
+   */
+  readonly resolveStoryBinding?: (projectRoot: string) => WorktreeStoryBinding;
+  /**
+   * Raw staged index entries for the same index as `stagedRelPaths` (#5839).
+   * When present, the planning-publication classifier runs on them before
+   * path normalization; when absent, no planning-publication admission.
+   */
+  readonly stagedEntries?: readonly StagedIndexEntry[];
+  /** Index blob reader; defaults to `git cat-file blob` on `projectRoot` (#5839). */
+  readonly readStagedBlob?: (projectRoot: string, blob: string) => string | null;
+  /** Merge-commit excuse (#6379 item 6); defaults to {@link excuseMergeArrivals}. */
+  readonly excuseMergeArrivals?: typeof excuseMergeArrivals;
 }
 
 export interface ProspectiveScopeCoverResult {
@@ -5293,6 +5368,15 @@ export function evaluateProspectiveScopeCover(
   input: ProspectiveScopeCoverInput,
 ): ProspectiveScopeCoverResult {
   const projectRoot = resolve(input.projectRoot);
+  // Planning-publication whole-set classifier (#5839): raw git paths, before the
+  // backslash normalization below. A refuse is never a deny; it falls through.
+  const blobReader = input.readStagedBlob ?? readStagedBlob;
+  const planning =
+    input.stagedEntries === undefined
+      ? null
+      : classifyPlanningPublicationSet(input.stagedEntries, (blob) =>
+          blobReader(projectRoot, blob),
+        );
   const staged = input.stagedRelPaths
     .map((p) => p.replace(/\\/g, "/").replace(/^\.\//, ""))
     .filter((p) => p.length > 0);
@@ -5314,9 +5398,45 @@ export function evaluateProspectiveScopeCover(
       scopePath: null,
     };
   }
-  const scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
-    env: input.env ?? {},
-  });
+  if (planning?.admitted === true) {
+    // Before the story binding and ready-scope guard: a planning-only set needs
+    // no implementation scope. Stamps nothing; no merge-time credit (#5839).
+    return { ok: true, message: planning.message, uncovered: [], scopePath: null };
+  }
+  const env = input.env ?? {};
+  const binding = (
+    input.resolveStoryBinding ?? ((root: string) => resolveWorktreeStoryBinding(root, { env }))
+  )(projectRoot);
+  if (binding.kind === "refuse") {
+    // A refusal is not "no binding": never fall back to another eligible story (#6247).
+    return {
+      ok: false,
+      message: `Prospective scope-cover denied (#6247): ${binding.message}`,
+      uncovered: productStaged,
+      scopePath: null,
+    };
+  }
+  let scope: ActiveScopeInspection;
+  if (binding.kind === "bound" && binding.landsWithProductMove) {
+    // #6480: admitted through the in-PR completion move. inspectActiveScope
+    // (and the intent ceiling inside its preflight) is skipped, so the commit
+    // path applies the implement intent ceiling itself.
+    const intent = evaluateIntentCeilingFromEnv("implement", env);
+    if (!intent.allowed) {
+      return {
+        ok: false,
+        message: `Prospective scope-cover denied (#6480): ${intent.reason}`,
+        uncovered: productStaged,
+        scopePath: null,
+      };
+    }
+    scope = { ready: true, path: binding.path, message: inPrCompletionScopeMessage(binding) };
+  } else {
+    scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
+      env,
+      ...(binding.kind === "bound" ? { boundPath: binding.path } : {}),
+    });
+  }
   if (!scope.ready || scope.path === null) {
     return {
       ok: false,
@@ -5344,12 +5464,24 @@ export function evaluateProspectiveScopeCover(
       ok: false,
       message:
         `Prospective scope-cover denied: selected scope lacks positive governing ` +
-        `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
+        `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${formatPositiveGoverningAllowDeny(fence)}`,
       uncovered: productStaged,
       scopePath: scope.path,
     };
   }
-  const uncovered = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
+  const outside = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
+  // A merge commit excuses only staged entries identical to an authoritative
+  // MERGE_HEAD entry; file_scope itself still comes from the merge base (#6379).
+  const merge =
+    outside.length === 0
+      ? null
+      : (input.excuseMergeArrivals ?? excuseMergeArrivals)({
+          projectRoot,
+          paths: outside,
+          stagedEntries: input.stagedEntries,
+          deliveryRef: fence.baseRef,
+        });
+  const uncovered = merge === null ? outside : [...merge.remaining];
   if (uncovered.length > 0) {
     return {
       ok: false,
@@ -5363,7 +5495,11 @@ export function evaluateProspectiveScopeCover(
   }
   return {
     ok: true,
-    message: `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s).`,
+    message:
+      `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s)` +
+      (merge !== null && merge.excused.length > 0
+        ? ` (${String(merge.excused.length)} unchanged from the fetched default branch in this merge, #6379).`
+        : "."),
     uncovered: [],
     scopePath: scope.path,
   };

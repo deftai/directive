@@ -1,0 +1,544 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6507",
+    "updated": "2026-11-17T06:54:31Z"
+  },
+  "plan": {
+    "title": "bug(hooks): session hook rewrites the tracked AGENTS.md managed section from the pinned runtime in this repo, rolling it back",
+    "status": "running",
+    "narratives": {
+      "Description": "In the framework source repository, `session:start`, `agents:refresh` and the self-complete setup that every hook call runs all plan the `AGENTS.md` managed section against the pinned runtime's copy of `agents-entry.md`, which is often older than the repository's own `content/templates/agents-entry.md`. A fresh worktree therefore gets its tracked section rolled back, and `agents:refresh` then reports the older section as current. This story makes the refresh plan read the checkout's own template file in a source checkout when the caller gives no template, and makes the setup writer stop passing the runtime template in a source checkout; consumer projects keep today's behaviour.",
+      "UserStory": "As a worker in a worktree of the framework source repository, I want the session and setup steps to leave the tracked `AGENTS.md` alone when it matches the repository's own template, so that I do not restore it again and again or roll the managed rules back by committing it.",
+      "ImplementationPlan": "One product PR (deft-story: 6507). 1. `packages/core/src/platform/agents-md.ts`: in `agentsRefreshPlan`, when no `frameworkRoot` and no `readTemplate` seam is given, `DEFT_ROOT` is unset and `isFrameworkSourceCheckoutAt(projectRoot)` is true, read `<projectRoot>/content/templates/agents-entry.md` directly and use `projectRoot` as the framework root (so the marker sha comes from the checkout). 2. `packages/runtime/src/setup-wiring.ts`: in `ensureAgentsManagedSection`, skip the runtime template seams in a source checkout. 3. Tests: a new `packages/core/src/platform/agents-md-source-checkout-6507.test.ts` (current / stale / staged content package / consumer / explicit seams and `DEFT_ROOT`, with a walk template that differs from the fixture template); `packages/runtime/src/setup-wiring-framework-source.test.ts` (setup leaves a matching section alone while the runtime template differs; consumer still gets the runtime template); `packages/runtime/src/agents-refresh.test.ts` (no sha-match line on a stale source fixture). 4. One `changelog.d/` fragment that says the fix acts in this repository once a release carrying it is pinned.",
+      "Traces": "#6507, #6337, #1309, #5802",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6507",
+      "Overview": "\n1. Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.\n2. Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.\n3. Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.\n4. Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.\n\n## Acceptance Criteria\n\n- Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.\n- Given the same fixture, and a runtime template (the file `resolveRuntimeAgentsEntryTemplatePath()` returns, replaced in the test) whose rendered section differs from the fixture section, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified. A build that still passes the runtime template as `readTemplate` in a source checkout fails this criterion.\n- Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.\n- Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.\n- Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.\n- Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today.\n\n\n",
+      "Constraint": "- A guard only inside `ensureAgentsManagedSection`: it leaves `session:start` orientation and `agents:refresh` on the runtime template (comment 6940422195, finding 1, road not taken).\n- Ignoring every `readTemplate` seam in a source checkout: it would drop the health gate's committed-template read (comment 6940422195, finding 1).\n- Reading the template through `contentRoot`: a staged content package can win over the checkout file (comment 6940422195, finding 2).\n- A change that acts before the next pin: no code the current pin runs reads anything the source can change (comment 6940422195, answer 3).",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/platform/agents-md.ts, when `agentsRefreshPlan` runs in a source checkout with no `frameworkRoot` or `readTemplate` seam and `DEFT_ROOT` unset, then it reads `<projectRoot>/content/templates/agents-entry.md` directly and stamps any write with the checkout's framework identity."
+        }
+      },
+      {
+        "title": "Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/runtime/src/setup-wiring.ts, when `ensureAgentsManagedSection` runs in a source checkout, then it passes no runtime template seam to `applyAgentsRefresh`; outside a source checkout it passes the runtime package's template as today."
+        }
+      },
+      {
+        "title": "Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/platform/agents-md.ts, then the refresh states, the `current` comparison, the writer, the lock and the CLI text are unchanged, and callers that pass seams or set `DEFT_ROOT` get today's plan."
+        }
+      },
+      {
+        "title": "Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given changelog.d/6507-agents-source-template.md, then it states the fix and that it acts in this repository once a release that carries it is pinned."
+        }
+      },
+      {
+        "title": "Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/platform/agents-md-source-checkout-6507.test.ts, a source-checkout fixture whose section matches its own template and a different walk template, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is unchanged."
+        }
+      },
+      {
+        "title": "Given the same fixture, and a runtime template (the file `resolveRuntimeAgentsEntryTemplatePath()` returns, replaced in the test) whose rendered section differs from the fixture section, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified. A build that still passes the runtime template as `readTemplate` in a source checkout fails this criterion.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given packages/runtime/src/setup-wiring-framework-source.test.ts, a source-checkout fixture whose section matches its own template and a replaced runtime template whose rendered section differs, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified."
+        }
+      },
+      {
+        "title": "Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/runtime/src/agents-refresh.test.ts and a source-checkout fixture whose own template is newer than its section, when the plan and the `agents:refresh` CLI run with no seams, then the state is `stale`, the new content carries the checkout template, and the CLI does not print `unchanged - sha match`."
+        }
+      },
+      {
+        "title": "Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/platform/agents-md-source-checkout-6507.test.ts and a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then the plan uses the checkout's `content/templates/agents-entry.md`."
+        }
+      },
+      {
+        "title": "Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/runtime/src/setup-wiring-framework-source.test.ts and a consumer fixture that is not a source checkout, when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today (the module walk and the runtime package template)."
+        }
+      },
+      {
+        "title": "Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/platform/agents-md-source-checkout-6507.test.ts and a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6507",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6507: bug(hooks): session hook rewrites the tracked AGENTS.md managed section from the pinned runtime in this repo, rolling it back"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (10), in list order (#6333)",
+      "sentences": [
+        "Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.",
+        "Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.",
+        "Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.",
+        "Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.",
+        "Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.",
+        "Given the same fixture, and a runtime template (the file `resolveRuntimeAgentsEntryTemplatePath()` returns, replaced in the test) whose rendered section differs from the fixture section, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified. A build that still passes the runtime template as `readTemplate` in a source checkout fails this criterion.",
+        "Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.",
+        "Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.",
+        "Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.",
+        "Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today."
+      ],
+      "admitted_source_sentences": [
+        "Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.",
+        "Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.",
+        "Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.",
+        "Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.",
+        "Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.",
+        "Given the same fixture, and a runtime template (the file `resolveRuntimeAgentsEntryTemplatePath()` returns, replaced in the test) whose rendered section differs from the fixture section, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified. A build that still passes the runtime template as `readTemplate` in a source checkout fails this criterion.",
+        "Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.",
+        "Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.",
+        "Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.",
+        "Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today."
+      ],
+      "admitted_source_digest": "12dc02c1d589c66273665e0617000779cafe492839ea4fe3d2eec48cd4895f2d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.",
+          "artifact_path": "packages/core/src/platform/agents-md.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.",
+          "artifact_path": "packages/core/src/platform/agents-md.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.",
+          "artifact_path": "changelog.d/6507-agents-source-template.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.",
+          "artifact_path": "packages/core/src/platform/agents-md-source-checkout-6507.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given the same fixture, and a runtime template (the file `resolveRuntimeAgentsEntryTemplatePath()` returns, replaced in the test) whose rendered section differs from the fixture section, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified. A build that still passes the runtime template as `readTemplate` in a source checkout fails this criterion.",
+          "artifact_path": "packages/runtime/src/setup-wiring-framework-source.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.",
+          "artifact_path": "packages/runtime/src/agents-refresh.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.",
+          "artifact_path": "packages/core/src/platform/agents-md-source-checkout-6507.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.",
+          "artifact_path": "packages/runtime/src/setup-wiring-framework-source.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today.",
+          "artifact_path": "packages/core/src/platform/agents-md-source-checkout-6507.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/platform/agents-md.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/core/src/platform/agents-md-source-checkout-6507.test.ts",
+          "packages/runtime/src/setup-wiring-framework-source.test.ts",
+          "packages/runtime/src/agents-refresh.test.ts",
+          "changelog.d/6507-agents-source-template.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "agents-md-managed-section-refresh",
+        "Traces": [
+          "#6507",
+          "#6337",
+          "#1309",
+          "#5802"
+        ],
+        "acceptance_criteria_justification": "Ten clauses: the four Bound remedy items and the six Acceptance Criteria of the accepted lean (comment 6940597836), one clause each as the harvest admitted them. parallel_safe is true: no active or pending brief names any file in this file_scope; the running stories #6480 (hooks/scope.ts, hooks/dispatcher.ts, scope/lands-with-product.ts, policy/write-fence.ts) and #6296 (release tooling) touch other files.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/platform/agents-md-source-checkout-6507.test.ts packages/runtime/src/setup-wiring-framework-source.test.ts packages/runtime/src/agents-refresh.test.ts packages/core/src/platform/agents-md-refresh-lock.test.ts"
+        ],
+        "expected_outputs": [
+          "in a framework source checkout, agentsRefreshPlan with no template seam and DEFT_ROOT unset reads <projectRoot>/content/templates/agents-entry.md and uses the checkout as framework root",
+          "in a framework source checkout, ensureAgentsManagedSection passes no runtime template seam, so a section that matches the checkout template is left unchanged",
+          "consumer projects, explicit seams and DEFT_ROOT keep today's template source",
+          "one changelog fragment changelog.d/6507-agents-source-template.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6507; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes which template the shared AGENTS.md refresh reads in the framework source repository, and that refresh runs at every session start and on every `agents:refresh` in this repository and in every consumer project.\n\nTarget-digest: sha256:03236d4b9d3f157272e91a1f00a974684552cbb5bf5ce7564b23300170096613\ndispatch-sha: 139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee\ndest: .deft-scratch/worktrees/arc-6507 (pinKind origin-default, process-only-no-install; created with `git worktree add --detach` at the fetched origin/master tip)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend: N=1\nspend-ask: resolved\nspend-why: the operator gave `n=1` in chat; one small candidate rule in one function; the one critic seat is a different model family from the parent.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nThis repository is the framework source. Its `AGENTS.md` managed section is generated from the repository's own template, `content/templates/agents-entry.md`. But `session:start` and `deft agents:refresh` run the pinned runtime from `node_modules`, and that code reads the template shipped inside the pinned runtime, which is often older. So in a fresh worktree the session rewrites `AGENTS.md` back to the older text (it drops the #6379 line today), and `agents:refresh` then says the older text is current. Workers must restore the file each time and keep it out of every commit.\n\nThe recommended fix is one rule in the one function that plans every refresh: in a checkout of the framework source repository, read the template from that checkout, not from the runtime. Consumer projects are not source checkouts, so nothing changes for them. The questions for the critic are whether that one place covers every path that writes or judges the section, and whether the fix acting only after the next pin is acceptable.\n\n## Pains\n- P1 — When a session starts in a worktree of the framework source repository, the session rewrites the tracked `AGENTS.md` managed section from the pinned runtime's template (issue Acceptance Criterion 1).\n- P2 — When the pinned runtime's template is older than the repository's source template, `agents:refresh` reports the older section as current (\"unchanged - sha match\") (Acceptance Criterion 2).\n- P3 — Consumer projects need today's managed-section refresh unchanged; a fix for P1 and P2 that alters it would break every consumer (Acceptance Criterion 3).\n\n## Constraints (not pains)\n- No new gate, grant, refusal, flag or stored state.\n- Out of scope (operator-confirmed deferral, chat 2026-11-17): any other consumer-style deposit written into the source repository beyond `AGENTS.md`. That goes to a follow-up issue.\n- Do not overlap running stories: #6480 (`hooks/scope.ts`, `hooks/dispatcher.ts`, `scope/lands-with-product.ts`, `policy/write-fence.ts`) and #6296 (release tooling).\n\n## Anchors at the dispatch SHA\n- `packages/core/src/platform/agents-md.ts` 33-70: `frameworkRoot(seams)` is the seam, else `DEFT_ROOT`, else a walk up from the module file; the template is `contentRoot(frameworkRoot)/templates/agents-entry.md`. Run from `node_modules/@deftai/directive-runtime`, the walk stops at the runtime's own `templates/agents-entry.md`.\n- `agents-md.ts` 335-492 `agentsRefreshPlan`: 469-477 returns `current` when the existing section, attributes stripped, equals the rendered template; else `stale` with the template text as new content. 525-554 `applyAgentsRefresh` writes `stale`, `missing` and `absent`.\n- `packages/core/src/session/orientation-compression.ts` 354-367 and 547-555: the session-start orientation calls `applyAgentsRefresh(projectRoot, {})` with no seams; `session-start.ts` 2785-2787 passes a `frameworkRoot` option to orientation that this section does not use.\n- `packages/runtime/src/agents-refresh.ts` 58-72: the CLI calls the same function and prints `unchanged - sha match` when the state is `current`.\n- `packages/core/src/doctor/paths.ts` 45-62 `isFrameworkSourceCheckoutAt` (#6337): `main.md` plus the `DEFT_REPO_POSITIVE_MARKERS` files; linked worktrees answer true. 73-90 `resolveFrameworkRootForProject`: explicit root, then `DEFT_ROOT`, then the source checkout itself.\n- `packages/core/src/eval/health.ts` 155-200: the `agents-md-freshness` gate already plans with `frameworkRoot: projectRoot` in the framework source (#5802).\n- `packages/core/src/content-root.ts` 111-136: in a source checkout, in-repo `content/` wins over a hoisted runtime (#5802).\n- `packages/core/src/init-deposit/scaffold.ts` 946-952: the #6337 guard for `.gitattributes` uses the same predicate.\n- `packages/runtime/src/setup-wiring.ts` 276-292: install passes the runtime's template to `applyAgentsRefresh` as an explicit seam.\n- `AGENTS.md` 173 on master: marker `sha=4288b3cc02e1`, a git sha, so the committed section was refreshed with the source checkout as framework root.\n\n## Recommended mechanism (the thing to critique)\n- R1. In `agentsRefreshPlan`, when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan uses `projectRoot` as the framework root. The template is then the checkout's own `content/templates/agents-entry.md`. This is the order `resolveFrameworkRootForProject` already uses.\n- R2. Nothing else changes: the same states, the same `current` comparison, the same writer. In a worktree whose `AGENTS.md` matches its own template the state is `current` and nothing is written. When the checkout's template is newer than its `AGENTS.md`, the refresh writes the newer section (today's #1309 propagation).\n- R3. In a consumer project the predicate is false, so the plan is byte-for-byte today's.\n- R4. Tests: a temporary source-checkout fixture whose template differs from the template the module walk finds gives `current` when its `AGENTS.md` matches its own template, and `stale` (with its own template as new content) when it does not; a consumer fixture keeps today's template source; explicit seams and `DEFT_ROOT` still win.\n- R5. The session hook and `deft agents:refresh` run the pinned runtime's code, so in this repository the fix takes effect when a release that carries it is pinned. Until then the drift clears at each pin, as the issue notes.\n\nQuestions for the critic:\n1. Is `agentsRefreshPlan` the right single place, or does another path in the source repository write or judge the managed section from the runtime template (doctor, host-content surface, migrate, install)?\n2. Should explicit seams and `DEFT_ROOT` keep winning in the source checkout, given that install passes the runtime template explicitly (`setup-wiring.ts` 276-292)?\n3. Is R5 acceptable for Acceptance Criterion 1, or is a change needed that acts before the next pin?\n\n",
+          "id": 6940226721,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940226721",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:05:21Z",
+          "updated_at": "2026-11-17T06:05:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6940227134\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee\ndest: .deft-scratch/worktrees/arc-6507\nverification-path: pin-read git show 139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6940226721\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Grok, a different model family, run as a process-only launcher against the dest and told to edit nothing (Grok has no read-only sandbox flag). If the Grok launch fails, the parent tries Codex (`codex exec --ephemeral --sandbox read-only -C dest`) for the same seat; spend stays N=1. The launch probe for the Grok argv returned `pong` rc 0 in this session; that proves launchability only.\n- The critic is told not to use GitHub. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic final message verbatim. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration and says so on the post.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6940227134,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940227134",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:05:22Z",
+          "updated_at": "2026-11-17T06:05:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRead from the dest checkout whose HEAD file is 139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee. The shell hook refused git show because `node_modules/@deftai/directive-runtime` is absent.\n\n## In plain English\n\nThis repository's tracked `AGENTS.md` managed section is generated from `content/templates/agents-entry.md`. In a fresh worktree the running code is the pinned runtime, and that copy of the template is older. A session rewrites the tracked section back to the older text (today that drops the #6379 line and stamps `sha=0.129.12`). `agents:refresh` then treats the older text as current. A commit of that diff rolls the managed section back.\n\nThe recommended rule is the right rule for callers that plan with no template seam: `session:start` orientation, the `agents:refresh` command, and the host-surface drift probe. It is not enough to bind. The host hook writes the section earlier, through setup, and that call hands the runtime file in as the template. The recommended rule leaves that call alone, so a fresh worktree still receives the older section from the hook.\n\nOn the three questions. The plan function is the right place for the empty-seam callers, and it is not the only writer. Seams that already name this checkout can keep winning, and so can `DEFT_ROOT` when it is actually set to this checkout. The setup seam that names the runtime template cannot keep winning here, or the hook still rolls the section back. Waiting for the next pin is acceptable. `task` launches that same pin (`tasks/engine.yml` 86-90), so a source edit is not what the next session runs. Nothing the current pin already reads will change the hook sooner. The hook acceptance is the behavior of the pin that contains the fix, and that pin has to cover the setup write.\n\n## 1. blocks-the-design — the session hook writes the pinned template through setup\n\nEvidence: `packages/runtime/src/hook-dispatch.ts` 474-477 calls `maybeSelfCompleteSetup` on every registered hook, including session start. `packages/runtime/src/self-complete.ts` 136-166 runs `runSetup` when the worktree has the runtime pin and tracked wiring but no valid readiness marker. `.gitignore` 62 ignores `.deft/*`, and line 217 ignores `wiring-ready.*.json`, so a fresh worktree has neither `.deft/GENERATION.json` nor a readiness marker and takes that path. `packages/runtime/src/setup.ts` 415-424 calls `ensureAgentsManagedSection` with no source-checkout check. `packages/runtime/src/setup-wiring.ts` 237-291 resolves the runtime package's `templates/agents-entry.md` first and passes that text as `readTemplate`. `packages/core/src/platform/agents-md.ts` 61-62 and 339 use that seam and never reach the checkout walk.\n\nFailure mode: the first hook in a fresh source worktree writes the pinned section. The marker sha is the package version, the same stamp the issue records. The recommended rule applies when the caller passes no `readTemplate`. This caller passes one. After that write, readiness exists, later hooks take the fast path, and the dirty rollback is already on disk. A commit of that diff rolls the managed agent instructions back. The repeated `session:start` orientation write is a second writer (`orientation-compression.ts` 366-367). `session-start.ts` 2785-2787 passes a `frameworkRoot` that this refresh does not use. The empty-seam rule covers that writer. The hook writer remains. The host's own session-start bookkeeping (`session-start-hook.ts` 27-31) only writes the sentinel, so it is not a third writer.\n\nDisposition: the mechanism cannot bind while a runtime `readTemplate` seam keeps winning inside a source checkout. The setup call has to plan against the checkout template on `isFrameworkSourceCheckoutAt`. Ignoring every `readTemplate` would also drop the health gate's checkout read (`eval/health.ts` 178-194), which uses the committed template when CI has rewritten the working file. The runtime-file seam and the checkout-file seam are different. The fixture in R4, an empty-seam plan, does not lock this hook write.\n\nRoad not taken: a guard only inside `ensureAgentsManagedSection` would leave orientation and `agents:refresh` on the module walk. The empty-seam rule alone leaves the hook. What would flip this is a fresh source worktree whose readiness is already valid before any hook runs, so setup never writes. The tracked tree does not contain that marker.\n\n## 2. sharpens-framing — the checkout template is whatever contentRoot returns\n\nEvidence: `agents-md.ts` 54-58 joins `contentRoot(frameworkRoot)` with `templates/agents-entry.md`. `content-root.ts` 116-125 returns in-repo `content/` when the hoisted package is `directive-runtime` and `content/` exists. `content-root.test.ts` 151-171 locks that. `content-root.test.ts` 79-86 locks the other result: a staged `@deftai/directive-content` with templates wins over in-repo `content/`. `pnpm-lock.yaml` 1005-1009 shows pinned runtime 0.129.12 depends on archiver, parse5, and typescript. The primary install has no `node_modules/@deftai/directive-content`. Today's install does take `content/`.\n\nFailure mode: the recommended sentence treats `contentRoot(projectRoot)` as the checkout file. When a staged content package is linked at the checkout, the plan still reads and stamps that package's older `agents-entry`, and `agents:refresh` again reports the older section as current. The health gate reads `content/templates/agents-entry.md` directly (`health.ts` 161-187).\n\nDisposition: the bound sentence names that checkout file, the same read the health gate uses. The #5802 exception explains why a runtime-only hoist already lands on `content/`. A sentence that says `contentRoot` returns the checkout file is false for the staged-package case the test already locks.\n\n## 3. footnote\n\nDoctor does not write this file in a normal source checkout. It skips the freshness check when `runningInsideDeftRepo` is true (`doctor/main.ts` 1584-1591, `doctor/paths.ts` 174-191). That predicate is false when `deft/` or `.deft/core` is present. `isFrameworkSourceCheckoutAt` (`doctor/paths.ts` 45-60) stays true for a linked worktree and for a dogfood deposit. On the skip, doctor only warns. When the skip is false it plans with the installed-template seam. `migrate:xbrief` already passes `resolveFrameworkRootForProject` (`migrate-xbrief.ts` 67-81), which returns the checkout when `DEFT_ROOT` is unset (`paths.ts` 81-88). The host-surface probe (`host-content-surface.ts` 179-184) only plans, through the empty seam the recommended rule covers. `init`'s `writeAgentsMd` (`scaffold.ts` 361-375) still renders from the deposit tree. `ensureGitattributes` (`scaffold.ts` 946-952) is the source-checkout guard on a different file. Init is not the session hook. The task file's `DEFT_ROOT` is a template variable (`tasks/engine.yml` 13-14). The launcher env (`tasks/engine.yml` 71-72) sets `DEFT_ENGINE_CMD_JSON` only, so the plan's `process.env.DEFT_ROOT` stays unset and the module walk (`agents-md.ts` 34-51) stops at the runtime package. That is the observed `unchanged - sha match` path. When the plan adopts the checkout as framework root, `resolveFrameworkSha` (`agents-md.ts` 114-125) has to see that same root, or a propagation write stamps the package version onto the section.\n\n",
+          "id": 6940422195,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940422195",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:16:40Z",
+          "updated_at": "2026-11-17T06:16:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6940226721 (round 1: 1 of 1 critic posted, comment 6940422195)\n\n## In plain English\nProblem: this repository's `AGENTS.md` managed section is generated from its own template, `content/templates/agents-entry.md`. Sessions here run the pinned runtime, which carries an older copy of that template. A fresh worktree gets its section rewritten to the older text, and `agents:refresh` then calls the older text current. Workers restore the file again and again, and a commit that includes it rolls the rules back.\n\nWhat the critic found: the recommended rule (read the checkout's own template in a source checkout) is right, but it missed the writer that acts first. Every hook call in a fresh worktree runs the setup step, and setup hands the runtime's own template to the refresh as an explicit input, so the rule never applied there. That is why the issue saw the runtime version stamped on the marker. The critic also showed that \"the checkout's template\" must mean the file `content/templates/agents-entry.md` itself: the general content resolver can prefer a staged content package over it.\n\nSolution this lean proposes: two small changes. In a source checkout, a refresh that is given no template reads the checkout's file `content/templates/agents-entry.md` directly. And the setup step, in a source checkout, stops passing the runtime's template, so it takes that same path. A worktree whose `AGENTS.md` matches its own template is then left alone, and a template that is newer than `AGENTS.md` is reported as stale and written, as `agents:refresh` should do. Consumer projects are not source checkouts and keep exactly today's behavior.\n\nWhat this adds: one condition in the plan function and one condition in the setup writer. No new gate, flag, refusal, grant or stored state.\n\nWhat it does not do:\n- It does not act before the next pin. The hook and the CLI run the pinned runtime's code, so the fix works in this repository once a release that carries it is pinned.\n- It does not stop setup from writing other consumer files into this repository. That wider class is the operator-confirmed follow-up, not this story.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:03236d4b9d3f157272e91a1f00a974684552cbb5bf5ce7564b23300170096613\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6940226721. Sibling count: 1 (comment 6940422195). Panel deposit: comment 6940227134.\n\nrelieves: P1, P2, P3\n\n## Bound remedy\n1. Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.\n2. Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.\n3. Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.\n4. Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.\n\n## Acceptance Criteria\n- Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.\n- Given the same fixture, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified.\n- Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.\n- Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.\n- Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.\n- Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today.\n\n## Reject\n- A guard only inside `ensureAgentsManagedSection`: it leaves `session:start` orientation and `agents:refresh` on the runtime template (comment 6940422195, finding 1, road not taken).\n- Ignoring every `readTemplate` seam in a source checkout: it would drop the health gate's committed-template read (comment 6940422195, finding 1).\n- Reading the template through `contentRoot`: a staged content package can win over the checkout file (comment 6940422195, finding 2).\n- A change that acts before the next pin: no code the current pin runs reads anything the source can change (comment 6940422195, answer 3).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6940422195 | 1. the session hook writes the pinned template through setup | blocks-the-design | accept-into-contract (item 2; first two Acceptance Criteria) |\n| comment 6940422195 | 2. the checkout template is whatever contentRoot returns | sharpens-framing | accept-into-contract (item 1 reads the file directly; fourth Acceptance Criterion) |\n\nFootnote in the census, no take: comment 6940422195 finding 3 (its last point, the marker sha, is folded into item 1).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cite stays open until a later critic targets it. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 6940433137,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940433137",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:17:17Z",
+          "updated_at": "2026-11-17T06:17:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: true\nharvest-digest: sha256:8a7fb0584c80169b2f289edf8b1b176d25373e7ebcc5faacbf6f2f4621fd04a8\n\n## In plain English\n\nThe two changes would stop this repository from rolling its tracked `AGENTS.md` section back to the older pinned template. A session, a later hook, `session:ready`, install, and repair all write or judge that section through the plan function or the setup function those changes cover. A consumer project stays on today's runtime template. The early conflict check in setup does not consult a template, so a consumer keeps today's conflict result.\n\nThe acceptance criteria do not lock both changes. A build that fixes only the plan, and leaves setup handing in the runtime file, can still pass every written criterion. That is the build that leaves the session hook on the pinned template.\n\nRead from the dest checkout whose HEAD file is `139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee`. The shell hook refused `git show` and `git status` because `node_modules/@deftai/directive-runtime` is absent, so this audit read the dest files and could not print a clean status line.\n\npain-P1: holds - items 1 and 2, built as written, make the hook, `session:ready`, install, and repair read the checkout file, so a fresh source worktree is no longer rewritten from the pinned template.\npain-P2: holds - `agents:refresh` and session orientation call the plan with no template seam, so item 1 compares the section to the checkout file and an older pinned body is stale.\npain-P3: holds - both conditions are false outside a source checkout, and the unclosed-marker check does not read a template, so a consumer keeps today's runtime template and today's conflict result.\n\n## 1. sharpens-framing — the setup criterion follows the wrong template lookup\n\nEvidence: `packages/core/src/platform/agents-md.ts` 34-51 walks up from this module for a template, and 61-62 returns `seams.readTemplate()` immediately when that seam is set, so the walk never runs. `packages/runtime/src/setup-wiring.ts` 237-247 resolves a different file: the runtime package's `templates/agents-entry.md`, then the monorepo `content/templates/agents-entry.md` two directories up. Lines 276-291 pass that text in as `readTemplate`. In this checkout `packages/runtime/templates/agents-entry.md` is absent, so the second candidate is the repository template. The published package carries the first candidate. That is the file the issue saw stamped `sha=0.129.12`.\n\nFailure mode: implement item 1 only. Build the fixture the criteria name: a source checkout whose `AGENTS.md` matches its own `content/templates/agents-entry.md`, with a different file planted on the agents-md module walk. `applyAgentsRefresh` with no seams stays current (first criterion). `ensureAgentsManagedSection` still passes `readTemplate`. On a test run from this repository that seam is the repository template. Copy that file into the fixture and the section already matches, so `AGENTS.md` is left unmodified (second criterion) while setup still injects the runtime file. In a fresh worktree the published package's first candidate exists and is the older template, and the hook still writes it. A build that drops the setup seam and leaves the plan on the module walk fails the first criterion, because that criterion's planted walk file then becomes the one setup uses. The hole runs one way: the plan fix alone satisfies the list.\n\nDisposition: the bound-remedy list can stay. The second acceptance criterion has to name `resolveRuntimeAgentsEntryTemplatePath()` as the differing template, and the fixture section has to differ from that file's rendered section. A run that still passes the runtime text as `readTemplate` must modify `AGENTS.md` and fail the criterion. That is an Acceptance Criteria change, so this harvest is not the one to bind.\n\nRoad not taken: a third writer inside setup. Install and repair already call `ensureAgentsManagedSection` (`packages/cli/src/bookends.ts` 801-805 hands off `operation: \"repair\"` into `runSetup`, and `packages/runtime/src/setup.ts` 420 calls it). Other hook events call the same setup (`packages/runtime/src/hook-dispatch.ts` 477). `session:ready` calls session start (`packages/core/src/session/session-ready.ts` 469), and orientation applies the plan with no seams (`packages/core/src/session/orientation-compression.ts` 366-367). What would flip this finding is a criterion that already required the runtime-package file to differ from the fixture section.\n\n",
+          "id": 6940584192,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940584192",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:26:10Z",
+          "updated_at": "2026-11-17T06:26:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6940226721, after pain audit 6940584192 (round 1: 1 of 1 critic posted, comment 6940422195)\n\n## In plain English\nProblem: this repository's `AGENTS.md` managed section is generated from its own template, `content/templates/agents-entry.md`. Sessions here run the pinned runtime, which carries an older copy of that template. A fresh worktree gets its section rewritten to the older text, and `agents:refresh` then calls the older text current. Workers restore the file again and again, and a commit that includes it rolls the rules back.\n\nWhat the critic found: the recommended rule (read the checkout's own template in a source checkout) is right, but it missed the writer that acts first. Every hook call in a fresh worktree runs the setup step, and setup hands the runtime's own template to the refresh as an explicit input, so the rule never applied there. That is why the issue saw the runtime version stamped on the marker. The critic also showed that \"the checkout's template\" must mean the file `content/templates/agents-entry.md` itself: the general content resolver can prefer a staged content package over it.\n\nSolution this lean proposes: two small changes. In a source checkout, a refresh that is given no template reads the checkout's file `content/templates/agents-entry.md` directly. And the setup step, in a source checkout, stops passing the runtime's template, so it takes that same path. A worktree whose `AGENTS.md` matches its own template is then left alone, and a template that is newer than `AGENTS.md` is reported as stale and written, as `agents:refresh` should do. Consumer projects are not source checkouts and keep exactly today's behavior.\n\nWhat this adds: one condition in the plan function and one condition in the setup writer. No new gate, flag, refusal, grant or stored state.\n\nWhat it does not do:\n- It does not act before the next pin. The hook and the CLI run the pinned runtime's code, so the fix works in this repository once a release that carries it is pinned.\n- It does not stop setup from writing other consumer files into this repository. That wider class is the operator-confirmed follow-up, not this story.\nChange from the previous lean (successor lean 6940433137): the pain audit found that all three pains are relieved by the two changes, but that the tests as written could pass with only the first change built, because the test of the setup step could pick the repository's own template by accident. The second test now names the runtime template explicitly and requires it to differ from the section in the fixture. The mechanism is unchanged.\n\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:03236d4b9d3f157272e91a1f00a974684552cbb5bf5ce7564b23300170096613\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes successor lean 6940433137. Stop 1 write-back: comment 6940226721. Pain audit: comment 6940584192. Sibling count: 1 (comment 6940422195). Panel deposit: comment 6940227134.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.\n2. Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.\n3. Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.\n4. Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.\n\n## Acceptance Criteria\n- Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.\n- Given the same fixture, and a runtime template (the file `resolveRuntimeAgentsEntryTemplatePath()` returns, replaced in the test) whose rendered section differs from the fixture section, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified. A build that still passes the runtime template as `readTemplate` in a source checkout fails this criterion.\n- Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.\n- Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.\n- Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.\n- Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today.\n\n## Reject\n- A guard only inside `ensureAgentsManagedSection`: it leaves `session:start` orientation and `agents:refresh` on the runtime template (comment 6940422195, finding 1, road not taken).\n- Ignoring every `readTemplate` seam in a source checkout: it would drop the health gate's committed-template read (comment 6940422195, finding 1).\n- Reading the template through `contentRoot`: a staged content package can win over the checkout file (comment 6940422195, finding 2).\n- A change that acts before the next pin: no code the current pin runs reads anything the source can change (comment 6940422195, answer 3).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6940422195 | 1. the session hook writes the pinned template through setup | blocks-the-design | accept-into-contract (item 2; first two Acceptance Criteria) |\n| comment 6940422195 | 2. the checkout template is whatever contentRoot returns | sharpens-framing | accept-into-contract (item 1 reads the file directly; fourth Acceptance Criterion) |\n| comment 6940584192 | 1. the setup criterion follows the wrong template lookup | sharpens-framing | accept-into-contract (second Acceptance Criterion names the runtime template and requires it to differ) |\n\nAudit verdicts recorded on comment 6940584192: `pain-P1`, `pain-P2` and `pain-P3` hold.\n\nFootnote in the census, no take: comment 6940422195 finding 3 (its last point, the marker sha, is folded into item 1).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean on this thread. The three `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 6940597836,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940597836",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:26:58Z",
+          "updated_at": "2026-11-17T06:26:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:dd008944bd999fbbfe88d704fa76c48305cab129f9a4f7fd454146a6f85db6ae\n\n## In plain English\n\nThis repository writes its tracked `AGENTS.md` section from `content/templates/agents-entry.md`. Sessions run the pinned runtime, whose copy of that template is older, so a fresh worktree receives the older section and `agents:refresh` then treats that older text as current.\n\nThe bound remedy still relieves that. In a source checkout, a refresh with no template reads `<projectRoot>/content/templates/agents-entry.md`, and setup passes no template seam, so it takes that path. A consumer checkout fails `isFrameworkSourceCheckoutAt`, so setup keeps passing today's runtime template.\n\nThe second criterion now fails a one-writer build in both directions. In this checkout `resolveRuntimeAgentsEntryTemplatePath()` returns `content/templates/agents-entry.md`, because `packages/runtime/templates/agents-entry.md` is absent. The criterion replaces that file with a rendered section that differs from the fixture. `agentsRefreshPlan` uses a `readTemplate` seam before any checkout read (`agents-md.ts` 339, 469-491), and `applyAgentsRefresh` writes a stale section (`agents-md.ts` 539-549), so a plan-only build modifies `AGENTS.md` and fails the criterion. The unfixed plan reads that same file: the walk from the module stops at the repo root (`agents-md.ts` 34-51) and `contentRoot` returns in-repo `content/` (`content-root.ts` 133-135). A setup-only build therefore fails the first criterion on that same fixture. A fixture whose section matches the repository template does not meet the second criterion.\n\nThe third criterion can still pass on this checkout with the plan left unchanged. The first and second criteria still fail both one-writer builds. That overlap is a footnote.\n\nRead from the dest checkout whose HEAD file is `139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee`. The shell hook refused `git show` and `git status` because `node_modules/@deftai/directive-runtime` is absent, so this audit read the dest files and could not print a clean status line.\n\npain-P1: holds - setup (`setup.ts` 420, `setup-wiring.ts` 276-291) and session orientation (`orientation-compression.ts` 366-367 and 547-555; `session-start.ts` 2785-2787 does not pass its `frameworkRoot` into that refresh) both reach the plan, and items 1 and 2 make those calls read the checkout file.\npain-P2: holds - `runAgentsRefresh` calls `applyAgentsRefresh` with no template seam (`agents-refresh.ts` 58-61) and prints `unchanged - sha match` only when the state is `current` (`agents-refresh.ts` 69-71, `deposit-sha.ts` 20 and 148-149), so item 1 makes an older pinned body stale.\npain-P3: holds - `isFrameworkSourceCheckoutAt` requires `main.md` plus `content/templates/agents-entry.md` and the build skill (`paths.ts` 45-59, `constants.ts` 177-180), so both new conditions stay off for a consumer and the pre-template conflict check (`setup-wiring.ts` 259-274) is unchanged.\n\n## 1. footnote — the stale-template criterion matches the module walk on this checkout\n\nEvidence: `agents-md.ts` 34-58 and `content-root.ts` 133-135. With no staged content package, the unfixed plan reads `content/templates/agents-entry.md`. Item 1 reads that same path when the fixture is this checkout.\n\nFailure mode: make that file newer than this checkout's `AGENTS.md` and run `agentsRefreshPlan` with no seams. The state is `stale`, the new content is the checkout template, and the CLI skips the sha-match line, with or without item 1. A separate fixture, or a walk template that differs from the fixture file, is what makes the third criterion distinguish the two.\n\nDisposition: no change to the bound remedy or the acceptance criteria. The first criterion already requires a different walk template, and the second criterion fails a build that still passes the runtime text as `readTemplate`.\n\n",
+          "id": 6940744258,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940744258",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:35:40Z",
+          "updated_at": "2026-11-17T06:35:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6940597836. Dispatch SHA: 139fdc3bb87b2a2bc2bf7382cb0caffc0166f6ee. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and both leans. Each row has a parent pin-read at the dispatch SHA and a re-check by the Grok critic, a different model family, or is marked otherwise. No tests were run; every method is a source read at the pin. All three critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation. The Grok shell hook refused `git show` in the dest (no runtime install there), so the critic read the dest files after checking that HEAD is the dispatch SHA; the parent's reads used the same clean dest at that SHA.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | With no seams and no `DEFT_ROOT`, the plan's template comes from a walk up from the module file; run from the pinned runtime package, that is the runtime's own `templates/agents-entry.md` | verified | parent read of `packages/core/src/platform/agents-md.ts` 33-70; critic 6940422195 finding 3 and audit 6940744258 (34-58) |\n| 2 | `current` means the existing section, attributes stripped, equals the rendered template; the CLI prints `unchanged - sha match` only then | verified | parent read of `agents-md.ts` 469-477 and `packages/runtime/src/agents-refresh.ts` 58-72; audit 6940744258 (`agents-refresh.ts` 58-71) |\n| 3 | Session-start orientation calls `applyAgentsRefresh(projectRoot, {})` with no seams | verified | parent read of `packages/core/src/session/orientation-compression.ts` 354-367 and 547-555; audits 6940584192 and 6940744258 |\n| 4 | Every registered hook call runs self-complete setup, which in a fresh worktree runs `runSetup` repair, which calls `ensureAgentsManagedSection`, which passes the runtime package's template as `readTemplate` | verified | parent read of `packages/runtime/src/hook-dispatch.ts` 474-477, `self-complete.ts` 136-166, `setup.ts` 415-424 and `setup-wiring.ts` 237-292; critic 6940422195 finding 1 |\n| 5 | `isFrameworkSourceCheckoutAt` is `main.md` plus `content/templates/agents-entry.md` and the build skill file; it is true in a linked worktree and false in a consumer project | verified | parent read of `packages/core/src/doctor/paths.ts` 45-62 and `doctor/constants.ts` 177-180; audit 6940744258 |\n| 6 | `contentRoot` can prefer a staged content package over in-repo `content/`, so the checkout template must be read as a file | verified by the critic; partly by the parent | critic 6940422195 finding 2 (`content-root.ts` 116-125 and its tests); the parent read `content-root.ts` 111-136, not the tests |\n| 7 | The health gate, `migrate:xbrief` and init pass their own seams, which keep winning | verified by the critic; partly by the parent | critic 6940422195 finding 3; the parent read `eval/health.ts` 155-200 and `migrate-project.ts` 835-840 |\n| 8 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6940744258 (`pain-P1`, `pain-P2`, `pain-P3` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 9 | The fix acts in this repository only after a release that carries it is pinned | parent read, endorsed by the critic | `tasks/engine.yml` launches the pinned runtime (critic 6940422195, answer 3); not executed |\n| 10 | Built as bound, a fresh worktree is no longer rewritten | endorsed, not verified | nothing was executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 6940757836,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940757836",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:36:28Z",
+          "updated_at": "2026-11-17T06:36:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: this repository's `AGENTS.md` managed section is generated from its own template, `content/templates/agents-entry.md`. Sessions here run the pinned runtime, which carries an older copy of that template. Every new worktree had its section rewritten to the older text, first by the setup step that each hook call runs and again by session start, and `agents:refresh` then called the older text current. A commit that included the file rolled the rules back.\n\nAccepted solution: two small conditions. In a checkout of the framework source repository, a refresh that is given no template reads the checkout's own file `content/templates/agents-entry.md` and stamps the marker from the checkout. And the setup step, in a source checkout, stops passing the runtime's template, so it takes that same path. A worktree whose `AGENTS.md` matches its own template is left alone; a newer template is reported as stale and written. Consumer projects are not source checkouts and keep exactly today's refresh. Explicit seams and `DEFT_ROOT` keep winning.\n\nLimits accepted: the fix acts in this repository once a release that carries it is pinned. Other consumer files that setup writes into this repository are a separate follow-up. The design adds no gate, flag, refusal, grant or stored state. It was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6940597836.\nverified-claims table 6940757836\n\nConfirm conjunct: yolo standing (Stop 1 6940226721, `yolo-standing: on`). Round-1 critic: comment 6940422195, posted by the parent verbatim as disclosed on panel-deposit 6940227134 (Grok progress narration before the model line was stripped from each critic post, as disclosed there). All classified findings are accepted on the bound lean. Pain audit 6940584192 was sharpening-only with a harvest change, answered by the recut lean; clean audit: comment 6940744258 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's). Implementation note from that footnote: build the third Acceptance Criterion on a fixture whose walk template differs from its own template file. Critic posts used: 3 of 6.\n\n",
+          "id": 6940758147,
+          "html_url": "https://github.com/deftai/directive/issues/6507#issuecomment-6940758147",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:36:30Z",
+          "updated_at": "2026-11-17T06:36:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nIn this repository (the framework source), the session hook rewrites the tracked `AGENTS.md` managed section from the pinned runtime's `templates/agents-entry.md` in every worktree where a session starts. Master's `AGENTS.md` is generated from the source template `content/templates/agents-entry.md`, which is often newer than the pinned runtime. So every new worktree gets an unasked, dirty `AGENTS.md` whose managed section is older than master's.\n\nWorkers must restore it again and again and keep it out of every commit. If one commits it, the PR silently rolls the managed section back.\n\nThis is the same class as the consumer `.gitattributes` deposit that #6337 fixed for this repository: a consumer-style deposit written into the framework repo's tracked files.\n\n## Evidence (2026-11-17)\n\n- 0.129.12 was cut at f082271e6. #6366 (bf05d3cd2) later added a rule to `content/templates/agents-entry.md` and master's `AGENTS.md`: \"Run `swarm:pre-dispatch` (begin) before any implementation worker ... (#6379)\".\n- In a fresh worktree from origin/master (139fdc3bb) with runtime 0.129.12, the managed section was rewritten (marker `sha=0.129.12`). The diff removes that #6379 line and brings back older wording in four other places (the #3124 mirror note, \"#4383 closed\", the #5732 leftover note).\n- `deft agents:refresh` then reported \"unchanged - sha match\", so it treats the rolled-back section as current.\n- The #6480 worker reported the session hook rewrote AGENTS.md repeatedly in its worktree; it restored the file each time.\n\n## Acceptance Criteria\n\n- Given a session starts in a worktree of the framework source repository, then the hook does not rewrite the tracked `AGENTS.md` managed section from the pinned runtime.\n- Given the pinned runtime's template is older than the repository's source template, then `agents:refresh` does not report the older section as current.\n- Consumer projects keep today's managed-section refresh.\n\n## Notes\n\n- Related: #6337 (same class for `.gitattributes`), #1309 (template propagation).\n- Until fixed, the drift clears when a release that carries the newer template is pinned.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6438337828,
+        "origin": "deftai/directive#6507",
+        "id": "github.issue.6438337828"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "03236d4b9d3f157272e91a1f00a974684552cbb5bf5ce7564b23300170096613"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6507,
+        "leanCommentId": 6940597836,
+        "harvestDigest": "dd008944bd999fbbfe88d704fa76c48305cab129f9a4f7fd454146a6f85db6ae",
+        "slice": null
+      }
+    },
+    "id": "github.issue.6438337828",
+    "updated": "2026-11-17T06:54:31Z"
+  }
+}

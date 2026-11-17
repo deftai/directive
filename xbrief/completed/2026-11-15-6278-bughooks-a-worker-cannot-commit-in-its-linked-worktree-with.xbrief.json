@@ -1,0 +1,1054 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6278",
+    "updated": "2026-11-15T18:16:51Z"
+  },
+  "plan": {
+    "title": "bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms",
+    "status": "completed",
+    "narratives": {
+      "Description": "A worker in a linked worktree cannot commit with `cd <path> && git commit` or `git -C <path> commit`, because the commit gate judges the hook project root's index instead of the named checkout. This story adds one commit-target resolver so the gate reads the index and story binding of the checkout the commit names, and refuses targets it cannot resolve to one checkout.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6278",
+      "Overview": "\n1. One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.\n2. Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit. A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.\n3. Target root. For those shapes it is the named path. For a call with no `cd` and no `-C` it is the hook project root, exactly as today.\n4. A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms. That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. These are the only refusals this design adds. Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.\n5. Admission. A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The payload root stays the identity for authz, kill-switch and deny diagnostics.\n6. Index and story on the target root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the target root's index.\n7. Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C . commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.\n\n\n",
+      "Constraint": "- Refusing every other command before or after the commit, including `git add … && git commit` (the first version of this recut). It adds a refusal of a common form; see marker A3.\n- A new deny for git writes that land outside the caller's bound worktree, and occupancy or ritual checks on a commit target. Commits are not ritual-gated today, and the operator's reshaping note on #6291 asks for explicit targeting and no new deny; see marker A2.\n- Refusing POSIX-style paths on Windows. Workers on the Bash tool use the MSYS form.\n- Resolving a relative `-C` or `cd` path against a reported directory or the hook project root (pain-audit 1).\n- Lifting the `-C` deny, or stripping a `cd` prefix, without resolving and admitting one checkout first (all three round-1 critics).\n- A second resolver or a second same-repository check beside `admitEffectiveHookRoot` (Codex 1, Claude 3).\n- A general shell interpreter; the two shapes are literal (Codex 2).\n- Treating a `refuse` binding as \"no binding\" and falling back to another eligible story (Codex 3, Claude 4).\n- Requiring registration for every commit (Codex 3).\n- Reading `DEFT_ACTIVE_SCOPE=` or any other per-command environment prefix as a pin (Claude 2).\n- Folding in the main-worktree cases from #6247 comment 6844905798, or the planning-commit admission accepted on #5839.",
+      "Labels": "bug, consumer-example, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a worker agent in a linked worktree, I want the commit gate to judge the checkout my commit names, so that cd-then-commit and git -C commits pass or fail on that worktree's own index and story.",
+      "ImplementationPlan": "1. Add packages/core/src/hooks/commit-target.ts with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check, mapping MSYS `/c/...` paths to drive paths.\n2. Resolve the target root for `git -C <absolute path> commit` and one leading `cd <absolute path> &&`; use the hook project root when neither is present; refuse relative, repeated, variable or `~` paths and git location overrides with a message naming the two absolute forms.\n3. In packages/core/src/hooks/dispatcher.ts, admit a named path only through the existing `admitEffectiveHookRoot` (same git common dir) and keep the payload root as identity.\n4. List staged paths and run `resolveWorktreeStoryBinding` on the target root (bound, refuse, none), loading that story's write fence.\n5. Add fixtures at the hook decision in commit-target.test.ts and the dispatcher tests with a real registered linked worktree, and align content/docs/hook-root-admission.md, the swarm host notes and the preamble.",
+      "Traces": "#6278, #5656, #6233, #6247"
+    },
+    "items": [
+      {
+        "title": "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given quoted and unquoted forms of the same path, when the one tokenizer in commit-target.ts runs for commit recognition, target resolution and the index-mutating check, then each returns the same path, a quoted path with spaces stays whole and Windows backslashes are kept."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit. A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given `git -C <absolute path> commit` or one leading `cd <absolute path> &&`, when the gate resolves the target, then a drive-letter path and its MSYS `/c/...` form resolve to the same drive path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Target root. For those shapes it is the named path. For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a named-checkout shape, then the target root is the named path; given a commit with no `cd` and no `-C`, then the target root is the hook project root as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms. That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. These are the only refusals this design adds. Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a relative path, more than one `cd` or `-C`, a variable, `~` or substitution, `--git-dir` or `--work-tree`, or a GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE or GIT_COMMON_DIR prefix, then the gate refuses and the message names the two absolute forms."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Admission. A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The payload root stays the identity for authz, kill-switch and deny diagnostics.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a named path, then it must exist and pass `admitEffectiveHookRoot` (same git common dir) or the hook denies, with no non-repository fallback and the payload root kept as identity."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Index and story on the target root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
+        "status": "completed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a target root, then staged paths are listed there and `resolveWorktreeStoryBinding` runs on it: `bound` loads that story's fence, `refuse` denies with the resolver's reason, and `none` keeps today's selection."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C . commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.",
+        "status": "completed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a real registered linked worktree with two active briefs and no pin, when each listed fixture command reaches the hook decision, then the hook allows or refuses it on the worktree's own index as stated."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "consumer-example",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6278",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6278: bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5656",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5656"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6233",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6233"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms",
+        "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check.",
+        "Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
+        "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit.",
+        "A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
+        "Target root.",
+        "For those shapes it is the named path.",
+        "For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
+        "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms.",
+        "That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit.",
+        "These are the only refusals this design adds.",
+        "Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
+        "Admission.",
+        "A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny.",
+        "A commit target has no non-repository fallback.",
+        "The payload root stays the identity for authz, kill-switch and deny diagnostics.",
+        "Index and story on the target root.",
+        "Staged paths are listed there.",
+        "`resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection.",
+        "The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
+        "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C .",
+        "commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today."
+      ],
+      "admitted_source_sentences": [
+        "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check.",
+        "Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
+        "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit.",
+        "A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
+        "Target root.",
+        "For those shapes it is the named path.",
+        "For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
+        "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms.",
+        "That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit.",
+        "These are the only refusals this design adds.",
+        "Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
+        "Admission.",
+        "A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny.",
+        "A commit target has no non-repository fallback.",
+        "The payload root stays the identity for authz, kill-switch and deny diagnostics.",
+        "Index and story on the target root.",
+        "Staged paths are listed there.",
+        "`resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection.",
+        "The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
+        "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C .",
+        "commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today."
+      ],
+      "admitted_source_digest": "bc27dca76ce280d343ce959475d1f1385c744c1a3459cf0ad5cbf95cfef74810",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "For those shapes it is the named path.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Index and story on the target root.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C .",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Target root.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "These are the only refusals this design adds.",
+          "artifact_path": "content/docs/hook-root-admission.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
+          "artifact_path": "content/docs/hook-root-admission.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Admission.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "A commit target has no non-repository fallback.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "The payload root stays the identity for authz, kill-switch and deny diagnostics.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Staged paths are listed there.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "`resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6278, with #6247; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes which checkout, index and story the commit gate evaluates, in a hook that guards every commit; it touches worktrees, identity and shared state, and a wrong resolution rule fails open.\n\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6278 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: high blast radius (commit-gate authority, worktrees, concurrency); panel permission used. `design-critique:spend-resolve` resolved the relayed operator wording against the recorded recommend.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\npain: P1, P2\n\n## In plain English\nA worker in a linked worktree cannot commit its own work. Two things stop it. The commit gate reads the staged files of the checkout the hook started in, so the usual forms that point a commit at another worktree (`cd <worktree> && git commit`, `git -C <worktree> commit`) are refused or judged against the wrong checkout. And the commit gate picks the story from the environment pin only, so with several active briefs it does not know which story the worker's worktree belongs to, although the write gate learned that in #6233. This arc covers both issues as one design, because the second check runs on whatever checkout the first one resolves. The thread for #6247 is read as part of the target.\n\n## Pains\n- P1 — A worker cannot commit in its linked worktree with `cd <worktree> && git commit …` or `git -C <worktree> commit …`; the lead agent or a human commits for it (#6278).\n- P2 — The prospective scope-cover check on `git commit` does not use the per-worktree story binding from #6233, so in a registered worktree with several active briefs and no pin the worker's commit is refused as `multiple-eligible` (#6247).\n\n## Notes for the arc\n- Outside this warrant, named so the lean can place them: the main-worktree cases in #6247 comment 6844905798 (a commit that concludes a merge, a CHANGELOG line on a lifecycle PR, an inline `DEFT_ACTIVE_SCOPE=` prefix). #5839 has an accepted design for planning-only commits in the same function.\n- Another story changes the commit-shape check in the same file today (#6276 with #6187 and #6188). The lean must name its `file_scope` and say what it assumes about that change.\n- #6247 carries a recorded skip in its body (it extends the #6233 mechanism). This arc does not replace that record; it designs the two changes together.\n\n## Operator launch\nRelayed by the dispatching session, not typed in this session. Scott answered \"Yes, arcs only\" to the question \"Start a third-clone session that runs arcs only for the next wave?\". Standing steer, verbatim: \"you can yolo them and start implementation when they land\". This session runs the arc only: no ingest, no brief, no code, no PR.\n\n",
+          "id": 6857545101,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857545101",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:34:14Z",
+          "updated_at": "2026-11-13T15:34:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6857552977\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6278\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04:; dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6857545101\n\n## Launch posture (disclosed)\n- The parent is Claude Code in auto mode. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher with the dest as its working directory.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- The Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, comments up to this deposit) and a filled brief; both files sit outside the repository, because the write gate refuses parent writes inside a process-only dest. The Claude seat reads the same two files and returns its body to the parent.\n- For all three seats the parent posts the critic's final message verbatim, with no edits. Grok plain output prints progress narration before the `model:` line; the parent strips only that narration.\n\n",
+          "id": 6857552977,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857552977",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:34:35Z",
+          "updated_at": "2026-11-13T15:34:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe issues ask for workers to commit in their own linked worktrees using ordinary directory-selection commands, with the correct story governing the staged files. The pinned code confirms both problems: prospective coverage reads the hook’s project root, and story selection omits the existing worktree binding. The proposed direction is sound, but resolving a directory must also preserve checkout identity and command-parsing guarantees. I would bind a narrow, shared resolution path with explicit refusal cases, rather than simply remove the current retarget denial. Verification was source-only at `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`; no tests or fixtures ran.\n\n### 1. Resolve and admit one checkout before evaluating coverage — blocks-the-design\n\n**Evidence:** `packages/core/src/hooks/dispatcher.ts:5183` selects `input.projectRoot` for staged-path inspection; lines 5199–5204 pass that same root to coverage. Existing `admitEffectiveHookRoot` at lines 1241–1268 distinguishes shared Git identity, foreign repositories, and unresolved identity. Its documentation at lines 1231–1239 also identifies occupancy, ritual, scope, and write-fence implications.\n\n**Failure mode:** Changing only the index-read directory can combine the destination’s staged files with another checkout’s authority. Accepting any syntactically resolvable directory also lets a foreign repository become the commit target without the established identity boundary.\n\n**Disposition:** Before binding, specify one canonical execution-directory-to-worktree resolution and same-common-directory admission, then use the admitted root consistently for staged paths, story selection, and fence loading. Explicitly identify which subsequent gates need that root; preserve the original payload identity for diagnostics and grants. Reuse existing admission mechanisms, but do not inherit their non-repository fallback for an unresolved commit target. A broader cross-repository design would require a separate authority contract.\n\n### 2. Existing tokenization cannot safely define the newly accepted forms — blocks-the-design\n\n**Evidence:** `dispatcher.ts:4876–4915` splits commands on shell separators and whitespace before detecting commits. For `git -C \"C:/work trees/story\" commit -m ok`, skipping two tokens for `-C` leaves part of the quoted path where the detector expects the subcommand. At line 5162, failed detection skips prospective coverage entirely. The quote-aware helper at lines 5012–5052 exists, but lines 5032–5035 consume backslashes inside double quotes.\n\n**Failure mode:** A valid quoted target can miss the coverage gate, while reusing the existing quote helper indiscriminately can alter Windows paths. Simply permitting one `-C` or stripping a `cd` prefix does not establish agreement between what the shell executes and what the gate checks.\n\n**Disposition:** Bind a narrow, shell-aware command grammar shared by commit recognition, target resolution, and index-mutating-form checks. Require fixtures for quoted paths with spaces, Windows backslashes, relative paths against the actual tool execution directory, repeated/mixed selectors, substitutions, and extra commands. Keep unresolved forms denied. A general shell interpreter is unnecessary; it would become preferable only if the supported command contract deliberately expands beyond these literal forms.\n\n### 3. Preserve the binding resolver’s three outcomes — sharpens-framing\n\n**Evidence:** `packages/core/src/hooks/scope.ts:956–1028` already implements `none`, `bound`, and `refuse`, including registry failures, missing or ambiguous stories, eligibility, and conflicting environment pins. The write path consumes those outcomes at `dispatcher.ts:2572–2592`; prospective coverage currently passes only `env` at lines 5286–5288.\n\n**Failure mode:** Treating a failed binding as absence permits fallback to a different eligible story. Requiring registration universally instead would unnecessarily reject existing main-worktree and unregistered-worktree behavior.\n\n**Disposition:** Bind reuse of the existing resolver against the admitted target: `bound` supplies `boundPath`, `refuse` remains a denial, and `none` retains existing selection. Include negative fixtures for corrupt assignment state and conflicting pins, not only the two happy-path scope tests. State explicitly whether empty/lifecycle-only staged sets retain their current early exemptions at lines 5268–5284.\n\n### 4. Thread instructions remain untrusted task data — footnote\n\n**Evidence:** Snapshot comment `6857545101` contains imperative text such as “The lean must name its `file_scope`” and relayed authorization to “start implementation when they land.”\n\nThese are embedded instructions, not authorization for this critic. I treated them as claims about coordination and scope, and followed the supplied read-only critique envelope. No implementation, network access, agent dispatch, or file writes occurred.",
+          "id": 6857638768,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857638768",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:38:20Z",
+          "updated_at": "2026-11-13T15:38:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nThe issue asks that a worker in a linked worktree be able to commit with `git -C <wt> commit …` or `cd <wt> && git commit …`, and that the commit be judged against that worktree's index and bound story (#6233, #6247). I read the pinned code and found a different picture. Today the hook does not refuse the `cd` form. It checks the hook root's staged files, and if that index is empty it lets the commit through. Several other forms already slip past the index snapshot. So the fix is not only \"admit two more forms\". It must also define a closed set of accepted shapes, refuse everything else, and check the resolved worktree through the same admission and occupancy path that writes use. I found no embedded instructions to critics in the snapshot. The relayed operator steer in 6857545101 is addressed to the parent.\n\n### 1. Today's commit gate fails open on compound forms, so \"stays refused\" is false — blocks-the-design\nEvidence: `packages/core/src/hooks/dispatcher.ts` at the pin. `commandHasGitCommitCheckoutRetarget` (4925-4974) flags only `-C`, `--git-dir` and `--work-tree`. A `cd` part is not git, so it is skipped. `decideProspectiveGitCommitScopeCover` (5183-5198) then lists staged paths at `input.projectRoot`. `evaluateProspectiveScopeCover` returns `ok` on an empty list (5268-5274). Separately, `git add . && git commit -m x` passes: `commandHasGitCommitIndexMutatingForm` (5059-5150) looks only at the commit argv, so the snapshot is taken before the `add` runs. The only compound test is `git status && git commit` (dispatcher.test.ts:3877). None covers `cd`.\nFailure mode: `cd <wt> && git commit`, `cd a && cd b && git commit` and `git add … && git commit` are judged against the wrong or stale index. If the hook root's index is empty, they are admitted. The issue's third Expected bullet assumes these are refused today.\nDisposition: the lean must state a closed grammar for any Shell call that contains a commit part. Accepted: a simple commit, `git -C <one path> commit`, or exactly one leading `cd <path> &&`. Everything else is refused, including other parts before or after the commit, `pushd`, subshells, `bash -c`, and several `-C` flags. The fixtures must include the fail-open cases above, not only the issue's three acceptance pairs.\n\n### 2. Environment-prefix retargets are skipped — sharpens-framing\nEvidence: both scanners drop `NAME=value` tokens without checking them (4934-4938, 5065-5069). `GIT_INDEX_FILE=… git commit`, `GIT_DIR=… git commit` and `GIT_WORK_TREE=… git commit` are not seen as retargets.\nFailure mode: the commit uses an index or repository other than the one the hook checked.\nDisposition: the target resolver must treat any `GIT_*` location variable in the prefix as unresolvable and refuse it. #6247 comment 6844905798 already shows the hook ignores per-command environment, so these prefixes cannot help a legitimate commit either.\n\n### 3. Resolve the target with the existing #3794 admission and run occupancy against it — sharpens-framing\nEvidence: `admitEffectiveHookRoot` / `admitMutationTargetSet` (1241-1299) already prove that a target shares `--git-common-dir` with the payload root. They refuse a foreign repository, unproven identity and a span across worktrees. On the write path, the admitted root governs occupancy, ritual, scope and the fence (2009-2047, 2572-2593). The commit gate runs before that path and uses only `input.projectRoot`.\nFailure mode: a parser that resolves `-C <path>` and then calls only `resolveWorktreeStoryBinding` lets an actor commit a sibling worker's staged index under the sibling's story. Nothing checks occupancy for the resolved root. The issue's Expected list (index, branch, story) leaves this out.\nDisposition: the lean binds \"resolved path, then `admitEffectiveHookRoot`, then occupancy and ritual on that root, then the #6233 binding, then cover\". It must not add a second resolver.\nRoad not taken: tell workers to `cd` in an earlier call and keep the simple-commit-only rule. Steelman: no parser growth, which fits Thin Fail-Closed (#3265). It fails here because `projectRootFromHookPayload` prefers `workspaceRoot` / `workspace_roots` over `cwd` (1141-1147). On hosts that send a workspace root, even a simple commit inside the worktree is judged at the main checkout. What would flip my verdict: a host survey showing that every gated host reports the shell's live cwd as the project root.\n\n### 4. Binding refusal and the shared parent environment — sharpens-framing\nEvidence: `resolveWorktreeStoryBinding` refuses `env_pin_conflict` when `DEFT_ACTIVE_SCOPE` names a different story (scope.ts 1020-1027). On the write path, `refuse` becomes a hard not-ready result (2579-2586).\nFailure mode: a native subagent shares the parent's hook environment. If the parent session holds a pin, every worker commit in a registered worktree is refused. A `refuse` that falls back to `inspectActiveScope` instead would fail open.\nDisposition: the lean states that a `refuse` binding is a deny on the commit path. It also names the parent-pin interaction as an expected refusal with a repair message, so the swarm docs do not report it as a new bug.\n\n### 5. Concurrent change in the same function — footnote\n#6276 / #6187 / #6188 change this commit-shape check now (6857545101). The lean should name `file_scope` over lines 4870-5208 and rebase onto it before choosing the grammar.\n\n### 6. Main-worktree cases stay outside — footnote\nMerge commits, CHANGELOG lines on lifecycle PRs and inline pins (#6247 comment 6844905798) get no help from worktree-record binding, as that comment says. Keep them out of the acceptance criteria.\n\n",
+          "id": 6857639964,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857639964",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:38:23Z",
+          "updated_at": "2026-11-13T15:38:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nIssue #6278 asks the commit gate to admit two worker-common forms that point a commit at a linked worktree (`cd <worktree> && git commit`, `git -C <worktree> commit`), then run the same prospective checks against that worktree’s index and story. Related #6247 asks the same gate to use the #6233 per-worktree story binding so a registered worktree is not refused as `multiple-eligible` when several briefs are active. At pin `1fa8ab9`, `-C`/`--git-dir`/`--work-tree` commits are hard-denied, while `cd … && git commit` is detected as a commit but still evaluated against the hook `projectRoot` index—so it can allow against an empty or wrong index while git commits another checkout. The cover path still calls `inspectActiveScope` with the env pin only. A lean that admits retarget forms without forcing evaluation root = execution root would widen a fail-open.\n\n### 1. `cd`-prefix commit is wrong-root today, not a symmetric refuse — blocks-the-design\n\nEvidence: `commandHasGitCommitCheckoutRetarget` (`packages/core/src/hooks/dispatcher.ts` ~4925–4973) flags only `-C` / `--git-dir` / `--work-tree`. `decideProspectiveGitCommitScopeCover` (~5163–5205) then lists staged paths with `cwd: projectRoot` from the hook input. `evaluateProspectiveScopeCover` (~5268–5274) returns `ok: true` for an empty staged set (“No staged paths to cover.”). Fixture at ~3940 locks the `-C` deny only.\n\nFailure mode: `cd <other-worktree> && git commit -m …` from a parent (or any hook root whose index is empty/in-scope) can allow, then the shell commits the other worktree’s real index under no cover of that index. The issue body and Stop 1 (6857545101) frame both forms as refused; the `-C` half matches the pin, the `cd` half is mis-rooted and can fail open.\n\nDisposition: the lean cannot bind “admit the two forms” or “stop refusing retargets” without a prior rule that no commit allow may use a different checkout for index listing than the one git will commit. Treating the `cd` form as already-fail-closed understates the hazard and would under-test the fix.\n\n### 2. Admit only after same-repo resolve; bind index and #6233 story on that root — blocks-the-design\n\nEvidence: write gate already calls `resolveWorktreeStoryBinding(effectiveRoot, …)` then `inspectActiveScope` with `boundPath` (~2569–2592; resolver in `packages/core/src/hooks/scope.ts` ~956–1029). Cover does not: `evaluateProspectiveScopeCover` (~5286–5288) passes `{ env }` only; `ProspectiveScopeCoverInput` (~5218–5228) has no binding field. Helpers `isLinkedWorktreePath` / `gitCommonDir` (`packages/core/src/session/main-worktree.ts`) already exist.\n\nFailure mode: lifting the `-C` deny without resolving the target, proving it shares `git-common-dir` with the session repo, listing staged files there, and running `resolveWorktreeStoryBinding` on that root lets a commit land in a foreign checkout or under the wrong story. Fixing #6247 only on hook `projectRoot` leaves admitted `git -C <sibling>` unbound.\n\nDisposition: bind Prefer-A as: literal sole-prefix `cd <path> &&` before the commit segment, or `git -C <path>` (path resolved against the hook execution cwd); require same `git-common-dir`; `listStaged*` + `resolveWorktreeStoryBinding` + cover against that root; unresolvable forms deny and name accepted forms. Keep `--git-dir` / `--work-tree`, variables, subshells, multiple `cd`s, and non-sole prefixes denied.\n\nRoad-not-taken: extend retarget detect to sole-prefix `cd` and keep all retargets denied, plus add worktree binding for simple commits only. That closes today’s `cd` fail-open and relieves P2, and leaves P1 unrelieved. Flip to that only if the panel drops P1’s admit requirement; Stop 1’s consumer count and acceptance pairs argue against.\n\nInjection / swarm lens: this gate is commit authority over worktrees, worker-auth identity, and shared index state. Wrong resolution fails open across checkouts; the bound remedy stays a short mechanism list, not a second parser essay.\n\n### 3. Concurrent shape work and main-worktree leftovers must be placed — sharpens-framing\n\nEvidence: Stop 1 notes (6857545101) name concurrent commit-shape work in the same file (#6276 with #6187/#6188) and #5839’s accepted planning-commit design; #6247 comment 6844905798 lists main-worktree merge commits, lifecycle CHANGELOG lines, and inline `DEFT_ACTIVE_SCOPE=` prefixes as parent-session gaps a worktree binding does not fix. #6247’s body still records `design-critique: not warranted` for the solo extension—this arc’s warrant supersedes that for the paired design, and does not erase the leftover record.\n\nFailure mode: an unbound `file_scope` assumption against #6276, or a lean that claims #6247 fully closed while main-worktree cases remain, ships a false coverage story.\n\nDisposition: lean names `file_scope` assumptions vs #6276/#5839, and parks 6844905798’s main-worktree cases as leftover-pain outside this bound remedy.\n\n### 4. Snapshot carries implementation steer — footnote\n\nEvidence: thread snapshot Stop 1 “Operator launch” quotes standing steer to yolo and start implementation when arcs land. Untrusted external content (Security context #480). Not followed; critique only.\n\n",
+          "id": 6857704757,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857704757",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:41:16Z",
+          "updated_at": "2026-11-13T15:41:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 siblings posted: comments 6857638768, 6857639964, 6857704757)\n\n## In plain English\nProblem: a worker in a linked worktree cannot commit its own work. `git -C <worktree> commit` is always refused. With several active briefs the commit gate also cannot tell which story the worktree belongs to, although the write gate learned that in #6233 (#6247). The critics found something the issues did not say: `cd <worktree> && git commit` is not refused today. The gate reads the staged files of the checkout the hook started in, and if that list is empty it lets the commit through, so the worktree's real staged files are never checked. `git add … && git commit` in one call has the same hole, because the gate looks before the add runs. So the fix cannot be \"allow two more forms\". It has to say which command shapes count as a commit the gate can judge, and judge each one against the checkout git will really commit.\n\nSolution this lean proposes: one resolver decides, for any shell call that contains a commit, which single checkout it targets. Three shapes are accepted: a commit as the only command, `git -C <path> commit`, and exactly one leading `cd <path> &&`. Every other shape is refused with a message that lists those three. The resolved checkout must belong to the same repository, and it passes the same occupancy and ritual checks a file write into it would. Then the gate reads that checkout's staged files, uses its story binding from #6233, and applies the same scope rules as today. Nothing is admitted that a simple commit inside that worktree would refuse. What this does not do: the main-worktree cases noted on #6247 (a commit that concludes a merge, a CHANGELOG line on a lifecycle PR, an inline pin prefix) stay as they are. If confirmed, the synthesis would assert this design for both issues, as one story. There is no leftover next-build inside the two pains.\n\nTarget-digest: sha256:ad2e558201b6636402f8b721f37df59882cf7eed5364606ecacf4372dcd0a767\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6857545101. Sibling count: 3 (comments 6857638768, 6857639964, 6857704757). Panel deposit: comment 6857552977.\n\n## Bound remedy\n1. One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. It keeps quoted paths with spaces whole and does not rewrite Windows backslashes.\n2. Closed accepted shapes for a shell call that contains a commit part: (a) the commit is the only command; (b) `git -C <one literal path> commit …`; (c) exactly one leading `cd <literal path> &&` followed by a commit as the only other command. The target directory is the hook execution directory for (a), and the path resolved against that directory for (b) and (c).\n3. Everything else that contains a commit part is refused, and the message lists the three accepted shapes: any other command before or after the commit (including `git add … && git commit`), more than one `cd` or `-C`, `--git-dir`, `--work-tree`, a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix, variables, substitutions, subshells, `pushd`, and `bash -c`.\n4. Admission. The resolved directory goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The admitted root then passes the same occupancy and ritual gates the Write path applies to a target in that worktree. The payload root stays the identity for authz, kill-switch and deny diagnostics.\n5. Index and story on the admitted root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the admitted root's index.\n6. Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the issue's allow and refuse pairs for `-C` and for `cd`; a simple commit whose execution directory is the worktree; the fail-open cases at the pin (`cd <wt> && git commit` with an empty hook-root index, `cd a && cd b && git commit`, `git add . && git commit`); a quoted path with spaces, a Windows path, a relative path; a location-variable prefix; a `-C` into a foreign repository; a sibling worktree the actor does not occupy; a corrupt assignment record; a conflicting pin; an unregistered linked worktree; and a main-worktree commit that behaves as today.\n\n## Reject\n- Lifting the `-C` deny, or stripping a `cd` prefix, without resolving and admitting one checkout first (all three critics).\n- A second resolver or a second same-repository check beside `admitEffectiveHookRoot` (Codex 1, Claude 3).\n- A general shell interpreter; the accepted shapes are literal (Codex 2).\n- Treating a `refuse` binding as \"no binding\" and falling back to another eligible story (Codex 3, Claude 4).\n- Requiring registration for every commit; unregistered and main-worktree commits keep today's selection (Codex 3).\n- Reading `DEFT_ACTIVE_SCOPE=` or any other per-command environment prefix as a pin (Claude 2).\n- Keeping every retarget refused and telling workers to `cd` in an earlier call (Claude 3 and Grok 2, road not taken: it leaves the first pain open).\n- Folding in the main-worktree cases from #6247 comment 6844905798, or the planning-commit admission accepted on #5839.\n\n## Pain coverage\nrelieves: P1\nrelieves: P2\n\nReadings. `P1`: shapes (b) and (c) are admitted and judged against the worktree they name (items 1 to 4). `P2`: the commit gate uses the same per-worktree binding and the same three outcomes as the write gate (item 5).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857638768 | 1. Resolve and admit one checkout before evaluating coverage | blocks-the-design | accept-into-contract |\n| comment 6857638768 | 2. Existing tokenization cannot safely define the newly accepted forms | blocks-the-design | accept-into-contract |\n| comment 6857638768 | 3. Preserve the binding resolver's three outcomes | sharpens-framing | accept-into-contract |\n| comment 6857639964 | 1. Today's commit gate fails open on compound forms, so \"stays refused\" is false | blocks-the-design | accept-into-contract |\n| comment 6857639964 | 2. Environment-prefix retargets are skipped | sharpens-framing | accept-into-contract |\n| comment 6857639964 | 3. Resolve the target with the existing #3794 admission and run occupancy against it | sharpens-framing | accept-into-contract |\n| comment 6857639964 | 4. Binding refusal and the shared parent environment | sharpens-framing | accept-into-contract |\n| comment 6857704757 | 1. `cd`-prefix commit is wrong-root today, not a symmetric refuse | blocks-the-design | accept-into-contract |\n| comment 6857704757 | 2. Admit only after same-repo resolve; bind index and #6233 story on that root | blocks-the-design | accept-into-contract |\n| comment 6857704757 | 3. Concurrent shape work and main-worktree leftovers must be placed | sharpens-framing | accept-into-contract |\n\nWhere each lands: Codex 1, Claude 3, Grok 2 in items 4 and 5; Codex 2 in items 1 and 6; Codex 3, Claude 4 in item 5; Claude 1, Grok 1 in items 2, 3 and 6; Claude 2 in item 3; Grok 3 in the sections below. Footnotes in the census, no take: Codex 4, Claude 5 and 6, Grok 4.\n\nA consequence the issues did not ask for: `git add … && git commit` in one call is refused after this change. At the pin it is admitted on a stale index, which is a hole in #5656, not a supported form. The deny message names the repair (stage in an earlier call).\n\n## Parent premises\naudit:A1 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/hooks/dispatcher.ts:3415-3445 reading=asserted\nA1: for shape (a) the gate uses the execution directory the hook payload reports (`resolveHookExecutionDirectory`), which falls back to the hook project root. On a host that does not report the shell's live directory, a simple commit after a `cd` in an earlier call is judged at the hook project root, as it is today. This design does not widen that case and does not close it.\n\n## Proposed file_scope (one story; Closes #6278 and #6247)\n- `packages/core/src/hooks/commit-target.ts` (new) and its test\n- `packages/core/src/hooks/dispatcher.ts`: the three commit detectors' call sites, `decideProspectiveGitCommitScopeCover`, `evaluateProspectiveScopeCover`, `ProspectiveScopeCoverInput`, `listStagedRelPathsIncludingDeletes`\n- `packages/core/src/hooks/dispatcher.test.ts`, `packages/core/src/hooks/dispatcher-effective-root.test.ts`\n- `content/docs/hook-root-admission.md`, `CHANGELOG.md`\n\nAssumptions about work in the same file:\n- #6276 (with #6187 and #6188, lean 6857821188 on that thread) lands first. It changes the normalization that feeds the commit detectors (heredoc bodies) and states that every form refused at the pin stays refused. This story starts from that result and replaces the detectors' token scan. If #6276 lands in a different shape, item 1 is re-derived on its output; the accepted shapes in item 2 do not change. The parser lives in a new file so the two changes touch different lines.\n- #5839 (accepted lean 6810804320) adds a planning-file classifier at the top of `evaluateProspectiveScopeCover`. This story changes which root and which story that function is given. Either order works; the second one rebases.\n\nOutside this design, named and not filed: a commit that concludes a merge in the main worktree; the Edit and commit of a CHANGELOG line on a lifecycle PR while other briefs are active (the commit half is covered by #5839 when CHANGELOG is committed alone); a simple commit after a persistent `cd` on a host that does not report its directory (marker A1).\n\n## Record\nCritic bodies were posted by this parent, verbatim. The Codex and Grok seats ran with no network and read a parent-written thread snapshot that included #6247 and its comment; only Grok's progress narration before its `model:` line was removed. #6247 keeps its recorded skip; this lean is the design for both issues.\n\n## Operator steer\nScott, relayed verbatim by the dispatching session, not typed in this session: \"you can yolo them and start implementation when they land\". This parent reads that as yolo standing for this all-accept map. It confirms the map only. It does not waive the pain-audit of the coverage cites or of marker A1, which runs next.\n\n",
+          "id": 6857857904,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857857904",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:48:01Z",
+          "updated_at": "2026-11-13T15:48:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1\nfinding-classes: blocking, footnote\nharvest-changed: true\n\n## In plain English\n\nThe lean supplies the right worktree-binding mechanism, but its execution-directory fallback leaves one newly admitted form unsafe. If the host does not report the shell’s live directory, a relative `git -C` path can select a different checkout from the one the gate checks. Same-repository admission and occupancy checks cannot repair that mismatch because they inspect the incorrectly selected checkout. The remedy needs to refuse relative selectors when their execution base is unknown. Verification was source-only at `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`; no tests or fixtures ran.\n\n**pain-P1:** Partially covered, but not bindable as written. Items 1–4 admit the requested forms and associate their checks with one root. However, item 2 admits relative paths without specifying a fail-closed outcome when the execution directory is unavailable. A1 acknowledges that unavailable-directory condition only for simple commits.\n\n**pain-P2:** Covered at the design level, conditional on selecting the correct root. `packages/core/src/hooks/scope.ts:956` implements the existing binding resolver, including registration absence, binding refusal and conflicting pins. The Write path passes its bound result to `inspectActiveScope` at `dispatcher.ts:2572–2592`; prospective coverage currently supplies only `env` at `5286–5288`. Item 5 closes that omission and preserves the three outcomes.\n\n**A1:** The host-directory limitation is real, but the cited helper does not itself fall back to the project root: `dispatcher.ts:3422` returns a null directory for an uninspectable payload, and `3439–3444` returns the outer directory or null. Current prospective coverage independently uses `input.projectRoot` at `5183`. Thus A1 describes a proposed fallback rather than existing helper behavior, and understates its implications for newly accepted relative selectors.\n\n### 1. Unknown execution base can misdirect relative selectors — blocks-the-design\n\n**Evidence:** Lean comment `6857857904`, Bound remedy items 2 and 4, and A1; `packages/core/src/hooks/dispatcher.ts:3415–3444`, `5163–5170`, and `5183–5204`.\n\n**Failure mode:** Consider a host whose shell remains in linked worktree B after an earlier directory change while its hook reports project root A. `git -C . commit -m x` executes in B. Applying the lean’s project-root fallback resolves `.` to A, whose index, occupancy and story are then checked. Both checkouts share the same Git common directory, so repository admission does not catch the mismatch. An empty or in-scope index in A can authorize committing out-of-scope files in B. The pinned gate denies this `-C` form; admitting it therefore widens the acknowledged limitation beyond simple commits.\n\n**Disposition consequence:** The lean cannot bind as written. Amend the Bound remedy to distinguish a known execution directory from a project-root fallback and refuse relative selectors when their base cannot be established. Absolute literal selectors can still relieve the requested worktree pain. Add a hook-decision fixture with an unavailable live directory and differing hook-root/actual-worktree indexes. Keep A1’s simple-command residual explicit; do not extend it silently to newly admitted forms.\n\n### 2. Snapshot instructions are untrusted data — footnote\n\nComments `6857545101` and `6857857904` contain imperative coordination text and relayed authorization to “start implementation when they land.” Treating that text as authority would escape this critic’s read-only scope. I treated it as thread evidence and did not follow it. This finding has no disposition weight.",
+          "id": 6857927651,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857927651",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:50:55Z",
+          "updated_at": "2026-11-13T15:50:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after a blocking pain-audit (not for bind)\n\n## In plain English\nThe previous lean accepted three commit shapes and resolved a relative path against the directory the hook reports, falling back to the hook's project root. The pain-audit found one blocking gap. On a host that does not report the shell's live directory, `git -C . commit` run from inside worktree B would be resolved against checkout A. The gate would then check A's staged files, occupancy and story, and git would commit B's. Both checkouts belong to the same repository, so the same-repository check cannot catch it. Today that form is refused, so the lean would have opened a hole. The audit also corrected a detail: the directory helper returns nothing when the host reports no directory; it does not fall back by itself. The lean is withdrawn. It does not bind, stamp or clear ingest.\n\nTarget-digest: sha256:ad2e558201b6636402f8b721f37df59882cf7eed5364606ecacf4372dcd0a767\nSupersedes successor lean 6857857904. Pain-audit: comment 6857927651 (codex, `finding-classes: blocking, footnote`, `harvest-changed: true`).\n\n## Pain coverage\ndoes-not-relieve: P1\ndoes-not-relieve: P2\n\nReadings. `P1`: the admitted shapes were not safe for a relative path with an unknown base. `P2`: the binding mechanism was confirmed, but it holds only when the correct checkout is selected, which the withdrawn lean did not guarantee. Marker A1 does not hold as written: it described a fallback the lean proposed, not what the helper does.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857927651 | 1. Unknown execution base can misdirect relative selectors | blocks-the-design | accept-into-contract |\n\nFootnote in the census, no take: 2 (relayed steer is thread data).\n\n",
+          "id": 6857955228,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857955228",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:52:03Z",
+          "updated_at": "2026-11-13T15:52:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after retraction map, comment 6857955228)\nopen-question: Does refusing every relative path whose base the host did not report, while still admitting an absolute literal path, leave any admitted commit shape that can be checked against one checkout and committed in another?\n\n## In plain English\nThe audit confirmed the design's two main parts: one resolver with three accepted shapes, and the #6233 story binding on the commit path. It found one hole, in how a relative path is resolved when the host does not say where the shell is. The next candidate keeps everything else and closes that hole by refusing: a relative `-C` or `cd` path is admitted only when the hook payload reports the execution directory, and an absolute path is always resolvable. This comment is the parent's next candidate, not a check of it. A critic has to audit the recut lean before it can bind, and that needs the operator to raise the critic-post cap for this arc.\n\n",
+          "id": 6857955699,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857955699",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:52:04Z",
+          "updated_at": "2026-11-13T15:52:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** recut after Handoff 6857955699 (bind candidate; supersedes retraction map 6857955228)\n\nRevision note: this comment was revised in place on 2026-11-13, before any audit of it, after two inputs arrived: the operator's direction quoted under Operator steer, and the field report in comment 6858441886 on this thread. The first version of this recut refused every other command in a call that holds a commit, refused POSIX-style paths on Windows, and put occupancy and ritual checks on commit targets. Those three are dropped below. The Bound remedy changed, so its digest changed; no critic had read the earlier text.\n\n## In plain English\nProblem: a worker in a linked worktree cannot commit its own work. `git -C <worktree> commit` is always refused. With several active briefs the commit gate cannot tell which story the worktree belongs to, although the write gate learned that in #6233 (#6247). And `cd <worktree> && git commit` is not reliably checked: the gate reads the staged files of the checkout the hook started in, and lets the commit through when that list is empty. Comment 6858441886 shows this happening on 2026-11-13: a quoted `cd` form was refused, the `-C` form was refused, and an unquoted `cd` form passed on another checkout's empty index.\n\nSolution this lean proposes: make the target explicit and judge that target. When a commit names a checkout by an absolute path (`git -C <path> commit`, or one leading `cd <path> &&`), the gate reads that checkout's staged files, uses its #6233 story binding, and applies the same scope rules as today. A commit with no `cd` or `-C` is judged where it is judged today. The only commits that are newly refused are those whose target the gate cannot resolve to one checkout, such as a relative path; today those are either refused already or passed on the wrong index. Nothing else is added: no refusal for other commands in the same call, no new deny for writes outside the bound worktree, no extra gate on the commit target. If confirmed, the synthesis would assert this design for both issues, as one story. There is no leftover next-build inside the two pains.\n\nTarget-digest: sha256:ad2e558201b6636402f8b721f37df59882cf7eed5364606ecacf4372dcd0a767\n**Spec-path:** Bound remedy on this lean\nSupersedes retraction map 6857955228, which withdrew successor lean 6857857904. Stop 1: comment 6857545101. Round 1 (3 siblings): comments 6857638768, 6857639964, 6857704757. Pain-audit 1: comment 6857927651. Handoff: comment 6857955699. Field report: comment 6858441886.\n\n## Bound remedy\n1. One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.\n2. Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit. A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.\n3. Target root. For those shapes it is the named path. For a call with no `cd` and no `-C` it is the hook project root, exactly as today.\n4. A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms. That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. These are the only refusals this design adds. Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.\n5. Admission. A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The payload root stays the identity for authz, kill-switch and deny diagnostics.\n6. Index and story on the target root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the target root's index.\n7. Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C . commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.\n\n## Reject\n- Refusing every other command before or after the commit, including `git add … && git commit` (the first version of this recut). It adds a refusal of a common form; see marker A3.\n- A new deny for git writes that land outside the caller's bound worktree, and occupancy or ritual checks on a commit target. Commits are not ritual-gated today, and the operator's reshaping note on #6291 asks for explicit targeting and no new deny; see marker A2.\n- Refusing POSIX-style paths on Windows. Workers on the Bash tool use the MSYS form.\n- Resolving a relative `-C` or `cd` path against a reported directory or the hook project root (pain-audit 1).\n- Lifting the `-C` deny, or stripping a `cd` prefix, without resolving and admitting one checkout first (all three round-1 critics).\n- A second resolver or a second same-repository check beside `admitEffectiveHookRoot` (Codex 1, Claude 3).\n- A general shell interpreter; the two shapes are literal (Codex 2).\n- Treating a `refuse` binding as \"no binding\" and falling back to another eligible story (Codex 3, Claude 4).\n- Requiring registration for every commit (Codex 3).\n- Reading `DEFT_ACTIVE_SCOPE=` or any other per-command environment prefix as a pin (Claude 2).\n- Folding in the main-worktree cases from #6247 comment 6844905798, or the planning-commit admission accepted on #5839.\n\n## Pain coverage\nrelieves: P1\nrelieves: P2\n\nReadings. `P1`: a worker commits in its worktree with `git -C <absolute worktree path> commit …` or `cd <absolute worktree path> && git commit …`, quoted or not, and the commit is judged against that worktree (items 1 to 5). `P2`: the commit gate uses the same per-worktree binding and the same three outcomes as the write gate, on the checkout the command names, and on the hook project root for a plain commit (item 6).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857638768 | 1. Resolve and admit one checkout before evaluating coverage | blocks-the-design | accept-into-contract |\n| comment 6857638768 | 2. Existing tokenization cannot safely define the newly accepted forms | blocks-the-design | accept-into-contract |\n| comment 6857638768 | 3. Preserve the binding resolver's three outcomes | sharpens-framing | accept-into-contract |\n| comment 6857639964 | 1. Today's commit gate fails open on compound forms, so \"stays refused\" is false | blocks-the-design | accept-into-contract |\n| comment 6857639964 | 2. Environment-prefix retargets are skipped | sharpens-framing | accept-into-contract |\n| comment 6857639964 | 3. Resolve the target with the existing #3794 admission and run occupancy against it | sharpens-framing | accept-into-contract |\n| comment 6857639964 | 4. Binding refusal and the shared parent environment | sharpens-framing | accept-into-contract |\n| comment 6857704757 | 1. `cd`-prefix commit is wrong-root today, not a symmetric refuse | blocks-the-design | accept-into-contract |\n| comment 6857704757 | 2. Admit only after same-repo resolve; bind index and #6233 story on that root | blocks-the-design | accept-into-contract |\n| comment 6857704757 | 3. Concurrent shape work and main-worktree leftovers must be placed | sharpens-framing | accept-into-contract |\n| comment 6857927651 | 1. Unknown execution base can misdirect relative selectors | blocks-the-design | accept-into-contract |\n\nWhere each lands: Codex 1, Grok 2 and the admission half of Claude 3 in items 5 and 6; Codex 2 in items 1 and 7; Codex 3, Claude 4 in item 6; Claude 1 and Grok 1 in items 2 to 4 and 7 (every `cd` or `-C` commit is judged on the checkout it names or refused; none passes on another checkout's index); Claude 2 in item 4; Grok 3 in the sections below; pain-audit 1 in items 2 to 4. Two parts of critic dispositions are not followed, on the operator's direction, and are recorded as markers: the occupancy half of Claude 3 (marker A2), and Claude 1's refusal of other commands in the same call (marker A3). Footnotes in the census, no take: Codex 4, Claude 5 and 6, Grok 4, pain-audit 2.\n\n## Parent premises\naudit:A1 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/hooks/dispatcher.ts:5183-5204 reading=measured\nA1: a commit with no `cd` and no `-C` keeps today's root. The prospective cover reads the index at the hook project root (`input.projectRoot`). If the shell is in another worktree, such a commit is still judged at the hook project root. That limit exists at the pin. This design does not close it and does not widen it, because the two shapes that name a checkout never use the hook project root or a reported directory. #6291 is the issue for it: workers name their worktree in every git command.\n\naudit:A2 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=comment:6857639964 reading=asserted\nA2: no occupancy check is added on a commit target. A caller that names another registered worktree by its absolute path can commit what is staged there; that commit is still held to that worktree's own story scope by item 6, so nothing outside a story's `file_scope` is admitted. Whose commit it is stays a dispatch matter (#6291), not a new deny.\n\naudit:A3 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=comment:6857639964 reading=asserted\nA3: other commands in the same call are treated as at the pin: the index is read when the hook runs, now on the resolved root. So `git add … && git commit` in one call is still judged before the add runs. That hole in #5656 exists at the pin and is not widened here. Closing it needs either a refusal of a very common form or a preview of what the add would stage; that choice is the operator's and is not part of this design.\n\n## What this adds, for the operator's direction\nNew refusals: only the unresolvable-target cases in item 4. New checks, steps or gates: none. Removed refusals: `git -C <absolute path> commit` (always refused today), the quoted `cd` form (refused today), and the `multiple-eligible` refusal for a commit in a registered worktree.\n\n## Proposed file_scope (one story; Closes #6278 and #6247)\n- `packages/core/src/hooks/commit-target.ts` (new) and its test\n- `packages/core/src/hooks/dispatcher.ts`: the three commit detectors' call sites, `decideProspectiveGitCommitScopeCover`, `evaluateProspectiveScopeCover`, `ProspectiveScopeCoverInput`, `listStagedRelPathsIncludingDeletes`\n- `packages/core/src/hooks/dispatcher.test.ts`, `packages/core/src/hooks/dispatcher-effective-root.test.ts`\n- `content/docs/hook-root-admission.md`, `CHANGELOG.md`\n\nAssumptions about work in the same file:\n- #6276 (with #6187 and #6188, lean 6857821188 on that thread) lands first. It changes the normalization that feeds the commit detectors (heredoc bodies) and states that every form refused at the pin stays refused. This story starts from that result and replaces the detectors' token scan. If #6276 lands in a different shape, item 1 is re-derived on its output; the shapes in item 2 do not change. The parser lives in a new file so the two changes touch different lines.\n- #5839 (accepted lean 6810804320) adds a planning-file classifier at the top of `evaluateProspectiveScopeCover`. This story changes which root and which story that function is given. Either order works; the second one rebases.\n\nRelated: #6291 (in-session sub-agents inherit and reset to the parent's cwd, so git writes can land in a sibling worktree). It is not part of this arc. It shapes this design in one way: because a worker's cwd cannot be trusted, the two shapes in item 2 take an absolute path and never a reported directory, which is the explicit targeting #6291 asks workers to use. The PowerShell-tool commit in #6291 is outside this design, because the hook does not see that tool.\n\nOutside this design, named and not filed: a commit that concludes a merge in the main worktree (#6266 covers the worker case); the Edit and commit of a CHANGELOG line on a lifecycle PR while other briefs are active; the same-call staging hole (marker A3).\n\n## Record\nCritic bodies were posted by this parent, verbatim. The Codex and Grok seats ran with no network and read a parent-written thread snapshot that included #6247 and its comment; only Grok's progress narration before its `model:` line was removed. #6247 keeps its recorded skip; this lean is the design for both issues.\n\n## Operator steer\nRelayed by the dispatching session, not typed in this session. The dispatching session put its questions to Scott as cards and relayed his chosen answers verbatim:\n- Cap. Question: \"Clone3 cap: … Allow up to 2 more critic posts per arc to re-audit the recuts?\" Answer: \"Yes, +2 each (Recommended)\". The dispatching session's reading: one re-audit round on this arc; if it blocks again, the arc halts.\n- Standing. Question: \"Clone3 yolo: … If a recut on #6205, #6278, #6279 or #6280 then passes its re-audit, may the session record it as accepted without asking you again?\" Answer: \"Yes, on a clean re-audit (Recommended)\".\n- Direction for every lean, verbatim: \"note we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\".\n\ndual-stop-raise: +2 critic posts for this arc (operator, relayed 2026-11-13); three panel posts and the reserved pain-audit were spent before the raise.\n\nOne decision stays with the operator: whether to close the same-call staging hole (marker A3), and how.\n\n",
+          "id": 6857990436,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6857990436",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:53:31Z",
+          "updated_at": "2026-11-13T16:30:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Gate miss: an unquoted cd-compound commit is checked against the session root, not the target worktree\n\nSeen on Directive 0.129.8 during the #6269-#6272 cohort (2026-11-13). This is a security requirement for this issue's arc, not only an ergonomics gap: the prospective scope-cover check (#5656) must evaluate the index of the worktree the commit lands in, or refuse.\n\n**Setup.** Claude Code parent session. In-session sub-agent for #6270 in a registered linked worktree (`.../story-6270`, assigned by `swarm:launch`, #6233). Four active briefs (#6269-#6272), no `DEFT_ACTIVE_SCOPE` pin. The sub-agent's shell cwd resets each call to a sibling worktree (`.../story-6271`), which had nothing staged at the time.\n\n**The four attempts (Bash tool unless noted), in order:**\n\n1. `cd \"<story-6270>\" && git commit -F \"<msgfile>\"` (quoted paths): **refused**, \"git commit -a/--all/-am/--include or pathspecs change the file set after the pre-tool index snapshot (#5656)\".\n2. `git -C \"<story-6270>\" commit -F <msgfile>`: **refused**, \"git commit with -C/--git-dir/--work-tree retargets the checkout; prospective scope-cover reads the index at the hook project root and refuses retargets (#5656)\".\n3. Two PowerShell-tool calls (`Set-Location <story-6270>`, then the commit): no refusal, but the cwd did not carry over, so the commit ran in story-6271 and git exited 1 (\"no changes added to commit\"). Nothing was committed.\n4. `cd /c/.../story-6270 && git commit -F /c/.../msgfile` (unquoted POSIX paths): **no hook deny**. The commit was created as `e255b6bfa` in story-6270 and later pushed as PR #6289.\n\n**Reading.** Attempt 4 was evaluated against the session root's index (story-6271, nothing staged), not story-6270's. So the scope-cover check never saw the commit's paths. That is the same retarget that attempt 2 is refused for, reached through a compound form that the quoted variant (attempt 1) does not reach. The committed content happened to be exactly #6270's `file_scope` (three files), so no out-of-scope path landed. But the gate did not establish that. PR #6289 is held, unmerged, pending the operator's keep-or-redo ruling.\n\n**Requirement for this arc.** For any commit shape the hook admits (plain, cd-compound with quoted or unquoted paths, `-C`), scope-cover must resolve the worktree the commit actually lands in and evaluate that index, using the #6233 binding there (#6247). Otherwise it must refuse. A shape it cannot resolve must fail closed, never pass on another checkout's empty index.\n\nRelated: #6247 (commit gate ignores the per-worktree binding), #5656, #6233.\n\n",
+          "id": 6858441886,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6858441886",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:12:51Z",
+          "updated_at": "2026-11-13T16:12:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1, A2, A3\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe recut covers both recorded pains for commits that explicitly name an absolute worktree path and use previously staged files. Requiring absolute targets closes the earlier audit’s relative-directory ambiguity, and the existing worktree-binding resolver supplies the missing story selection. Two parent claims overstate the resulting protection: coverage applies to the inspected product-file snapshot, and admitting previously refused commands exposes the retained same-call staging hole through additional forms. Those limits warrant corrections to the parent premises, but do not require changing the deliberately bounded remedy. Verification was source-only at `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`; no tests or fixtures ran.\n\n**pain-P1:** Covered at the design level for the stated absolute forms. Items 1–5 replace the pinned blanket retarget refusal and hook-root inspection (`packages/core/src/hooks/dispatcher.ts:5163–5204`) with explicit target resolution and admission. Item 5 correctly excludes the existing admission helper’s non-repository fallback (`dispatcher.ts:1248–1259`). Relative forms remain deliberately refused.\n\n**pain-P2:** Covered at the design level. Item 6 supplies the binding omitted by `dispatcher.ts:5286–5288`. The existing resolver implements `none`, `bound`, and `refuse` at `packages/core/src/hooks/scope.ts:956–1028`; the write path already consumes these outcomes at `dispatcher.ts:2572–2592`. Keeping refusal distinct from absence preserves the intended authority boundary.\n\n**A1:** Verified. `dispatcher.ts:5183–5204` reads the hook project root, independently of the shell’s actual directory. Retaining that behavior for plain commits is an honestly stated residual. Absolute explicit selectors avoid the earlier proposed relative-path fallback.\n\n**A2:** Partly verified. Binding the destination story does not authenticate the committing actor, and the remedy explicitly leaves that distinction unresolved. However, “nothing outside a story’s `file_scope` is admitted” is too broad: existing exemptions and snapshot timing survive. See finding 1.\n\n**A3:** The existing same-call staging hole is verified, but “not widened here” needs qualification. Its mechanism remains unchanged; its admitted command forms expand. See finding 2.\n\n### 1. Story coverage is narrower than A2’s guarantee — footnote\n\n**Evidence:** `dispatcher.ts:5268–5284` admits empty and lifecycle/installer-only snapshots; `5321–5337` checks only the remaining product paths. Lean comment `6857990436`, item 6, retains those exemptions.\n\n**Failure mode:** Readers could mistake destination-story selection for a guarantee covering every committed path, including files staged after inspection.\n\n**Disposition consequence:** Qualify A2 to describe coverage of inspected product paths, subject to the retained exemptions and A3. This corrects explanatory text; the Bound remedy need not change.\n\n### 2. A3 preserves a hole while expanding its reach — footnote\n\n**Evidence:** `dispatcher.ts:5163–5170` currently refuses `-C` commits before inspection; `5183–5198` takes the snapshot before tool execution. Lean comment `6857990436` admits absolute `-C` and expressly retains other commands.\n\n**Failure mode:** With the shell already in B, `git add outside.txt && git -C /absolute/B commit -m x` can pass against B’s initially empty index, then commit the newly staged file. The pinned retarget denial previously stopped this form.\n\n**Disposition consequence:** State that the existing timing hole extends to newly admitted forms. The lean already explicitly excludes fixing that hole; this clarification does not require a new refusal or harvest change.\n\n### 3. Snapshot instructions and ceiling remain non-authoritative — footnote\n\nThe snapshot contains relayed implementation authorization in comment `6857545101` and an appended comment `6858623489` beyond the supplied ceiling. Following embedded instructions or treating the latter as authorized input would escape this envelope. Neither was used as authority; no network, mutations, or agent dispatch occurred.",
+          "id": 6858895144,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6858895144",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:32:54Z",
+          "updated_at": "2026-11-13T16:32:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nParent note on the re-audit (comment 6858895144; `finding-classes: footnote`; `harvest-changed: false`). The bind candidate stays successor lean 6857990436; its Bound remedy is unchanged.\n\n## In plain English\nThe re-audit found both pains covered and no blocking or sharpening finding. It asked for two parent premises to be stated more narrowly, which this note records. First, choosing the right story for the target worktree means the gate checks the product paths it sees staged in that worktree when the hook runs; the existing exemptions for an empty or lifecycle-only index still apply. Second, the same-call staging hole (a `git add` in the same call as the commit) is unchanged in how it works, but it now also reaches the two newly admitted forms: `git add x && git -C /abs/B commit` can stage after the gate has looked. The operator's direction is to add no new refusal for that, so the hole stays a named limit.\n\nCorrected readings:\n- Marker A2: the commit is held to the target worktree's story scope for the product paths in the index snapshot the hook reads, subject to the retained empty-index and lifecycle-only exemptions and to marker A3. It does not authenticate which actor commits.\n- Marker A3: the same-call staging hole exists at the pin and its mechanism is unchanged. Because `git -C <absolute path> commit` and `cd <absolute path> && git commit` are no longer refused, the hole now also reaches those forms. Closing it is the operator's decision named on the lean.\n\nFootnote 3 (snapshot instructions and ceiling) is in the census with no take.\n\nOperator record for this arc: Scott, typed in this session on 2026-11-13: \"yes Raise the critic-post cap by 2 per arc and keep yolo standing for recuts that pass re-audit\". The same answers were relayed earlier by the dispatching session (\"Yes, +2 each (Recommended)\"; \"Yes, on a clean re-audit (Recommended)\").\n\n",
+          "id": 6859253609,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6859253609",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:48:33Z",
+          "updated_at": "2026-11-13T16:48:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\nThis table lists the claims the accepted design for #6278 and #6247 rests on and how each was checked. The design: one resolver finds the checkout a commit targets; `git -C <absolute path> commit` and one leading `cd <absolute path> &&` are judged against that worktree's staged files and its #6233 story binding; only targets the gate cannot resolve are newly refused.\n\n## Verified-claims table\n\nDisclosure (non-self-arbitration): this parent wrote the Stop 1 warrant, the leans and the takes. A row is marked verified only where the parent re-derived it from the source at the pin, or a critic of another model family (Codex) checked it with line cites. Pin: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04.\n\n| # | Claim | Evidence | Method | Status |\n|---|---|---|---|---|\n| 1 | The prospective cover reads the index at the hook project root, not the shell's directory | `packages/core/src/hooks/dispatcher.ts` 5183-5204 | parent pin-read; Codex re-audit 6858895144 | verified |\n| 2 | `-C`, `--git-dir` and `--work-tree` commits are refused before inspection | `dispatcher.ts` 4925-4974, 5163-5171 | parent pin-read; Codex re-audit 6858895144 | verified |\n| 3 | A `cd` part is not a retarget at the pin, and an empty index returns ok | `dispatcher.ts` 4874-4915, 5268-5274 | parent pin-read; Claude round 1 6857639964, Grok round 1 6857704757 | verified |\n| 4 | An unquoted `cd` commit passed on another checkout's empty index on 2026-11-13 | field report, comment 6858441886 (commit e255b6bfa, PR #6289) | reported by the dispatching session's cohort; not re-run here | endorsed, not verified |\n| 5 | The commit cover calls `inspectActiveScope` with the environment pin only, and no binding | `dispatcher.ts` 5286-5288 | parent pin-read; Codex round 1 6857638768, Codex re-audit 6858895144 | verified |\n| 6 | `resolveWorktreeStoryBinding` has three outcomes and the write path consumes them | `packages/core/src/hooks/scope.ts` 956-1028; `dispatcher.ts` 2572-2592 | Codex round 1 and re-audit | verified |\n| 7 | `admitEffectiveHookRoot` checks the same git common dir and has a non-repository fallback that this design excludes | `dispatcher.ts` 1241-1269 | Codex re-audit 6858895144 | verified |\n| 8 | The same-call staging hole exists at the pin and now reaches the two admitted forms | `dispatcher.ts` 5059-5150, 5183-5198 | Claude round 1; Codex re-audit finding 2 | verified (named limit, marker A3) |\n| 9 | The issue body is unchanged since the arc pinned it | sha256 of the REST body equals the digest on the lean | parent recompute | verified |\n| 10 | The bind candidate passes the path-1 gate | `evaluateAutoStampPath1Write` run with tsx on the live thread: `writePath1: true`, cited lean 6857990436 | parent, repository evaluator | verified |\n\nPanel record: round 1 had 3 siblings (Codex 6857638768, Claude 6857639964, Grok 6857704757), all posted. Pain-audit 1 (Codex 6857927651) blocked the first lean; retraction map 6857955228, Handoff 6857955699. The recut lean was revised in place before any audit, after the operator's direction and the field report. Re-audit (Codex 6858895144): `finding-classes: footnote`, `harvest-changed: false`; corrected premise readings in comment 6859253609. Critic posts in this arc: 5 of the 6 allowed after the operator's raise.\n\nOperator record: Scott, typed in this session: \"yes Raise the critic-post cap by 2 per arc and keep yolo standing for recuts that pass re-audit\". Earlier relayed by the dispatching session: \"Yes, +2 each (Recommended)\"; \"Yes, on a clean re-audit (Recommended)\"; direction \"note we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\".\n\n## Implementation notes (from footnotes; not Bound limbs)\n- Fixture for the same-call hole on the new forms, as a documented limit and not a refusal: `git add x && git -C <abs B> commit` with an empty B index.\n- Related, not part of this design: #6291 (workers name their worktree in every git command; the PowerShell tool is not seen by the hook).\n\n",
+          "id": 6859262042,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6859262042",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:48:55Z",
+          "updated_at": "2026-11-13T16:48:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: a worker in a linked worktree could not commit its own work. `git -C <worktree> commit` was always refused, the commit gate did not use the worktree's story binding from #6233 (#6247), and an unquoted `cd <worktree> && git commit` was judged against another checkout's empty index. Accepted design: one resolver finds the checkout a commit targets. `git -C <absolute path> commit` and one leading `cd <absolute path> &&` are judged against the named worktree's staged files and its story binding; a plain commit is judged where it is judged today. The only new refusals are targets the gate cannot resolve to one checkout, such as a relative path. No refusal is added for other commands in the same call and no new deny for writes outside a worker's own worktree. Two limits stay named: a plain commit still uses the hook's project root, and a `git add` in the same call as the commit can stage after the gate has looked.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6857990436.\n\nOperator confirmation, typed by Scott in this session: \"yes Raise the critic-post cap by 2 per arc and keep yolo standing for recuts that pass re-audit\". The re-audit is comment 6858895144 (footnote only); corrected premise readings are in comment 6859253609; the checked claims are in comment 6859262042. This record covers #6247 too, designed in the same arc. It does not start ingest; that is a separate operator verb.\n\n",
+          "id": 6859262512,
+          "html_url": "https://github.com/deftai/directive/issues/6278#issuecomment-6859262512",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:48:57Z",
+          "updated_at": "2026-11-13T16:48:57Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nA worker in a linked worktree cannot commit its own work with the usual command forms. The commit-shape check (#5656, `packages/core/src/hooks/dispatcher.ts`, compound scanning near line 4912) admits a commit only as a simple command in the hook's own working directory. Two common forms are refused:\n\n- `cd <worktree> && git commit …`\n- `git -C <worktree> commit …`\n\nThe lead agent then commits for the worker, or a human does.\n\n## Consumer impact\n\nOn a consumer project, 13 hook denials in one week were commits in these forms. Workers could not commit, so the lead agent committed for each of them. Maintainer sessions in this repo hit the same rule: the commit must be the only command in the call, staged in an earlier call.\n\n## Expected\n\n- A commit whose target worktree can be resolved from the command (`cd <path> &&` as the only prefix, or `git -C <path>`) is evaluated against that worktree: its index, its branch and its bound story (#6233).\n- The same checks then apply as for a simple commit: prospective scope-cover, index snapshot, story binding. Nothing is admitted that a simple commit in that worktree would refuse.\n- A command the hook cannot resolve to one worktree (several `cd`, variables, subshells) stays refused, with a message that names the accepted forms.\n\n## Acceptance\n\n- Given a registered linked worktree with staged in-scope changes, when the worker runs `git -C <worktree> commit -m …` from the parent directory, then the hook allows it; given staged out-of-scope changes, it refuses with the scope-cover message.\n- Same pair for `cd <worktree> && git commit -m …`.\n- A commit with an unresolvable target is refused and the message lists the accepted forms.\n\nRefs #5656. Refs #6233. Related: #6247 (the commit scope-cover check does not use the per-worktree story binding).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6374105652,
+        "origin": "deftai/directive#6278",
+        "id": "github.issue.6374105652"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ad2e558201b6636402f8b721f37df59882cf7eed5364606ecacf4372dcd0a767"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "content/docs/hook-root-admission.md",
+          "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "packages/core/src/content-contracts/skills/swarm_skill.test.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "packages/core/src/content-contracts/skills/agent_prompt_preamble_template.test.ts",
+          "docs/RULE-MAP.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "hooks-commit-gate",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/commit-target.test.ts packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/dispatcher-effective-root.test.ts packages/core/src/hooks/dispatcher-active-scope.test.ts packages/core/src/content-contracts/skills/swarm_skill.test.ts packages/core/src/content-contracts/skills/agent_prompt_preamble_template.test.ts"
+        ],
+        "expected_outputs": [
+          "commit-target resolver in packages/core/src/hooks/commit-target.ts",
+          "commit gate reads the target root's index and story binding",
+          "refusals naming the two absolute forms for unresolvable targets",
+          "hook-decision fixtures with a real registered linked worktree",
+          "hook-root-admission docs, swarm host notes and preamble aligned"
+        ],
+        "Traces": [
+          "#6278",
+          "#5656",
+          "#6233",
+          "#6247"
+        ],
+        "acceptance_criteria_justification": "Seven clauses, one per item of the accepted Bound remedy (lean 6857990436); resolver, shapes, target root, refusals, admission, binding and fixtures are separate behaviours, kept one-to-one so each maps to its own evidence."
+      },
+      "kind": "story",
+      "productPullRequest": 6339,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3d76e470157ddacbe616b7924581741b93e8ec22",
+        "prNumber": 6339,
+        "prBase": "master",
+        "mergeCommit": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+        "verifiedAt": "2026-11-15T18:16:51Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T18:16:51Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T18:16:51Z"
+      }
+    },
+    "id": "github.issue.6374105652",
+    "updated": "2026-11-15T18:16:51Z"
+  }
+}

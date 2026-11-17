@@ -1,10 +1,11 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   computeControllerObservedHash,
   deny,
   FileBackedPrePrStore,
+  hashPrBody,
   LINT_ITERATION_MODE_SKIP,
   MARK_COMPLETE_NOT_AUTHORITY,
   PRE_PR_PHASES,
@@ -36,20 +37,33 @@ const START = [
   "PR_1",
 ] as const;
 
+/** Hermetic lint_iteration gate results (#6336): the real gates read the cwd tree. */
+const PASS_GATES = () => [
+  { gate: "verify:class-checks" as const, exitCode: 0, message: "verify_class_checks: clean" },
+  {
+    gate: "verify:evaluator-surface" as const,
+    exitCode: 0,
+    message: "verify:evaluator-surface: skip",
+  },
+];
+
 function observeAll(runId: string, fixturePath: string, contentsHash: string): void {
   for (const spec of PRE_PR_PHASES) {
     if (spec.kind === "command-observable") {
       expect(
-        run([
-          "--observe-command",
-          "--run-id",
-          runId,
-          "--phase",
-          spec.id,
-          "--exit-code",
-          "0",
-          "--json",
-        ]),
+        run(
+          [
+            "--observe-command",
+            "--run-id",
+            runId,
+            "--phase",
+            spec.id,
+            "--exit-code",
+            "0",
+            "--json",
+          ],
+          { gateChecks: PASS_GATES },
+        ),
       ).toBe(0);
     } else {
       expect(
@@ -255,26 +269,159 @@ describe("deft pre-pr:run", () => {
       );
       process.chdir(projectRoot);
       expect(run([...START, "--run-id", "ppr_lint_mode_cli", "--json"])).toBe(0);
-      expect(
-        run([
-          "--observe-command",
-          "--run-id",
-          "ppr_lint_mode_cli",
-          "--phase",
-          "lint_iteration",
-          "--exit-code",
-          "5",
-          "--skip-reason",
-          LINT_ITERATION_MODE_SKIP,
-          "--command",
-          "vitest run --coverage <changed-paths>",
-          "--json",
-        ]),
-      ).toBe(0);
+      const lintArgv = [
+        "--observe-command",
+        "--run-id",
+        "ppr_lint_mode_cli",
+        "--phase",
+        "lint_iteration",
+        "--exit-code",
+        "5",
+        "--skip-reason",
+        LINT_ITERATION_MODE_SKIP,
+        "--command",
+        "vitest run --coverage <changed-paths>",
+        "--json",
+      ];
+      expect(run(lintArgv, { gateChecks: PASS_GATES })).toBe(0);
+      const row = new FileBackedPrePrStore(tmpRoot)
+        .getById("ppr_lint_mode_cli")
+        ?.phaseEvidence.commands.find((c) => c.phaseId === "lint_iteration");
+      expect(row?.gateChecks?.map((g) => g.gate)).toEqual([
+        "verify:class-checks",
+        "verify:evaluator-surface",
+      ]);
     } finally {
       process.chdir(prevCwd);
       rmSync(projectRoot, { recursive: true, force: true });
     }
+  });
+
+  it("lint_iteration fails locally with the CI gate message and records it (#6336)", () => {
+    expect(run([...START, "--run-id", "ppr_gate_red", "--json"])).toBe(0);
+    const out: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    const ciMessage =
+      "verify_class_checks: 1 finding(s): protected/gate.txt protected-glob -- Move or remove the path.";
+    const red = () => [
+      { gate: "verify:class-checks" as const, exitCode: 1, message: ciMessage },
+      { gate: "verify:evaluator-surface" as const, exitCode: 0, message: "skip" },
+    ];
+    const argv = [
+      "--observe-command",
+      "--run-id",
+      "ppr_gate_red",
+      "--phase",
+      "lint_iteration",
+      "--exit-code",
+      "0",
+      "--json",
+    ];
+    expect(run(argv, { gateChecks: red })).toBe(1);
+    expect(out.join("")).toContain(ciMessage);
+    expect(out.join("")).toContain("deny-command-failure");
+    const row = new FileBackedPrePrStore(tmpRoot)
+      .getById("ppr_gate_red")
+      ?.phaseEvidence.commands.find((c) => c.phaseId === "lint_iteration");
+    expect(row?.gateChecks?.[0]?.exitCode).toBe(1);
+    // Fixed and observed again: admitted, and the run was never marked failed.
+    expect(run(argv, { gateChecks: PASS_GATES })).toBe(0);
+    expect(new FileBackedPrePrStore(tmpRoot).getById("ppr_gate_red")?.state).toBe("running");
+  });
+
+  it("other phases do not run the lint gates (#6336)", () => {
+    expect(run([...START, "--run-id", "ppr_gate_other", "--json"])).toBe(0);
+    let called = false;
+    const spy = () => {
+      called = true;
+      return PASS_GATES();
+    };
+    expect(
+      run(
+        [
+          "--observe-command",
+          "--run-id",
+          "ppr_gate_other",
+          "--phase",
+          "branch_policy",
+          "--exit-code",
+          "0",
+          "--json",
+        ],
+        { gateChecks: spy },
+      ),
+    ).toBe(0);
+    expect(called).toBe(false);
+  });
+
+  it("hashes a CRLF body file and an LF stored body the same (#6336)", () => {
+    const local = join(tmpRoot, "body-crlf.md");
+    const stored = join(tmpRoot, "body-stored.md");
+    writeFileSync(local, "Refs #6336\r\n\r\ndeft-story: 6336\r\n", "utf8");
+    writeFileSync(stored, "Refs #6336\n\ndeft-story: 6336", "utf8");
+    expect(hashPrBody(readFileSync(local, "utf8"))).toBe(hashPrBody(readFileSync(stored, "utf8")));
+    const startNoHash = START.filter(
+      (_, i) => START[i] !== "--pr-body-hash" && START[i - 1] !== "--pr-body-hash",
+    );
+    const writer = () => ({ code: 0 as const, message: "OK", issues: [], written: [] });
+    expect(
+      run([...startNoHash, "--run-id", "ppr_crlf", "--body-file", local], {
+        writeStoryLine: writer,
+      }),
+    ).toBe(0);
+    expect(new FileBackedPrePrStore(tmpRoot).getById("ppr_crlf")?.prBodyHash).toBe(
+      hashPrBody(readFileSync(stored, "utf8")),
+    );
+    // --evaluate hashes the stored body file with the same rule: the binding matches,
+    // and the refusal (if any) is not the body-hash binding.
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    run([
+      "--evaluate",
+      "--repo",
+      "deftai/directive",
+      "--base-sha",
+      "aaa",
+      "--head-sha",
+      "bbb",
+      "--pr-node-id",
+      "PR_1",
+      "--run-id",
+      "ppr_crlf",
+      "--body-file",
+      stored,
+      "--json",
+    ]);
+    expect(`${out.join("")}${err.join("")}`).not.toContain("does not match live PR body hash");
+    expect(
+      run([
+        "--evaluate",
+        "--repo",
+        "deftai/directive",
+        "--base-sha",
+        "aaa",
+        "--head-sha",
+        "bbb",
+        "--body-file",
+        join(tmpRoot, "missing.md"),
+      ]),
+    ).toBe(2);
+    expect(err.join("")).toContain("cannot hash --body-file");
+    expect(
+      run(["--evaluate", "--repo", "deftai/directive", "--base-sha", "aaa", "--head-sha", "bbb"]),
+    ).toBe(2);
+    expect(err.join("")).toContain("--pr-body-hash or --body-file");
   });
 
   it("--observe-command --project-root stores observedProjectRoot as the realpath of that root", () => {
@@ -461,5 +608,136 @@ describe("deft pre-pr:run", () => {
     expect(parseArgs(["--policy-version", "2"]).policyVersion).toBe("2");
     expect(run(["--nope"])).toBe(2);
     expect(err.join("")).toMatch(/unrecognized/);
+  });
+  it("writes the story line into the PR body file before start (#6316)", () => {
+    const root = join(tmpRoot, "proj");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const bodyFile = join(tmpRoot, "body.md");
+    writeFileSync(bodyFile, "Refs #6316\n", "utf8");
+    const calls: Array<{ bodyFile: string; part: boolean; repo: string | null }> = [];
+    const writer = (args: {
+      bodyFile: string;
+      projectRoot: string;
+      repo: string | null;
+      part: boolean;
+    }) => {
+      calls.push({ bodyFile: args.bodyFile, part: args.part, repo: args.repo });
+      return {
+        code: 0 as const,
+        message: "OK: wrote deft-story: 6316",
+        issues: [6316],
+        written: [],
+      };
+    };
+    const err: string[] = [];
+    const out: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    const BODY_AFTER = "Refs #6316\n\ndeft-story: 6316\n";
+    // Start without --pr-body-hash: the run binds the body file after the write step.
+    const startNoHash = START.filter(
+      (_, i) => START[i] !== "--pr-body-hash" && START[i - 1] !== "--pr-body-hash",
+    );
+    expect(
+      run(
+        [...startNoHash, "--run-id", "ppr_story", "--body-file", bodyFile, "--project-root", root],
+        {
+          writeStoryLine: (a) => {
+            writeFileSync(a.bodyFile, BODY_AFTER, "utf8");
+            return writer(a);
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(calls).toEqual([{ bodyFile, part: false, repo: "deftai/directive" }]);
+    expect(err.join("")).toContain("wrote deft-story: 6316");
+    expect(out.join("")).toContain("started ppr_story");
+    const bound = new FileBackedPrePrStore(tmpRoot).getById("ppr_story");
+    expect(bound?.prBodyHash).toBe(hashPrBody(BODY_AFTER));
+
+    // A supplied hash taken before the write step no longer matches: refused.
+    expect(
+      run([...START, "--run-id", "ppr_stale", "--body-file", bodyFile, "--project-root", root], {
+        writeStoryLine: writer,
+      }),
+    ).toBe(2);
+    expect(err.join("")).toContain("--pr-body-hash does not match --body-file");
+    const fresh = hashPrBody(readFileSync(bodyFile, "utf8"));
+    const startFresh = START.map((v, i) => (START[i - 1] === "--pr-body-hash" ? fresh : v));
+    expect(
+      run([...startFresh, "--run-id", "ppr_fresh", "--body-file", bodyFile], {
+        writeStoryLine: writer,
+      }),
+    ).toBe(0);
+    expect(
+      run([...startNoHash, "--body-file", join(tmpRoot, "gone.md")], { writeStoryLine: writer }),
+    ).toBe(2);
+    expect(err.join("")).toContain("cannot hash --body-file");
+
+    calls.length = 0;
+    expect(run(["--body-file", bodyFile, "--part"], { writeStoryLine: writer })).toBe(0);
+    expect(calls).toEqual([{ bodyFile, part: true, repo: null }]);
+
+    const failing = () => ({
+      code: 1 as const,
+      message: "FAIL: both lines",
+      issues: [],
+      written: [],
+    });
+    expect(run([...startNoHash, "--body-file", bodyFile], { writeStoryLine: failing })).toBe(1);
+    expect(err.join("")).toContain("FAIL: both lines");
+  });
+
+  it("runs the real writer on a body file and validates --part / --body-file (#6316)", () => {
+    const root = join(tmpRoot, "proj2");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "s.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/6316",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const bodyFile = join(tmpRoot, "body2.md");
+    writeFileSync(bodyFile, "Refs #6316\n", "utf8");
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    expect(
+      run([
+        "--body-file",
+        bodyFile,
+        "--project-root",
+        root,
+        "--repo",
+        "deftai/directive",
+        "--json",
+      ]),
+    ).toBe(0);
+    expect(readFileSync(bodyFile, "utf8")).toBe("Refs #6316\n\ndeft-story: 6316\n");
+    expect(run(["--part"])).toBe(2);
+    expect(err.join("")).toContain("--part requires --body-file");
+    expect(parseArgs(["--body-file"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--body-file=b.md", "--part"])).toMatchObject({
+      bodyFile: "b.md",
+      part: true,
+    });
   });
 });

@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
+  "issue": 6336,
   "surfaces": [
-    "Taskfile.yml",
-    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/intent-constraint/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6226: the #6071 cited-skip scan and the #6072 sanctioned-skip baseline share one test-file walk (packages/core/src/check/walk-test-files.ts) that skips .deft-scratch and linked worktrees; sanction rules and baseline tables unchanged. Prior renewal kept: #5942 release:e2e, release:publish and release:rollback ENGINE_CMD pass --project-root \"{{.USER_WORKING_DIR}}\" like release: (#5805). Disclosure only; not #3164 authorization. Refs #6226, #5942."
+  "note": "Renew disclosure for #6336 Bound item 6: verify:intent-constraint now lists every unapproved fact on each failure path with path, line, kind and value (it listed at most eight, and the missing-mint paths listed none). extract.ts records each fact's source line; the line is display only and not part of the fact's identity, so which facts are new or covered does not change and verdicts do not change. Disclosure only; not #3164 authorization. Refs #6336."
 }

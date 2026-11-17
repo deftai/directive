@@ -1,0 +1,618 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6313",
+    "updated": "2026-11-15T16:12:23Z"
+  },
+  "plan": {
+    "title": "bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install)",
+    "status": "completed",
+    "narratives": {
+      "Description": "After a pin bump, the hook refuses every shell command because the pin does not match the installed runtime, including the `pnpm install` it names as the recovery. This story admits exactly the named recovery commands, uncompounded at the project root, when pin mismatch is the only fault.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6313",
+      "Overview": "## Summary\n\nAfter a pin bump lands on master, any checkout or worktree that fast-forwards to it still has the previous runtime installed. The PreToolUse hook then refuses every shell command with:\n\n`Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8). Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin).`\n\nThe recovery it names, `pnpm install --frozen-lockfile` or `npm install`, is itself a shell command, and the same check refuses it (`packages/runtime/src/hook-dispatch.ts`, the `checkCheapInSync` fail-closed branch, about line 371). On a host whose only shell is hooked, the session cannot recover in-band. It can only use an uninspected tool or a terminal outside the agent.\n\n## Evidence (2026-11-13, pin bump to 0.129.9 in #6312)\n\n- The finalize worker for #6311 fast-forwarded its worktree to master after #6312 merged. Every Bash call was refused, including `pnpm install --frozen-lockfile`. It recovered by running that same command through the PowerShell tool, which the Directive hook does not inspect. That was reported as an incident, not a sanctioned path.\n- The dispatching session hit the identical refusal twice this week, after each pin bump, and recovered the same way. So it is reproducible on every bump.\n- Related: #5892 (an arc parent blocked by install drift in the primary checkout), where the same refusal blocked a read-only session. This issue is the general trap behind it.\n\n## Expected\n\nRemove the trap rather than add a check. When the only fail-closed fault is pin ≠ installed (no overlay, no identity mismatch), the hook admits exactly its own named recovery commands as simple, uncompounded shell commands run at the project root:\n- `pnpm install --frozen-lockfile`\n- `npm install` / `npm ci`\n- the AC9.7 pair it names elsewhere: `npm i -g @deftai/directive`, then `directive install --repair`\n\nEverything else stays refused until the install matches the pin.\n\n## Acceptance Criteria\n\n- [ ] Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.\n- [ ] Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.\n- [ ] Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).\n- [ ] Tests beside `hook-dispatch.ts` cover the admit and the refusals above.\n\nRelated: #5892, #6013, #5893, #5910, #6312.\n\n",
+      "Labels": "bug, framework-gap",
+      "UserStory": "As an agent whose checkout fast-forwarded past a pin bump, I want the hook to admit its own named install recovery, so that the session can recover in-band without an uninspected tool.",
+      "ImplementationPlan": "1. In packages/core/src/install-health/recovery-admit.ts, add a matcher for the named recovery commands as simple, uncompounded commands run at the project root.\n2. In packages/runtime/src/hook-dispatch.ts, at the `checkCheapInSync` fail-closed branch, admit a matching command only when the fault is pin not equal to installed, with no overlay and no identity mismatch.\n3. Keep the same refusal text for every other command, any chained form and any other directory.\n4. Add tests beside hook-dispatch.ts and in recovery-admit.test.ts for the admit and each refusal.",
+      "Traces": "#6313, #5892, #6013, #5893, #5910, #6312"
+    },
+    "items": [
+      {
+        "title": "Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a pin newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it and then admits the next unrelated command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the same pin mismatch, when the agent runs any other command, `pnpm install` chained with another command, or it in another directory, then the hook refuses with the same recovery text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given an overlay-present or identity-mismatch fault, when the agent runs the install command, then the hook does not admit it and the existing #5910 recovery stays."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Tests beside `hook-dispatch.ts` cover the admit and the refusals above.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the tests beside `hook-dispatch.ts` run, then they cover the admit and each refusal listed in the other clauses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6313",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6313: bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8). Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "pnpm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L29"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/core/src/install-health/cheap.ts",
+          "packages/core/src/install-health/types.ts",
+          "packages/core/src/install-health/cheap.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/core/src/install-health/index.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "hook-pin-recovery",
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/hook-identity-failclosed.test.ts packages/runtime/src/hook-dispatch.test.ts packages/core/src/install-health/cheap.test.ts packages/core/src/install-health/recovery-admit.test.ts"
+        ],
+        "expected_outputs": [
+          "recovery-command matcher in packages/core/src/install-health/recovery-admit.ts",
+          "pin-mismatch-only admit in the hook-dispatch fail-closed branch",
+          "unchanged refusal for other, chained or other-directory commands",
+          "tests beside hook-dispatch.ts for the admit and refusals"
+        ],
+        "Traces": [
+          "#6313",
+          "#5892",
+          "#6013",
+          "#5893",
+          "#5910",
+          "#6312"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because the operator classed this as a small fix with no arc in the wave 2 plan (#6295 comment 6886187825), and the body's Expected and Acceptance Criteria already state the narrow admit: only the hook's own named recovery commands, only when pin ≠ installed is the sole fault. It removes a trap and adds no refusal.\n\n",
+          "id": 6887834460,
+          "html_url": "https://github.com/deftai/directive/issues/6313#issuecomment-6887834460",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-15T02:17:47Z",
+          "updated_at": "2026-11-15T02:17:47Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6381141107,
+        "origin": "deftai/directive#6313",
+        "id": "github.issue.6381141107"
+      },
+      "kind": "story",
+      "productPullRequest": 6328,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "5fe1cc757c7e58f91ae62ba1dc1bd1f9a3a30abf",
+        "prNumber": 6328,
+        "prBase": "master",
+        "mergeCommit": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+        "verifiedAt": "2026-11-15T16:12:23Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T16:12:23Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T16:12:23Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install)",
+        "Summary After a pin bump lands on master, any checkout or worktree that fast-forwards to it still has the previous runtime installed.",
+        "The PreToolUse hook then refuses every shell command with: `Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8).",
+        "Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin).` The recovery it names, `pnpm install --frozen-lockfile` or `npm install`, is itself a shell command, and the same check refuses it (`packages/runtime/src/hook-dispatch.ts`, the `checkCheapInSync` fail-closed branch, about line 371).",
+        "On a host whose only shell is hooked, the session cannot recover in-band.",
+        "It can only use an uninspected tool or a terminal outside the agent.",
+        "Evidence (2026-11-13, pin bump to 0.129.9 in #6312) - The finalize worker for #6311 fast-forwarded its worktree to master after #6312 merged.",
+        "Every Bash call was refused, including `pnpm install --frozen-lockfile`.",
+        "It recovered by running that same command through the PowerShell tool, which the Directive hook does not inspect.",
+        "That was reported as an incident, not a sanctioned path.",
+        "The dispatching session hit the identical refusal twice this week, after each pin bump, and recovered the same way.",
+        "So it is reproducible on every bump.",
+        "Related: #5892 (an arc parent blocked by install drift in the primary checkout), where the same refusal blocked a read-only session.",
+        "This issue is the general trap behind it.",
+        "Expected Remove the trap rather than add a check.",
+        "When the only fail-closed fault is pin ≠ installed (no overlay, no identity mismatch), the hook admits exactly its own named recovery commands as simple, uncompounded shell commands run at the project root: - `pnpm install --frozen-lockfile` - `npm install` / `npm ci` - the AC9.7 pair it names elsewhere: `npm i -g @deftai/directive`, then `directive install --repair` Everything else stays refused until the install matches the pin.",
+        "Acceptance Criteria - [ ] Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
+        "[ ] Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
+        "[ ] Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
+        "[ ] Tests beside `hook-dispatch.ts` cover the admit and the refusals above.",
+        "Related: #5892, #6013, #5893, #5910, #6312.",
+        "Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
+        "Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
+        "Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
+        "Tests beside `hook-dispatch.ts` cover the admit and the refusals above."
+      ],
+      "admitted_source_sentences": [
+        "Summary After a pin bump lands on master, any checkout or worktree that fast-forwards to it still has the previous runtime installed.",
+        "The PreToolUse hook then refuses every shell command with: `Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8).",
+        "Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin).` The recovery it names, `pnpm install --frozen-lockfile` or `npm install`, is itself a shell command, and the same check refuses it (`packages/runtime/src/hook-dispatch.ts`, the `checkCheapInSync` fail-closed branch, about line 371).",
+        "On a host whose only shell is hooked, the session cannot recover in-band.",
+        "It can only use an uninspected tool or a terminal outside the agent.",
+        "Evidence (2026-11-13, pin bump to 0.129.9 in #6312) - The finalize worker for #6311 fast-forwarded its worktree to master after #6312 merged.",
+        "Every Bash call was refused, including `pnpm install --frozen-lockfile`.",
+        "It recovered by running that same command through the PowerShell tool, which the Directive hook does not inspect.",
+        "That was reported as an incident, not a sanctioned path.",
+        "The dispatching session hit the identical refusal twice this week, after each pin bump, and recovered the same way.",
+        "So it is reproducible on every bump.",
+        "Related: #5892 (an arc parent blocked by install drift in the primary checkout), where the same refusal blocked a read-only session.",
+        "This issue is the general trap behind it.",
+        "Expected Remove the trap rather than add a check.",
+        "When the only fail-closed fault is pin ≠ installed (no overlay, no identity mismatch), the hook admits exactly its own named recovery commands as simple, uncompounded shell commands run at the project root: - `pnpm install --frozen-lockfile` - `npm install` / `npm ci` - the AC9.7 pair it names elsewhere: `npm i -g @deftai/directive`, then `directive install --repair` Everything else stays refused until the install matches the pin.",
+        "Acceptance Criteria - [ ] Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
+        "[ ] Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
+        "[ ] Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
+        "[ ] Tests beside `hook-dispatch.ts` cover the admit and the refusals above.",
+        "Related: #5892, #6013, #5893, #5910, #6312."
+      ],
+      "admitted_source_digest": "2160265e3873e5fe6d1fe32ee7492f671fb2a7228265bbf51377faaae9a66189",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Acceptance Criteria - [ ] Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "[ ] Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "[ ] Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
+          "artifact_path": "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "[ ] Tests beside `hook-dispatch.ts` cover the admit and the refusals above.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Summary After a pin bump lands on master, any checkout or worktree that fast-forwards to it still has the previous runtime installed.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The PreToolUse hook then refuses every shell command with: `Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8).",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin).` The recovery it names, `pnpm install --frozen-lockfile` or `npm install`, is itself a shell command, and the same check refuses it (`packages/runtime/src/hook-dispatch.ts`, the `checkCheapInSync` fail-closed branch, about line 371).",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "On a host whose only shell is hooked, the session cannot recover in-band.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "It can only use an uninspected tool or a terminal outside the agent.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Evidence (2026-11-13, pin bump to 0.129.9 in #6312) - The finalize worker for #6311 fast-forwarded its worktree to master after #6312 merged.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Every Bash call was refused, including `pnpm install --frozen-lockfile`.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "It recovered by running that same command through the PowerShell tool, which the Directive hook does not inspect.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "That was reported as an incident, not a sanctioned path.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "The dispatching session hit the identical refusal twice this week, after each pin bump, and recovered the same way.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "So it is reproducible on every bump.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Related: #5892 (an arc parent blocked by install drift in the primary checkout), where the same refusal blocked a read-only session.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "This issue is the general trap behind it.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Expected Remove the trap rather than add a check.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "When the only fail-closed fault is pin ≠ installed (no overlay, no identity mismatch), the hook admits exactly its own named recovery commands as simple, uncompounded shell commands run at the project root: - `pnpm install --frozen-lockfile` - `npm install` / `npm ci` - the AC9.7 pair it names elsewhere: `npm i -g @deftai/directive`, then `directive install --repair` Everything else stays refused until the install matches the pin.",
+          "artifact_path": "packages/core/src/install-health/recovery-admit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Related: #5892, #6013, #5893, #5910, #6312.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install)",
+        "Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
+        "Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
+        "Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
+        "Tests beside `hook-dispatch.ts` cover the admit and the refusals above."
+      ]
+    },
+    "id": "github.issue.6381141107",
+    "updated": "2026-11-15T16:12:23Z"
+  }
+}

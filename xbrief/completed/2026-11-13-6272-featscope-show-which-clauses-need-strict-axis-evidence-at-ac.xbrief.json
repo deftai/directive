@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6272",
-    "updated": "2026-11-13T15:09:14Z"
+    "updated": "2026-11-16T04:52:35Z"
   },
   "plan": {
     "title": "feat(scope): show which clauses need strict-axis evidence at activation, not after the merge",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "scope:complete decides which clauses need deploy, smoke, UAT or observed-behaviour evidence from the brief text alone, but nothing shows that list until completion, after the product PR has merged. This story prints the strict axes each clause will need at scope:activate, scope:promote and xbrief:preflight, using one helper shared with the completion gate. The print is advisory: no new refusal, and the completion gate is unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6272",
@@ -19,110 +19,182 @@
     "items": [
       {
         "title": "Summary `scope:complete` decides which clauses need deploy, smoke, UAT or observed-behaviour evidence (`packages/core/src/scope/acceptance-evidence.ts`, strict axes).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When scope:complete computes which clauses need strict-axis evidence, it calls the shared helper exported from acceptance-evidence.ts; a test shows the gate and the listing return the same axes for one brief."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "That classification is a pure function of the brief text, so it is known when the brief is written.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief plan, when the shared helper runs with no git, network or evidence input, then it returns the per-clause axes; a test calls it on a fixture plan."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Today nothing shows it until completion, after the product PR has merged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief with a strict-axis clause, when scope:activate runs, then the output shows that clause and its axis before any product PR exists."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Each surprise then becomes an operator stop.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief whose clauses need strict axes, when it is activated, then the output lists each such clause, so the wording can be fixed in the brief PR."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Consumer impact On a consumer project, completion refused 23 of 35 clauses for deploy evidence after the merge.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief with several deploy-axis clauses, when scope:promote runs, then the output names every one of them."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "With the list shown at activation, the clause wording or `x-directive/requires` could have been fixed in the brief PR, which is human-reviewed anyway, at no extra operator cost.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the listing prints, it names x-directive/requires as the field that declares the requirement."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Expected - `scope:activate`, `scope:promote` and `xbrief:preflight` print the strict axes each clause will need at completion, using the same classifier `scope:complete` uses (one helper, so they cannot drift).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief with a strict-axis clause, when scope:activate, scope:promote or xbrief:preflight runs, then the output prints the clause id and its axes; a test covers each verb."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Advisory only at those verbs: no new refusal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief with strict-axis clauses, when scope:activate, scope:promote or xbrief:preflight runs, then the exit code equals the exit code without the listing."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The completion gate is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When scope:complete runs, its refusals and exit codes are unchanged; the existing acceptance-evidence tests pass."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Acceptance - Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A test checks that the activation listing and the completion requirement come from the same function.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When npx vitest run packages/core/src/scope/acceptance-evidence.test.ts runs, then a test that checks the listing and the completion requirement call the same function passes."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Related: the identifier false positive in the strict-axis regex is filed separately.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When this story ships, the listing returns whatever the shared classifier returns; the identifier false positive is fixed by #6270, not here."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "538b3237e890d1c153599a658ac91258becec259",
+          "recorded_at": "2026-11-16T04:52:35Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -371,9 +443,36 @@
           "#6270"
         ],
         "acceptance_criteria_justification": "The ingest admitted every sentence of the issue body, and verify:ac requires each admitted sentence as a clause (#5055), so the brief has one clause and one item per sentence, each bound to acceptance-evidence.ts, its test, or scope/main.test.ts. The issue title is the one confession."
+      },
+      "productPullRequest": 6369,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "388e59a90d74a497930f339256ea3b26e879d347",
+        "prNumber": 6369,
+        "prBase": "master",
+        "mergeCommit": "538b3237e890d1c153599a658ac91258becec259",
+        "deliveryBranch": "master",
+        "deliveryCommit": "23ae938afe2e966d99d52c905c5d1a671a968715",
+        "verifiedAt": "2026-11-16T04:52:35Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T04:52:35Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T04:52:35Z"
       }
     },
     "id": "github.issue.6373190126",
-    "updated": "2026-11-13T15:09:14Z"
+    "updated": "2026-11-16T04:52:35Z"
   }
 }

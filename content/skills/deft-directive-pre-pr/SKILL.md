@@ -57,7 +57,8 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 - ! Exit non-zero → fail closed; do not open an unauthorized PR.
 - ! Exit 0 with "skipped (no active ordered-plan sequence)" → proceed under normal pre-PR rules.
 - ⊗ Hardcode `--target-kind pr` when the current entry is `kind=story` or `kind=issue` — the verifier matches entry kind exactly (#2662).
-- ! After the PR's review cycle completes successfully, run `task plan-sequence:advance` so "next" resolves to the following entry (or exhausted).
+- ! An entry that has a brief moves on by itself: once `scope:complete` puts its brief in `completed/`, readers derive the next entry (#6205). Do not advance it at CLEAN. Only an entry with no brief (a task, phase, checklist or review entry with no issue) needs `task plan-sequence:advance` after its review cycle completes.
+- ! An unplanned fix enters the plan only through `task plan-sequence:insert`. Under `plan.policy.requireBoundPrePrPush: true` it needs an operator `plan-sequence-approval` grant minted at a terminal; never hand-edit `.deft/plan-sequence.json`.
 - ⊗ Treat skill-chaining or "what's next?" as permission to open a PR outside the current sequence entry.
 
 ## Three-axis candidate validation (#4888)
@@ -76,7 +77,7 @@ GitHub `mergeable_state` is **textual only**. Post-open behavioral/policy gates 
 
 > **Invariant:** every change MUST pass the full gate at least once before merge. Ordinary pre-PR is the scoped Read-Write-Lint-Diff-Loop plus `verify:ac` — not the whole-repo merge chokepoint. CI `task check:merge` (and conflict-resolve / behind-rebase locally) hold the full gate (#6040).
 
-- ! **Iteration lane (Phases 2–3 loop):** run only these scoped commands — the touched test files; `vitest related --run <changed source paths>` without `--coverage`; `biome check <changed-paths>`; `verify:orphan-active --changed-only`; and the existing `--base-ref` verify gates (`verify:evaluator-surface`, `verify:eval-health-relocation`, `verify:eval-triggers-relocation`). Whole-project `tsc -b` stays in CI (TypeScript lane), not in pre-PR. Phase 3 sits inside this loop.
+- ! **Iteration lane (Phases 2–3 loop):** run only these scoped commands — the touched test files; `vitest related --run <changed source paths>` without `--coverage`; `biome check <changed-paths>`; `verify:orphan-active --changed-only`; and the existing `--base-ref` verify gates (`verify:class-checks`, `verify:evaluator-surface`, `verify:eval-health-relocation`, `verify:eval-triggers-relocation`). `deft pre-pr:run --observe-command --phase lint_iteration` runs `verify:class-checks` and `verify:evaluator-surface` on the candidate tree (working tree against the merge base, plus untracked files) and records both results; the phase passes only when both exit 0, also under the authorized mode skip (#6336). Whole-project `tsc -b` stays in CI (TypeScript lane), not in pre-PR. Phase 3 sits inside this loop.
 - ! **Full gate (CI / exception only):** ordinary pre-PR does **not** run or require post-loop `deft check` / `task check`. Prefer `deft check` (else tree-correct `task deft:check` / `task check`) only for conflict-resolve / behind-rebase candidate validation, and rely on CI `task check:merge` otherwise (#6040 / #4379). Do not add a fourth probe (#2893).
 - ! **Escape-rate safety (#1703 Tier-1):** before recommending fleet-wide fast-lane tightening, cite `#1703` Tier-1 telemetry (`helped/crud-metrics.jsonl`) and `task eval:health` — do NOT invent a separate escape-rate surface.
 - ~ **In-engine incrementality (#1713):** content-hash cache + runner-delegated affected selection are sibling work (#1713).
@@ -109,6 +110,23 @@ Live skip detection on deftai/directive additionally requires Limb 5 enrollment 
 - ⊗ Treat reading this SKILL.md or narrating pre-PR as a push pass.
 - ⊗ Inherit evaluatePrePush empty-stdin allow for the enrolled arm.
 
+
+## Lifecycle-only PRs keep review (#6280)
+
+! No PR class skips the review bot. This includes PRs that change only `xbrief/` lifecycle files. A repo with no reviewer installed is the separate #3630 terminal, not a PR class.
+
+- ! Activation and widen PRs keep the review they have today, because they carry new acceptance text.
+- ! Mint-record and cancel PRs keep their review, because they carry authority.
+- ! A story's completion normally rides in its last product PR (#6277). The remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.
+- ⊗ Skip the review bot on a lifecycle-only PR, or path-filter the reviewer over the lifecycle folders (that also silences activation review).
+
+## In-PR completion is the default for a story's last product PR (#6277)
+
+- ! On a story's last product PR, run `deft scope:complete -- <active-path> --in-pr` as the last write before the final commit. It runs the completion transition on the branch and stamps the brief `lands-with-product`. It writes no delivered provenance and no merge evidence.
+- ! The PR body carries a closing keyword for the story's issue (`Closes #N`). Do not put `deft-story-part: N` on this PR: a part line cannot complete the story (#6317). If earlier PRs of the story carry `deft-story: N`, leave the mark off this PR and use the keyword alone.
+- ! `verify:completed-write-guard` admits the move only when the PR removes the brief from `active/`, changes production files inside the brief's `file_scope` only, and has the closing keyword. Locally pass `--pr-body-file <body>`; CI reads the PR event.
+- ! `--in-pr` refuses a story whose acceptance rests on a merge (a merge-requirement item, stored merge evidence, stored completion provenance, clause-less acceptance), a brief with no issue reference, and a branch with no production change in scope. A refused story keeps the post-merge path: merge the product PR, then `scope:complete` or `swarm:finalize-cohort` and a completion PR (#6303).
+- ! The completion proof is the human product merge plus the identity join: after merge, `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` re-run the join on the commit that landed the brief.
 
 ## Loop Phases
 
@@ -182,7 +200,8 @@ git --no-pager diff master
 - ! Check for scope creep -- changes that go beyond the spec task acceptance criteria
 - ! Verify no debug code, TODO comments, or temporary scaffolding remains
 - ! Confirm no unintended whitespace-only changes or formatting drift
-- ! **Closing-keyword policy (#3015 class D / #737 Layer 0):** Default PR body uses `Tracking: #N` / `Related: #N` / `Refs #N` only. Use `Closes` / `Fixes` / `Resolves #N` only when the **full issue DoD** is met (not Phase A partial / multi-phase mid-stream).
+- ! **Closing-keyword policy (#3015 class D / #737 Layer 0):** Default PR body uses `Tracking: #N` / `Related: #N` / `Refs #N` only. Use `Closes` / `Fixes` / `Resolves #N` only when the **full issue DoD** is met (not Phase A partial / multi-phase mid-stream) and never for an active story.
+- ! **Story line (#6316):** A product PR of an active story carries `deft-story: N` (the PR that completes the story) or `deft-story-part: N` (any other product PR of it). Before opening the PR, write it into the body file: `task pr:check-closing-keywords -- --body-file <path> --write-story-line` (add `--part` for a PR that does not finish the story), or `deft pre-pr:run --body-file <path> [--part]`. It appends the line once and leaves a body that already has one unchanged. The live check fails a product PR of a running story that has neither line, and any body with both lines for one N.
 - ⊗ Write `Closes #N Phase A`, `only if`, `partial`, or other conditional English around a real closing keyword — GitHub ignores the condition and auto-closes (#3015 enterprize#29).
 - ! **Run `task pr:check-closing-keywords` before opening the PR (default mode `both` = FP #737 + intent #3015).** Offline: `--body-file` / `--commits-file`. Scans body and commits for closing-keyword tokens in negation / quotation / example / code-block contexts (FP) and for any unallowlisted real close (intent). When full DoD close is intentional, pass `--allow-close <N,M>` (CLI allowlist only — body trailers are not an authorization path). FP-only: `--mode fp`. Known-safe quoted tokens: `--allow-known-false-positives`. Recurrence stack: #167, #697 / #698, #401 / #700, #735 (class A), #3015 (class D enterprize#29).
 - ~ Verify the diff tells a coherent story -- a reviewer reading it top-to-bottom should understand the change

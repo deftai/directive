@@ -4,6 +4,7 @@
  */
 
 import * as childProcess from "node:child_process";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { isPythonRunShimContent } from "../deposit/python-free.js";
 import type { HookHost } from "../hooks/dispatcher.js";
 import {
@@ -33,6 +34,7 @@ import {
 import { HOOK_FILENAMES } from "../init-deposit/scaffold.js";
 import { isClosedPlanSequenceShape, PLAN_SEQUENCE_REL_PATH } from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export type PathClassification = "coverable" | "inert" | "unknown";
 
@@ -89,6 +91,8 @@ function defaultRunGit(args: readonly string[], cwd: string): GitRunResult {
     cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    // Reads PROJECT-DEFINITION at base/head SHA (over 1 MiB); Node default throws ENOBUFS (#6349).
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
   });
   if (result.status !== 0) {
     const stderr = String(result.stderr ?? result.error?.message ?? "git failed").trim();
@@ -1420,6 +1424,9 @@ export function classifyChangedPath(
 
   // #5674: exact VERSION + ten lifecycle .gitkeep markers (after coverable-first).
   if (isResidualDepositInertPath(p)) return "inert";
+
+  // #6314: changelog entry paths (CHANGELOG.md, changelog.d/<name>.md) are prose.
+  if (isChangelogEntryPath(p)) return "inert";
 
   if (INERT_BASENAMES.has(base)) return "inert";
 

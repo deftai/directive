@@ -6,11 +6,8 @@
  * triage queue continuationNumbers / continuationOrder.
  */
 
-import {
-  detectTerminalEntryDrift,
-  TERMINAL_LIFECYCLE_CODE,
-  type TerminalLifecycleOrigin,
-} from "./terminal-drift.js";
+import { type AuthorizedPlanEntry, derivePlanBatch, derivePlanCursor } from "./derive.js";
+import { TERMINAL_LIFECYCLE_CODE, type TerminalLifecycleOrigin } from "./terminal-drift.js";
 
 export const PLAN_SEQUENCE_FILENAME = "plan-sequence.json";
 export const PLAN_SEQUENCE_CONTRACT = "ordered-plan-continuation" as const;
@@ -59,9 +56,30 @@ const PLAN_SEQUENCE_CLOSED_TOP_KEYS = new Set([
   "contract",
   "generation",
   "source_revision",
+  "insert_approvals",
 ]);
 
-const PLAN_SEQUENCE_ENTRY_CLOSED_KEYS = new Set(["id", "kind", "title", "issue", "status"]);
+const PLAN_SEQUENCE_ENTRY_CLOSED_KEYS = new Set([
+  "id",
+  "kind",
+  "title",
+  "issue",
+  "status",
+  "batch",
+]);
+
+/** Closed keys of one `insert_approvals` row (#6205). */
+const PLAN_INSERT_APPROVAL_CLOSED_KEYS = new Set(["entry_id", "grant_id", "approved_at"]);
+
+/**
+ * Approval row for an entry added by `plan-sequence:insert` (#6205). Lives
+ * under the top-level `insert_approvals` key so entry keys stay unchanged.
+ */
+export interface PlanInsertApproval {
+  readonly entry_id: string;
+  readonly grant_id: string;
+  readonly approved_at: string;
+}
 
 export interface PlanSequenceEntry {
   readonly id: string;
@@ -69,6 +87,12 @@ export interface PlanSequenceEntry {
   readonly title?: string;
   readonly issue?: number;
   readonly status?: "pending" | "completed" | "skipped";
+  /**
+   * Batch label (#4433). With `batching_allowed: true`, adjacent entries with
+   * the same label form one batch, and every pending entry of the current
+   * batch is admitted together. Ignored when `batching_allowed` is false.
+   */
+  readonly batch?: string;
 }
 
 export interface PlanSequence {
@@ -89,6 +113,31 @@ export interface PlanSequence {
   readonly generation: number;
   /** Source Git revision recorded at publish. Not the compare key (#3910). */
   readonly source_revision: string;
+  /** Approval rows for entries added by `plan-sequence:insert` (#6205). */
+  readonly insert_approvals?: readonly PlanInsertApproval[];
+}
+
+function isClosedInsertApprovalRow(raw: unknown): boolean {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return false;
+  const row = raw as Record<string, unknown>;
+  for (const key of Object.keys(row)) {
+    if (!PLAN_INSERT_APPROVAL_CLOSED_KEYS.has(key)) return false;
+  }
+  return [row.entry_id, row.grant_id, row.approved_at].every(
+    (value) => typeof value === "string" && value.length > 0,
+  );
+}
+
+function parseInsertApprovals(raw: unknown): PlanInsertApproval[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(isClosedInsertApprovalRow).map((row) => {
+    const r = row as Record<string, string>;
+    return {
+      entry_id: r.entry_id as string,
+      grant_id: r.grant_id as string,
+      approved_at: r.approved_at as string,
+    };
+  });
 }
 
 export function isPlanSequenceKind(value: unknown): value is PlanSequenceKind {
@@ -97,6 +146,44 @@ export function isPlanSequenceKind(value: unknown): value is PlanSequenceKind {
 
 export function isPlanTargetKind(value: unknown): value is PlanTargetKind {
   return typeof value === "string" && (PLAN_TARGET_KINDS as readonly string[]).includes(value);
+}
+
+function isBatchLabel(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/**
+ * Batch-label check for `plan-sequence:set` (#4433). Returns one actionable
+ * message, or null when the labels are usable. A label must be a non-empty
+ * string. With `batching_allowed: true` at least one entry needs a label and
+ * the entries of one batch must be next to each other.
+ */
+export function planBatchError(
+  entries: readonly { readonly batch?: unknown }[],
+  batchingAllowed: boolean,
+): string | null {
+  const seen = new Set<string>();
+  let previous: string | null = null;
+  for (let i = 0; i < entries.length; i += 1) {
+    const entry = entries[i];
+    if (entry === undefined || !Object.hasOwn(entry, "batch")) {
+      previous = null;
+      continue;
+    }
+    if (!isBatchLabel(entry.batch)) {
+      return `plan-sequence: entries[${i}].batch must be a non-empty string.`;
+    }
+    const label = entry.batch;
+    if (batchingAllowed && label !== previous && seen.has(label)) {
+      return `plan-sequence: batch "${label}" is split by other entries at entries[${i}]. Put the entries of one batch next to each other.`;
+    }
+    seen.add(label);
+    previous = label;
+  }
+  if (batchingAllowed && seen.size === 0) {
+    return 'plan-sequence: batching_allowed is true but no entry has a "batch" label. Give the entries that run together the same "batch" value, or set batching_allowed to false.';
+  }
+  return null;
 }
 
 /**
@@ -134,6 +221,12 @@ export function isClosedPlanSequenceShape(raw: unknown): boolean {
   if (Object.hasOwn(obj, "source_revision") && typeof obj.source_revision !== "string") {
     return false;
   }
+  if (
+    Object.hasOwn(obj, "insert_approvals") &&
+    (!Array.isArray(obj.insert_approvals) || !obj.insert_approvals.every(isClosedInsertApprovalRow))
+  ) {
+    return false;
+  }
 
   for (let i = 0; i < obj.entries.length; i++) {
     const item = obj.entries[i];
@@ -146,6 +239,7 @@ export function isClosedPlanSequenceShape(raw: unknown): boolean {
     if (!isPlanTargetKind(entry.kind)) return false;
     if (Object.hasOwn(entry, "title") && typeof entry.title !== "string") return false;
     if (Object.hasOwn(entry, "issue") && typeof entry.issue !== "number") return false;
+    if (Object.hasOwn(entry, "batch") && !isBatchLabel(entry.batch)) return false;
     if (
       Object.hasOwn(entry, "status") &&
       (typeof entry.status !== "string" || !PLAN_SEQUENCE_ENTRY_STATUSES.has(entry.status))
@@ -288,10 +382,18 @@ export function resolveContinuation(
   return { action: "advance", entry, index };
 }
 
-export function verifyPlanTarget(
+type PlanVerifyRefusal = Extract<PlanSequenceVerifyResult, { ok: false }>;
+
+/**
+ * The current authorized set, or the refusal that applies before any target
+ * is compared: no plan, a cancelled or failed origin on the current entry
+ * (#4129), or an exhausted plan. The set comes from the derived cursor
+ * (#6205) and, with `batching_allowed: true`, the current batch (#4433).
+ */
+function resolveAuthorizedSet(
   sequence: PlanSequence | null,
-  input: PlanSequenceVerifyInput,
-): PlanSequenceVerifyResult {
+  terminalOrigins: readonly TerminalLifecycleOrigin[],
+): { readonly ok: true; readonly authorized: readonly AuthorizedPlanEntry[] } | PlanVerifyRefusal {
   if (sequence === null) {
     return {
       ok: false,
@@ -300,45 +402,132 @@ export function verifyPlanTarget(
         "No active ordered-plan sequence. Set one with plan-sequence:set, or obtain explicit operator approval for this target.",
     };
   }
-  if (sequence.exhausted || sequence.current_index >= sequence.entries.length) {
-    return {
-      ok: false,
-      code: "exhausted",
-      message: EXHAUSTED_FAIL_CLOSED_MESSAGE,
-    };
-  }
-  const index = sequence.current_index;
-  const entry = sequence.entries[index];
-  if (entry === undefined) {
-    return {
-      ok: false,
-      code: "exhausted",
-      message: EXHAUSTED_FAIL_CLOSED_MESSAGE,
-    };
-  }
-  const drift = detectTerminalEntryDrift(sequence, input.terminalOrigins ?? []);
-  if (drift.drifted) {
+  const cursor = derivePlanCursor(sequence, terminalOrigins);
+  if (cursor.stop !== null) {
     return {
       ok: false,
       code: TERMINAL_LIFECYCLE_CODE,
-      message: drift.message,
+      message: cursor.stop.message,
     };
   }
-  if (entry.kind !== input.targetKind) {
+  const authorized = derivePlanBatch(sequence, cursor, terminalOrigins);
+  if (authorized.length === 0) {
+    return {
+      ok: false,
+      code: "exhausted",
+      message: EXHAUSTED_FAIL_CLOSED_MESSAGE,
+    };
+  }
+  return { ok: true, authorized };
+}
+
+function describeAuthorized(authorized: readonly AuthorizedPlanEntry[]): string {
+  const [first] = authorized;
+  if (authorized.length === 1 && first !== undefined) {
+    return `the current ordered-plan entry (${first.entry.kind}:${first.entry.id})`;
+  }
+  const label = first?.entry.batch ?? "";
+  const ids = authorized.map((a) => `${a.entry.kind}:${a.entry.id}`).join(", ");
+  return `in the current ordered-plan batch "${label}" (${ids})`;
+}
+
+export function verifyPlanTarget(
+  sequence: PlanSequence | null,
+  input: PlanSequenceVerifyInput,
+): PlanSequenceVerifyResult {
+  // #6205: the effective entry is derived from completed briefs, not the stored index.
+  const resolved = resolveAuthorizedSet(sequence, input.terminalOrigins ?? []);
+  if (!resolved.ok) {
+    return resolved;
+  }
+  const { authorized } = resolved;
+  const match = authorized.find((a) => entryMatches(a.entry, input.targetKind, input.target));
+  if (match !== undefined) {
+    return { ok: true, entry: match.entry, index: match.index };
+  }
+  const first = authorized[0] as AuthorizedPlanEntry;
+  if (!authorized.some((a) => a.entry.kind === input.targetKind)) {
     return {
       ok: false,
       code: "kind-mismatch",
-      message: `Current ordered-plan entry is kind=${entry.kind} id=${entry.id}; requested kind=${input.targetKind} target=${input.target}.`,
+      message: `Current ordered-plan entry is kind=${first.entry.kind} id=${first.entry.id}; requested kind=${input.targetKind} target=${input.target}.`,
     };
   }
-  if (!entryMatches(entry, input.targetKind, input.target)) {
+  return {
+    ok: false,
+    code: "mismatch",
+    message: `Target ${input.targetKind}:${input.target} is not ${describeAuthorized(authorized)}.`,
+  };
+}
+
+export interface PlanStoryVerifyInput {
+  /** The launch roster member's story id. */
+  readonly storyId: string;
+  /** Issue numbers the story's brief resolves to. */
+  readonly issues: Iterable<number>;
+  /** Folder-scan facts for the derived cursor (#6205) and #4129. */
+  readonly terminalOrigins?: readonly TerminalLifecycleOrigin[];
+}
+
+function entryIssueNumbers(entry: PlanSequenceEntry): Set<number> {
+  const numbers = new Set<number>();
+  if (entry.issue !== undefined) {
+    numbers.add(entry.issue);
+  }
+  const id = normalizeTarget(entry.id);
+  if (/^\d+$/.test(id)) {
+    numbers.add(Number.parseInt(id, 10));
+  }
+  return numbers;
+}
+
+/**
+ * Match one `swarm:launch` roster member against the current authorized set
+ * (#4433). A story-kind entry matches on story id (never title). Issue-kind
+ * entries match when every issue the story resolves to is the id or issue of
+ * an authorized entry, so a multi-issue story needs all its issues admitted.
+ * Uses the same authorized set as `verifyPlanTarget`.
+ */
+export function verifyPlanStory(
+  sequence: PlanSequence | null,
+  input: PlanStoryVerifyInput,
+): PlanSequenceVerifyResult {
+  const resolved = resolveAuthorizedSet(sequence, input.terminalOrigins ?? []);
+  if (!resolved.ok) {
+    return resolved;
+  }
+  const { authorized } = resolved;
+  const storyId = normalizeTarget(input.storyId);
+  const storyMatch = authorized.find(
+    (a) => a.entry.kind === "story" && normalizeTarget(a.entry.id) === storyId,
+  );
+  if (storyMatch !== undefined) {
+    return { ok: true, entry: storyMatch.entry, index: storyMatch.index };
+  }
+  const issues = [...new Set(input.issues)].sort((a, b) => a - b);
+  const issueEntries = authorized.filter((a) => a.entry.kind === "issue");
+  const matched = issues.map((n) => issueEntries.find((a) => entryIssueNumbers(a.entry).has(n)));
+  const firstMatch = matched[0];
+  if (firstMatch !== undefined && matched.every((m) => m !== undefined)) {
+    return { ok: true, entry: firstMatch.entry, index: firstMatch.index };
+  }
+  const first = authorized[0] as AuthorizedPlanEntry;
+  const member =
+    issues.length > 0
+      ? `story:${input.storyId} (issues ${issues.map((n) => `#${n}`).join(", ")})`
+      : `story:${input.storyId}`;
+  if (!authorized.some((a) => a.entry.kind === "story" || a.entry.kind === "issue")) {
     return {
       ok: false,
-      code: "mismatch",
-      message: `Target ${input.targetKind}:${input.target} is not the current ordered-plan entry (${entry.kind}:${entry.id}).`,
+      code: "kind-mismatch",
+      message: `Current ordered-plan entry is kind=${first.entry.kind} id=${first.entry.id}; launch roster member ${member} matches only story or issue entries.`,
     };
   }
-  return { ok: true, entry, index };
+  return {
+    ok: false,
+    code: "mismatch",
+    message: `Launch roster member ${member} is not ${describeAuthorized(authorized)}.`,
+  };
 }
 
 export function createPlanSequence(input: {
@@ -430,6 +619,8 @@ export function parsePlanSequence(raw: unknown): PlanSequence {
         e.status === "completed" || e.status === "skipped" || e.status === "pending"
           ? e.status
           : "pending",
+      // #4433: an unusable label is dropped, so that entry is its own batch.
+      ...(isBatchLabel(e.batch) ? { batch: e.batch } : {}),
     };
   });
   const current_index = typeof obj.current_index === "number" ? obj.current_index : 0;
@@ -443,6 +634,7 @@ export function parsePlanSequence(raw: unknown): PlanSequence {
     generation = obj.generation;
   }
   const source_revision = typeof obj.source_revision === "string" ? obj.source_revision : "";
+  const insert_approvals = parseInsertApprovals(obj.insert_approvals);
   return {
     sequence_id: obj.sequence_id,
     sequence_kind: obj.sequence_kind as PlanSequenceKind,
@@ -456,5 +648,6 @@ export function parsePlanSequence(raw: unknown): PlanSequence {
     updated_at: typeof obj.updated_at === "string" ? obj.updated_at : new Date().toISOString(),
     generation,
     source_revision,
+    ...(insert_approvals !== undefined ? { insert_approvals } : {}),
   };
 }

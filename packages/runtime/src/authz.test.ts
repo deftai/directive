@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1196,5 +1197,376 @@ describe("evaluate denials under active UAT name human-presence uat-suspend (#46
     expect(d.code).toBe("authz-grant-expired");
     expect(d.reason).toMatch(/authz:uat-suspend/);
     expect(d.reason).not.toMatch(/authz:grant/);
+  });
+});
+
+describe("authz CLI delivery-identity-attest template (#6317)", () => {
+  const SHA = "c".repeat(40);
+  const TARGET = `deftai/directive#6280@${SHA}`;
+
+  function git(cwd: string, args: string[]): string {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  }
+
+  function cloneWithDest(): { main: string; dest: string } {
+    const base = tempRoot();
+    const mainRoot = join(base, "main");
+    mkdirSync(mainRoot);
+    git(mainRoot, ["init", "-q"]);
+    git(mainRoot, ["config", "user.email", "test@example.com"]);
+    git(mainRoot, ["config", "user.name", "test"]);
+    writeFileSync(join(mainRoot, "README.md"), "x\n", "utf8");
+    git(mainRoot, ["add", "README.md"]);
+    git(mainRoot, ["commit", "-q", "-m", "init"]);
+    const dest = join(base, "dest");
+    git(mainRoot, ["worktree", "add", "-q", "-b", "dest-branch", dest]);
+    return { main: mainRoot, dest };
+  }
+
+  function capture(): { out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    return { out, err };
+  }
+
+  const grantArgv = (root: string, extra: string[] = []) => [
+    "grant",
+    "--project-root",
+    root,
+    "--template",
+    "delivery-identity-attest",
+    ...extra,
+  ];
+
+  it("mints from a linked dest into the main clone store; show and revoke find it from the dest", () => {
+    const { main: mainRoot, dest } = cloneWithDest();
+    const { out } = capture();
+    expect(runAuthz(grantArgv(dest, ["--target", TARGET, "--plan-ref", "github.issue.6269"]))).toBe(
+      0,
+    );
+    const text = out.join("");
+    expect(text).toMatch(/template=delivery-identity-attest/);
+    expect(text).toMatch(/plan=github\.issue\.6269/);
+    const id = /id=(\S+)/.exec(text)?.[1] ?? "";
+    expect(id.length).toBeGreaterThan(0);
+    const grantFile = join(mainRoot, ".deft", "authz", "grants", `${id}.json`);
+    const stored = JSON.parse(readFileSync(grantFile, "utf8")) as HumanOriginGrant;
+    expect(stored.origin.kind).toBe("operator-cli");
+    expect(stored.semantics.singleUse).toBe(true);
+    expect(stored.semantics.expiresAt).not.toBeNull();
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest])).toBe(0);
+    expect(out.join("")).toMatch(/Delivery-identity-attest grants \(main clone store .*\): 1/);
+    expect(out.join("")).toContain(id);
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest, "--format", "json"])).toBe(0);
+    const json = JSON.parse(out.join("")) as {
+      deliveryIdentityAttest: { grants: { id: string }[] };
+    };
+    expect(json.deliveryIdentityAttest.grants.map((g) => g.id)).toEqual([id]);
+
+    out.length = 0;
+    expect(runAuthz(["revoke", "--project-root", dest, id])).toBe(0);
+    expect(out.join("")).toMatch(/grant revoked/);
+    const revoked = JSON.parse(readFileSync(grantFile, "utf8")) as HumanOriginGrant;
+    expect(revoked.semantics.revokedAt).not.toBeNull();
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest])).toBe(0);
+    expect(out.join("")).toMatch(/revoked=/);
+  });
+
+  it("refuses a missing target or plan ref, a bad target, and an unresolvable store root", () => {
+    const { dest } = cloneWithDest();
+    const { err } = capture();
+    expect(runAuthz(grantArgv(dest, ["--plan-ref", "p"]))).toBe(2);
+    expect(err.join("")).toMatch(/requires --target <owner>\/<repo>#<pr>@<merge_commit_sha>/);
+    expect(runAuthz(grantArgv(dest, ["--target", TARGET]))).toBe(2);
+    expect(err.join("")).toMatch(/requires --plan-ref <scopeId>/);
+    expect(
+      runAuthz(grantArgv(dest, ["--target", "deftai/directive#6280", "--plan-ref", "p"])),
+    ).toBe(2);
+    expect(err.join("")).toMatch(
+      /authz:grant: template delivery-identity-attest requires --target/,
+    );
+    const notGit = tempRoot();
+    expect(runAuthz(grantArgv(notGit, ["--target", TARGET, "--plan-ref", "p"]))).toBe(2);
+    expect(err.join("")).toMatch(/store cannot be resolved/);
+    expect(runAuthz(["show", "--project-root", notGit])).toBe(0);
+  });
+
+  it("refuses an unreadable --expires value", () => {
+    const { main: mainRoot } = cloneWithDest();
+    const { err } = capture();
+    expect(
+      runAuthz(
+        grantArgv(mainRoot, ["--target", TARGET, "--plan-ref", "p", "--expires", "not-a-date"]),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/not a readable date/);
+  });
+
+  it("goes through the human-presence mint gate (non-TTY refuses)", () => {
+    const { main: mainRoot } = cloneWithDest();
+    const { err } = capture();
+    expect(
+      main([...grantArgv(mainRoot, ["--target", TARGET, "--plan-ref", "p"]), "--confirm"], {
+        isTty: () => false,
+      }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/TTY|non-TTY|silent-mint/i);
+  });
+});
+
+describe("authz CLI acceptance-disposition template (#6318)", () => {
+  const PLAN = "github.issue.6318";
+
+  function git(cwd: string, args: string[]): string {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  }
+
+  /** Main clone plus a linked dest; the active brief is on both checkouts. */
+  function cloneWithDest(): { main: string; dest: string } {
+    const base = tempRoot();
+    const mainRoot = join(base, "main");
+    mkdirSync(mainRoot);
+    git(mainRoot, ["init", "-q"]);
+    git(mainRoot, ["config", "user.email", "test@example.com"]);
+    git(mainRoot, ["config", "user.name", "test"]);
+    writeFileSync(join(mainRoot, "README.md"), "x\n", "utf8");
+    git(mainRoot, ["add", "README.md"]);
+    git(mainRoot, ["commit", "-q", "-m", "init"]);
+    const dest = join(base, "dest");
+    git(mainRoot, ["worktree", "add", "-q", "-b", "dest-branch", dest]);
+    for (const root of [mainRoot, dest]) {
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "active", "2026-11-15-6318-story.xbrief.json"),
+        JSON.stringify({
+          plan: {
+            id: PLAN,
+            title: "story",
+            status: "running",
+            acceptance: { clauses: [{ id: 19, text: "Clause nineteen." }] },
+            items: [],
+          },
+        }),
+        "utf8",
+      );
+    }
+    return { main: mainRoot, dest };
+  }
+
+  function capture(): { out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    return { out, err };
+  }
+
+  const grantArgv = (root: string, extra: string[] = []) => [
+    "grant",
+    "--project-root",
+    root,
+    "--template",
+    "acceptance-disposition",
+    ...extra,
+  ];
+  const full = ["--plan-ref", PLAN, "--story-ids", "clause.19", "--deferred-to", "#6400"];
+
+  it("clause.5: mints from the primary; show and authz:revoke from a linked dest find it", () => {
+    const { main: mainRoot, dest } = cloneWithDest();
+    const { out } = capture();
+    expect(runAuthz(grantArgv(mainRoot, [...full, "--reason", "operator correction"]))).toBe(0);
+    const text = out.join("");
+    expect(text).toMatch(/template=acceptance-disposition/);
+    expect(text).toMatch(/plan=github\.issue\.6318 items=clause\.19/);
+    const id = /id=(\S+)/.exec(text)?.[1] ?? "";
+    expect(id.length).toBeGreaterThan(0);
+    const grantFile = join(mainRoot, ".deft", "authz", "grants", `${id}.json`);
+    const stored = JSON.parse(readFileSync(grantFile, "utf8")) as HumanOriginGrant;
+    expect(stored.origin.kind).toBe("operator-cli");
+    expect(stored.scope.storyIds).toEqual(["clause.19"]);
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest])).toBe(0);
+    expect(out.join("")).toMatch(/Acceptance-disposition grants \(main clone store .*\): 1/);
+    expect(out.join("")).toContain(id);
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest, "--format", "json"])).toBe(0);
+    const json = JSON.parse(out.join("")) as {
+      acceptanceDisposition: { grants: { id: string }[] };
+    };
+    expect(json.acceptanceDisposition.grants.map((g) => g.id)).toEqual([id]);
+
+    out.length = 0;
+    expect(runAuthz(["revoke", "--project-root", dest, id])).toBe(0);
+    expect(out.join("")).toMatch(/grant revoked/);
+    const revoked = JSON.parse(readFileSync(grantFile, "utf8")) as HumanOriginGrant;
+    expect(revoked.semantics.revokedAt).not.toBeNull();
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest])).toBe(0);
+    expect(out.join("")).toMatch(/revoked=/);
+  });
+
+  it("refuses each missing flag and returns core validation failures", () => {
+    const { dest } = cloneWithDest();
+    const { err } = capture();
+    const cases: [string[], RegExp][] = [
+      [[], /requires --plan-ref <scopeId>/],
+      [["--plan-ref", PLAN], /requires --story-ids <itemIds>/],
+      [["--plan-ref", PLAN, "--story-ids", "clause.19"], /requires --deferred-to <issue>/],
+      [full, /requires --reason <text>/],
+      [[...full, "--reason", "r", "--expires", "not-a-date"], /not a readable date/],
+      [
+        ["--plan-ref", PLAN, "--story-ids", "clause.7", "--deferred-to", "6400", "--reason", "r"],
+        /neither an acceptance clause/,
+      ],
+    ];
+    for (const [extra, message] of cases) {
+      err.length = 0;
+      expect(runAuthz(grantArgv(dest, extra))).toBe(2);
+      expect(err.join("")).toMatch(message);
+    }
+    const notGit = tempRoot();
+    err.length = 0;
+    expect(runAuthz(grantArgv(notGit, [...full, "--reason", "r"]))).toBe(2);
+    expect(err.join("")).toMatch(/store cannot be resolved/);
+    expect(runAuthz(["show", "--project-root", notGit])).toBe(0);
+  });
+
+  it("goes through the human-presence mint gate (non-TTY refuses)", () => {
+    const { main: mainRoot } = cloneWithDest();
+    const { err } = capture();
+    expect(
+      main([...grantArgv(mainRoot, [...full, "--reason", "r"]), "--confirm"], {
+        isTty: () => false,
+      }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/TTY|non-TTY|silent-mint/i);
+  });
+});
+
+describe("authz CLI plan-sequence-approval template (#6205)", () => {
+  function gitRepo(): string {
+    const root = tempRoot();
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/acme/app.git"], {
+      cwd: root,
+    });
+    return root;
+  }
+
+  function capture(): { out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    return { out, err };
+  }
+
+  const insertArgv = (root: string) => [
+    "grant",
+    "--project-root",
+    root,
+    "--template",
+    "plan-sequence-approval",
+    "--target",
+    "insert:issue:900",
+    "--plan-ref",
+    "seq-6205",
+    "--generation",
+    "3",
+    "--position",
+    "1",
+    "--issue-ids",
+    "900",
+  ];
+
+  it("clause.11: mints a single-use operator-cli grant bound to repo, sequence, generation, entry and position", () => {
+    const root = gitRepo();
+    const { out } = capture();
+    expect(runAuthz([...insertArgv(root), "--title", "Hot Fix"])).toBe(0);
+    const text = out.join("");
+    expect(text).toMatch(/template=plan-sequence-approval/);
+    expect(text).toContain("plan-sequence-approval:title:=hot fix");
+    expect(text).toContain("repo=acme/app");
+    const id = /id=(\S+)/.exec(text)?.[1] ?? "";
+    const grant = JSON.parse(
+      readFileSync(join(root, ".deft", "authz", "grants", `${id}.json`), "utf8"),
+    ) as HumanOriginGrant;
+    expect(grant.origin.kind).toBe("operator-cli");
+    expect(grant.semantics.singleUse).toBe(true);
+    expect(grant.scope.surfaces).toEqual(
+      expect.arrayContaining([
+        "plan-sequence-approval:generation:3",
+        "plan-sequence-approval:position:1",
+        "plan-sequence-approval:entry:issue:900",
+      ]),
+    );
+  });
+
+  it("names each missing argument and refuses a malformed --generation or --position", () => {
+    const root = gitRepo();
+    const { err } = capture();
+    const base = ["grant", "--project-root", root, "--template", "plan-sequence-approval"];
+    expect(runAuthz(base)).toBe(2);
+    expect(err.join("")).toContain("requires --target");
+    err.length = 0;
+    expect(runAuthz([...base, "--target", "clear"])).toBe(2);
+    expect(err.join("")).toContain("requires --plan-ref");
+    err.length = 0;
+    expect(runAuthz([...base, "--target", "clear", "--plan-ref", "s"])).toBe(2);
+    expect(err.join("")).toContain("requires --generation");
+    err.length = 0;
+    expect(runAuthz([...base, "--generation", "x"])).toBe(2);
+    expect(err.join("")).toContain("--generation requires a non-negative integer");
+    err.length = 0;
+    expect(runAuthz([...base, "--position", "-2"])).toBe(2);
+    expect(err.join("")).toContain("--position requires a non-negative integer");
+    err.length = 0;
+    expect(
+      runAuthz([...base, "--target", "insert:issue:1", "--plan-ref", "s", "--generation", "0"]),
+    ).toBe(2);
+    expect(err.join("")).toContain("insert requires --position");
+  });
+
+  it("refuses an agent shell through the human-presence gate", () => {
+    const root = gitRepo();
+    const { out } = capture();
+    expect(
+      main([...insertArgv(root), "--confirm"], {
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        environ: { CLAUDECODE: "1" },
+      }),
+    ).toBe(2);
+    expect(out.join("")).not.toContain("template=plan-sequence-approval");
   });
 });

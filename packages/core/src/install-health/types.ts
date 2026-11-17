@@ -75,6 +75,11 @@ export interface CheapInSyncResult {
   readonly identityMatch: boolean;
   readonly readinessValid: boolean;
   readonly failClosed: boolean;
+  /**
+   * True when pin ≠ installed is the only fail-closed fault (no overlay) (#6313).
+   * Absent is read as false, so the recovery admit stays off.
+   */
+  readonly pinMismatchOnly?: boolean;
   readonly allowSetup: boolean;
   readonly recoveryGuidance: string | null;
 }

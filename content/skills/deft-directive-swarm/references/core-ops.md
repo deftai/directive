@@ -60,7 +60,7 @@ Task B (xBRIEF: [filename], issue #[N]): [one-paragraph description with specifi
 
 STEP 3 — Validate: Use iteration fast lane during commits (affected/static gates). Run full task check once before push/PR (#1704). Fix any failures.
 
-STEP 4 — Commit: Add CHANGELOG.md entries under [Unreleased].
+STEP 4 — Commit: Add CHANGELOG.md entries under [Unreleased], or your own changelog.d/<issue>-<slug>.md fragment (the path in your file_scope) when plan.policy.changelog.mode is either or fragments (#6315). Never edit another change's fragment.
 Commit early: as soon as a coherent unit exists (source + tests that compile), then at checkpoints.
 A host-kill must not leave the only copy unversioned (#3730).
 Commit with message: [type]([scope]): [description] — with bullet-point body.

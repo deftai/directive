@@ -1,7 +1,10 @@
 import { dirname, relative, resolve } from "node:path";
 import { resolveSpecArtifactPath } from "../layout/resolve.js";
 import { resolveSpecGuard } from "../policy/spec-guard.js";
-import { recordScopeCompleteDrift } from "../verify-source/spec-drift.js";
+import {
+  recordScopeCompleteDrift,
+  type SpecDriftDeliveryOptions,
+} from "../verify-source/spec-drift.js";
 import { syncRegistryArtifactAfterScopeMove } from "./registry-artifact-sync.js";
 
 export interface SpecificationSyncResult {
@@ -16,6 +19,8 @@ export function syncSpecificationAfterScopeMove(
   newPath: string,
   vbriefRoot: string,
   targetStatus: string,
+  /** #6335: the story's own delivery commits for the shadow rewrite proof. */
+  driftOptions: SpecDriftDeliveryOptions = {},
 ): SpecificationSyncResult {
   const projectRoot = dirname(resolve(vbriefRoot));
   let specPath: string;
@@ -52,7 +57,7 @@ export function syncSpecificationAfterScopeMove(
       return { ok: true, message: "" };
     }
     try {
-      recordScopeCompleteDrift(projectRoot, scopeData, scopeRel);
+      recordScopeCompleteDrift(projectRoot, scopeData, scopeRel, driftOptions);
     } catch (err) {
       // advise/shadow: must not refuse the lifecycle move solely for record errors
       void err;

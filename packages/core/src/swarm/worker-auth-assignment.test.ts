@@ -16,10 +16,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { resolveWorktreeStoryBinding } from "../hooks/scope.js";
 import {
   cleanupWorkerAuthAssignmentsForDispatch,
+  cleanupWorkerAuthAssignmentsForStories,
+  FAILURE_DUPLICATE_ASSIGNMENT,
   FAILURE_MALFORMED_ASSIGNMENT,
   FAILURE_MISSING_ASSIGNMENT,
   FAILURE_ORPHAN_ASSIGNMENT,
   FAILURE_REGISTRY_CORRUPTION,
+  findWorkerAuthAssignmentsForStories,
+  matchingCredentialDeliveryId,
   readWorkerAuthAssignment,
   removeWorkerAuthAssignment,
   setWorkerAuthLockTestHooks,
@@ -196,6 +200,14 @@ describe("worker-auth-assignment (#3663)", { timeout: 60_000 }, () => {
     });
     expect(first.ok).toBe(true);
     if (!first.ok) return;
+    // #6422: a different record is never re-pointed; free the dest through its owner first.
+    expect(
+      removeWorkerAuthAssignment({
+        projectRoot: main,
+        worktreePath: worktree,
+        dispatchId: "dispatch-1",
+      }).ok,
+    ).toBe(true);
     const lockAbs = join(workerAuthStoreDir(first.commonDir), WORKER_AUTH_LOCK_NAME);
     writeFileSync(lockAbs, "locked\n");
     const live = writeWorkerAuthAssignment({
@@ -358,6 +370,14 @@ describe("worker-auth-assignment (#3663)", { timeout: 60_000 }, () => {
     });
     expect(first.ok).toBe(true);
     if (!first.ok) return;
+    // #6422: a different record is never re-pointed; free the dest through its owner first.
+    expect(
+      removeWorkerAuthAssignment({
+        projectRoot: main,
+        worktreePath: worktree,
+        dispatchId: "dispatch-seed",
+      }).ok,
+    ).toBe(true);
     const lockAbs = join(workerAuthStoreDir(first.commonDir), WORKER_AUTH_LOCK_NAME);
     writeFileSync(lockAbs, "locked\n");
     const staleAt = (Date.now() - WORKER_AUTH_LOCK_STALE_MS - 1000) / 1000;
@@ -409,6 +429,14 @@ describe("worker-auth-assignment (#3663)", { timeout: 60_000 }, () => {
     });
     expect(first.ok).toBe(true);
     if (!first.ok) return;
+    // #6422: a different record is never re-pointed; free the dest through its owner first.
+    expect(
+      removeWorkerAuthAssignment({
+        projectRoot: main,
+        worktreePath: worktree,
+        dispatchId: "dispatch-1",
+      }).ok,
+    ).toBe(true);
     const lockAbs = join(workerAuthStoreDir(first.commonDir), WORKER_AUTH_LOCK_NAME);
     writeFileSync(
       lockAbs,
@@ -616,6 +644,115 @@ describe("worker-auth-assignment (#3663)", { timeout: 60_000 }, () => {
     const dropped = readWorkerAuthAssignment(other);
     expect(dropped).toEqual({ ok: true, assignment: null, commonDir: expect.any(String) });
   }, 60_000 /* #5084 suite-load testTimeout */);
+});
+
+describe("launch re-write and per-story cleanup (#6422)", { timeout: 120_000 }, () => {
+  function base(main: string, worktreePath: string) {
+    return {
+      projectRoot: main,
+      worktreePath,
+      dispatchId: "dispatch-6422",
+      storyId: "story-6422",
+      githubAuthMode: "host-gh",
+      expectedPrincipal: { kind: "user" as const, login: "worker-6422" },
+      credentialDeliveryId: null,
+    };
+  }
+
+  it("keeps an identical record and refuses a different one before overwriting", () => {
+    const { main, worktree } = linkedPair();
+    const first = writeWorkerAuthAssignment(base(main, worktree));
+    expect(first).toMatchObject({ ok: true, created: true });
+    const again = writeWorkerAuthAssignment(base(main, worktree));
+    expect(again).toMatchObject({ ok: true, created: false });
+    const repoint = writeWorkerAuthAssignment({ ...base(main, worktree), dispatchId: "other" });
+    expect(repoint.ok).toBe(false);
+    if (repoint.ok) return;
+    expect(repoint.failureKind).toBe(FAILURE_DUPLICATE_ASSIGNMENT);
+    expect(repoint.detail).toContain("dispatch dispatch-6422 story story-6422");
+    const kept = readWorkerAuthAssignment(worktree);
+    expect(kept.ok && kept.assignment?.dispatch_id).toBe("dispatch-6422");
+  });
+
+  it("returns the delivery id of a matching registration so a repeat launch keeps it", () => {
+    const { main, worktree } = linkedPair();
+    const token = {
+      ...base(main, worktree),
+      githubAuthMode: "injected-token",
+      credentialDeliveryId: "del-6422",
+    };
+    expect(writeWorkerAuthAssignment(token)).toMatchObject({ ok: true, created: true });
+    const { credentialDeliveryId: _omit, ...lookup } = token;
+    expect(matchingCredentialDeliveryId(lookup)).toBe("del-6422");
+    expect(matchingCredentialDeliveryId({ ...lookup, dispatchId: "other" })).toBeNull();
+    expect(
+      matchingCredentialDeliveryId({
+        ...lookup,
+        expectedPrincipal: { kind: "user", login: "someone-else" },
+      }),
+    ).toBeNull();
+    expect(
+      matchingCredentialDeliveryId({ ...lookup, worktreePath: join(main, "no-such-dest") }),
+    ).toBeNull();
+    // Reusing the id makes the repeat write identical, so it is kept, not refused.
+    expect(writeWorkerAuthAssignment(token)).toMatchObject({ ok: true, created: false });
+  });
+
+  it("refuses to overwrite an unreadable existing record", () => {
+    const { main, worktree } = linkedPair();
+    expect(writeWorkerAuthAssignment(base(main, worktree)).ok).toBe(true);
+    const store = workerAuthStoreDir(
+      execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
+        cwd: main,
+        encoding: "utf8",
+      }).trim(),
+    );
+    const record = readdirSync(store).find((name) => /^[0-9a-f]{64}\.json$/i.test(name));
+    expect(record).toBeDefined();
+    writeFileSync(join(store, record as string), "{broken", "utf8");
+    const repoint = writeWorkerAuthAssignment({ ...base(main, worktree), dispatchId: "other" });
+    expect(repoint.ok).toBe(false);
+    if (repoint.ok) return;
+    expect(repoint.detail).toContain("an unreadable record");
+    expect(readFileSync(join(store, record as string), "utf8")).toBe("{broken");
+  });
+
+  it("removes only the closed stories of the dispatch and finds records by story", () => {
+    const { main, worktree } = linkedPair();
+    const other = join(main, ".deft-scratch", "worktrees", "b");
+    const third = join(main, ".deft-scratch", "worktrees", "c");
+    expect(writeWorkerAuthAssignment({ ...base(main, worktree), storyId: "a" }).ok).toBe(true);
+    expect(writeWorkerAuthAssignment({ ...base(main, other), storyId: "b" }).ok).toBe(true);
+    expect(
+      writeWorkerAuthAssignment({ ...base(main, third), storyId: "a", dispatchId: "foreign" }).ok,
+    ).toBe(true);
+    const ids = () =>
+      findWorkerAuthAssignmentsForStories({ projectRoot: main, storyIds: ["a", "b"] })
+        .map((x) => `${x.story_id}@${x.dispatch_id}`)
+        .sort();
+    expect(ids()).toEqual(["a@dispatch-6422", "a@foreign", "b@dispatch-6422"]);
+    const none = cleanupWorkerAuthAssignmentsForStories({
+      projectRoot: main,
+      dispatchId: "dispatch-6422",
+      storyIds: [" "],
+    });
+    expect(none).toMatchObject({ ok: true, removed: 0 });
+    const cleaned = cleanupWorkerAuthAssignmentsForStories({
+      projectRoot: main,
+      dispatchId: "dispatch-6422",
+      storyIds: ["a"],
+    });
+    expect(cleaned).toMatchObject({ ok: true, removed: 1 });
+    expect(ids()).toEqual(["a@foreign", "b@dispatch-6422"]);
+    expect(
+      cleanupWorkerAuthAssignmentsForStories({
+        projectRoot: main,
+        dispatchId: " ",
+        storyIds: ["a"],
+      }).ok,
+    ).toBe(false);
+    expect(findWorkerAuthAssignmentsForStories({ projectRoot: main, storyIds: [] })).toEqual([]);
+  });
 });
 
 describe("shared story-id derivation (#6233)", { timeout: 60_000 }, () => {

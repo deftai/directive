@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { effectiveChangelogText } from "../changelog/effective-unreleased.js";
 import { restIssueListOpenInventory } from "../scm/gh-rest.js";
 import { isStep5HostCoverage } from "../ts-check-lane/run-lane.js";
 import { readCoverageTotalsFromReport } from "../vitest-runner/coverage-debt.js";
@@ -161,6 +162,20 @@ function recordSuiteStamp(
   } catch {
     // Stamp is best-effort; never fail a green/hatch cut on stamp I/O.
   }
+}
+
+/**
+ * Recovery after a failure between the Step 7 write and the Step 9 commit
+ * (#6315 / #6286 item 6). One rule, no retry logic: restore, then rerun.
+ */
+export function releaseRestoreGuidance(fragmentCount: number): string {
+  const paths =
+    fragmentCount > 0 ? "CHANGELOG.md ROADMAP.md changelog.d/" : "CHANGELOG.md ROADMAP.md";
+  return (
+    "Recovery: restore CHANGELOG.md, ROADMAP.md and changelog.d/ to HEAD " +
+    `(git restore --source=HEAD --staged --worktree -- ${paths}), then rerun the release. ` +
+    "--allow-dirty is not a recovery path: it skips the dirty-tree guard on a partly written tree."
+  );
 }
 
 export function emit(step: number, label: string, status: string, target = process.stderr): void {
@@ -527,7 +542,8 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     const crLabel = "Consumer-readiness census";
     let changelogText = "";
     try {
-      changelogText = readFile(changelogPath);
+      // #6314: census and new-refusal hints read the effective [Unreleased] view.
+      changelogText = effectiveChangelogText(projectRoot, readFile(changelogPath));
     } catch {
       changelogText = "";
     }
@@ -624,6 +640,13 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   } else {
     emit(6, label, `OK (prepared in memory; destinations open; no writes yet;${summaryNote})`);
   }
+  const fragmentPaths = prepared.fragments.map((fragment) => fragment.path);
+  if (fragmentPaths.length > 0) {
+    process.stderr.write(
+      `[release] ${String(fragmentPaths.length)} changelog fragment(s) folded into ## [${version}]: ${fragmentPaths.join(", ")}\n`,
+    );
+  }
+  const restoreHint = releaseRestoreGuidance(fragmentPaths.length);
 
   // Step 7: ROADMAP to completion, then CHANGELOG, through retained descriptors.
   label = "Write release artifacts";
@@ -631,15 +654,28 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     emit(
       7,
       label,
-      "DRYRUN (would write ROADMAP.md then CHANGELOG.md through retained descriptors)",
+      "DRYRUN (would write ROADMAP.md then CHANGELOG.md through retained descriptors, " +
+        `then delete ${String(fragmentPaths.length)} captured changelog fragment(s))`,
     );
   } else {
-    const written = writeReleaseArtifacts(prepared);
+    const written = writeReleaseArtifacts(
+      prepared,
+      seams.unlinkFragment ? { unlink: seams.unlinkFragment } : {},
+    );
     if (!written.ok) {
       emit(7, label, `FAIL (${written.message})`);
+      process.stderr.write(`${restoreHint}\n`);
       return written.exitCode;
     }
-    emit(7, label, `OK (ROADMAP.md then CHANGELOG.md; ## [${version}] - ${today};${summaryNote})`);
+    const deletedNote =
+      written.deletedFragments.length > 0
+        ? `; deleted ${String(written.deletedFragments.length)} fragment(s)`
+        : "";
+    emit(
+      7,
+      label,
+      `OK (ROADMAP.md then CHANGELOG.md; ## [${version}] - ${today}${deletedNote};${summaryNote})`,
+    );
   }
 
   // Step 8: build dist.
@@ -654,6 +690,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       emit(8, label, `OK (${reason})`);
     } else {
       emit(8, label, `FAIL (${reason})`);
+      process.stderr.write(`${restoreHint}\n`);
       return EXIT_VIOLATION;
     }
   }
@@ -666,14 +703,15 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     emit(
       9,
       label,
-      `DRYRUN (would run \`git add ${RELEASE_ARTIFACTS.join(" ")}\` + \`git commit -m '${releaseCommitSubject(version)}'\`)`,
+      `DRYRUN (would run \`git add ${RELEASE_ARTIFACTS.join(" ")}\`, stage ${String(fragmentPaths.length)} fragment deletion(s), + \`git commit -m '${releaseCommitSubject(version)}'\`)`,
     );
   } else {
-    const [ok, reason] = commitReleaseArtifacts(projectRoot, version, seams);
+    const [ok, reason] = commitReleaseArtifacts(projectRoot, version, seams, fragmentPaths);
     if (ok) {
       emit(9, label, `OK (${reason})`);
     } else {
       emit(9, label, `FAIL (${reason})`);
+      process.stderr.write(`${restoreHint}\n`);
       return EXIT_VIOLATION;
     }
   }

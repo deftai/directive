@@ -1,0 +1,1292 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6354",
+    "updated": "2026-11-16T01:07:28Z"
+  },
+  "plan": {
+    "title": "feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The #6273 mint level admits a same-PR mint record only when the merge base has a typed requireHumanMerge: true, so a repo where agents or the merge queue merge cannot use the one-PR path. This story drops that precondition and keeps every record check. The admit block and content/docs/scope-provenance.md state the control that applies to the merge-base merge policy (operator decision, issue comment 6902818164).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6354",
+      "Overview": "## Summary\n\nThe one-PR mint level (#6273, shipped in 0.129.9) is admitted only when the merge base has `plan.policy.onePrScopeProof: mint` **and** a typed `plan.policy.requireHumanMerge: true`. In a repo where agents or the merge queue merge, the gate refuses with \"mint level needs merge-base requireHumanMerge=true (bot-merge repos cannot use it)\".\n\nSo a single maintainer who wants one PR per story must also click merge on every PR. For a cohort that is slower than the three-PR route it was meant to replace.\n\nThis issue asks to let the owner use the mint level without a human merge.\n\n## Why the precondition can go\n\nThe precondition exists because CI cannot tell a human mint from a record an agent wrote, so the #6273 lean made the human merge the control (lean 6857466202, Reject: \"the mint level in a repo where `requireHumanMerge` is false\").\n\nThat holds the one-PR path to a stronger proof than the route it replaces. In a solo repo that lets agents merge, the normal route lands the brief with a brief or activation PR that an agent opens and an agent merges. \"The brief is on the merge base\" then proves nothing human to CI either. The control on both routes is local: the human-presence mint or the operator's instruction, plus the write fence.\n\n`content/contracts/human-origin-authz.md` states the threat model as aligned-agent confusion, with local-file forgery out of scope. Under that model, a typed terminal mint bound to the brief's auth-hash is the same class of control as an agent-merged brief PR.\n\nThis reverses a bound Reject on #6273, so it needs the operator's steer on record. Operator direction, verbatim: \"we can also remove the human do merges as 1 pr isnt working and moving into wave 2 i want speed and that even if working may be slower constantly waiting on me. unless we can come up with a way to allow 1pr and not need human merges.\" Decision in the design discussion of 2026-11-15: relax the mint level; keep the signed level (#5862, #6284) as a later opt-in.\n\n## Expected\n\n- At the mint level, `evaluateOnePrScopeProofGate` no longer needs merge-base `requireHumanMerge: true`. An agent or the merge queue may merge the PR.\n- Every record check stays: human stamp shape, `planId` and brief path, exact concrete `file_scope` (no globs), `fileScopeDigest`, `authHashV1`, and the intent pin.\n- The level is still read from the merge base only. A PR that changes `onePrScopeProof` cannot use the path.\n- The admit block and the docs say what is true for the repo's merge policy. With a human merge, the human merge is the control. Without one, CI verifies nothing human; the control is the local mint gate and the write fence.\n- `off` stays the default. `signed` stays reserved for #5862.\n- This removes a precondition. It adds no gate, no required check and no human stop.\n\n## Open for the arc\n\n- Naming. Keep one `mint` level whose guarantee depends on `requireHumanMerge`, or give the bot-merge form its own name so an owner can tell which guarantee they have.\n- Whether the head may change `requireHumanMerge` in a one-PR change set once the gate no longer reads it.\n- The residual. Under bot merge, the level is as strong as the write fence on `.deft/approved-scope/`. Shell writes bypass that fence today (#3597, #3595). State this limit in the docs; do not claim it closed.\n\n## Acceptance\n\n- Given a merge base with `onePrScopeProof: mint` and `requireHumanMerge` false or absent, when a PR carries a new or widened brief, its matching mint record pair and its code, then membership admits it and an agent may merge it.\n- Given the same PR with an `authHashV1` that differs from the head brief, a `fileScope` that differs, a glob in the head `file_scope`, or a brief that drifted from the minted intent, then membership refuses it as today.\n- Given a PR that sets `onePrScopeProof` only in the head, then the one-PR path is refused.\n- Given a merge base with the level `off` or absent, then behaviour is unchanged.\n- On each admit, `verify:scope-provenance` prints the control that applies to the merge-base merge policy, and `content/docs/scope-provenance.md` says the same.\n\n## Not in this issue\n\nThe one-PR path needs three other things before a cohort can use it. They are separate from the proof question:\n\n- The write fence (#5656) reads `file_scope` from the merge base, so a worker cannot write code on a one-PR branch.\n- `swarm:launch` refuses a story whose brief is not active on the delivery branch (#4714).\n- #6349 (the gate crashes when PROJECT-DEFINITION is larger than 1 MiB).\n\nRefs #6273. Refs #5862. Refs #6284. Refs #6207. Refs #3597. Refs #6349.",
+      "UserStory": "As a single maintainer whose repo lets agents merge, I want the one-PR mint level to admit a matching same-PR mint record without a human merge, so that one story lands in one PR without me clicking merge, while the admit block tells me which control applies.",
+      "ImplementationPlan": "1. packages/core/src/policy/one-pr-scope-proof.ts: in `evaluateOnePrScopeProofGate`, remove the merge-base `requireHumanMerge !== true` refusal; keep reading the level from the merge base only and keep refusing a change set whose head changes `onePrScopeProof` or `requireHumanMerge`. Return the merge-base merge policy with the `mint` result. The `off` default and the `signed` reservation stay. Update the setter and reserved-level text in this file that says mint needs requireHumanMerge=true.\n2. Admit block (`formatMintLevelAdmitBlock`): keep one `mint` level. With merge-base `requireHumanMerge: true` the block says the human merge is the control; otherwise it says CI verifies nothing human and the control is the local mint gate and the write fence.\n3. packages/core/src/scope-provenance/evaluate.ts: carry the merge-base merge policy into each mint-level admit and fix the header comment.\n4. Tests: gate unit tests (requireHumanMerge false or absent admits; a head change of either field refuses; off or absent unchanged; both block texts) in one-pr-scope-proof.test.ts; update the seam tests in scope-provenance/evaluate.test.ts; a real-git admit with requireHumanMerge false plus record-mismatch refusals in evaluate-git.test.ts; the verb output for both merge policies in packages/runtime/src/verify-scope-provenance.test.ts.\n5. Runtime text that states the old precondition: the policy set-one-pr-scope-proof usage line in packages/runtime/src/policy.ts (mint needs requireHumanMerge=true) and the post-mint hint in packages/runtime/src/scope-record-approved-scope.ts (the pair may ride only with requireHumanMerge=true). No runtime test asserts either string today; pin the new text in packages/runtime/src/policy.test.ts and packages/runtime/src/scope-record-approved-scope.test.ts.\n6. content/docs/scope-provenance.md, One-PR proof level section: both controls, and the residual (shell writes can bypass the write fence on the approved-scope record folder, #3597 / #3595) stated, not claimed closed. One CHANGELOG.md [Unreleased] line.\nAdds no gate, no required check and no human stop.",
+      "Traces": "#6354"
+    },
+    "items": [
+      {
+        "title": "Given a merge base with `onePrScopeProof: mint` and `requireHumanMerge` false or absent, when a PR carries a new or widened brief, its matching mint record pair and its code, then membership admits it and an agent may merge it.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a merge base with `onePrScopeProof: mint` and `requireHumanMerge` false or absent, when a PR carries a new or widened brief, its matching mint record pair and its code, then `verify:scope-provenance` membership admits it, with no human-merge precondition."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given the same PR with an `authHashV1` that differs from the head brief, a `fileScope` that differs, a glob in the head `file_scope`, or a brief that drifted from the minted intent, then membership refuses it as today.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given that PR with a different `authHashV1`, a different `fileScope`, a glob in the head `file_scope`, or a brief drifted from the minted intent, then membership refuses it as today; the human stamp, planId and brief path, and fileScopeDigest checks also stay."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a PR that sets `onePrScopeProof` only in the head, then the one-PR path is refused.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a one-PR change set whose head changes `onePrScopeProof` or `requireHumanMerge` relative to the merge base (operator decision 2), then the one-PR path is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a merge base with the level `off` or absent, then behaviour is unchanged.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a merge base with the level `off` or absent, then membership behaves as before this change; `signed` stays reserved."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "On each admit, `verify:scope-provenance` prints the control that applies to the merge-base merge policy, and `content/docs/scope-provenance.md` says the same.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given an admit, then `verify:scope-provenance` prints the control for the merge-base merge policy under the single `mint` name (human merge when `requireHumanMerge: true`; otherwise the local mint gate and the write fence, no CI-verified human proof), and content/docs/scope-provenance.md says the same."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.26",
+        "title": "clause.26",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.27",
+        "title": "clause.27",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.28",
+        "title": "clause.28",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.29",
+        "title": "clause.29",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.30",
+        "title": "clause.30",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.31",
+        "title": "clause.31",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.32",
+        "title": "clause.32",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.33",
+        "title": "clause.33",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.34",
+        "title": "clause.34",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.35",
+        "title": "clause.35",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.36",
+        "title": "clause.36",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.37",
+        "title": "clause.37",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.38",
+        "title": "clause.38",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.39",
+        "title": "clause.39",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.40",
+        "title": "clause.40",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.41",
+        "title": "clause.41",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.42",
+        "title": "clause.42",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.43",
+        "title": "clause.43",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.44",
+        "title": "clause.44",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.45",
+        "title": "clause.45",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.46",
+        "title": "clause.46",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.47",
+        "title": "clause.47",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.48",
+        "title": "clause.48",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.49",
+        "title": "clause.49",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.50",
+        "title": "clause.50",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.51",
+        "title": "clause.51",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.52",
+        "title": "clause.52",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b2815af73aa1672933bda39890d853e06a2a671",
+          "recorded_at": "2026-11-16T01:07:28Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6354",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6354: feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6273",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6273"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5862",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5862"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6284",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6284"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6207",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6207"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3597",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3597"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6349",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6349"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition)",
+        "Summary The one-PR mint level (#6273, shipped in 0.129.9) is admitted only when the merge base has `plan.policy.onePrScopeProof: mint` and a typed `plan.policy.requireHumanMerge: true`.",
+        "In a repo where agents or the merge queue merge, the gate refuses with \"mint level needs merge-base requireHumanMerge=true (bot-merge repos cannot use it)\".",
+        "So a single maintainer who wants one PR per story must also click merge on every PR.",
+        "For a cohort that is slower than the three-PR route it was meant to replace.",
+        "This issue asks to let the owner use the mint level without a human merge.",
+        "Why the precondition can go The precondition exists because CI cannot tell a human mint from a record an agent wrote, so the #6273 lean made the human merge the control (lean 6857466202, Reject: \"the mint level in a repo where `requireHumanMerge` is false\").",
+        "That holds the one-PR path to a stronger proof than the route it replaces.",
+        "In a solo repo that lets agents merge, the normal route lands the brief with a brief or activation PR that an agent opens and an agent merges.",
+        "\"The brief is on the merge base\" then proves nothing human to CI either.",
+        "The control on both routes is local: the human-presence mint or the operator's instruction, plus the write fence.",
+        "`content/contracts/human-origin-authz.md` states the threat model as aligned-agent confusion, with local-file forgery out of scope.",
+        "Under that model, a typed terminal mint bound to the brief's auth-hash is the same class of control as an agent-merged brief PR.",
+        "This reverses a bound Reject on #6273, so it needs the operator's steer on record.",
+        "Operator direction, verbatim: \"we can also remove the human do merges as 1 pr isnt working and moving into wave 2 i want speed and that even if working may be slower constantly waiting on me.",
+        "unless we can come up with a way to allow 1pr and not need human merges.\" Decision in the design discussion of 2026-11-15: relax the mint level; keep the signed level (#5862, #6284) as a later opt-in.",
+        "Expected - At the mint level, `evaluateOnePrScopeProofGate` no longer needs merge-base `requireHumanMerge: true`.",
+        "An agent or the merge queue may merge the PR.",
+        "Every record check stays: human stamp shape, `planId` and brief path, exact concrete `file_scope` (no globs), `fileScopeDigest`, `authHashV1`, and the intent pin.",
+        "The level is still read from the merge base only.",
+        "A PR that changes `onePrScopeProof` cannot use the path.",
+        "The admit block and the docs say what is true for the repo's merge policy.",
+        "With a human merge, the human merge is the control.",
+        "Without one, CI verifies nothing human; the control is the local mint gate and the write fence.",
+        "`off` stays the default.",
+        "`signed` stays reserved for #5862.",
+        "This removes a precondition.",
+        "It adds no gate, no required check and no human stop.",
+        "Open for the arc - Naming.",
+        "Keep one `mint` level whose guarantee depends on `requireHumanMerge`, or give the bot-merge form its own name so an owner can tell which guarantee they have.",
+        "Whether the head may change `requireHumanMerge` in a one-PR change set once the gate no longer reads it.",
+        "The residual.",
+        "Under bot merge, the level is as strong as the write fence on `.deft/approved-scope/`.",
+        "Shell writes bypass that fence today (#3597, #3595).",
+        "State this limit in the docs; do not claim it closed.",
+        "Acceptance - Given a merge base with `onePrScopeProof: mint` and `requireHumanMerge` false or absent, when a PR carries a new or widened brief, its matching mint record pair and its code, then membership admits it and an agent may merge it.",
+        "Given the same PR with an `authHashV1` that differs from the head brief, a `fileScope` that differs, a glob in the head `file_scope`, or a brief that drifted from the minted intent, then membership refuses it as today.",
+        "Given a PR that sets `onePrScopeProof` only in the head, then the one-PR path is refused.",
+        "Given a merge base with the level `off` or absent, then behaviour is unchanged.",
+        "On each admit, `verify:scope-provenance` prints the control that applies to the merge-base merge policy, and `content/docs/scope-provenance.md` says the same.",
+        "Not in this issue The one-PR path needs three other things before a cohort can use it.",
+        "They are separate from the proof question: - The write fence (#5656) reads `file_scope` from the merge base, so a worker cannot write code on a one-PR branch.",
+        "`swarm:launch` refuses a story whose brief is not active on the delivery branch (#4714).",
+        "#6349 (the gate crashes when PROJECT-DEFINITION is larger than 1 MiB).",
+        "Refs #6273.",
+        "Refs #5862.",
+        "Refs #6284.",
+        "Refs #6207.",
+        "Refs #3597.",
+        "Refs #6349."
+      ],
+      "admitted_source_sentences": [
+        "Summary The one-PR mint level (#6273, shipped in 0.129.9) is admitted only when the merge base has `plan.policy.onePrScopeProof: mint` and a typed `plan.policy.requireHumanMerge: true`.",
+        "In a repo where agents or the merge queue merge, the gate refuses with \"mint level needs merge-base requireHumanMerge=true (bot-merge repos cannot use it)\".",
+        "So a single maintainer who wants one PR per story must also click merge on every PR.",
+        "For a cohort that is slower than the three-PR route it was meant to replace.",
+        "This issue asks to let the owner use the mint level without a human merge.",
+        "Why the precondition can go The precondition exists because CI cannot tell a human mint from a record an agent wrote, so the #6273 lean made the human merge the control (lean 6857466202, Reject: \"the mint level in a repo where `requireHumanMerge` is false\").",
+        "That holds the one-PR path to a stronger proof than the route it replaces.",
+        "In a solo repo that lets agents merge, the normal route lands the brief with a brief or activation PR that an agent opens and an agent merges.",
+        "\"The brief is on the merge base\" then proves nothing human to CI either.",
+        "The control on both routes is local: the human-presence mint or the operator's instruction, plus the write fence.",
+        "`content/contracts/human-origin-authz.md` states the threat model as aligned-agent confusion, with local-file forgery out of scope.",
+        "Under that model, a typed terminal mint bound to the brief's auth-hash is the same class of control as an agent-merged brief PR.",
+        "This reverses a bound Reject on #6273, so it needs the operator's steer on record.",
+        "Operator direction, verbatim: \"we can also remove the human do merges as 1 pr isnt working and moving into wave 2 i want speed and that even if working may be slower constantly waiting on me.",
+        "unless we can come up with a way to allow 1pr and not need human merges.\" Decision in the design discussion of 2026-11-15: relax the mint level; keep the signed level (#5862, #6284) as a later opt-in.",
+        "Expected - At the mint level, `evaluateOnePrScopeProofGate` no longer needs merge-base `requireHumanMerge: true`.",
+        "An agent or the merge queue may merge the PR.",
+        "Every record check stays: human stamp shape, `planId` and brief path, exact concrete `file_scope` (no globs), `fileScopeDigest`, `authHashV1`, and the intent pin.",
+        "The level is still read from the merge base only.",
+        "A PR that changes `onePrScopeProof` cannot use the path.",
+        "The admit block and the docs say what is true for the repo's merge policy.",
+        "With a human merge, the human merge is the control.",
+        "Without one, CI verifies nothing human; the control is the local mint gate and the write fence.",
+        "`off` stays the default.",
+        "`signed` stays reserved for #5862.",
+        "This removes a precondition.",
+        "It adds no gate, no required check and no human stop.",
+        "Open for the arc - Naming.",
+        "Keep one `mint` level whose guarantee depends on `requireHumanMerge`, or give the bot-merge form its own name so an owner can tell which guarantee they have.",
+        "Whether the head may change `requireHumanMerge` in a one-PR change set once the gate no longer reads it.",
+        "The residual.",
+        "Under bot merge, the level is as strong as the write fence on `.deft/approved-scope/`.",
+        "Shell writes bypass that fence today (#3597, #3595).",
+        "State this limit in the docs; do not claim it closed.",
+        "Acceptance - Given a merge base with `onePrScopeProof: mint` and `requireHumanMerge` false or absent, when a PR carries a new or widened brief, its matching mint record pair and its code, then membership admits it and an agent may merge it.",
+        "Given the same PR with an `authHashV1` that differs from the head brief, a `fileScope` that differs, a glob in the head `file_scope`, or a brief that drifted from the minted intent, then membership refuses it as today.",
+        "Given a PR that sets `onePrScopeProof` only in the head, then the one-PR path is refused.",
+        "Given a merge base with the level `off` or absent, then behaviour is unchanged.",
+        "On each admit, `verify:scope-provenance` prints the control that applies to the merge-base merge policy, and `content/docs/scope-provenance.md` says the same.",
+        "Not in this issue The one-PR path needs three other things before a cohort can use it.",
+        "They are separate from the proof question: - The write fence (#5656) reads `file_scope` from the merge base, so a worker cannot write code on a one-PR branch.",
+        "`swarm:launch` refuses a story whose brief is not active on the delivery branch (#4714).",
+        "#6349 (the gate crashes when PROJECT-DEFINITION is larger than 1 MiB).",
+        "Refs #6273.",
+        "Refs #5862.",
+        "Refs #6284.",
+        "Refs #6207.",
+        "Refs #3597.",
+        "Refs #6349."
+      ],
+      "admitted_source_digest": "58a1fbf47de87f804629ae8c8727e4be3052238bb7b2b7c63a7b15b3a62e503b",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a merge base with `onePrScopeProof: mint` and `requireHumanMerge` false or absent, when a PR carries a new or widened brief, its matching mint record pair and its code, then membership admits it and an agent may merge it.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given the same PR with an `authHashV1` that differs from the head brief, a `fileScope` that differs, a glob in the head `file_scope`, or a brief that drifted from the minted intent, then membership refuses it as today.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given a PR that sets `onePrScopeProof` only in the head, then the one-PR path is refused.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given a merge base with the level `off` or absent, then behaviour is unchanged.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "On each admit, `verify:scope-provenance` prints the control that applies to the merge-base merge policy, and `content/docs/scope-provenance.md` says the same.",
+          "artifact_path": "packages/runtime/src/verify-scope-provenance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Summary The one-PR mint level (#6273, shipped in 0.129.9) is admitted only when the merge base has `plan.policy.onePrScopeProof: mint` and a typed `plan.policy.requireHumanMerge: true`.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In a repo where agents or the merge queue merge, the gate refuses with \"mint level needs merge-base requireHumanMerge=true (bot-merge repos cannot use it)\".",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "So a single maintainer who wants one PR per story must also click merge on every PR.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "For a cohort that is slower than the three-PR route it was meant to replace.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "This issue asks to let the owner use the mint level without a human merge.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Why the precondition can go The precondition exists because CI cannot tell a human mint from a record an agent wrote, so the #6273 lean made the human merge the control (lean 6857466202, Reject: \"the mint level in a repo where `requireHumanMerge` is false\").",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 12,
+          "text": "That holds the one-PR path to a stronger proof than the route it replaces.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "In a solo repo that lets agents merge, the normal route lands the brief with a brief or activation PR that an agent opens and an agent merges.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "\"The brief is on the merge base\" then proves nothing human to CI either.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 15,
+          "text": "The control on both routes is local: the human-presence mint or the operator's instruction, plus the write fence.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`content/contracts/human-origin-authz.md` states the threat model as aligned-agent confusion, with local-file forgery out of scope.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Under that model, a typed terminal mint bound to the brief's auth-hash is the same class of control as an agent-merged brief PR.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "This reverses a bound Reject on #6273, so it needs the operator's steer on record.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Operator direction, verbatim: \"we can also remove the human do merges as 1 pr isnt working and moving into wave 2 i want speed and that even if working may be slower constantly waiting on me.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "unless we can come up with a way to allow 1pr and not need human merges.\" Decision in the design discussion of 2026-11-15: relax the mint level; keep the signed level (#5862, #6284) as a later opt-in.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Expected - At the mint level, `evaluateOnePrScopeProofGate` no longer needs merge-base `requireHumanMerge: true`.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "An agent or the merge queue may merge the PR.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Every record check stays: human stamp shape, `planId` and brief path, exact concrete `file_scope` (no globs), `fileScopeDigest`, `authHashV1`, and the intent pin.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "The level is still read from the merge base only.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "A PR that changes `onePrScopeProof` cannot use the path.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "The admit block and the docs say what is true for the repo's merge policy.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "With a human merge, the human merge is the control.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Without one, CI verifies nothing human; the control is the local mint gate and the write fence.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "`off` stays the default.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "`signed` stays reserved for #5862.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "This removes a precondition.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "It adds no gate, no required check and no human stop.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "Open for the arc - Naming.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "Keep one `mint` level whose guarantee depends on `requireHumanMerge`, or give the bot-merge form its own name so an owner can tell which guarantee they have.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "Whether the head may change `requireHumanMerge` in a one-PR change set once the gate no longer reads it.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "The residual.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "Under bot merge, the level is as strong as the write fence on `.deft/approved-scope/`.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "Shell writes bypass that fence today (#3597, #3595).",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "State this limit in the docs; do not claim it closed.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Acceptance - Given a merge base with `onePrScopeProof: mint` and `requireHumanMerge` false or absent, when a PR carries a new or widened brief, its matching mint record pair and its code, then membership admits it and an agent may merge it.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "Not in this issue The one-PR path needs three other things before a cohort can use it.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "They are separate from the proof question: - The write fence (#5656) reads `file_scope` from the merge base, so a worker cannot write code on a one-PR branch.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "`swarm:launch` refuses a story whose brief is not active on the delivery branch (#4714).",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "#6349 (the gate crashes when PROJECT-DEFINITION is larger than 1 MiB).",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "Refs #6273.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "Refs #5862.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "Refs #6284.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "Refs #6207.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 49,
+          "text": "Refs #3597.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 50,
+          "text": "Refs #6349.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 51,
+          "text": "On each admit, `verify:scope-provenance` prints which control applies for the merge-base merge policy: with `requireHumanMerge: true`, the human merge; otherwise the local mint gate and the write fence, with no CI-verified human proof.",
+          "artifact_path": "packages/runtime/src/verify-scope-provenance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 52,
+          "text": "A one-PR change set that changes `onePrScopeProof` or `requireHumanMerge` cannot use the path.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested).",
+      "confessions": [
+        "feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Operator decision, 2026-11-15: bring this into 0.129.10 without an arc. The two open questions are settled as follows.\n\n1. **Naming:** keep the single `mint` level. On each admit, `verify:scope-provenance` prints which control applies for the merge-base merge policy: with `requireHumanMerge: true`, the human merge; otherwise the local mint gate and the write fence, with no CI-verified human proof.\n2. **Policy fields in the head:** unchanged. A one-PR change set that changes `onePrScopeProof` or `requireHumanMerge` cannot use the path.\n\nThe Expected and Acceptance sections above are the contract, with these two answers. The residual (shell writes can bypass the write fence on `.deft/approved-scope/`, #3597, #3595) is stated in the docs, not claimed closed.",
+          "id": 6902818164,
+          "html_url": "https://github.com/deftai/directive/issues/6354#issuecomment-6902818164",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-15T23:00:19Z",
+          "updated_at": "2026-11-15T23:00:19Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6410603022,
+        "origin": "deftai/directive#6354",
+        "id": "github.issue.6410603022"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/policy/one-pr-scope-proof.ts",
+          "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "packages/runtime/src/verify-scope-provenance.test.ts",
+          "packages/runtime/src/policy.ts",
+          "packages/runtime/src/policy.test.ts",
+          "packages/runtime/src/scope-record-approved-scope.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "scope-provenance-one-pr",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/one-pr-scope-proof.test.ts packages/core/src/scope-provenance/evaluate.test.ts packages/core/src/scope-provenance/evaluate-git.test.ts packages/runtime/src/verify-scope-provenance.test.ts packages/runtime/src/policy.test.ts packages/runtime/src/scope-record-approved-scope.test.ts"
+        ],
+        "expected_outputs": [
+          "evaluateOnePrScopeProofGate admits mint without merge-base requireHumanMerge",
+          "a head change of onePrScopeProof or requireHumanMerge is still refused",
+          "admit block names the control for the merge-base merge policy",
+          "real-git admit test with requireHumanMerge false",
+          "scope-provenance.md One-PR section with both controls and the residual",
+          "runtime set-one-pr-scope-proof usage and record-approved-scope hint no longer state the precondition",
+          "one CHANGELOG.md [Unreleased] line"
+        ],
+        "Traces": [
+          "#6354"
+        ],
+        "acceptance_criteria_justification": "Five items, one per Acceptance bullet in the #6354 body, with the two operator decisions (comment 6902818164) folded into items 3 and 5. Clauses 1-5 are those bullets; the others are the remaining admitted body sentences, one same-text clause each (#5055 / #3550), plus two clauses quoting the decision comment. Only the title is confessed."
+      },
+      "productPullRequest": 6356,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2658c13657f2ed21185f0190e96186d62a146e00",
+        "prNumber": 6356,
+        "prBase": "master",
+        "mergeCommit": "7b2815af73aa1672933bda39890d853e06a2a671",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7b2815af73aa1672933bda39890d853e06a2a671",
+        "verifiedAt": "2026-11-16T01:07:28Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T01:07:28Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T01:07:28Z"
+      }
+    },
+    "id": "github.issue.6410603022",
+    "updated": "2026-11-16T01:07:28Z"
+  }
+}

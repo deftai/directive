@@ -165,6 +165,31 @@ describe("spec-drift ledger membership under the completion-move shape (#680 P5 
     });
     expect(hit?.expandedPaths).toEqual(["xbrief/.audit/authority-events.jsonl"]);
   });
+
+  it("admits spec-drift row files beside the completed brief move (#6335)", () => {
+    const ROW = "xbrief/.audit/spec-drift/story-1.json";
+    expect(
+      evaluateApprovedScopeMembership({
+        ...base,
+        changedFiles: [
+          "xbrief/active/story.xbrief.json",
+          "xbrief/completed/story.xbrief.json",
+          ROW,
+          "xbrief/.audit/spec-drift/other-story.json",
+        ],
+      }),
+    ).toBeNull();
+    const withProduct = evaluateApprovedScopeMembership({
+      ...base,
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        ROW,
+        "packages/core/src/a.ts",
+      ],
+    });
+    expect(withProduct?.expandedPaths).toEqual([ROW]);
+  });
 });
 
 describe("evaluateApprovedScopeMembership (#4774)", () => {
@@ -363,5 +388,36 @@ describe("forge-approval membership authority (#6203)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts"],
     });
     expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
+  });
+});
+
+describe("changelog entry paths on the fence and membership (#6314)", () => {
+  it("frees a changelog.d fragment in membership like CHANGELOG.md", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "mint",
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "CHANGELOG.md",
+        "changelog.d/6314-x.md",
+      ],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("still flags a nested changelog.d path outside the approved scope", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "mint",
+      changedFiles: ["xbrief/active/story.xbrief.json", "changelog.d/sub/x.md"],
+    });
+    expect(hit?.expandedPaths).toContain("changelog.d/sub/x.md");
   });
 });

@@ -6,10 +6,12 @@ Every PreToolUse mutation carries **two** roots, and they are not interchangeabl
 - **effective root** — the working tree the write target actually lands in, chosen by
   `admitEffectiveHookRoot` from the target path.
 
-Deny messages name both: `payloadRoot=<path> effectiveRoot=<path>`.
+Deny messages name both: `payloadRoot=<path> effectiveRoot=<path>`. A session-ritual deny also
+names the judged checkout and prints one recovery command for it (#6376).
 
 This page publishes what root admission decides, which gate reads which root, and why the
-no-toplevel case behaves the way it does. It describes shipped behaviour; it changes none of it.
+no-toplevel case behaves the way it does. It describes shipped behaviour. One narrowing has
+shipped: the [outside-every-checkout class](#the-outside-every-checkout-class-6376) (#6376).
 
 ## The outcomes of root admission
 
@@ -86,6 +88,90 @@ directory. Relieving it costs a change to the authority contract, not a bug fix.
 Read that table as the answer to "what does the lease actually protect here". The case is not a
 lease question with one disposition; it is a root-selection question with a disposition per gate.
 
+## The outside-every-checkout class (#6376)
+
+A direct Write or Edit whose every target is in this class is allowed without the payload root's
+occupancy lease and gated session ritual. The class is closed: any doubt keeps a target out, and a
+target out of the class is judged exactly as the table above says. The class adds no deny.
+Accepted design: [#6376, lean 6908601625](https://github.com/deftai/directive/issues/6376#issuecomment-6908601625).
+Code: `packages/core/src/hooks/outside-every-checkout.ts`.
+
+**Which targets are in the class.** For each target the test builds two paths: the typed path
+(the target as given, normalized) and the physical destination (each existing component resolved
+with the native resolver, the missing rest appended unchanged). Both paths must pass every rule:
+
+1. **Positive location.** Inside the physical OS temp directory, or inside a home directory (the
+   OS home directory, `HOME`, `USERPROFILE`).
+2. **Not a configuration area.** A configuration area is a directory directly under a home
+   directory whose name starts with a dot or is `Library` or `AppData` (any letter case), or a
+   directory named by `APPDATA`, `LOCALAPPDATA` or an `XDG_*` base directory variable. When a path
+   is inside both a configuration area and the temp directory, the innermost of the two decides.
+3. **No repository and no Directive project.** No `.git` or `.deft` entry beside any ancestor of
+   the typed path or of the physical destination, no ancestor that is itself a Git directory, a
+   Git toplevel lookup that ran and reported no
+   repository, and outside the payload root (`isOutsideProjectRootWrite`).
+4. **Exclusions** (any letter case): a component that contains `deft` or `directive` or is named
+   `.git`; a path equal to or inside a path named by any `DEFT_*` or `DIRECTIVE_*` variable or by
+   `OPENCLAW_STATE_DIR`, `CODEX_HOME`, `GH_CONFIG_DIR`, `PNPM_HOME`, `GIT_DIR`, `GIT_WORK_TREE`,
+   `GITHUB_EVENT_PATH`, `GITHUB_STEP_SUMMARY`; a path inside a `PATH` directory; a path inside the
+   running Directive runtime package. Each excluded value is compared in its typed form and in the
+   physical form of its deepest existing folder, so a file that does not exist yet is still caught
+   through a link; a relative value is read against the hook's working directory and the payload
+   root. Positive location compares native names exactly, with no case folding on any platform,
+   because a volume can be case-sensitive; configuration areas and exclusions may fold case, which
+   only keeps more paths out.
+5. **Doubt rules.** Out of the class: a target whose original spelling in the payload differs
+   from the harvested one (surrounding whitespace trimmed, a `file:` URI decoded); a relative
+   path; a `..` or `.` step anywhere in the typed
+   path (it is never collapsed before links are followed); a backslash in a POSIX path (a filename
+   character there, not a separator); a component that ends with a dot or a
+   space, has the Windows short-name form (`~1`) or holds a colon after the drive; a device or
+   network-share prefix; a walk directory that cannot be read; a Git lookup that could not run or
+   disagrees with the walk; a home or temp directory that cannot be resolved; an existing file with
+   more than one hard link; a link that cannot be resolved.
+
+**Combining rule.** `admitMutationTargetSet` runs first and unchanged, so `foreign-repository`,
+`unproven-identity` and `worktree-span` keep precedence. The class applies only when every target
+of the mutation is in it. Only the bare host direct-write tools reach it; shell writes, generic MCP
+writes and proxy wrappers are classified as before.
+
+**Gates for a write in the class.**
+
+| Gate | Disposition |
+| --- | --- |
+| Kill switch, read-only posture deny, Cursor planning-choice store check | **Run**, unchanged (upstream). |
+| Protected-store authz, runtime authority | **Run** on the payload root, in the assist-scratch order. |
+| Mutation intent ceiling (#1193) | **Runs**, so a non-implement slash verb still refuses. |
+| Occupancy lease, gated session ritual, active scope, story write fence | **Do not run.** |
+| Write-gate lease refresh and product-mutation marker | **None.** |
+| General owner-liveness renewal | Unchanged. |
+
+The allow carries the decision code `write-outside-every-checkout-ready`. The class selects no
+ritual, lease, story or worktree registration, and it has no posture condition: a write in the
+class is also allowed under requirements posture.
+
+**What this gives up, on purpose.** Before #6376 a session with no valid ritual could not use Write
+or Edit on a file in the OS temp directory or an ordinary home folder; now it can. Shell writes to
+the same files never needed a ritual. A file in a configuration area (for example an agent memory
+folder under a host's dot-folder) and a folder outside the home and temp directories stay judged
+as before. A link created between the check and the write is not caught (the same check/use
+residual as #3953).
+
+**Naming rule for Directive code.** A file or folder that Directive keeps outside a checkout has
+`deft` or `directive` in its name or in a parent folder name, lives in a configuration area, or is
+named by a `DEFT_*` or `DIRECTIVE_*` variable. Every file or folder Directive creates under the OS
+temp directory carries `deft` in its created name (`deftTempName` helps a caller-supplied prefix).
+A unit test in `packages/core/src/hooks/dispatcher-outside-root.test.ts` scans the non-test source
+of `packages/core/src`, `packages/runtime/src` and `packages/cli/src` and fails on a temp name
+without `deft`.
+
+**Ritual recovery names the judged checkout.** A direct write refused on the session ritual ends
+with `Judged checkout: <path>.` and one command, for example
+`deft session:start --rearm --session-id=<id> --project-root=<path>`, that runs as printed from any
+directory. A path with characters other than letters, digits and `_.:\/+-` is single-quoted, which
+neither POSIX shells nor PowerShell expand; a path holding a single quote or a control character
+gets no printed command. When occupancy refuses the ceremony (#4290), only the checkout is named.
+
 ## Three surfaces, three behaviours
 
 The fallback is a **direct-write** behaviour. It does not generalise across transports.
@@ -134,6 +220,53 @@ A narrowing is refused *as filed*, not forever. A viable successor design would:
 
 None of that would make #4013's filed premise — that the fallback is a defect — true.
 
+#6376 is the narrowing that shipped. It answers these points without canonicalizing relative
+targets: a relative target is never in its class, and every other target falls back to the rows
+above. See [The outside-every-checkout class](#the-outside-every-checkout-class-6376).
+
+## Commit targets — which checkout a `git commit` is judged against (#6278 / #6247)
+
+The prospective scope-cover check on a Shell `git commit` (#5656) reads staged paths before the
+commit runs. It reads them on the **target root**, the checkout the commit names:
+
+| Command shape | Target root |
+| --- | --- |
+| `git -C <absolute path> commit …` | The named path, admitted as below. |
+| `cd <absolute path> && … git commit …` (one `cd`, joined to the commit by `&&`) | The named path, admitted as below. |
+| A commit with no `cd` and no `-C` | The hook project root, as before. |
+
+A path is absolute when it is a native absolute path. On Windows that is a drive path (`C:\…` or
+`C:/…`) or the MSYS drive form (`/c/…`), which maps to its drive path. Quoted and unquoted paths
+resolve the same way; one quote-aware tokenizer serves commit recognition, target resolution and
+the index-mutating-form check (`packages/core/src/hooks/commit-target.ts`).
+
+**Admission.** A named path must exist and pass `admitEffectiveHookRoot`: same
+`--git-common-dir` as the payload root, or deny (`foreign-repository-deny`). A commit target has
+no non-repository fallback: a path outside every checkout, or a payload root that is not a
+repository, is refused. The payload root stays the identity for authz, the kill-switch and deny
+diagnostics.
+
+**Index and story.** Staged paths are listed on the target root, and `resolveWorktreeStoryBinding`
+runs there: `bound` selects that worktree's story and its write fence; `refuse` denies with the
+resolver's reason (never a fallback to another eligible story); `none` keeps the earlier
+selection. The empty-index and lifecycle-only passes still apply, read from the target root.
+
+**Refused as unresolvable** (the message names the two absolute forms): a relative path after
+`cd` or `-C`; more than one `cd` or `-C` before the commit; a `cd` joined to the commit by `;` or
+`||`, or reached through an `||` that can skip it (a `{ … }` brace group runs in the current
+shell, so a `cd` or commit inside one is read the same way; a `( … )` subshell `cd` does not move
+a later commit); a variable, `~` or substitution in the path; `--git-dir` / `--work-tree`; and a `GIT_DIR`,
+`GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. In each case the gate
+cannot know which index the commit will use.
+
+**Limits, named and not closed here.** A plain commit is still judged at the hook project root,
+wherever the shell actually is; workers name their worktree in every git command (#6291). A
+`git add` in the same call as the commit stages after the gate has read the index, and that now
+also reaches the two named forms. The commit is held to the target story's `file_scope` for the
+product paths in that snapshot; it does not authenticate which actor commits. Other shell forms
+(subshells, `pushd`, an exported `GIT_DIR`) are not interpreted; this is not a general shell
+parser.
+
 ## Scope of this guarantee
 
 Root admission is **cooperative host-session routing**, the same posture as the occupancy lease it
@@ -151,4 +284,6 @@ the write fence.
 | Nearest existing ancestor, toplevel and common-dir lookups | `packages/core/src/session/git.ts` — `existingAncestorDir`, `worktreePathOrNull`, `gitCommonDir` |
 | Shell write-dest classification and the in-repo predicate | `packages/core/src/hooks/shell-write-targets.ts` — `isInRepoShellWritePath` |
 | Tool-name surfaces | `packages/core/src/hooks/tools.ts` — `isDirectWriteTool`, `isShellTool`, `isMcpTool` |
-| Behaviour lock | `packages/core/src/hooks/dispatcher-effective-root.test.ts` |
+| Commit-target tokenizer and resolver | `packages/core/src/hooks/commit-target.ts` — `resolveCommitTarget`, `tokenizeShellCommand` |
+| Commit-target admission and scope-cover | `packages/core/src/hooks/dispatcher.ts` — `decideProspectiveGitCommitScopeCover`, `evaluateProspectiveScopeCover` |
+| Behaviour lock | `packages/core/src/hooks/dispatcher-effective-root.test.ts`; commit targets in `dispatcher-active-scope.test.ts` and `commit-target.test.ts` |

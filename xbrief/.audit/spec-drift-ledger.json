@@ -84,6 +84,192 @@
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,
       "completedAt": "2026-10-20T05:26:22Z"
+    },
+    {
+      "scopeId": "github.issue.6398935639",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T14:54:23Z"
+    },
+    {
+      "scopeId": "github.issue.6375855023",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T16:00:23Z"
+    },
+    {
+      "scopeId": "github.issue.6381141107",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T16:14:09Z"
+    },
+    {
+      "scopeId": "github.issue.6398935107",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T16:32:48Z"
+    },
+    {
+      "scopeId": "github.issue.6398935915",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T17:32:15Z"
+    },
+    {
+      "scopeId": "github.issue.6374107041",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T18:06:51Z"
+    },
+    {
+      "scopeId": "github.issue.6374105652",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T18:19:54Z"
+    },
+    {
+      "scopeId": "github.issue.6398935329",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T19:09:37Z"
+    },
+    {
+      "scopeId": "github.issue.6398936204",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T19:57:02Z"
+    },
+    {
+      "scopeId": "github.issue.6409262083",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T22:22:31Z"
+    },
+    {
+      "scopeId": "github.issue.6410603022",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T01:12:02Z"
+    },
+    {
+      "scopeId": "github.issue.6373272102",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T03:52:05Z"
+    },
+    {
+      "scopeId": "github.issue.6373187519",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T03:53:41Z"
+    },
+    {
+      "scopeId": "github.issue.6373188377",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T03:54:26Z"
+    },
+    {
+      "scopeId": "github.issue.6373189286",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T03:55:20Z"
+    },
+    {
+      "scopeId": "github.issue.6373190126",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T04:54:55Z"
+    },
+    {
+      "scopeId": "github.issue.6374106414",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T07:10:27Z"
+    },
+    {
+      "scopeId": "github.issue.6339767609",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T07:33:44Z"
+    },
+    {
+      "scopeId": "github.issue.5987187538",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T08:48:12Z"
+    },
+    {
+      "scopeId": "github.issue.6418966722",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T15:35:06Z"
+    },
+    {
+      "scopeId": "github.issue.6406913807",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T16:55:13Z"
+    },
+    {
+      "scopeId": "github.issue.5428785182",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T17:23:50Z"
+    },
+    {
+      "scopeId": "github.issue.6374105155",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T17:53:13Z"
+    },
+    {
+      "scopeId": "github.issue.6042155685",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T18:27:15Z"
+    },
+    {
+      "scopeId": "github.issue.6413052919",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T18:59:47Z"
+    },
+    {
+      "scopeId": "github.issue.6414486025",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T19:50:58Z"
+    },
+    {
+      "scopeId": "github.issue.6406914496",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T20:22:40Z"
+    },
+    {
+      "scopeId": "github.issue.6406914265",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T21:09:28Z"
+    },
+    {
+      "scopeId": "github.issue.6425608463",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T21:34:32Z"
+    },
+    {
+      "scopeId": "github.issue.6414618773",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T22:25:40Z"
+    },
+    {
+      "scopeId": "github.issue.6426715570",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T23:56:57Z"
     }
   ],
   "coverage": [],

@@ -70,19 +70,25 @@ The repo owner picks how a new or widened brief can land with its code in one PR
 | Level | Behaviour |
 |---|---|
 | `off` (default; also when the field is absent) | Today's behaviour. A same-PR `.deft/approved-scope` record is refused. |
-| `mint` | A same-PR human mint record can admit the head brief for membership. Needs `requireHumanMerge: true`. |
+| `mint` | A same-PR human mint record can admit the head brief for membership. Works with or without `requireHumanMerge: true`; the control differs (see below). |
 | `signed` | Reserved for the signed level (#5862). The setter refuses it; a merge base that sets it gets no one-PR path. |
 
 Set it with `deft policy:set-one-pr-scope-proof -- --set off|mint --confirm`. Inspect it with `deft policy:show --field=onePrScopeProof`.
 
 - **Merge base only.** The check reads `onePrScopeProof` and `requireHumanMerge` from `xbrief/PROJECT-DEFINITION.xbrief.json` on the merge base, never from the head. A PR that changes either field cannot use the one-PR path.
-- **Mint level needs a human merge.** It applies only when the merge base has a typed `requireHumanMerge: true`. A repo that lets bots merge cannot use it. Such a repo waits for the signed level (#5862; cohort consent is #6284).
+- **No human-merge precondition (#6354).** The mint level applies whatever the merge-base `requireHumanMerge` is. An agent or the merge queue may merge the PR. `requireHumanMerge` only decides which control applies (below).
 - **How to use it.** The human runs `scope:record-approved-scope` on the brief (same #3110 human-presence gate). The record now also stores `authHashV1`, the brief's auth-hash v1 (same hash as #6203). Commit the record, its `.intent.json`, the brief and the code in one PR. List both `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json` in the brief's `file_scope`, because membership does not free them.
 - **Exact match only.** The record is admitted only when all of these hold: `authHashV1` equals the head brief's auth-hash; `planId` and `xbriefRelPath` match the head brief; the record's normalized `fileScope` equals the head brief's `file_scope` and `fileScopeDigest` matches it; the head `file_scope` has **no glob entries** (concrete files only); the human stamp passes; and the same-PR `.intent.json` matches the record's `intentDigest` with no intent drift in the head brief. Any edit to the brief after the mint needs a new mint.
 - **Then** membership uses the record as `mint` authority. In every other case the same-PR rewrite finding is unchanged; when the merge-base level is `mint`, the message adds one `one-PR scope proof (#6273)` line with the reason.
-- **CI cannot verify the mint.** CI cannot tell a real mint from a file an agent wrote. The human merge is the control, the same trust anchor as today's separate record PR. On each admit, `verify:scope-provenance` prints the plan id, the admitted `file_scope`, the production-file count and the line "CI cannot tell this mint from a file an agent wrote; the human merge is the control". It appends the same block to `$GITHUB_STEP_SUMMARY` when that variable is set. Read that block before you merge.
+- **CI cannot verify the mint.** CI cannot tell a real mint from a file an agent wrote. The control depends on the merge-base merge policy:
+  - **`requireHumanMerge: true`:** the human merge is the control, the same trust anchor as today's separate record PR. The admit block ends with "CI cannot tell this mint from a file an agent wrote; the human merge is the control".
+  - **`requireHumanMerge` false or absent:** CI verifies nothing human. The control is the local mint gate (the #3110 human-presence gate on `scope:record-approved-scope`) and the write fence's always-on protected-store deny on `.deft/approved-scope/`. The rest of the write fence is not a separate control here, because it reads the same mint (#6361, below). This is the same class of control as a brief PR that an agent opens and merges. The admit block ends with "CI cannot tell this mint from a file an agent wrote; requireHumanMerge is not true on the merge base, so CI verifies nothing human: the control is the local mint gate and the write fence's protected-store deny on .deft/approved-scope/; a record written by a shell form that deny misses (#3597, #3595) also reaches local scope admission".
+- **Admit block.** On each admit, `verify:scope-provenance` prints the plan id, the admitted `file_scope`, the production-file count, the merge-base `requireHumanMerge` value and the control line above. It appends the same block to `$GITHUB_STEP_SUMMARY` when that variable is set. Read that block before you merge.
+- **Worker path (#6361).** A one-PR brief is not on the merge base, so the local write fence used to give it an empty fence. Now, when a brief is absent from the merge base, the one fence loader admits the working-tree brief's `file_scope` only when the merge-base level is `mint` and the same-PR record matches that exact brief. It uses the same two checks as CI (`evaluateOnePrScopeProofGate` and `evaluateMintLevelRecord`) and reads the brief, record and preimage again on every call, so an edited brief is refused at the next Write. The always-on protected-store deny still refuses Write and Edit to the record pair, even though `file_scope` lists them. When the mint does not admit, the deny prints the reason and names `scope:record-approved-scope` (promote or activate would void the mint). A brief that is on the merge base keeps its merge-base fence; the head copy is ignored (#4956).
+- **Launch from the one-PR branch (#6361).** Push the one-PR branch and run `swarm:launch -- --base-branch <branch>`. When a brief is not on `origin/<deliveryBranch>`, launch accepts it if it is on `origin/<branch>` and the same two checks admit it at that tip against its merge base with the delivery tip. The dest worktree is created from `origin/<branch>`; no brief or record bytes are copied. Finalize and the fresh-clone rules (#4714) are unchanged.
+- **Residual without a human merge.** The level is only as strong as the protected-store deny on `.deft/approved-scope/`. Shell writes can bypass that deny today (#3597, #3595), and since #6361 such a record also reaches local scope admission. This is not closed.
 - **Unchanged:** the #4956 production fence (merge-base brief only), Path B, the separate mint-record PR, #6203 forge approval, and `requireHumanMerge` semantics. A widened brief can pass membership and still fail `production-scope-over-budget`.
-- **Not in scope:** credential separation for an agent that shares the operator's forge identity stays on #6207. The production allowance split stays under #4956. Neither level closes those.
+- **Not in scope:** credential separation for an agent that shares the operator's forge identity stays on #6207. The signed level (#5862; cohort consent #6284) stays a later opt-in. The production allowance split stays under #4956. The mint level closes none of those.
 
 Code: `packages/core/src/policy/one-pr-scope-proof.ts`.
 
@@ -94,6 +100,25 @@ When an active implementation brief is **outside** the change set, membership is
 2. **PR-2 — active lineage retarget:** the active brief alone (plus free paths such as `CHANGELOG.md`) when only lifecycle lineage refs move. No content predicate frees planning paths because the active diff is lineage-only.
 
 `.deft/plan-sequence.json` is **never** membership-freed. Coverage inertness / N/A is **not** membership authorization for sequence, plan, spec, pending briefs, production fence, intent, identity, or lifecycle checks. `authorized_by`, narrative text, and head-authored confirmations are not consent; keep `verify:plan-sequence` and spec-guard on those records.
+
+#### Committing the planning package (#5839)
+
+The commit hook's prospective scope-cover (#5656) admits a **planning-publication** staged set without a ready scope. The check runs on the raw staged index entries before the ready-scope guard. It admits the set only when every staged path is one of:
+
+- **Inventory:** `CHANGELOG.md` (or a changelog fragment), `.deft/plan-sequence.json`, `docs/design/<name>.md`, `docs/decisions/<name>.md`.
+- **Record files:** `<name>.xbrief.json` or `<name>.vbrief.json` directly in `proposed/`, `pending/`, `completed/` or `cancelled/`, and `<name>.decision.json` directly in `xbrief/decisions/` or `vbrief/decisions/`.
+
+`<name>` is one path segment with no backslash. Each entry must be added or modified as a regular file (mode 100644), or deleted. A staged `.deft/plan-sequence.json` must pass the closed plan-sequence shape check on its index blob (an `insert_approvals` row from an approved insert passes). Nothing else is read. Any other path, a symlink, an executable, a typechange or a failed shape check means the set is not admitted, and today's rules decide the commit. Admission writes nothing and gives no merge-time credit: membership, coverage and `verify:plan-sequence` still run at the PR boundary.
+
+**Consumer recovery:**
+
+1. Upgrade to the first release that carries this admission. Older runtimes still deny the commit.
+2. Commit the documents, stories, decisions and plan-sequence file **before** `scope:promote`, because promotion rewrites the root plan files. If you already promoted, split them out into their own commit.
+3. Commit root `plan` / `specification` / `PROJECT-DEFINITION` changes in a separate commit (an `xbrief/`-only commit already passes).
+4. A change under `active/` is not admitted with `CHANGELOG.md`, a document or the plan-sequence file. Put lifecycle files in their own commit and the rest in another.
+5. A set with any path outside the inventory and record files is not admitted; it still needs a ready covering scope.
+
+Code: `packages/core/src/hooks/planning-publication.ts`.
 
 **Write-time requirements posture:** pending briefs and root plan/specification are merge-time (Path A / activation), not write-time under an active implementation fence. Do not widen write-time requirements-posture to admit them while the active story fence is live. Stale `parent_lineage` `target_path` values that still name `proposed/` after briefs move to `pending/` recover via unique-`plan.id` / documented parent_lineage resolver — not a membership exemption.
 
@@ -146,6 +171,16 @@ The verb remains for historical intent-pin minting and for `authz`-shared human-
 3. `git ls-files --others --exclude-standard`
 
 and lists on-disk `xbrief/active/` files. Presence in the working tree is what matters for discovery. The **fence list** still comes from the merge-base brief bytes.
+
+## Run time, phase lines and the per-call git limit (#6378)
+
+The lifecycle census reads every brief under `xbrief/{pending,active,completed,cancelled}/` at the base ref. It lists each folder with `git ls-tree`, then reads the listed briefs with one `git cat-file --batch-check` and a few `git cat-file --batch` chunks. Each chunk stays under the subprocess buffer limit. A name that is not printable ASCII, an entry that is not a file, a brief too large for one chunk, and any batch fault use the single `git show` read as before. The verdict and the exit codes do not change. The texts the census read serve the later base reads of the same run. Nothing is kept between runs.
+
+Before each phase (base resolution, change-set read, census with its brief count, per-story evaluation) the check writes one `verify_scope_provenance: phase: <name>` line to stderr. `--quiet` turns these lines off.
+
+Every git call of the check has a time limit. The default is 120 seconds per call. `--git-timeout-seconds <n>` changes it, and `0` means no limit. `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS` sets it for runs that cannot pass the flag; the flag wins. At the limit the git process is ended with `SIGKILL`; git calls run with `GIT_OPTIONAL_LOCKS=0`. The limit ends the git process the check started, not a helper that git started (a credential helper, or a fetch in a partial clone).
+
+The limit is the declared refusal `scope-provenance-git-call-timeout`. It ships in `warn` mode: a call that reaches the limit prints one line with the phase, the git command, the elapsed seconds and the remedy, and then runs once more with no limit. In `enforce` mode (a later release) the same line is the refusal and the check exits 2. The remedy is the verb with a larger `--git-timeout-seconds` value, for example `deft verify:scope-provenance --git-timeout-seconds 240`.
 
 ## Cohort proceed
 

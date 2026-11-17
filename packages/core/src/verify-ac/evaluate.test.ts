@@ -1547,3 +1547,50 @@ describe("Path B activation AC disposition (#5792)", () => {
     rmSync(gitRoot, { recursive: true, force: true });
   });
 });
+
+describe("brief-land inventory changelog entry paths (#6314)", () => {
+  function runGitFor(gitRoot: string, diffStdout: string) {
+    return (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) return { code: 0, stdout: "true\n", stderr: "" };
+      if (joined.includes("show-toplevel")) return { code: 0, stdout: `${gitRoot}\n`, stderr: "" };
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        return { code: 0, stdout: "abc\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return { code: 0, stdout: diffStdout, stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+  }
+
+  it("keeps a repo-root changelog.d fragment as brief-land from a subdirectory cwd", () => {
+    const gitRoot = mkdtempSync(join(tmpdir(), "deft-6314-fragment-"));
+    const projectRoot = join(gitRoot, "packages", "core");
+    mkdirSync(projectRoot, { recursive: true });
+    const brief = "xbrief/active/story-6314.xbrief.json";
+    const fragment = "changelog.d/6314-x.md";
+    const nested = "changelog.d/sub/x.md";
+    try {
+      const ok = collectBriefLandInventoryAsPrDiffPaths({
+        projectRoot,
+        baseRef: "origin/master",
+        runGit: runGitFor(gitRoot, `A\0${brief}\0A\0${fragment}\0`),
+      });
+      expect(ok.ok).toBe(true);
+      if (!ok.ok) return;
+      expect(ok.files.some((file) => file.path === fragment)).toBe(true);
+
+      const nestedInventory = collectBriefLandInventoryAsPrDiffPaths({
+        projectRoot,
+        baseRef: "origin/master",
+        runGit: runGitFor(gitRoot, `A\0${brief}\0A\0${nested}\0`),
+      });
+      const nestedListed =
+        nestedInventory.ok && nestedInventory.files.some((file) => file.path === nested);
+      expect(nestedListed).toBe(false);
+    } finally {
+      rmSync(gitRoot, { recursive: true, force: true });
+    }
+  });
+});

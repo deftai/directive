@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6269",
-    "updated": "2026-11-13T15:08:59Z"
+    "updated": "2026-11-16T03:53:26Z"
   },
   "plan": {
     "title": "bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "verify:ac treats every quoted phrase in an acceptance clause as text that must be present in the bound file, so a clause that says a change removes a phrase fails exactly when the work is done right. This story adds a small closed grammar (remove, delete, drop or recut a quoted phrase from a file; a file no longer contains a phrase; replace one phrase with another) that flips polarity per quoted span, and keeps every other ambiguous shape as a blocking adjudicable unverifiable row. The guarantee is exact literal absence in an existing readable file.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6269",
@@ -19,164 +19,272 @@
     "items": [
       {
         "title": "Keep quoted spans with their position in the clause until polarity is assigned.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a clause that quotes the same literal twice, when verify:ac walks it, then each quoted span keeps its own position and polarity; a test in clauses.test.ts shows the second span is still evaluated."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Do not dedupe tokens before polarity.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a clause that quotes one literal under a removal form and again as a plain presence span, when verify:ac walks it, then the row returns unverifiable with adjudicable true instead of collapsing the two spans into one token."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Closed absence forms, each a complete sentence: `Removes|Deletes|Drops|Recuts \"X\" from PATH` (singular or plural verb, PATH optional when the clause is bound) and `PATH no longer contains \"X\"`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a clause in each removal form (removes, deletes, drops, recuts, singular or plural, and PATH no longer contains) bound to a file, when the literal is absent the walk returns verified, and when it is present the walk returns failed."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Closed replace form: `Replaces \"X\" with \"Y\"` (optional PATH suffix): X absent, Y present.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a replace-form clause, when the first literal is absent and the second present the walk returns verified; each of the other three combinations returns failed."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Spans that no closed form governs keep today's presence check.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a presence clause such as an Adds form, when the literal is present the walk returns verified and when it is absent it returns failed, as before this change."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Unresolved polarity (a negated removal verb, two governing verbs over one span, the same literal under both polarities, `replaces \"X\"` with no `with`, X equal to Y, or a removal verb whose object is not exactly the quoted span) returns `unverifiable` with `adjudicable: true`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given each unresolved shape (negated removal verb, two governing verbs over one span, the same literal under both polarities, replace with no with, first literal equal to second, removal object not exactly the quoted span), when the walk runs, then it returns unverifiable with adjudicable true."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "So it counts in `countUnverifiedAdjudicableClauses` and keeps `ok` false.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given an unresolved row next to a verified sibling, when verify:ac runs, then ok is false and the command exits non-zero."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "It never returns `verified`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given any unresolved shape, when the literal is absent or present, then the walk never returns verified; a test asserts both cases."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The detail names the supported forms.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the walk returns an unresolved row, then its detail text names the supported removal, no-longer-contains and replace forms."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Token-absence classification runs before the bound-artifact absence branch (`isBoundArtifactAbsenceClaim`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a removal clause with a quoted span that also names the bound path, when the walk runs, then it returns the token-absence outcome and not the path-absence failed row."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Path-absence clauses with no quoted span keep today's behaviour.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a path-absence clause with no quoted span bound to an existing file, when the walk runs, then it returns failed exactly as before; a regression test passes."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The declared-scope, containment, existence and file-type guards stay ahead of every token check, so a missing, renamed or non-file artifact still fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a removal clause bound to a missing, renamed or non-file artifact, when the walk runs, then it returns failed (or unverifiable for an undeclared path) before any token check runs."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Absence is exact literal absence (`!body.includes(X)`) in an existing readable file.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a removal clause whose literal is absent from an existing readable file, when the walk runs, then it returns verified; given the exact literal in the file, then it returns failed."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Case, inner whitespace and inner quote characters stay significant.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a file that holds the literal only with different case or inner whitespace, when a removal clause is walked, then it returns verified; given the exact literal, then it returns failed."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The #5393 defect-description exemption and the #3826 `plan.items` path are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a defect-description clause or a clause derived from plan.items, when the walk runs, then it returns the same outcome as before this change; the existing tests pass."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The same classifier feeds `walkOne` and `isExistenceOrQuotedTokenClause`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a removal-only clause, when verify:ac counts behavioural clauses and walks rows, then both read the same span classification; a test shows the clause is counted as a token clause."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests in `packages/core/src/verify-ac/clauses.test.ts`: removal pairs (absent → verified, present → failed) for each verb; all four replace combinations; each unresolved shape → `unverifiable` + adjudicable; walk `ok` false when an unresolved row has a verified sibling; path-absence regression; one case through the `plan.items` derivation.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When npx vitest run packages/core/src/verify-ac/clauses.test.ts runs, then the removal, replace, unresolved, verified-sibling, path-absence and plan.items cases pass."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Must-not constraints from the lean Reject list hold: no clause-wide polarity flip from a removal word, no non-adjudicable unverifiable row for ambiguous polarity, no new words in ABSENCE_ALTERNATION, no rewrite, revise, deprecate, disable or bare replaces in the absence set, no new brief schema field, and no case- or whitespace-insensitive matching.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a replace clause whose two literals are both absent, when the walk runs, then it returns failed, not verified; ABSENCE_ALTERNATION and the brief schema are unchanged, and matching stays case- and whitespace-sensitive."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "08f4198cf1d2902b592b841a502ac926676c4eef",
+          "recorded_at": "2026-11-16T03:53:26Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -607,9 +715,36 @@
           "#3826"
         ],
         "acceptance_criteria_justification": "One clause per admitted sentence of the accepted Bound remedy (successor lean 6856180817), each bound to clauses.ts or clauses.test.ts; clause 18 carries the lean's Reject list as must-not constraints. The issue title is the one confession."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "c4e0c80409065a51f6bf2393ae9e6ae43fc1ca4a",
+        "prNumber": 6294,
+        "prBase": "master",
+        "mergeCommit": "08f4198cf1d2902b592b841a502ac926676c4eef",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cfa3ce1fcae5d661ed79baab1fd85c04cc244707",
+        "verifiedAt": "2026-11-16T03:53:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "operator-attested",
+        "attestationGrantId": "grant-20261116034319-7ef03c"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T03:53:26Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T03:53:26Z"
       }
     },
     "id": "github.issue.6373187519",
-    "updated": "2026-11-13T15:08:59Z"
+    "updated": "2026-11-16T03:53:26Z"
   }
 }

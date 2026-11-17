@@ -42,6 +42,16 @@ import { enforceLiveOnePrUnitCheck, resolveProductionAppStore } from "../one-pr-
 import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
 import {
+  advancePlanAfterComplete,
+  type CompleteAdvanceSeams,
+} from "../plan-sequence/complete-advance.js";
+import {
+  applyAcceptanceDispositionGrants,
+  checkCitedAcceptanceDispositionGrants,
+  recordAcceptanceDispositionUse,
+} from "../policy/acceptance-disposition-grant.js";
+import { recordDeliveryIdentityAttestUse } from "../policy/delivery-identity-attest-grant.js";
+import {
   evaluateSmallChangeLaneGate,
   type SmallChangeLaneGateOverrides,
   type SmallChangeLaneGateResult,
@@ -54,7 +64,7 @@ import { assertAppendLockOwned, type HeldLock, withAppendLock } from "../slice/l
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
-import type { SpecDriftLedger } from "../verify-source/spec-drift.js";
+import type { SpecDriftDeliverySource, SpecDriftLedger } from "../verify-source/spec-drift.js";
 import {
   gateScopeCompleteSpecDrift,
   recordScopeCompleteDrift,
@@ -73,6 +83,7 @@ import {
   formatAcceptanceCompletionListing,
   migrateNoneStatedForHistoricalShip,
   persistClauseKeyedPendingItems,
+  restoreGrantedDispositionOriginals,
   stampMergeFromCompletionProvenance,
 } from "./acceptance-evidence.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
@@ -117,7 +128,13 @@ import {
   stampDeliveryProvenance,
 } from "./delivery-evidence.js";
 import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
-import { stampLifecycleWrite } from "./lifecycle-write.js";
+import {
+  evaluateInPrCompletionInputs,
+  IN_PR_POST_MERGE_PATH,
+  listBranchChangedPaths,
+  resolveBranchMergeBase,
+} from "./lands-with-product.js";
+import { LANDS_WITH_PRODUCT, stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { formatUnreachableTransitionHint } from "./transition-hint.js";
@@ -133,6 +150,14 @@ export interface TransitionResult {
 
 /** Optional completion evidence / disposition for the delivery gate (#3041 / #3675). */
 export interface TransitionOptions {
+  /**
+   * In-PR completion (#6277): complete inside the story's last product PR.
+   * Skips the post-merge delivery gate, writes no delivered provenance and no
+   * merge evidence, and stamps lifecycleWrite `lands-with-product`.
+   */
+  readonly inPr?: boolean;
+  /** Test seam for in-PR mode: the branch's changed paths (null = unreadable). */
+  readonly inPrChangedPaths?: readonly string[] | null;
   readonly deliveryEvidence?: DeliveryEvidenceInput | null;
   readonly nonDeliveryDisposition?: NonDeliveryDisposition | null;
   readonly runGit?: GitRunner;
@@ -171,6 +196,8 @@ export interface TransitionOptions {
   readonly resolveIssueCloseKind?: (ref: IssueRef) => IssueCloseKind;
   /** Test seam: override completed tip-twin probe for cancel refuse. */
   readonly hasCompletedTipTwin?: (ref: IssueRef) => CompletedTipTwinResult;
+  /** Test seams for the post-complete plan cursor catch-up (#6205). */
+  readonly planAdvanceSeams?: CompleteAdvanceSeams;
 }
 
 /** REST node_id for one-PR-unit binding; mirrors pr-closing-keywords live path. */
@@ -542,6 +569,18 @@ export function runTransition(
     };
   }
 
+  // #6277: in-PR completion is a complete from active/ only.
+  if (options.inPr === true && (act !== "complete" || currentFolder !== "active")) {
+    return {
+      ok: false,
+      message:
+        act !== "complete"
+          ? "--in-pr applies only to scope:complete (#6277)."
+          : `scope:complete --in-pr refused (#6277): the brief must be in active/, not ${currentFolder}/. ` +
+            IN_PR_POST_MERGE_PATH,
+    };
+  }
+
   // Already-active activate is acceptance ingress revalidation only (#4768).
   // D7 filename was enforced when the brief first landed; do not re-block a
   // settled active brief on a fixture / legacy name during no-op revalidation.
@@ -736,7 +775,48 @@ export function runTransition(
   // #3041: fail closed before mutating a code-bearing complete without delivery evidence.
   let reuseValidatedDeliveryAncestry = false;
   let laneDeliveredCommit: string | null = null;
-  if (act === "complete") {
+  /** #6317: operator attestation grant whose use is recorded after the completed/ write. */
+  let attestationGrantId: string | undefined;
+  const inPr = act === "complete" && options.inPr === true;
+  /**
+   * #6335: the story's own delivery for the spec-drift rewrite proof, resolved
+   * only when the proof needs it. In-PR: merge base and branch head. Post-merge:
+   * first parent and the product merge commit. Unresolvable → unassessable.
+   */
+  let driftDelivery: SpecDriftDeliverySource | null = null;
+  if (inPr) {
+    driftDelivery = () => ({
+      baseCommit: resolveBranchMergeBase(projectRoot, { runGit: options.runGit }),
+      deliveryCommit: "HEAD",
+      runGit: options.runGit,
+    });
+    // #6277 Bound 1: refuse on the brief's own inputs, then skip the post-merge
+    // delivery gate. No delivered provenance and no merge evidence are written.
+    const inputs = evaluateInPrCompletionInputs(planObj, {
+      changedPaths:
+        options.inPrChangedPaths !== undefined
+          ? options.inPrChangedPaths
+          : listBranchChangedPaths(projectRoot, { runGit: options.runGit }),
+    });
+    if (!inputs.ok) {
+      return { ok: false, message: inputs.message };
+    }
+    const lane = evaluateSmallChangeLaneGate(planObj, {
+      ...options.smallChangeLane,
+      deliveredCommit: null,
+      projectRoot,
+      gate: "scope:complete",
+      briefPath: resolvedPath,
+    });
+    if (!lane.ok) {
+      return { ok: false, message: lane.message };
+    }
+    const chokepoint = enforceConsumerHeaderPlaceholderWhenProductEvidence(projectRoot);
+    if (!chokepoint.ok) {
+      return { ok: false, message: chokepoint.message };
+    }
+  }
+  if (act === "complete" && !inPr) {
     // #3583: auto-discover delivery evidence before the validate-only gate.
     const discovered = discoverDeliveryEvidenceForComplete({
       projectRoot,
@@ -772,16 +852,24 @@ export function runTransition(
       fetchPrPayload: options.fetchPrPayload,
       mergeTimeForge: options.mergeTimeForge,
       briefBasename: basename,
+      briefRelPath: relative(projectRoot, resolvedPath).replace(/\\/g, "/"),
       fetchPrChangedFiles: options.fetchPrChangedFiles,
     });
     if (!gate.ok) {
       return { ok: false, message: gate.message };
     }
+    attestationGrantId = gate.provenance?.attestationGrantId;
     // #6204: recheck a small-change lane brief. With a delivered merge commit the
     // lane measures that commit against its first parent; otherwise the worktree
     // against the lane-admit base. Delivery identity above is unchanged.
     laneDeliveredCommit =
       options.smallChangeLane?.deliveredCommit ?? discovered.evidence?.mergeCommit ?? null;
+    const productMergeCommit = discovered.evidence?.mergeCommit ?? null;
+    driftDelivery = {
+      baseCommit: productMergeCommit === null ? null : `${productMergeCommit}^1`,
+      deliveryCommit: productMergeCommit,
+      runGit: options.runGit,
+    };
     const lane = evaluateSmallChangeLaneGate(planObj, {
       ...options.smallChangeLane,
       deliveredCommit: laneDeliveredCommit,
@@ -819,10 +907,24 @@ export function runTransition(
   // #3240: per-criterion typed evidence or human-origin disposition before auto-advance.
   let acceptanceReports: readonly CriterionAcceptanceReport[] | undefined;
   let acceptanceListing = "";
+  /** #6318: acceptance-disposition grants whose first use is recorded after the completed/ write. */
+  let dispositionGrantIds: readonly string[] = [];
   if (act === "complete" && options.skipAcceptanceEvidenceGate !== true) {
     // #5403 Stage-1: empty commands → none_stated only when merge provenance is present.
     migrateNoneStatedForHistoricalShip(planObj);
     const persist = persistClauseKeyedPendingItems(planObj);
+    // #6318: grant-covered `deferred` dispositions apply in memory before the merge
+    // stamper, so it skips them; the mid-flight active write leaves them out.
+    const granted = applyAcceptanceDispositionGrants({
+      projectRoot,
+      plan: planObj,
+      now,
+      recordedAt: nowIso,
+    });
+    if (!granted.ok) {
+      return { ok: false, message: granted.reason };
+    }
+    dispositionGrantIds = granted.grantIdsToRecord;
     const mergeStamp = stampMergeFromCompletionProvenance(planObj, {
       projectRoot,
       runGit: options.runGit,
@@ -841,12 +943,15 @@ export function runTransition(
       persist.rewrittenIds.length > 0 ||
       mergeStamp.stampedIds.length > 0
     ) {
-      const persistWrite = atomicWriteBrief(
-        resolvedPath,
-        briefWithoutDurableCompletionProvenance(data),
-        vbriefRoot,
-        { projectRoot },
-      );
+      const midFlight = briefWithoutDurableCompletionProvenance(data);
+      const midFlightPlan = midFlight.plan;
+      if (typeof midFlightPlan === "object" && midFlightPlan !== null) {
+        restoreGrantedDispositionOriginals(
+          midFlightPlan as Record<string, unknown>,
+          granted.originals,
+        );
+      }
+      const persistWrite = atomicWriteBrief(resolvedPath, midFlight, vbriefRoot, { projectRoot });
       if (!persistWrite.ok) {
         return { ok: false, message: persistWrite.message };
       }
@@ -886,7 +991,9 @@ export function runTransition(
 
   // #5350: pre-move spec-drift gate under enforce (advise/shadow do not refuse).
   if (act === "complete") {
-    const driftGate = gateScopeCompleteSpecDrift(projectRoot, data, resolvedPath);
+    const driftGate = gateScopeCompleteSpecDrift(projectRoot, data, resolvedPath, {
+      delivery: driftDelivery,
+    });
     if (!driftGate.ok) {
       return { ok: false, message: driftGate.message };
     }
@@ -942,7 +1049,12 @@ export function runTransition(
           acceptanceReports,
         };
       }
-      stampLifecycleWrite(planObj, "complete", nowIso);
+      stampLifecycleWrite(
+        planObj,
+        "complete",
+        nowIso,
+        inPr ? { completionDisposition: LANDS_WITH_PRODUCT } : undefined,
+      );
     }
 
     if (act === "fail") {
@@ -1076,6 +1188,7 @@ export function runTransition(
               projectRoot,
               data,
               relative(projectRoot, destPath).replace(/\\/g, "/"),
+              { delivery: driftDelivery },
             );
             if (driftRecord !== null) {
               // Lock refuse returns completedAt=null with no ledger write.
@@ -1197,6 +1310,7 @@ export function runTransition(
         destPath,
         vbriefRoot,
         targetStatus,
+        { delivery: driftDelivery },
       );
       if (!specSync.ok) {
         // Move already landed; roll back dest (+ enforce ledger) so failure does not
@@ -1227,10 +1341,18 @@ export function runTransition(
       if (act === "activate" || act === "promote") {
         maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
       }
+      const attestUse =
+        act === "complete"
+          ? recordAttestationUse(projectRoot, attestationGrantId, now) +
+            recordDispositionGrantUse(projectRoot, dispositionGrantIds, now) +
+            // #6205: one named plan line; never fails or rolls back the completion.
+            `\n${advancePlanAfterComplete({ projectRoot, completedPath: destPath, now: nowIso, seams: options.planAdvanceSeams }).line}`
+          : "";
       const moveMsg =
         `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
         (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
-        (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
+        (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "") +
+        attestUse;
       return {
         ok: true,
         message: moveMsg,
@@ -1369,10 +1491,21 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     fetchPrPayload: options.fetchPrPayload,
     mergeTimeForge: options.mergeTimeForge,
     briefBasename: basename,
+    briefRelPath: relative(projectRoot, resolvedPath).replace(/\\/g, "/"),
     fetchPrChangedFiles: options.fetchPrChangedFiles,
   });
   if (!gate.ok) {
     return { ok: false, message: gate.message };
+  }
+  // #6318: a restamp replays every acceptance-disposition grant the brief cites.
+  const cited = checkCitedAcceptanceDispositionGrants({
+    projectRoot,
+    plan: planObj,
+    now,
+    recordedAt: nowIso,
+  });
+  if (!cited.ok) {
+    return { ok: false, message: cited.reason };
   }
   if (gate.provenance !== null) {
     const sessionId = resolveCompletionSessionId(projectRoot);
@@ -1422,8 +1555,45 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     ok: true,
     message:
       `Restamped ${basename} in completed/ (status: completed, ` +
-      `deliveryDisposition=${disposition})`,
+      `deliveryDisposition=${disposition})` +
+      recordAttestationUse(projectRoot, gate.provenance?.attestationGrantId, now) +
+      recordDispositionGrantUse(projectRoot, cited.grantIdsToRecord, now) +
+      // #6205: a restamp reports and attempts the same plan catch-up.
+      `\n${advancePlanAfterComplete({ projectRoot, completedPath: resolvedPath, now: nowIso, seams: options.planAdvanceSeams }).line}`,
   };
+}
+
+/**
+ * Record first use of an operator delivery attestation once the completed/
+ * write succeeded (#6317). A replay of a used grant is a no-op. A failed
+ * record is reported, not fatal: the completed brief already landed.
+ */
+function recordAttestationUse(projectRoot: string, grantId: string | undefined, now: Date): string {
+  if (grantId === undefined) {
+    return "";
+  }
+  const used = recordDeliveryIdentityAttestUse({ projectRoot, grantId, now });
+  return used.ok
+    ? `\nOperator delivery attestation ${grantId} recorded as used.`
+    : `\nWarning: ${used.reason}; the grant stays unused until a later run records it.`;
+}
+
+/**
+ * Record first use of acceptance-disposition grants once the completed/ write
+ * succeeded (#6318). A failed record is reported, not fatal.
+ */
+function recordDispositionGrantUse(
+  projectRoot: string,
+  grantIds: readonly string[],
+  now: Date,
+): string {
+  if (grantIds.length === 0) {
+    return "";
+  }
+  const used = recordAcceptanceDispositionUse({ projectRoot, grantIds, now });
+  return used.ok
+    ? `\nAcceptance-disposition grant(s) ${grantIds.join(", ")} recorded as used.`
+    : `\nWarning: ${used.reason}; the grant stays unused until a later run records it.`;
 }
 
 export function recordWipCapOverride(

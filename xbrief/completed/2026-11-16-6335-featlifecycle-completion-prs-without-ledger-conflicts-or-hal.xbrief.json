@@ -1,0 +1,709 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6335",
+    "updated": "2026-11-16T21:06:26Z"
+  },
+  "plan": {
+    "title": "feat(lifecycle): completion PRs without ledger conflicts or half-written finalize",
+    "status": "completed",
+    "narratives": {
+      "Description": "Every story completion appends a row to the one tracked file xbrief/.audit/spec-drift-ledger.json, so each open completion PR conflicts when another merges and needs a manual merge round. This story moves each completion's spec-drift rows into its own file under xbrief/.audit/spec-drift/, binds the rewrite proof to the story's own delivery commits instead of a stored last fingerprint, keeps the old ledger as a read-only header and history, adds the row folder to the one lifecycle path family, and names the part line for authority-record PRs.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6335",
+      "Overview": "\n1. One row file per story. A completion writes its spec-drift rows (unresolved, coverage, shadow) to `xbrief/.audit/spec-drift/<scopeId>.json` and does not write `xbrief/.audit/spec-drift-ledger.json`. A retry overwrites that file. A completion with nothing to record writes an empty row file when the old ledger has rows for that scope or an earlier row file exists, and writes no file otherwise. The failed-move rollback restores that one file.\n2. Both ends of the rewrite proof come from the story's own delivery. The before-fingerprint is the durable specification at the commit the delivery was applied onto, and the after-fingerprint is the durable specification at the delivery itself: the merge base and the branch head for an in-PR completion, and the first parent and the merge commit of the story's product PR for a post-merge completion. The live delivery tip and a stored last fingerprint are not used. A delivery commit that cannot be resolved gives the existing unassessable result. Each coverage row records its before and after values. The reused-evidence check runs over the union of all row files and legacy rows, at completion and in `verify:spec-drift`.\n3. The old ledger file stays as header and history. It keeps `baselineRevision`, `cutoverBoundary` and its existing rows, and only seed and reseed write it. Readers take the header, the legacy rows and the row files. A row file, empty or not, replaces the legacy rows for its scope. No migration step.\n4. One path family. The row-file folder joins the exact ledger path in `isDeliveryBriefLandPath`, in the completion-move ledger allowance of the scope-provenance fence, and in the list of files that finalize commits. A completion PR with row files stays lifecycle-shaped.\n5. Part-line guidance. `storyLineAdvice` and the intent-constraint mint message name an authority-record PR (for example an intent-constraint mint) as a PR that carries `deft-story-part: N`. No path is added to the delivery-brief-land family for authority records.\n\n\n",
+      "Constraint": "- A merge driver or a merge tool for the ledger, JSONL with `merge=union` included.\n- A stored last-fingerprint value in any shared file, and a proof end point read from the live delivery tip (comment 6907458325 finding 2).\n- Deleting a row file when a retry clears a finding for a scope that has legacy rows (comment 6907458325 finding 3).\n- Finalize cleanup or a resume message on this issue. That is #6303 (comment 6907458325 finding 1).\n- Adding `.deft/intent-constraint/` or any `.deft/` path to the delivery-brief-land family.\n- A new check, refusal or required step.",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a worker landing parallel story completions, I want each completion to write only its own spec-drift row file, so that completion PRs merge without a manual merge round and no story can claim another story's specification change.",
+      "ImplementationPlan": "Two PRs on the normal route: this activation PR, then one product PR (deft-story: 6335). 1. spec-drift.ts: row files at xbrief/.audit/spec-drift/<scopeId>.json; readLedger merges header + legacy rows + row files (a row file replaces legacy rows for its scope); advise/shadow/enforce record paths write the row file only; empty row file when legacy rows or an earlier row file exist; rollback restores the one file; seed/reseed write the header only with lastRequirementsFingerprint null. 2. Rewrite proof: before/after fingerprints from git show of the durable specification at the delivery base and delivery commit (merge base + HEAD for in-PR, first parent + merge commit for post-merge); unresolvable = unassessable; reused-evidence over all row files and legacy rows at completion and in verify:spec-drift. 3. transition.ts / specification-sync.ts pass the delivery commits. 4. delivery-evidence.ts isDeliveryBriefLandPath, base-fence.ts ledger allowance and finalize-cohort.ts lifecycle commit list admit the row folder. 5. storyLineAdvice and the intent-constraint mint message name deft-story-part: N for an authority-record PR. Docs: content/commands.md, content/scm/github.md; release note as a changelog.d fragment.",
+      "Traces": "#6335, #6277, #6303, #6324, #6421, #5350, #680"
+    },
+    "items": [
+      {
+        "title": "One row file per story.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given two branches that each complete a different story from the same delivery tip, when one merges, then the other merges with no conflict in `xbrief/.audit/` (each completion writes only `xbrief/.audit/spec-drift/<scopeId>.json`, proven by a git merge test in packages/core/src/verify-source/spec-drift-row-files.test.ts that keeps both rows)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A completion writes its spec-drift rows (unresolved, coverage, shadow) to `xbrief/.audit/spec-drift/<scopeId>.json` and does not write `xbrief/.audit/spec-drift-ledger.json`.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a completion, then `xbrief/.audit/spec-drift-ledger.json` is not changed; and given a completion that records a finding, then `xbrief/.audit/spec-drift/<scopeId>.json` holds that finding."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A retry overwrites that file.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a scope whose row file holds a finding, when a retry of its completion records a different result, then the row file holds only the retry's rows."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A completion with nothing to record writes an empty row file when the old ledger has rows for that scope or an earlier row file exists, and writes no file otherwise.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a scope with an unresolved row in the old ledger file, when a retry of its completion has no finding, then an empty row file exists for that scope; and given a scope with no legacy row and no earlier row file, when its completion has nothing to record, then no row file is written."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The failed-move rollback restores that one file.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a failed lifecycle move after the drift record under enforce, when `rollbackScopeCompleteDrift` runs with the pre-record snapshot, then the scope's row file returns to its prior content, or is absent when it was absent before, and other row files are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Both ends of the rewrite proof come from the story's own delivery.",
+        "status": "completed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given story A merged without a specification change and story B merged later with one, when story A is completed after merge, then the rewrite proof of story A fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The before-fingerprint is the durable specification at the commit the delivery was applied onto, and the after-fingerprint is the durable specification at the delivery itself: the merge base and the branch head for an in-PR completion, and the first parent and the merge commit of the story's product PR for a post-merge completion.",
+        "status": "completed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a `none` completion that merges between the branch point and the merge of a `delta` completion, then the rewrite proof of the `delta` completion uses the specification at its own merge base and its own head."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The live delivery tip and a stored last fingerprint are not used.",
+        "status": "completed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a ledger whose `lastRequirementsFingerprint` and live specification differ from the delivery, when the drift gate evaluates a `delta` completion, then the proof uses only the delivery commits, and no completion or seed writes a non-null `lastRequirementsFingerprint`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A delivery commit that cannot be resolved gives the existing unassessable result.",
+        "status": "completed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given a post-merge completion whose product merge commit cannot be resolved, then the rewrite proof is unassessable."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Each coverage row records its before and after values.",
+        "status": "completed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a completion whose rewrite proof passes, then its coverage row in the row file records `beforeRequirementsFingerprint` and `afterRequirementsFingerprint`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The reused-evidence check runs over the union of all row files and legacy rows, at completion and in `verify:spec-drift`.",
+        "status": "completed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given two row files that record the same before and after fingerprints as rewrite proof, when `task verify:spec-drift` runs, then it reports reused evidence; and a completion whose pair is already in another scope's row file or legacy row fails its proof as reused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The old ledger file stays as header and history.",
+        "status": "completed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a completion, then the old ledger file is still present with its header and rows unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "It keeps `baselineRevision`, `cutoverBoundary` and its existing rows, and only seed and reseed write it.",
+        "status": "completed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given `verify:spec-drift --seed` or `--reseed`, then the ledger header (`baselineRevision`, `cutoverBoundary`) is written; and given any completion, then the ledger file bytes are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Readers take the header, the legacy rows and the row files.",
+        "status": "completed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given a ledger file with existing rows and no row files, when `task verify:spec-drift` runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A row file, empty or not, replaces the legacy rows for its scope.",
+        "status": "completed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given an empty row file for a scope with a legacy unresolved row, when `task verify:spec-drift` runs, then the old row for that scope is not reported."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "No migration step.",
+        "status": "completed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given the repository ledger with legacy rows and no `xbrief/.audit/spec-drift/` folder, when `task verify:spec-drift` and a completion run, then both work with no migration command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "One path family.",
+        "status": "completed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given a completion PR whose only non-brief paths are row files, then the PR is lifecycle-shaped and needs no CHANGELOG entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The row-file folder joins the exact ledger path in `isDeliveryBriefLandPath`, in the completion-move ledger allowance of the scope-provenance fence, and in the list of files that finalize commits.",
+        "status": "completed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given a completion PR with row files, when `task verify:scope-provenance` runs, then the row files pass membership; and given a finalize sweep that wrote row files, then `swarm:finalize-cohort` commits them with the completed briefs (packages/core/src/swarm/finalize-cohort.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A completion PR with row files stays lifecycle-shaped.",
+        "status": "completed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given a lifecycle PR that changes completed briefs and row files only, then `isLifecycleShapedPr` and `isDeliveryBriefLandExcluded` are true for it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Part-line guidance.",
+        "status": "completed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given a PR that changes only an intent-constraint record and names a running story, when the story-line check fails, then the advice names `deft-story-part: N` for an authority-record PR."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`storyLineAdvice` and the intent-constraint mint message name an authority-record PR (for example an intent-constraint mint) as a PR that carries `deft-story-part: N`.",
+        "status": "completed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given a successful `scope:record-intent-constraint` mint, then its message names `deft-story-part: N` for the authority-record PR that lands the record; and `storyLineAdvice` (packages/core/src/pr-closing-keywords/main.ts) names the same."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "No path is added to the delivery-brief-land family for authority records.",
+        "status": "completed",
+        "id": "clause.22",
+        "narrative": {
+          "Acceptance": "Given a PR that changes only an intent-constraint record, then `isDeliveryBriefLandPath` is false for that record."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+          "recorded_at": "2026-11-16T21:06:26Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6335",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6335: feat(lifecycle): completion PRs without ledger conflicts or half-written finalize"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6277",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6277"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6303",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6303"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6324",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6324"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6331",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6331"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6332",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6332"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 22 independently testable clauses, one per admitted sentence of the Bound remedy on #6335 (lean 6907742771), before product edit (#3323)",
+      "sentences": [
+        "feat(lifecycle): completion PRs without ledger conflicts or half-written finalize",
+        "One row file per story.",
+        "A completion writes its spec-drift rows (unresolved, coverage, shadow) to `xbrief/.audit/spec-drift/<scopeId>.json` and does not write `xbrief/.audit/spec-drift-ledger.json`.",
+        "A retry overwrites that file.",
+        "A completion with nothing to record writes an empty row file when the old ledger has rows for that scope or an earlier row file exists, and writes no file otherwise.",
+        "The failed-move rollback restores that one file.",
+        "Both ends of the rewrite proof come from the story's own delivery.",
+        "The before-fingerprint is the durable specification at the commit the delivery was applied onto, and the after-fingerprint is the durable specification at the delivery itself: the merge base and the branch head for an in-PR completion, and the first parent and the merge commit of the story's product PR for a post-merge completion.",
+        "The live delivery tip and a stored last fingerprint are not used.",
+        "A delivery commit that cannot be resolved gives the existing unassessable result.",
+        "Each coverage row records its before and after values.",
+        "The reused-evidence check runs over the union of all row files and legacy rows, at completion and in `verify:spec-drift`.",
+        "The old ledger file stays as header and history.",
+        "It keeps `baselineRevision`, `cutoverBoundary` and its existing rows, and only seed and reseed write it.",
+        "Readers take the header, the legacy rows and the row files.",
+        "A row file, empty or not, replaces the legacy rows for its scope.",
+        "No migration step.",
+        "One path family.",
+        "The row-file folder joins the exact ledger path in `isDeliveryBriefLandPath`, in the completion-move ledger allowance of the scope-provenance fence, and in the list of files that finalize commits.",
+        "A completion PR with row files stays lifecycle-shaped.",
+        "Part-line guidance.",
+        "`storyLineAdvice` and the intent-constraint mint message name an authority-record PR (for example an intent-constraint mint) as a PR that carries `deft-story-part: N`.",
+        "No path is added to the delivery-brief-land family for authority records."
+      ],
+      "admitted_source_sentences": [
+        "One row file per story.",
+        "A completion writes its spec-drift rows (unresolved, coverage, shadow) to `xbrief/.audit/spec-drift/<scopeId>.json` and does not write `xbrief/.audit/spec-drift-ledger.json`.",
+        "A retry overwrites that file.",
+        "A completion with nothing to record writes an empty row file when the old ledger has rows for that scope or an earlier row file exists, and writes no file otherwise.",
+        "The failed-move rollback restores that one file.",
+        "Both ends of the rewrite proof come from the story's own delivery.",
+        "The before-fingerprint is the durable specification at the commit the delivery was applied onto, and the after-fingerprint is the durable specification at the delivery itself: the merge base and the branch head for an in-PR completion, and the first parent and the merge commit of the story's product PR for a post-merge completion.",
+        "The live delivery tip and a stored last fingerprint are not used.",
+        "A delivery commit that cannot be resolved gives the existing unassessable result.",
+        "Each coverage row records its before and after values.",
+        "The reused-evidence check runs over the union of all row files and legacy rows, at completion and in `verify:spec-drift`.",
+        "The old ledger file stays as header and history.",
+        "It keeps `baselineRevision`, `cutoverBoundary` and its existing rows, and only seed and reseed write it.",
+        "Readers take the header, the legacy rows and the row files.",
+        "A row file, empty or not, replaces the legacy rows for its scope.",
+        "No migration step.",
+        "One path family.",
+        "The row-file folder joins the exact ledger path in `isDeliveryBriefLandPath`, in the completion-move ledger allowance of the scope-provenance fence, and in the list of files that finalize commits.",
+        "A completion PR with row files stays lifecycle-shaped.",
+        "Part-line guidance.",
+        "`storyLineAdvice` and the intent-constraint mint message name an authority-record PR (for example an intent-constraint mint) as a PR that carries `deft-story-part: N`.",
+        "No path is added to the delivery-brief-land family for authority records."
+      ],
+      "admitted_source_digest": "d0ac906ce3d34368b0216e511a4ccf9c0983ab42660f821be9c4d3eae6dd486d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One row file per story.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A completion writes its spec-drift rows (unresolved, coverage, shadow) to `xbrief/.audit/spec-drift/<scopeId>.json` and does not write `xbrief/.audit/spec-drift-ledger.json`.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A retry overwrites that file.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A completion with nothing to record writes an empty row file when the old ledger has rows for that scope or an earlier row file exists, and writes no file otherwise.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The failed-move rollback restores that one file.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Both ends of the rewrite proof come from the story's own delivery.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The before-fingerprint is the durable specification at the commit the delivery was applied onto, and the after-fingerprint is the durable specification at the delivery itself: the merge base and the branch head for an in-PR completion, and the first parent and the merge commit of the story's product PR for a post-merge completion.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The live delivery tip and a stored last fingerprint are not used.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A delivery commit that cannot be resolved gives the existing unassessable result.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Each coverage row records its before and after values.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The reused-evidence check runs over the union of all row files and legacy rows, at completion and in `verify:spec-drift`.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The old ledger file stays as header and history.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "It keeps `baselineRevision`, `cutoverBoundary` and its existing rows, and only seed and reseed write it.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Readers take the header, the legacy rows and the row files.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "A row file, empty or not, replaces the legacy rows for its scope.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "No migration step.",
+          "artifact_path": "packages/core/src/verify-source/spec-drift.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "One path family.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The row-file folder joins the exact ledger path in `isDeliveryBriefLandPath`, in the completion-move ledger allowance of the scope-provenance fence, and in the list of files that finalize commits.",
+          "artifact_path": "packages/core/src/scope-provenance/base-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "A completion PR with row files stays lifecycle-shaped.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Part-line guidance.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "`storyLineAdvice` and the intent-constraint mint message name an authority-record PR (for example an intent-constraint mint) as a PR that carries `deft-story-part: N`.",
+          "artifact_path": "packages/runtime/src/scope-record-intent-constraint.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "No path is added to the delivery-brief-land family for authority records.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(lifecycle): completion PRs without ledger conflicts or half-written finalize"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueBody": "## Summary\n\nEach story completion in wave 2a was a separate lifecycle PR, and parallel completion PRs conflicted with each other every time one merged. #6277 (completion inside the product PR) removes most of this; the items below are what remains or what #6277 should cover.\n\n## What we saw\n\n1. **Ledger conflicts.** Every completion appends a row to `xbrief/.audit/spec-drift-ledger.json`, so each open completion PR conflicts after any other merges. No tool-level merge exists; wave 2a used a hand-written three-way union script for each one.\n2. **Finalize can exceed 10 minutes.** `swarm:finalize-cohort` runs the acceptance commands; a killed run leaves merge stamps written on the active brief without the move to completed/. A re-run is idempotent, but nothing says so.\n3. **Mark trap on non-brief lifecycle PRs.** A lifecycle PR that adds anything outside the delivery-brief-land family (here an intent-constraint record) is not excluded from the completion join, so a `deft-story: N` line on it becomes a second marked delivery PR. Caught before merge on #6324; the part line fixed it.\n\n## Expected\n\nFewer steps: completions do not conflict with each other, and an interrupted finalize says how to resume.\n\n## Acceptance Criteria\n\n- Given two completion PRs open at once, when one merges, then the other still merges without a manual merge round.\n- Given a finalize run interrupted after stamping, then the next run reports that it resumes and completes.\n- Given a lifecycle-only PR that adds an authority record, then guidance or the lint does not ask for a completing `deft-story` line on it.\n\nRefs #6277. Refs #6303. Refs #6324. Refs #6331. Refs #6332.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6406914265,
+        "origin": "deftai/directive#6335",
+        "id": "github.issue.6406914265"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6d7780c2dd21b3c95ba14c7f6f3f05ff4279de1012bd9413926cbddb5411870b"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/verify-source/spec-drift.ts",
+          "packages/core/src/verify-source/spec-drift.test.ts",
+          "packages/core/src/verify-source/spec-drift-row-files.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/specification-sync.ts",
+          "packages/core/src/scope/specification-sync.test.ts",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope-provenance/base-fence.ts",
+          "packages/core/src/scope-provenance/base-fence.test.ts",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/task-surface/index.test.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/runtime/src/scope-record-intent-constraint.ts",
+          "packages/runtime/src/scope-record-intent-constraint.test.ts",
+          "content/commands.md",
+          "content/scm/github.md",
+          "docs/RULE-MAP.md",
+          "changelog.d/6335-spec-drift-row-files.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "lifecycle-completion",
+        "verify_commands": [
+          "npx vitest run packages/core/src/verify-source/spec-drift.test.ts packages/core/src/verify-source/spec-drift-row-files.test.ts packages/core/src/scope/specification-sync.test.ts",
+          "npx vitest run packages/core/src/scope/delivery-evidence.test.ts packages/core/src/scope-provenance/base-fence.test.ts packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/task-surface/index.test.ts",
+          "npx vitest run packages/core/src/pr-closing-keywords/main.test.ts packages/runtime/src/scope-record-intent-constraint.test.ts packages/core/src/scope/transition.test.ts"
+        ],
+        "expected_outputs": [
+          "A completion writes xbrief/.audit/spec-drift/<scopeId>.json and leaves xbrief/.audit/spec-drift-ledger.json unchanged; readers merge header, legacy rows and row files, a row file replacing the legacy rows for its scope",
+          "The rewrite proof reads both fingerprints from the story's own delivery commits; no stored last fingerprint is written or read",
+          "verify:spec-drift reports reused rewrite evidence across row files and legacy rows",
+          "Row files are in the delivery-brief-land family, the scope-provenance completion allowance and finalize's lifecycle commit",
+          "storyLineAdvice and the intent-constraint mint message name deft-story-part: N for an authority-record PR"
+        ],
+        "Traces": [
+          "#6335",
+          "#6277",
+          "#6303",
+          "#6324",
+          "#6421",
+          "#5350",
+          "#680"
+        ],
+        "acceptance_criteria_justification": "Twenty-two clauses, one per admitted sentence of the Bound remedy on #6335 (lean 6907742771, accepted synthesis 6907794850); the fifteen Acceptance Criteria of the lean are carried in the clause Acceptance narratives. parallel_safe is false because the running #6277 story also edits transition.ts, delivery-evidence.ts, pr-closing-keywords/main.ts and content/commands.md."
+      },
+      "productPullRequest": 6446,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "7637c7b99bc01e3fd579d83be62b44ee273f5e2a",
+        "prNumber": 6446,
+        "prBase": "master",
+        "mergeCommit": "8efe1aaec01ff0f0fffab9de6a37731859e6b312",
+        "deliveryBranch": "master",
+        "deliveryCommit": "391f77b76f2f3b882bcefda01778a1336e79363b",
+        "verifiedAt": "2026-11-16T21:06:26Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T21:06:26Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T21:06:26Z"
+      }
+    },
+    "id": "github.issue.6406914265",
+    "updated": "2026-11-16T21:06:26Z"
+  }
+}

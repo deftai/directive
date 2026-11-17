@@ -5,15 +5,19 @@
  * new or widened brief with its code in one PR:
  * - `off` (default): today's behaviour. A same-PR approved-scope record is refused.
  * - `mint`: a same-PR human-presence mint record may admit the head brief for
- *   membership, only when merge-base `requireHumanMerge` is true and the record
- *   names exactly the head brief's scope.
+ *   membership when the record names exactly the head brief's scope.
  * - `signed`: reserved for #5862. The setter refuses it.
  *
  * The level and `requireHumanMerge` are read from the merge base only. A PR that
  * changes either field cannot use the one-PR path.
  *
- * CI cannot tell a real mint from a file an agent wrote. At the mint level the
- * human merge is the control, the same anchor as a separate record PR.
+ * CI cannot tell a real mint from a file an agent wrote. The control depends on
+ * the merge-base merge policy (#6354): with `requireHumanMerge: true` the human
+ * merge is the control; otherwise CI verifies nothing human and the control is
+ * the local mint gate plus the always-on protected-store deny on
+ * `.deft/approved-scope/`. The local write fence admits a brief absent from the
+ * merge base on this same mint (#6361), so the shell-write residual
+ * (#3597, #3595) also reaches local scope admission.
  */
 
 import {
@@ -55,13 +59,24 @@ export type SettableOnePrScopeProofLevel = (typeof SETTABLE_ONE_PR_SCOPE_PROOF_L
 
 export const DEFAULT_ONE_PR_SCOPE_PROOF: OnePrScopeProofLevel = "off";
 
-/** Line printed with every mint-level admit. */
+/** Control line for a mint-level admit when merge-base `requireHumanMerge` is true. */
 export const MINT_LEVEL_CI_LIMIT_LINE =
   "CI cannot tell this mint from a file an agent wrote; the human merge is the control";
 
+/**
+ * Control line for a mint-level admit without a merge-base human merge
+ * (#6354 / #6361). The local write fence now reads the mint, so the part of it
+ * that stays a control is its always-on protected-store deny.
+ */
+export const MINT_LEVEL_LOCAL_CONTROL_LINE =
+  "CI cannot tell this mint from a file an agent wrote; requireHumanMerge is not true " +
+  "on the merge base, so CI verifies nothing human: the control is the local mint gate " +
+  "and the write fence's protected-store deny on .deft/approved-scope/; a record written " +
+  "by a shell form that deny misses (#3597, #3595) also reaches local scope admission";
+
 export const SIGNED_LEVEL_RESERVED_MESSAGE =
   "onePrScopeProof=signed is reserved: the signed level lands with #5862. " +
-  "Use --set mint (needs requireHumanMerge=true) or --set off.";
+  "Use --set mint or --set off.";
 
 export type OnePrScopeProofSource = "typed" | "default" | "default-on-error";
 
@@ -158,7 +173,11 @@ export function inspectOnePrScopeProof(
 // ---------------------------------------------------------------------------
 
 export type OnePrScopeProofGate =
-  | { readonly kind: "mint" }
+  | {
+      readonly kind: "mint";
+      /** Merge-base `requireHumanMerge` is a typed `true` (#6354). */
+      readonly humanMerge: boolean;
+    }
   | { readonly kind: "off" }
   | { readonly kind: "refuse"; readonly reason: string };
 
@@ -190,9 +209,11 @@ function sameValue(a: unknown, b: unknown): boolean {
  * Decide the one-PR proof level for a change set (#6273).
  *
  * `baseRaw` is PROJECT-DEFINITION at the merge base; `headRaw` is the head
- * copy. Only the merge base sets the level. `mint` needs a typed merge-base
- * `requireHumanMerge: true`, and the head must not change either field.
- * `off` means the level is off at the merge base (today's behaviour).
+ * copy. Only the merge base sets the level, and the head must not change
+ * `onePrScopeProof` or `requireHumanMerge`. `mint` carries the merge-base merge
+ * policy (`humanMerge`) so the admit block can name the control; it is not a
+ * precondition (#6354). `off` means the level is off at the merge base
+ * (today's behaviour).
  */
 export function evaluateOnePrScopeProofGate(input: {
   readonly baseRaw: string | null;
@@ -209,12 +230,6 @@ export function evaluateOnePrScopeProofGate(input: {
   if (base.level !== "mint") {
     return { kind: "refuse", reason: "merge-base onePrScopeProof is malformed" };
   }
-  if (base.requireHumanMerge !== true) {
-    return {
-      kind: "refuse",
-      reason: "mint level needs merge-base requireHumanMerge=true (bot-merge repos cannot use it)",
-    };
-  }
   const head = readPolicyFields(input.headRaw);
   if (!head.ok) {
     return { kind: "refuse", reason: "head PROJECT-DEFINITION unreadable" };
@@ -228,7 +243,7 @@ export function evaluateOnePrScopeProofGate(input: {
       reason: "this change set edits onePrScopeProof or requireHumanMerge",
     };
   }
-  return { kind: "mint" };
+  return { kind: "mint", humanMerge: base.requireHumanMerge === true };
 }
 
 // ---------------------------------------------------------------------------
@@ -348,9 +363,16 @@ export interface MintLevelAdmit {
   readonly xbriefRelPath: string;
   readonly fileScope: readonly string[];
   readonly productionFileCount: number;
+  /** Merge-base `requireHumanMerge` is a typed `true`; picks the control line (#6354). */
+  readonly humanMerge: boolean;
 }
 
-/** Plain-text admit block for stdout and `$GITHUB_STEP_SUMMARY` (#6273). */
+/** The control line for the merge-base merge policy (#6354). */
+export function mintLevelControlLine(humanMerge: boolean): string {
+  return humanMerge ? MINT_LEVEL_CI_LIMIT_LINE : MINT_LEVEL_LOCAL_CONTROL_LINE;
+}
+
+/** Plain-text admit block for stdout and `$GITHUB_STEP_SUMMARY` (#6273 / #6354). */
 export function formatMintLevelAdmitBlock(admit: MintLevelAdmit): string {
   const lines = [
     `one-PR scope proof (mint level, #6273): ${admit.xbriefRelPath}`,
@@ -358,7 +380,8 @@ export function formatMintLevelAdmitBlock(admit: MintLevelAdmit): string {
     `  production files: ${String(admit.productionFileCount)}`,
     `  admitted file_scope (${String(admit.fileScope.length)}):`,
     ...admit.fileScope.map((p) => `    - ${p}`),
-    `  ${MINT_LEVEL_CI_LIMIT_LINE}`,
+    `  merge-base requireHumanMerge: ${admit.humanMerge ? "true" : "not true"}`,
+    `  ${mintLevelControlLine(admit.humanMerge)}`,
   ];
   return `${lines.join("\n")}\n`;
 }
@@ -408,7 +431,9 @@ export function setOnePrScopeProof(
       exitCode: 1,
       stdout:
         "onePrScopeProof sets whether a same-PR human mint record may admit a new or widened brief.\n" +
-        "  The mint level needs requireHumanMerge=true; CI cannot verify the mint, the human merge is the control.\n" +
+        "  CI cannot verify the mint. With requireHumanMerge=true the human merge is the control;\n" +
+        "  otherwise the control is the local mint gate and the write fence's protected-store\n" +
+        "  deny on .deft/approved-scope/.\n" +
         "  Re-run with --confirm to apply.\n" +
         `  Inspect: ${policyColonInvocation("show", " --field=onePrScopeProof")}\n`,
       changed: false,
@@ -464,8 +489,10 @@ export function setOnePrScopeProof(
     ];
     if (level === "mint") {
       lines.push(
-        "  The mint level applies only when requireHumanMerge=true on the merge base; " +
-          "the head brief file_scope must be concrete (no globs).",
+        "  The level is read from the merge base; the head brief file_scope must be " +
+          "concrete (no globs). Without requireHumanMerge=true, CI verifies nothing human: " +
+          "the control is the local mint gate and the write fence's protected-store deny " +
+          "on .deft/approved-scope/.",
       );
     }
     return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };

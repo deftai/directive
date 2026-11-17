@@ -7,10 +7,16 @@ import {
   formatFinalizeOwedInventoryLines,
   inventoryHasBlockingOwed,
 } from "../swarm/finalize-owed.js";
-import { evaluateFinalizeOwedSessionGate } from "./session-start.js";
+import {
+  evaluateFinalizeOwedSessionGate,
+  FINALIZE_OWED_REPORT_PREFIX,
+  formatFinalizeOwedReportLine,
+  isSessionStartAlwaysOnLine,
+  selectSessionStartHumanLines,
+} from "./session-start.js";
 
 describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
-  it("prints inventory and blocks when probe reports blocking owed", () => {
+  it("prints inventory and reports, not refuses, blocking owed rows (#6409)", () => {
     const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
       probeFinalizeOwed: () => ({
         lines: ["finalize owed inventory:", "  #4919 owed [blocks] pr=#5100 xbrief/active/a.json"],
@@ -18,8 +24,11 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
         unknown: false,
       }),
     });
-    expect(result.blocks).toBe(true);
+    expect(result.blocks).toBe(false);
+    expect(result.owedCount).toBe(1);
     expect(result.lines.join("\n")).toContain("4919");
+    expect(result.lines.join("\n")).not.toContain("blocks mutation");
+    expect(result.lines).toContain(formatFinalizeOwedReportLine(1));
   });
 
   it("does not block when --defer-owed reason is recorded", () => {
@@ -35,6 +44,7 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.deferred).toBe(true);
     expect(result.deferReason).toBe("finishing unrelated hotfix");
     expect(result.lines.join("\n")).toContain("deferred");
+    expect(result.lines).toContain(formatFinalizeOwedReportLine(1));
   });
 
   it("records unknown without blocking on failed fetch probe", () => {
@@ -47,6 +57,8 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     });
     expect(result.unknown).toBe(true);
     expect(result.blocks).toBe(false);
+    expect(result.owedCount).toBe(0);
+    expect(result.lines.some((l) => l.startsWith(FINALIZE_OWED_REPORT_PREFIX))).toBe(false);
   });
 
   it("wires inventory unknown stories onto the session gate (#6008)", () => {
@@ -61,7 +73,9 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
       }),
     });
     expect(result.unknown).toBe(true);
-    expect(result.blocks).toBe(true);
+    // #6409: unknown rows are reported, not refused.
+    expect(result.blocks).toBe(false);
+    expect(result.owedCount).toBe(1);
     expect(result.lines.join("\n")).toContain("6008");
   });
 
@@ -110,7 +124,112 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     });
     expect(result.blocks).toBe(true);
     expect(result.unknown).toBe(true);
+    expect(result.owedCount).toBe(0);
     expect(result.lines.join("\n")).toContain("repo required");
+    expect(result.lines.join("\n")).toContain("blocks mutation");
+  });
+
+  it("repo-not-resolved with --defer-owed passes as today (#6409 item 5)", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      env: {},
+      deferOwedReason: "no-origin",
+      runGit: (_cwd, args) => {
+        if (args[0] === "fetch") {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        if (args[0] === "rev-parse") {
+          return { code: 0, stdout: "TIPSHA\n", stderr: "" };
+        }
+        if (args[0] === "remote") {
+          return { code: 1, stdout: "", stderr: "no remote" };
+        }
+        if (args[0] === "symbolic-ref" || args.includes("--abbrev-ref")) {
+          return { code: 0, stdout: "master\n", stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(result.blocks).toBe(false);
+    expect(result.deferred).toBe(true);
+    expect(result.lines).toEqual([
+      "finalize owed: repo required (set GH_REPO / GITHUB_REPOSITORY or configure origin)",
+      "finalize owed deferred: no-origin",
+    ]);
+  });
+
+  it("probe repoRequired keeps the repo-not-resolved refusal (#6409 item 5)", () => {
+    const refused = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      probeFinalizeOwed: () => ({ lines: [], blocks: false, unknown: true, repoRequired: true }),
+    });
+    expect(refused.blocks).toBe(true);
+    expect(refused.lines.join("\n")).toContain("repo required");
+    const deferred = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      deferOwedReason: "x",
+      probeFinalizeOwed: () => ({ lines: [], blocks: false, unknown: true, repoRequired: true }),
+    });
+    expect(deferred.blocks).toBe(false);
+    expect(deferred.deferReason).toBe("x");
+  });
+
+  it("report line carries the count, is always-on and survives quiet output (#6409)", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      probeFinalizeOwed: () => ({
+        lines: [
+          "finalize owed inventory:",
+          "  #5365 close-owed [blocks] pr=#1 xbrief/completed/a.json",
+          "  #5994 owed [blocks] pr=#2 xbrief/active/b.json",
+          "  #7000 unverified pr=#3 xbrief/active/c.json",
+        ],
+        blocks: true,
+        unknown: false,
+      }),
+    });
+    expect(result.owedCount).toBe(2);
+    const report = result.lines.find((l) => l.startsWith(FINALIZE_OWED_REPORT_PREFIX));
+    expect(report).toBe(
+      "finalize owed report: 2 owed item(s) do not stop this session; clear with `deft swarm:finalize-owed`",
+    );
+    expect(isSessionStartAlwaysOnLine(report ?? "")).toBe(true);
+    expect(isSessionStartAlwaysOnLine("finalize owed inventory:")).toBe(false);
+    const quiet = selectSessionStartHumanLines({
+      code: 0,
+      payload: { ready: true },
+      lines: result.lines,
+      env: {},
+    });
+    expect(quiet).toContain(report);
+    expect(quiet.some((l) => l.startsWith("  #5365"))).toBe(false);
+  });
+
+  it("probe owedCount wins over tagged-line count (#6409)", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      probeFinalizeOwed: () => ({
+        lines: ["finalize owed inventory:"],
+        blocks: true,
+        unknown: false,
+        owedCount: 5,
+      }),
+    });
+    expect(result.owedCount).toBe(5);
+    expect(result.lines).toContain(formatFinalizeOwedReportLine(5));
+  });
+
+  it("live path reports an empty inventory with count 0 and no refusal (#6409)", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      env: { GH_REPO: "deftai/directive" },
+      runGit: (_cwd, args) => {
+        if (args[0] === "rev-parse") {
+          return { code: 0, stdout: "TIPSHA\n", stderr: "" };
+        }
+        if (args[0] === "symbolic-ref" || args.includes("--abbrev-ref")) {
+          return { code: 0, stdout: "master\n", stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(result.blocks).toBe(false);
+    expect(result.owedCount).toBe(0);
+    expect(result.lines.some((l) => l.startsWith(FINALIZE_OWED_REPORT_PREFIX))).toBe(false);
   });
 
   it("does not block on #635/#401 proposed historical cite without --defer-owed (#5143)", () => {
@@ -210,7 +329,7 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("still blocks marked Tracking leftovers without --defer-owed (#5143 / #5122)", () => {
+  it("reports marked Tracking leftovers without refusing (#5143 / #5122 / #6409)", () => {
     const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
       probeFinalizeOwed: () => ({
         lines: [
@@ -221,9 +340,10 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
         unknown: false,
       }),
     });
-    expect(result.blocks).toBe(true);
+    expect(result.blocks).toBe(false);
     expect(result.deferred).toBe(false);
-    expect(result.lines.join("\n")).toContain("blocks mutation");
+    expect(result.lines.join("\n")).not.toContain("blocks mutation");
+    expect(result.lines).toContain(formatFinalizeOwedReportLine(1));
   });
   it("deferred still inventories; defer only clears blocks (#5171 reverse Prefer-A)", () => {
     let probeCalls = 0;
@@ -384,7 +504,8 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
           unknown: false,
         }),
       });
-      expect(result.blocks).toBe(true);
+      // Inherit refused: no deferral; owed rows still only report (#6409).
+      expect(result.blocks).toBe(false);
       expect(result.deferred).toBe(false);
     } finally {
       rmSync(primary, { recursive: true, force: true });
@@ -437,7 +558,8 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
           unknown: false,
         }),
       });
-      expect(result.blocks).toBe(true);
+      // Inherit refused: no deferral; owed rows still only report (#6409).
+      expect(result.blocks).toBe(false);
       expect(result.deferred).toBe(false);
     } finally {
       rmSync(primary, { recursive: true, force: true });
@@ -455,7 +577,8 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
         unknown: false,
       }),
     });
-    expect(result.blocks).toBe(true);
+    expect(result.blocks).toBe(false);
     expect(result.deferred).toBe(false);
+    expect(result.owedCount).toBe(1);
   });
 });

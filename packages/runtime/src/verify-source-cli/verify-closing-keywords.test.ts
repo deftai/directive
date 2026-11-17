@@ -196,3 +196,23 @@ describe("run", () => {
     stderr.mockRestore();
   });
 });
+
+describe("verify:closing-keywords on merge_group (#6295)", () => {
+  it("skips without invoking the check or git, exit 0", () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const invoke = vi.fn(() => 1);
+    const git: RunGitFn = () => {
+      throw new Error("git must not run on merge_group");
+    };
+    expect(run([], { GITHUB_EVENT_NAME: "merge_group" }, invoke, git)).toBe(0);
+    expect(invoke).not.toHaveBeenCalled();
+    expect(stdout.mock.calls.join("")).toContain("skipped on merge_group");
+    stdout.mockRestore();
+  });
+
+  it("still runs on pull_request", () => {
+    const invoke = vi.fn(() => 0);
+    expect(run([], { GITHUB_EVENT_NAME: "pull_request", GITHUB_PR_NUMBER: "12" }, invoke)).toBe(0);
+    expect(invoke).toHaveBeenCalledWith(["--mode", "both", "--pr", "12"]);
+  });
+});

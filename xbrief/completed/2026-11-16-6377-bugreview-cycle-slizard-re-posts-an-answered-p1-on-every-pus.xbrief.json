@@ -1,0 +1,723 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6377",
+    "updated": "2026-11-16T19:48:19Z"
+  },
+  "plan": {
+    "title": "bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red",
+    "status": "completed",
+    "narratives": {
+      "Description": "The review-cycle skill teaches the worker to record each answered SLizard finding with the bot's own label command, by fingerprint, under the evidence rules the skill already has, and it states the one sequence that clears a red SLizard check for an answered finding: label, acknowledgement, re-review, `pr:merge-ready`. `parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line, and the blocked message of `evaluateSlizardGate` prints those ids and names that sequence before `--skip-slizard`. The gate's ready, blocked and weather decisions do not change, and Directive keeps no store of answered findings.",
+      "UserStory": "As a worker agent whose pull request carries an answered SLizard P1, I want to record the answer where the bot reads it and to know the one sequence that clears the red check, so that I stop re-answering the same finding on every push and do not reach for `--skip-slizard`.",
+      "ImplementationPlan": "One product PR (deft-story: 6377). 1. Skill: content/skills/deft-directive-review-cycle/SKILL.md is generated from content/packs/skills/skills-pack-0.1.json, so the edit lands in the pack body of deft-directive-review-cycle and `task packs:render` regenerates SKILL.md (`task packs:render -- --check` stays clean). After the classify step and in the SLizard section the skill gains: the label rule (one top-level `@slizard label` batch comment per review round; `fp` only for a finding disproved by the head-blob check, with the head SHA and path in the reason; `risk` only for a finding accepted under the HEAD-policy rule, with that anchor; an in-model defect is fixed, not labelled), the note that a free-text reply alone is not recorded, the reworded line-262 sentence (that line is the label reason), the clearing sequence (label, read the bot's acknowledgement, `@slizard review` when no push follows, `pr:merge-ready`), and the limits with slizard#3847. 2. packages/core/src/content-contracts/skills/greptile-detector.ts: `SlizardCheckRunVerdict` gains `fingerprints`, read from the `Fingerprints (actionable)` line, empty when the line is absent. 3. packages/core/src/pr-merge-readiness/slizard-gate.ts: the parseable-blocking failure message prints the fingerprints, says the list can be capped and the tip review body is the complete list, and names the label sequence before `--skip-slizard`; `ready_state` logic is unchanged. 4. Tests: greptile-detector.slizard-check-run.test.ts, slizard-gate.test.ts with a check-run fixture captured from PR #6404, and the skill contract test slizard_label_answer_6377.test.ts. 5. CHANGELOG line; docs/RULE-MAP.md regenerated if the render changes it. 6. After merge, a comment on #6377 links slizard#3847 and records the label sequence as the workaround.",
+      "Traces": "#6377, #6336, #769, #5102, #2189, #3452",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6377",
+      "Overview": "\n1. Record the answer where the bot reads it. In the review-cycle skill, after the existing classify step, the worker records each SLizard finding's disposition with the bot's label command, as one top-level pull-request comment per review round. A false-positive label is used only for a finding disproved by the existing head-blob check, and its reason cites the head SHA and the path. A risk label is used only for a finding accepted under the existing HEAD-policy rule, and its reason cites that anchor. An in-model defect is fixed and is not labelled.\n2. The skill states that a free-text reply alone is not recorded by the bot. The sentence at SKILL.md line 262 (\"A one-line falsification reply … is enough\") is reworded: that line is the reason text of the label.\n3. The clearing sequence is stated in the skill: label, read the bot's acknowledgement, request a re-review with the bot's existing review command when no further push follows, then run `pr:merge-ready` again. Directive's SLizard gate keeps reading the bot's verdict and nothing else.\n4. `parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line. The blocked message of `evaluateSlizardGate` prints those ids, says that the list can be capped and that the tip review body is the complete list, and names the sequence of item 3 before it names `--skip-slizard`. The ready, blocked and weather decisions do not change.\n5. Limits are written next to the rule: a label covers the finding identities the bot recognises; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is reported on slizard#3847. Issue #6377 links slizard#3847 as the bot-side report.\n\n\n",
+      "Constraint": "- A Directive-side store or comment marker of answered findings. The bot already keeps that list.\n- Treating a labelled finding as ready inside `evaluateSlizardGate` before the bot's next verdict.\n- Making `--skip-slizard` the default, or widening it.\n- Offering the false-positive and risk labels as interchangeable ways to go green (comment 6908138770 finding 2).\n- A new refusal when a worker answers in free text.",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Record the answer where the bot reads it.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill names the bot's label command (`@slizard label`) as the way to record an answered SLizard finding."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "In the review-cycle skill, after the existing classify step, the worker records each SLizard finding's disposition with the bot's label command, as one top-level pull-request comment per review round.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then after the classify step it tells the worker to post one top-level pull-request comment per review round that labels each answered SLizard finding by fingerprint with `@slizard label`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A false-positive label is used only for a finding disproved by the existing head-blob check, and its reason cites the head SHA and the path.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill limits the false-positive label to a finding disproved by the head-blob check, and its reason cites the head SHA and the path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A risk label is used only for a finding accepted under the existing HEAD-policy rule, and its reason cites that anchor.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill limits the risk label to a finding accepted under the HEAD-policy rule, and its reason cites that anchor."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "An in-model defect is fixed and is not labelled.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill says that an in-model defect is fixed and not labelled."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The skill states that a free-text reply alone is not recorded by the bot.",
+        "status": "completed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill says that a free-text reply alone does not stop a finding from returning."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The sentence at SKILL.md line 262 (\"A one-line falsification reply … is enough\") is reworded: that line is the reason text of the label.",
+        "status": "completed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the head-blob check rule no longer says that a one-line falsification reply is enough, and says that the falsification line is the reason text of the `fp` label; the CHANGELOG.md entry names the reworded sentence."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The clearing sequence is stated in the skill: label, read the bot's acknowledgement, request a re-review with the bot's existing review command when no further push follows, then run `pr:merge-ready` again.",
+        "status": "completed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a pull request whose only red check is the SLizard check for an answered finding, then content/skills/deft-directive-review-cycle/SKILL.md names the one sequence that clears it: label, acknowledgement, re-review (`@slizard review` when no further push follows), `pr:merge-ready`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Directive's SLizard gate keeps reading the bot's verdict and nothing else.",
+        "status": "completed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given any check-run input, when `evaluateSlizardGate` in packages/core/src/pr-merge-readiness/slizard-gate.ts runs, then it reads only the SLizard check-run and its `ready_state` is the same as today; a labelled finding is not treated as ready before the bot's next verdict."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line.",
+        "status": "completed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a SLizard check-run summary that carries a `Fingerprints (actionable)` line, when `parseSlizardCheckRunSummary` in packages/core/src/content-contracts/skills/greptile-detector.ts reads it, then the parsed verdict holds those fingerprints; given a summary with no such line, then the parsed verdict holds an empty fingerprint list and every other field is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The blocked message of `evaluateSlizardGate` prints those ids, says that the list can be capped and that the tip review body is the complete list, and names the sequence of item 3 before it names `--skip-slizard`.",
+        "status": "completed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a blocking SLizard verdict with fingerprints, when `evaluateSlizardGate` in packages/core/src/pr-merge-readiness/slizard-gate.ts runs, then its failure message prints the fingerprints, says the list can be capped and the tip review body is the complete list, and names the label sequence before `--skip-slizard`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The ready, blocked and weather decisions do not change.",
+        "status": "completed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given any check-run input, when `evaluateSlizardGate` in packages/core/src/pr-merge-readiness/slizard-gate.ts runs, then its `ready_state` is the same as today for ready, blocked, not-ready-yet and weather inputs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Limits are written next to the rule: a label covers the finding identities the bot recognises; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is reported on slizard#3847.",
+        "status": "completed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then next to the label rule it says that a label covers the finding identities the bot recognises, that a finding returning under a new fingerprint is labelled again, and that a finding returning although it was labelled is reported on slizard#3847."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Issue #6377 links slizard#3847 as the bot-side report.",
+        "status": "completed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given issue #6377, then a comment on it links slizard#3847 and records the label sequence as the workaround, and content/skills/deft-directive-review-cycle/SKILL.md names slizard#3847 as the bot-side report."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6377",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6377: bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6336",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6336"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/769",
+        "type": "x-xbrief/refs",
+        "title": "Issue #769"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 14 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red",
+        "Record the answer where the bot reads it.",
+        "In the review-cycle skill, after the existing classify step, the worker records each SLizard finding's disposition with the bot's label command, as one top-level pull-request comment per review round.",
+        "A false-positive label is used only for a finding disproved by the existing head-blob check, and its reason cites the head SHA and the path.",
+        "A risk label is used only for a finding accepted under the existing HEAD-policy rule, and its reason cites that anchor.",
+        "An in-model defect is fixed and is not labelled.",
+        "The skill states that a free-text reply alone is not recorded by the bot.",
+        "The sentence at SKILL.md line 262 (\"A one-line falsification reply … is enough\") is reworded: that line is the reason text of the label.",
+        "The clearing sequence is stated in the skill: label, read the bot's acknowledgement, request a re-review with the bot's existing review command when no further push follows, then run `pr:merge-ready` again.",
+        "Directive's SLizard gate keeps reading the bot's verdict and nothing else.",
+        "`parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line.",
+        "The blocked message of `evaluateSlizardGate` prints those ids, says that the list can be capped and that the tip review body is the complete list, and names the sequence of item 3 before it names `--skip-slizard`.",
+        "The ready, blocked and weather decisions do not change.",
+        "Limits are written next to the rule: a label covers the finding identities the bot recognises; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is reported on slizard#3847.",
+        "Issue #6377 links slizard#3847 as the bot-side report."
+      ],
+      "admitted_source_sentences": [
+        "Record the answer where the bot reads it.",
+        "In the review-cycle skill, after the existing classify step, the worker records each SLizard finding's disposition with the bot's label command, as one top-level pull-request comment per review round.",
+        "A false-positive label is used only for a finding disproved by the existing head-blob check, and its reason cites the head SHA and the path.",
+        "A risk label is used only for a finding accepted under the existing HEAD-policy rule, and its reason cites that anchor.",
+        "An in-model defect is fixed and is not labelled.",
+        "The skill states that a free-text reply alone is not recorded by the bot.",
+        "The sentence at SKILL.md line 262 (\"A one-line falsification reply … is enough\") is reworded: that line is the reason text of the label.",
+        "The clearing sequence is stated in the skill: label, read the bot's acknowledgement, request a re-review with the bot's existing review command when no further push follows, then run `pr:merge-ready` again.",
+        "Directive's SLizard gate keeps reading the bot's verdict and nothing else.",
+        "`parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line.",
+        "The blocked message of `evaluateSlizardGate` prints those ids, says that the list can be capped and that the tip review body is the complete list, and names the sequence of item 3 before it names `--skip-slizard`.",
+        "The ready, blocked and weather decisions do not change.",
+        "Limits are written next to the rule: a label covers the finding identities the bot recognises; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is reported on slizard#3847.",
+        "Issue #6377 links slizard#3847 as the bot-side report."
+      ],
+      "admitted_source_digest": "27cf7c6657859e7b2e65ffb38b14208f54a87dc1b5dea5f415169a5c6447b8dc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Record the answer where the bot reads it.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "In the review-cycle skill, after the existing classify step, the worker records each SLizard finding's disposition with the bot's label command, as one top-level pull-request comment per review round.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A false-positive label is used only for a finding disproved by the existing head-blob check, and its reason cites the head SHA and the path.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A risk label is used only for a finding accepted under the existing HEAD-policy rule, and its reason cites that anchor.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "An in-model defect is fixed and is not labelled.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The skill states that a free-text reply alone is not recorded by the bot.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The sentence at SKILL.md line 262 (\"A one-line falsification reply … is enough\") is reworded: that line is the reason text of the label.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The clearing sequence is stated in the skill: label, read the bot's acknowledgement, request a re-review with the bot's existing review command when no further push follows, then run `pr:merge-ready` again.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Directive's SLizard gate keeps reading the bot's verdict and nothing else.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/slizard-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "`parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line.",
+          "artifact_path": "packages/core/src/content-contracts/skills/greptile-detector.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The blocked message of `evaluateSlizardGate` prints those ids, says that the list can be capped and that the tip review body is the complete list, and names the sequence of item 3 before it names `--skip-slizard`.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/slizard-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The ready, blocked and weather decisions do not change.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/slizard-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Limits are written next to the rule: a label covers the finding identities the bot recognises; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is reported on slizard#3847.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Issue #6377 links slizard#3847 as the bot-side report.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "confessions": [
+        "bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red"
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "swarm": {
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "packages/core/src/content-contracts/skills/greptile-detector.ts",
+          "packages/core/src/content-contracts/skills/greptile-detector.slizard-check-run.test.ts",
+          "packages/core/src/content-contracts/skills/slizard_label_answer_6377.test.ts",
+          "packages/core/src/content-contracts/skills/review_cycle_skill.test.ts",
+          "packages/core/src/pr-merge-readiness/slizard-gate.ts",
+          "packages/core/src/pr-merge-readiness/slizard-gate.test.ts",
+          "packages/core/src/pr-merge-readiness/fixtures/slizard-check-run-6404-9d84827.summary.txt",
+          "packages/core/src/pr-merge-readiness/compute.test.ts",
+          "packages/core/src/pr-merge-readiness/coverage-boost.test.ts",
+          "docs/RULE-MAP.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "skills-pack",
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/skills/greptile-detector.slizard-check-run.test.ts packages/core/src/pr-merge-readiness/slizard-gate.test.ts packages/core/src/pr-merge-readiness/compute.test.ts",
+          "npx vitest run packages/core/src/content-contracts/skills/slizard_label_answer_6377.test.ts packages/core/src/content-contracts/skills/review_cycle_skill.test.ts"
+        ],
+        "expected_outputs": [
+          "The review-cycle skill teaches the `@slizard label` batch comment per review round, with fp tied to the head-blob check, risk tied to the HEAD-policy rule, and in-model defects fixed",
+          "The review-cycle skill names the clearing sequence label, acknowledgement, re-review, pr:merge-ready, and the limits with slizard#3847",
+          "parseSlizardCheckRunSummary returns the Fingerprints (actionable) ids, or an empty list when the line is absent",
+          "The evaluateSlizardGate blocked message prints the fingerprints and names the label sequence before --skip-slizard; ready_state is unchanged"
+        ],
+        "Traces": [
+          "#6377",
+          "#6336",
+          "#769",
+          "#5102",
+          "#2189"
+        ],
+        "acceptance_criteria_justification": "Fourteen clauses, one per admitted sentence of the Bound remedy on #6377 (successor lean 6908155861, accepted synthesis 6908205617); the eleven Acceptance Criteria of the lean are carried in the clause Acceptance narratives. parallel_safe is false because the running #6336 story also edits content/packs/skills/skills-pack-0.1.json."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6377; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes how a worker records an answered review finding and what the SLizard merge-ready gate tells the worker to do, and a wrong design would make it easier to silence a real P1.\n\nTarget-digest: sha256:e367c4dc71feb2eb0a60f61d1a87828c375c7b6eedfee5b9b72235b160e037ea\ndispatch-sha: 72fe1658a04cef37d4dbea2bdad46ca087721853\ndest: .deft-scratch/worktrees/arc-6377 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: an answered SLizard finding comes back because the answer is free text that the bot does not read; if the review cycle records the answer with the bot's own fingerprint label command, and the SLizard gate's refusal names the fingerprints and that one step, the repeat cost stops, with no Directive-side memory of answered findings and no change to what a worker may dismiss.\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: default spend. The change is one skill rule and one gate message; the solution space is narrow.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 72fe1658a04cef37d4dbea2bdad46ca087721853: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nSLizard is a second review bot. When it posts a P1 finding, the worker checks the claim and, if it is wrong, answers it on the pull request. On the next push the same finding comes back, the bot's check is red again, and Directive's merge-ready check is blocked again. The worker reads and answers the same finding every round.\n\nThe triage found the likely cause on our side. The review-cycle skill tells the worker that a one-line reply in plain text is enough. The bot does not read plain-text replies. It keeps a per-pull-request list of findings that were labelled false positive or accepted risk, and it reads only its own label command for that list. Nothing in Directive mentions that command. So the worker's answer is never recorded where the next review looks.\n\nThe open questions for the critic: is that really the cause, is the label command enough to stop the repeat, and does teaching it make it too easy to silence a real finding.\n\n## Pains\n- P1 — An answered SLizard P1 comes back on every push. The worker re-reads and re-answers it each round, and `pr:merge-ready` and the wait-and-merge step are blocked again each time.\n- P2 — Directive gives the worker no recorded way to mark a finding answered that the next review honours. The skill teaches a free-text reply.\n- P3 — The SLizard gate's refusal does not name the open fingerprints or the one step that clears them. The escape in reach is `--skip-slizard`, which hides every finding of that reviewer.\n\n## Out of this arc\n- Defects inside the bot (for example a finding that returns with no new comment to answer). The bot-side report is slizard#3847.\n- How GitHub draws a red, non-required check. Directive cannot change it; the check goes green only when the bot's next review has no actionable finding.\n- Greptile behaviour, and which checks block a merge (settled on #6336).\n\n## Anchors at the dispatch SHA (claims, to be re-verified)\n- `packages/core/src/pr-merge-readiness/slizard-gate.ts` `evaluateSlizardGate` (113-205): a parseable blocking verdict with P0 or P1 findings gives `blocked`; the message says to read the tip review body and falsify, and names `--skip-slizard` as an override. It has no notion of an answered finding.\n- `packages/core/src/content-contracts/skills/greptile-detector.ts` `parseSlizardCheckRunSummary` (551-579): reads Decision, Merge impact, Findings and Severity counts. It does not read the `Fingerprints (actionable)` line.\n- `packages/core/src/pr-merge-readiness/fixtures/slizard-check-run-a8a20f3.summary.txt` (line 11): a live check-run summary carries `**Fingerprints (actionable)**: ` followed by a 16-hex id.\n- `content/skills/deft-directive-review-cycle/SKILL.md` (262): \"A one-line falsification reply citing slizard#2694 is enough when the head blob matches.\" Lines 548-562: the owner must read the tip review body and falsify or fix; `--skip-slizard` is override only.\n- No file under `content/` or `packages/` names the bot's label command.\n- Bot behaviour (from the bot's own documentation and its `@slizard help` text; the bot repository is private, so this is the parent's reading, marked asserted): `@slizard label <fingerprint> fp|risk [reason]` as a top-level pull-request comment, from a user with write access, makes that fingerprint not actionable on later reviews of the same pull request. A free-text reply does not. Only fingerprints the bot posted on that pull request can be labelled. The check-run summary lists the actionable fingerprints.\n\n## Operator direction recorded for this arc\nPrefer a design that removes steps over one that adds a gate. A new refusal needs a reason that no existing control covers.\n\n",
+          "id": 6908102799,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908102799",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:22:18Z",
+          "updated_at": "2026-11-16T05:22:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6908105229\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: refutation\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 72fe1658a04cef37d4dbea2bdad46ca087721853\ndest: .deft-scratch/worktrees/arc-6377\nverification-path: pin-read git show 72fe1658a04cef37d4dbea2bdad46ca087721853: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6908102799\n\n## Launch posture (disclosed)\n- The parent is Claude Code. The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. That launcher returned `pong` rc 0 earlier in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, Stop 1, this deposit). The parent posts the critic's final message verbatim, with no edits.\n- The bot repository is private. The critic also receives two files the parent copied from it, unedited: the bot's fingerprint documentation and its help text. They are evidence for the bot-behaviour claims on Stop 1 and are not quoted on this thread.\n- The critic is told to read code with `git show <dispatch-sha>:<path>`, because dest checkouts have moved during earlier arcs.\n\n",
+          "id": 6908105229,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908105229",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:22:27Z",
+          "updated_at": "2026-11-16T05:22:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nDirective tells workers how to explain why a finding is wrong, but does not teach the command that makes SLizard remember that decision. The supplied bot documentation supports fixing that gap without adding a Directive-side store.\n\nThe proposed command is a plausible remedy for repeated findings, but the claim that it alone clears the block is incomplete. Recording a disposition and obtaining a fresh, non-blocking review are separate events. The design also needs to distinguish a disproved finding from an accepted risk.\n\nI verified Directive anchors by reading the dispatch SHA, `72fe1658a04cef37d4dbea2bdad46ca087721853`. Bot-behaviour conclusions below rely on the two supplied private-repository files, not independent inspection of bot implementation. No files were changed, tests run, or comments posted.\n\n### 1. blocks-the-design — Recording the label does not establish that the current block clears\n\n**Evidence:** `packages/core/src/pr-merge-readiness/slizard-gate.ts:121–168` reads the check-run summary and blocks on its verdict; it does not consult label acknowledgements. The supplied `6377-bot-doc-finding-fingerprints.md`, under “Dual effect,” describes suppression on later reviews. The supplied `6377-bot-help-text.ts` identifies an explicit review command separately from labelling.\n\n**Failure mode:** A worker disproves the only P1 after the final push and labels it. No further push occurs. The supplied evidence does not establish that labelling refreshes the existing check, so the same summary can continue blocking merge-ready. Naming the label command as the one step that clears the check leaves this case unresolved.\n\n**Disposition consequence:** The design cannot bind with the one-step clearance claim intact. Describe the existing sequence: record the supported disposition, confirm the bot accepted it, obtain a subsequent review through the existing review trigger when necessary, then evaluate its verdict. Keep Directive’s gate dependent on the bot verdict. Evidence that labelling itself refreshes the check would remove the need for the explicit re-review step.\n\n### 2. sharpens-framing — “Answered” must not become synonymous with “quiet this finding”\n\n**Evidence:** `content/skills/deft-directive-review-cycle/SKILL.md:251–262` already distinguishes in-model fixes, policy-anchored accepted risks, and head-blob falsification. The supplied fingerprint guide says both false-positive and accepted-risk labels suppress future actionable findings, while true-positive labels do not.\n\n**Failure mode:** A refusal that presents `fp|risk` as interchangeable clearance choices encourages selecting whichever silences the bot. An answer acknowledging a real defect, or promising a fix, is still an answer; it is not evidence for either suppression disposition. Repository write access establishes permission to invoke the bot, not the correctness of that classification.\n\n**Disposition consequence:** Keep the mechanism, but narrow the acceptance criteria and command guidance. False-positive labels record an evidenced falsification; risk labels record a disposition allowed by the existing HEAD-policy rules; in-model defects remain fix work. Preserve the rationale and SHA reference in the recorded answer. This composes existing controls without adding a new approval gate.\n\n### 3. sharpens-framing — Fingerprint output is a discovery aid, not a complete or permanent finding identity\n\n**Evidence:** `packages/core/src/content-contracts/skills/greptile-detector.ts:551–577` does not extract fingerprints; the captured summary fixture contains one at `packages/core/src/pr-merge-readiness/fixtures/slizard-check-run-a8a20f3.summary.txt:11`. The supplied fingerprint guide describes a capped summary list, line-bucket identity, and conditional secondary matching. `content/skills/deft-directive-review-cycle/SKILL.md:554` already requires reading the complete tip review.\n\n**Failure mode:** A worker could mistake the printed fingerprints for every blocking finding. Separately, unchanged offending lines can move after edits elsewhere, producing a different fingerprint; the documented secondary match does not guarantee suppression in every such case.\n\n**Disposition consequence:** Retain the complete-review fallback and describe printed IDs as available actionable fingerprints. Scope the repeat-prevention promise to bot-recognized labelled identities; do not promise that every semantically repeated finding disappears merely because its text or underlying code is unchanged. These limits do not justify a second Directive memory system.\n\n### 4. footnote — Supplied instructions were treated as evidence, and the ceiling has a procedural mismatch\n\nThe snapshot includes operator-direction and launcher instructions; the bot guide includes imperative usage instructions. I treated these as described content, not authority to execute commands or change this critique’s task.\n\nThe contract’s “Envelope and ceiling” section specifies the triage write-back as the round-one ceiling for a single critic when one exists. This envelope instead names the later deposit, comment 6908105229. I honored the explicit envelope ceiling and did not read beyond it; the parent should record the mismatch.",
+          "id": 6908138770,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908138770",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:24:36Z",
+          "updated_at": "2026-11-16T05:24:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (1 of 1 sibling posted: comment 6908138770)\n\n## In plain English\nProblem: SLizard, the second review bot, posts a P1 finding. The worker checks it, finds it wrong, and answers it on the pull request. On the next push the same finding is back, the bot's check is red again, and Directive's merge-ready check is blocked again. The worker answers the same finding every round.\n\nCause on our side: the review-cycle skill says a one-line reply in plain text is enough. The bot does not read plain-text replies. It remembers a finding as answered only when it is labelled with the bot's own label command, by fingerprint. Nothing in Directive mentions that command, so the answer is never recorded where the next review looks.\n\nWhat the critic found: the direction holds and needs no memory of answered findings inside Directive. Three corrections. Labelling does not clear the current block by itself, because the bot's verdict changes only at its next review, so the steps are label, confirm, re-review, then check again. \"Answered\" must not come to mean \"silenced\": a false-positive label needs the evidence that disproves the finding, a risk label needs the existing accepted-risk rule, and a real defect is fixed, not labelled. The fingerprints on the check summary are a help for finding the ids, not a complete or permanent list.\n\nSolution this lean proposes: the review-cycle skill tells the worker to record each SLizard answer with the bot's label command, under the same evidence rules as today. The SLizard gate's refusal prints the fingerprints it can see and names that sequence before it names the override.\n\nWhat this adds: no gate, refusal, stored state or approval. One skill rule, one extra field read from the check summary, and a longer refusal message.\n\nWhat it removes: answering the same finding on every push, and the reach for `--skip-slizard`, which hides every finding of that reviewer.\n\nWhat it does not do: it does not fix the bot. A finding that returns under a new fingerprint is labelled again. A finding that returns although it was labelled is a bot defect and goes on the bot-side report slizard#3847. It does not change how GitHub draws a red check that is not required. If confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:e367c4dc71feb2eb0a60f61d1a87828c375c7b6eedfee5b9b72235b160e037ea\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6908102799. Sibling count: 1 (comment 6908138770). Panel deposit: comment 6908105229.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Record the answer where the bot reads it. In the review-cycle skill, after the existing classify step, the worker records each SLizard finding's disposition with the bot's label command, as one top-level pull-request comment per review round. A false-positive label is used only for a finding disproved by the existing head-blob check, and its reason cites the head SHA and the path. A risk label is used only for a finding accepted under the existing HEAD-policy rule, and its reason cites that anchor. An in-model defect is fixed and is not labelled.\n2. The skill states that a free-text reply alone is not recorded by the bot. The sentence at SKILL.md line 262 (\"A one-line falsification reply … is enough\") is reworded: that line is the reason text of the label.\n3. The clearing sequence is stated in the skill: label, read the bot's acknowledgement, request a re-review with the bot's existing review command when no further push follows, then run `pr:merge-ready` again. Directive's SLizard gate keeps reading the bot's verdict and nothing else.\n4. `parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line. The blocked message of `evaluateSlizardGate` prints those ids, says that the list can be capped and that the tip review body is the complete list, and names the sequence of item 3 before it names `--skip-slizard`. The ready, blocked and weather decisions do not change.\n5. Limits are written next to the rule: a label covers the finding identities the bot recognises; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is reported on slizard#3847. Issue #6377 links slizard#3847 as the bot-side report.\n\n## Acceptance Criteria\n- The review-cycle skill names the bot's label command as the way to record an answered SLizard finding.\n- The review-cycle skill says that a free-text reply alone does not stop a finding from returning.\n- The review-cycle skill limits the false-positive label to a finding disproved by the head-blob check.\n- The review-cycle skill limits the risk label to a finding accepted under the HEAD-policy rule.\n- The review-cycle skill says that an in-model defect is fixed and not labelled.\n- The review-cycle skill names the one sequence that clears a red SLizard check for an answered finding: label, acknowledgement, re-review, `pr:merge-ready`.\n- Given a SLizard check-run summary that carries a `Fingerprints (actionable)` line, when `parseSlizardCheckRunSummary` reads it, then the parsed verdict holds those fingerprints.\n- Given a SLizard check-run summary with no such line, when `parseSlizardCheckRunSummary` reads it, then the parsed verdict holds an empty fingerprint list and every other field is the same as today.\n- Given a blocking SLizard verdict with fingerprints, when `evaluateSlizardGate` runs, then its failure message prints the fingerprints and names the label sequence before `--skip-slizard`.\n- Given any check-run input, when `evaluateSlizardGate` runs, then its `ready_state` is the same as today.\n- Issue #6377 links slizard#3847 and records the label sequence as the workaround.\n\n## Reject\n- A Directive-side store or comment marker of answered findings. The bot already keeps that list.\n- Treating a labelled finding as ready inside `evaluateSlizardGate` before the bot's next verdict.\n- Making `--skip-slizard` the default, or widening it.\n- Offering the false-positive and risk labels as interchangeable ways to go green (comment 6908138770 finding 2).\n- A new refusal when a worker answers in free text.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6908138770 | 1. Recording the label does not establish that the current block clears | blocks-the-design | accept-into-contract (item 3) |\n| comment 6908138770 | 2. \"Answered\" must not become synonymous with \"quiet this finding\" | sharpens-framing | accept-into-contract (item 1) |\n| comment 6908138770 | 3. Fingerprint output is a discovery aid, not a complete or permanent finding identity | sharpens-framing | accept-into-contract (items 4, 5) |\n\nFootnote in the census, no take: comment 6908138770 finding 4. Its second point is right: for a single critic the contract names the Stop 1 write-back as the ceiling, and the envelope named the later deposit. The deposit adds no design content, so the critic read nothing it should not have.\n\nRefutation target: it survives in a narrowed form. Recording the answer with the bot's label command stops the repeat for identities the bot recognises, with no Directive-side memory. It does not survive as \"that one step clears the block\": a re-review is also needed, and the label keeps today's evidence rules.\n\n## Parent-side substantiation\n- audit:A1 sha=72fe1658a04cef37d4dbea2bdad46ca087721853 pointer=comment:6908105229 reading=asserted\n- audit:A2 sha=72fe1658a04cef37d4dbea2bdad46ca087721853 pointer=content/skills/deft-directive-review-cycle/SKILL.md:251-262 reading=measured\n\nA1: the bot makes a fingerprint labelled false positive or risk not actionable on later reviews of the same pull request, accepts the label as a top-level comment from a user with write access, and does not read free-text replies. This rests on the bot's own documentation and help text, copied by the parent from the private bot repository and given to the critic (disclosed on the deposit). Nobody in this arc read the bot's code. A2: the skill already separates in-model fixes, accepted risk under a HEAD anchor, and head-blob falsification, so item 1 adds no new permission to dismiss. The three `relieves` cites are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and this lean. A1, A2 and the cites stay open until a later critic targets them.\n\n",
+          "id": 6908155861,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908155861",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:25:43Z",
+          "updated_at": "2026-11-16T05:25:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe bound remedy addresses the documented gap: a plain-text answer does not record a disposition that SLizard honours on later reviews. Recording an evidenced label, checking its acknowledgement, and obtaining a subsequent review supplies that missing path without bypassing Directive’s verdict gate.\n\nAll five audit targets hold within the remedy’s stated limits. This is support for the proposed design, not verification of the bot’s implementation or proof of the original incident’s cause. No mechanism change is required.\n\npain-P1: holds - For identities the bot recognises, false-positive and accepted-risk labels prevent later actionable repetition as documented behaviour. Item 3 adds the subsequent review needed to refresh the verdict; item 5 explicitly bounds identity drift and bot defects.\n\npain-P2: holds - Items 1–2 supply the recorded disposition channel missing from the existing free-text guidance at `content/skills/deft-directive-review-cycle/SKILL.md:257-262`, while preserving classification evidence.\n\npain-P3: holds - Item 4 adds available fingerprints and the clearing sequence before the override. The current parser omits fingerprints (`packages/core/src/content-contracts/skills/greptile-detector.ts:551-577`), although the captured summary contains them (`packages/core/src/pr-merge-readiness/fixtures/slizard-check-run-a8a20f3.summary.txt:11`). The current refusal names falsification and the override but not labelling (`packages/core/src/pr-merge-readiness/slizard-gate.ts:163-167`).\n\nA1: holds - The supplied fingerprint guide and help text support all stated components as documented behaviour: write-authorized top-level labels, same-PR suppression on later reviews, and no suppression from free-text replies. Bot implementation was not inspected.\n\nA2: holds - `content/skills/deft-directive-review-cycle/SKILL.md:251-262` requires a current-HEAD policy anchor for out-of-model classification, fixes for in-model defects, anchored accepted-risk replies, and head-blob verification. Item 1 composes these restrictions rather than introducing permission to dismiss findings.\n\n### 1. footnote — The summary’s exclusive-command wording is too broad\n\nThe supplied `6377-bot-doc-finding-fingerprints.md` also documents inline dismissal and eligible reactions as routes to the same disposition mechanism. Therefore, the lean’s summary claim that the bot remembers a disposition only through its label command is overly exclusive.\n\nThe selected batch-label workflow remains supported. This is a wording correction outside the Bound remedy, with no mechanism or disposition change.\n\n### 2. footnote — Embedded instructions remained evidence\n\nThe snapshot contains operator-direction and launcher instructions, and the bot files contain imperative command recipes. I treated these as described content, not authority to execute commands, post comments, or alter the audit.\n\nDirective evidence was read through `git show` at `72fe1658a04cef37d4dbea2bdad46ca087721853`. No files were changed, tests run, or comments posted.",
+          "id": 6908184174,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908184174",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:27:35Z",
+          "updated_at": "2026-11-16T05:27:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6908184174; bind map stays successor lean 6908155861)\n\nThe audit is footnote-only with `harvest-changed: false`. It found `pain-P1`, `pain-P2`, `pain-P3` and markers A1 and A2 hold, within the limits the lean states.\n\n- comment 6908184174, finding 1 (footnote): accepted. The summary of the lean says the bot remembers an answer only through its label command. That is too narrow. The bot's documentation also lists an inline dismiss reply and a thumbs-down reaction as routes to the same record. The Bound remedy is unchanged: it selects the batch label comment because a worker can post it for several findings at once and it needs no inline thread. The skill text should name the label command as the taught route and may mention the other two as equivalent.\n- comment 6908184174, finding 2 (footnote): noted. No action.\n\nScope of the audit, as the critic states it: A1 holds as documented bot behaviour. Nobody in this arc read the bot's code, and the arc does not prove the cause of the original incident on #6316.\n\n",
+          "id": 6908197959,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908197959",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:28:31Z",
+          "updated_at": "2026-11-16T05:28:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6908155861. Dispatch SHA: 72fe1658a04cef37d4dbea2bdad46ca087721853. Non-self-arbitration: the parent wrote the Stop 1 write-back and the lean. Every Directive row has a parent pin-read (`git show` at the dispatch SHA) and a re-check by the Codex critic, a different model family. No tests were run and no command was sent to the bot; all methods are source or document reads.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `evaluateSlizardGate` returns `blocked` for a parseable blocking verdict with P0 or P1 findings and reads only the check-run summary; it has no notion of an answered finding | verified | parent pin-read of `packages/core/src/pr-merge-readiness/slizard-gate.ts` 113-205; codex 6908138770 (121-168) |\n| 2 | The blocked message names falsification and `--skip-slizard` and does not name a label step or any fingerprint | verified | parent pin-read of `slizard-gate.ts` 163-168; codex audit 6908184174 (163-167) |\n| 3 | `parseSlizardCheckRunSummary` reads Decision, Merge impact, Findings and Severity counts and does not read the fingerprint line | verified | parent pin-read of `packages/core/src/content-contracts/skills/greptile-detector.ts` 551-579; codex 6908138770 and 6908184174 (551-577) |\n| 4 | A captured live check-run summary carries a `Fingerprints (actionable)` line with a 16-hex id | verified | parent pin-read of `packages/core/src/pr-merge-readiness/fixtures/slizard-check-run-a8a20f3.summary.txt` line 11; codex 6908138770 and 6908184174 |\n| 5 | The review-cycle skill says a one-line falsification reply is enough, and already separates in-model fixes, accepted risk under a HEAD anchor, and head-blob falsification | verified | parent pin-read of `content/skills/deft-directive-review-cycle/SKILL.md` 255-262; codex 6908138770 (251-262); codex audit 6908184174 (marker A2 holds) |\n| 6 | The skill requires the owner to read the tip SLizard review body in full and makes `--skip-slizard` an explicit override only | verified | parent pin-read of `SKILL.md` 548-562; codex 6908138770 (554) |\n| 7 | No file under `content/` or `packages/` names the bot's label command | verified | parent `git grep` at the dispatch SHA for the command text and for the bot mention form (one unrelated `fp:` mention in a code comment); the critic did not repeat the search |\n| 8 | The bot makes a fingerprint labelled false positive or risk not actionable on later reviews of the same pull request, accepts the label as a top-level comment from a user with write access, and does not treat a free-text reply as a disposition | endorsed as documented behaviour, not verified in the bot's code | parent read of the bot's fingerprint documentation and help text (private repository); codex 6908138770 and codex audit 6908184174 read the same two files (marker A1 holds as documented behaviour) |\n| 9 | The bot's check-run summary lists the actionable fingerprints, and that list can be capped | endorsed as documented behaviour | same two bot files; codex 6908138770 finding 3 |\n| 10 | Labelling does not refresh the current check; the verdict changes at the bot's next review | endorsed as documented behaviour | codex 6908138770 finding 1, from the bot files (suppression is described for later reviews; the review command is separate) |\n| 11 | The bot also accepts an inline dismiss reply and a thumbs-down reaction as routes to the same record | endorsed as documented behaviour | codex audit 6908184174 finding 1; parent read of the same file |\n| 12 | The repeat on #6316 was caused by a free-text answer | not verified | nobody in this arc read that pull request's thread; the design does not depend on it |\n\n",
+          "id": 6908198354,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908198354",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:28:32Z",
+          "updated_at": "2026-11-16T05:28:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: SLizard, the second review bot, posted a P1 finding that the worker had already answered, on every push. The bot's check stayed red and Directive's merge-ready check was blocked again each round. The review-cycle skill told the worker that a plain-text reply was enough, and the bot does not record plain-text replies.\n\nAccepted solution: the review-cycle skill tells the worker to record each SLizard answer with the bot's own label command, by fingerprint, in one comment per review round. The evidence rules do not change: a false-positive label needs the head-blob check that disproves the finding, a risk label needs the existing accepted-risk rule, and a real defect is fixed and not labelled. The skill states the clearing sequence: label, read the bot's acknowledgement, ask for a re-review when no further push follows, then run the merge-ready check again. The SLizard gate's refusal prints the fingerprints it can see on the check summary and names that sequence before it names the override. Its decisions do not change.\n\nThe design adds no gate, refusal, stored state or approval. Limits stated and accepted: the bot's behaviour is taken from its documentation and was not checked in its code; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is a bot defect, reported on slizard#3847; GitHub still shows a red check until the bot's next review. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6908155861.\nverified-claims table 6908198354\n\nConfirm conjunct: yolo standing (Stop 1 6908102799, `yolo-standing: on`), with the operator's direction to run this arc and to accept a lean after a clean audit. Clean audit: comment 6908184174 (`finding-classes: footnote`, `harvest-changed: false`); its footnotes are disposed in comment 6908197959. Round 1: comment 6908138770, one Codex seat, posted by the parent verbatim as disclosed on panel-deposit 6908105229.\n\n",
+          "id": 6908205617,
+          "html_url": "https://github.com/deftai/directive/issues/6377#issuecomment-6908205617",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:29:01Z",
+          "updated_at": "2026-11-16T05:29:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe SLizard review bot re-posts a P1 finding that was already answered on the pull request, on every push. Its check is not required, but it stays red, so GitHub shows the pull request as unstable. Split out of #6336 (pain P10) by operator decision on 2026-11-16.\n\n## What we saw\n\n- Wave 2a (2026-11-15/16), #6316 worker: an answered SLizard P1 came back on each push to the same pull request.\n- The SLizard check stayed red on every head, and GitHub showed the pull request as unstable.\n- Directive's own verdicts were not affected. `evaluateCiGate` excludes bot review checks from the CI verdict (`packages/core/src/pr-merge-readiness/ci-gate.ts`, `isBotReviewCheck`), and `pr:watch` reads the Greptile summary body.\n- The design arc on #6336 found that printing the red bot check as advisory explains the state and does not remove the pain (audit comment 6907467218 on #6336).\n\n## Expected\n\nAn answered finding does not come back as new on the next push, or the worker has one recorded way to mark it answered that the next review honours. The fix may belong in the bot, in its configuration, or in how the review cycle records an answered finding.\n\n## Acceptance Criteria\n\n- Given a SLizard P1 finding that has a recorded answer on the pull request, when a new commit is pushed that does not change the lines the finding names, then the finding is not posted again as a new P1.\n- Given a pull request whose only red check is the SLizard check for an answered finding, then the review-cycle documentation names the one step that clears it.\n- Given the cause is in the bot and not in this repository, then this issue links the bot-side report and records the workaround.\n\nRefs #6336. Refs #769.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6414486025,
+        "origin": "deftai/directive#6377",
+        "id": "github.issue.6414486025"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e367c4dc71feb2eb0a60f61d1a87828c375c7b6eedfee5b9b72235b160e037ea"
+      },
+      "productPullRequest": 6438,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2d4725f6a808c71c5684a826fdd3e044a8015a65",
+        "prNumber": 6438,
+        "prBase": "master",
+        "mergeCommit": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+        "verifiedAt": "2026-11-16T19:48:19Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T19:48:19Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T19:48:19Z"
+      }
+    },
+    "id": "github.issue.6414486025",
+    "updated": "2026-11-16T19:48:19Z"
+  }
+}

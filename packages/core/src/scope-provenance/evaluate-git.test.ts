@@ -284,8 +284,12 @@ const MINT_PLAN = "story-6273";
 const RECORD_REL = `.deft/approved-scope/${MINT_PLAN}.json`;
 const INTENT_REL = `.deft/approved-scope/${MINT_PLAN}.intent.json`;
 
-function projectDefinition(policy: Record<string, unknown> | null): string {
+/** Node's default spawnSync stdout ceiling; a larger git read throws ENOBUFS without maxBuffer. */
+const NODE_DEFAULT_MAX_BUFFER = 1024 * 1024;
+
+function projectDefinition(policy: Record<string, unknown> | null, padBytes = 0): string {
   const plan: Record<string, unknown> = { title: "T", status: "running", items: [] };
+  if (padBytes > 0) plan.narratives = { Padding: "x".repeat(padBytes) };
   if (policy !== null) plan["x-directive/policy"] = policy;
   return `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`;
 }
@@ -339,12 +343,18 @@ interface MintRepoOptions {
   readonly basePolicy: Record<string, unknown> | null;
   /** Brief + mint already on the merge base (widen case). */
   readonly baseScope?: string[];
+  /** Pad the merge-base PROJECT-DEFINITION by this many bytes (#6349). */
+  readonly padBytes?: number;
 }
 
 /** Base branch `base` with PROJECT-DEFINITION; branch `impl` checked out. */
 function mintRepo(opts: MintRepoOptions): string {
   const r = initRepo();
-  writeTracked(r, "xbrief/PROJECT-DEFINITION.xbrief.json", projectDefinition(opts.basePolicy));
+  writeTracked(
+    r,
+    "xbrief/PROJECT-DEFINITION.xbrief.json",
+    projectDefinition(opts.basePolicy, opts.padBytes),
+  );
   if (opts.baseScope !== undefined) {
     const basePayload = mintBrief(opts.baseScope);
     const baseRaw = writeBrief(r, basePayload);
@@ -394,6 +404,40 @@ describe("evaluateScopeProvenance one-PR mint level (#6273)", () => {
     expect(admit?.fileScope).toContain(RECORD_REL);
     expect(admit?.fileScope).toContain(INTENT_REL);
     expect(admit?.productionFileCount).toBe(1);
+    expect(admit?.humanMerge).toBe(true);
+  });
+
+  it("admits without a human merge when merge-base requireHumanMerge is false (#6354)", () => {
+    root = mintRepo({ basePolicy: { onePrScopeProof: "mint", requireHumanMerge: false } });
+    landOnePr(root);
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode, result.message).toBe(0);
+    expect(result.mintLevelAdmits).toHaveLength(1);
+    expect(result.mintLevelAdmits?.[0]?.planId).toBe(MINT_PLAN);
+    expect(result.mintLevelAdmits?.[0]?.humanMerge).toBe(false);
+  });
+
+  it("refuses a brief edited after the mint without a human merge (#6354)", () => {
+    root = mintRepo({ basePolicy: { onePrScopeProof: "mint" } });
+    landOnePr(root);
+    // Widen the brief after the mint: the record no longer names its scope.
+    writeBrief(root, mintBrief([...NEW_SCOPE, "packages/core/src/extra.ts"]));
+    writeTracked(root, "packages/core/src/extra.ts", "export const e = 1;\n");
+    commit(root, "widen after mint");
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode).toBe(1);
+    expect(result.mintLevelAdmits ?? []).toHaveLength(0);
+    expect(result.message).toMatch(/one-PR scope proof \(#6273\)/);
+  });
+
+  it("refuses when the head sets requireHumanMerge on a bot-merge base (#6354)", () => {
+    root = mintRepo({ basePolicy: { onePrScopeProof: "mint" } });
+    writeTracked(root, "xbrief/PROJECT-DEFINITION.xbrief.json", projectDefinition(MINT_ON));
+    landOnePr(root);
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode).toBe(1);
+    expect(result.mintLevelAdmits ?? []).toHaveLength(0);
+    expect(result.message).toMatch(/edits onePrScopeProof or requireHumanMerge/);
   });
 
   it("admits a brief widened past its merge-base mint", () => {
@@ -433,5 +477,44 @@ describe("evaluateScopeProvenance one-PR mint level (#6273)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "production-scope-over-budget")).toBe(true);
     expect(result.findings.some((f) => f.kind === "self-authorizing-scope-expansion")).toBe(false);
+  });
+
+  describe("merge-base PROJECT-DEFINITION larger than 1 MiB (#6349)", () => {
+    const pad = NODE_DEFAULT_MAX_BUFFER + 64 * 1024;
+
+    function baseBlobBytes(r: string): number {
+      const size = execFileSync(
+        "git",
+        ["cat-file", "-s", "base:xbrief/PROJECT-DEFINITION.xbrief.json"],
+        {
+          cwd: r,
+          encoding: "utf8",
+        },
+      );
+      return Number(size.trim());
+    }
+
+    it("reads the mint level through the real git helper and admits", () => {
+      root = mintRepo({ basePolicy: MINT_ON, padBytes: pad });
+      expect(baseBlobBytes(root)).toBeGreaterThan(NODE_DEFAULT_MAX_BUFFER);
+      landOnePr(root);
+      const result = evaluateScopeProvenance(root, { baseRef: "base" });
+      expect(result.message).not.toMatch(/ENOBUFS/);
+      expect(result.exitCode, result.message).toBe(0);
+      expect(result.mintLevelAdmits).toHaveLength(1);
+    });
+
+    it("refuses on the merge-base policy when the level is off", () => {
+      root = mintRepo({
+        basePolicy: { onePrScopeProof: "off", requireHumanMerge: true },
+        padBytes: pad,
+      });
+      expect(baseBlobBytes(root)).toBeGreaterThan(NODE_DEFAULT_MAX_BUFFER);
+      landOnePr(root);
+      const result = evaluateScopeProvenance(root, { baseRef: "base" });
+      expect(result.message).not.toMatch(/ENOBUFS/);
+      expect(result.exitCode, result.message).toBe(1);
+      expect(result.mintLevelAdmits ?? []).toHaveLength(0);
+    });
   });
 });

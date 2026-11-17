@@ -1,18 +1,23 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GITHUB_AUTH_MODE_HOST_GH, PRINCIPAL_KIND_USER } from "../intake/github-auth-modes.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+import type { InRangeLandsWithProductMove } from "../scope/lands-with-product.js";
 import {
   type ReadWorkerAuthAssignmentResult,
   storyIdForBrief,
 } from "../swarm/worker-auth-assignment.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
+  formatOnePrMintNotAdmitted,
+  formatPositiveGoverningAllowDeny,
   governingAllowCoversRelPath,
   hasPositiveGoverningStoryAllow,
+  inPrCompletionScopeMessage,
   inspectActiveScope,
   matchPinnedActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
@@ -453,6 +458,76 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
     });
     expect(result.ready).toBe(false);
     expect(result.denyKind).toBe("multiple-eligible");
+  });
+});
+
+describe("one-PR mint fence in selection and deny text (#6361)", () => {
+  function writeBrief(project: string, name: string, fileScope?: readonly string[]): string {
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    const metadata =
+      fileScope === undefined
+        ? runningPlacement.metadata
+        : { ...runningPlacement.metadata, swarm: { file_scope: [...fileScope] } };
+    writeFileSync(path, JSON.stringify({ plan: { ...runningPlacement, metadata } }), "utf8");
+    return path;
+  }
+
+  it("brief selection reaches the same mint admit as Write: an admitted one-PR brief binds", () => {
+    const project = root();
+    // Absent from the merge base, so its own bytes give no fence; the mint does.
+    const onePr = writeBrief(project, "one-pr-story.xbrief.json");
+    writeBrief(project, "admin-story.xbrief.json");
+    const loadStoryWriteFence = (_root: string, scopePath: string) =>
+      scopePath === onePr
+        ? { fileScope: ["src/a.ts"], denyPaths: [], onePrMint: { admitted: true as const } }
+        : { fileScope: [], denyPaths: [] };
+
+    const result = inspectActiveScope(project, { env: {}, loadStoryWriteFence });
+    expect(result).toMatchObject({ ready: true, path: onePr });
+    expect(selectedBriefHasPositiveGoverningAllow(project, onePr, loadStoryWriteFence)).toBe(true);
+  });
+
+  it("a rejected mint gives no positive allow and does not win selection", () => {
+    const project = root();
+    writeBrief(project, "one-pr-story.xbrief.json");
+    const fencing = writeBrief(project, "fence-story.xbrief.json", ["packages/b/**"]);
+    const loadStoryWriteFence = (_root: string, scopePath: string) =>
+      scopePath === fencing
+        ? loadStoryWriteFenceFromPath(scopePath)
+        : {
+            fileScope: [],
+            denyPaths: [],
+            onePrMint: { admitted: false as const, reason: "no same-PR approved-scope record" },
+          };
+    const result = inspectActiveScope(project, { env: {}, loadStoryWriteFence });
+    expect(result).toMatchObject({ ready: true, path: fencing });
+  });
+
+  it("names the mint reject reason and scope:record-approved-scope, not promote or activate", () => {
+    const text = formatPositiveGoverningAllowDeny({
+      fileScope: [],
+      denyPaths: [],
+      onePrMint: { admitted: false, reason: "record authHashV1 differs from the head brief" },
+    });
+    expect(text).toBe(formatOnePrMintNotAdmitted("record authHashV1 differs from the head brief"));
+    expect(text).toContain("record authHashV1 differs from the head brief");
+    expect(text).toContain("scope:record-approved-scope");
+    expect(text).not.toMatch(/scope:promote|scope:activate/);
+  });
+
+  it("keeps the #5656 text when the merge-base level is off or the mint admitted", () => {
+    expect(formatPositiveGoverningAllowDeny({ fileScope: [], denyPaths: [] })).toBe(
+      POSITIVE_GOVERNING_ALLOW_REQUIRED,
+    );
+    expect(
+      formatPositiveGoverningAllowDeny({
+        fileScope: ["src/a.ts"],
+        denyPaths: [],
+        onePrMint: { admitted: true },
+      }),
+    ).toBe(POSITIVE_GOVERNING_ALLOW_REQUIRED);
   });
 });
 
@@ -923,5 +998,274 @@ describe("linked-worktree story binding from worker-auth (#6233)", () => {
       }),
     );
     expect(envAgrees).toEqual({ kind: "bound", path: storyB, storyId: "story-b" });
+  });
+});
+
+describe("worktree story binding after an in-PR completion move (#6480)", () => {
+  const ACTIVE_M = "xbrief/active/2026-11-17-90-moved.xbrief.json";
+  const COMPLETED_M = "xbrief/completed/2026-11-17-90-moved.xbrief.json";
+  const ACTIVE_O = "xbrief/active/2026-11-17-91-other.xbrief.json";
+  const COMPLETED_O = "xbrief/completed/2026-11-17-91-other.xbrief.json";
+
+  function assigned(storyId: string): ReadWorkerAuthAssignmentResult {
+    return {
+      ok: true,
+      commonDir: "/common",
+      assignment: {
+        schema_version: 1,
+        dispatch_id: "dispatch-1",
+        story_id: storyId,
+        worktree_path: "/wt",
+        github_auth_mode: GITHUB_AUTH_MODE_HOST_GH,
+        expected_principal: { kind: PRINCIPAL_KIND_USER, login: "worker" },
+        credential_delivery_id: null,
+      },
+    };
+  }
+
+  function move(
+    activeRel: string,
+    completedRel: string,
+    planId: string,
+    containingCommit = "c0ffee",
+  ): InRangeLandsWithProductMove {
+    return { activeRel, completedRel, plan: { id: planId }, planId, containingCommit };
+  }
+
+  function bind(
+    project: string,
+    storyId: string,
+    moves: readonly InRangeLandsWithProductMove[],
+    extra: Partial<ResolveWorktreeStoryBindingOptions> = {},
+  ) {
+    const isEligible = vi.fn((_path: string) => ({ ok: true, message: "" }));
+    const discover = vi.fn((_root: string) => moves);
+    const result = resolveWorktreeStoryBinding(project, {
+      env: {},
+      isLinkedWorktree: () => true,
+      readWorkerAuthAssignment: () => assigned(storyId),
+      isEligible,
+      discoverMovedBriefs: discover,
+      listChangedPaths: () => [],
+      ...extra,
+    });
+    return { result, isEligible, discover };
+  }
+
+  function refusal(result: ReturnType<typeof resolveWorktreeStoryBinding>): string {
+    if (result.kind !== "refuse") throw new Error(`expected refuse, got ${result.kind}`);
+    return result.message;
+  }
+
+  it("binds the assigned story to its moved brief's pre-move active path without the eligibility check", () => {
+    const project = root();
+    const hit = move(ACTIVE_M, COMPLETED_M, "story-m");
+    const { result, isEligible } = bind(project, "story-m", [hit]);
+    expect(result).toEqual({
+      kind: "bound",
+      path: join(project, ...ACTIVE_M.split("/")),
+      storyId: "story-m",
+      landsWithProductMove: hit,
+    });
+    expect(isEligible).not.toHaveBeenCalled();
+    if (result.kind !== "bound") throw new Error("expected bound");
+    expect(inPrCompletionScopeMessage(result)).toContain("2026-11-17-90-moved.xbrief.json");
+    expect(inPrCompletionScopeMessage(result)).toContain("#6480");
+  });
+
+  it("follows the assigned id when several briefs move, and never another story's move", () => {
+    const project = root();
+    const mine = move(ACTIVE_M, COMPLETED_M, "story-m");
+    const theirs = move(ACTIVE_O, COMPLETED_O, "story-o");
+    expect(bind(project, "story-m", [theirs, mine]).result).toMatchObject({
+      kind: "bound",
+      storyId: "story-m",
+      landsWithProductMove: mine,
+    });
+    const onlyTheirs = bind(project, "story-m", [theirs]).result;
+    expect(onlyTheirs).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_MISSING });
+    expect(refusal(onlyTheirs)).toContain("scope:activate");
+  });
+
+  it("refuses two moves that carry the assigned id, without the activate repair", () => {
+    const project = root();
+    const result = bind(project, "story-m", [
+      move(ACTIVE_M, COMPLETED_M, "story-m"),
+      move(ACTIVE_O, COMPLETED_O, "story-m"),
+    ]).result;
+    expect(result).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_AMBIGUOUS });
+    expect(refusal(result)).not.toContain("scope:activate");
+  });
+
+  it("keeps today's refusal when nothing moved, and does not consult the oracle for an empty id", () => {
+    const project = root();
+    const none = bind(project, "story-m", []).result;
+    expect(none).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_MISSING });
+    expect(refusal(none)).toContain("matches no brief under xbrief/active/");
+    expect(refusal(none)).toContain("scope:activate");
+    const empty = bind(project, "  ", [move(ACTIVE_M, COMPLETED_M, "")]);
+    expect(empty.result).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_MISSING });
+    expect(empty.discover).not.toHaveBeenCalled();
+  });
+
+  it("does not tell the author to re-activate a brief completed in the change set", () => {
+    const project = root();
+    const completedDir = join(project, "xbrief", "completed");
+    mkdirSync(completedDir, { recursive: true });
+    writeFileSync(
+      join(project, ...COMPLETED_M.split("/")),
+      JSON.stringify({ plan: { id: "story-m", status: "completed" } }),
+      "utf8",
+    );
+    writeFileSync(join(completedDir, "notes.md"), "x", "utf8");
+    const result = bind(project, "story-m", [], {
+      listChangedPaths: () => [
+        COMPLETED_M,
+        "xbrief/completed/notes.md",
+        "xbrief/completed/gone.xbrief.json",
+        "src/a.ts",
+      ],
+    }).result;
+    expect(result).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_MISSING });
+    expect(refusal(result)).not.toContain("scope:activate");
+    expect(refusal(result)).toContain("do not re-activate");
+    expect(refusal(result)).toContain("swarm:pre-dispatch");
+    const unread = bind(project, "story-m", [], { listChangedPaths: () => null }).result;
+    expect(refusal(unread)).toContain("scope:activate");
+  });
+
+  it.each([
+    ["pre-move active path", ACTIVE_M],
+    ["completed path", COMPLETED_M],
+    ["basename", "2026-11-17-90-moved.xbrief.json"],
+  ])("keeps the story selected when a pin names its %s", (_label, pin) => {
+    const project = root();
+    const hit = move(ACTIVE_M, COMPLETED_M, "story-m");
+    expect(
+      bind(project, "story-m", [hit], { env: { [ACTIVE_SCOPE_PIN_ENV]: pin } }).result,
+    ).toMatchObject({ kind: "bound", storyId: "story-m" });
+    expect(bind(project, "story-m", [hit], { boundPath: pin }).result).toMatchObject({
+      kind: "bound",
+      storyId: "story-m",
+    });
+  });
+
+  it("refuses an env pin or spawn bound path that names another story, without the activate repair", () => {
+    const project = root();
+    const hit = move(ACTIVE_M, COMPLETED_M, "story-m");
+    const env = bind(project, "story-m", [hit], {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: ACTIVE_O },
+    }).result;
+    expect(env).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_ENV_PIN_CONFLICT });
+    const spawned = bind(project, "story-m", [hit], { boundPath: COMPLETED_O }).result;
+    expect(spawned).toMatchObject({
+      kind: "refuse",
+      failureKind: WORKTREE_STORY_BOUND_PATH_CONFLICT,
+    });
+    for (const result of [env, spawned]) expect(refusal(result)).not.toContain("scope:activate");
+  });
+
+  it("keeps the small-change lane bound on the completed brief after the move", () => {
+    const project = root();
+    const hit = move(ACTIVE_M, COMPLETED_M, "story-m");
+    const seen: string[] = [];
+    const crossed = bind(project, "story-m", [hit], {
+      checkSmallChangeLane: (_plan, worktreeRoot, completedPath) => {
+        seen.push(worktreeRoot, completedPath);
+        return { applies: true, ok: false, message: "bound crossed after admit", verdict: null };
+      },
+    }).result;
+    expect(crossed).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_INELIGIBLE });
+    expect(refusal(crossed)).toContain("bound crossed after admit");
+    expect(refusal(crossed)).not.toContain("scope:activate");
+    expect(seen).toEqual([project, join(project, ...COMPLETED_M.split("/"))]);
+    const inLane = bind(project, "story-m", [hit], {
+      checkSmallChangeLane: () => ({ applies: true, ok: true, message: "", verdict: null }),
+    }).result;
+    expect(inLane).toMatchObject({ kind: "bound", storyId: "story-m" });
+  });
+});
+
+describe("lands-with-product story selection (#6277 Bound 6)", () => {
+  function git(cwd: string, args: string[]): void {
+    const env = { ...process.env };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.DEFT_BASE_REF;
+    delete env.GITHUB_BASE_REF;
+    env.GIT_CEILING_DIRECTORIES = dirname(resolve(cwd));
+    execFileSync("git", args, {
+      cwd,
+      env: {
+        ...env,
+        GIT_AUTHOR_NAME: "t",
+        GIT_AUTHOR_EMAIL: "t@t.test",
+        GIT_COMMITTER_NAME: "t",
+        GIT_COMMITTER_EMAIL: "t@t.test",
+      },
+    });
+  }
+
+  function brief(project: string, rel: string, plan: Record<string, unknown>): void {
+    const abs = join(project, ...rel.split("/"));
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, JSON.stringify({ plan }), "utf8");
+  }
+
+  it("selects the moved brief on the check / pre-PR path, beside other active stories", () => {
+    const project = root();
+    git(project, ["init", "-q", "-b", "main"]);
+    brief(project, "xbrief/active/a-story.xbrief.json", { ...runningPlacement, id: "story-a" });
+    brief(project, "xbrief/active/b-story.xbrief.json", { ...runningPlacement, id: "story-b" });
+    git(project, ["add", "-A"]);
+    git(project, ["commit", "-q", "-m", "base"]);
+    git(project, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    git(project, [
+      "mv",
+      "xbrief/active/b-story.xbrief.json",
+      "xbrief/completed/b-story.xbrief.json",
+    ]);
+    brief(project, "xbrief/completed/b-story.xbrief.json", {
+      id: "story-b",
+      status: "completed",
+      metadata: {
+        lifecycleWrite: {
+          action: "complete",
+          writtenAt: "2026-11-16T00:00:00Z",
+          completionDisposition: "lands-with-product",
+        },
+      },
+    });
+    vi.stubEnv("DEFT_BASE_REF", "origin/main");
+    const moved = join(project, "xbrief", "completed", "b-story.xbrief.json");
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: {},
+        branchBind: { branch: "x", projectRoot: project },
+      }),
+    ).toEqual({ kind: "one", path: moved });
+    expect(resolveSoftMissingAcTargets(project, { env: {}, branchBind: { branch: "x" } })).toEqual({
+      kind: "one",
+      path: moved,
+    });
+    // A pin to the moved brief follows it; a pin to another story keeps priority.
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json" },
+        branchBind: { branch: "x" },
+      }),
+    ).toEqual({ kind: "one", path: moved });
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json" },
+        branchBind: { branch: "x" },
+      }),
+    ).toEqual({ kind: "one", path: join(project, "xbrief", "active", "a-story.xbrief.json") });
+    // Without the branch bind (other callers) the selection is unchanged.
+    expect(resolveSoftMissingAcTargets(project, { env: {} })).toEqual({
+      kind: "one",
+      path: join(project, "xbrief", "active", "a-story.xbrief.json"),
+    });
   });
 });

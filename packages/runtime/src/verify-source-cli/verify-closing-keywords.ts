@@ -2,6 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { cmdPrCheckClosingKeywords } from "@deftai/directive-core/dist/pr-closing-keywords/main.js";
+import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
 
 const BASE_CANDIDATES = ["origin/master", "origin/main"] as const;
 
@@ -159,6 +160,12 @@ export function run(
   invoke: (args: readonly string[]) => number = cmdPrCheckClosingKeywords,
   runGit: RunGitFn = defaultRunGit,
 ): number {
+  // #6295: PR-context check; skipped on the merge queue's group commit.
+  const skip = mergeGroupSkip("verify:closing-keywords", env);
+  if (skip !== null) {
+    process.stdout.write(`${skip}\n`);
+    return 0;
+  }
   const built = buildClosingKeywordsCheckArgv(env, argv, runGit);
   if (built.error !== undefined) {
     process.stderr.write("verify:closing-keywords: fail -- " + built.error + "\n");

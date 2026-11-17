@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   lstatSync,
   mkdirSync,
@@ -12,20 +13,28 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { revokeGrant } from "../authz/actions.js";
 import {
   admitGateOverrideForAttempt,
   mintGateOverrideTemplateGrant,
 } from "../authz/gate-override.js";
+import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
 import {
   completeRun,
   computeControllerObservedHash,
   failRun,
+  gateChecksFailureMessage,
+  gateChecksSatisfied,
+  hashPrBody,
+  noPullRequestForHeadMessage,
+  normalizePrBodyForHash,
   observeCommandPhase,
+  PRE_PR_LINT_GATE_CHECKS,
   readPushBindingDisposition,
   resolveNumericPrNumber,
   runObservablesComplete,
+  runPrePrGateChecks,
   startControllerRun,
   submitReviewerReport,
 } from "./controller.js";
@@ -41,7 +50,22 @@ import {
   VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "./phases.js";
 import { InProcessPrePrStore, mintPublisher, type PrePrExecutionStore } from "./store.js";
-import { type CommandObservation, deny, type PrePrExecutionRecord } from "./types.js";
+import {
+  type CommandObservation,
+  deny,
+  type PrePrExecutionRecord,
+  type PrePrGateCheckResult,
+} from "./types.js";
+
+/** Passing CI gate results for lint_iteration rows (#6336 item 4). */
+const PASS_GATE_CHECKS: readonly PrePrGateCheckResult[] = [
+  { gate: "verify:class-checks", exitCode: 0, message: "verify_class_checks: clean" },
+  { gate: "verify:evaluator-surface", exitCode: 0, message: "verify:evaluator-surface: skip" },
+];
+
+function gateChecksFor(phaseId: string): { gateChecks?: readonly PrePrGateCheckResult[] } {
+  return phaseId === "lint_iteration" ? { gateChecks: PASS_GATE_CHECKS } : {};
+}
 
 // Pass-through fs spies so a test can make lstat or open misbehave for the
 // coverage report path only. There is no production hook between the presence
@@ -56,7 +80,20 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+
+// Freeze the clock for every test (#6484). The controller stamps phases in
+// whole seconds and refuses a required phase stamped before the previous one.
+// The fill helpers record the command phases before the read/write reports, so
+// on a real clock a second boundary between the two steps fails the run. With
+// one frozen instant every stamp is equal; tests that need distinct stamps pass
+// an explicit `now`. Only Date is faked; timers and the event loop stay real.
+beforeEach(() => {
+  const frozenAt = Date.now();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(frozenAt);
+});
 afterEach(() => {
+  vi.useRealTimers();
   vi.mocked(lstatSync).mockImplementation(realFs.lstatSync);
   vi.mocked(openSync).mockImplementation(realFs.openSync);
   vi.mocked(readFileSync).mockImplementation(realFs.readFileSync);
@@ -100,6 +137,7 @@ function fillPhasesExceptCoverage(
         rec.id,
         {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: coverage.command,
           exitCode: coverage.exitCode,
           inputHash: rec.inputHash,
@@ -110,6 +148,7 @@ function fillPhasesExceptCoverage(
     } else {
       observeCommandPhase(store, rec.id, {
         phaseId: spec.id,
+        ...gateChecksFor(spec.id),
         command: spec.command ?? "",
         exitCode: 0,
         inputHash: rec.inputHash,
@@ -142,6 +181,7 @@ function fillPhasesWithLintModeSkip(
         rec.id,
         {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: "vitest run <changed-paths>",
           exitCode: 5,
           inputHash: rec.inputHash,
@@ -155,6 +195,7 @@ function fillPhasesWithLintModeSkip(
         rec.id,
         {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: "deft coverage:hotspots",
           exitCode: 5,
           inputHash: rec.inputHash,
@@ -165,6 +206,7 @@ function fillPhasesWithLintModeSkip(
     } else {
       observeCommandPhase(store, rec.id, {
         phaseId: spec.id,
+        ...gateChecksFor(spec.id),
         command: spec.command ?? "",
         exitCode: 0,
         inputHash: rec.inputHash,
@@ -357,6 +399,7 @@ describe("controller observations", () => {
       const spec = PRE_PR_PHASES.find((p) => p.id === phase);
       observeCommandPhase(store, rec.id, {
         phaseId: phase,
+        ...gateChecksFor(phase),
         command: spec?.command ?? "cmd",
         exitCode: 0,
         inputHash: rec.inputHash,
@@ -407,6 +450,7 @@ describe("controller observations", () => {
       if (spec.kind === "command-observable") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "cmd",
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -416,6 +460,7 @@ describe("controller observations", () => {
       } else {
         submitReviewerReport(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           reviewedFileManifest: ["a.ts"],
           suppliedContentsHash: "h",
           criteriaDigest: approved.digest,
@@ -440,6 +485,7 @@ describe("controller observations", () => {
       if (spec.kind === "command-observable") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "",
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -448,6 +494,7 @@ describe("controller observations", () => {
       } else {
         submitReviewerReport(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           reviewedFileManifest: ["a.ts"],
           suppliedContentsHash: "h",
           criteriaDigest: approved.digest,
@@ -482,6 +529,7 @@ describe("controller observations", () => {
       if (spec.kind === "command-observable") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "",
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -490,6 +538,7 @@ describe("controller observations", () => {
       } else {
         submitReviewerReport(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           reviewedFileManifest: ["a.ts"],
           suppliedContentsHash: computeControllerObservedHash({
             reviewedFiles: ["a.ts"],
@@ -531,6 +580,7 @@ describe("controller observations", () => {
       if (spec.kind === "command-observable") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "",
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -539,6 +589,7 @@ describe("controller observations", () => {
       } else {
         submitReviewerReport(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           reviewedFileManifest: ["a.ts"],
           suppliedContentsHash: hash,
           criteriaDigest: approved.digest,
@@ -573,6 +624,7 @@ describe("controller observations", () => {
       if (spec.kind === "command-observable") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "",
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -581,6 +633,7 @@ describe("controller observations", () => {
       } else {
         submitReviewerReport(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           reviewedFileManifest: ["a.ts"],
           suppliedContentsHash: "h",
           criteriaDigest: approved.digest,
@@ -611,6 +664,7 @@ describe("controller observations", () => {
       if (spec.kind === "command-observable") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "",
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -619,6 +673,7 @@ describe("controller observations", () => {
       } else {
         submitReviewerReport(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           reviewedFileManifest: ["a.ts"],
           suppliedContentsHash: "h",
           criteriaDigest: approved.digest,
@@ -649,6 +704,7 @@ describe("controller observations", () => {
         if (spec.kind === "command-observable") {
           observeCommandPhase(store, rec.id, {
             phaseId: spec.id,
+            ...gateChecksFor(spec.id),
             command: spec.command ?? "cmd",
             exitCode: 0,
             inputHash: rec.inputHash,
@@ -658,6 +714,7 @@ describe("controller observations", () => {
           const match = spec.id !== mismatch;
           submitReviewerReport(store, rec.id, {
             phaseId: spec.id,
+            ...gateChecksFor(spec.id),
             reviewedFileManifest: ["a.ts"],
             suppliedContentsHash: match ? "h" : "supplied",
             criteriaDigest: approved.digest,
@@ -724,6 +781,7 @@ describe("controller observations", () => {
       if (spec.id === "coverage_headroom") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "",
           exitCode: 1,
           inputHash: rec.inputHash,
@@ -732,6 +790,7 @@ describe("controller observations", () => {
       } else {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.command ?? "",
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -783,6 +842,7 @@ describe("controller observations", () => {
             rec.id,
             {
               phaseId: spec.id,
+              ...gateChecksFor(spec.id),
               command: spec.command ?? "",
               exitCode: 3,
               inputHash: rec.inputHash,
@@ -793,6 +853,7 @@ describe("controller observations", () => {
         } else {
           observeCommandPhase(store, rec.id, {
             phaseId: spec.id,
+            ...gateChecksFor(spec.id),
             command: spec.command ?? "",
             exitCode: 0,
             inputHash: rec.inputHash,
@@ -850,6 +911,7 @@ describe("controller observations", () => {
             rec.id,
             {
               phaseId: spec.id,
+              ...gateChecksFor(spec.id),
               command: spec.command ?? "",
               exitCode: 3,
               inputHash: rec.inputHash,
@@ -860,6 +922,7 @@ describe("controller observations", () => {
         } else {
           observeCommandPhase(store, rec.id, {
             phaseId: spec.id,
+            ...gateChecksFor(spec.id),
             command: spec.command ?? "",
             exitCode: 0,
             inputHash: rec.inputHash,
@@ -909,6 +972,7 @@ describe("controller observations", () => {
       if (spec.kind !== "command-observable") continue;
       observeCommandPhase(store, rec.id, {
         phaseId: spec.id,
+        ...gateChecksFor(spec.id),
         command: spec.command ?? "",
         exitCode: 0,
         inputHash: rec.inputHash,
@@ -940,6 +1004,7 @@ describe("controller observations", () => {
         if (spec.kind !== "command-observable") continue;
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.id === "coverage_headroom" ? command : (spec.command ?? ""),
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -972,6 +1037,7 @@ describe("controller observations", () => {
         if (spec.kind !== "command-observable") continue;
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
+          ...gateChecksFor(spec.id),
           command: spec.id === "coverage_headroom" ? command : (spec.command ?? ""),
           exitCode: 0,
           inputHash: rec.inputHash,
@@ -1602,6 +1668,7 @@ describe("controller observations", () => {
         rec.id,
         {
           phaseId: "lint_iteration",
+          ...gateChecksFor("lint_iteration"),
           command: "vitest run <changed-paths>",
           exitCode: 5,
           inputHash: rec.inputHash,
@@ -1719,6 +1786,7 @@ describe("controller observations", () => {
         rec.id,
         {
           phaseId: "lint_iteration",
+          ...gateChecksFor("lint_iteration"),
           command: "vitest run <changed-paths>",
           exitCode: 1,
           inputHash: rec.inputHash,
@@ -2002,6 +2070,7 @@ describe("coverage N/A rests on applicability; one report path and observed root
           rec.id,
           {
             phaseId: row.phaseId,
+            ...gateChecksFor(row.phaseId),
             command: row.command,
             exitCode: row.exitCode,
             inputHash: row.inputHash,
@@ -2275,5 +2344,398 @@ describe("resolveNumericPrNumber (#6071)", () => {
       }),
     });
     expect(n).toBe(6088);
+  });
+});
+
+describe("pre-PR master Merge gate refusal (#6295 item 6)", () => {
+  type NamedFn = NonNullable<Parameters<typeof completeRun>[4]>["namedMergeGateFn"];
+  const gate = (disposition: "red" | "pending"): NamedFn =>
+    (() => ({
+      ok: false,
+      outcome: "master-merge-gate-red",
+      exitCode: 1,
+      error: `Merge gate (task check) is ${disposition} on tip`,
+      status: {
+        disposition,
+        tipSha: "f".repeat(40),
+        checkName: "Merge gate (task check)",
+        status: disposition === "pending" ? "in_progress" : "completed",
+        conclusion: disposition === "pending" ? null : "failure",
+        error: null,
+        pendingAgeMs: null,
+      },
+      hotfix: null,
+    })) as unknown as NamedFn;
+
+  function code(
+    namedMergeGateFn: NamedFn,
+    mergeQueueFn?: () => { status: "queue" | "none"; branch: string },
+  ) {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, `ppr_6295_${Math.random().toString(36).slice(2)}`);
+    return completeRun(store, mintPublisher(), rec.id, undefined, {
+      namedMergeGateFn,
+      prNumber: 6295,
+      ...(mergeQueueFn !== undefined ? { mergeQueueFn } : {}),
+    }).code;
+  }
+
+  it("passes the gate while master's named gate is pending (no queue lookup)", () => {
+    const lookups: string[] = [];
+    const result = code(gate("pending"), () => {
+      lookups.push("x");
+      return { status: "none", branch: "master" };
+    });
+    expect(result).not.toBe("deny-master-merge-gate-red");
+    expect(lookups).toEqual([]);
+  });
+
+  it("refuses while master's named gate is red without a merge queue", () => {
+    expect(code(gate("red"), () => ({ status: "none", branch: "master" }))).toBe(
+      "deny-master-merge-gate-red",
+    );
+  });
+
+  it("removes the refusal when the delivery branch requires a merge queue", () => {
+    expect(code(gate("red"), () => ({ status: "queue", branch: "master" }))).not.toBe(
+      "deny-master-merge-gate-red",
+    );
+  });
+
+  it("keeps the refusal when the queue lookup throws", () => {
+    expect(
+      code(gate("red"), () => {
+        throw new Error("network");
+      }),
+    ).toBe("deny-master-merge-gate-red");
+  });
+});
+
+describe("pre-PR runs verify:class-checks and verify:evaluator-surface in lint_iteration (#6336)", () => {
+  const RED_CLASS: readonly PrePrGateCheckResult[] = [
+    {
+      gate: "verify:class-checks",
+      exitCode: 1,
+      message: "verify_class_checks: protected/gate.txt protected-glob -- Move or remove the path.",
+    },
+    PASS_GATE_CHECKS[1] as PrePrGateCheckResult,
+  ];
+
+  function observeCommands(
+    store: InProcessPrePrStore,
+    rec: PrePrExecutionRecord,
+    lintGates: readonly PrePrGateCheckResult[] | undefined,
+  ): void {
+    for (const spec of PRE_PR_PHASES) {
+      if (spec.kind !== "command-observable") continue;
+      observeCommandPhase(store, rec.id, {
+        phaseId: spec.id,
+        command: spec.command ?? "",
+        exitCode: 0,
+        inputHash: rec.inputHash,
+        skipReason: null,
+        ...(spec.id === "lint_iteration" && lintGates !== undefined
+          ? { gateChecks: lintGates }
+          : {}),
+      });
+    }
+    for (const phase of ["read", "write", "diff", "loop"] as const) {
+      submitReviewerReport(store, rec.id, {
+        phaseId: phase,
+        reviewedFileManifest: ["docs/design.md"],
+        suppliedContentsHash: "h",
+        criteriaDigest: approved.digest,
+        reviewerReportRef: "r",
+        controllerObservedHash: "h",
+      });
+    }
+  }
+
+  it("names both gates and runs them in process", () => {
+    expect(PRE_PR_LINT_GATE_CHECKS).toEqual(["verify:class-checks", "verify:evaluator-surface"]);
+    const root = mkdtempSync(join(tmpdir(), "pre-pr-gates-"));
+    try {
+      const results = runPrePrGateChecks(root);
+      expect(results.map((r) => r.gate)).toEqual([
+        "verify:class-checks",
+        "verify:evaluator-surface",
+      ]);
+      // Not a git tree: neither gate can resolve a base, and each says so in its own words.
+      expect(results[0]?.exitCode).toBe(2);
+      expect(results[0]?.message).toMatch(/verify_class_checks/);
+      expect(results[1]?.exitCode).toBe(2);
+      expect(results[1]?.message).toMatch(/verify:evaluator-surface/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("uses the run's recorded base on a branch with no master or main ref", () => {
+    const root = mkdtempSync(join(tmpdir(), "pre-pr-gates-develop-"));
+    const git = (...args: string[]) =>
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=t",
+          "-c",
+          "user.email=t@example.com",
+          "-c",
+          "commit.gpgsign=false",
+          ...args,
+        ],
+        { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      ).trim();
+    try {
+      git("init", "-q", "-b", "develop");
+      writeFileSync(join(root, "README.md"), "base\n");
+      git("add", "-A");
+      git("commit", "-q", "-m", "base");
+      const baseSha = git("rev-parse", "HEAD");
+      writeFileSync(join(root, "README.md"), "story\n");
+      const withBase = runPrePrGateChecks(root, baseSha);
+      expect(withBase.map((r) => r.exitCode)).toEqual([0, 0]);
+      // Without the recorded base, class-checks finds no master/main ref.
+      expect(runPrePrGateChecks(root)[0]?.exitCode).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("gateChecksSatisfied needs both results at exit 0", () => {
+    const row = (gateChecks?: readonly PrePrGateCheckResult[]) =>
+      ({
+        phaseId: "lint_iteration",
+        command: "vitest run",
+        exitCode: 0,
+        inputHash: "x",
+        completedAt: "t",
+        skipReason: null,
+        ...(gateChecks === undefined ? {} : { gateChecks }),
+      }) as CommandObservation;
+    expect(gateChecksSatisfied(row(PASS_GATE_CHECKS))).toBe(true);
+    expect(gateChecksSatisfied(row())).toBe(false);
+    expect(gateChecksSatisfied(row([PASS_GATE_CHECKS[0] as PrePrGateCheckResult]))).toBe(false);
+    expect(gateChecksSatisfied(row(RED_CLASS))).toBe(false);
+    // A duplicate passing result cannot mask a red one for the same gate.
+    expect(gateChecksSatisfied(row([...RED_CLASS, ...PASS_GATE_CHECKS]))).toBe(false);
+    expect(gateChecksSatisfied(row([...PASS_GATE_CHECKS, ...PASS_GATE_CHECKS]))).toBe(false);
+    expect(gateChecksFailureMessage(PASS_GATE_CHECKS)).toBeNull();
+    expect(gateChecksFailureMessage(RED_CLASS)).toBe(
+      `verify:class-checks: ${RED_CLASS[0]?.message}`,
+    );
+  });
+
+  it("a red gate fails the observation with the CI message; the run stays open", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6336_red");
+    const d = observeCommandPhase(store, rec.id, {
+      phaseId: "lint_iteration",
+      command: "vitest run <changed-paths>",
+      exitCode: 0,
+      inputHash: rec.inputHash,
+      skipReason: null,
+      gateChecks: RED_CLASS,
+    });
+    expect(d.ok).toBe(false);
+    expect(d.code).toBe("deny-command-failure");
+    expect(d.message).toContain("protected-glob -- Move or remove the path.");
+    const after = store.getById(rec.id) as PrePrExecutionRecord;
+    expect(after.state).toBe("running");
+    expect(after.failedAt).toBeNull();
+    const row = after.phaseEvidence.commands.find((c) => c.phaseId === "lint_iteration");
+    expect(row?.gateChecks).toEqual(RED_CLASS);
+  });
+
+  it("gate results are stored only on lint_iteration rows", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6336_other");
+    observeCommandPhase(store, rec.id, {
+      phaseId: "branch_policy",
+      command: "deft verify:branch",
+      exitCode: 0,
+      inputHash: rec.inputHash,
+      skipReason: null,
+      gateChecks: PASS_GATE_CHECKS,
+    });
+    const row = store
+      .getById(rec.id)
+      ?.phaseEvidence.commands.find((c) => c.phaseId === "branch_policy");
+    expect(row?.gateChecks).toBeUndefined();
+  });
+
+  it("passing tests with one gate result missing refuse with deny-omitted-phase", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6336_one");
+    observeCommands(store, rec, [PASS_GATE_CHECKS[0] as PrePrGateCheckResult]);
+    const d = completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true });
+    expect(d.code).toBe("deny-omitted-phase");
+    expect(d.message).toContain("lint_iteration");
+  });
+
+  it("passing tests and a red gate refuse with deny-omitted-phase", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6336_redc");
+    observeCommands(store, rec, RED_CLASS);
+    const d = completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true });
+    expect(d.code).toBe("deny-omitted-phase");
+  });
+
+  it("both gates passing completes", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6336_ok");
+    observeCommands(store, rec, PASS_GATE_CHECKS);
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+    ).toBe(true);
+  });
+
+  it("an authorized test skip with no gate results refuses with deny-omitted-phase", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-6336-skip-"));
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "initial" },
+          },
+        }),
+      );
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_6336_skip");
+      fillPhasesWithLintModeSkip(store, rec, { projectRoot });
+      const skip = observeCommandPhase(
+        store,
+        rec.id,
+        {
+          phaseId: "lint_iteration",
+          command: "vitest run <changed-paths>",
+          exitCode: 5,
+          inputHash: rec.inputHash,
+          skipReason: LINT_ITERATION_MODE_SKIP,
+        },
+        { projectRoot },
+      );
+      expect(skip.ok).toBe(true);
+      const d = completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        projectRoot,
+      });
+      expect(d.code).toBe("deny-omitted-phase");
+      expect(d.message).toContain("lint_iteration");
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("pre-pr:run --complete on a head with no pull request (#6336 item 7)", () => {
+  type NamedFn = NonNullable<Parameters<typeof completeRun>[4]>["namedMergeGateFn"];
+  const calls: Array<{ pr: number | null; bootstrap: boolean | undefined }> = [];
+  const redGate = (outcome: string): NamedFn =>
+    ((pr: number | null, _repo: string, opts?: { firstHotfixBootstrap?: boolean }) => {
+      calls.push({ pr, bootstrap: opts?.firstHotfixBootstrap });
+      return {
+        ok: false,
+        outcome,
+        exitCode: 1,
+        error: "Merge gate (task check) is red on tip",
+        status: {
+          disposition: "red",
+          tipSha: "f".repeat(40),
+          checkName: "Merge gate (task check)",
+          status: "completed",
+          conclusion: "failure",
+          error: null,
+          pendingAgeMs: null,
+        },
+        hotfix: null,
+      };
+    }) as unknown as NamedFn;
+  const greenGate = (() => ({
+    ok: true,
+    outcome: null,
+    exitCode: null,
+    error: null,
+    status: { disposition: "green" },
+    hotfix: null,
+  })) as unknown as NamedFn;
+  const noQueue = () => ({ status: "none" as const, branch: "master" });
+
+  function completeWith(namedMergeGateFn: NamedFn, extra: Record<string, unknown> = {}) {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, `ppr_6336_nopr_${Math.random().toString(36).slice(2)}`);
+    fillPhasesExceptCoverage(store, rec, {
+      command: "deft coverage:hotspots",
+      exitCode: 0,
+      skipReason: null,
+    });
+    return completeRun(store, mintPublisher(), rec.id, undefined, {
+      namedMergeGateFn,
+      mergeQueueFn: noQueue,
+      env: {},
+      // The head's PR lookup runs and finds none (commits/<sha>/pulls is empty).
+      runGh: () => ({ returncode: 0, stdout: "[]", stderr: "" }),
+      ...extra,
+    });
+  }
+
+  it("says no pull request exists and names the next command, not the bootstrap text", () => {
+    calls.length = 0;
+    const d = completeWith(redGate("master-merge-gate-red"));
+    expect(d.code).toBe("deny-master-merge-gate-red");
+    expect(d.message).toContain(noPullRequestForHeadMessage("head"));
+    expect(d.message).toContain("gh pr create");
+    expect(d.message).not.toContain(FIRST_HOTFIX_BOOTSTRAP_RECOVERY);
+    expect(calls).toEqual([{ pr: null, bootstrap: false }]);
+  });
+
+  it("prints the bootstrap text only when that mode is requested", () => {
+    calls.length = 0;
+    const d = completeWith(redGate("first-hotfix-bootstrap"), { firstHotfixBootstrap: true });
+    expect(d.message).toContain(FIRST_HOTFIX_BOOTSTRAP_RECOVERY);
+    expect(d.message).not.toContain("No pull request exists");
+    expect(calls).toEqual([{ pr: null, bootstrap: true }]);
+  });
+
+  it("a passing complete with no pull request names it too", () => {
+    const d = completeWith(greenGate);
+    expect(d.ok).toBe(true);
+    expect(d.message).toContain("No pull request exists for head head");
+  });
+
+  it("a head with a pull request keeps the plain message", () => {
+    const d = completeWith(greenGate, { prNumber: 6336 });
+    expect(d.ok).toBe(true);
+    expect(d.message).not.toContain("No pull request exists");
+  });
+
+  it("a PR found by the head lookup keeps the plain message", () => {
+    const d = completeWith(greenGate, {
+      runGh: () => ({ returncode: 0, stdout: JSON.stringify([{ number: 6414 }]), stderr: "" }),
+    });
+    expect(d.ok).toBe(true);
+    expect(d.message).not.toContain("No pull request exists");
+  });
+
+  it("does not claim a missing PR when no lookup could run", () => {
+    const d = completeWith(greenGate, { runGh: undefined });
+    expect(d.ok).toBe(true);
+    expect(d.message).not.toContain("No pull request exists");
+  });
+});
+
+describe("pre-PR body hash normalisation (#6336 item 8)", () => {
+  it("CRLF and trailing newlines do not change the hash", () => {
+    expect(normalizePrBodyForHash("a\r\nb\r\n\r\n")).toBe("a\nb");
+    expect(normalizePrBodyForHash("a\rb\n")).toBe("a\nb");
+    expect(hashPrBody("Refs #6336\r\n\r\ndeft-story: 6336\r\n")).toBe(
+      hashPrBody("Refs #6336\n\ndeft-story: 6336"),
+    );
+    expect(hashPrBody("a\n\nb")).not.toBe(hashPrBody("a\nb"));
   });
 });

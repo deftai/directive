@@ -7,13 +7,10 @@
 
 ## Active
 
-- **#6265** -- bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items -- `[running]`
-- **#6269** -- bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed -- `[running]`
-- **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[running]`
-- **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[running]`
-- **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[running]`
-- **#6273** -- feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer -- `[running]`
-- **#6274** -- feat(occupancy,hooks): release the occupancy lease when its host session ends -- `[running]`
+- **#6187** -- Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command -- `[running]`
+- **#6468** -- bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join -- `[running]`
+- **#6477** -- bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans -- `[running]`
+- **#6480** -- bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit -- `[running]`
 
 ## Proposed
 
@@ -48,31 +45,31 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1929 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1969 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
-- **#6189** -- Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch) -- `[completed]`
-- **#680** -- Reduce overhead for vBRIEF phase lifecycle completion -- `[completed]`
-- **#6226** -- bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes -- `[completed]`
-- **#5912** -- reconcile-issues: a deleted issue (HTTP 410) is fatal, so any repo with a brief that references one can't cut a release -- `[completed]`
-- **#6204** -- feat(ceremony-dial): small-change lane - scale brief size and PR count to change size -- `[completed]`
-- **#6233** -- bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code -- `[completed]`
-- **#6227** -- bug(test,release): 39 tests fail release Step 5 on a Windows maintainer checkout that CI passes (agent env, symlink privilege, dispatcher identity) -- `[completed]`
-- **#5942** -- bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix -- `[completed]`
-- **#6212** -- bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first -- `[completed]`
-- **#6203** -- feat(scope): admit a brief and its implementation in one PR under a forge-attested human approval -- `[completed]`
-- **#5882** -- BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete -- `[completed]`
-- **#5710** -- bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link -- `[completed]`
-- **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[completed]`
-- **#6173** -- bug(win32,update): containedDestExec still execFileSync pnpm.CMD without shell — #5383 residual lockfile refresh EINVAL -- `[completed]`
-- **#6172** -- bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid) -- `[completed]`
-- **#6163** -- bug(release): pin/Phase 7 leaves Cursor agent-hook deposit behind runtime hash -- `[completed]`
-- **#6164** -- bug(release): release:local-update still shells out to sed/grep on Windows -- `[completed]`
-- **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[completed]`
-- **#4781** -- bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF -- `[completed]`
-- **#5947** -- test+docs(ovpr): AC14.10 Dependabot pin-bump self-complete regression (#5947 #5948) -- `[completed]`
-- **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[completed]`
-- **#6143** -- bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id -- `[completed]`
-- **#6142** -- bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime -- `[completed]`
-- **#6136** -- bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant) -- `[completed]`
-- **#6013** -- Pin-mismatch recovery guidance follows the settled failure-shaped map -- `[completed]`
+- **#6422** -- bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch -- `[completed]`
+- **#6484** -- test(flaky): pre-pr-controller coverage_headroom mode-skip test fails intermittently and reddens master's gate -- `[completed]`
+- **#6366** -- docs(scm): merge queue setup playbook, and point agents to it where they merge -- `[completed]`
+- **#6423** -- bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue -- `[completed]`
+- **#6337** -- fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex -- `[completed]`
+- **#6421** -- bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run -- `[completed]`
+- **#6378** -- bug(scope-provenance): verify:scope-provenance runs past 5 minutes with no output in a fresh worktree -- `[completed]`
+- **#6376** -- bug(hooks): a write outside every checkout is judged by the launching checkout's session ritual -- `[completed]`
+- **#6379** -- design(hooks,swarm): with more than one active brief, in-session workers cannot write; the only parallel route skips the local fence -- `[completed]`
+- **#6409** -- bug(session): session:start refuses mutation for owed completions that belong to other stories -- `[completed]`
+- **#6335** -- feat(lifecycle): completion PRs without ledger conflicts or half-written finalize -- `[completed]`
+- **#6336** -- fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause -- `[completed]`
+- **#6377** -- bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red -- `[completed]`
+- **#6361** -- bug(scope): the one-PR path has no lawful worker path (write fence reads the merge base; swarm:launch needs origin; no task alias) -- `[completed]`
+- **#5927** -- bug(session): cold/rearm session:start ceremony unbounded under many actives (finalize-owed inventory minutes) -- `[completed]`
+- **#6277** -- feat(scope): complete a delivered story without a separate human-reviewed completion PR -- `[completed]`
+- **#4433** -- bug(plan-sequence): batching_allowed is persisted but never authorizes parallel entries -- `[completed]`
+- **#6333** -- feat(ingest): ingested briefs are launch-ready (AC-only admitted set, clause per sentence, launch fields) -- `[completed]`
+- **#6398** -- bug(scope): delivery attest lookup reads grant expiry from wall clock; master CI red after 2026-11-16T10:00Z -- `[completed]`
+- **#5839** -- [framework-gap] BLOCKER Planning-only documentation commit is denied by prospective scope-cover despite supported Path A publication -- `[completed]`
+- **#6205** -- feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert) -- `[completed]`
+- **#6279** -- feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout -- `[completed]`
+- **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[completed]`
+- **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[completed]`
+- **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[completed]`
 

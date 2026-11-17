@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync as execSpawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ENFORCE_NOOP_NOTICE,
+  formatGitTimeoutRemedy,
+  PHASE_LINE_PREFIX,
   parseArgs,
   reportMintLevelAdmits,
   resolveForgeContext,
@@ -76,7 +78,8 @@ function captureRun(argv: string[]): { code: number; stdout: string; stderr: str
     return true;
   });
   try {
-    return { code: run(argv), stdout, stderr };
+    // Pin a non-merge_group event so a merge_group CI lane still runs the check (#6295).
+    return { code: run(argv, { ...process.env, GITHUB_EVENT_NAME: "" }), stdout, stderr };
   } finally {
     out.mockRestore();
     err.mockRestore();
@@ -246,6 +249,7 @@ describe("mint-level admit visibility (#6273)", () => {
     xbriefRelPath: "xbrief/active/story.xbrief.json",
     fileScope: ["packages/core/src/feature.ts", "packages/core/src/feature.test.ts"],
     productionFileCount: 1,
+    humanMerge: true,
   };
   const dirs: string[] = [];
 
@@ -278,9 +282,19 @@ describe("mint-level admit visibility (#6273)", () => {
     expect(stdout).toContain("plan id: story-6273");
     expect(stdout).toContain("- packages/core/src/feature.ts");
     expect(stdout).toContain("production files: 1");
+    expect(stdout).toContain("merge-base requireHumanMerge: true");
     expect(stdout).toContain(
       "CI cannot tell this mint from a file an agent wrote; the human merge is the control",
     );
+  });
+
+  it("prints the local mint gate and write fence control without a human merge (#6354)", () => {
+    const { stdout } = capture(() => reportMintLevelAdmits([{ ...ADMIT, humanMerge: false }], {}));
+    expect(stdout).toContain("plan id: story-6273");
+    expect(stdout).toContain("merge-base requireHumanMerge: not true");
+    expect(stdout).toContain("CI verifies nothing human");
+    expect(stdout).toContain("the control is the local mint gate and the write fence");
+    expect(stdout).not.toContain("the human merge is the control");
   });
 
   it("appends the same block to $GITHUB_STEP_SUMMARY when set", () => {
@@ -307,5 +321,249 @@ describe("mint-level admit visibility (#6273)", () => {
     );
     expect(bad.stdout).toContain("plan id: story-6273");
     expect(bad.stderr).toContain("GITHUB_STEP_SUMMARY");
+  });
+});
+
+describe("verify:scope-provenance on merge_group (#6295)", () => {
+  it("skips with exit 0 and never parses arguments", () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    // An invalid flag would exit 2 if the check ran.
+    expect(run(["--nope"], { GITHUB_EVENT_NAME: "merge_group" })).toBe(0);
+    expect(stdout.mock.calls.join("")).toContain("verify:scope-provenance: skipped on merge_group");
+    stdout.mockRestore();
+  });
+
+  it("still runs on pull_request", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(run(["--nope"], { GITHUB_EVENT_NAME: "pull_request" })).toBe(2);
+    stderr.mockRestore();
+  });
+});
+
+describe("phase lines and per-call git limit (#6378)", () => {
+  const roots: string[] = [];
+  const env: NodeJS.ProcessEnv = { ...process.env, GITHUB_EVENT_NAME: "", GITHUB_PR_NUMBER: "" };
+  delete env.DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS;
+
+  afterEach(() => {
+    while (roots.length > 0) {
+      const root = roots.pop();
+      if (root) rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  /** Repo whose base holds lifecycle briefs, so every phase runs. */
+  function fixture(): string {
+    const root = initRepo();
+    roots.push(root);
+    writeTracked(root, "xbrief/active/story.xbrief.json", xbrief("t", ["src/a.ts"]));
+    writeTracked(
+      root,
+      "xbrief/completed/old.xbrief.json",
+      xbrief("old", []).replace("story-1", "old-1"),
+    );
+    writeTracked(root, "src/a.ts", "export const a = 1;\n");
+    commit(root, "base");
+    git(root, ["branch", "base"]);
+    git(root, ["checkout", "-q", "-b", "impl"]);
+    writeTracked(root, "src/a.ts", "export const a = 2;\n");
+    commit(root, "change");
+    return root;
+  }
+
+  type Spawn = NonNullable<NonNullable<Parameters<typeof run>[2]>["gitSpawn"]>;
+
+  /** Records phase lines and git calls in one ordered log. */
+  function harness(
+    rewrite?: (args: readonly string[], timeout: number | undefined) => "timeout" | null,
+  ) {
+    const log: string[] = [];
+    const stderrSync: string[] = [];
+    const timeouts: Array<number | undefined> = [];
+    const gitSpawn: Spawn = (cmd, args, options) => {
+      log.push(`git ${args.join(" ")}`);
+      timeouts.push(options.timeout);
+      if (rewrite?.(args, options.timeout) === "timeout") {
+        const error = Object.assign(new Error("spawnSync git ETIMEDOUT"), { code: "ETIMEDOUT" });
+        return {
+          pid: 1,
+          output: [],
+          stdout: "",
+          stderr: "",
+          status: null,
+          signal: "SIGKILL",
+          error,
+        };
+      }
+      return execSpawn(cmd, [...args], options);
+    };
+    const writeStderrSync = (text: string): void => {
+      stderrSync.push(text);
+      if (text.startsWith(PHASE_LINE_PREFIX)) log.push(text.trim());
+    };
+    return { log, stderrSync, timeouts, seams: { gitSpawn, writeStderrSync } };
+  }
+
+  function captured(fn: () => number): { code: number; stdout: string; stderr: string } {
+    let stdout = "";
+    let stderr = "";
+    const out = vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      stdout += String(c);
+      return true;
+    });
+    const err = vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      stderr += String(c);
+      return true;
+    });
+    try {
+      return { code: fn(), stdout, stderr };
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  }
+
+  it("parses --git-timeout-seconds", () => {
+    expect(parseArgs(["--git-timeout-seconds", "300"]).gitTimeoutSeconds).toBe(300);
+    expect(parseArgs(["--git-timeout-seconds=0"]).gitTimeoutSeconds).toBe(0);
+    expect(parseArgs([]).gitTimeoutSeconds).toBeNull();
+    expect(parseArgs(["--git-timeout-seconds", "x"]).error).toMatch(/whole number of seconds/);
+    expect(parseArgs(["--git-timeout-seconds"]).error).toMatch(/whole number of seconds/);
+  });
+
+  it("prints the remedy as the run's own argv with a larger limit", () => {
+    expect(
+      formatGitTimeoutRemedy(
+        [
+          "--project-root",
+          "C:/a b",
+          "--git-timeout-seconds",
+          "30",
+          "--git-timeout-seconds=60",
+          "--quiet",
+        ],
+        240,
+      ),
+    ).toBe(
+      "deft verify:scope-provenance --project-root 'C:/a b' --quiet --git-timeout-seconds 240",
+    );
+  });
+
+  it("keeps dollar signs, backticks and quotes literal in the printed remedy", () => {
+    const remedy = formatGitTimeoutRemedy(["--project-root", "/tmp/$cash/`x`/it's"], 240);
+    expect(remedy).toBe(
+      "deft verify:scope-provenance --project-root '/tmp/$cash/`x`/it''s' --git-timeout-seconds 240",
+    );
+  });
+
+  it("writes each phase line before that phase starts", { timeout: 120_000 }, () => {
+    const root = fixture();
+    const h = harness();
+    const r = captured(() => run(["--project-root", root, "--base-ref", "base"], env, h.seams));
+    expect(r.code).toBe(0);
+    const at = (needle: string): number => h.log.findIndex((l) => l.startsWith(needle));
+    const phase = (name: string): number => h.log.indexOf(`${PHASE_LINE_PREFIX}${name}`);
+    expect(phase("base resolution")).toBe(0);
+    expect(phase("change-set read")).toBeGreaterThan(0);
+    expect(phase("change-set read")).toBeLessThan(at("git diff"));
+    const census = h.log.findIndex((l) => l.startsWith(`${PHASE_LINE_PREFIX}census (`));
+    expect(h.log[census]).toBe(`${PHASE_LINE_PREFIX}census (2 briefs)`);
+    expect(census).toBeLessThan(at("git cat-file --batch-check"));
+    expect(phase("per-story evaluation")).toBeGreaterThan(phase("change-set read"));
+    expect(h.stderrSync.filter((l) => l.startsWith(PHASE_LINE_PREFIX))).toHaveLength(4);
+    expect(r.stdout).toMatch(/clean/);
+  });
+
+  it("writes no phase line with --quiet", { timeout: 120_000 }, () => {
+    const root = fixture();
+    const h = harness();
+    const r = captured(() =>
+      run(["--project-root", root, "--base-ref", "base", "--quiet"], env, h.seams),
+    );
+    expect(r.code).toBe(0);
+    expect(h.stderrSync.filter((l) => l.startsWith(PHASE_LINE_PREFIX))).toEqual([]);
+  });
+
+  it("gives every git call 120 s by default, the flag over the variable, and no limit for 0", {
+    timeout: 240_000,
+  }, () => {
+    const root = fixture();
+    const args = ["--project-root", root, "--base-ref", "base", "--quiet"];
+    const base = harness();
+    captured(() => run(args, env, base.seams));
+    expect(base.timeouts.length).toBeGreaterThan(0);
+    expect(new Set(base.timeouts)).toEqual(new Set([120_000]));
+
+    const withVar = { ...env, DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS: "60" };
+    const both = harness();
+    captured(() => run([...args, "--git-timeout-seconds", "300"], withVar, both.seams));
+    expect(new Set(both.timeouts)).toEqual(new Set([300_000]));
+
+    const fromEnv = harness();
+    captured(() => run(args, withVar, fromEnv.seams));
+    expect(new Set(fromEnv.timeouts)).toEqual(new Set([60_000]));
+
+    const none = harness();
+    captured(() => run([...args, "--git-timeout-seconds", "0"], env, none.seams));
+    expect(new Set(none.timeouts)).toEqual(new Set([undefined]));
+  });
+
+  // A census listing call that needs 150 s: it reaches a 120 s limit, not a 240 s one.
+  const slowListing = (args: readonly string[], timeout: number | undefined): "timeout" | null =>
+    args[0] === "ls-tree" && timeout !== undefined && timeout < 150_000 ? "timeout" : null;
+
+  it("warn mode names the call, runs it again with no limit, and keeps the verdict", {
+    timeout: 120_000,
+  }, () => {
+    const root = fixture();
+    const plain = harness();
+    const before = captured(() =>
+      run(["--project-root", root, "--base-ref", "base"], env, plain.seams),
+    );
+    const slow = harness(slowListing);
+    const after = captured(() =>
+      run(["--project-root", root, "--base-ref", "base"], env, slow.seams),
+    );
+    expect(after.code).toBe(before.code);
+    expect(after.stdout).toBe(before.stdout);
+    const warns = slow.stderrSync.filter((l) => l.includes("scope-provenance-git-call-timeout"));
+    expect(warns.length).toBeGreaterThanOrEqual(1);
+    const line = warns[0] as string;
+    expect(line).toContain("(warn)");
+    expect(line).toContain('phase "census"');
+    expect(line).toContain("`git ls-tree -r --name-only base xbrief/pending`");
+    expect(line).toMatch(/after \d+\.\d s/);
+    expect(line).toMatch(/later release/);
+    expect(line).toContain("--base-ref base --git-timeout-seconds 240");
+    // The same command ran once more, with no limit.
+    const pending = "git ls-tree -r --name-only base xbrief/pending";
+    expect(slow.log.filter((l) => l === pending)).toHaveLength(2);
+  });
+
+  it("enforce mode exits 2 with the refusal line, and the printed remedy completes", {
+    timeout: 120_000,
+  }, () => {
+    const root = fixture();
+    const slow = harness(slowListing);
+    const refused = captured(() =>
+      run(["--project-root", root, "--base-ref", "base"], env, {
+        ...slow.seams,
+        gitTimeoutMode: "enforce",
+      }),
+    );
+    expect(refused.code).toBe(2);
+    expect(refused.stderr).toContain("scope-provenance-git-call-timeout (enforce)");
+    expect(refused.stderr).toContain('phase "census"');
+    expect(refused.stderr).toContain("`git ls-tree -r --name-only base xbrief/pending`");
+    const remedy = /Remedy: (.+)$/m.exec(refused.stderr)?.[1] ?? "";
+    expect(remedy).toMatch(/^deft verify:scope-provenance .*--git-timeout-seconds 240$/);
+    // Run the remedy exactly as printed: the argv after the verb.
+    const argv = (remedy.match(/'(?:[^']|'')*'|\S+/g) ?? [])
+      .slice(2)
+      .map((a) => (a.startsWith("'") ? a.slice(1, -1).replace(/''/g, "'") : a));
+    const again = harness(slowListing);
+    const done = captured(() => run(argv, env, { ...again.seams, gitTimeoutMode: "enforce" }));
+    expect(done.code).toBe(0);
+    expect(done.stdout).toMatch(/clean/);
   });
 });

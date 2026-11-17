@@ -4,7 +4,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
 import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
-import { isCodeBearingScope, resolvePlanGithubIssueRef } from "@deftai/directive-core/scope";
+import {
+  isCodeBearingScope,
+  resolvePlanGithubIssueRef,
+  strictAxisAdvisoryLines,
+} from "@deftai/directive-core/scope";
 import { refuseIfWslOwnershipBlocked } from "./wsl-ownership-guard.js";
 
 /** One remediation line for a code-bearing brief with no issue origin (#5710 P2). */
@@ -34,6 +38,15 @@ export function issuelessCodeBearingNote(briefPath: string): string | null {
     return null;
   }
   return ISSUELESS_CODE_BEARING_REMEDIATION;
+}
+
+/** Strict-axis advisory lines for the brief (#6272); empty when unreadable. */
+export function strictAxisAdvisoryForBrief(briefPath: string): string[] {
+  try {
+    return strictAxisAdvisoryLines(JSON.parse(readFileSync(briefPath, "utf8")) as unknown);
+  } catch {
+    return [];
+  }
 }
 
 interface ParsedArgs {
@@ -162,6 +175,8 @@ export function run(
   if (issuelessNote !== null) {
     scanLines = [issuelessNote, ...scanLines];
   }
+  // #6272: advisory only; the exit code is unchanged.
+  scanLines = [...scanLines, ...strictAxisAdvisoryForBrief(vbriefPath)];
 
   if (args.emitJson) {
     const message =

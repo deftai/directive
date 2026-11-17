@@ -23,15 +23,13 @@
  */
 
 import { existsSync } from "node:fs";
-import { relative, resolve } from "node:path";
-import { resolveLifecycleRoot } from "../layout/resolve.js";
+import { resolve } from "node:path";
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import { loadOnePrUnitGrant } from "../one-pr-unit/store.js";
 import type { OnePrUnitGrant } from "../one-pr-unit/types.js";
 import { type GateRunner, makeGateRunner } from "../orphan-active/issue-state.js";
 import { collectGithubRefs } from "../orphan-active/refs.js";
-import { listActiveRunningBriefsFromLifecycleRoot } from "../orphan-active/running-briefs.js";
 import { fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
@@ -46,16 +44,11 @@ import {
 } from "../scope/acceptance-evidence.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import {
-  assertWorkingTreeIsPrHead,
   type CloseoutRefuseReason,
-  classifyLifecycleDirty,
   fetchPrHeadShaViaApi,
-  findWorktreeAtSha,
   type PrHeadAssertOptions,
-  refuseDirtyLifecycle,
-  resolveLocalHeadSha,
-  shasMatch,
 } from "./pr-head-assert.js";
+import { readActiveRunningBriefsAtSha, type TreeAtShaReader } from "./tree-at-sha.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -123,18 +116,13 @@ export interface EvaluateOptions {
    * Before reading briefs, assert local HEAD equals the PR head that merges (#3875).
    * Exit 2 on mismatch or unreadable SHA. Inject seams for hermetic tests.
    */
+  /** PR head SHA source (#3875): `prHeadSha` / `fetchPrHeadSha`. Other fields are unused since #6295. */
   readonly prHeadAssert?: PrHeadAssertOptions;
+  /** Reader for running briefs at the PR head SHA (#6295 item 7). Defaults to git objects. */
+  readonly treeAtSha?: TreeAtShaReader;
   readonly onePrUnitGrant?: OnePrUnitGrant | null;
   readonly onePrUnitId?: string | null;
   readonly prNodeId?: string | null;
-}
-
-function relBriefPath(path: string, projectRoot: string): string {
-  try {
-    return relative(resolve(projectRoot), resolve(path)).replace(/\\/g, "/");
-  } catch {
-    return path.replace(/\\/g, "/");
-  }
 }
 
 /**
@@ -276,6 +264,10 @@ function formatRefusal(
   lines.push(
     "  Trigger is the PR's closing references, not the branch diff. A PR that leaves an unattested",
     "  brief without closing its issue is unaffected.",
+    `  For an active story, do not use Closes ${issues}. Put \`deft-story: N\` on the PR that`,
+    "  completes the story and `deft-story-part: N` on any other product PR of it; `Refs #N` alone",
+    "  is not a completion basis (#6316). Write the line with:",
+    "    task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]",
   );
   if (proxied) {
     lines.push(PROXIED_CAVEAT);
@@ -351,187 +343,55 @@ export function evaluate(
     proxied: runner.proxied,
   });
 
-  // Probe caller xbrief/ first. A miss is not yet "nothing to check" — cascade
-  // from primary may still find briefs on a linked PR-head worktree (#3875).
-  let callerLifecycle: string | null = null;
-  try {
-    const resolved = resolveLifecycleRoot(root);
-    callerLifecycle = existsSync(resolved) ? resolved : null;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    // Consumers may still be on a legacy vbrief/-only layout (#2112).
-    if (!message.includes("No xbrief/ layout found")) {
-      return configError(prNumber, message, runner.proxied);
-    }
-  }
-
   const repo = resolveRepo(options.repo, root);
-
-  let briefRoot = root;
-  let lifecycleRoot: string;
-
-  if (callerLifecycle === null) {
-    // No local xbrief: without a repo slug we cannot know the PR head SHA to
-    // probe a linked worktree — fail closed, never certify "nothing to check".
-    if (repo === null || repo.length === 0) {
-      return configError(
-        prNumber,
-        "cannot resolve OWNER/REPO for the PR-head closeout probe. Pass --repo OWNER/REPO, " +
-          "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
-        runner.proxied,
-      );
-    }
-    // Probe a linked PR-head worktree before declaring nothing to check
-    // (outside-diff residual on #5258). Fail closed on an unverified lookup.
-    const assertOpts = options.prHeadAssert ?? {};
-    const fetchPrHead = assertOpts.fetchPrHeadSha ?? fetchPrHeadShaViaApi;
-    const classify = assertOpts.classifyLifecycleDirty ?? classifyLifecycleDirty;
-    const resolveWorktree =
-      assertOpts.resolveWorktreeAtSha ??
-      ((r: string, sha: string) => findWorktreeAtSha(r, sha, classify));
-    const resolveLocal = assertOpts.resolveLocalHeadSha ?? resolveLocalHeadSha;
-    const prHead =
-      assertOpts.prHeadSha !== undefined
-        ? assertOpts.prHeadSha
-        : fetchPrHead(prNumber, repo, runner.runGh);
-    if (prHead === null || prHead.trim().length === 0) {
-      return configError(
-        prNumber,
-        `cannot read PR #${prNumber} head SHA (repo=${repo}) before closeout. ` +
-          "Refusing to certify briefs on an unverified tree — retry after fixing gh auth or network.",
-        runner.proxied,
-      );
-    }
-    const lookup = resolveWorktree(root, prHead.trim());
-    if (lookup.status === "error") {
-      return configError(
-        prNumber,
-        `${lookup.message}. Refusing to certify briefs when the PR-head worktree lookup ` +
-          "is unverified — fix git and retry.",
-        runner.proxied,
-      );
-    }
-    if (lookup.status === "absent" || lookup.path.trim().length === 0) {
-      // Verified list: no linked worktree at the PR head — nothing to attest.
-      return nothingToCheck();
-    }
-    const alt = lookup.path;
-    const altHead = resolveLocal(alt);
-    if (altHead === null || altHead.trim().length === 0) {
-      return configError(
-        prNumber,
-        `cannot resolve local HEAD in ${alt} before reading closeout briefs. ` +
-          "Run from the PR head checkout (or a worktree at that SHA).",
-        runner.proxied,
-      );
-    }
-    if (!shasMatch(altHead, prHead)) {
-      return configError(
-        prNumber,
-        `working tree HEAD ${altHead} is not PR #${prNumber} head ${prHead}. ` +
-          "Closeout reads the tree that merges — check out the PR head (or pass " +
-          "--project-root to its worktree) and retry.",
-        runner.proxied,
-      );
-    }
-    let altLifecycle: string | null = null;
-    try {
-      const resolved = resolveLifecycleRoot(alt);
-      altLifecycle = existsSync(resolved) ? resolved : null;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (!message.includes("No xbrief/ layout found")) {
-        return configError(prNumber, message, runner.proxied);
-      }
-    }
-    if (altLifecycle === null) {
-      if (lookup.anotherShaMatchHasXbrief === true) {
-        return configError(
-          prNumber,
-          `selected PR-head worktree ${alt} has no xbrief layout while another SHA-matching worktree does. ` +
-            `Caller root ${root} also lacks layout. Prefer a briefed PR-head worktree.`,
-          runner.proxied,
-          "brief-root-layout-missing",
-        );
-      }
-      return nothingToCheck();
-    }
-    if (assertOpts.checkLifecycleDirty !== false) {
-      const classified = classify(alt);
-      if (classified.status === "dirty") {
-        const refused = refuseDirtyLifecycle(alt, classified);
-        return configError(prNumber, refused.message, runner.proxied, refused.reason);
-      }
-      if (classified.status === "unverifiable") {
-        return configError(
-          prNumber,
-          `lifecycle tree under ${alt} status is unverifiable (${classified.diagnostic}). ` +
-            "Closeout cannot certify briefs without a readable git status — fix git and retry. " +
-            "No discard remediation is printed for unverifiable status reads.",
-          runner.proxied,
-        );
-      }
-    }
-    briefRoot = resolve(alt);
-    lifecycleRoot = altLifecycle;
-  } else {
-    if (repo === null || repo.length === 0) {
-      // Closing references are repository-scoped. Without the slug this gate could
-      // only compare bare numbers, and a same-numbered issue in an unrelated
-      // repository would block a valid merge.
-      return configError(
-        prNumber,
-        "cannot resolve OWNER/REPO for the closing-reference read. Pass --repo OWNER/REPO, " +
-          "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
-        runner.proxied,
-      );
-    }
-    // #3875: refuse a wrong-tree / dirty-lifecycle brief read before closing refs.
-    const headAssert = assertWorkingTreeIsPrHead(root, prNumber, repo, runner.runGh, {
-      ...options.prHeadAssert,
-    });
-    if (!headAssert.ok) {
-      return configError(prNumber, headAssert.message, runner.proxied, headAssert.reason);
-    }
-    briefRoot =
-      headAssert.resolvedProjectRoot !== undefined ? resolve(headAssert.resolvedProjectRoot) : root;
-    lifecycleRoot = callerLifecycle;
-    if (briefRoot !== root) {
-      try {
-        lifecycleRoot = resolveLifecycleRoot(briefRoot);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        if (message.includes("No xbrief/ layout found")) {
-          return configError(
-            prNumber,
-            `caller lifecycle root ${root} has briefs but selected brief root ${briefRoot} has no xbrief layout. ` +
-              "Pass --project-root to a PR-head worktree that carries the lifecycle briefs.",
-            runner.proxied,
-            "brief-root-layout-missing",
-          );
-        }
-        return configError(prNumber, message, runner.proxied);
-      }
-      if (!existsSync(lifecycleRoot)) {
-        return configError(
-          prNumber,
-          `caller lifecycle root ${root} has briefs but selected brief root ${briefRoot} lifecycle path is missing. ` +
-            "Pass --project-root to a PR-head worktree that carries the lifecycle briefs.",
-          runner.proxied,
-          "brief-root-layout-missing",
-        );
-      }
-    }
-  }
-
-  // Both branches above return when repo is missing; narrow for the forge read.
   if (repo === null || repo.length === 0) {
+    // Closing references are repository-scoped, and the PR head SHA read needs
+    // the slug too. A bare-number match could block or pass an unrelated merge.
     return configError(
       prNumber,
       "cannot resolve OWNER/REPO for the closing-reference read. Pass --repo OWNER/REPO, " +
         "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
       runner.proxied,
     );
+  }
+
+  // #6295 item 7: read the PR head SHA from REST and evaluate the tree at that
+  // SHA. Local HEAD, linked worktrees and uncommitted lifecycle edits are not
+  // read, so the caller need not stand on the PR head.
+  const assertOpts = options.prHeadAssert ?? {};
+  const fetchPrHead = assertOpts.fetchPrHeadSha ?? fetchPrHeadShaViaApi;
+  const prHeadRaw =
+    assertOpts.prHeadSha !== undefined
+      ? assertOpts.prHeadSha
+      : fetchPrHead(prNumber, repo, runner.runGh);
+  if (prHeadRaw === null || prHeadRaw.trim().length === 0) {
+    return configError(
+      prNumber,
+      `cannot read PR #${prNumber} head SHA (repo=${repo}) before closeout. ` +
+        "Refusing to certify briefs on an unverified tree — retry after fixing gh auth or network.",
+      runner.proxied,
+    );
+  }
+  const prHead = prHeadRaw.trim();
+  const readTree = options.treeAtSha ?? readActiveRunningBriefsAtSha;
+  const tree = readTree(root, prHead);
+  if (tree.status === "missing-object") {
+    return configError(
+      prNumber,
+      `${tree.message}. Closeout reads the PR head tree from git objects and does not fetch. ` +
+        `Recovery: git fetch origin refs/pull/${prNumber}/head, then retry.`,
+      runner.proxied,
+    );
+  }
+  if (tree.status === "error") {
+    return configError(
+      prNumber,
+      `${tree.message}. Refusing to certify briefs on an unreadable PR head tree — fix git and retry.`,
+      runner.proxied,
+    );
+  }
+  if (!tree.hasLayout) {
+    return nothingToCheck();
   }
 
   const linked = fetchClosing(prNumber, repo, runner.runGh);
@@ -551,7 +411,7 @@ export function evaluate(
     options.onePrUnitGrant !== undefined
       ? options.onePrUnitGrant
       : options.onePrUnitId !== undefined && options.onePrUnitId !== null
-        ? loadOnePrUnitGrant(briefRoot, options.onePrUnitId)
+        ? loadOnePrUnitGrant(root, options.onePrUnitId)
         : null;
   const unit = evaluateOnePrUnit({
     closerSet: closerSetFromIssueIds(repo, closingIssues),
@@ -587,7 +447,7 @@ export function evaluate(
   const closingSet = new Set(closingIssues);
   const findings: CloseoutFinding[] = [];
 
-  for (const brief of listActiveRunningBriefsFromLifecycleRoot(lifecycleRoot)) {
+  for (const brief of tree.briefs) {
     const { issues } = collectGithubRefs(brief.plan, repo);
     // Match on (repo, number). Closing references are scoped to the PR's repository,
     // so a bare-number match would let an unrelated brief tracking the same number in
@@ -620,13 +480,13 @@ export function evaluate(
           declaresMerge: item !== undefined && itemDeclaresMergeRequirement(item),
         };
       });
-    findings.push({ briefPath: relBriefPath(brief.path, briefRoot), issue, unattested });
+    findings.push({ briefPath: brief.relPath, issue, unattested });
   }
 
   if (findings.length > 0) {
     return {
       code: 1,
-      message: formatRefusal(prNumber, findings, briefRoot, runner.proxied),
+      message: formatRefusal(prNumber, findings, root, runner.proxied),
       stream: "stderr",
       prNumber,
       closingIssues,

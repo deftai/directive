@@ -2,7 +2,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { hashIssueBodyBytes, type ThreadComment } from "../design-critique/completed-arc-record.js";
+import {
+  hashIssueBodyBytes,
+  type ThreadComment,
+  threadCommentsFromIssueComments,
+} from "../design-critique/completed-arc-record.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "../design-critique/exclusive-chip.js";
 import { GitHubBodyError } from "../intake/github-body.js";
 import { IssueCommentFetchError } from "../intake/issue-ingest.js";
@@ -564,6 +568,78 @@ describe("runDesignCritiqueChip", () => {
     expect(client.applyCalls).toHaveLength(0);
     expect(result.stderr).toMatch(/unresolved-pain-audit/);
     expect(result.stderr).not.toMatch(/chip apply missed/);
+  });
+
+  describe("digestless audit of an unedited lean (#6477 clause.3)", () => {
+    const AUDIT_ID = 5443000001;
+    /** REST rows as fetchIssueComments returns them, mapped by the chip's own mapper. */
+    function restRows(leanUpdatedAt: string, auditCreatedAt: string) {
+      return threadCommentsFromIssueComments([
+        {
+          id: 10,
+          body: "role: parent\n\ndesign-critique: warranted, because coverage gap.\n\npain: P1\n",
+          created_at: "2026-11-16T05:00:00Z",
+          updated_at: "2026-11-16T05:00:00Z",
+        },
+        {
+          id: LEAN_ID,
+          body: withPlainEnglish(
+            "**Lean:** bind relief.\n\n## Bound remedy\n\n1. Relieve P1.\n\n" +
+              "## Acceptance Criteria\n- Given P1, then it is relieved.\n\nrelieves: P1\n",
+          ),
+          created_at: "2026-11-16T05:20:00Z",
+          updated_at: leanUpdatedAt,
+        },
+        {
+          id: AUDIT_ID,
+          body: "role: critic\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
+          created_at: auditCreatedAt,
+          updated_at: auditCreatedAt,
+        },
+        {
+          id: TABLE_ID,
+          body: "## Verified-claims table\n\n| Verified claim | Result |\n",
+          created_at: "2026-11-16T05:30:00Z",
+        },
+        {
+          id: SYNTHESIS_ID,
+          body: withPlainEnglish(
+            "model: grok-4.6\nrole: parent\n\n" +
+              "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+              `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+          ),
+          created_at: "2026-11-16T05:31:00Z",
+        },
+      ]);
+    }
+
+    function run(comments: readonly ThreadComment[]) {
+      const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+      const result = runChip(
+        ["--issue", "6477", "--chip", "ingest-ready", "--repo", "deftai/directive"],
+        { client, fetchComments: () => comments, fetchIssueBody: unpinnedBodyFetch },
+      );
+      return { client, result };
+    }
+
+    it("admits the chip when the lean updated_at is strictly before the audit created_at", () => {
+      const comments = restRows("2026-11-16T05:26:59Z", "2026-11-16T05:28:57Z");
+      expect(comments.find((c) => c.id === LEAN_ID)?.updated_at).toBe("2026-11-16T05:26:59Z");
+      expect(comments.find((c) => c.id === AUDIT_ID)?.created_at).toBe("2026-11-16T05:28:57Z");
+      const { client, result } = run(comments);
+      expect(result.stderr).toBe("");
+      expect(result.exitCode).toBe(0);
+      expect(client.applyCalls).toHaveLength(1);
+    });
+
+    it("refuses as today when the lean was edited at or after the audit", () => {
+      for (const leanUpdatedAt of ["2026-11-16T05:28:57Z", "2026-11-16T05:40:00Z"]) {
+        const { client, result } = run(restRows(leanUpdatedAt, "2026-11-16T05:28:57Z"));
+        expect(result.exitCode).toBe(1);
+        expect(client.applyCalls).toHaveLength(0);
+        expect(result.stderr).toMatch(/unresolved-pain-audit/);
+      }
+    });
   });
 
   it("chip caller refuses stale-target digest mismatch with zero writes (#4995)", () => {

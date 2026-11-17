@@ -346,8 +346,8 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
         "  Read the preimage before you commit. That file is the approved intent (#3385).\n" +
         "  Next: commit record + preimage on the merge base (or a prior PR) before " +
         "activation/expansion in the implementation change set (#3205 / #3385).\n" +
-        "  At merge-base onePrScopeProof=mint with requireHumanMerge=true, the pair may ride " +
-        "in the same PR as the brief and its code (#6273).\n",
+        "  At merge-base onePrScopeProof=mint, the pair may ride in the same PR as the " +
+        "brief and its code (#6273 / #6354).\n",
     );
   }
   return 0;

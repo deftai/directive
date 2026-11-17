@@ -33,17 +33,30 @@ export interface LifecycleWriteStamp {
    * and clears this flag.
    */
   readonly migration?: boolean;
+  /**
+   * Set only by `scope:complete --in-pr` (#6277): the brief completes inside the
+   * story's last product PR and takes effect at its merge. No delivered
+   * provenance and no merge evidence are written.
+   */
+  readonly completionDisposition?: LifecycleCompletionDisposition;
 }
+
+/** In-PR completion disposition (#6277): the brief lands with the product change. */
+export const LANDS_WITH_PRODUCT = "lands-with-product" as const;
+export type LifecycleCompletionDisposition = typeof LANDS_WITH_PRODUCT;
 
 export interface StampLifecycleWriteOptions {
   /** When true, include `migration: true` on the stamp (#5540). Default: omit. */
   readonly migration?: boolean;
+  /** In-PR completion (#6277): include `completionDisposition` on a complete stamp. */
+  readonly completionDisposition?: LifecycleCompletionDisposition;
 }
 
 /** Solo leftover-land recovery after empty-active / scope-not-ready (#4421 / #3476 / #3679). */
 export const LEFTOVER_LAND_PR_REMEDIATION =
   "Sanctioned close-out is unreachable from the solo consumer path, not unsatisfiable. " +
-  "Strike option 2 as written: do not complete the scope in the product PR. " +
+  "Strike option 2 as written: do not complete the scope in the product PR, " +
+  "except through `scope:complete --in-pr`, which stamps it lands-with-product (#6277). " +
   "After a provenance-gated product PR strips active/ from the change set, " +
   "the designed remainder is a leftover land PR (#3476). " +
   "Solo sequence after the product PR merges: run `task scope:complete` " +
@@ -55,7 +68,7 @@ export const LEFTOVER_LAND_PR_REMEDIATION =
   "A leftover-land PR is a lifecycle-only diff (completed/cancelled xBRIEFs + optional CHANGELOG) " +
   "after the origin issue is merged or closed. After merge means after the product PR, not after the land PR. " +
   "Greptile partition: xbrief/active/ on a product PR is correct; " +
-  "completed/ on a product PR before merge stays a defect; " +
+  "completed/ on a product PR before merge stays a defect unless it is a lands-with-product move (#6277); " +
   "completed/ on a leftover-land PR after merge is the sanctioned close-out. " +
   "Org-enforced dashboard rules cannot be overridden by rules.md. " +
   "Do not mint a completing status or a default-branch auto-finalizer without a runTransition stamp and lease. " +
@@ -94,7 +107,26 @@ export function stampLifecycleWrite(
   if (options?.migration === true) {
     stamp.migration = true;
   }
+  if (action === "complete" && options?.completionDisposition === LANDS_WITH_PRODUCT) {
+    stamp.completionDisposition = LANDS_WITH_PRODUCT;
+  }
   meta[LIFECYCLE_WRITE_KEY] = stamp;
+}
+
+/**
+ * True when the plan carries a complete lifecycleWrite stamped by
+ * `scope:complete --in-pr` (#6277): disposition `lands-with-product`.
+ */
+export function isLandsWithProductPlan(plan: Record<string, unknown>): boolean {
+  const meta = asRecord(plan.metadata);
+  const stamp = asRecord(meta?.[LIFECYCLE_WRITE_KEY]);
+  return (
+    stamp !== null &&
+    stamp.action === "complete" &&
+    stamp.completionDisposition === LANDS_WITH_PRODUCT &&
+    typeof stamp.writtenAt === "string" &&
+    stamp.writtenAt.trim().length > 0
+  );
 }
 
 /** True when plan.metadata.lifecycleWrite is a durable complete/fail/cancel stamp. */

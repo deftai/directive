@@ -58,6 +58,17 @@ export {
   type IntentPreimage,
 } from "./extract-intent.js";
 export { computeAuthHashV1 } from "./forge-approval.js";
+export {
+  DEFAULT_GIT_TIMEOUT_SECONDS,
+  type DeclaredRefusalMode,
+  type DeclaredRefusalRow,
+  GIT_TIMEOUT_ENV,
+  GitCallTimeoutError,
+  type GitSpawn,
+  parseGitTimeoutSeconds,
+  resolveGitTimeoutSeconds,
+  SCOPE_PROVENANCE_GIT_CALL_TIMEOUT,
+} from "./git-call.js";
 export { computeIntentDigest, INTENT_DIGEST_ALGO } from "./intent-digest.js";
 export { parseJsonRejectingDuplicateKeys } from "./json-tokenizer.js";
 export { allKnownMachineLeaves, KNOWN_MACHINE_WRITERS } from "./known-machine.js";

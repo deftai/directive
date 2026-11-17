@@ -13,6 +13,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
@@ -29,9 +30,9 @@ export const SESSION_COMPLETED_MARKER_REL = [".deft", "cache", "last-completed.j
 /**
  * Exact paths in the published lifecycle-maintenance set (#5477 Bound).
  * Engine-constant at this pin; a same-change-set policy rewrite cannot widen it.
+ * Changelog entry paths are in the set through `isChangelogEntryPath` (#6314).
  */
 export const LIFECYCLE_MAINTENANCE_EXACT_PATHS = [
-  "CHANGELOG.md",
   ".deft/plan-sequence.json",
   "xbrief/PROJECT-DEFINITION.xbrief.json",
   "xbrief/specification.xbrief.json",
@@ -251,6 +252,8 @@ export function normalizeLifecycleRelPath(raw: string): string {
 export function isLifecycleMaintenancePath(relPath: string): boolean {
   const norm = normalizeLifecycleRelPath(relPath);
   if (norm.length === 0) return false;
+  // Changelog entry paths (CHANGELOG.md, changelog.d/<name>.md) via the one path test (#6314).
+  if (isChangelogEntryPath(norm)) return true;
   if ((LIFECYCLE_MAINTENANCE_EXACT_PATHS as readonly string[]).includes(norm)) {
     return true;
   }

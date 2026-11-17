@@ -2,6 +2,27 @@
 export const EXIT_MERGED = 0;
 export const EXIT_TIMEOUT_OR_ESCALATION = 1;
 export const EXIT_CONFIG_ERROR = 2;
+/**
+ * Merge-queue mode (#6295): the PR is queued or awaiting admission. Not merged
+ * yet; run the printed resume command later. Never reported as merged.
+ */
+export const EXIT_QUEUE_PENDING = 3;
+
+/**
+ * `--wait` (#6423 item 7): seconds between merge-queue reads. A queue run takes
+ * minutes; one read a minute keeps each wait to one `rate_limit` probe and one
+ * GraphQL query per minute on the shared bucket.
+ */
+export const MERGE_QUEUE_WAIT_POLL_SECONDS = 60;
+
+/**
+ * `--wait` (#6423 item 4): failed queue reads in a row that end the wait with
+ * exit 2. Covers a brief read failure; it does not wait through a rate limit.
+ */
+export const MERGE_QUEUE_WAIT_MAX_FAILED_READS = 3;
+
+/** Why a `--wait` queue wait ended (#6423 item 6). */
+export type QueueWaitStopReason = "result" | "cap" | "read-unavailable";
 
 /** Exact GitHub check-run name for the always-on master tip gate (#6071). */
 export const MERGE_GATE_TASK_CHECK_NAME = "Merge gate (task check)" as const;

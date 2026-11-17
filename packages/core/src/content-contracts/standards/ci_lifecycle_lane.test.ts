@@ -252,3 +252,17 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     expect(gateOn).not.toMatch(/\bpaths:/);
   });
 });
+
+describe("artifact-only lifecycle lane changelog entry paths (#6314)", () => {
+  it("routes a changelog.d fragment beside a completed brief to the lane", () => {
+    expect(
+      artifactOnly(["changelog.d/6314-x.md", "xbrief/completed/2026-11-15-6314-x.xbrief.json"]),
+    ).toBe(true);
+  });
+
+  it("keeps nested and upper-case fragment paths on the full stack", () => {
+    expect(artifactOnly(["changelog.d/sub/x.md"])).toBe(false);
+    expect(artifactOnly(["changelog.d/X.md"])).toBe(false);
+    expect(artifactOnly(["changelog.d/6314-x.md", "packages/core/src/x.ts"])).toBe(false);
+  });
+});

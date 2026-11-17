@@ -36,9 +36,23 @@ If the env-var bypass is unavoidable outside the enforce closeout above, scope i
 
 See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard for the full operator workflow.
 
+## Merge queue on master (#6295)
+
+`master` requires a GitHub merge queue (squash is the queue's merge method), and the repository allows auto-merge. Required checks: `TypeScript (build + lint + test)` and `Merge gate (task check)` from `ci.yml` (it also runs on `merge_group`), and `Greptile Review` (the org ruleset). On the group commit, `Greptile Review` comes from `.github/workflows/greptile-review-merge-group.yml`.
+
+- Release and policy commits land through the queue as PRs: push the `chore(release): vX.Y.Z` commit (and the `chore(policy): restore branch protection …` commit) on a branch, open a PR, and enqueue it with `task pr:wait-mergeable-and-merge -- <N>`. Tag the merge commit after the PR merges.
+- Direct pushes to `master` are not part of the normal path. The direct-commit steps in § Default-branch release policy above are break-glass only, for when the queue itself is broken, and need an operator with ruleset bypass.
+- Do not pass `--admin` to merge around the queue. A break-glass direct merge is a separate, named operator action, not an agent default.
+
 ## Release artifact write order (#4318)
 
 `task release` Step 5 starts with a read-only CHANGELOG node-type guard (regular file plus symlink-ancestor floor). `--skip-ci` skips the CI suite, not that guard. Step 6 is **Prepare release artifacts** (in-memory ROADMAP + CHANGELOG; pair-open existing destinations; no writes). Step 7 is **Write release artifacts** (ROADMAP to completion, then CHANGELOG). `--skip-build` skips Step 8 (`task build`), not prepare-artifacts.
+
+### Changelog fragments (#6315)
+
+Step 6 also captures the `changelog.d/` fragments, applies the CHANGELOG read-safety refusal to each, and assembles the promoted section in memory (subsection order, then file name). It refuses an invalid fragment, an entry line held by two fragments, and a `CHANGELOG.md` that already holds the version heading. Step 7 deletes exactly the captured fragments after the CHANGELOG write. Step 9 stages the deletions in the release commit and refuses while a captured fragment is still on disk. A dry run writes and deletes nothing.
+
+Recovery after a failure between the Step 7 write and the Step 9 commit: restore `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD (`git restore --source=HEAD --staged --worktree -- CHANGELOG.md ROADMAP.md changelog.d/`), then rerun. `--allow-dirty` is not a recovery path. After the release commit exists, use `task release:rollback`; its revert restores the fragments.
 
 ## Windows Step 5 host coverage decision (#6041; reverses #5026)
 

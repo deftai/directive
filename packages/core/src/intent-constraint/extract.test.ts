@@ -29,6 +29,28 @@ function isolatedConsumer(label: string): string {
   return base;
 }
 
+describe("fact lines (#6336 item 6)", () => {
+  it("records the 1-based line of each fact without changing its identity", () => {
+    const source = [
+      "const A = 1;",
+      "export function f(): void {",
+      "  if (A) {",
+      '    throw new Error("x");',
+      "  }",
+      "  void Promise.reject(new Error('r'));",
+      "}",
+    ].join("\n");
+    const result = extractConstraintFacts(source, "src/ingest.ts", { projectRoot: root });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const byKind = Object.fromEntries(result.facts.map((f) => [f.kind, f]));
+    expect(byKind["numeric-const"]?.line).toBe(1);
+    expect(byKind["throw-site"]?.line).toBe(4);
+    expect(byKind["reject-site"]?.line).toBe(6);
+    expect(byKind["numeric-const"]?.id).toBe("numeric-const:A=1");
+  });
+});
+
 function kinds(source: string, path = "src/ingest.ts"): string[] {
   const result = extractConstraintFacts(source, path, { projectRoot: root });
   if (!result.ok) return [`ERR:${result.message}`];

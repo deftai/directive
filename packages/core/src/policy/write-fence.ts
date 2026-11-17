@@ -12,8 +12,16 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import {
+  approvedScopeIntentPath,
+  extractPlanId,
+  readApprovedScopeRecord,
+} from "../scope-provenance/digest.js";
+import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { resolveDeliveryBranch } from "./delivery-branch.js";
+import { evaluateMintLevelRecord, evaluateOnePrScopeProofGate } from "./one-pr-scope-proof.js";
+import { PROJECT_DEFINITION_REL_PATH } from "./resolve.js";
 import {
   DEFAULT_RUNTIME_AUTHORITY_POLICY,
   DEFAULT_RUNTIME_AUTHORITY_SCOPES,
@@ -118,7 +126,19 @@ export type StoryWriteFenceView = {
   readonly baseRef?: string;
   /** Typed deliveryBranch when that candidate was the selected base (#6011). */
   readonly typedDeliveryBranch?: string;
+  /**
+   * One-PR mint result (#6361). Set only when the brief is absent from the
+   * merge base and the merge-base `onePrScopeProof` level is not off.
+   * `admitted: true` means `fileScope` is the working-tree brief's scope,
+   * admitted by a matching same-PR mint record.
+   */
+  readonly onePrMint?: OnePrMintFenceNote;
 };
+
+/** One-PR mint outcome carried on a fence view (#6361). */
+export type OnePrMintFenceNote =
+  | { readonly admitted: true }
+  | { readonly admitted: false; readonly reason: string };
 
 /** Operator-facing base note for empty-fence / unreadable refuses (#6011). */
 export function formatStoryWriteFenceBaseNote(fence: StoryWriteFenceView): string {
@@ -269,7 +289,20 @@ type BriefRawResult =
   | { readonly kind: "missing" }
   | { readonly kind: "unreadable"; readonly fence: StoryWriteFenceView };
 
-type FenceLoadMemoHit = StoryWriteFenceView;
+/** PROJECT-DEFINITION bytes at the merge-base commit (immutable per SHA). */
+type BasePolicyRead =
+  | { readonly kind: "text"; readonly text: string }
+  | { readonly kind: "missing" }
+  | { readonly kind: "error" };
+
+/**
+ * Merge-base half of a fence load. Only facts fixed by the merge-base SHA are
+ * memoized; the working-tree half of a one-PR mint admit is never cached
+ * (#6361).
+ */
+type FenceLoadMemoHit =
+  | { readonly kind: "fence"; readonly fence: StoryWriteFenceView }
+  | { readonly kind: "absent"; readonly basePolicy: BasePolicyRead };
 
 type MemoEntry<T> = { readonly expiresAt: number; readonly value: T };
 
@@ -508,12 +541,191 @@ function readMergeBaseBriefRaw(
   };
 }
 
+function readMergeBasePolicyRaw(projectRoot: string, mergeBaseSha: string): BasePolicyRead {
+  const result = gitFenceSpawn(projectRoot, [
+    "show",
+    `${mergeBaseSha}:${PROJECT_DEFINITION_REL_PATH}`,
+  ]);
+  if (result.error || result.signal) return { kind: "error" };
+  if (result.status === 0) return { kind: "text", text: result.stdout };
+  const detail = `${result.stdout}\n${result.stderr}`.trim();
+  return isGitMissingPathDetail(detail) ? { kind: "missing" } : { kind: "error" };
+}
+
+function readTextOrNull(absPath: string): string | null {
+  try {
+    return readFileSync(absPath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function emptyFence(): StoryWriteFenceView {
+  return { fileScope: [], denyPaths: [] };
+}
+
+function mintRejected(reason: string): StoryWriteFenceView {
+  return { fileScope: [], denyPaths: [], onePrMint: { admitted: false, reason } };
+}
+
 /**
- * Runtime write fence: read file_scope from the merge-base brief (#4956).
- * Never uses the working-tree head brief as authority. Missing brief on the
- * resolved merge-base commit, non-git cwd, or scope path outside the project
- * → inactive story fence. Unresolvable base inside a git worktree /
- * present-but-unreadable / git failures → unreadableDetail (fail closed).
+ * Newest commit, among the merge base and the commits HEAD adds after it,
+ * whose tree still has `relPath` (#6480). While a move of that path is not yet
+ * committed this is HEAD. Commits behind the merge base are never candidates.
+ * Null when no such commit has the path or git cannot answer.
+ *
+ * The path's own history gives the answer in a fixed number of git calls: no
+ * in-range commit touches it, or the last one adds or edits it → HEAD; the
+ * last one deletes it → that commit's first parent. The candidate is used only
+ * after git confirms it has the path and descends from the merge base;
+ * otherwise each in-range commit is probed, newest first.
+ */
+export function newestInRangeCommitWithPath(
+  projectRoot: string,
+  mergeBaseSha: string,
+  relPath: string,
+  runGit: GitRunner = defaultGitRunner,
+): string | null {
+  const base = mergeBaseSha.trim();
+  const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+  if (base.length === 0 || path.length === 0) return null;
+  const ok = (args: readonly string[]): boolean => {
+    try {
+      return runGit(projectRoot, args).code === 0;
+    } catch {
+      return false;
+    }
+  };
+  const out = (args: readonly string[]): string | null => {
+    try {
+      const result = runGit(projectRoot, args);
+      return result.code === 0 ? result.stdout.trim() : null;
+    } catch {
+      return null;
+    }
+  };
+  const lastTouch = out(["log", "-1", "--topo-order", "--format=%H", `${base}..HEAD`, "--", path]);
+  if (lastTouch !== null) {
+    const candidate =
+      lastTouch.length === 0 || ok(["cat-file", "-e", `${lastTouch}:${path}`])
+        ? out(["rev-parse", "--verify", "-q", "HEAD"])
+        : out(["rev-parse", "--verify", "-q", `${lastTouch}^`]);
+    if (
+      candidate !== null &&
+      candidate.length > 0 &&
+      ok(["cat-file", "-e", `${candidate}:${path}`]) &&
+      ok(["merge-base", "--is-ancestor", base, candidate])
+    ) {
+      return candidate;
+    }
+  }
+  let listed: { readonly code: number; readonly stdout: string };
+  try {
+    listed = runGit(projectRoot, ["rev-list", "--topo-order", `${base}..HEAD`]);
+  } catch {
+    return null;
+  }
+  if (listed.code !== 0) return null;
+  const commits = listed.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  commits.push(base);
+  for (const commit of commits) {
+    try {
+      if (runGit(projectRoot, ["cat-file", "-e", `${commit}:${path}`]).code === 0) return commit;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Head brief for the one-PR mint gate: the working-tree file when it exists.
+ * After in-PR completion moved it out of active/ (#6480), the blob at the
+ * newest in-range commit that still has it at this path; never the completed/
+ * copy. Null when neither can be read.
+ */
+function readMintHeadBriefRaw(root: string, rel: string, mergeBaseSha: string): string | null {
+  const abs = join(root, ...rel.split("/"));
+  if (existsSync(abs)) return readTextOrNull(abs);
+  const commit = newestInRangeCommitWithPath(root, mergeBaseSha, rel);
+  if (commit === null) return null;
+  const shown = gitFenceSpawn(root, ["show", `${commit}:${rel}`]);
+  return shown.error === undefined && shown.signal === null && shown.status === 0
+    ? shown.stdout
+    : null;
+}
+
+/**
+ * One-PR mint admission for a brief absent from the merge base (#6361).
+ *
+ * Uses the same two evaluators as `verify:scope-provenance`: the merge base
+ * sets the level (`evaluateOnePrScopeProofGate`, head must not change it) and
+ * the same-PR record must match the head brief exactly
+ * (`evaluateMintLevelRecord`). The head brief is the working-tree file, or,
+ * once in-PR completion moved it (#6480), its blob at the newest in-range
+ * commit that still has it. Reads on every call, so an edited brief or record
+ * is never served from a cache. Level off → today's empty fence. Never throws.
+ */
+function loadOnePrMintFence(
+  root: string,
+  rel: string,
+  mergeBaseSha: string,
+  basePolicy: BasePolicyRead,
+): StoryWriteFenceView {
+  try {
+    // Unreadable merge-base policy: the level is unknown, so keep today's empty fence.
+    if (basePolicy.kind === "error") return emptyFence();
+    const gate = evaluateOnePrScopeProofGate({
+      baseRaw: basePolicy.kind === "text" ? basePolicy.text : null,
+      headRaw: readTextOrNull(join(root, ...PROJECT_DEFINITION_REL_PATH.split("/"))),
+    });
+    if (gate.kind === "off") return emptyFence();
+    if (gate.kind === "refuse") return mintRejected(gate.reason);
+
+    const headRaw = readMintHeadBriefRaw(root, rel, mergeBaseSha);
+    if (headRaw === null) return mintRejected("working-tree brief unreadable");
+    let payload: unknown;
+    try {
+      payload = JSON.parse(headRaw) as unknown;
+    } catch {
+      return mintRejected("working-tree brief is not valid JSON");
+    }
+    const planId = extractPlanId(payload);
+    if (planId === null) return mintRejected("head brief has no plan.id");
+    const verdict = evaluateMintLevelRecord({
+      record: readApprovedScopeRecord(root, planId),
+      intentRaw: readTextOrNull(approvedScopeIntentPath(root, planId)),
+      xbriefRelPath: rel,
+      headPayload: payload,
+      headRaw,
+      extract: { projectRoot: root },
+      decisionExists: (decisionRel) => existsSync(join(root, ...decisionRel.split("/"))),
+    });
+    if (verdict.kind !== "admit") return mintRejected(verdict.reason);
+    return {
+      fileScope: [...verdict.fileScope],
+      denyPaths: [...extractStoryFileScope(payload).denyPaths],
+      onePrMint: { admitted: true },
+    };
+  } catch (err) {
+    return mintRejected(`one-PR mint check failed: ${detailFromUnknown(err)}`);
+  }
+}
+
+/**
+ * The one runtime story write fence loader (#4956 / #6361). Every fence reader
+ * (hook positive allow, eligible partition, dispatcher defaults) calls this.
+ *
+ * Brief on the resolved merge-base commit → its `file_scope`; the working-tree
+ * head copy is ignored. Brief absent from the merge base → the working-tree
+ * brief's `file_scope` only when the merge-base one-PR level is `mint` and the
+ * same-PR mint record matches that exact brief (#6361); otherwise today's empty
+ * story fence. Non-git cwd or scope path outside the project → inactive story
+ * fence. Unresolvable base inside a git worktree / present-but-unreadable / git
+ * failures → unreadableDetail (fail closed).
  */
 export function loadStoryWriteFenceFromMergeBase(
   projectRoot: string,
@@ -542,27 +754,34 @@ export function loadStoryWriteFenceFromMergeBase(
   // Include typed delivery in the load key so annotation changes cannot reuse
   // a stale fence view when baseRef/sha stay the same (Greptile P2 / #6011).
   const loadKey = `${root}\0${resolved.baseRef}\0${resolved.sha}\0${rel}\0${resolved.typedDeliveryBranch ?? ""}`;
-  const cached = memoGet(fenceLoadMemo, loadKey);
-  if (cached !== undefined) return cached;
-
   const withBase = (fence: StoryWriteFenceView): StoryWriteFenceView =>
     attachFenceBase(fence, resolved.baseRef, resolved.typedDeliveryBranch);
 
+  const cached = memoGet(fenceLoadMemo, loadKey);
+  if (cached !== undefined) {
+    return cached.kind === "fence"
+      ? cached.fence
+      : withBase(loadOnePrMintFence(root, rel, resolved.sha, cached.basePolicy));
+  }
+
   const raw = readMergeBaseBriefRaw(root, resolved.sha, rel);
   if (raw.kind === "unreadable") return withBase(raw.fence);
-  const loaded = loadStoryWriteFenceFromBaseRaw(
-    raw.kind === "text" ? raw.text : null,
-    `merge-base:${rel}`,
-  );
+  if (raw.kind === "missing") {
+    // #6361: memoize only the merge-base facts; the mint admit is re-read each call.
+    const basePolicy = readMergeBasePolicyRaw(root, resolved.sha);
+    if (basePolicy.kind !== "error") {
+      memoSet(fenceLoadMemo, loadKey, { kind: "absent", basePolicy });
+    }
+    return withBase(loadOnePrMintFence(root, rel, resolved.sha, basePolicy));
+  }
+  const loaded = loadStoryWriteFenceFromBaseRaw(raw.text, `merge-base:${rel}`);
   if (isStoryWriteFenceUnreadable(loaded)) return withBase(loaded);
-  return memoSet(
-    fenceLoadMemo,
-    loadKey,
-    withBase({
-      fileScope: [...loaded.fileScope],
-      denyPaths: [...loaded.denyPaths],
-    }),
-  );
+  const fence = withBase({
+    fileScope: [...loaded.fileScope],
+    denyPaths: [...loaded.denyPaths],
+  });
+  memoSet(fenceLoadMemo, loadKey, { kind: "fence", fence });
+  return fence;
 }
 
 export interface ResolveWriteFenceOptions {

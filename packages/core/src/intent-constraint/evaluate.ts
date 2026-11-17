@@ -23,19 +23,42 @@ import { resolveDefaultBaseRef as resolveForgeDefaultBaseRef } from "../evaluato
 import { normalizePath } from "../orchestration/pathspec.js";
 import { resolveCandidateBaseRef } from "../orphan-active/candidate-scope.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import {
+  pinNamesLandsWithProductMove,
+  soleLandsWithProductMove,
+} from "../scope/lands-with-product.js";
 import { resolveDefaultBaseRef as resolvePrAwareBaseRef } from "../scope-provenance/evaluate.js";
 import { defaultGitRunner } from "../session/git.js";
-import { newFacts, uncoveredDeltas } from "./diff.js";
+import { type FactDelta, newFacts, uncoveredDeltas } from "./diff.js";
 import { extractConstraintFacts, isProductionSourcePath, surfaceSnapshot } from "./extract.js";
 import { intentConstraintRecordRel, parseIntentConstraintRecord } from "./mint.js";
 import { tryAdoptPlanIdFromPrStory } from "./plan-id-adopter.js";
 import {
+  type ConstraintFact,
   INTENT_CONSTRAINT_DIR,
   INTENT_CONSTRAINT_REMEDIATION,
   type IntentConstraintFinding,
   type IntentConstraintRecord,
   type SurfaceSnapshot,
 } from "./types.js";
+
+/** Value of a fact for display: the numeric value, else the site source (#6336). */
+function factDisplayValue(fact: ConstraintFact): string {
+  if (fact.value !== undefined) return fact.value;
+  const prefix = `${fact.kind}:`;
+  const raw = fact.id.startsWith(prefix) ? fact.id.slice(prefix.length) : fact.id;
+  return raw.replace(/#\d+$/, "");
+}
+
+/**
+ * Every fact on a failure path, with path, line, kind and value (#6336 item 6).
+ * No cap: a worker should not have to call the extractor by hand.
+ */
+export function formatIntentFacts(deltas: readonly FactDelta[]): string {
+  return deltas
+    .map((d) => `${d.path}:${d.fact.line ?? "?"} ${d.fact.kind} ${factDisplayValue(d.fact)}`)
+    .join("; ");
+}
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -331,8 +354,19 @@ function soleRecord<T>(records: readonly T[]): T | undefined {
 
 function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined): PlanIdResolution {
   if (explicit !== undefined && explicit.length > 0) return { kind: "id", id: explicit };
+  // #6277 Bound 6: the story brief this change set moves to completed/
+  // (lands-with-product) is the current story; a pin to that brief follows it.
+  const landed = soleLandsWithProductMove(projectRoot);
+  const landedId = landed !== null && landed.planId.length > 0 ? landed.planId : undefined;
   const pin = process.env.DEFT_ACTIVE_SCOPE;
   if (pin !== undefined && pin.length > 0) {
+    if (
+      landed !== null &&
+      landedId !== undefined &&
+      pinNamesLandsWithProductMove(projectRoot, pin, landed)
+    ) {
+      return { kind: "id", id: landedId };
+    }
     const rel = pin.replace(/\\/g, "/");
     try {
       const text = readFileSync(join(resolve(projectRoot), ...rel.split("/")), "utf8");
@@ -343,6 +377,7 @@ function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined)
     }
     return { kind: "invalid-pin" };
   }
+  if (landedId !== undefined) return { kind: "id", id: landedId };
   const only = soleRecord(listRunningPlanIds(projectRoot));
   if (only !== undefined) return { kind: "id", id: only };
   return { kind: "none" };
@@ -535,13 +570,10 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
   }
 
   const baseRecords = listBaseRecords(options, projectRoot, mergeBaseSha);
+  const allFacts = `${String(deltas.length)} new fact(s): ${formatIntentFacts(deltas)}`;
   if (baseRecords.size === 0) {
-    const listed = deltas
-      .slice(0, 8)
-      .map((d) => `${d.path} ${d.fact.kind}${d.fact.value !== undefined ? `=${d.fact.value}` : ""}`)
-      .join("; ");
     return attach(
-      fail(`verify:intent-constraint: unapproved constraint or rejection scope in ${listed}.`),
+      fail(`verify:intent-constraint: unapproved constraint or rejection scope in ${allFacts}.`),
       origin,
       candidateMode,
       quiet,
@@ -586,7 +618,9 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     candidates = parsedRecords.filter((r) => r.planId === planId);
     if (candidates.length === 0) {
       return attach(
-        fail(`verify:intent-constraint: no merge-base mint record for planId ${planId}.`),
+        fail(
+          `verify:intent-constraint: no merge-base mint record for planId ${planId}; ${allFacts}.`,
+        ),
         origin,
         candidateMode,
         quiet,
@@ -606,7 +640,9 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
       candidates = parsedRecords.filter((r) => r.planId === planId);
       if (candidates.length === 0) {
         return attach(
-          fail(`verify:intent-constraint: no merge-base mint record for planId ${planId}.`),
+          fail(
+            `verify:intent-constraint: no merge-base mint record for planId ${planId}; ${allFacts}.`,
+          ),
           origin,
           candidateMode,
           quiet,
@@ -639,7 +675,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     }
     return attach(
       fail(
-        "verify:intent-constraint: unapproved constraint or rejection scope without a merge-base mint.",
+        `verify:intent-constraint: unapproved constraint or rejection scope without a merge-base mint; ${allFacts}.`,
       ),
       origin,
       candidateMode,
@@ -649,10 +685,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
 
   const leftover = uncoveredDeltas(deltas, mint.constraints);
   if (leftover.length > 0) {
-    const listed = leftover
-      .slice(0, 8)
-      .map((d) => `${d.path} ${d.fact.kind}${d.fact.value !== undefined ? `=${d.fact.value}` : ""}`)
-      .join("; ");
+    const listed = `${String(leftover.length)} uncovered fact(s): ${formatIntentFacts(leftover)}`;
     return attach(
       fail(`verify:intent-constraint: unapproved constraint or rejection scope (${listed}).`),
       origin,

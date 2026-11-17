@@ -1,0 +1,360 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF hand-ingested from GitHub issue #6337 (issue:ingest refused the thread form; contract is the accepted synthesis)",
+    "updated": "2026-11-17T02:14:49Z"
+  },
+  "plan": {
+    "title": "fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex",
+    "status": "completed",
+    "narratives": {
+      "Description": "In linked worktrees of this repository, a setup or deposit step appends the consumer `.gitattributes` block to the tracked file, so workers restore it by hand before each commit and `task check` refuses them for a file they did not touch. `task packs:render-skills` reads the skills of the pinned runtime package under node_modules instead of the worktree it runs in, so skill changes were mirrored into the pack by hand. This story makes the one `.gitattributes` writer skip a framework-source checkout and makes the pack-migrate verbs read and write the invoking checkout when it is this repository; Codex install recovery is out of scope (#6375).",
+      "UserStory": "As an agent working in a linked worktree of the Directive repository, I want install, setup and session steps to leave `.gitattributes` alone and pack renders to use my worktree's content, so that I stop restoring files and mirroring skill edits by hand.",
+      "ImplementationPlan": "1. packages/core/src/doctor/paths.ts: export the existing `isFrameworkSourceCheckoutAt` marker test (no copy).\n2. packages/core/src/init-deposit/scaffold.ts: `ensureGitattributes` returns false without writing when `isFrameworkSourceCheckoutAt(projectDir)` is true. `depositNeutralization` and the runtime `ensureManagedPathGitattributes` get the skip through the writer.\n3. packages/runtime/src/dispatch.ts: the five pack-migrate verbs resolve their default roots from the invoking project root (process cwd) when it is a framework-source checkout by the same test; otherwise they resolve as today. Explicit flags still win.\n4. Tests: core test for the writer (linked worktree with the neutralization deposit, dogfood `.deft/core` checkout, consumer project); runtime test for the setup path in a linked worktree; runtime test for pack-migrate roots (linked worktree with an edited SKILL.md, references and output in that worktree, consumer unchanged). The Codex recovery refusal test in hook-identity-failclosed.test.ts stays unchanged.\n5. tasks/packs.yml header comment states that the render-* verbs read the invoking checkout.\n6. Release note as a changelog.d fragment.",
+      "Traces": "#6337",
+      "Origin": "Hand-ingested from https://github.com/deftai/directive/issues/6337 (bound lean comment 6907734365, accepted synthesis comment 6907783722)",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "No consumer `.gitattributes` block in this repository. `ensureGitattributes` returns without writing when the project directory is a framework-source checkout. The test is the marker test of `isFrameworkSourceCheckoutAt` (`main.md` plus the `DEFT_REPO_POSITIVE_MARKERS` files), which does not depend on whether a `.deft/core` or `deft/` directory exists. It is exported and reused, not copied. Every caller (`depositNeutralization`, `ensureManagedPathGitattributes`) gets the skip through the writer.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged; given a checkout of this repository that also has a `.deft/core` directory, then `.gitattributes` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Pack renders read the invoking checkout. When the invoking project root is a framework-source checkout by the same test, the pack-migrate verbs take the skills directory, `REFERENCES.md` and the output path from that one root. In any other project they resolve as today. The explicit `--skills-dir`, `--references-md` and `--out` flags still win.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a linked worktree of this repository with an edited SKILL.md, when pack-migrate-skills runs there, then the pack written in that worktree contains the edit and the references file and output are in that worktree; explicit flags still win; a consumer project resolves as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The pin-mismatch recovery admit and its tests are not changed by this story.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today (existing test unchanged)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a checkout of this repository that also has a `.deft/core` directory, when `ensureGitattributes` runs, then `.gitattributes` is unchanged.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a checkout of this repository that also has a `.deft/core` directory, when `ensureGitattributes` runs, then `.gitattributes` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a consumer project, when `ensureGitattributes` runs, then the block is written as today.",
+        "status": "completed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a consumer project, when `ensureGitattributes` runs, then the block is written as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a linked worktree of this repository with an edited `content/skills/<name>/SKILL.md`, when `task packs:render-skills` runs there, then the pack written in that worktree contains the edit.",
+        "status": "completed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a linked worktree of this repository with an edited `content/skills/<name>/SKILL.md`, when `task packs:render-skills` runs there, then the pack written in that worktree contains the edit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given that run, then the references file and the output path are in the same worktree.",
+        "status": "completed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given that run, then the references file and the output path are in the same worktree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a consumer project, when a pack-migrate verb runs, then it resolves its inputs as today.",
+        "status": "completed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given a consumer project, when a pack-migrate verb runs, then it resolves its inputs as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today.",
+        "status": "completed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6337",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6337: fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 clauses before product edit (#3323): one per item of the Bound remedy list (3) and the Acceptance Criteria list (7) on bound lean 6907734365 (accepted synthesis 6907783722); issue:ingest refused the thread form, so the brief was hand-ingested with the same rule",
+      "sentences": [
+        "fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex",
+        "No consumer `.gitattributes` block in this repository. `ensureGitattributes` returns without writing when the project directory is a framework-source checkout. The test is the marker test of `isFrameworkSourceCheckoutAt` (`main.md` plus the `DEFT_REPO_POSITIVE_MARKERS` files), which does not depend on whether a `.deft/core` or `deft/` directory exists. It is exported and reused, not copied. Every caller (`depositNeutralization`, `ensureManagedPathGitattributes`) gets the skip through the writer.",
+        "Pack renders read the invoking checkout. When the invoking project root is a framework-source checkout by the same test, the pack-migrate verbs take the skills directory, `REFERENCES.md` and the output path from that one root. In any other project they resolve as today. The explicit `--skills-dir`, `--references-md` and `--out` flags still win.",
+        "The pin-mismatch recovery admit and its tests are not changed by this story.",
+        "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged.",
+        "Given a checkout of this repository that also has a `.deft/core` directory, when `ensureGitattributes` runs, then `.gitattributes` is unchanged.",
+        "Given a consumer project, when `ensureGitattributes` runs, then the block is written as today.",
+        "Given a linked worktree of this repository with an edited `content/skills/<name>/SKILL.md`, when `task packs:render-skills` runs there, then the pack written in that worktree contains the edit.",
+        "Given that run, then the references file and the output path are in the same worktree.",
+        "Given a consumer project, when a pack-migrate verb runs, then it resolves its inputs as today.",
+        "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today."
+      ],
+      "confessions": [
+        "fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex"
+      ],
+      "admitted_source_sentences": [
+        "No consumer `.gitattributes` block in this repository. `ensureGitattributes` returns without writing when the project directory is a framework-source checkout. The test is the marker test of `isFrameworkSourceCheckoutAt` (`main.md` plus the `DEFT_REPO_POSITIVE_MARKERS` files), which does not depend on whether a `.deft/core` or `deft/` directory exists. It is exported and reused, not copied. Every caller (`depositNeutralization`, `ensureManagedPathGitattributes`) gets the skip through the writer.",
+        "Pack renders read the invoking checkout. When the invoking project root is a framework-source checkout by the same test, the pack-migrate verbs take the skills directory, `REFERENCES.md` and the output path from that one root. In any other project they resolve as today. The explicit `--skills-dir`, `--references-md` and `--out` flags still win.",
+        "The pin-mismatch recovery admit and its tests are not changed by this story.",
+        "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged.",
+        "Given a checkout of this repository that also has a `.deft/core` directory, when `ensureGitattributes` runs, then `.gitattributes` is unchanged.",
+        "Given a consumer project, when `ensureGitattributes` runs, then the block is written as today.",
+        "Given a linked worktree of this repository with an edited `content/skills/<name>/SKILL.md`, when `task packs:render-skills` runs there, then the pack written in that worktree contains the edit.",
+        "Given that run, then the references file and the output path are in the same worktree.",
+        "Given a consumer project, when a pack-migrate verb runs, then it resolves its inputs as today.",
+        "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today."
+      ],
+      "admitted_source_digest": "ee8fa2a3086efae59e703a82c70497952cc653fceb1ee7305e093564d23d01f0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "No consumer `.gitattributes` block in this repository. `ensureGitattributes` returns without writing when the project directory is a framework-source checkout. The test is the marker test of `isFrameworkSourceCheckoutAt` (`main.md` plus the `DEFT_REPO_POSITIVE_MARKERS` files), which does not depend on whether a `.deft/core` or `deft/` directory exists. It is exported and reused, not copied. Every caller (`depositNeutralization`, `ensureManagedPathGitattributes`) gets the skip through the writer.",
+          "artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Pack renders read the invoking checkout. When the invoking project root is a framework-source checkout by the same test, the pack-migrate verbs take the skills directory, `REFERENCES.md` and the output path from that one root. In any other project they resolve as today. The explicit `--skills-dir`, `--references-md` and `--out` flags still win.",
+          "artifact_path": "packages/runtime/src/dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The pin-mismatch recovery admit and its tests are not changed by this story.",
+          "artifact_path": "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged.",
+          "artifact_path": "packages/runtime/src/setup-wiring-framework-source.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given a checkout of this repository that also has a `.deft/core` directory, when `ensureGitattributes` runs, then `.gitattributes` is unchanged.",
+          "artifact_path": "packages/core/src/init-deposit/gitattributes-framework-source.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given a consumer project, when `ensureGitattributes` runs, then the block is written as today.",
+          "artifact_path": "packages/core/src/init-deposit/gitattributes-framework-source.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a linked worktree of this repository with an edited `content/skills/<name>/SKILL.md`, when `task packs:render-skills` runs there, then the pack written in that worktree contains the edit.",
+          "artifact_path": "packages/runtime/src/dispatch-pack-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given that run, then the references file and the output path are in the same worktree.",
+          "artifact_path": "packages/runtime/src/dispatch-pack-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a consumer project, when a pack-migrate verb runs, then it resolves its inputs as today.",
+          "artifact_path": "packages/runtime/src/dispatch-pack-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today.",
+          "artifact_path": "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6406914731,
+        "origin": "deftai/directive#6337",
+        "id": "github.issue.6406914731"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/doctor/paths.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/gitattributes-framework-source.test.ts",
+          "packages/runtime/src/setup-wiring-framework-source.test.ts",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch-pack-root.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "tasks/packs.yml",
+          "changelog.d/6337-no-consumer-deposits.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "framework-source-deposit-roots",
+        "verify_commands": [
+          "npx vitest run packages/core/src/init-deposit/gitattributes-framework-source.test.ts packages/runtime/src/setup-wiring-framework-source.test.ts packages/runtime/src/dispatch-pack-root.test.ts packages/runtime/src/hook-identity-failclosed.test.ts"
+        ],
+        "expected_outputs": [
+          "ensureGitattributes writes nothing in a framework-source checkout (linked worktree or dogfood .deft/core) and writes the block in a consumer project as today",
+          "pack-migrate verbs read skills, REFERENCES.md and write output in the invoking framework-source checkout; consumer projects and explicit flags resolve as today",
+          "the Codex session-directory recovery refusal test is unchanged and passes"
+        ],
+        "Traces": [
+          "#6337"
+        ],
+        "acceptance_criteria_justification": "Ten clauses, one per item of the Bound remedy list (3) and the Acceptance Criteria list (7) on bound lean 6907734365 of #6337 (accepted synthesis 6907783722). The Codex recovery part of the issue body moved to #6375 by the operator-confirmed split (comment 6907733910)."
+      },
+      "productPullRequest": 6479,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3cd01884234b6934e9e29f3284fd6cfd3d329824",
+        "prNumber": 6479,
+        "prBase": "master",
+        "mergeCommit": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a21a1802d22c79768e8e88491fe2ad45cd9c156f",
+        "verifiedAt": "2026-11-17T02:14:49Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:NGM3NzljMTAtM2JlMC00NTk2LWJiYTMtNWQxMmY1MTE2NmE1",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T02:14:49Z",
+      "completedSessionId": "host:claude:v1:NGM3NzljMTAtM2JlMC00NTk2LWJiYTMtNWQxMmY1MTE2NmE1",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T02:14:49Z"
+      }
+    },
+    "id": "github.issue.6406914731",
+    "updated": "2026-11-17T02:14:49Z"
+  }
+}

@@ -50,7 +50,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ! When the review-cycle exit condition is met (no P0/P1 remaining / CLEAN verdict):
 
 1. Return control to the caller — do **not** discover adjacent backlog work.
-2. If an ordered-plan sequence is active and this PR matched the current entry, run `task plan-sequence:advance`.
+2. If an ordered-plan sequence is active and this PR matched the current entry, do not advance an entry that has a brief: `scope:complete` moves its brief to `completed/` and readers derive the next entry (#6205). Run `task plan-sequence:advance` only for an entry with no brief (a task, phase, checklist or review entry with no issue).
 3. If another entry remains, the caller may continue **only** to that entry (one unit).
 4. If the sequence is exhausted, stop and ask. Do not open another PR from queue intuition or chaining text.
 
@@ -131,13 +131,22 @@ review_cycle: skipped:no-reviewer-installed
 
 ! A configured-but-slow reviewer (bot-review check-run, local `greptile.json` / `.greptile/config.json`, or non-empty `reviewers` policy) MUST still poll. Unreachable check-runs or in-flight CI fail-close to poll, never CLEAN. Ambiguity between slow and absent stays fail-closed to poll or to an explicit operator/policy declaration.
 
+## Lifecycle-only PRs keep review (#6280)
+
+! No PR class skips the review bot. This includes PRs that change only `xbrief/` lifecycle files. A repo with no reviewer installed is the separate #3630 terminal, not a PR class.
+
+- ! Activation and widen PRs keep the review they have today, because they carry new acceptance text.
+- ! Mint-record and cancel PRs keep their review, because they carry authority.
+- ! A story's completion normally rides in its last product PR (#6277). The remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.
+- ⊗ Skip the review bot on a lifecycle-only PR, or path-filter the reviewer over the lifecycle folders (that also silences activation review).
+
 ## Phase 1 — Deft Process Audit
 
 ! Before touching code, verify ALL prerequisites are satisfied. Fix any gaps first:
 
 1. ! Verify `skills/deft-directive-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full pre-PR cycle (Read-Write-Lint-Diff). If not, run it now before proceeding.
 2. ! `PROJECT-DEFINITION.xbrief.json` and `xbrief/` lifecycle folders have scope xBRIEF coverage for all changes in the PR
-3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
+3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes, or the PR adds its own `changelog.d/<issue>-<slug>.md` fragment (effective view, #6314)
 4. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 5. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
 6. ! If the PR touches 3+ files: verify a `/deft:change` `proposal.xbrief.json` exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
@@ -250,7 +259,27 @@ Working name `deft-directive-review-response`. This is **how to respond while co
 - In-model -> patch in the same review-round batch.
 - Out-of-model -> accepted-risk reply citing the HEAD anchor on the pushed SHA, not a worktree mid-edit.
 
-! **Head-blob check (slizard#2694).** Any deterministic arity/wiring claim MUST include `git show <head-sha>:<file>` before it can be confirmed. When the PR itself changes the named symbol, presume false and verify. Blanket dismissal is wrong -- check every time (dead export on #3440 was real). A one-line falsification reply citing slizard#2694 is enough when the head blob matches.
+! **Head-blob check (slizard#2694).** Any deterministic arity/wiring claim MUST include `git show <head-sha>:<file>` before it can be confirmed. When the PR itself changes the named symbol, presume false and verify. Blanket dismissal is wrong -- check every time (dead export on #3440 was real). When the head blob matches, the one-line falsification citing slizard#2694 is the reason text of the SLizard `fp` label below, not a free-text reply.
+
+! **Record SLizard answers by label (#6377).** SLizard records an answered finding only through its own disposition commands, keyed by fingerprint. After the classify step, record every answered SLizard finding in **one top-level pull-request comment per review round**, using the bot's label command (one line per fingerprint):
+
+```text
+@slizard label
+<fingerprint> fp head <sha> <path>: <falsification line>
+<fingerprint> risk <HEAD anchor>: <accepted-risk reason>
+```
+
+- `fp` only for a finding disproved by the head-blob check above. The reason cites the head SHA and the path.
+- `risk` only for a finding accepted out-of-model under the HEAD-policy rule above. The reason cites that anchor.
+- An in-model defect is fixed in the round batch and is not labelled.
+- A free-text reply alone does not stop a finding from returning on the next push. The bot also honours an inline `@slizard dismiss` reply or a thumbs-down on the finding as the same record; the batch label comment is the taught route.
+- Fingerprints are the 16-hex `fp:` ids on the bot's review body. The check-run summary lists the actionable ones, and that list can be capped; the tip review body is the complete list.
+
+! **SLizard clearing sequence (#6377).** A red SLizard check for an answered finding clears in this order: (1) label, as above; (2) read the bot's acknowledgement comment and confirm it accepted each fingerprint; (3) when no further push follows, request a re-review with `@slizard review` (a new push triggers one anyway); (4) run `pr:merge-ready` again. Directive's SLizard gate reads only the bot's verdict; a label does not clear the current check by itself.
+
+! **Label limits (#6377).** A label covers the finding identities the bot recognises. A finding that returns under a new fingerprint is labelled again. A finding that returns although it was labelled is a bot defect: report it on slizard#3847, the bot-side report.
+
+⊗ Offer `fp` and `risk` as interchangeable ways to turn the SLizard check green, or label an in-model defect (#6377).
 
 ! **Batch discipline.** One consolidated push per review round. Local review pass before that push. Never push per finding. Riders are allowed on mechanical rebases.
 
@@ -437,6 +466,8 @@ Review-cycle babysit wait is `pr:watch` (blocking to CLEAN, or `--one-shot` grou
 
 ! **Caller order (MUST):** do **not** start `pr:wait-mergeable-and-merge` until `pr:watch` / `pr:merge-ready` is CLEAN.
 
+~ On a merge-queue branch the verb enqueues and may return `queued` (exit 3); run the printed `--resume` command. To set up a queue: [`docs/github-merge-queue-setup.md`](../../docs/github-merge-queue-setup.md) (#6366).
+
 ! **First-probe sequence (MUST):** one-shot or first probe: parse `clean_gate_holdout`; classify leftover A/B/C; dest residual or BLOCKED; wait-merge only after CLEAN. Borrowed from #2688: parse holdout on the first probe; MUST NOT idle-poll or start wait-merge. Do **not** copy the Greptile-CLEAN conjunct (`confidence meets resolved min`) onto `clean_gate_holdout=confidence` — that conjunct is false on confidence holdout.
 
 **Holdout split:**
@@ -544,7 +575,7 @@ REDISPATCH_OK: yes|no
 
 ! When `pr:merge-ready` / wait-mergeable reports **SLizard blocked** (parseable `request_changes` or `merge_impact=blocking` with non-zero findings) — especially Greptile CLEAN + SLizard blocked — before re-arming merge-ready wait or `pr:wait-mergeable-and-merge` the owner MUST read the tip SLizard **review body** in full, enumerate new and Previously mentioned fingerprints / deterministic tool names, and for each open P0/P1 falsify with `git show <head>:<path>` (slizard#2694) or fix in one residual batch. Do not idle-poll. Keep `pr:watch` Greptile ownership unchanged (#5102 / #2189 / #4387).
 
-! Compose existing head-blob check, same-fingerprint stop (#3448), and `--skip-slizard` override. Do not invent a third poller. `--skip-slizard` is explicit override only — not the default babysit escape.
+! Compose existing head-blob check, the label record and clearing sequence (Policy-anchored review-response, #6377), same-fingerprint stop (#3448), and `--skip-slizard` override. Do not invent a third poller. `--skip-slizard` is explicit override only — not the default babysit escape.
 
 ! Parseable blocking findings with open tip fingerprints are **unfinished residual**, not weather. Cross-link: `packages/core/src/pr-merge-readiness/slizard-gate.ts` (`evaluateSlizardGate`).
 

@@ -609,3 +609,12 @@ describe("crossing persistence (Greptile P1 on #6240)", () => {
     expect(r.message).toContain("could not record the crossing");
   });
 });
+
+describe("isLaneLifecyclePath changelog entry paths (#6314)", () => {
+  it("treats a changelog.d fragment like CHANGELOG.md and leaves other paths alone", () => {
+    expect(isLaneLifecyclePath("CHANGELOG.md")).toBe(true);
+    expect(isLaneLifecyclePath("changelog.d/6314-x.md")).toBe(true);
+    expect(isLaneLifecyclePath("changelog.d/sub/x.md")).toBe(false);
+    expect(isLaneLifecyclePath("docs/CHANGELOG.md")).toBe(false);
+  });
+});

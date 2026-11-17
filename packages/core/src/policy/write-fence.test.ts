@@ -3,7 +3,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { buildApprovedScopeRecord } from "../scope-provenance/digest.js";
+import { extractIntentFromRaw } from "../scope-provenance/extract-intent.js";
+import { computeAuthHashV1 } from "../scope-provenance/forge-approval.js";
+import { computeIntentDigest } from "../scope-provenance/intent-digest.js";
+import type { GitRunner } from "../session/git.js";
 import {
+  DEFAULT_RUNTIME_AUTHORITY_POLICY,
   evaluateRuntimeAuthorityDirectWrite,
   evaluateRuntimeAuthorityPath,
   resolveRuntimeAuthorityPolicy,
@@ -12,10 +18,12 @@ import {
   clearWriteFenceMemosForTests,
   extractStoryFileScope,
   formatStoryWriteFenceBaseNote,
+  hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromBaseRaw,
   loadStoryWriteFenceFromMergeBase,
   loadStoryWriteFenceFromPath,
+  newestInRangeCommitWithPath,
   normalizeStoryWriteScope,
   resolveWriteFence,
 } from "./write-fence.js";
@@ -430,5 +438,326 @@ describe("write-fence typed deliveryBranch base (#6011)", () => {
     expect(fence.baseRef).toBe("origin/master");
     expect(fence.typedDeliveryBranch).toBeUndefined();
     expect(fence.fileScope).toEqual([]);
+  });
+});
+
+describe("one fence loader admits a one-PR mint brief (#6361)", () => {
+  const roots: string[] = [];
+  const prevDeft = process.env.DEFT_BASE_REF;
+  const prevGithub = process.env.GITHUB_BASE_REF;
+  const PLAN_ID = "s-6361";
+  const BRIEF_REL = "xbrief/active/s-6361.xbrief.json";
+  const RECORD_REL = `.deft/approved-scope/${PLAN_ID}.json`;
+  const INTENT_REL = `.deft/approved-scope/${PLAN_ID}.intent.json`;
+  const SCOPE = ["src/a.ts", RECORD_REL, INTENT_REL];
+  const MINT = { onePrScopeProof: "mint" };
+
+  afterEach(() => {
+    clearWriteFenceMemosForTests();
+    for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
+    if (prevDeft === undefined) delete process.env.DEFT_BASE_REF;
+    else process.env.DEFT_BASE_REF = prevDeft;
+    if (prevGithub === undefined) delete process.env.GITHUB_BASE_REF;
+    else process.env.GITHUB_BASE_REF = prevGithub;
+  });
+
+  function pdText(policy: Record<string, unknown> | null): string {
+    return JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "t", status: "running", ...(policy === null ? {} : { policy }) },
+    });
+  }
+
+  function briefPayload(scope: readonly string[]): Record<string, unknown> {
+    return {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: PLAN_ID,
+        title: "S",
+        status: "running",
+        metadata: { swarm: { file_scope: [...scope] } },
+      },
+    };
+  }
+
+  function write(root: string, rel: string, text: string): void {
+    const abs = join(root, ...rel.split("/"));
+    mkdirSync(join(abs, ".."), { recursive: true });
+    writeFileSync(abs, text, "utf8");
+  }
+
+  /** Human mint record + preimage for exactly `scope` (same shape the mint verb writes). */
+  function writeMint(root: string, scope: readonly string[]): void {
+    const payload = briefPayload(scope);
+    const extracted = extractIntentFromRaw(JSON.stringify(payload), {});
+    if (!extracted.ok) throw new Error(extracted.error);
+    const record = {
+      ...buildApprovedScopeRecord({
+        xbriefRelPath: BRIEF_REL,
+        payload,
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-11-16T00:00:00Z" },
+        intentDigest: computeIntentDigest(extracted.preimage),
+        digestAlgo: "intent-extract-v1",
+      }),
+      authHashV1: computeAuthHashV1(payload, BRIEF_REL) ?? "",
+    };
+    write(root, RECORD_REL, JSON.stringify(record));
+    write(root, INTENT_REL, JSON.stringify(extracted.preimage));
+  }
+
+  /**
+   * origin/master carries PROJECT-DEFINITION (policy `basePolicy`) and no
+   * brief; the working tree holds the one-PR brief and, unless `mint` is
+   * false, a matching mint pair.
+   */
+  function repo(options: {
+    basePolicy: Record<string, unknown> | null;
+    headPolicy?: Record<string, unknown> | null;
+    mint?: boolean;
+    briefOnBase?: readonly string[];
+  }): string {
+    const root = mkdtempSync(join(tmpdir(), "wf-6361-"));
+    roots.push(root);
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: root });
+    write(root, "xbrief/PROJECT-DEFINITION.xbrief.json", pdText(options.basePolicy));
+    if (options.briefOnBase !== undefined) {
+      write(root, BRIEF_REL, JSON.stringify(briefPayload(options.briefOnBase)));
+    }
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "base"], { cwd: root });
+    const bare = mkdtempSync(join(tmpdir(), "wf-6361-bare-"));
+    roots.push(bare);
+    execFileSync("git", ["clone", "--bare", "-q", root, bare], { cwd: tmpdir() });
+    execFileSync("git", ["remote", "add", "origin", bare], { cwd: root });
+    execFileSync("git", ["fetch", "-q", "origin"], { cwd: root });
+    execFileSync("git", ["checkout", "-q", "-b", "feature/6361"], { cwd: root });
+    if (options.headPolicy !== undefined) {
+      write(root, "xbrief/PROJECT-DEFINITION.xbrief.json", pdText(options.headPolicy));
+    }
+    write(root, BRIEF_REL, JSON.stringify(briefPayload(SCOPE)));
+    if (options.mint !== false) writeMint(root, SCOPE);
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    clearWriteFenceMemosForTests();
+    return root;
+  }
+
+  const sorted = [...SCOPE].sort((a, b) => a.localeCompare(b));
+
+  it("admits the working-tree file_scope when the merge-base level is mint and the record matches", () => {
+    const root = repo({ basePolicy: MINT });
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(fence.fileScope).toEqual(sorted);
+    expect(fence.onePrMint).toEqual({ admitted: true });
+    expect(fence.baseRef).toBe("origin/master");
+    expect(hasPositiveGoverningStoryAllow(fence)).toBe(true);
+    // Outside file_scope stays fenced by the same policy the hook evaluates.
+    const policy = resolveWriteFence(DEFAULT_RUNTIME_AUTHORITY_POLICY, fence.fileScope).policy;
+    expect(evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: "src/a.ts" }).allowed).toBe(
+      true,
+    );
+    expect(evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: "src/b.ts" }).allowed).toBe(
+      false,
+    );
+  });
+
+  it("refuses with no record, naming the mint reject reason", () => {
+    const root = repo({ basePolicy: MINT, mint: false });
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(fence.fileScope).toEqual([]);
+    expect(fence.onePrMint).toEqual({
+      admitted: false,
+      reason: "no same-PR approved-scope record",
+    });
+  });
+
+  it("refuses a record minted for different scope", () => {
+    const root = repo({ basePolicy: MINT, mint: false });
+    writeMint(root, ["src/a.ts", "src/other.ts", RECORD_REL, INTENT_REL]);
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(fence.fileScope).toEqual([]);
+    expect(fence.onePrMint?.admitted).toBe(false);
+  });
+
+  it("keeps today's result when the merge-base level is off", () => {
+    for (const basePolicy of [null, { onePrScopeProof: "off" }]) {
+      const root = repo({ basePolicy, headPolicy: MINT });
+      const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+      expect(fence).toEqual({ fileScope: [], denyPaths: [], baseRef: "origin/master" });
+    }
+  });
+
+  it("does not admit when the head changes onePrScopeProof or requireHumanMerge", () => {
+    for (const headPolicy of [
+      { onePrScopeProof: "off" },
+      { onePrScopeProof: "mint", requireHumanMerge: false },
+    ]) {
+      const root = repo({ basePolicy: MINT, headPolicy });
+      const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+      expect(fence.fileScope).toEqual([]);
+      const reason = fence.onePrMint?.admitted === false ? fence.onePrMint.reason : "";
+      expect(reason).toMatch(/onePrScopeProof or requireHumanMerge/);
+    }
+  });
+
+  it("re-reads the brief on every load: an edit after admission is refused with no memo clear", () => {
+    const root = repo({ basePolicy: MINT });
+    const first = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(first.onePrMint).toEqual({ admitted: true });
+    write(root, BRIEF_REL, JSON.stringify(briefPayload([...SCOPE, "src/widened.ts"])));
+    const second = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(second.fileScope).toEqual([]);
+    const reason = second.onePrMint?.admitted === false ? second.onePrMint.reason : "";
+    expect(reason).toMatch(/record fileScope differs/);
+  });
+
+  it("uses the merge-base file_scope and ignores the head copy when the brief is on the merge base", () => {
+    const root = repo({ basePolicy: MINT, briefOnBase: ["src/base-only.ts"] });
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(fence.fileScope).toEqual(["src/base-only.ts"]);
+    expect(fence.onePrMint).toBeUndefined();
+  });
+
+  it("fails closed without throwing on an unreadable or missing working-tree brief", () => {
+    const root = repo({ basePolicy: MINT });
+    write(root, BRIEF_REL, "{not json");
+    const bad = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(bad.fileScope).toEqual([]);
+    expect(bad.onePrMint).toEqual({
+      admitted: false,
+      reason: "working-tree brief is not valid JSON",
+    });
+    write(root, BRIEF_REL, JSON.stringify({ plan: { title: "no id" } }));
+    const noId = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(noId.onePrMint).toEqual({ admitted: false, reason: "head brief has no plan.id" });
+    rmSync(join(root, ...BRIEF_REL.split("/")));
+    const gone = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(gone.onePrMint).toEqual({ admitted: false, reason: "working-tree brief unreadable" });
+  });
+
+  it("refuses a signed merge-base level with the gate reason", () => {
+    const signed = { onePrScopeProof: "signed" };
+    const root = repo({ basePolicy: signed, headPolicy: signed });
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    const reason = fence.onePrMint?.admitted === false ? fence.onePrMint.reason : "";
+    expect(reason).toMatch(/#5862/);
+  });
+
+  it("runs the mint gate on the containing commit after an in-PR completion moves the brief (#6480)", () => {
+    const root = repo({ basePolicy: MINT });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "activate"], { cwd: root });
+    const completedRel = BRIEF_REL.replace("/active/", "/completed/");
+    rmSync(join(root, ...BRIEF_REL.split("/")));
+    // The completed copy is never the mint head, even when it says something else.
+    write(root, completedRel, JSON.stringify(briefPayload([...SCOPE, "src/widened.ts"])));
+    const uncommitted = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(uncommitted.fileScope).toEqual(sorted);
+    expect(uncommitted.onePrMint).toEqual({ admitted: true });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "complete in PR"], { cwd: root });
+    const committed = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(committed.fileScope).toEqual(sorted);
+    expect(committed.onePrMint).toEqual({ admitted: true });
+  });
+
+  it("keeps the merge-base blob as the fence after the brief moves out of active/ (#6480)", () => {
+    const root = repo({ basePolicy: MINT, briefOnBase: ["src/base-only.ts"] });
+    rmSync(join(root, ...BRIEF_REL.split("/")));
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(fence.fileScope).toEqual(["src/base-only.ts"]);
+    expect(fence.onePrMint).toBeUndefined();
+  });
+});
+
+describe("newestInRangeCommitWithPath (#6480)", () => {
+  it("returns null when git cannot answer or the inputs are empty", () => {
+    const failing: GitRunner = () => ({ code: 1, stdout: "", stderr: "boom" });
+    const throwing: GitRunner = () => {
+      throw new Error("spawn failed");
+    };
+    expect(newestInRangeCommitWithPath("/nowhere", "", "xbrief/active/a.json")).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "./")).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", failing)).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", throwing)).toBeNull();
+    const catFileThrows: GitRunner = (_cwd, args) => {
+      if (args[0] === "rev-list") return { code: 0, stdout: "def\n", stderr: "" };
+      throw new Error("spawn failed");
+    };
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", catFileThrows)).toBeNull();
+  });
+
+  it("falls back to probing HEAD-side commits newest first, then the merge base", () => {
+    const probed: string[] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      if (args[0] === "log") return { code: 1, stdout: "", stderr: "no history" };
+      if (args[0] === "rev-list") return { code: 0, stdout: "c2\nc1\n", stderr: "" };
+      probed.push(String(args[2]));
+      return { code: String(args[2]).startsWith("base:") ? 0 : 1, stdout: "", stderr: "" };
+    };
+    expect(newestInRangeCommitWithPath("/r", "base", "xbrief\\active\\a.json", runGit)).toBe(
+      "base",
+    );
+    expect(probed).toEqual([
+      "c2:xbrief/active/a.json",
+      "c1:xbrief/active/a.json",
+      "base:xbrief/active/a.json",
+    ]);
+    const none: GitRunner = (_cwd, args) =>
+      args[0] === "rev-list"
+        ? { code: 0, stdout: "", stderr: "" }
+        : { code: 128, stdout: "", stderr: "" };
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", none)).toBeNull();
+  });
+
+  /** Fake history: `touch` is the last in-range commit touching the path. */
+  function history(opts: {
+    readonly touch: string;
+    readonly has: readonly string[];
+    readonly descends?: boolean;
+  }): { runGit: GitRunner; calls: string[][] } {
+    const calls: string[][] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      calls.push([...args]);
+      const [cmd] = args;
+      if (cmd === "log") return { code: 0, stdout: `${opts.touch}\n`, stderr: "" };
+      if (cmd === "rev-parse") {
+        const ref = String(args[3]);
+        return {
+          code: 0,
+          stdout: ref === "HEAD" ? "head\n" : `${ref.replace("^", "-parent")}\n`,
+          stderr: "",
+        };
+      }
+      if (cmd === "cat-file") {
+        const commit = String(args[2]).split(":")[0] ?? "";
+        return { code: opts.has.includes(commit) ? 0 : 1, stdout: "", stderr: "" };
+      }
+      if (cmd === "merge-base")
+        return { code: opts.descends === false ? 1 : 0, stdout: "", stderr: "" };
+      return { code: 1, stdout: "", stderr: "" };
+    };
+    return { runGit, calls };
+  }
+
+  it("answers from the path's own history in a fixed number of calls", () => {
+    const untouched = history({ touch: "", has: ["head"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", untouched.runGit)).toBe("head");
+    expect(untouched.calls.some((c) => c[0] === "rev-list")).toBe(false);
+    const edited = history({ touch: "c3", has: ["c3", "head"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", edited.runGit)).toBe("head");
+    const deleted = history({ touch: "c3", has: ["c3-parent"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", deleted.runGit)).toBe("c3-parent");
+    expect(deleted.calls.length).toBeLessThanOrEqual(5);
+  });
+
+  it("does not trust a fast-path candidate outside the range or without the path", () => {
+    const behind = history({ touch: "", has: ["head"], descends: false });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", behind.runGit)).toBeNull();
+    expect(behind.calls.some((c) => c[0] === "rev-list")).toBe(true);
+    const missing = history({ touch: "", has: [] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", missing.runGit)).toBeNull();
   });
 });

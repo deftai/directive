@@ -10,6 +10,7 @@ import {
 import { formatConsumerReadinessDisclosure } from "./consumer-readiness-disclosure.js";
 
 export interface ConsumerReadinessInput {
+  /** Effective changelog text (`effectiveChangelogText`, #6314). */
   readonly changelogText: string;
   readonly issues: readonly HardStopIssue[];
 }

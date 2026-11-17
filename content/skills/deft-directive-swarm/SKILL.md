@@ -115,9 +115,12 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ! After operator proceed on a cohort, do not schedule `scope:record-approved-scope` / mint stops. Fence is merge-base brief `file_scope`; depth: [`references/core-phase-0.md`](references/core-phase-0.md) § Proceed and scope ceremony, `docs/scope-provenance.md`.
 ⊗ Mid-cohort leave-harness mint or remint for proceed / file_scope growth (#4956).
 
+! **Changelog story scope (#6315):** a story that adds a changelog entry lists its own concrete fragment path `changelog.d/<issue>-<slug>.md` in `file_scope` (mode `either` / `fragments`), not `CHANGELOG.md` or the `changelog.d/` directory. `swarm:readiness` is unchanged: a shared path, directory or glob still overlaps. Depth: `content/scm/changelog.md`.
+
 ### Worktree isolation before parallel spawn
 
 ! One isolated git worktree per parallel agent (Phase 2). Create worktrees or consume a worktree-map **before** dispatch.
+! Before you start any implementation worker, run `swarm:pre-dispatch -- --scope-id <story> --target-id <worktree>` (begin); it also binds that worktree to its story, so the worker's commits are admitted (#6379).
 ! On **OpenClaw**, parallel leaves: worktree or worktree-map **before** `sessions_spawn`; worker cwd = that worktree; fail loud if the cohort would share the repo root (#2929). Full rules: [`references/host-openclaw.md`](references/host-openclaw.md).
 ⊗ DIY multi-leaf `sessions_spawn` without worktree prep (#2929).
 
@@ -127,6 +130,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ! When dest `.deft/ritual-state.json` already exists, prefer `session:start --rearm` (maintainer: `task session:start -- --rearm`) over a full cold start — dest rearm Prefer-A when primary ritual top-level `finalize_owed` is already recorded (no dest `--defer-owed` required).
 ! Linked dest Prefer-A inherits primary top-level `finalize_owed` (deferred or ok). `--rearm` alone on primary/main still scans unless `--defer-owed=<reason>` is set. Keep `--defer=cache_fresh=…` soft paths. Standalone linked worktrees without a primary `finalize_owed` record still fail-closed.
 ⊗ Stampede N dest cold tip inventories before primary records finalize_owed / before Prefer-A is on tip. Depth: `templates/agent-prompt-preamble.md` §12.
+! Owed completions are reported, not refused (#6409): every mutation `session:start` (cold / `--rearm`) runs the inventory, and owed rows, `unknown` included, never refuse a leaf. The always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed` (the cleanup entry point; one run need not clear every row). Only an unresolvable repository still refuses; `--defer-owed` clears that and is otherwise only recorded. Owners still pass `verify:orphan-active` / `verify:completed-tracked` before `DONE`.
 
 ### Next-phase tool dispatch (#2934)
 

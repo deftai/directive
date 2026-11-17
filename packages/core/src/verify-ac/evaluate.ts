@@ -13,6 +13,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { isSafetyRefusalRun } from "../literal-acceptance/run.js";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
@@ -328,10 +329,10 @@ function splitNulInventory(stdout: string): string[] {
   return stdout.split("\0").filter((entry) => entry.length > 0);
 }
 
-/** Brief-land allowlist mirror for inventory origin rows (pending|proposed|active|CHANGELOG). */
+/** Brief-land allowlist mirror for inventory origin rows (pending|proposed|active|changelog entry). */
 function isBriefLandAllowlistedInventoryPath(path: string): boolean {
   const p = path.replace(/\\/g, "/");
-  if (p === "CHANGELOG.md") return true;
+  if (isChangelogEntryPath(p)) return true;
   return /^(xbrief|vbrief)\/(proposed|pending|active)\//.test(p);
 }
 

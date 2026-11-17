@@ -35,4 +35,4 @@ Three-state exit: `0` skip, warn-findings, or pass / `1` missing mint or unliste
 
 Same demand-site adopter as `verify:intent-constraint`: on multi-running or multi-mint tips with unresolved plan-id, adopt the unique running `plan.id` for a sole distinct `deft-story: N` on the PR body. Explicit `--plan-id` and a valid `DEFT_ACTIVE_SCOPE` win. Empty/non-digit PR env is no-PR-context. When `DEFT_ACTIVE_SCOPE` is set but not a running xBRIEF **and** PR context is present, adoption is suppressed with a named refuse (pass `--plan-id` or clear the pin) — without PR context the tip fall-through is unchanged. REST null is config/exit 2. No YAML planId pre-export.
 
-A `deft-story: N` mark asserts #4864 delivery bind and whole-story close at cohort finalize — only use it on the PR that is the delivery for #N. Adoption does not change finalize bind semantics.
+A `deft-story: N` mark asserts #4864 delivery bind and whole-story close at cohort finalize — only use it on the PR that completes #N. A sole `deft-story-part: N` line (#6316) also selects the plan id, for mint selection only; it never completes the story. Adoption does not change finalize bind semantics.

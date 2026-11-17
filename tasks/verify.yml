@@ -258,7 +258,7 @@ tasks:
           ENGINE_CMD: 'verify:forward-coverage --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   changelog-unreleased:
-    desc: "Fail-closed CHANGELOG.md [Unreleased] has at least one `- ` entry (#633). Alias of changelog-check --against-merge-base; same Unreleased language as task change:changelog:check. Framework-source merge-chokepoint only. Fails when the Unreleased `- ` set is unchanged versus merge-base."
+    desc: "Fail-closed changelog gate versus merge-base (#633 / #6315). Alias of changelog-check --against-merge-base; same Unreleased language as task change:changelog:check. Framework-source merge-chokepoint only. By plan.policy.changelog.mode: inline needs a new `- ` line under [Unreleased]; fragments needs a new valid changelog.d/ fragment and no CHANGELOG.md change; either needs exactly one form. Every mode fails a changed, renamed or deleted merge-base fragment or an invalid added one; lifecycle-only change sets stay exempt (#680)."
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
