@@ -1,7 +1,8 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { dirname, join } from "node:path";
+import { DEFT_REPO_POSITIVE_MARKERS } from "@deftai/directive-core/doctor";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseAgentsRefreshArgs, runAgentsRefresh } from "./agents-refresh.js";
 
 describe("agents-refresh CLI (#1996)", () => {
@@ -55,5 +56,38 @@ describe("agents-refresh CLI (#1996)", () => {
     const code = runAgentsRefresh(["--project-root", project, "--dry-run"]);
     expect(code).toBe(0);
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toBe("# stale\n");
+  });
+
+  it("a source checkout whose own template is newer is refreshed, not sha-match (#6507)", () => {
+    const project = freshProject();
+    const put = (rel: string, body: string) => {
+      mkdirSync(dirname(join(project, rel)), { recursive: true });
+      writeFileSync(join(project, rel), body, "utf8");
+    };
+    put("main.md", "# main\n");
+    for (const marker of DEFT_REPO_POSITIVE_MARKERS) put(marker, "marker\n");
+    put(
+      "content/templates/agents-entry.md",
+      "<!-- deft:managed-section v3 -->\n# Rules\n! Newer checkout rule (#6507 fixture).\n<!-- /deft:managed-section -->\n",
+    );
+    put(
+      "AGENTS.md",
+      "# Header\n\n<!-- deft:managed-section v3 sha=0.0.0 refreshed=2026-01-01T00:00:00Z session=abc123abc123 -->\n# Rules\n<!-- /deft:managed-section -->\n",
+    );
+    const saved = process.env.DEFT_ROOT;
+    delete process.env.DEFT_ROOT;
+    const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      expect(runAgentsRefresh(["--project-root", project])).toBe(0);
+      const printed = out.mock.calls.map((c) => String(c[0])).join("");
+      expect(printed).toContain("AGENTS.md updated (state=stale)");
+      expect(printed).not.toContain("unchanged - sha match");
+    } finally {
+      out.mockRestore();
+      if (saved !== undefined) process.env.DEFT_ROOT = saved;
+    }
+    expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain(
+      "! Newer checkout rule (#6507 fixture).",
+    );
   });
 });
