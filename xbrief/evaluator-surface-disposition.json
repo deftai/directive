@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6374,
+  "issue": 6281,
   "surfaces": [
-    "tasks/verify.yml",
+    "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6374 Bound item 5: the `verify:ac` task description in tasks/verify.yml now says exit 0 means no clause failed, not that the requested work exists, and names the 'no acceptance evidence yet' first line. Text only: the task command, flags and exit codes do not change, and no gate is added or removed. Disclosure only; not #3164 authorization. Refs #6374."
+  "note": "Renew disclosure for #6281 seed row setup-hook-files (#5977): the shipped `setup` task's hook-file loop now checks pre-commit, pre-push and _directive-run.sh (what a fresh install deposits) instead of the retired _deft-run.sh, and its refusal line is the declared refusal line that names `directive install --repair --yes`. No check, verifier, threshold or task name changes; the loop still requires three hook files and only the helper's name changes, so the verdict changes only where the retired name made a fresh install refuse. Disclosure only; not #3164 authorization. Refs #6281."
 }

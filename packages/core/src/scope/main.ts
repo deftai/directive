@@ -13,6 +13,7 @@ import { strictAxisAdvisoryLines } from "./acceptance-evidence.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
 import { BIND_CLAUSE_ACTION, bindClauseOnBrief } from "./bind-clause.js";
+import { checkoutHygieneWarningLines } from "./checkout-hygiene-warning.js";
 import { TRANSITIONS } from "./constants.js";
 import {
   type DeliveryEvidenceInput,
@@ -621,6 +622,17 @@ export function lifecycleMain(argv: string[]): number {
         }
       } catch {
         /* best-effort work-claim release; lifecycle success remains authoritative */
+      }
+      try {
+        // #5988: warn-only checkout hygiene lines (linked worktrees, local branches).
+        const rootForHygiene =
+          resolveProjectRoot(projectRoot) ??
+          dirname(dirname(dirname(completedPathForScopeMove(filePath))));
+        for (const line of checkoutHygieneWarningLines(rootForHygiene)) {
+          process.stderr.write(`${line}\n`);
+        }
+      } catch {
+        /* best-effort hygiene warning; lifecycle success remains authoritative */
       }
     }
     return 0;

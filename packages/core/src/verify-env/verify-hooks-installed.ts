@@ -1,6 +1,33 @@
 import * as childProcess from "node:child_process";
 import { accessSync, constants, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { formatDeclaredRefusal } from "../refusal-declarations/print.js";
+import type { RefusalDeclaration } from "../refusal-declarations/table.js";
+
+/** Declared refusal row for this gate (#6281 / #5977 seed row). */
+export const HOOKS_INSTALLED_REFUSAL_ID = "hooks-installed";
+
+/**
+ * The refusal line for every hooks-not-functional finding: gate id plus a
+ * remedy that keeps the pin (`directive install --repair --yes`), so it is
+ * never an npm-latest downgrade (#5977). In warn mode the check passes.
+ */
+function hooksRefusal(
+  detail: string,
+  rows: readonly RefusalDeclaration[] | undefined,
+  extraLines: readonly string[] = [],
+): EvaluateResult {
+  const declared = formatDeclaredRefusal({
+    id: HOOKS_INSTALLED_REFUSAL_ID,
+    detail,
+    ...(rows !== undefined ? { rows } : {}),
+  });
+  return {
+    code: declared.proceed ? 0 : 1,
+    message: [declared.line, ...extraLines].join("\n"),
+    stream: "stderr",
+  };
+}
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -35,6 +62,8 @@ export interface EvaluateOptions {
   readonly gitConfigReader?: GitConfigReader;
   readonly platform?: NodeJS.Platform;
   readonly hookExecutable?: (hookPath: string) => boolean;
+  /** Declared refusal rows (tests); defaults to the shipped table (#6281). */
+  readonly refusalRows?: readonly RefusalDeclaration[];
 }
 
 function defaultGitConfigReader(projectRoot: string): {
@@ -168,14 +197,9 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       stream: "stderr",
     };
   }
+  const rows = options.refusalRows;
   if (!hooksPath) {
-    return {
-      code: 1,
-      message:
-        "❌ deft hooks not installed: core.hooksPath is unset.\n" +
-        "  Recovery: run `deft update` to deposit project-root `.githooks/`, then `task setup` to wire core.hooksPath.",
-      stream: "stderr",
-    };
+    return hooksRefusal("hooks not installed: core.hooksPath is unset", rows);
   }
 
   let hooksDir = hooksPath;
@@ -184,41 +208,31 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   }
 
   if (!isDirectory(hooksDir)) {
-    return {
-      code: 1,
-      message:
-        `❌ deft hooks wired but NON-FUNCTIONAL: core.hooksPath=${hooksPath} ` +
-        `but the directory ${hooksDir} does not exist (#1463 false-green).\n` +
-        "  Recovery: run `deft update` to deposit project-root `.githooks/`, then `task setup` to wire core.hooksPath.",
-      stream: "stderr",
-    };
+    return hooksRefusal(
+      `hooks wired but NON-FUNCTIONAL: core.hooksPath=${hooksPath} ` +
+        `but the directory ${hooksDir} does not exist (#1463 false-green)`,
+      rows,
+    );
   }
 
   const missingHooks = REQUIRED_HOOKS.filter((h) => !isFile(join(hooksDir, h)));
   if (missingHooks.length > 0) {
-    return {
-      code: 1,
-      message:
-        `❌ deft hooks wired but NON-FUNCTIONAL: ${hooksDir} is missing ` +
-        `${missingHooks.join(", ")} (#1463 false-green).\n` +
-        "  Recovery: run `deft update` to deposit project-root `.githooks/`, then `task setup` to wire core.hooksPath.",
-      stream: "stderr",
-    };
+    return hooksRefusal(
+      `hooks wired but NON-FUNCTIONAL: ${hooksDir} is missing ` +
+        `${missingHooks.join(", ")} (#1463 false-green)`,
+      rows,
+    );
   }
 
   if (isPosix(platform)) {
     const nonExec = REQUIRED_HOOKS.filter((h) => !hookExecutable(join(hooksDir, h)));
     if (nonExec.length > 0) {
-      return {
-        code: 1,
-        message:
-          `❌ deft hooks wired but NON-FUNCTIONAL: ${hooksDir} hook(s) ` +
+      return hooksRefusal(
+        `hooks wired but NON-FUNCTIONAL: ${hooksDir} hook(s) ` +
           `${nonExec.join(", ")} are not executable (git mode is not ` +
-          "100755); git silently skips non-executable hooks on Unix (#1477).\n" +
-          "  Recovery: run `deft update` to refresh `.githooks/`, or " +
-          "`chmod +x .githooks/pre-commit .githooks/pre-push`.",
-        stream: "stderr",
-      };
+          "100755); git silently skips non-executable hooks on Unix (#1477)",
+        rows,
+      );
     }
   }
 
@@ -250,15 +264,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   // which require run_directive verify:branch on pre-push.
 
   if (contentIssues.length > 0) {
-    return {
-      code: 1,
-      message:
-        "❌ deft hooks wired but NON-FUNCTIONAL:\n" +
-        contentIssues.map((issue) => `  - ${issue.replace(/\r?\n/g, " ")}`).join("\n") +
-        "\n" +
-        "  Recovery: run `deft update` to refresh project-root `.githooks/`.",
-      stream: "stderr",
-    };
+    return hooksRefusal(
+      `hooks wired but NON-FUNCTIONAL (${contentIssues.length} hook issue(s) listed below)`,
+      rows,
+      contentIssues.map((issue) => `  - ${issue.replace(/\r?\n/g, " ")}`),
+    );
   }
 
   return {

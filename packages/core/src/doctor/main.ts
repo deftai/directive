@@ -11,6 +11,7 @@ import {
   inspectSessionStartNotice,
   type SessionStartNoticeInspection,
 } from "../init-deposit/agent-hooks.js";
+import { checkRuntimeLinkOwner } from "../install-health/runtime-link.js";
 import { resolveLifecycleLayout } from "../layout/resolve.js";
 import {
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
@@ -767,9 +768,24 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       } else if (danglingThrottle.status === "pass" && !jsonMode && !quietMode) {
         throttleSink.success(`${danglingThrottle.name}: pass`);
       }
+      // #6185: runtime linked in from another checkout; one direct path, cheap.
+      const runtimeLinkThrottle = (seams.checkRuntimeLinkOwner ?? checkRuntimeLinkOwner)(
+        projectRoot,
+      );
+      if (runtimeLinkThrottle.status === "fail") {
+        throttleSink.error(`${runtimeLinkThrottle.name}: fail -- ${runtimeLinkThrottle.detail}`);
+        throttleFindings.push({
+          severity: "error",
+          message: runtimeLinkThrottle.detail,
+          check: runtimeLinkThrottle.name,
+          status: runtimeLinkThrottle.status,
+          data: runtimeLinkThrottle.data ?? {},
+        });
+      }
       const danglingHardFail =
-        danglingThrottle.status === "fail" &&
-        !isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data);
+        runtimeLinkThrottle.status === "fail" ||
+        (danglingThrottle.status === "fail" &&
+          !isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data));
       const hint = decision.dirty ? dirtyDoctorHint() : "--full forces";
       const hygieneFailed = depositHygieneFailed(seams);
       const hygieneJson = depositHygieneJson(seams);
@@ -802,9 +818,11 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       const signpostWarnings = throttleFindings.filter((f) => f.severity === "warning").length;
       if ((hygieneFailed || danglingHardFail) && !jsonMode) {
         throttleSink.finalError(
-          danglingHardFail
-            ? `System check failed with dangling node_modules link(s) (${DANGLING_NODE_MODULES_LINKS_CHECK}).`
-            : "System check failed with 1 error(s) including deposit hygiene.",
+          runtimeLinkThrottle.status === "fail"
+            ? `System check failed: the Directive runtime is linked in from another checkout (${runtimeLinkThrottle.name}).`
+            : danglingHardFail
+              ? `System check failed with dangling node_modules link(s) (${DANGLING_NODE_MODULES_LINKS_CHECK}).`
+              : "System check failed with 1 error(s) including deposit hygiene.",
         );
       } else if (signpostWarnings > 0 && !jsonMode) {
         throttleSink.finalWarn(
@@ -1477,12 +1495,34 @@ function reportDanglingNodeModulesLinksCheck(
   }
 }
 
+function reportRuntimeLinkOwnerCheck(
+  projectRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+  seams: DoctorSeams,
+): void {
+  const result = (seams.checkRuntimeLinkOwner ?? checkRuntimeLinkOwner)(projectRoot);
+  if (result.status === "pass") {
+    sink.success(`${result.name}: pass`);
+  } else if (result.status === "fail") {
+    sink.error(`${result.name}: fail -- ${result.detail}`);
+    addFinding({
+      severity: "error",
+      message: result.detail,
+      check: result.name,
+      status: result.status,
+      data: result.data ?? {},
+    });
+  }
+}
+
 function runInstallIntegrityChecks(
   projectRoot: string,
   sink: ReturnType<typeof createPlainSink>,
   addFinding: (f: Finding) => void,
   seams: DoctorSeams,
 ): void {
+  reportRuntimeLinkOwnerCheck(projectRoot, sink, addFinding, seams);
   if (runningInsideDeftRepo(projectRoot, seams)) {
     sink.info(
       "Skipping install-integrity checks -- running inside the deft framework repo (no install manifest in the source checkout).",
