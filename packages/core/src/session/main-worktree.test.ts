@@ -9,9 +9,10 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { join, resolve } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  canonicalFilesystemPath,
   hasLinkedWorktrees,
   isContendedPrimaryCheckout,
   isLinkedWorktreePath,
@@ -44,6 +45,30 @@ describe("main worktree discriminator (#4066)", () => {
     const root = mkdtempSync(join(tmpdir(), "main-wt-path-alias-"));
     temps.push(root);
     expect(sameFilesystemPath(root, realpathSync.native(root))).toBe(true);
+  });
+
+  it("exposes when realpath fails and keeps the fallback comparison", () => {
+    const root = mkdtempSync(join(tmpdir(), "main-wt-realpath-fallback-"));
+    temps.push(root);
+    const realpathSpy = vi.spyOn(realpathSync, "native").mockImplementation(() => {
+      throw Object.assign(new Error("inaccessible"), { code: "EACCES" });
+    });
+    try {
+      expect(canonicalFilesystemPath(root)).toEqual({ path: resolve(root), status: "fallback" });
+      expect(sameFilesystemPath(root, root)).toBe(true);
+    } finally {
+      realpathSpy.mockRestore();
+    }
+  });
+
+  it("marks paths with a missing suffix as partial", () => {
+    const root = mkdtempSync(join(tmpdir(), "main-wt-partial-path-"));
+    temps.push(root);
+    const missing = join(root, "not-created", "checkout");
+    expect(canonicalFilesystemPath(missing)).toEqual({
+      path: resolve(realpathSync.native(root), "not-created", "checkout"),
+      status: "partial",
+    });
   });
 
   it("treats a non-git directory as not-main so occupancy tests keep working", () => {

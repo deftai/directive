@@ -11,7 +11,12 @@ import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "n
 import { basename, dirname, join, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
 
-function canonicalPath(path: string): string {
+export type CanonicalFilesystemPath = {
+  path: string;
+  status: "canonical" | "partial" | "fallback";
+};
+
+export function canonicalFilesystemPath(path: string): CanonicalFilesystemPath {
   let cursor = resolve(path);
   const missing: string[] = [];
   while (!existsSync(cursor)) {
@@ -20,17 +25,19 @@ function canonicalPath(path: string): string {
     missing.unshift(basename(cursor));
     cursor = parent;
   }
+  let realpathSucceeded = true;
   try {
     cursor = realpathSync.native(cursor);
   } catch {
-    // Keep the resolved spelling when the filesystem cannot canonicalize it.
+    realpathSucceeded = false;
   }
-  return resolve(cursor, ...missing);
+  const status = !realpathSucceeded ? "fallback" : missing.length > 0 ? "partial" : "canonical";
+  return { path: resolve(cursor, ...missing), status };
 }
 
 export function sameFilesystemPath(left: string, right: string): boolean {
-  const a = canonicalPath(left);
-  const b = canonicalPath(right);
+  const a = canonicalFilesystemPath(left).path;
+  const b = canonicalFilesystemPath(right).path;
   if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
   return a === b;
 }

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.9.
 
 ### Fixed
-- Shell authorization classification now blocks writes to protected state hidden behind directory changes, command wrappers, awk scripts, and archive extraction while allowing read-only inspection and safe copies. Refs #6292.
+- Shell authorization blocks indirect writes to protected state while allowing read-only inspection and safe copies. Refs #6292.
 
 ### Removed
 

@@ -84,6 +84,15 @@ function isEnvAssign(token: string): boolean {
  */
 /** gh global flags that take a separate value token. */
 const GH_VALUE_FLAGS = new Set(["-r", "--repo", "-a", "--app", "-h", "--hostname", "-p", "--jq"]);
+const GH_SHORT_VALUE_FLAGS = new Set(["-r", "-a", "-h", "-p"]);
+
+function ghValueFlagWidth(normalizedToken: string): 0 | 1 | 2 {
+  if (GH_VALUE_FLAGS.has(normalizedToken)) return 2;
+  for (const flag of GH_SHORT_VALUE_FLAGS) {
+    if (normalizedToken.startsWith(flag) && normalizedToken.length > flag.length) return 1;
+  }
+  return 0;
+}
 
 function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb: string } | null {
   let i = 0;
@@ -106,9 +115,10 @@ function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb
       i++;
       continue;
     }
-    // Value-taking short/long flags: -R owner/repo, --repo owner/repo
-    if (GH_VALUE_FLAGS.has(t) || GH_VALUE_FLAGS.has(n)) {
-      i += 2;
+    // Value-taking short/long flags, including attached short values such as -Rowner/repo.
+    const valueFlagWidth = ghValueFlagWidth(n);
+    if (valueFlagWidth > 0) {
+      i += valueFlagWidth;
       continue;
     }
     i++;
@@ -2354,7 +2364,13 @@ const EXISTENCE_PROBE_READ_ONLY_BINS = new Set([
 
 const EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS = new Set(["test", "["]);
 
-const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
+const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set([
+  "-o",
+  "--output",
+  "--out",
+  "--pretty-print",
+  "--pretty",
+]);
 const GIT_VALUE_FLAGS = new Set([
   "-c",
   "--attr-source",
@@ -2381,7 +2397,14 @@ function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boo
     const literal = zipShellWordLiteral(raw) ?? raw;
     const n = normalizeToken(literal);
     if (READ_ONLY_PROOF_OUTPUT_DEST_FLAGS.has(n)) return true;
-    if (n.startsWith("--output=") || n.startsWith("--pretty-print=")) return true;
+    if (
+      n.startsWith("--output=") ||
+      n.startsWith("--pretty-print=") ||
+      n.startsWith("--out=") ||
+      n.startsWith("--pretty=")
+    ) {
+      return true;
+    }
     // POSIX attached `-oFILE` (not `-out*` / `--`).
     if (n.startsWith("-o") && !n.startsWith("-out") && !n.startsWith("--") && n.length > 2) {
       return true;
@@ -3317,6 +3340,8 @@ const UNKNOWN_DEST_OF_WRITE_FLAGS = new Set([
   "-of",
   "-output",
   "--output",
+  "--out",
+  "--pretty",
 ]);
 
 /**
@@ -3942,12 +3967,17 @@ function forgeHasCloneSubcommand(tokens: readonly string[], start: number): bool
     if (isShellSegmentBreak(raw)) break;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && (GH_VALUE_FLAGS.has(raw) || GH_VALUE_FLAGS.has(n))) {
+      const valueFlagWidth = ghValueFlagWidth(n);
+      if (!n.includes("=") && valueFlagWidth === 2) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           i += 2;
           continue;
         }
+      }
+      if (valueFlagWidth === 1) {
+        i++;
+        continue;
       }
       i++;
       continue;

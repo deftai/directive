@@ -1,0 +1,108 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8"
+  },
+  "plan": {
+    "id": "directive.pr.6307.review.5926047497",
+    "title": "Fix protected-write authorization review findings",
+    "status": "proposed",
+    "updated": "2026-11-17T00:00:00Z",
+    "tags": [
+      "fix",
+      "security",
+      "review"
+    ],
+    "narratives": {
+      "Description": "Address actionable review findings on deftai/directive#6307 concerning filesystem path canonicalization and protected-write authorization classification.",
+      "Origin": "https://github.com/deftai/directive/pull/6307#pullrequestreview-5926047497",
+      "Overview": "Keep existing path-comparison behavior while exposing when realpath resolution fell back. Keep GitHub CLI option parsing aligned with normalized tokens, cover accepted value forms, and document the user-visible protected-write behavior clearly.",
+      "ImplementationPlan": "1) Expose canonical, partial, and fallback path-resolution status and test a realpath failure. 2) Normalize GitHub CLI value-flag comparisons consistently and test repository flags before mutating verbs. 3) Verify protected-output flag spellings against the read-only proof and add regression tests for any actionable gap. 4) Rewrite the Unreleased changelog entry in user-visible terms."
+    },
+    "items": [
+      {
+        "id": "review.path-canonicalization",
+        "title": "Expose filesystem canonicalization fallback",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A caller can distinguish fully canonicalized paths, paths with missing suffixes, and realpath fallback; sameFilesystemPath retains its existing string-comparison behavior.",
+          "Traces": "PR #6307 review 5926047497 and latest SLizard review 5931238688."
+        }
+      },
+      {
+        "id": "review.authz-flags",
+        "title": "Keep protected-write authorization parsing consistent",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "GitHub CLI repository value flags are parsed using normalized tokens, supported attached forms cannot hide a mutating resource verb, and read-only output-destination checks have regression coverage for supported flag forms.",
+          "Traces": "Latest SLizard review 5931238688."
+        }
+      },
+      {
+        "id": "review.changelog",
+        "title": "Describe protected-write behavior for users",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The Unreleased changelog entry leads with the protected-write authorization behavior and safe inspection behavior rather than implementation mechanics.",
+          "Traces": "Latest SLizard review 5931238688."
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/session/main-worktree.test.ts packages/core/src/authz/classify.test.ts",
+        "pnpm exec biome check packages/core/src/session/main-worktree.ts packages/core/src/session/main-worktree.test.ts packages/core/src/authz/classify.ts packages/core/src/authz/classify.test.ts CHANGELOG.md"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Derived from the review comments on PR #6307 and the user's instruction to fix them.",
+      "sentences": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Path comparison keeps its current fallback result while exposing whether realpath fully succeeded, resolved only the existing prefix, or failed; tests deterministically cover the failure state.",
+          "artifact_path": "packages/core/src/session/main-worktree.ts",
+          "ambiguous": false,
+          "provenance": "review"
+        },
+        {
+          "id": 2,
+          "text": "GitHub CLI repository option parsing consistently uses normalized tokens and classifies supported separated and attached repository values before mutation verbs; output-destination proof forms are tested against supported commands.",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "review"
+        },
+        {
+          "id": 3,
+          "text": "The Unreleased changelog describes the user-visible protection against indirect writes while noting that read-only inspection remains allowed.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "review"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/main-worktree.ts",
+          "packages/core/src/session/main-worktree.test.ts",
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/session/main-worktree.ts and packages/core/src/authz/classify.ts"
+      },
+      "file_scope": [
+        "packages/core/src/session/main-worktree.ts",
+        "packages/core/src/session/main-worktree.test.ts",
+        "packages/core/src/authz/classify.ts",
+        "packages/core/src/authz/classify.test.ts",
+        "CHANGELOG.md"
+      ],
+      "file_scope_confidence": "high",
+      "effort": "S"
+    }
+  }
+}

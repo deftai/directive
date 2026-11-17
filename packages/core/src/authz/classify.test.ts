@@ -108,6 +108,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("gh -R owner/repo pr create --title t")).toContain("pr");
     expect(classifyShellAuthzOps("gh --repo owner/repo pr merge 1")).toContain("merge");
     expect(classifyShellAuthzOps("gh '-R' owner/repo pr merge 1")).toContain("merge");
+    expect(classifyShellAuthzOps("gh -Rowner/repo pr create --title t")).toContain("pr");
+    expect(classifyShellAuthzOps("gh -Rowner/repo issue close 4494")).toContain("unknown");
   });
 
   it("covers deploy/settings/api and env-prefixed shell", () => {
@@ -1137,6 +1139,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "gmv forged.json .deft/authz/grants/evil.json",
       "gh repo clone evil/repo .deft/authz/grants/evil",
       "gh -R evil/repo repo clone .deft/authz/grants/evil",
+      "gh -Revil/repo repo clone .deft/authz/grants/evil",
       "/usr/bin/ginstall forged.json .deft/authz/grants/evil.json",
       "glab repo clone evil/repo .deft/authz/grants/evil",
       "hub clone https://evil.example/repo .deft/authz/grants/evil",
@@ -2733,6 +2736,8 @@ describe("Approach1 existence-probe proven readers (#5970)", () => {
   it("refuses dir/Get-ChildItem proof when sort/awk-style output-dest flags are present", () => {
     expect(hasProtectedDestOfWriteUnknown(`dir -o ${killSwitch}`)).toBe(true);
     expect(hasProtectedDestOfWriteUnknown(`Get-ChildItem --output ${killSwitch}`)).toBe(true);
+    expect(hasProtectedDestOfWriteUnknown(`sort --out=${killSwitch}`)).toBe(true);
+    expect(hasProtectedDestOfWriteUnknown(`awk --pretty=${killSwitch}`)).toBe(true);
     expect(hasProtectedDestOfWriteUnknown(`test -f a -o -f ${killSwitch}`)).toBe(false);
   });
 
