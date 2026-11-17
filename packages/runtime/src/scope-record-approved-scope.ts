@@ -13,6 +13,7 @@ import { scopeProvenance, slice } from "@deftai/directive-core";
 import { isDirectEntrypoint } from "./entrypoint.js";
 import {
   type HumanPresenceMintSeams,
+  mintArgsAfterVerb,
   refuseMintWhileUatActive,
   refuseNonInteractiveMint,
   resolveHumanPresenceMintSeams,
@@ -275,6 +276,11 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
     environ: resolved.environ,
     hasControllingTerminal: resolved.hasControllingTerminal,
     readInteractiveConfirm: resolved.readInteractiveConfirm,
+    operatorStop: {
+      projectRoot,
+      args: mintArgsAfterVerb(argv, null),
+      record: resolved.recordOperatorStop,
+    },
   });
   if (mintBlocked !== null) return mintBlocked;
 

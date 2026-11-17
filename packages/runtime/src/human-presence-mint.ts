@@ -8,6 +8,11 @@
  */
 import { closeSync, openSync, readSync } from "node:fs";
 import { loadAuthzState } from "@deftai/directive-core/authz";
+import {
+  formatOperatorCommand,
+  type OperatorStopInput,
+  recordOperatorStop,
+} from "@deftai/directive-core/escalation";
 
 /**
  * Env markers that indicate an agent/host/CI shell even when stdin reports a TTY
@@ -81,6 +86,15 @@ export interface HumanPresenceMintSeams {
    * Default: one line from the controlling terminal. Tests inject a fixed phrase.
    */
   readonly readInteractiveConfirm?: () => string | null;
+  /**
+   * Recorder for an agent-refused mint (#6275). Default: core
+   * `recordOperatorStop`, which writes nothing while the notifier is off.
+   */
+  readonly recordOperatorStop?: (input: OperatorStopInput) => void;
+}
+
+function defaultRecordOperatorStop(input: OperatorStopInput): void {
+  recordOperatorStop(input);
 }
 
 /**
@@ -163,6 +177,7 @@ export function resolveHumanPresenceMintSeams(
     environ: seams.environ ?? process.env,
     hasControllingTerminal: seams.hasControllingTerminal ?? defaultHasControllingTerminal,
     readInteractiveConfirm: seams.readInteractiveConfirm ?? defaultReadInteractiveConfirm,
+    recordOperatorStop: seams.recordOperatorStop ?? defaultRecordOperatorStop,
   };
 }
 
@@ -191,6 +206,76 @@ export function refuseMintWhileUatActive(verb: string, projectRoot: string): num
   return 2;
 }
 
+/** Caller context for recording an agent-refused mint as an operator stop (#6275). */
+export interface MintOperatorStopContext {
+  readonly projectRoot: string;
+  /** Mint argv after the verb (flags and values). */
+  readonly args: readonly string[];
+  /** Test seam: recorder (default: core `recordOperatorStop`). */
+  readonly record?: (input: OperatorStopInput) => void;
+}
+
+/**
+ * Record an agent-marker mint refusal as an operator-only stop with the exact
+ * command (#6275). Writes nothing while the notifier is off; never throws.
+ */
+export function recordMintOperatorStop(
+  verb: string,
+  environ: NodeJS.ProcessEnv,
+  ctx: MintOperatorStopContext,
+): void {
+  try {
+    const command = formatOperatorCommand({
+      projectRoot: ctx.projectRoot,
+      verb,
+      args: absoluteProjectRootArgs(ctx.args, ctx.projectRoot),
+      confirm: true,
+    });
+    const record = ctx.record ?? defaultRecordOperatorStop;
+    record({
+      projectRoot: ctx.projectRoot,
+      kind: "mint",
+      code: "mint-refused-agent-shell",
+      target: command,
+      sessionId: environ.DEFT_SESSION_ID ?? null,
+      title: `Operator mint needed: ${verb}`,
+      commands: [command],
+      contextRefs: [verb],
+    });
+  } catch {
+    // Recording never changes the refusal.
+  }
+}
+
+/**
+ * Replace a `--project-root` value with the resolved root, so a replay that
+ * first changes into that root does not resolve a relative root twice.
+ */
+export function absoluteProjectRootArgs(args: readonly string[], projectRoot: string): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] as string;
+    if (arg === "--project-root" || arg === "--projectRoot") {
+      out.push(arg, projectRoot);
+      i += 1;
+    } else if (arg.startsWith("--project-root=")) {
+      out.push(`--project-root=${projectRoot}`);
+    } else {
+      out.push(arg);
+    }
+  }
+  return out;
+}
+
+/** Strip a leading `--` separator and the subcommand token from mint argv. */
+export function mintArgsAfterVerb(argv: readonly string[], subcommand: string | null): string[] {
+  const args = [...argv];
+  while (args[0] === "--") args.shift();
+  if (subcommand !== null && args[0] === subcommand) args.shift();
+  while (args[0] === "--") args.shift();
+  return args;
+}
+
 /**
  * Refuse non-interactive / agent-shell mint outside UAT (#3110 / #3384).
  *
@@ -211,6 +296,11 @@ export function refuseNonInteractiveMint(input: {
   readonly environ: NodeJS.ProcessEnv;
   readonly hasControllingTerminal: () => boolean;
   readonly readInteractiveConfirm: () => string | null;
+  /**
+   * Caller context for the #6275 operator-stop record: the mint argv (after the
+   * verb) and the project root. Used only on the agent-marker branch.
+   */
+  readonly operatorStop?: MintOperatorStopContext;
 }): number | null {
   const { verb, confirm } = input;
   const matchedMarkers = detectedAgentShellMarkers(input.environ);
@@ -222,6 +312,9 @@ export function refuseNonInteractiveMint(input: {
         "from a human interactive TTY without agent-shell markers, plus --confirm " +
         "and typed phrase (#3110 / #5983).\n",
     );
+    if (input.operatorStop !== undefined) {
+      recordMintOperatorStop(verb, input.environ, input.operatorStop);
+    }
     return 2;
   }
   const tty = input.isTty();
