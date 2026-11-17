@@ -3,7 +3,6 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { containedWrite } from "../fs/contained-write.js";
-import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import {
@@ -14,6 +13,7 @@ import {
 import { MISSING_ONE_PR_UNIT_CONSENT } from "../one-pr-unit/types.js";
 import { collectGithubRefs } from "../orphan-active/refs.js";
 import {
+  type ActiveRunningBrief,
   isProductPullRequestUnset,
   listActiveRunningBriefs,
   productPullRequestFromPlan,
@@ -32,6 +32,7 @@ import {
   fetchRepoFileAtRef,
 } from "./gh.js";
 import { readCommitsFile, readTextFile } from "./io.js";
+import { briefForBodyRef, demandForBrief, storyIssuesOfBrief } from "./story-issue.js";
 import type {
   ClosingKeywordMode,
   FullStoryCloseIntent,
@@ -916,52 +917,29 @@ export function parseStoryRefIssues(text: string, repo: string): number[] {
   return [...out].sort((a, b) => a - b);
 }
 
-/** Story issue numbers of a brief: github-issue references, else the plan-id origin. */
-function storyIssuesOfBrief(plan: Record<string, unknown>, repo: string): number[] {
-  // References only: x-tracking parent/decomposition issues are umbrellas, not the story.
-  const { issues } = collectGithubRefs({ references: plan.references }, repo);
-  const out = issues
-    .filter((ref) => ref.repo.toLowerCase() === repo.toLowerCase())
-    .map((ref) => ref.number);
-  if (out.length > 0) {
-    return [...new Set(out)].sort((a, b) => a - b);
-  }
-  const metadata = plan.metadata;
-  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
-    const binding = (metadata as Record<string, unknown>)["x-directive/plan-id"];
-    if (typeof binding === "object" && binding !== null && !Array.isArray(binding)) {
-      const origin = (binding as Record<string, unknown>).origin;
-      const m = typeof origin === "string" ? /^([^/#\s]+\/[^/#\s]+)#(\d+)$/.exec(origin) : null;
-      if (m !== null && (m[1] ?? "").toLowerCase() === repo.toLowerCase()) {
-        return [Number(m[2])];
-      }
-    }
-  }
-  return [];
-}
-
-/** True when a running brief is the brief for issue N (ownership or github-issue reference). */
-function briefIsForIssue(
-  brief: { readonly plan: Record<string, unknown> },
-  repo: string,
-  issue: number,
-): boolean {
-  const origin = issueOriginFromRepoSlug(repo, issue);
-  if (origin !== null && briefOwnsIssue({ plan: brief.plan }, origin)) {
-    return true;
-  }
-  return storyIssuesOfBrief(brief.plan, repo).includes(issue);
-}
-
 /** Product-shaped diff for the story-line check: not a lifecycle-only land (#6316). */
 export function isProductShapedDiff(files: readonly PrDiffPath[]): boolean {
   return files.length > 0 && !isLeftoverShapedDiff(files) && !isBriefLandShapedDiff(files);
 }
 
-function formatStoryLineMissing(prNumber: number, issue: number, why: string): string {
+/** One required story line: why it is asked for, and the brief's issues that need none (#6468). */
+interface StoryLineDemand {
+  readonly why: string;
+  readonly others: readonly number[];
+}
+
+function formatStoryLineMissing(prNumber: number, issue: number, demand: StoryLineDemand): string {
+  const others =
+    demand.others.length > 0
+      ? [
+          `  The other issues the brief names (${demand.others.map((n) => `#${String(n)}`).join(", ")}) ` +
+            `need no line: one line, for story issue #${String(issue)}, serves the brief (#6468).`,
+        ]
+      : [];
   return [
-    `FAIL: PR #${String(prNumber)} is a product PR of running story #${String(issue)} (${why}) ` +
+    `FAIL: PR #${String(prNumber)} is a product PR of running story #${String(issue)} (${demand.why}) ` +
       "but carries neither story line (#6316).",
+    ...others,
     "  Add exactly one of these lines to the PR body:",
     `    deft-story: ${String(issue)}        on the PR that completes the story`,
     `    deft-story-part: ${String(issue)}   on any other product PR of the story`,
@@ -1021,6 +999,9 @@ export function landsWithProductIssues(
  * nor a sole `deft-story-part: N` and either its body names N with Refs / Tracking /
  * Related while N has a running brief in `active/`, or a running brief on the head
  * names this PR as `metadata.productPullRequest`. The mark keeps its own rules.
+ * One line per running brief, for its story issue (#6468): the issue the completion
+ * identity join anchors on; the brief's other issues need none. A brief whose story
+ * issue the plan-id adopter's owner list contradicts (case A / case B) fails.
  */
 export function evaluateStoryLineRequirement(args: {
   readonly bodyText: string;
@@ -1054,32 +1035,64 @@ export function evaluateStoryLineRequirement(args: {
     return { ok: false, messages: landingMessages, required: [] };
   }
   const running = listActiveRunningBriefs(args.projectRoot);
-  const required = new Map<number, string>();
-  for (const issue of parseStoryRefIssues(args.bodyText, args.repo)) {
-    const brief = running.find((b) => briefIsForIssue(b, args.repo, issue));
-    if (brief !== undefined) {
-      required.set(
-        issue,
-        `body names #${String(issue)}; running brief ${relBriefPath(brief.path, args.projectRoot)}`,
-      );
+  const required = new Map<number, StoryLineDemand>();
+  const blocked = new Map<string, string>();
+  const requireFor = (
+    brief: ActiveRunningBrief,
+    fallback: readonly number[],
+    why: (rel: string) => string,
+  ) => {
+    const demand = demandForBrief({
+      projectRoot: args.projectRoot,
+      repo: args.repo,
+      brief,
+      fallback,
+    });
+    if (demand.kind === "blocked") {
+      blocked.set(demand.rel, demand.message);
+      return;
     }
+    const lines =
+      demand.kind === "line"
+        ? [{ issue: demand.issue, others: demand.others }]
+        : demand.issues.map((issue) => ({ issue, others: [] as readonly number[] }));
+    for (const line of lines) {
+      if (!required.has(line.issue)) {
+        required.set(line.issue, { why: why(demand.rel), others: line.others });
+      }
+    }
+  };
+  // #6468 Bound item 3: a body reference to N asks for the story line of N's brief.
+  for (const issue of parseStoryRefIssues(args.bodyText, args.repo)) {
+    const target = briefForBodyRef(running, args.repo, issue);
+    if (target === null) continue;
+    if (target === "today") {
+      if (!required.has(issue)) {
+        required.set(issue, {
+          why: `body names #${String(issue)}; several running briefs name it`,
+          others: [],
+        });
+      }
+      continue;
+    }
+    requireFor(target, [issue], (rel) => `body names #${String(issue)}; running brief ${rel}`);
   }
   for (const brief of running) {
     if (productPullRequestFromPlan(brief.plan) !== args.prNumber) continue;
-    for (const issue of storyIssuesOfBrief(brief.plan, args.repo)) {
-      if (!required.has(issue)) {
-        required.set(
-          issue,
-          `running brief ${relBriefPath(brief.path, args.projectRoot)} names this PR as metadata.productPullRequest`,
-        );
-      }
-    }
+    requireFor(
+      brief,
+      storyIssuesOfBrief(brief.plan, args.repo),
+      (rel) => `running brief ${rel} names this PR as metadata.productPullRequest`,
+    );
   }
   const marks = new Set(parseAllDeftStoryMarks(args.bodyText));
-  const messages: string[] = [];
-  for (const [issue, why] of [...required.entries()].sort((a, b) => a[0] - b[0])) {
+  // Case A / case B (#6468 Bound item 2): no line satisfies these briefs.
+  const messages: string[] = [...blocked.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, message]) => message);
+  for (const [issue, demand] of [...required.entries()].sort((a, b) => a[0] - b[0])) {
     if (!marks.has(issue) && !parts.has(issue)) {
-      messages.push(formatStoryLineMissing(args.prNumber, issue, why));
+      messages.push(formatStoryLineMissing(args.prNumber, issue, demand));
     }
   }
   return {
@@ -1133,9 +1146,23 @@ export function storyIssuesForBranch(args: {
   readonly bodyText: string;
   readonly runGit: RunGhFn;
 }): number[] {
+  return storyLinesForBranch(args).issues;
+}
+
+/**
+ * Story lines for the current branch (#6468 Bound item 5): one issue per running
+ * brief, its story issue, and the case A / case B message of each brief no line
+ * can serve. Briefs with no same-repository anchor keep today's per-issue rule.
+ */
+export function storyLinesForBranch(args: {
+  readonly projectRoot: string;
+  readonly repo: string;
+  readonly bodyText: string;
+  readonly runGit: RunGhFn;
+}): { issues: number[]; blocked: string[] } {
   const running = listActiveRunningBriefs(args.projectRoot);
   if (running.length === 0) {
-    return [];
+    return { issues: [], blocked: [] };
   }
   const changed = new Set(
     (collectLocalDiffFiles(args.projectRoot, args.runGit) ?? [])
@@ -1146,29 +1173,50 @@ export function storyIssuesForBranch(args: {
   const branch = branchResult.returncode === 0 ? branchResult.stdout.trim() : "";
   const bodyRefs = parseStoryRefIssues(args.bodyText, args.repo);
   const out = new Set<number>();
+  const blocked = new Map<string, string>();
+  const lineFor = (brief: ActiveRunningBrief, fallback: readonly number[]) => {
+    const demand = demandForBrief({
+      projectRoot: args.projectRoot,
+      repo: args.repo,
+      brief,
+      fallback,
+    });
+    if (demand.kind === "blocked") {
+      blocked.set(demand.rel, demand.message);
+    } else if (demand.kind === "line") {
+      out.add(demand.issue);
+    } else {
+      for (const issue of demand.issues) out.add(issue);
+    }
+  };
   for (const brief of running) {
     const rel = relBriefPath(brief.path, args.projectRoot);
     const planId = typeof brief.plan.id === "string" ? brief.plan.id.trim() : "";
     const named = changed.has(rel) || (planId.length > 0 && branchNamesPlanId(branch, planId));
     if (named) {
-      for (const issue of storyIssuesOfBrief(brief.plan, args.repo)) {
-        out.add(issue);
-      }
-    }
-    for (const issue of bodyRefs) {
-      if (briefIsForIssue(brief, args.repo, issue)) {
-        out.add(issue);
-      }
+      lineFor(brief, storyIssuesOfBrief(brief.plan, args.repo));
     }
   }
-  return [...out].sort((a, b) => a - b);
+  for (const issue of bodyRefs) {
+    const target = briefForBodyRef(running, args.repo, issue);
+    if (target === "today") {
+      out.add(issue);
+    } else if (target !== null) {
+      lineFor(target, [issue]);
+    }
+  }
+  return {
+    issues: [...out].sort((a, b) => a - b),
+    blocked: [...blocked.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, m]) => m),
+  };
 }
 
 /**
  * `--body-file <path> --write-story-line [--part]` (#6316 amendment): append
  * `deft-story: N` (or `deft-story-part: N`) for each running story of the branch
- * whose line the body lacks. A body that already has one of the lines for N is left
- * unchanged; a body with both lines for one N fails as the live check does.
+ * whose line the body lacks: one line per brief, for its story issue (#6468). A body
+ * that already has one of the lines for N is left unchanged; a body with both lines
+ * for one N fails as the live check does; a case A / case B brief writes nothing.
  */
 export function writeStoryLineToBodyFile(args: {
   readonly bodyFile: string;
@@ -1203,12 +1251,16 @@ export function writeStoryLineToBodyFile(args: {
       written: [],
     };
   }
-  const issues = storyIssuesForBranch({
+  const { issues, blocked } = storyLinesForBranch({
     projectRoot: args.projectRoot,
     repo,
     bodyText: text,
     runGit,
   });
+  if (blocked.length > 0) {
+    // #6468 Bound item 5: a brief no line can serve gets no line; nothing is written.
+    return { code: 1, message: blocked.join("\n"), issues, written: [] };
+  }
   if (issues.length === 0) {
     return {
       code: 0,
