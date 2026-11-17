@@ -2,19 +2,19 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6275",
-    "updated": "2026-11-13T16:07:50Z"
+    "updated": "2026-11-17T15:59:00Z"
   },
   "plan": {
     "title": "feat(escalation): notify the operator when a worker stops on an operator-only step",
     "status": "running",
     "narratives": {
-      "Description": "When a worker stops on a step only the operator can do, such as a mint or a hook deny that needs a human grant, nothing tells the operator, and stops sat 17 to 26 minutes before anyone noticed them on a consumer project. The escalation queue exists but nothing records these stops automatically and nothing delivers them. This story records each operator-only stop with the exact command and, when the operator turns it on, sends one desktop notification that lists every waiting step.",
+      "Description": "When a worker stops on a step only the operator can do, such as a mint or a hook deny that needs a human grant, nothing tells the operator, and stops sat 17 to 26 minutes before anyone noticed them on a consumer project. The escalation queue exists, but nothing records these stops automatically and nothing delivers them. This story records each operator-only stop with the exact command and, when the operator turns it on, sends one desktop notification that lists every waiting step.",
+      "UserStory": "As an operator running agents, I want a desktop notification with the exact command when a worker stops on a step only I can do, so that stops do not sit unnoticed.",
+      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6275 (comment 6858214390, synthesis 6858268643, verified-claims 6858268069). Add packages/core/src/escalation/operator-stop.ts, which files an escalation through fileEscalation only when operatorNotify is not off (approval plus dangerous for mints, cmd_approval otherwise, with the exact command and worktree path, deduped by an exclusive-create key). Call it from the authz-grant deny beside recordAuthzAudit in packages/core/src/hooks/dispatcher.ts and from the agent-marker branch of refuseNonInteractiveMint in packages/runtime/src/human-presence-mint.ts, with the four mint callers passing argv and project root; let escalation:file accept a repeated --command. Add packages/core/src/escalation/operator-notify.ts: a detached child takes a notify lock with the owner-token rules of packages/core/src/plan-sequence/mutation-lock.ts, collects and claims every open un-notified escalation, and sends one data-only OS notification. Resolve the channel with USER.md Personal over plan.policy over off in packages/core/src/policy/operator-notify.ts. Verify with the fixture tests packages/core/src/escalation/operator-stop.test.ts and packages/core/src/escalation/operator-notify.test.ts.",
+      "Traces": "#6275 Prefer-A Bound 6858214390; synthesis 6858268643; verified-claims 6858268069; Round-1 Codex 6857091694, Claude 6857092123, Grok 6857092642; pain audits 6857272554, 6857781197, 6857847378, 6858212520, 6858259568; operator raise 6857780773; #518",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6275",
       "Overview": "\n1. Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body. It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict. relieves: P2\n2. Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root. `deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path. relieves: P1\n3. When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases. A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it). The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script. relieves: P3\n4. Fixtures: an agent-marker mint refusal records one `approval` escalation and fires the notifier once with the full command; two stops on disk produce one notification listing both, including when two notifier children start together; a stalled owner keeps the lock, a second reaper does not take it, an old owner cannot release a newer lock, and a stop filed after the holder's last rescan and before its release still appears in a notification; a repeated identical deny records once; notifier `off` writes no escalation, key or notify file and leaves output byte-identical; a URL-shaped value for the channel is refused; a human TTY mint typo records nothing.\n\n\n",
-      "Labels": "consumer-example, design-critique:ingest-ready, framework-gap",
-      "UserStory": "As an operator running agents, I want a desktop notification with the exact command when a worker stops on a step only I can do, so that stops do not sit unnoticed.",
-      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6275 (comment 6858214390, synthesis 6858268643, verified-claims 6858268069). Add a core helper in packages/core/src/escalation/operator-stop.ts that files an escalation through fileEscalation only when plan.policy.operatorNotify is not off (approval plus dangerous for mints, cmd_approval otherwise, with the exact command and worktree path, deduped by an exclusive-create key). Call it from the authz-grant deny beside recordAuthzAudit in packages/core/src/hooks/dispatcher.ts and from the agent-marker branch of refuseNonInteractiveMint in packages/runtime/src/human-presence-mint.ts, with the four mint callers passing argv and project root; let escalation:file accept a repeated --command. Add packages/core/src/escalation/operator-notify.ts: a detached child takes a notify lock with the owner-token rules of packages/core/src/plan-sequence/mutation-lock.ts, collects and claims every open un-notified escalation, and sends one data-only OS notification. Resolve the channel with USER.md Personal over plan.policy over off, in a policy module beside forge-outage-retry. Verify with the new fixture test file packages/core/src/escalation/operator-notify.test.ts.",
-      "Traces": "#6275 Prefer-A Bound 6858214390; synthesis 6858268643; verified-claims 6858268069; Round-1 Codex 6857091694, Claude 6857092123, Grok 6857092642; pain audits 6857272554, 6857781197, 6857847378, 6858212520, 6858259568; operator raise 6857780773; #518"
+      "Labels": "consumer-example, design-critique:ingest-ready, framework-gap"
     },
     "items": [
       {
@@ -22,7 +22,7 @@
         "status": "proposed",
         "id": "clause.1",
         "narrative": {
-          "Acceptance": "When operatorNotify is os and an operator-only stop occurs, the helper records one escalation whose body holds the exact command and worktree path (approval with dangerous true for a mint, cmd_approval otherwise), records a repeated identical stop only once, and returns without writing any file when operatorNotify is off."
+          "Acceptance": "Given packages/core/src/escalation/operator-stop.ts with operatorNotify set to os, when an operator-only stop is recorded, then it files one escalation whose body holds the exact command and worktree path (approval with dangerous true for a mint, cmd_approval otherwise), a repeated identical stop records once, a write error is swallowed, and with operatorNotify off it writes no file."
         }
       },
       {
@@ -30,7 +30,7 @@
         "status": "proposed",
         "id": "clause.2",
         "narrative": {
-          "Acceptance": "When an agent-marker mint refusal or an authz-grant hook deny occurs with the notifier on, the escalation records the full command built from the caller's argv and project root, the hook verdict is unchanged, and a human TTY mint typo records nothing."
+          "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and packages/runtime/src/human-presence-mint.ts with the notifier on, when an authz-grant hook deny or an agent-marker mint refusal occurs, then the escalation records the full command built from the caller's argv and project root, the hook verdict is unchanged, a human TTY mint typo records nothing, and deft escalation:file accepts a repeated --command."
         }
       },
       {
@@ -38,7 +38,7 @@
         "status": "proposed",
         "id": "clause.3",
         "narrative": {
-          "Acceptance": "When two or more stops are waiting, including when two notifier children start together and when a stop is filed after the holder's last rescan, exactly one OS notification lists each un-notified stop once, mint lines are shown one per line, a stalled owner keeps the lock, and an old owner cannot release a newer lock."
+          "Acceptance": "Given packages/core/src/escalation/operator-notify.ts with the channel os, when two or more stops are waiting, including when two notifier children start together and when a stop is filed after the holder's last rescan, then exactly one OS notification lists each un-notified stop once with mint lines one per line, a stalled owner keeps the lock, and an old owner cannot release a newer lock."
         }
       },
       {
@@ -46,7 +46,7 @@
         "status": "proposed",
         "id": "clause.4",
         "narrative": {
-          "Acceptance": "When the fixture file packages/core/src/escalation/operator-notify.test.ts runs, it passes and covers the mint refusal, the hook deny, the two-child and late-arrival batches, the stalled owner, acquisition-budget exhaustion, notifier off writing nothing, and a URL-shaped channel value being rejected."
+          "Acceptance": "Given packages/core/src/escalation/operator-notify.test.ts, when it runs, then it passes and covers the mint refusal, the hook deny, the two-child and late-arrival batches, the stalled owner, acquisition-budget exhaustion, notifier off writing nothing, and a URL-shaped channel value being refused."
         }
       }
     ],
@@ -71,147 +71,104 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 14 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "one clause per harvested lean item (4), in list order (#6333)",
       "sentences": [
-        "feat(escalation): notify the operator when a worker stops on an operator-only step",
-        "Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body.",
-        "It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict.",
-        "relieves: P2 2.",
-        "Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root.",
-        "`deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path.",
-        "relieves: P1 3.",
-        "When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases.",
-        "A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it).",
-        "The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script.",
-        "relieves: P3 4.",
-        "Fixtures: an agent-marker mint refusal records one `approval` escalation and fires the notifier once with the full command; two stops on disk produce one notification listing both, including when two notifier children start together; a stalled owner keeps the lock, a second reaper does not take it, an old owner cannot release a newer lock, and a stop filed after the holder's last rescan and before its release still appears in a notification; a repeated identical deny records once; notifier `off` writes no escalation, key or notify file and leaves output byte-identical; a URL-shaped value for the channel is refused; a human TTY mint typo records nothing.",
-        "relieves: P2",
-        "relieves: P1",
-        "relieves: P3"
-      ],
-      "admitted_source_sentences": [
-        "Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body.",
-        "It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict.",
-        "relieves: P2 2.",
-        "Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root.",
-        "`deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path.",
-        "relieves: P1 3.",
-        "When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases.",
-        "A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it).",
-        "The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script.",
-        "relieves: P3 4.",
+        "Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body. It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict. relieves: P2",
+        "Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root. `deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path. relieves: P1",
+        "When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases. A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it). The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script. relieves: P3",
         "Fixtures: an agent-marker mint refusal records one `approval` escalation and fires the notifier once with the full command; two stops on disk produce one notification listing both, including when two notifier children start together; a stalled owner keeps the lock, a second reaper does not take it, an old owner cannot release a newer lock, and a stop filed after the holder's last rescan and before its release still appears in a notification; a repeated identical deny records once; notifier `off` writes no escalation, key or notify file and leaves output byte-identical; a URL-shaped value for the channel is refused; a human TTY mint typo records nothing."
       ],
-      "admitted_source_digest": "11430b672e13c4415250172933816bf57cb7d193aa8766a61572f0653a9d1f00",
+      "admitted_source_sentences": [
+        "Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body. It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict. relieves: P2",
+        "Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root. `deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path. relieves: P1",
+        "When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases. A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it). The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script. relieves: P3",
+        "Fixtures: an agent-marker mint refusal records one `approval` escalation and fires the notifier once with the full command; two stops on disk produce one notification listing both, including when two notifier children start together; a stalled owner keeps the lock, a second reaper does not take it, an old owner cannot release a newer lock, and a stop filed after the holder's last rescan and before its release still appears in a notification; a repeated identical deny records once; notifier `off` writes no escalation, key or notify file and leaves output byte-identical; a URL-shaped value for the channel is refused; a human TTY mint typo records nothing."
+      ],
+      "admitted_source_digest": "84d6bc3660777d60565a88f6af4de339cd4cade1d6843da8c69334d0d90a255f",
       "clauses": [
         {
           "id": 1,
           "text": "Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body. It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict. relieves: P2",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/escalation/operator-stop.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root. `deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path. relieves: P1",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases. A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it). The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script. relieves: P3",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/escalation/operator-notify.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Fixtures: an agent-marker mint refusal records one `approval` escalation and fires the notifier once with the full command; two stops on disk produce one notification listing both, including when two notifier children start together; a stalled owner keeps the lock, a second reaper does not take it, an old owner cannot release a newer lock, and a stop filed after the holder's last rescan and before its release still appears in a notification; a repeated identical deny records once; notifier `off` writes no escalation, key or notify file and leaves output byte-identical; a URL-shaped value for the channel is refused; a human TTY mint typo records nothing.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 6,
-          "text": "It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 7,
-          "text": "Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 8,
-          "text": "`deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 9,
-          "text": "When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 10,
-          "text": "A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it).",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 11,
-          "text": "The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 12,
-          "text": "relieves: P2 2.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 13,
-          "text": "relieves: P1 3.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 14,
-          "text": "relieves: P3 4.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/escalation/operator-notify.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found",
-      "confessions": [
-        "feat(escalation): notify the operator when a worker stops on an operator-only step",
-        "relieves: P2",
-        "relieves: P1",
-        "relieves: P3"
-      ]
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/escalation/operator-stop.ts",
+          "packages/core/src/escalation/operator-stop.test.ts",
+          "packages/core/src/escalation/operator-notify.ts",
+          "packages/core/src/escalation/operator-notify.test.ts",
+          "packages/core/src/escalation/index.ts",
+          "packages/core/src/policy/operator-notify.ts",
+          "packages/core/src/policy/operator-notify.test.ts",
+          "packages/core/src/policy/index.ts",
+          "packages/types/src/policy.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-operator-stop.test.ts",
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/scope-record-approved-scope.ts",
+          "packages/runtime/src/scope-record-intent-constraint.ts",
+          "packages/runtime/src/scope-record-observable-scope.ts",
+          "packages/runtime/src/escalation-cli.ts",
+          "packages/runtime/src/escalation-cli.test.ts",
+          "content/contracts/escalation.md",
+          "content/templates/agent-prompt-preamble.md",
+          "changelog.d/6275-operator-stop-notify.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "operator-stop-notify",
+        "Traces": [
+          "#6275",
+          "#518"
+        ],
+        "acceptance_criteria_justification": "Four clauses: the four Bound remedy items of the accepted lean (comment 6858214390, synthesis 6858268643), one clause each as the harvest admitted them. parallel_safe is false: running story #6471 also lists packages/core/src/hooks/dispatcher.ts, which limb 2 must edit beside recordAuthzAudit.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/escalation/operator-stop.test.ts packages/core/src/escalation/operator-notify.test.ts packages/core/src/policy/operator-notify.test.ts packages/core/src/hooks/dispatcher-operator-stop.test.ts",
+          "npx vitest run packages/runtime/src/human-presence-mint.test.ts packages/runtime/src/escalation-cli.test.ts"
+        ],
+        "expected_outputs": [
+          "an operator-stop recorder that writes nothing while plan.policy.operatorNotify is off",
+          "record points at the authz-grant hook deny and the agent-marker mint refusal, with the caller's argv and project root",
+          "escalation:file accepting a repeated --command, named by the worker preamble as the residual path",
+          "a lock-owned batch notifier that sends one data-only OS notification per batch",
+          "channel resolution with USER.md Personal over plan.policy over off, refusing URL-shaped values",
+          "one changelog fragment changelog.d/6275-operator-stop-notify.md"
+        ]
+      },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
@@ -1102,50 +1059,16 @@
         "algorithm": "sha256",
         "sha256": "ca6caa08aa5008fccc9a8216cfc8f7c35d001922e2730a59d6a839fc348f3d1a"
       },
-      "kind": "story",
-      "swarm": {
-        "readiness": "ready",
-        "conflict_group": "operator-stop-notify",
-        "expected_outputs": [
-          "operator-stop recorder gated on plan.policy.operatorNotify",
-          "record points at the authz-grant deny and the agent-marker mint refusal",
-          "lock-owned batch notifier with one OS notification per batch",
-          "USER.md Personal over plan.policy channel resolution",
-          "fixture matrix and CHANGELOG Unreleased"
-        ],
-        "depends_on": [],
-        "model_tier": "standard",
-        "verify_commands": [
-          "npx vitest run packages/core/src/escalation/operator-notify.test.ts packages/core/src/escalation/actions.test.ts"
-        ],
-        "file_scope": [
-          "packages/core/src/escalation/operator-stop.ts",
-          "packages/core/src/escalation/operator-notify.ts",
-          "packages/core/src/escalation/operator-notify.test.ts",
-          "packages/core/src/escalation/index.ts",
-          "packages/core/src/policy/operator-notify.ts",
-          "packages/core/src/policy/index.ts",
-          "packages/core/src/hooks/dispatcher.ts",
-          "packages/runtime/src/human-presence-mint.ts",
-          "packages/runtime/src/authz.ts",
-          "packages/runtime/src/scope-record-approved-scope.ts",
-          "packages/runtime/src/scope-record-intent-constraint.ts",
-          "packages/runtime/src/scope-record-observable-scope.ts",
-          "packages/runtime/src/escalation-cli.ts",
-          "content/contracts/escalation.md",
-          "content/templates/agent-prompt-preamble.md",
-          "CHANGELOG.md"
-        ],
-        "parallel_safe": true,
-        "size": "medium",
-        "file_scope_confidence": "medium",
-        "Traces": [
-          "#6275",
-          "#518"
-        ]
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6275,
+        "leanCommentId": 6858214390,
+        "harvestDigest": "84d6bc3660777d60565a88f6af4de339cd4cade1d6843da8c69334d0d90a255f",
+        "slice": null
       }
     },
     "id": "github.issue.6373752701",
-    "updated": "2026-11-13T16:07:50Z"
+    "updated": "2026-11-17T15:59:00Z"
   }
 }
