@@ -52,8 +52,9 @@ export function resolveEntryBaselineCommit(
   ) {
     return null;
   }
-  // Committed at its current path: HEAD holds a blob there.
-  if (git(projectRoot, ["cat-file", "-e", `HEAD:${rel}`]).code !== 0) {
+  // Committed at its current path: HEAD holds a blob there. `./` makes the
+  // tree path relative to projectRoot, which may sit below the repository root.
+  if (git(projectRoot, ["cat-file", "-e", `HEAD:./${rel}`]).code !== 0) {
     return null;
   }
   // A lifecycle move is a rename; --no-renames reports it as an add at the new path.
@@ -78,7 +79,7 @@ export function resolveEntryBaselineCommit(
 
 /** True when the working-tree file has the same blob id as at `commit`. */
 function unchangedSince(projectRoot: string, rel: string, commit: string, git: GitRunner): boolean {
-  const before = git(projectRoot, ["rev-parse", "--verify", "--quiet", `${commit}:${rel}`]);
+  const before = git(projectRoot, ["rev-parse", "--verify", "--quiet", `${commit}:./${rel}`]);
   if (before.code !== 0) {
     return false;
   }

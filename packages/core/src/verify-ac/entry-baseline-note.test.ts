@@ -306,3 +306,30 @@ describe("entry baseline note with a fake git runner (#6374)", () => {
     ).toBe(input);
   });
 });
+
+describe("entry baseline note in a project nested below the repository root (#6374)", () => {
+  it("resolves the brief and the bound file relative to the project, not the repository", () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), "ac-6374-nested-"));
+    roots.push(repoRoot);
+    git(repoRoot, "init", "-q", "-b", "master");
+    git(repoRoot, "config", "user.email", "test@example.invalid");
+    git(repoRoot, "config", "user.name", "test");
+    git(repoRoot, "config", "commit.gpgsign", "false");
+    git(repoRoot, "config", "core.autocrlf", "false");
+    const project = join(repoRoot, "apps", "demo");
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(join(project, "src", "a.ts"), 'export const x = "ENTRY_TOKEN_6374";\n');
+    commitAll(repoRoot, "seed nested product file");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    const rel = `xbrief/active/${BRIEF_NAME}`;
+    writeFileSync(join(project, ...rel.split("/")), "{}\n");
+    commitAll(repoRoot, "nested brief enters active/");
+
+    expect(resolveEntryBaselineCommit(project, rel)).toBe(git(repoRoot, "rev-parse", "HEAD^"));
+    const out = annotateUnchangedSinceEntry(report([verifiedRow()]), {
+      projectRoot: project,
+      xbriefPath: rel,
+    });
+    expect(out.verified[0]?.detail).toContain(ENTRY_BASELINE_NOTE);
+  });
+});
