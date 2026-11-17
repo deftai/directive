@@ -70,13 +70,24 @@ export function operatorStopCommands(body: string): string[] {
   return out;
 }
 
+/** Worktree recorded in an operator-stop body (`Worktree: <path>` line), or null. */
+export function operatorStopWorktree(body: string): string | null {
+  for (const line of body.split(/\r?\n/)) {
+    const match = /^Worktree:\s*(.+)$/.exec(line.trim());
+    if (match?.[1] !== undefined) return match[1].trim();
+  }
+  return null;
+}
+
 function isMint(event: EscalationEvent): boolean {
   return event.type === "approval" && event.dangerous;
 }
 
 /**
  * Build one notification for a batch: mint commands one per line, every other
- * command joined into one script. Every command is labelled agent-proposed.
+ * command joined into one script per worktree (named in its header, since a
+ * filed command such as `gh pr merge 12` carries no directory of its own).
+ * Every command is labelled agent-proposed.
  */
 export function formatOperatorNotification(
   events: readonly EscalationEvent[],
@@ -84,7 +95,7 @@ export function formatOperatorNotification(
   const count = events.length;
   const title = `Directive: ${count} operator step${count === 1 ? "" : "s"} waiting`;
   const mintLines: string[] = [];
-  const scriptLines: string[] = [];
+  const scripts = new Map<string, string[]>();
   const otherLines: string[] = [];
   for (const event of events) {
     const commands = operatorStopCommands(event.body).map(stripControlChars);
@@ -95,15 +106,18 @@ export function formatOperatorNotification(
     }
     if (isMint(event)) {
       for (const command of commands) mintLines.push(`Mint (run alone): ${command}`);
-    } else {
-      scriptLines.push(...commands);
+      continue;
     }
+    const worktree = stripControlChars(operatorStopWorktree(event.body) ?? "");
+    const script = scripts.get(worktree) ?? [];
+    script.push(...commands);
+    scripts.set(worktree, script);
   }
   const body: string[] = ["Agent-proposed commands. Read each one before running it."];
   body.push(...mintLines);
-  if (scriptLines.length > 0) {
-    body.push("Script:");
-    body.push(...scriptLines);
+  for (const [worktree, lines] of scripts) {
+    body.push(worktree.length > 0 ? `Script (run in ${worktree}):` : "Script:");
+    body.push(...lines);
   }
   body.push(...otherLines);
   return { title, body: body.join("\n"), ids: events.map((e) => e.id) };
@@ -379,6 +393,7 @@ export interface SpawnOperatorNotifierDeps {
     options: SpawnOptions,
   ) => {
     unref(): void;
+    on?(event: "error", listener: (err: Error) => void): unknown;
   };
   readonly execPath?: string;
   readonly entry?: string;
@@ -399,6 +414,9 @@ export function spawnOperatorNotifier(
       [deps.entry ?? operatorNotifyEntryPath(), OPERATOR_NOTIFY_CHILD_FLAG, resolve(projectRoot)],
       { detached: true, stdio: "ignore", windowsHide: true },
     );
+    // Spawn failures (ENOENT, EAGAIN) arrive as an `error` event, not a throw;
+    // without a listener they would crash the hook or mint command.
+    child.on?.("error", () => undefined);
     child.unref();
     return true;
   } catch {

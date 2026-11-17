@@ -228,7 +228,7 @@ export function recordMintOperatorStop(
     const command = formatOperatorCommand({
       projectRoot: ctx.projectRoot,
       verb,
-      args: ctx.args,
+      args: absoluteProjectRootArgs(ctx.args, ctx.projectRoot),
       confirm: true,
     });
     const record = ctx.record ?? defaultRecordOperatorStop;
@@ -245,6 +245,26 @@ export function recordMintOperatorStop(
   } catch {
     // Recording never changes the refusal.
   }
+}
+
+/**
+ * Replace a `--project-root` value with the resolved root, so a replay that
+ * first changes into that root does not resolve a relative root twice.
+ */
+export function absoluteProjectRootArgs(args: readonly string[], projectRoot: string): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] as string;
+    if (arg === "--project-root" || arg === "--projectRoot") {
+      out.push(arg, projectRoot);
+      i += 1;
+    } else if (arg.startsWith("--project-root=")) {
+      out.push(`--project-root=${projectRoot}`);
+    } else {
+      out.push(arg);
+    }
+  }
+  return out;
 }
 
 /** Strip a leading `--` separator and the subcommand token from mint argv. */

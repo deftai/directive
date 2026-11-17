@@ -22,6 +22,7 @@ import {
   type OperatorNotification,
   operatorNotifyEntryPath,
   operatorNotifyLockPath,
+  operatorStopWorktree,
   osNotificationCommand,
   runOperatorNotifier,
   sendOsNotification,
@@ -30,6 +31,7 @@ import {
 } from "./operator-notify.js";
 import {
   formatOperatorCommand,
+  formatOperatorStopBody,
   type OperatorStopInput,
   recordOperatorStop,
 } from "./operator-stop.js";
@@ -151,9 +153,40 @@ describe("operator-stop notifier fixtures (#6275 Bound limb 4)", () => {
     expect(sent).toHaveLength(1);
     const body = sent[0]?.body ?? "";
     expect(body.match(/^Mint \(run alone\): /gm)).toHaveLength(2);
-    expect(body).toMatch(/Script:\ngit push origin story\/x\ngh pr merge 1/);
+    // The script names the worktree its bare commands must run in.
+    expect(body).toContain(
+      `Script (run in ${resolve(root)}):\ngit push origin story/x\ngh pr merge 1`,
+    );
     expect(sent[0]?.ids).toHaveLength(4);
     expect(body.split("\n")[0]).toMatch(/Agent-proposed/);
+  });
+
+  it("groups script commands by worktree", () => {
+    const a = tempRoot();
+    const b = tempRoot();
+    const t = Date.now();
+    recordOperatorStop(stepStop(a, "gh pr merge 1", new Date(t + 1000)), ON);
+    const formatted = formatOperatorNotification([
+      ...listOpenEscalations(a),
+      fileEscalation({
+        projectRoot: b,
+        type: "cmd_approval",
+        title: "b",
+        body: formatOperatorStopBody(b, ["git push"]),
+      }),
+    ]);
+    expect(formatted.body).toContain(`Script (run in ${resolve(a)}):\ngh pr merge 1`);
+    expect(formatted.body).toContain(`Script (run in ${resolve(b)}):\ngit push`);
+    expect(operatorStopWorktree("no worktree here")).toBeNull();
+    const bare = formatOperatorNotification([
+      fileEscalation({
+        projectRoot: b,
+        type: "cmd_approval",
+        title: "c",
+        body: "Commands (agent-proposed; read before running):\nmake x\n",
+      }),
+    ]);
+    expect(bare.body).toContain("Script:\nmake x");
   });
 
   it("two notifier children starting together send one notification listing both", () => {
@@ -443,6 +476,7 @@ describe("notifier edge cases", () => {
     const { sent, send } = collect();
     drainOperatorStops(root, { send });
     expect(sent[0]?.body).toMatch(/Script:\nstep-one\nstep-two/);
+    expect(sent[0]?.body).not.toContain("run in");
   });
 
   it("a claim-marker write failure surfaces as not ok, never a throw", () => {
@@ -494,6 +528,25 @@ describe("detached notifier spawn", () => {
     const entry = join(dir, "noop.cjs");
     writeFileSync(entry, "// does nothing\n");
     expect(spawnOperatorNotifier(dir, { entry })).toBe(true);
+  });
+
+  it("attaches an error listener so a failed spawn never crashes the caller", async () => {
+    const listeners: string[] = [];
+    spawnOperatorNotifier("/repo", {
+      spawn: () => ({
+        unref: () => undefined,
+        on: (event: string) => {
+          listeners.push(event);
+          return undefined;
+        },
+      }),
+    });
+    expect(listeners).toEqual(["error"]);
+    // A real spawn of a missing binary emits `error` asynchronously.
+    expect(
+      spawnOperatorNotifier("/repo", { execPath: join(tmpdir(), "no-such-node-binary-6275") }),
+    ).toBe(true);
+    await new Promise((r) => setTimeout(r, 200));
   });
 
   it("recognizes only its own child argv", () => {

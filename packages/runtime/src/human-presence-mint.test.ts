@@ -8,6 +8,7 @@ import { main as authzMain, AUTHZ_AGENT_SHELL_ENV_MARKERS as fromAuthz } from ".
 import {
   AUTHZ_AGENT_SHELL_ENV_MARKERS,
   AUTHZ_INTERACTIVE_CONFIRM_PHRASE,
+  absoluteProjectRootArgs,
   controllingTerminalOpenFlag,
   controllingTerminalPath,
   detectedAgentShellMarkers,
@@ -122,6 +123,26 @@ describe("agent-marker mint refusal records an operator stop (#6275 limb 2)", ()
       else process.env.DEFT_USER_PATH = prev;
     }
     expect(readdirSync(root)).toEqual([]);
+  });
+
+  it("replay uses the resolved project root, so a relative root is not applied twice", () => {
+    silence();
+    const recorded: OperatorStopInput[] = [];
+    const abs = resolve("/work/repo");
+    recordMintOperatorStop(
+      "authz:grant",
+      {},
+      {
+        projectRoot: abs,
+        args: ["--project-root", "./repo", "--operations", "edit", "--projectRoot=x"],
+        record: (i) => recorded.push(i),
+      },
+    );
+    const command = recorded[0]?.commands[0] ?? "";
+    expect(command).not.toContain("./repo");
+    expect(
+      absoluteProjectRootArgs(["--project-root=./repo", "--projectRoot", "r", "a"], abs),
+    ).toEqual([`--project-root=${abs}`, "--projectRoot", abs, "a"]);
   });
 
   it("mintArgsAfterVerb drops separators and the subcommand", () => {

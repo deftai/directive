@@ -1758,10 +1758,48 @@ const NON_GRANTABLE_OPS: ReadonlySet<string> = new Set([
  * command (#6275). Writes nothing while the notifier is off; never changes the
  * verdict and never throws.
  */
+/** Placeholder for the fix-cohort name the operator chooses (the grant check requires one). */
+const OPERATOR_COHORT_PLACEHOLDER = "<fix-cohort>";
+
+/**
+ * Operator steps for an `authz-grant-*` deny. `authz:grant` refuses while a UAT
+ * lease is active, so under UAT the steps suspend the lease, mint the grant
+ * with a named fix cohort (the operator's choice), then restart the campaign.
+ */
+export function authzGrantRemedyCommands(input: {
+  readonly projectRoot: string;
+  readonly op: string;
+  readonly path: string | null;
+  readonly uatCampaignId: string | null;
+}): string[] {
+  const { projectRoot } = input;
+  const grantArgs = ["--operations", input.op];
+  if (input.path !== null && input.path.length > 0) grantArgs.push("--surfaces", input.path);
+  grantArgs.push("--cohort", OPERATOR_COHORT_PLACEHOLDER);
+  const grant = formatOperatorCommand({
+    projectRoot,
+    verb: "authz:grant",
+    args: grantArgs,
+    confirm: true,
+  });
+  if (input.uatCampaignId === null) return [grant];
+  return [
+    formatOperatorCommand({ projectRoot, verb: "authz:uat-suspend", args: [], confirm: true }),
+    grant,
+    formatOperatorCommand({
+      projectRoot,
+      verb: "authz:uat-start",
+      args: ["--campaign", input.uatCampaignId],
+      confirm: true,
+    }),
+  ];
+}
+
 function recordAuthzOperatorStop(
   input: HookDispatchInput,
   projectRoot: string,
   decision: AuthzDecision,
+  state: AuthzState,
   seams: HookPolicySeams,
 ): void {
   // Called only on a deny; the code decides whether a mint is the remedy.
@@ -1769,10 +1807,7 @@ function recordAuthzOperatorStop(
   const op = String(decision.attemptedOp);
   if (NON_GRANTABLE_OPS.has(op)) return;
   try {
-    const args = ["--operations", op];
-    if (decision.path !== null && decision.path.length > 0) {
-      args.push("--surfaces", decision.path);
-    }
+    const uatCampaignId = state.uat?.active === true ? state.uat.campaignId : null;
     const record =
       seams.recordOperatorStop ??
       ((stop: OperatorStopInput) => {
@@ -1784,8 +1819,15 @@ function recordAuthzOperatorStop(
       code: decision.code,
       target: `${op}:${decision.path ?? "*"}`,
       sessionId: input.environ?.DEFT_SESSION_ID ?? null,
-      title: `Grant needed: ${op}${decision.path ? ` on ${decision.path}` : ""} (${decision.code})`,
-      commands: [formatOperatorCommand({ projectRoot, verb: "authz:grant", args, confirm: true })],
+      title:
+        `Grant needed: ${op}${decision.path ? ` on ${decision.path}` : ""} (${decision.code}); ` +
+        `choose the fix cohort${uatCampaignId === null ? "" : ` and resume UAT ${uatCampaignId}`}`,
+      commands: authzGrantRemedyCommands({
+        projectRoot,
+        op,
+        path: decision.path,
+        uatCampaignId,
+      }),
       contextRefs: [decision.code],
     });
   } catch {
@@ -2019,7 +2061,7 @@ function authzForMutation(
     }
     recordAuthzAudit(projectRoot, decision, state, seams);
     if (!decision.allowed) {
-      recordAuthzOperatorStop(input, projectRoot, decision, seams);
+      recordAuthzOperatorStop(input, projectRoot, decision, state, seams);
       return deny(
         input,
         authzCodeToHook(decision.code),

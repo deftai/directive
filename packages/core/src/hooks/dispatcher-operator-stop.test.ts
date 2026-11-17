@@ -6,7 +6,7 @@ import type { AuthzState } from "../authz/index.js";
 import type { OperatorStopInput } from "../escalation/operator-stop.js";
 import { listOpenEscalations } from "../escalation/store.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
-import { decideHook, type HookPolicySeams } from "./dispatcher.js";
+import { authzGrantRemedyCommands, decideHook, type HookPolicySeams } from "./dispatcher.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -100,10 +100,26 @@ describe("authz-grant deny records an operator stop (#6275 limb 2)", () => {
     const stop = recorded[0] as OperatorStopInput;
     expect(stop).toMatchObject({ kind: "mint", code: withRecord.code, sessionId: "owner" });
     expect(stop.projectRoot).toBe(resolve(root));
-    expect(stop.commands[0]).toMatch(
-      /; deft authz:grant -- --operations edit --surfaces \S+ --confirm$/,
+    // authz:grant refuses under an active UAT lease: suspend, grant with a cohort, restart.
+    expect(stop.commands).toHaveLength(3);
+    expect(stop.commands[0]).toMatch(/; deft authz:uat-suspend -- --confirm$/);
+    expect(stop.commands[1]).toMatch(
+      /; deft authz:grant -- --operations edit --surfaces \S+ --cohort '<fix-cohort>' --confirm$/,
     );
-    expect(stop.commands[0]).toContain("src/a.ts");
+    expect(stop.commands[1]).toContain("src/a.ts");
+    expect(stop.commands[2]).toMatch(/; deft authz:uat-start -- --campaign uat-6275 --confirm$/);
+    expect(stop.title).toContain("choose the fix cohort and resume UAT uat-6275");
+  });
+
+  it("outside UAT the remedy is the grant alone", () => {
+    const commands = authzGrantRemedyCommands({
+      projectRoot: "/repo",
+      op: "settings",
+      path: null,
+      uatCampaignId: null,
+    });
+    expect(commands).toHaveLength(1);
+    expect(commands[0]).toMatch(/deft authz:grant -- --operations settings --cohort .+ --confirm$/);
   });
 
   it("a path-less shell deny records the grant without --surfaces", () => {
@@ -129,7 +145,7 @@ describe("authz-grant deny records an operator stop (#6275 limb 2)", () => {
     }
     expect(recorded).toHaveLength(1);
     const stop = recorded[0] as OperatorStopInput;
-    expect(stop.commands[0]).not.toContain("--surfaces");
+    expect(stop.commands.join("\n")).not.toContain("--surfaces");
     expect(stop.target.endsWith(":*")).toBe(true);
     expect(stop.title).not.toContain(" on ");
   });
