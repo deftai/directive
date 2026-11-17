@@ -3,7 +3,7 @@ import { readRepoFile } from "./helpers.js";
 
 /**
  * #6366 -- merge queue setup playbook, and the pointers agents read where they merge.
- * Also pins the #6379 pre-dispatch pointer in AGENTS.md, its template and the swarm skill.
+ * Also pins the #6379 pre-dispatch pointer in the AGENTS.md template and the swarm skill.
  */
 
 const PLAYBOOK = "docs/github-merge-queue-setup.md";
@@ -68,11 +68,10 @@ describe("merge_queue_playbook_6366", () => {
   });
 
   it("pre_dispatch_pointer_in_agents_template_and_swarm_skill", () => {
-    const files = [
-      "templates/agents-entry.md",
-      "AGENTS.md",
-      "skills/deft-directive-swarm/SKILL.md",
-    ];
+    // Root AGENTS.md is not pinned here: a bare agents:refresh rebuilds its
+    // managed section from the pinned runtime, which lags this template until
+    // the next release.
+    const files = ["templates/agents-entry.md", "skills/deft-directive-swarm/SKILL.md"];
     for (const rel of files) {
       const lines = readRepoFile(rel)
         .split("\n")
