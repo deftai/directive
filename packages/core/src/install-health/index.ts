@@ -69,6 +69,12 @@ export {
   matchPinMismatchRecoveryCommand,
   PIN_MISMATCH_RECOVERY_COMMANDS,
 } from "./recovery-admit.js";
+export {
+  checkRuntimeLinkOwner,
+  classifyRootMismatch,
+  FOREIGN_RUNTIME_LINK,
+  resolveLaunchingCheckoutRootFromPath,
+} from "./runtime-link.js";
 export type {
   CheapInSyncResult,
   FullInSyncOptions,

@@ -44,6 +44,13 @@ export const PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE =
 export const HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE =
   "Prep the linked worktree (`deft swarm-worktrees prep --path <dest>`), then open that worktree as the host project root so launchRoot matches payloadRoot. Primary `npm i -g @deftai/directive` / `directive install --repair` does not rebind a primary-rooted session.";
 
+/**
+ * Recovery when the runtime that launched the hook is linked in from another
+ * checkout (#6185). Names the one mismatch it clears; later gates still apply.
+ */
+export const FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE =
+  "Open a terminal outside this locked agent session. Remove the link at `<payloadRoot>/node_modules` or `<payloadRoot>/node_modules/@deftai/directive-runtime`, then install the runtime in `<payloadRoot>` (`pnpm install --frozen-lockfile` or `npm install`). This clears the foreign-runtime root mismatch; existing install and policy gates still apply.";
+
 /** Relative path of the committed setup record. */
 export const GENERATION_REL = ".deft/GENERATION.json";
 
