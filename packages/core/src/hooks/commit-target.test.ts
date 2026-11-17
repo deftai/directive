@@ -291,6 +291,11 @@ describe("quoted heredoc bodies are data to every commit detector (#6187)", () =
     // A quoted heredoc after an unquoted one is no longer stripped.
     const later = "cat <<A\nx\nA\ncat <<'B'\ngit commit -am msg\nB";
     expect(commandHasGitCommitIndexMutatingForm(later)).toBe(true);
+    // A continued commit after an unquoted heredoc is one command.
+    const continued = "cat <<EOF\nmessage\nEOF\ngit \\\n  commit -am msg";
+    expect(commandHasGitCommitSubcommand(continued)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(continued)).toBe(true);
+    expect(resolveCommitTarget(continued, posix)).toEqual({ kind: "hook-root" });
   });
 
   it("strips a quoted body before an unquoted heredoc and reads the rest as written", () => {

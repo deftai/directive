@@ -76,4 +76,11 @@ describe("commit-shape check ignores heredoc bodies end to end (#6187)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
     expect(decision.message).toMatch(/-a\/--all\/-am/);
   });
+
+  it("still refuses a continued -am commit after an unquoted heredoc", () => {
+    const command = "cat <<EOF\nmessage\nEOF\ngit \\\n  commit -am msg";
+    const decision = decideBash(command, ["src/a.ts"]);
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/-a\/--all\/-am/);
+  });
 });

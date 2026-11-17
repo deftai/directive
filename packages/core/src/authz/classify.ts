@@ -2019,7 +2019,10 @@ export function shellWithoutHereDocBodies(
     }
     const parsed = zipStripHereDocDeclarationsFromLine(zipShellWithoutLineContinuations(logical));
     if (options.quotedOnly === true && parsed.specs.some((spec) => !spec.quoted)) {
-      return [...kept, logical, ...lines.slice(i + 1)].join("\n");
+      // The rest is kept; removing continuations only joins lines the shell
+      // joins too (unquoted bodies fold them), so no text is hidden.
+      const rest = [logical, ...lines.slice(i + 1)].join("\n");
+      return [...kept, zipShellWithoutLineContinuations(rest)].join("\n");
     }
     kept.push(parsed.sanitized);
     for (const spec of parsed.specs) {
