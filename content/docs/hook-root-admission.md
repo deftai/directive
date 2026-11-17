@@ -304,7 +304,7 @@ kill-switch, occupancy, the intent ceiling, the installation identity check, for
 tree-wide destructive git, default-branch push and force push, runtime-authority refusals other than
 the story `file_scope` verdict, and the commit-target refusals.
 
-**Limits, named and not closed here.** The change adds no guard for secrets paths, deletes outside
+**What it does not do (limits, named and not closed here).** The change adds no guard for secrets paths, deletes outside
 the repository or force pushes to other branches; none exists today. It does not fix the hook-timeout
 fail-open (#5920). The read budget bounds the added latency; a hook that still runs past the host
 timeout fails open as before. The delivery branch name comes from the existing delivery-branch
