@@ -19,6 +19,9 @@ import {
   EXIT_MERGED,
   EXIT_QUEUE_PENDING,
   EXIT_TIMEOUT_OR_ESCALATION,
+  MERGE_QUEUE_WAIT_MAX_FAILED_READS,
+  MERGE_QUEUE_WAIT_POLL_SECONDS,
+  type QueueWaitStopReason,
 } from "./constants.js";
 import {
   classifyQueueRead,
@@ -26,6 +29,7 @@ import {
   formatResumeCommand,
   type MergeQueueDetectFn,
   type QueueReadFn,
+  type QueueResult,
   type QueueResultKind,
   queueResultToDict,
   readQueueState,
@@ -139,6 +143,25 @@ export interface WaitMergeableOptions {
   readonly queueReadFn?: QueueReadFn;
   /** Clock seam for the recorded enqueue time (#6295). */
   readonly nowFn?: () => Date;
+  /** `--wait` (#6423): repeat the read after enqueue until it is no longer pending. */
+  readonly wait?: boolean;
+  /** Sleep seam for `--wait` (#6423); defaults to a blocking sleep. */
+  readonly queueWaitSleepFn?: QueueWaitSleepFn;
+  /** Clock seam (epoch ms) for the `--wait` deadline (#6423); defaults to Date.now. */
+  readonly queueWaitClockMsFn?: () => number;
+}
+
+/** Blocking sleep used between `--wait` queue reads (#6423). */
+export type QueueWaitSleepFn = (seconds: number) => void;
+
+/**
+ * Synchronous sleep: the verb runs synchronously, and its heartbeat refresher
+ * lives on a worker thread, so blocking this thread keeps the heartbeat fresh.
+ */
+export function sleepSecondsSync(seconds: number): void {
+  const ms = Math.max(0, Math.trunc(seconds * 1000));
+  if (ms === 0) return;
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function resolveUmbrellaFn(
@@ -199,16 +222,39 @@ export interface QueueReportInput {
   readonly mergeStderr?: string;
 }
 
+/** One queue read: a classified result, or the reason the read was unavailable. */
+type QueueAttempt =
+  | { readonly ok: true; readonly result: QueueResult }
+  | { readonly ok: false; readonly message: string };
+
+function attemptQueueRead(input: QueueReportInput): QueueAttempt {
+  const readFn = input.queueReadFn ?? ((n: number, r: string) => readQueueState(n, r));
+  const read = readFn(input.prNumber, input.repo);
+  if (read.status !== "ok") {
+    return { ok: false, message: read.message };
+  }
+  return { ok: true, result: classifyQueueRead(read.read, input.expectHead, input.since) };
+}
+
+function isPendingAttempt(attempt: QueueAttempt): boolean {
+  return (
+    attempt.ok && (attempt.result.kind === "queued" || attempt.result.kind === "awaiting-admission")
+  );
+}
+
 /**
- * Read the PR once and report exactly one queue result (#6295 item 4). On
- * `merged` run today's post-merge reconciliation; `head-changed` never does.
+ * Report one queue attempt. `stopReason` is set only under `--wait` (#6423
+ * item 6); a one-read result carries no stop-reason field.
  */
-export function reportMergeQueueState(input: QueueReportInput): WaitMergeableResult {
+function reportQueueAttempt(
+  input: QueueReportInput,
+  attempt: QueueAttempt,
+  stopReason: QueueWaitStopReason | null,
+): WaitMergeableResult {
   const { prNumber, repo, expectHead, since } = input;
   const resume = formatResumeCommand(prNumber, repo, expectHead, since);
-  const readFn = input.queueReadFn ?? ((n: number, r: string) => readQueueState(n, r));
-  const read = readFn(prNumber, repo);
-  if (read.status !== "ok") {
+  const stop = stopReason === null ? {} : { wait_stop_reason: stopReason };
+  if (!attempt.ok) {
     return makeResult({
       prNumber,
       repo,
@@ -216,13 +262,13 @@ export function reportMergeQueueState(input: QueueReportInput): WaitMergeableRes
       exitCode: EXIT_CONFIG_ERROR,
       monitorResult: input.monitorResult,
       protectedCheck: input.protectedCheck,
-      mergeQueue: { resume_command: resume, expected_head: expectHead, since },
+      mergeQueue: { resume_command: resume, expected_head: expectHead, since, ...stop },
       mergeStdout: input.mergeStdout,
       mergeStderr: input.mergeStderr,
-      error: `${read.message}\nResume: ${resume}`,
+      error: `${attempt.message}\nResume: ${resume}`,
     });
   }
-  const result = classifyQueueRead(read.read, expectHead, since);
+  const result = attempt.result;
   if (result.kind === "merged") {
     runPostMergeReconcile(resolveUmbrellaFn(input.umbrellaReconcileFn), input.projectRoot, repo);
   }
@@ -240,11 +286,66 @@ export function reportMergeQueueState(input: QueueReportInput): WaitMergeableRes
     exitCode: QUEUE_EXIT[result.kind],
     monitorResult: input.monitorResult,
     protectedCheck: input.protectedCheck,
-    mergeQueue: queueResultToDict(result, resume),
+    mergeQueue: { ...queueResultToDict(result, resume), ...stop },
     mergeStdout: input.mergeStdout,
     mergeStderr: input.mergeStderr,
     error: note === null ? null : `${note}${detail}\nResume: ${resume}`,
   });
+}
+
+/**
+ * Read the PR once and report exactly one queue result (#6295 item 4). On
+ * `merged` run today's post-merge reconciliation; `head-changed` never does.
+ */
+export function reportMergeQueueState(input: QueueReportInput): WaitMergeableResult {
+  return reportQueueAttempt(input, attemptQueueRead(input), null);
+}
+
+export interface QueueWaitOptions {
+  /** `--cap-minutes`: the one deadline is the start of the wait plus this (#6423 item 3). */
+  readonly capMinutes: number;
+  readonly sleepFn?: QueueWaitSleepFn;
+  readonly clockMsFn?: () => number;
+}
+
+/**
+ * `--wait` (#6423): repeat today's queue read while it is pending. Ends on the
+ * first other result, after {@link MERGE_QUEUE_WAIT_MAX_FAILED_READS} failed
+ * reads in a row, or at the one deadline, where the latest attempt decides.
+ * No sleep ends after the deadline and no read starts after it.
+ */
+export function waitMergeQueueState(
+  input: QueueReportInput,
+  wait: QueueWaitOptions,
+): WaitMergeableResult {
+  const clock = wait.clockMsFn ?? Date.now;
+  const sleep = wait.sleepFn ?? sleepSecondsSync;
+  const deadlineMs = clock() + wait.capMinutes * 60_000;
+  let failedReads = 0;
+  for (;;) {
+    const attempt = attemptQueueRead(input);
+    if (attempt.ok && !isPendingAttempt(attempt)) {
+      return reportQueueAttempt(input, attempt, "result");
+    }
+    failedReads = attempt.ok ? 0 : failedReads + 1;
+    if (failedReads >= MERGE_QUEUE_WAIT_MAX_FAILED_READS) {
+      return reportQueueAttempt(input, attempt, "read-unavailable");
+    }
+    if (clock() + MERGE_QUEUE_WAIT_POLL_SECONDS * 1000 > deadlineMs) {
+      return reportQueueAttempt(input, attempt, "cap");
+    }
+    const state = attempt.ok
+      ? attempt.result.kind
+      : `read unavailable (${failedReads} of ${MERGE_QUEUE_WAIT_MAX_FAILED_READS} in a row)`;
+    process.stderr.write(
+      `[pr_wait_mergeable] PR #${input.prNumber} queue wait: ${state}; ` +
+        `next read in ${MERGE_QUEUE_WAIT_POLL_SECONDS}s\n`,
+    );
+    sleep(MERGE_QUEUE_WAIT_POLL_SECONDS);
+    if (clock() > deadlineMs) {
+      return reportQueueAttempt(input, attempt, "cap");
+    }
+  }
 }
 
 /** `--resume --expect-head <sha> --since <time>`: repeat the read from any session (#6295). */
@@ -257,9 +358,11 @@ export function resumeMergeQueueRead(
     readonly projectRoot?: string;
     readonly queueReadFn?: QueueReadFn;
     readonly umbrellaReconcileFn?: UmbrellaReconcileFn | null;
+    /** `--wait` (#6423): wait under these options instead of one read. */
+    readonly wait?: QueueWaitOptions;
   },
 ): WaitMergeableResult {
-  return reportMergeQueueState({
+  const input: QueueReportInput = {
     prNumber,
     repo,
     expectHead: options.expectHead,
@@ -267,7 +370,10 @@ export function resumeMergeQueueRead(
     projectRoot: options.projectRoot ?? process.cwd(),
     queueReadFn: options.queueReadFn,
     umbrellaReconcileFn: options.umbrellaReconcileFn,
-  });
+  };
+  return options.wait === undefined
+    ? reportMergeQueueState(input)
+    : waitMergeQueueState(input, options.wait);
 }
 
 /** Run protected-check -> wait -> merge cascade (#1369). */
@@ -650,7 +756,7 @@ export function waitMergeableAndMerge(
           ". No --admin fallback (#6295).",
       });
     }
-    return reportMergeQueueState({
+    const reportInput: QueueReportInput = {
       prNumber,
       repo,
       expectHead,
@@ -662,7 +768,15 @@ export function waitMergeableAndMerge(
       protectedCheck: protectedCheckPayload,
       mergeStdout: qStdout,
       mergeStderr: qStderr,
-    });
+    };
+    // #6423: `--wait` repeats the read after enqueue; the deadline starts here.
+    return options.wait === true
+      ? waitMergeQueueState(reportInput, {
+          capMinutes: options.capMinutes,
+          sleepFn: options.queueWaitSleepFn,
+          clockMsFn: options.queueWaitClockMsFn,
+        })
+      : reportMergeQueueState(reportInput);
   }
 
   const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo, {
