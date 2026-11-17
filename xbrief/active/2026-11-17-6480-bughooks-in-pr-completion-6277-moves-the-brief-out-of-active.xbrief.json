@@ -1,0 +1,851 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6480",
+    "updated": "2026-11-17T05:43:54Z"
+  },
+  "plan": {
+    "title": "bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit",
+    "status": "running",
+    "narratives": {
+      "Description": "In-PR completion (#6277) moves the story brief from xbrief/active/ to xbrief/completed/ inside the product PR, and the #6379 worktree story binding then refuses that commit and every later Edit, Write and commit in the worktree with assigned_story_missing, whose repair text wrongly says to re-activate the brief. This story lets the binding admit the assigned story on an active-folder miss only when the assigned id matches one lands-with-product move in the worktree diff against the newest commit, among the merge base and the commits this branch adds after it, that still has the brief at its active path. The fence stays the merge-base blob when it exists and otherwise the one-PR mint gate on that same commit; the commit path keeps the implement intent ceiling, a completion already on the merge base stays refused, and no new gate or grant is added.",
+      "UserStory": "As a story worker in a bound linked worktree, I want the worktree story binding to keep admitting my story after scope:complete --in-pr moves its brief to completed/, so that I can commit the product change and later review fixes without the operator running each commit by hand.",
+      "ImplementationPlan": "1. packages/core/src/scope/lands-with-product.ts: a bounded helper that, for each active/ brief path present in the merge-base tree or in a commit this branch adds after it and absent from the worktree, finds the newest such commit that still contains it (HEAD while the move is uncommitted), runs git diff --name-status -M against that single revision, and returns the lands-with-product moves found there with that containing commit. Commits behind the merge base are never candidates.\n2. packages/core/src/hooks/scope.ts resolveWorktreeStoryBinding: on an active-folder miss, admit only when exactly one such move has storyIdForBrief equal to the assigned id (never soleLandsWithProductMove); the hit carries the pre-move active path and the containing commit; env pin and spawn bound path are checked with pinNamesLandsWithProductMove; any other miss keeps today's refusal; refusals for a story moved in that diff do not name scope:activate.\n3. packages/core/src/hooks/dispatcher.ts: on a moved-brief hit the write path and the commit path (evaluateProspectiveScopeCover) skip inspectActiveScope and the active-folder and running-status refuses, append no activate repair, and the commit path runs the implement intent ceiling itself.\n4. packages/core/src/policy/write-fence.ts: the fence for a moved-brief hit is the merge-base blob of the old active path when it exists; otherwise the one-PR mint gate reads the brief from the containing commit, never the missing worktree file or the completed brief.\n5. Tests: lands-with-product.test.ts, scope.test.ts, write-fence.test.ts, dispatcher-story-binding.test.ts and a git-fixture test story-binding-in-pr-completion.test.ts covering uncommitted and committed moves, merge-base and branch-added briefs, a completion already on the merge base, two moves, pins, refusal text and the intent ceiling.\n6. changelog.d/6480-binding-admits-in-pr-completion.md.",
+      "Traces": "#6480",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6480",
+      "Overview": "\n\n- On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.\n- When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.\n- The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.\n- Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.\n- The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.\n- The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.\n- The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.\n\n## Acceptance Criteria\n\n\n- Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.\n- Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.\n- Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.\n- Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.\n- A completion already inside the merge base has no candidate, and the commit is refused as today.\n- The refusal text for a story completed in that diff does not tell the author to re-activate the brief.\n- A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.\n- When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.\n- Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.\n\n\n",
+      "Labels": "bug, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts, when resolveWorktreeStoryBinding finds no active/ brief for the assigned story, then it admits that story only when the assigned id equals storyIdForBrief of exactly one lands-with-product move in the single-revision git diff --name-status -M against the newest commit at or after the merge base that still has that brief at its active path (HEAD while the move is uncommitted)."
+        }
+      },
+      {
+        "title": "When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/policy/write-fence.ts and a moved-brief hit, when the story write fence loads, then it is the merge-base blob of the old active path when that blob exists, and otherwise the one-PR mint gate evaluated on the brief read from the containing commit, never from the missing worktree file or the completed brief."
+        }
+      },
+      {
+        "title": "The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a moved-brief hit, when the write path or the commit path (evaluateProspectiveScopeCover) runs, then neither calls inspectActiveScope nor applies the active-folder and running-status refusals, the commit path runs the implement intent ceiling, and no message from either path appends the scope:activate or promote-then-activate repair."
+        }
+      },
+      {
+        "title": "Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts, when the assigned id matches no active/ brief and no in-range lands-with-product move, or the completion is already inside the merge base, then resolveWorktreeStoryBinding refuses with assigned_story_missing exactly as on origin/master."
+        }
+      },
+      {
+        "title": "The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts, when the binding resolves a moved brief, then it selects only the move whose story id equals the assigned id and does not call soleLandsWithProductMove, so a different story's move never becomes the assignment."
+        }
+      },
+      {
+        "title": "The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts and a moved-brief hit, when DEFT_ACTIVE_SCOPE or the spawn bound path is set, then the conflict check uses pinNamesLandsWithProductMove, so a pin naming the pre-move active path, the completed path or the basename names this story and any other pin still refuses."
+        }
+      },
+      {
+        "title": "The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/lands-with-product.ts, when the containing-commit move oracle runs, then an uncommitted move and the same move committed on the branch yield the same move from the single-revision diff, and no commit behind the merge base is ever a candidate."
+        }
+      },
+      {
+        "title": "Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts and a bound linked worktree whose assigned brief moved from active/ to completed/ as lands-with-product, committed or not, when the worker commits or writes, then the binding returns bound for that story and the git-fixture test admits both the commit and a later Edit."
+        }
+      },
+      {
+        "title": "Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/policy/write-fence.ts and a brief whose old active path exists on the merge base, when the worker commits after the move, then the fence file_scope equals that merge-base blob's file_scope."
+        }
+      },
+      {
+        "title": "Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/policy/write-fence.ts and a brief added on this branch, when the worker commits after the move, then the fence is the one-PR mint gate evaluated on the brief blob of the newest in-range commit that still contains it at its active path."
+        }
+      },
+      {
+        "title": "Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts and a bound worktree whose assigned story has no brief in active/ and no such move in that diff, when the worker commits, then the commit is refused with assigned_story_missing as on origin/master."
+        }
+      },
+      {
+        "title": "A completion already inside the merge base has no candidate, and the commit is refused as today.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/lands-with-product.ts and a completion already inside the merge base, when the oracle runs, then it returns no candidate and the commit is refused as today."
+        }
+      },
+      {
+        "title": "The refusal text for a story completed in that diff does not tell the author to re-activate the brief.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts and a story whose brief moved to completed/ in that diff, when any binding refusal is returned for it, then the refusal text does not tell the author to run scope:activate or re-activate the brief."
+        }
+      },
+      {
+        "title": "A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts and a moved-brief hit, when the env pin or spawn bound path names the pre-move active path, the completed path or the basename, then the binding still selects that story."
+        }
+      },
+      {
+        "title": "When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/scope.ts and a diff with more than one lands-with-product move, when the binding resolves, then it selects the move for the assigned id and never a different story's move."
+        }
+      },
+      {
+        "title": "Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a story admitted through that move, when a session whose DEFT_SESSION_SLASH_VERB is a non-implement verb commits, then the commit path refuses with the implement intent ceiling."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6480",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6480: bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.",
+        "When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.",
+        "The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.",
+        "Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.",
+        "The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.",
+        "The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.",
+        "The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.",
+        "Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.",
+        "Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.",
+        "Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.",
+        "Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.",
+        "A completion already inside the merge base has no candidate, and the commit is refused as today.",
+        "The refusal text for a story completed in that diff does not tell the author to re-activate the brief.",
+        "A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.",
+        "When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.",
+        "Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit."
+      ],
+      "admitted_source_sentences": [
+        "On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.",
+        "When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.",
+        "The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.",
+        "Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.",
+        "The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.",
+        "The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.",
+        "The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.",
+        "Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.",
+        "Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.",
+        "Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.",
+        "Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.",
+        "A completion already inside the merge base has no candidate, and the commit is refused as today.",
+        "The refusal text for a story completed in that diff does not tell the author to re-activate the brief.",
+        "A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.",
+        "When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.",
+        "Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit."
+      ],
+      "admitted_source_digest": "76b8f121f2e1cf5fa309db1916505e621f944b4d6b091883869664be8e2f6718",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.",
+          "artifact_path": "packages/core/src/scope/lands-with-product.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "A completion already inside the merge base has no candidate, and the commit is refused as today.",
+          "artifact_path": "packages/core/src/scope/lands-with-product.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The refusal text for a story completed in that diff does not tell the author to re-activate the brief.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/scope/lands-with-product.ts",
+          "packages/core/src/policy/write-fence.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/dispatcher-story-binding.test.ts",
+          "packages/core/src/hooks/story-binding-in-pr-completion.test.ts",
+          "packages/core/src/scope/lands-with-product.test.ts",
+          "packages/core/src/policy/write-fence.test.ts",
+          "changelog.d/6480-binding-admits-in-pr-completion.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "hooks-worktree-story-binding",
+        "Traces": [
+          "#6480"
+        ],
+        "acceptance_criteria_justification": "Sixteen clauses: the seven Bound remedy items and the nine Acceptance Criteria of the accepted lean (comment 6938620473, synthesis 6938761671), one clause each as the harvest admitted them. parallel_safe is true: no running story's file_scope touches packages/core/src/hooks/scope.ts, dispatcher.ts, scope/lands-with-product.ts or policy/write-fence.ts.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/scope.test.ts packages/core/src/hooks/dispatcher-story-binding.test.ts packages/core/src/hooks/story-binding-in-pr-completion.test.ts packages/core/src/scope/lands-with-product.test.ts packages/core/src/policy/write-fence.test.ts"
+        ],
+        "expected_outputs": [
+          "a bound linked worktree whose assigned brief moved active/ to completed/ as lands-with-product, committed or uncommitted, is admitted for commit and later Edit/Write",
+          "the fence is the merge-base blob of the old active path, else the one-PR mint gate on the newest in-range commit that still contains the brief",
+          "a completion already inside the merge base, a missing brief with no move, and another story's move all refuse as on origin/master, with no scope:activate repair for a moved story",
+          "the commit path still applies the implement intent ceiling on a moved-brief hit",
+          "one changelog fragment changelog.d/6480-binding-admits-in-pr-completion.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because in-PR completion and the worktree story binding were released together, and the binding refuses the completion it just performed.\n\nmechanism-shaped: true\ncharter: refutation\nrefutation-target: The worktree story binding admits the assigned story when this branch's change set moves that story's brief from active/ to completed/ as lands-with-product, including while the move is only in the worktree and after it is committed on the branch.\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\npain: P1, P2, P3\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nverification-path: pin-read git show a21a1802d22c79768e8e88491fe2ad45cd9c156f:; dest cwd-without-occupy\n\nP1 is a bound worktree whose change set moves the assigned story's brief from active/ to completed/, including when that move is not yet committed, being refused assigned_story_missing.\nP2 is that same refusal on every later edit, write, and commit in the worktree after the move is committed on the branch.\nP3 is the refusal telling the author to re-activate the brief, which undoes the completion.\n\nThe issue body's acceptance criteria cover the uncommitted move, the kept refusal when active/ has no brief and the change set has no move, and the repair text. Operator scope adds P2. Settle whether the same resolution covers the committed-on-this-branch state, and how a move that is already on the merge base stays refused.\n\nThe other road is a process rule: allow in-PR completion only as the last commit after a clean review. That adds no binding code and costs another review round per story. Operator direction: prefer the binding change when it stays small and fail-closed.\n\nRe-verify these anchors at dispatch SHA a21a1802d22c79768e8e88491fe2ad45cd9c156f before relying on them. `resolveWorktreeStoryBinding` in `packages/core/src/hooks/scope.ts` matches the assigned story only under `xbrief/active/` through `listActiveLifecycleArtifacts`. On a miss, the repair text says to `scope:activate` the brief. `discoverLandsWithProductMoves` in `packages/core/src/scope/lands-with-product.ts` already finds an active/ to completed/ lands-with-product move with `git diff --name-status -M` against the merge base, and `resolveSoftMissingAcTargets` uses the sole such move on the check path. The binding resolver does not call it.\n\nKept refusal, not a pain: no matching brief under active/ and no matching move in this branch's diff from the merge base still refuses as today.\n\n",
+          "id": 6936109252,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6936109252",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T02:27:13Z",
+          "updated_at": "2026-11-17T02:27:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nSpend on Stop 1 was N≥3. Claude and Codex critic launches were hook-denied on this host before either returned a pong. The deny says the only recovery is a native Grok seat in a worktree. This arc therefore continues with one Grok critic. Stop 1 comment 6936109252 stays the charter. The dual-stop reserved slot does not apply at N=1.\n\n",
+          "id": 6937269695,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6937269695",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T03:30:41Z",
+          "updated_at": "2026-11-17T03:30:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound: 1 critic. Charter: refutation of Stop 1 6936109252. Id ceiling (inclusive): 6937269695. Spend amend 6937269695 is N=1 and is not a second charter.\ndispatch-sha: a21a1802d22c79768e8e88491fe2ad45cd9c156f\nverification-path: pin checkout `.deft-scratch/worktrees/arc-6480` whose HEAD is that SHA (one checkout, no later commit). `git show` from this dest was hook-denied (missing node_modules/@deftai/directive-runtime). This critic worktree is later and was not read. Suite not run.\n\n## Verdict\n\nThe premise does not bind as written. One diff already sees both states and still refuses a move that is already on the merge base. Calling that helper the way the check path does still does not admit the assigned story, and the commit refusal still says to activate the brief.\n\n### F1 — Active-only pipeline refuses the moved brief\nblocks-the-design\nEvidence: `resolveWorktreeStoryBinding` scans only `listActiveLifecycleArtifacts` and, on a miss, repairs with `deft scope:activate -- <brief>` (`packages/core/src/hooks/scope.ts` 1064-1081). A hit calls `evaluate`, which refuses a brief that is not in `active/` or whose `plan.status` is not `running` (`packages/core/src/preflight/evaluate.ts` 212-219 and 234-241). `complete` sets status `completed` and moves the file to `completed/` (`packages/core/src/scope/constants.ts` 32, `packages/core/src/scope/transition.ts` 1020); `--in-pr` also stamps `lands-with-product` (`transition.ts` 1052-1057). After `bound`, `evaluateProspectiveScopeCover` still requires `inspectActiveScope` to be ready (`packages/core/src/hooks/dispatcher.ts` 5408-5418). That scan is only `xbrief/active` and `vbrief/active` (`scope.ts` 420-432). The not-ready recovery is promote-then-activate (`packages/core/src/scope/transition-hint.ts` 17-20). The write gate hands the same bound path to `inspectActiveScope` (`dispatcher.ts` 2779-2799). `loadStoryWriteFenceFromMergeBase` reads `file_scope` from the merge-base blob at the scope path and ignores the worktree copy (`packages/core/src/policy/write-fence.ts` 628-632 and 674-682). The completed path is not that blob. The allow list still lives at the old `active/` path.\nFailure mode: Pointing the binding at the completed brief still refuses the product commit and later writes. The commit text still says to activate, which undoes the completion. The assigned story's governing allow list is not what covers the commit, so the right story stays blocked.\nDisposition: On an active miss, admit only when the assigned story id equals `storyIdForBrief` of one lands-with-product move. Load the fence from that move's `activeRel` on the merge base. Do not run `evaluate` or `inspectActiveScope` for that hit, and do not append the activate repair, on the commit path or the write path. Any other miss keeps today's refuse.\n\n### F2 — Sole move is the wrong authority\nblocks-the-design\nEvidence: `soleLandsWithProductMove` is null unless there is exactly one move (`packages/core/src/scope/lands-with-product.ts` 464-469). `resolveSoftMissingAcTargets` adopts that sole move as the story when `branchBind` is set (`scope.ts` 614-626). The binding already has an assigned id from the worker-auth assignment or the story-binding record (`scope.ts` 1040-1060), both under the shared git common dir. The diff is this worktree only. `pinNamesLandsWithProductMove` treats the old active path, the completed path, and the basename as the same story (`lands-with-product.ts` 441-460). The binding pin check uses `matchPinnedActiveScope` against active files only (`scope.ts` 1092-1106).\nFailure mode: Adopting the sole move writes this worktree under another story's `file_scope` when the assigned brief is gone and some other brief moved, and it refuses the assigned story when two briefs moved. A pin that still names the pre-move active path, which is how `DEFT_ACTIVE_SCOPE` survives `scope:complete --in-pr`, conflicts, so the right commit stays refused.\nDisposition: The move proves the assigned brief left `active/`. It is not a new assignment. Match the assigned id. Reuse `pinNamesLandsWithProductMove` for the env pin and the spawn bound path. Do not call `soleLandsWithProductMove` on this path.\n\n### F3 — One diff already settles both states and the merge-base refusal\nfootnote\nEvidence: `discoverLandsWithProductMoves` runs `git diff --name-status -M <merge-base>` with no second revision (`lands-with-product.ts` 408-410), the worktree against the merge base. A move only in the worktree and a move already committed on the branch are the same diff. A move already inside the merge base has no `D` or `R` of `active/` in that diff, so it is not a move (`lands-with-product.ts` 413-421). The unit test locks only the committed rename (`lands-with-product.test.ts` 370-384).\nFailure mode: `git diff <base> HEAD` drops the uncommitted move. `git diff --cached` drops the move already committed on the branch. A disk scan of `completed/` with no `D` or `R` in this diff admits a story whose completion is already on the merge base.\nDisposition: No lean change and no second scanner. Keep this diff as the oracle for both states and for the merge-base refusal. A lock for the uncommitted move and for the merge-base non-move is an implementation note.\n\nRoad not taken: treat a lands-with-product completed brief as `running` inside `evaluate`. That makes every preflight consumer treat a finished story as implementation-eligible, and it still does not point the fence at the merge-base `active/` blob. Flip only if a completed brief should spawn implementation. The process rule (in-PR completion only as a last commit after a clean review, no binding change) stays the smaller process and the larger cost. Flip to it if the fence cannot stay the merge-base active pre-image. It can.\n\n",
+          "id": 6937537831,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6937537831",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T03:43:03Z",
+          "updated_at": "2026-11-17T03:43:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nIn-PR completion moves the story brief out of active/, and the worktree binding then refuses the commit and every later write, and tells the author to activate the brief again. The binding admits that assigned story only when its id matches one lands-with-product move in this worktree's diff against the merge base, loads the write fence from that brief's old active path on the merge base, and skips the active-folder eligibility checks and the activate repair. Any other miss, including a completion already on the merge base, still refuses. The move is not a new story assignment.\n\n**Lean:** accept F1, F2, and F3 into the contract. Empty disagreement set. Supersedes 6936109252. Critic 6937537831. Seat was Grok after Claude and Codex launches were hook-denied. This parent wrote Stop 1.\n\nF1 accept-into-contract\nF2 accept-into-contract\nF3 accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nSpec-path: packages/core/src/hooks/scope.ts\n\nTarget-digest: sha256:d50419b49021ab265bd751e778389588cc7445f0fa01508e3130f99e3ba8ce4a\n\n## Bound remedy\n\n- On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in this worktree's diff against the merge base.\n- That hit loads the write fence from the move's activeRel blob on the merge base.\n- That hit skips evaluate and inspectActiveScope, and neither the commit path nor the write path appends the activate repair.\n- Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.\n- The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.\n- The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.\n- The diff oracle stays git diff --name-status -M against the merge base with no second revision, so an uncommitted move and a move already committed on the branch are the same diff.\n\n## Acceptance Criteria\n\n- Given a bound worktree whose diff against the merge base moves the assigned story's brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story and the fence is the merge-base active pre-image.\n- Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.\n- The refusal text for a story completed in that diff does not tell the author to re-activate the brief.\n- A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.\n- When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.\n\n## What this adds\n\nThe diff against the merge base already separates an uncommitted move, a move committed on this branch, and a move already on the merge base. The binding uses that diff for the assigned story and skips the active-only checks that refuse a finished brief. No new scanner and no extra review round.\n\n",
+          "id": 6937623969,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6937623969",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T03:47:05Z",
+          "updated_at": "2026-11-17T03:47:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7-build-fast\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:19ef6d05551e265e7cc589d0b5dd3b7c90fd0fab0c29439257ce7795fd1fd007\nfinding-classes: sharpening\nharvest-changed: true\n\nPain-audit of successor lean 6937623969 against Stop 1 6936109252 and round-1 6937537831. Pin checkout `.deft-scratch/worktrees/arc-6480` HEAD is a21a1802d22c79768e8e88491fe2ad45cd9c156f. The shell hook denied every command (missing node_modules/@deftai/directive-runtime), so git show was not run and the comment was not posted. Files were read from that checkout. Suite not run.\n\nThe Bound remedy covers P1, P2, and P3. S1 narrows limb 3 and does not drop that coverage. `git diff --name-status -M` with only the merge-base sha (lands-with-product.ts 408-410) is the worktree against that commit, so an uncommitted move and a move already committed on the branch are the same diff, and a completion already inside the merge base is not a D or R of active/. storyIdForBrief is the id the assignment stores (worker-auth-assignment.ts 130-142). The hit skips the active-only scan (scope.ts 1064-1081 and 420-432) and the non-active and non-running refuses (evaluate.ts 212-219 and 234-241). The fence load from the move's activeRel is the merge-base blob `loadStoryWriteFenceFromMergeBase` already reads (write-fence.ts 625-684). The activate sentence is the miss repair (scope.ts 1076-1081) and the promote-then-activate recovery (transition-hint.ts 17-20), appended on the commit deny (dispatcher.ts 5412-5418) and the write deny (dispatcher.ts 2874-2884). A hit emits neither. A pin that names the pre-move active path, the completed path, or the basename still matches through pinNamesLandsWithProductMove (lands-with-product.ts 441-460), not soleLandsWithProductMove.\n\n### S1 — Commit hit skips the only implement-intent check\n\nsharpens-framing\n\nEvidence: evaluate refuses a non-implement slash verb through evaluateIntentCeilingFromEnv(\"implement\") after the folder and status checks (evaluate.ts 244-249; intent-ceiling.ts 132-137). No slash verb allows. inspectActiveScope is what calls evaluate on the commit path (scope.ts 443; dispatcher.ts 5408-5418). The shell path reaches that cover with no earlier implement-intent check (dispatcher.ts 4919-4922). Its intent loop gates only push and merge (dispatcher.ts 2023-2028). The write path checks implement intent on its own, after scope (dispatcher.ts 2911-2916). Limb 3 says the hit skips evaluate.\n\nFailure mode: While the brief is still under active/, a non-implement slash session cannot commit, because evaluate runs. After the move, the hit skips that call, so the same session's git commit is admitted. The product worker's commit is still admitted. The ceiling that stopped other slash verbs is gone for later commits on that branch.\n\nDisposition: Replace limb 3. The hit skips inspectActiveScope and does not apply the active-folder or running-status refuses. The commit path still runs the implement intent ceiling. Neither the commit path nor the write path appends the activate repair. Do not keep \"skips evaluate\" as the whole predicate. evaluate on the completed brief returns at the folder check before intent, so the ceiling has to be that separate commit-path call.\n\nRoad not taken: leave limb 3 and trust the write-path check. That check does not run for git commit. Flip if the commit path gains an implement-intent gate before scope cover.\n\n",
+          "id": 6937878662,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6937878662",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:02:34Z",
+          "updated_at": "2026-11-17T04:02:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nIn-PR completion moves the story brief out of active/, and the worktree binding then refuses the commit and every later write, and tells the author to activate the brief again. The binding admits that assigned story only when its id matches one lands-with-product move in this worktree's diff against the merge base, and loads the write fence from that brief's old active path on the merge base. The hit skips the active-folder scan and the running-status check, and it does not tell the author to activate the brief. The commit path still applies the implement intent ceiling, so a non-implement slash session cannot commit after the move either. Any other miss, including a completion already on the merge base, still refuses. The move is not a new story assignment.\n\n**Lean:** accept F1, F2, F3, and S1 into the contract. Empty disagreement set. Supersedes 6937623969. Disposes pain-audit 6937878662. Round-1 critic 6937537831. Seat was Grok after Claude and Codex launches were hook-denied. This parent wrote Stop 1. One later audit follows, because 6937878662 changed the harvest.\n\nF1 accept-into-contract\nF2 accept-into-contract\nF3 accept-into-contract\nS1 accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nSpec-path: packages/core/src/hooks/scope.ts\n\nTarget-digest: sha256:d50419b49021ab265bd751e778389588cc7445f0fa01508e3130f99e3ba8ce4a\n\n## Bound remedy\n\n- On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in this worktree's diff against the merge base.\n- That hit loads the write fence from the move's activeRel blob on the merge base.\n- The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.\n- Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.\n- The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.\n- The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.\n- The diff oracle stays git diff --name-status -M against the merge base with no second revision, so an uncommitted move and a move already committed on the branch are the same diff.\n\n## Acceptance Criteria\n\n- Given a bound worktree whose diff against the merge base moves the assigned story's brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story and the fence is the merge-base active pre-image.\n- Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.\n- The refusal text for a story completed in that diff does not tell the author to re-activate the brief.\n- A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.\n- When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.\n- Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.\n\n## What this adds\n\nThe diff against the merge base already separates an uncommitted move, a move committed on this branch, and a move already on the merge base. The binding uses that diff for the assigned story and skips the active-folder and running-status checks that refuse a finished brief. The commit path keeps the implement intent ceiling. No new scanner and no extra review round.\n\n",
+          "id": 6937902193,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6937902193",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:03:54Z",
+          "updated_at": "2026-11-17T04:03:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:3b21768e4e8b3bb1da0a5fead8ace6ed73ba7377e64b6ac0009e0e6919ea2a71\nfinding-classes: blocking\nharvest-changed: true\n\nPain-audit of successor lean 6937902193. It supersedes 6937623969 and disposes pain-audit 6937878662. Pin checkout `.deft-scratch/worktrees/arc-6480`. The shell hook denied every command (missing node_modules/@deftai/directive-runtime), so git show was not run and gh could not post this comment. Files were read from that checkout. Suite not run. HEAD was not confirmed with git.\n\nS1 is absorbed. Limb 3 skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither path appends the activate repair. AC6 locks the non-implement commit refuse. evaluate returns at the folder check before that ceiling (evaluate.ts 212-249). The commit path has no implement-intent call of its own (dispatcher.ts 4919-4922 and 5267-5283). P3 holds. The hit does not use the activate repair (scope.ts 1076-1081) or the promote-then-activate recovery (transition-hint.ts 17-20).\n\nP1 and P2 do not hold. Limb 2 sends the fence load at an activeRel blob the in-PR story does not have on the merge base, and the fallback then reads a worktree file the move has removed.\n\n### B1 — Absent merge-base blob refuses the completion commit\n\nblocks-the-design\n\nEvidence: loadStoryWriteFenceFromMergeBase reads `git show <merge-base>:activeRel` (write-fence.ts 674-684). A missing blob falls through to loadOnePrMintFence, which reads the working-tree file at that same rel and rejects with \"working-tree brief unreadable\" when the file is gone (write-fence.ts 595-596). write-fence.test.ts 633-635 locks that reject. This repo's merge-base level is mint (xbrief/PROJECT-DEFINITION.xbrief.json, plan.policy.onePrScopeProof). A brief added on the branch is absent from the merge base. While the file is still under active/, mint reads it and the product commits are admitted. scope:complete --in-pr moves the file and writes metadata.completedAt, metadata.completedSessionId, and metadata.lifecycleWrite (capacity-stamp.ts 128-131, transition.ts 1052-1057, lifecycle-write.ts 110-112). None of those keys is machine metadata (known-machine.ts 42-51), so extract-intent keeps them (extract-intent.ts 216-218). compare-intent then reports an unclassified key absent from the minted preimage (compare-intent.ts 241-261), and the mint gate rejects the drift (one-pr-scope-proof.ts 345-352). The record's xbriefRelPath remains the active path (one-pr-scope-proof.ts 307-308). Auth-hash v1 binds that same path (forge-approval.ts 107-114).\n\nFailure mode: The hit clears assigned_story_missing. The commit path and the write path then load the fence for activeRel and deny. An uncommitted move and a move already committed on the branch both leave activeRel off the merge base and off the worktree. The product commit stays refused, and so does every later write and commit. The refusal text is the fence result. It is not the activate sentence. P1 and P2 stay open.\n\nDisposition: Replace limb 2. When the merge base has the activeRel blob, the fence is that blob. When it does not, run the same one-PR mint gate on the newest commit that still contains the activeRel blob, using the record's active path. HEAD is that commit when the move is uncommitted. The missing worktree file and the completed brief are not the mint head.\n\nRoad not taken: use the completed brief as the mint head. The intent compare drifts on the completion stamps, and the record names the active path. Flip if those stamps are machine space and the mint gate treats the completed path as that same record. Using the record's fileScope array with no brief bytes was rejected too: a same-commit edit of that array would widen the fence with no auth-hash check.\n\nThe fence is the commit authority. The pre-completion blob keeps the completion commit from widening file_scope. The merge-base blob stays first when it exists.\n\n",
+          "id": 6938094427,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938094427",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:14:24Z",
+          "updated_at": "2026-11-17T04:14:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nIn-PR completion moves the story brief out of active/, and the worktree binding then refuses the commit and every later write, and tells the author to activate the brief again. The binding admits that assigned story only when its id matches one lands-with-product move in this worktree's diff against the merge base. The write fence is the merge-base copy of the old active brief when that blob exists. When the brief was added on this branch and the merge base has no such blob, the fence is the one-PR mint gate on the newest commit that still contains the brief at its active path, which is HEAD while the move is uncommitted. The completed file and the missing worktree path are not that head. The hit skips the active-folder scan and the running-status check, and it does not tell the author to activate the brief. The commit path still applies the implement intent ceiling. Any other miss, including a completion already on the merge base, still refuses. The move is not a new story assignment.\n\n**Lean:** accept F1, F2, F3, S1, and B1 into the contract. Empty disagreement set. Supersedes 6937902193. Disposes pain-audit 6938094427. Round-1 critic 6937537831. Seat was Grok after Claude and Codex launches were hook-denied. This parent wrote Stop 1. One later audit follows, because 6938094427 changed the harvest.\n\nF1 accept-into-contract\nF2 accept-into-contract\nF3 accept-into-contract\nS1 accept-into-contract\nB1 accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nSpec-path: packages/core/src/hooks/scope.ts\n\nTarget-digest: sha256:d50419b49021ab265bd751e778389588cc7445f0fa01508e3130f99e3ba8ce4a\n\n## Bound remedy\n\n- On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in this worktree's diff against the merge base.\n- When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on the newest commit that still contains that blob at the record's active path, which is HEAD while the move is uncommitted, and neither the missing worktree file nor the completed brief is that mint head.\n- The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.\n- Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.\n- The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.\n- The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.\n- The diff oracle stays git diff --name-status -M against the merge base with no second revision, so an uncommitted move and a move already committed on the branch are the same diff.\n\n## Acceptance Criteria\n\n- Given a bound worktree whose diff against the merge base moves the assigned story's brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.\n- Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.\n- Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest commit that still contains the brief at its active path.\n- Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.\n- The refusal text for a story completed in that diff does not tell the author to re-activate the brief.\n- A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.\n- When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.\n- Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.\n\n## What this adds\n\nThe diff against the merge base already separates an uncommitted move, a move committed on this branch, and a move already on the merge base. The binding uses that diff for the assigned story and skips the active-folder and running-status checks that refuse a finished brief. The fence stays the merge-base blob when it exists, and otherwise the mint gate on the last commit that still has the brief at its active path. The commit path keeps the implement intent ceiling. No new scanner and no extra review round.\n\n",
+          "id": 6938108039,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938108039",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:15:09Z",
+          "updated_at": "2026-11-17T04:15:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:c378f22788cb4632cbc843ca88d665d570582609d54d348fda68e5bff4effb02\nfinding-classes: blocking\nharvest-changed: true\n\nPain-audit of successor lean 6938108039. It supersedes 6937902193 and disposes pain-audit 6938094427 by replacing the fence limb. Pin checkout `.deft-scratch/worktrees/arc-6480`. The shell hook denied every command (missing node_modules/@deftai/directive-runtime), so git show was not run and gh could not post this comment. Files were read from that checkout. The worktree HEAD file reads 7d0435521bb28dc4f4909b8f5607735efa911520. The dispatch pin was a21a1802d22c79768e8e88491fe2ad45cd9c156f. Suite not run.\n\nP1, P2, and P3 hold when the merge base has the activeRel blob. That diff has a delete or rename of the path, limb 2 uses that blob, and limb 3 skips the activate repair. They stay open when the merge base has no such blob. B1 stays open.\n\n### B2 — Branch-added move never reaches the fence\n\nblocks-the-design\n\nEvidence: discoverLandsWithProductMoves resolves the merge-base SHA (lands-with-product.ts 198-210) and runs `git diff --name-status -M` on that SHA with no second revision (lands-with-product.ts 408-410). It keeps only a D or R whose source is an active brief (lands-with-product.ts 414-420). That argv is a two-tree diff. A path the merge-base tree never contained is an add at the worktree path. After the move, that path is under completed/. Status A is dropped. The test that finds a move commits the active brief on the base before the branch (lands-with-product.test.ts 356-378). Limb 1 admits a story only when this diff contains the move. Limb 7 keeps this oracle. Limb 2 runs after that hit. The absent-blob loader still reads the worktree file and rejects with \"working-tree brief unreadable\" (write-fence.ts 674-682 and 595-596; write-fence.test.ts 633-635). The miss repair is still `deft scope:activate` (scope.ts 1076-1081).\n\nFailure mode: A brief added on this branch leaves activeRel off the merge base. An uncommitted move (P1) and a move already committed on the branch (P2) both end with the brief at completed/. The merge-base diff shows an add there. The hit does not fire. The commit and every later write stay on assigned_story_missing, and the refusal still tells the author to re-activate the brief (P3). The mint gate on the newest commit that still contains the activeRel blob never runs. Replacing the fence limb leaves B1's refusal in place.\n\nDisposition: Change the harvested move oracle. Find the newest commit whose tree still contains the brief at the active path, and run `git diff --name-status -M` with no second revision against that commit. That commit is HEAD while the move is uncommitted. Keep limb 2. When the merge base has the activeRel blob, the fence is that blob. When it does not, the fence is the one-PR mint gate on that same commit. The missing worktree file and the completed brief stay off the mint head. Any other miss keeps today's refusal.\n\nThe injection lens applies to the worktree binding and the mint gate. The hit still requires the assigned story id to equal storyIdForBrief of that move, and the mint gate still requires the record's active path, file_scope, and authHashV1 to match the chosen commit's brief. A completed file that never occupied the active path stays off the mint head.\n\nRoad not taken: treat an add at completed/ stamped lands-with-product as the move, and derive the active path from the basename. That add is what the merge-base diff already shows, and scope:complete --in-pr is the stamp writer (lifecycle-write.ts 110-112). Flip if a basename plus that stamp is enough to name the fence commit and no other writer can put the stamp on a brief that never sat at the active path. The stamp writer does not check for a rename, so the containing-commit diff stays the oracle.\n\n",
+          "id": 6938293422,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938293422",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:25:23Z",
+          "updated_at": "2026-11-17T04:25:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nIn-PR completion moves the story brief out of active/, and the worktree binding then refuses the commit and every later write, and tells the author to activate the brief again. The binding admits that assigned story only when its id matches one lands-with-product move in the worktree diff against the newest commit that still has the brief at its active path. That commit is HEAD while the move is uncommitted, including when the brief was added on this branch and the merge base never contained it. The write fence is the merge-base copy of the old active brief when that blob exists. When the merge base has no such blob, the fence is the one-PR mint gate on that same containing commit. The completed file and the missing worktree path are not that head. The hit skips the active-folder scan and the running-status check, and it does not tell the author to activate the brief. The commit path still applies the implement intent ceiling. Any other miss still refuses. The move is not a new story assignment.\n\n**Lean:** accept F1, F2, F3, S1, B1, and B2 into the contract. Empty disagreement set. Supersedes 6938108039. Disposes pain-audit 6938293422. Round-1 critic 6937537831. Seat was Grok after Claude and Codex launches were hook-denied. This parent wrote Stop 1. One later audit follows, because 6938293422 changed the harvest.\n\nF1 accept-into-contract\nF2 accept-into-contract\nF3 accept-into-contract\nS1 accept-into-contract\nB1 accept-into-contract\nB2 accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nSpec-path: packages/core/src/hooks/scope.ts\n\nTarget-digest: sha256:d50419b49021ab265bd751e778389588cc7445f0fa01508e3130f99e3ba8ce4a\n\n## Bound remedy\n\n- On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit whose tree still contains that brief at the active path, and that commit is HEAD while the move is uncommitted.\n- When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.\n- The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.\n- Any other miss keeps today's refusal, including when the assigned id matches no such move.\n- The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.\n- The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.\n- The move oracle is that containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff even when the merge base never contained the brief.\n\n## Acceptance Criteria\n\n- Given a bound worktree whose diff against the newest commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.\n- Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.\n- Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest commit that still contains the brief at its active path.\n- Given a bound worktree whose assigned story has no brief in active/ and no such move in that containing-commit diff, then the commit is refused as today.\n- The refusal text for a story completed in that diff does not tell the author to re-activate the brief.\n- A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.\n- When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.\n- Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.\n\n## What this adds\n\nThe binding finds the move by diffing the worktree against the last commit that still has the brief at its active path, which covers a brief the merge base never contained. The fence stays the merge-base blob when it exists, and otherwise the mint gate on that same commit. The active-folder and running-status checks are skipped for that hit, and the commit path keeps the implement intent ceiling. No new scanner and no extra review round.\n\n",
+          "id": 6938312030,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938312030",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:26:31Z",
+          "updated_at": "2026-11-17T04:26:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:c97a01fb426c828e5c2787437752883cd87e23b4fbd0d3cb05ccd561cae2e583\nfinding-classes: blocking\nharvest-changed: true\n\nPain-audit of successor lean 6938312030. It supersedes 6938108039 and disposes pain-audit 6938293422. Id ceiling inclusive 6938312030. The issue has 10 comments and the newest is that lean. Suite not run.\n\nSHA read: a21a1802d22c79768e8e88491fe2ad45cd9c156f. This worktree's HEAD file is 37cdfe37159b33790d4e174bee65449313da3ea3, so its working tree was not the pin. The lines below are the raw blobs at the dispatch SHA: packages/core/src/scope/lands-with-product.ts, packages/core/src/hooks/scope.ts, packages/core/src/policy/write-fence.ts, packages/core/src/scope/lifecycle-write.ts, and packages/core/src/swarm/worker-auth-assignment.ts. The arc-6477 checkout HEAD file is that same SHA and matches those lines. The shell hook in this worktree denied every command (missing node_modules/@deftai/directive-runtime), so git show and gh api did not run. This comment was not posted.\n\n## Verdict\n\nP1, P2, and P3 hold. B2 is absorbed. The refusal Stop 1 kept for a completion already on the merge base does not hold under this oracle. One blocking finding. It changes limbs 1 and 4.\n\nP1. While the move is uncommitted, the newest commit whose tree still has the brief at the active path is HEAD. `git diff --name-status -M` with that single revision is the worktree against HEAD, so the uncommitted rename is a D or R of the active path. The detector keeps that record and reads the completed file on disk (lands-with-product.ts 410-421). storyIdForBrief is plan.id (worker-auth-assignment.ts 136-142). The hit admits the assigned story.\n\nP2. After the move is committed, HEAD's tree no longer has the active path. The newest containing commit is the last commit that still has it. The same one-revision diff is the worktree against that commit, so later commits and later edits are in the diff. A D of the active path still counts when rename similarity drops (lands-with-product.ts 414-421). Limb 7 states that this remains the diff when the merge base never contained the brief.\n\nP3. The hit does not append the activate repair (scope.ts 1076-1081). Limb 3 skips inspectActiveScope and the active-folder and running-status refuses, and the commit path still runs the implement intent ceiling.\n\nB2. Pain-audit 6938293422: a brief added on this branch never reaches the fence, because the merge-base diff shows an add at completed/ and the detector drops status A (lands-with-product.ts 408-421). Limb 1 finds the move against the containing commit. That commit is HEAD while the move is uncommitted, and a branch commit after the merge base once the move is committed. Limb 2 keeps the merge-base blob when that blob exists. When it does not, the fence is the one-PR mint gate on that same commit. The pin loader reads the worktree file and rejects with \"working-tree brief unreadable\" once the path is gone (write-fence.ts 595-596 and 674-682). The completed brief and that missing worktree file stay off the mint head, so the completion stamps are not the compared bytes.\n\n## M1 — The containing-commit walk admits a completion already on the merge base\n\nblocks-the-design\n\nEvidence: Stop 1 6936109252 keeps today's refusal when this branch's diff from the merge base has no move. F3 (6937537831) records the mechanism: `git diff --name-status -M` against the merge base has no D or R of active/ for a move already inside that commit (lands-with-product.ts 408-421). Lean 6938108039 limb 4 named that refusal. Lean 6938312030 limb 1 replaces the base with the newest commit whose tree still contains the brief at the active path, and limb 4 names only a miss with no such move. The words do not stop the walk at the merge base. A rev-list of HEAD includes ancestors of the merge base. The parent of the completion commit still has the brief at the active path. `git diff --name-status -M` with that single revision is the worktree against that tree, which shows a D or R of active/. The detector accepts D or R and then reads the completed file from disk (lands-with-product.ts 414-421). After the in-PR completion has merged, that file is still stamped lands-with-product (lifecycle-write.ts 120-128). storyIdForBrief matches. The hit fires. The merge base has no activeRel blob, so limb 2 runs the one-PR mint gate on that historical commit. Those bytes are the pre-completion brief, which is the payload the mint gate compares (write-fence.ts 605-614). A matching record admits the old file_scope.\n\nFailure mode: A worktree bound to a story whose in-PR completion is already on the merge base is admitted, and later commits and writes run under that finished story's fence. Stop 1 required this case to keep today's refusal.\n\nDisposition: Change limb 1. The diff base is the newest commit among the merge base and the commits this branch adds after it whose tree still contains the brief at the active path. Commits behind the merge base are not candidates. That commit is still HEAD while the move is uncommitted. Change limb 4 so any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base. Add the same case to the acceptance criteria: a completion already inside the merge base has no candidate, and the commit is refused as today.\n\nRoad not taken: keep a second diff against the merge base only for this refusal. The candidate bound on the one diff refuses that case and still finds a branch-added move. Flip if a commit behind the merge base has to be a fence head. It does not.\n\n",
+          "id": 6938455500,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938455500",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:34:56Z",
+          "updated_at": "2026-11-17T04:34:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nIn-PR completion moves the story brief out of active/, and the worktree binding then refuses the commit and every later write, and tells the author to activate the brief again. The binding admits that assigned story only when its id matches one lands-with-product move in the worktree diff against the newest commit, among the merge base and the commits this branch adds after it, whose tree still has the brief at its active path. Commits behind the merge base are not candidates. That commit is HEAD while the move is uncommitted. The write fence is the merge-base copy of the old active brief when that blob exists. When the merge base has no such blob, the fence is the one-PR mint gate on that same commit. The completed file and the missing worktree path are not that head. The hit skips the active-folder scan and the running-status check, and it does not tell the author to activate the brief. The commit path still applies the implement intent ceiling. A completion already on the merge base has no candidate and stays refused. The move is not a new story assignment.\n\n**Lean:** accept F1, F2, F3, S1, B1, B2, and M1 into the contract. Empty disagreement set. Supersedes 6938312030. Disposes pain-audit 6938455500. Round-1 critic 6937537831. Seat was Grok after Claude and Codex launches were hook-denied. This parent wrote Stop 1. One later audit follows, because 6938455500 changed the harvest.\n\nF1 accept-into-contract\nF2 accept-into-contract\nF3 accept-into-contract\nS1 accept-into-contract\nB1 accept-into-contract\nB2 accept-into-contract\nM1 accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nSpec-path: packages/core/src/hooks/scope.ts\n\nTarget-digest: sha256:d50419b49021ab265bd751e778389588cc7445f0fa01508e3130f99e3ba8ce4a\n\n## Bound remedy\n\n- On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.\n- When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.\n- The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.\n- Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.\n- The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.\n- The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.\n- The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.\n\n## Acceptance Criteria\n\n- Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.\n- Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.\n- Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.\n- Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.\n- A completion already inside the merge base has no candidate, and the commit is refused as today.\n- The refusal text for a story completed in that diff does not tell the author to re-activate the brief.\n- A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.\n- When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.\n- Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.\n\n## What this adds\n\nThe binding finds the move by diffing the worktree against the last commit at or after the merge base that still has the brief at its active path. A completion already on the merge base is not a candidate. The fence stays the merge-base blob when it exists, and otherwise the mint gate on that same commit. The active-folder and running-status checks are skipped for that hit, and the commit path keeps the implement intent ceiling. No new scanner and no extra review round.\n\n",
+          "id": 6938469692,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938469692",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:35:44Z",
+          "updated_at": "2026-11-17T04:35:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:5141d4ef8fd20d17ef11eee39f4349b941db6f0f4449d8c98bc88d1f4283a62f\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of successor lean 6938469692. It supersedes 6938312030 and disposes pain-audit 6938455500. Id ceiling inclusive 6938469692. Suite not run.\n\nSHA read: a21a1802d22c79768e8e88491fe2ad45cd9c156f. Confirmed on the GitHub commit API. The raw blob of packages/core/src/scope/lands-with-product.ts at that SHA matches the tree of worktree ow-6422-base, whose HEAD file is that SHA. Also read at that SHA: packages/core/src/hooks/scope.ts, packages/core/src/hooks/dispatcher.ts, packages/core/src/policy/write-fence.ts, packages/core/src/scope/lifecycle-write.ts, packages/core/src/scope/transition-hint.ts, packages/core/src/swarm/worker-auth-assignment.ts, and packages/core/src/preflight/evaluate.ts. arc-6477 HEAD file is 2d0be0c54a383b6cbd90a181b3a921c6fb40a19d. arc-6480 HEAD file is 37cdfe37159b33790d4e174bee65449313da3ea3. Neither working tree was the pin. No worktree HEAD was moved. The shell hook in arc-6477 denied every command (missing node_modules/@deftai/directive-runtime), so git show and gh api did not run. This comment was not posted.\n\n## Verdict\n\nP1, P2, and P3 hold. M1 from 6938455500 is absorbed. A completion already inside the merge base has no candidate and stays refused. The Bound remedy text stands.\n\n## P1\n\nWhile the move is uncommitted, the newest in-range commit whose tree still has the brief at the active path is HEAD. HEAD is the merge base, or a commit this branch adds after it. `git diff --name-status -M` with that single revision is the worktree against HEAD, so the uncommitted rename is a D or R of the active path. The detector keeps D and R and reads the completed file on disk (lands-with-product.ts 410-421). storyIdForBrief is plan.id, else the brief filename (worker-auth-assignment.ts 136-142). briefStoryId calls that helper (scope.ts 785-796). The hit admits the assigned story. Limb 1 names this case.\n\n## P2\n\nAfter the move is committed on this branch, HEAD's tree no longer has the active path. The newest in-range containing commit is the last commit at or after the merge base that still has it. The same one-revision diff is the worktree against that commit, so the committed rename is in the diff. A D of the active path still counts when rename similarity drops (lands-with-product.ts 414-421). A brief added on this branch is a commit this branch adds after the merge base, so it stays in range. Limb 7 states that an uncommitted move and a move already committed on the branch are that same diff.\n\n## P3\n\nThe miss repair today is `deft scope:activate -- <brief>` (scope.ts 1076-1081). On a hit, limb 3 skips inspectActiveScope and the active-folder and running-status refuses. The commit path's not-ready recovery is promote-then-activate (dispatcher.ts 5408-5418; transition-hint.ts 17-20). Skipping that call keeps the activate repair off the commit path and the write path. The commit path still runs the implement intent ceiling (evaluate.ts 244-248).\n\n## M1\n\nPain-audit 6938455500: an unbounded walk of HEAD's ancestors reaches the parent of a completion already inside the merge base. That parent still has the brief at the active path, the one-revision diff shows a D or R, and the completed file on disk is still stamped lands-with-product (lifecycle-write.ts 120-128). Limb 1 of 6938469692 bounds the candidates to the merge base and the commits this branch adds after it, and states that commits behind the merge base are not candidates. That parent is behind the merge base. The merge-base tree and later commits on this branch do not contain the brief at the active path, so the candidate set is empty. Limb 4 keeps today's refusal for that miss. The acceptance criteria state that a completion already inside the merge base has no candidate and the commit is refused as today. Limb 7 repeats the same bound. The mint gate stays unreached, so it does not run on that historical commit.\n\n## Fence\n\nWhen the merge base has the activeRel blob, limb 2 keeps that blob as the fence (write-fence.ts 674-688). When it does not, the fence is the one-PR mint gate on the same containing commit. The loader today reads the worktree file and rejects with \"working-tree brief unreadable\" once that path is gone (write-fence.ts 595-596). The completed brief and that missing worktree file stay off the mint head (write-fence.ts 605-614).\n\n## Assignment\n\nLimb 5 matches the assigned id and does not call soleLandsWithProductMove (lands-with-product.ts 464-469). The check path still calls that helper (scope.ts 614-626); this binding does not. Limb 6 uses pinNamesLandsWithProductMove for the env pin and the spawn bound path (lands-with-product.ts 441-460). The binding pin check today uses matchPinnedActiveScope against active files only (scope.ts 1092-1106).\n\n",
+          "id": 6938592197,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938592197",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:43:03Z",
+          "updated_at": "2026-11-17T04:43:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nIn-PR completion moves the story brief out of active/, and the worktree binding then refuses the commit and every later write, and tells the author to activate the brief again. The binding admits that assigned story only when its id matches one lands-with-product move in the worktree diff against the newest commit, among the merge base and the commits this branch adds after it, whose tree still has the brief at its active path. Commits behind the merge base are not candidates. That commit is HEAD while the move is uncommitted. The write fence is the merge-base copy of the old active brief when that blob exists. When the merge base has no such blob, the fence is the one-PR mint gate on that same commit. The completed file and the missing worktree path are not that head. The hit skips the active-folder scan and the running-status check, and it does not tell the author to activate the brief. The commit path still applies the implement intent ceiling. A completion already on the merge base has no candidate and stays refused. The move is not a new story assignment.\n\n**Lean:** accept F1, F2, F3, S1, B1, B2, and M1 into the contract. Empty disagreement set. Supersedes 6938469692. Disposes pain-audits 6937878662, 6938094427, 6938293422, and 6938455500. Round-1 critic 6937537831. Seat was Grok after Claude and Codex launches were hook-denied. This parent wrote Stop 1. Pain-audit 6938592197 covers this harvest.\n\nF1 accept-into-contract\nF2 accept-into-contract\nF3 accept-into-contract\nS1 accept-into-contract\nB1 accept-into-contract\nB2 accept-into-contract\nM1 accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nSpec-path: packages/core/src/hooks/scope.ts\n\nTarget-digest: sha256:d50419b49021ab265bd751e778389588cc7445f0fa01508e3130f99e3ba8ce4a\n\n## Bound remedy\n\n- On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.\n- When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.\n- The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.\n- Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.\n- The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.\n- The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.\n- The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.\n\n## Acceptance Criteria\n\n- Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.\n- Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.\n- Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.\n- Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.\n- A completion already inside the merge base has no candidate, and the commit is refused as today.\n- The refusal text for a story completed in that diff does not tell the author to re-activate the brief.\n- A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.\n- When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.\n- Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.\n\n## What this adds\n\nThe binding finds the move by diffing the worktree against the last commit at or after the merge base that still has the brief at its active path. A completion already on the merge base is not a candidate. The fence stays the merge-base blob when it exists, and otherwise the mint gate on that same commit. The active-folder and running-status checks are skipped for that hit, and the commit path keeps the implement intent ceiling. No new scanner and no extra review round.\n\n",
+          "id": 6938620473,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938620473",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:44:31Z",
+          "updated_at": "2026-11-17T04:44:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:5141d4ef8fd20d17ef11eee39f4349b941db6f0f4449d8c98bc88d1f4283a62f\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of successor lean 6938620473. It supersedes 6938469692. The Bound remedy and the Acceptance Criteria are the same harvest. This lean adds citations of 6937878662, 6938094427, 6938293422, and 6938455500. Id ceiling inclusive 6938620473. Suite not run.\n\nSHA read: a21a1802d22c79768e8e88491fe2ad45cd9c156f. Confirmed on the GitHub commit API and on the raw blobs of packages/core/src/scope/lands-with-product.ts, packages/core/src/hooks/scope.ts, packages/core/src/policy/write-fence.ts, packages/core/src/hooks/dispatcher.ts, packages/core/src/preflight/evaluate.ts, packages/core/src/scope/lifecycle-write.ts, packages/core/src/scope/transition-hint.ts, and packages/core/src/swarm/worker-auth-assignment.ts. The worktree ow-6422-base HEAD file is that SHA and those lines match. arc-6477 HEAD file is 639dab5264824b7fe1d454018774b6ef792e2a40. arc-6480 HEAD file is 37cdfe37159b33790d4e174bee65449313da3ea3. Neither working tree was the pin. No worktree HEAD was moved. The shell hook in arc-6477 denied every command (missing node_modules/@deftai/directive-runtime), so git show and gh api did not run from this seat.\n\n## Verdict\n\nP1, P2, and P3 hold. M1 from 6938455500 is absorbed. A completion already inside the merge base has no candidate and stays refused. The Bound remedy text stands.\n\n## P1\n\nWhile the move is uncommitted, the newest in-range commit whose tree still has the brief at the active path is HEAD. HEAD is the merge base, or a commit this branch adds after it. git diff --name-status -M with that single revision is the worktree against HEAD, so the uncommitted rename is a D or R of the active path. The detector keeps D and R and reads the completed file on disk (lands-with-product.ts 410-421). storyIdForBrief is plan.id, else the brief filename (worker-auth-assignment.ts 136-142). briefStoryId calls that helper (scope.ts 785-796). The hit admits the assigned story. Limb 1 names this case.\n\n## P2\n\nAfter the move is committed on this branch, HEAD's tree no longer has the active path. The newest in-range containing commit is the last commit at or after the merge base that still has it. The same one-revision diff is the worktree against that commit, so the committed rename is in the diff. A D of the active path still counts when rename similarity drops (lands-with-product.ts 414-421). A brief added on this branch is a commit this branch adds after the merge base, so it stays in range. Limb 7 states that an uncommitted move and a move already committed on the branch are that same diff, and that commits behind the merge base are not candidates.\n\n## P3\n\nThe miss repair today is deft scope:activate -- <brief> (scope.ts 1076-1081). On a hit, limb 3 skips inspectActiveScope and the active-folder and running-status refuses. The commit path's not-ready recovery is promote-then-activate (dispatcher.ts 5408-5418; transition-hint.ts 17-20). A binding refusal returns before that recovery and carries the activate sentence inside the binding message (dispatcher.ts 5399-5406). A hit is not that refusal, so the commit path does not append it. The write path appends promote-then-activate only when scope is not ready (dispatcher.ts 2873-2884). A hit that skips inspectActiveScope does not take that arm. The commit path has no implement-intent call of its own (dispatcher.ts 4919-4922 and 5267-5283). evaluate returns at the folder check before the ceiling (evaluate.ts 212-249). Limb 3 keeps that ceiling as its own commit-path call. The write path already runs it after scope (dispatcher.ts 2911-2916).\n\n## M1\n\nPain-audit 6938455500: an unbounded walk of HEAD's ancestors reaches the parent of a completion already inside the merge base. That parent still has the brief at the active path, the one-revision diff shows a D or R, and the completed file on disk is still stamped lands-with-product (lifecycle-write.ts 120-128). Limb 1 bounds the candidates to the merge base and the commits this branch adds after it, and states that commits behind the merge base are not candidates. That parent is behind the merge base. The merge-base tree and later commits on this branch do not contain the brief at the active path, so the candidate set is empty. Limb 4 keeps today's refusal for that miss. The acceptance criteria state that a completion already inside the merge base has no candidate and the commit is refused as today. Limb 7 repeats the same bound. The mint gate stays unreached, so it does not run on that historical commit.\n\n## Fence\n\nWhen the merge base has the activeRel blob, limb 2 keeps that blob as the fence (write-fence.ts 674-688). When it does not, the fence is the one-PR mint gate on the same containing commit. The loader today reads the worktree file and rejects with \"working-tree brief unreadable\" once that path is gone (write-fence.ts 595-596). The completed brief and that missing worktree file stay off the mint head (write-fence.ts 605-614).\n\n## Assignment\n\nLimb 5 matches the assigned id and does not call soleLandsWithProductMove (lands-with-product.ts 464-469). The check path still calls that helper (scope.ts 614-626). This binding does not. Limb 6 uses pinNamesLandsWithProductMove for the env pin and the spawn bound path (lands-with-product.ts 441-460). The binding pin check today uses matchPinnedActiveScope against active files only (scope.ts 1092-1106).\n\n",
+          "id": 6938748015,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938748015",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:51:39Z",
+          "updated_at": "2026-11-17T04:51:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nIn-PR completion moves the story brief out of active/, and the worktree binding admits that assigned story when its id matches one lands-with-product move against the newest commit at or after the merge base that still has the brief at its active path. Commits behind the merge base are not candidates, so a completion already on the merge base stays refused. The fence is the merge-base blob when it exists, and otherwise the one-PR mint gate on that same commit. The hit skips the active-folder and running-status checks, and the commit path still applies the implement intent ceiling.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6938620473.\n\n",
+          "id": 6938761671,
+          "html_url": "https://github.com/deftai/directive/issues/6480#issuecomment-6938761671",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T04:52:20Z",
+          "updated_at": "2026-11-17T04:52:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nTwo features released together in 0.129.11 conflict. In-PR completion (#6277) runs `scope:complete --in-pr`, which moves the story's brief from `xbrief/active/` to `xbrief/completed/` inside the last product PR, before that PR's commit. The worktree story binding (#6379) then resolves the assigned story only under `xbrief/active/`, finds nothing, and the commit hook refuses the product commit.\n\nExact refusal (2026-11-16, #6187 product worktree): \"Prospective scope-cover denied (#6247): Worktree story binding refused (assigned_story_missing): assigned story «untrusted:github.issue.6319836133» matches no brief under xbrief/active/ in this worktree. Repair: activate the assigned story's brief in this worktree (`deft scope:activate -- <brief>`) (#6233).\"\n\nThe suggested repair is wrong for this case: re-activating the brief undoes the completion.\n\n## Evidence\n\n- #6187, product worktree `ow-6187-product` bound with `swarm:pre-dispatch` begin (attempt att-8b5f17f2eb60dd2e). Staged: the fix, tests, a changelog fragment, the brief rename active -> completed, and the spec-drift row file. Commit refused as above; the operator ran the commit by hand.\n\n## Acceptance Criteria\n\n- Given a bound worktree whose staged change moves the assigned story's brief from active/ to completed/ (an in-PR completion), when the worker commits, then the binding resolves the story from the brief being moved and the commit is admitted.\n- Given a bound worktree whose assigned story has no brief in active/ and no staged move of it, then the commit is refused as today.\n- The refusal text for a story completed in the change set does not tell the author to re-activate the brief.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6434467523,
+        "origin": "deftai/directive#6480",
+        "id": "github.issue.6434467523"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d50419b49021ab265bd751e778389588cc7445f0fa01508e3130f99e3ba8ce4a"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6480,
+        "leanCommentId": 6938620473,
+        "harvestDigest": "5141d4ef8fd20d17ef11eee39f4349b941db6f0f4449d8c98bc88d1f4283a62f",
+        "slice": null
+      }
+    },
+    "id": "github.issue.6434467523",
+    "updated": "2026-11-17T05:43:54Z"
+  }
+}
