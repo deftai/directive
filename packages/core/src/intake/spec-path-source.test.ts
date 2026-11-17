@@ -341,6 +341,92 @@ describe("fetchSpecPathSourceComments (#6333 item 4)", () => {
   });
 });
 
+describe("verify:ac grandfathers a digestless audit of an unedited lean (#6477 clause.10)", () => {
+  const STOP1_ID = 7200000001;
+  const PAIN_LEAN_ID = 7200000002;
+  const AUDIT_ID = 7200000003;
+  const PAIN_TABLE_ID = 7200000004;
+  const PAIN_SYNTHESIS_ID = 7200000005;
+  const painLean = lean("\nrelieves: P1\n");
+  const record: SpecPathSourceRecord = {
+    ...RECORD,
+    leanCommentId: PAIN_LEAN_ID,
+    harvestDigest: hashHarvestIdentity(painLean),
+  };
+
+  /** One REST page; each row carries its own created_at / updated_at. */
+  function restPage(leanUpdatedAt: unknown, auditCreatedAt: unknown): string {
+    const rows: Record<string, unknown>[] = [
+      {
+        id: STOP1_ID,
+        body: "role: parent\n\ndesign-critique: warranted, because hand work.\n\npain: P1\n",
+        created_at: "2026-11-16T05:00:00Z",
+        updated_at: "2026-11-16T05:00:00Z",
+      },
+      {
+        id: PAIN_LEAN_ID,
+        body: painLean,
+        created_at: "2026-11-16T05:20:00Z",
+        updated_at: leanUpdatedAt,
+      },
+      {
+        id: AUDIT_ID,
+        body: "role: critic\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
+        created_at: auditCreatedAt,
+        updated_at: auditCreatedAt,
+      },
+      {
+        id: PAIN_TABLE_ID,
+        body: "## Verified-claims table\n",
+        created_at: "2026-11-16T05:30:00Z",
+        updated_at: "2026-11-16T05:30:00Z",
+      },
+      {
+        id: PAIN_SYNTHESIS_ID,
+        body:
+          `${PLAIN}design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n` +
+          `Bound contract: successor lean ${PAIN_LEAN_ID}, verified-claims table ${PAIN_TABLE_ID}.\n`,
+        created_at: "2026-11-16T05:31:00Z",
+        updated_at: "2026-11-16T05:31:00Z",
+      },
+    ];
+    return JSON.stringify(rows);
+  }
+
+  function live(leanUpdatedAt: unknown, auditCreatedAt: unknown) {
+    return fetchSpecPathLiveIdentities(record, () => page(restPage(leanUpdatedAt, auditCreatedAt)));
+  }
+
+  it("copies created_at and updated_at from the REST row into the thread", () => {
+    const result = fetchSpecPathSourceComments(record, () =>
+      page(restPage("2026-11-16T05:26:59Z", "2026-11-16T05:28:57Z")),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.comments.find((c) => c.id === PAIN_LEAN_ID)).toMatchObject({
+      updated_at: "2026-11-16T05:26:59Z",
+    });
+    expect(result.comments.find((c) => c.id === AUDIT_ID)).toMatchObject({
+      created_at: "2026-11-16T05:28:57Z",
+    });
+  });
+
+  it("admits strictly-before and refuses equal, later and unreadable timestamps, as issue:ingest does", () => {
+    expect(live("2026-11-16T05:26:59Z", "2026-11-16T05:28:57Z")).toMatchObject({ ok: true });
+    for (const [leanUpdatedAt, auditCreatedAt] of [
+      ["2026-11-16T05:28:57Z", "2026-11-16T05:28:57Z"],
+      ["2026-11-16T05:40:00Z", "2026-11-16T05:28:57Z"],
+      [null, "2026-11-16T05:28:57Z"],
+      ["2026-11-16T05:26:59Z", "yesterday"],
+    ]) {
+      expect(live(leanUpdatedAt, auditCreatedAt)).toMatchObject({
+        ok: false,
+        reason: expect.stringContaining("no targeting audit counts for lean"),
+      });
+    }
+  });
+});
+
 describe("findSpecPathSliceHolders (#6333 item 6)", () => {
   it("maps each recorded label to its brief and skips cancelled and other leans", () => {
     const root = mkdtempSync(join(tmpdir(), "spec-path-holders-"));

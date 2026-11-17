@@ -12,6 +12,7 @@ import { scan } from "../cache/scanner.js";
 import {
   evaluateCompletedArcRecord,
   type ThreadComment,
+  threadCommentFromRow,
 } from "../design-critique/completed-arc-record.js";
 import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { type CompletedProcess, call } from "../scm/call.js";
@@ -340,7 +341,7 @@ export function fetchSpecPathSourceComments(
     for (const entry of parsed) {
       const row = asRecord(entry);
       if (row !== null && typeof row.id === "number" && typeof row.body === "string") {
-        comments.push({ id: row.id, body: row.body });
+        comments.push(threadCommentFromRow(row.id, row.body, row));
       }
     }
     if (parsed.length < 100) {
