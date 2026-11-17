@@ -3,9 +3,11 @@
  * story-line writer, the plan-id adopter and the completion identity join on a
  * brief that names several issues. Test names carry the brief clause ids.
  */
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { tryAdoptPlanIdFromPrStory } from "../intent-constraint/plan-id-adopter.js";
 import { listActiveRunningBriefs } from "../orphan-active/running-briefs.js";
@@ -180,6 +182,27 @@ function join_(p: Record<string, unknown>, body: string) {
 }
 
 const ONE_LINE = "## Summary\n\nRefs #101\n\ndeft-story: 101\n";
+
+describe("module load order (#6468 import cycle)", () => {
+  it("loads main.ts as an entry module under real ESM semantics", () => {
+    // main.ts -> story-issue.ts -> plan-id-adopter.ts -> main.ts: the adopter reads
+    // WRITE_STORY_LINE_COMMAND at load. Vitest's module runner hides a TDZ there, so
+    // load main.ts the way the CLI does, in a fresh Node process.
+    const here = dirname(fileURLToPath(import.meta.url));
+    const mainUrl = new URL("./main.ts", import.meta.url).href;
+    const code =
+      `const m = await import(${JSON.stringify(mainUrl)});` +
+      "console.log(typeof m.run, m.WRITE_STORY_LINE_COMMAND);";
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "--input-type=module", "-e", code],
+      { cwd: here, encoding: "utf8", windowsHide: true, timeout: 60_000 },
+    );
+    expect(result.stderr).not.toContain("before initialization");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("function task pr:check-closing-keywords");
+  }, 90_000);
+});
 
 describe("story issue and identity agreement (#6468 Bound items 1-2)", () => {
   it("clause.1: the story issue is the join anchor; another repository's anchor is none", () => {

@@ -22,7 +22,14 @@ import { isLandsWithProductPlan } from "../scope/lifecycle-write.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { parseGitHubRemoteRepo } from "../text/redos-safe.js";
 import { resolveRepo } from "../triage/queue/repo.js";
-import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
+// Keep this import before ./story-issue.js: plan-id-adopter.ts (reached through it)
+// reads WRITE_STORY_LINE_COMMAND at module load (#6468).
+import {
+  EXIT_CONFIG_ERROR,
+  EXIT_HITS_FOUND,
+  EXIT_OK,
+  WRITE_STORY_LINE_COMMAND,
+} from "./constants.js";
 import { findAllClosingKeywordHits, findHits, renderHit } from "./detect.js";
 import {
   defaultRunGh,
@@ -32,7 +39,7 @@ import {
   fetchRepoFileAtRef,
 } from "./gh.js";
 import { readCommitsFile, readTextFile } from "./io.js";
-import { briefForBodyRef, demandForBrief, storyIssuesOfBrief } from "./story-issue.js";
+import { briefForBodyRef, storyDemandResolver, storyIssuesOfBrief } from "./story-issue.js";
 import type {
   ClosingKeywordMode,
   FullStoryCloseIntent,
@@ -843,9 +850,8 @@ export function findStoryLineConflicts(text: string): number[] {
   return parseAllDeftStoryMarks(text).filter((n) => parts.has(n));
 }
 
-/** The command that writes the story line into a PR body file (#6316). */
-export const WRITE_STORY_LINE_COMMAND =
-  "task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]";
+/** Defined in constants.ts so it is initialized before plan-id-adopter.ts loads (#6468). */
+export { WRITE_STORY_LINE_COMMAND };
 
 /**
  * Shared advice for an active story's PR body (#6316): the two lines, which one to
@@ -1037,17 +1043,13 @@ export function evaluateStoryLineRequirement(args: {
   const running = listActiveRunningBriefs(args.projectRoot);
   const required = new Map<number, StoryLineDemand>();
   const blocked = new Map<string, string>();
+  const demandFor = storyDemandResolver(args.projectRoot, args.repo);
   const requireFor = (
     brief: ActiveRunningBrief,
     fallback: readonly number[],
     why: (rel: string) => string,
   ) => {
-    const demand = demandForBrief({
-      projectRoot: args.projectRoot,
-      repo: args.repo,
-      brief,
-      fallback,
-    });
+    const demand = demandFor(brief, fallback);
     if (demand.kind === "blocked") {
       blocked.set(demand.rel, demand.message);
       return;
@@ -1174,13 +1176,9 @@ export function storyLinesForBranch(args: {
   const bodyRefs = parseStoryRefIssues(args.bodyText, args.repo);
   const out = new Set<number>();
   const blocked = new Map<string, string>();
+  const demandFor = storyDemandResolver(args.projectRoot, args.repo);
   const lineFor = (brief: ActiveRunningBrief, fallback: readonly number[]) => {
-    const demand = demandForBrief({
-      projectRoot: args.projectRoot,
-      repo: args.repo,
-      brief,
-      fallback,
-    });
+    const demand = demandFor(brief, fallback);
     if (demand.kind === "blocked") {
       blocked.set(demand.rel, demand.message);
     } else if (demand.kind === "line") {

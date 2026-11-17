@@ -7,6 +7,9 @@
 import { relative, resolve } from "node:path";
 import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
 import { listActiveBriefEntries } from "../intent-constraint/plan-id-adopter.js";
+
+type ActiveBriefEntry = ReturnType<typeof listActiveBriefEntries>[number];
+
 import { collectGithubRefs } from "../orphan-active/refs.js";
 import type { ActiveRunningBrief } from "../orphan-active/running-briefs.js";
 import { resolvePlanGithubIssueRef } from "../scope/delivery-evidence.js";
@@ -100,12 +103,14 @@ export function storyIssueIdentityMessage(args: {
   readonly rel: string;
   readonly plan: Record<string, unknown>;
   readonly issue: number;
+  /** The adopter's `xbrief/active` scan, read once per check or writer call. */
+  readonly entries?: readonly ActiveBriefEntry[];
 }): string | null {
   const origin = issueOriginFromRepoSlug(args.repo, args.issue);
   if (origin === null) {
     return null;
   }
-  const entries = listActiveBriefEntries(args.projectRoot);
+  const entries = args.entries ?? listActiveBriefEntries(args.projectRoot);
   const owners = entries.filter((e) => briefOwnsIssue(e.data, origin));
   const others = owners.filter((e) => e.relPath !== args.rel);
   const n = `#${String(args.issue)}`;
@@ -156,22 +161,53 @@ export function demandForBrief(args: {
   readonly brief: ActiveRunningBrief;
   readonly fallback: readonly number[];
 }): BriefStoryDemand {
-  const rel = briefRelPath(args.brief.path, args.projectRoot);
-  const issue = storyIssueOfBrief(args.brief.plan, args.repo);
-  if (issue === null) {
-    return { kind: "today", issues: args.fallback, rel };
-  }
-  const message = storyIssueIdentityMessage({
-    projectRoot: args.projectRoot,
-    repo: args.repo,
-    rel,
-    plan: args.brief.plan,
-    issue,
-  });
+  return storyDemandResolver(args.projectRoot, args.repo)(args.brief, args.fallback);
+}
+
+/**
+ * `demandForBrief` for one check or writer call: the adopter's `xbrief/active` scan
+ * runs at most once, and each brief's identity verdict is computed once.
+ */
+export function storyDemandResolver(
+  projectRoot: string,
+  repo: string,
+): (brief: ActiveRunningBrief, fallback: readonly number[]) => BriefStoryDemand {
+  let entries: readonly ActiveBriefEntry[] | null = null;
+  const verdicts = new Map<string, string | null>();
+  return (brief, fallback) => {
+    const rel = briefRelPath(brief.path, projectRoot);
+    const issue = storyIssueOfBrief(brief.plan, repo);
+    if (issue === null) {
+      return { kind: "today", issues: fallback, rel };
+    }
+    let message = verdicts.get(rel);
+    if (message === undefined) {
+      entries ??= listActiveBriefEntries(projectRoot);
+      message = storyIssueIdentityMessage({
+        projectRoot,
+        repo,
+        rel,
+        plan: brief.plan,
+        issue,
+        entries,
+      });
+      verdicts.set(rel, message);
+    }
+    return demandFromVerdict(brief, repo, rel, issue, message);
+  };
+}
+
+function demandFromVerdict(
+  brief: ActiveRunningBrief,
+  repo: string,
+  rel: string,
+  issue: number,
+  message: string | null,
+): BriefStoryDemand {
   if (message !== null) {
     return { kind: "blocked", issue, message, rel };
   }
-  const others = storyIssuesOfBrief(args.brief.plan, args.repo).filter((m) => m !== issue);
+  const others = storyIssuesOfBrief(brief.plan, repo).filter((m) => m !== issue);
   return { kind: "line", issue, others, rel };
 }
 
