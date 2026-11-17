@@ -13,8 +13,6 @@ import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
 
 function canonicalPath(path: string): string {
   let cursor = resolve(path);
-  if (process.platform !== "win32") return cursor;
-
   const missing: string[] = [];
   while (!existsSync(cursor)) {
     const parent = dirname(cursor);
