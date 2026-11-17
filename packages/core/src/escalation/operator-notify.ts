@@ -72,9 +72,12 @@ export function operatorStopCommands(body: string): string[] {
 
 /** Worktree recorded in an operator-stop body (`Worktree: <path>` line), or null. */
 export function operatorStopWorktree(body: string): string | null {
-  for (const line of body.split(/\r?\n/)) {
-    const match = /^Worktree:\s*(.+)$/.exec(line.trim());
-    if (match?.[1] !== undefined) return match[1].trim();
+  const prefix = "Worktree:";
+  for (const line of body.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith(prefix)) continue;
+    const value = trimmed.slice(prefix.length).trim();
+    if (value.length > 0) return value;
   }
   return null;
 }

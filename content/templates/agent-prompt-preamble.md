@@ -395,7 +395,7 @@ When blocked on human input under multi-agent load, file a **typed** escalation 
 - Store: `.deft/escalations/<id>.json`
 - Mark write-scope shell / merge / release requests `dangerous: true` so they stay individual
 - Escalations are **not** implement authority — compose with `deft authz:grant` (Wave 1) after approval
-- ! Operator-only stop (#6275): an `authz-grant-*` hook deny and an agent-shell mint refusal record themselves when `plan.policy.operatorNotify` is on. For every other step only the operator can run (a fenced CHANGELOG line, a `hotfix` label, an operator commit or merge, a disposition), file it before stopping BLOCKED: `deft escalation:file -- --type cmd_approval --title "<step>" --command "<exact command>"` (repeat `--command` for each step of one stop)
+- Operator-only stop (#6275): an `authz-grant-*` hook deny and an agent-shell mint refusal record themselves when `plan.policy.operatorNotify` is on. For every other step only the operator can run (a fenced CHANGELOG line, a `hotfix` label, an operator commit or merge, a disposition), file it before stopping BLOCKED: `deft escalation:file -- --type cmd_approval --title "<step>" --command "<exact command>"` (repeat `--command` for each step of one stop)
 
 Contract + residual full priority-inbox UI: `content/contracts/escalation.md`.
 
