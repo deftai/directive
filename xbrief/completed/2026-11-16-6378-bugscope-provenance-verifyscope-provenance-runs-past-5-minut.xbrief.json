@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6378",
-    "updated": "2026-11-16T18:42:21Z"
+    "updated": "2026-11-16T23:54:29Z"
   },
   "plan": {
     "title": "bug(scope-provenance): verify:scope-provenance runs past 5 minutes with no output in a fresh worktree",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`verify:scope-provenance` takes about five minutes in this repository and prints nothing while it runs, because the lifecycle census starts one `git show` process for each of about 1,980 briefs at the base ref. This story reads the census through a few size-budgeted `git cat-file` batches with today's single read as the fallback, keeps the texts for the rest of the run, writes one stderr line per phase, and gives every git call of the check a per-call time limit (120 seconds by default) that ships in warn mode. The verdict, the findings and the exit codes stay the same.",
       "UserStory": "As a worker or CI job running `verify:scope-provenance`, I want the check to finish in seconds and name the phase it is in, so that a run no longer looks hung and a truly blocked git call is named and bounded.",
@@ -20,370 +20,692 @@
     "items": [
       {
         "id": "clause.1",
-        "status": "proposed",
+        "status": "completed",
         "title": "Same listing, same paths, same ref.",
         "narrative": {
           "Acceptance": "Given the same change set before and after the change, when no git call reaches the time limit, then the verdict text on stdout and the exit code are the same."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.2",
-        "status": "proposed",
+        "status": "completed",
         "title": "The census keeps its `git ls-tree --name-only` listing per lifecycle folder at the selected base ref, and keeps today's path decoding, trimming, normalising and lifecycle filter.",
         "narrative": {
           "Acceptance": "This issue records the measured time of the check and its git process counts before the change; packages/core/src/scope-provenance/census-batch.ts lists each lifecycle folder with `git ls-tree -r --name-only <ref> xbrief/<folder>` and applies unquoteGitPath, normalizeRepoRelPath and isLifecycleXbriefPath as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.3",
-        "status": "proposed",
+        "status": "completed",
         "title": "It makes one read request per listed entry, in listing order, for `<ref>:<normalised path>`, the string that `git show` receives today.",
         "narrative": {
           "Acceptance": "Given a listed path that today's rules rewrite before reading, when the check runs, then the census budgets and reads the object at the rewritten path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.4",
-        "status": "proposed",
+        "status": "completed",
         "title": "Two entries that normalise to the same path stay two requests and two census entries.",
         "narrative": {
           "Acceptance": "Given two listed entries that normalise to the same path, when the check runs, then the census has two entries as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.5",
-        "status": "proposed",
+        "status": "completed",
         "title": "Partition before any batch call.",
         "narrative": {
           "Acceptance": "Given a census request list, then census-batch.ts splits it into batch-eligible and single-read requests before it starts any `git cat-file` process."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.6",
-        "status": "proposed",
+        "status": "completed",
         "title": "A request is batch-eligible only when its path is printable ASCII with no control character.",
         "narrative": {
           "Acceptance": "Given a lifecycle brief whose file name contains a line break, when the check runs, then that brief is read with the single read and the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.7",
-        "status": "proposed",
+        "status": "completed",
         "title": "Every other request is read with today's single `git show` and is never sent to a batch call.",
         "narrative": {
           "Acceptance": "Given a lifecycle brief whose file name contains a character that is not printable ASCII, when the check runs, then that brief is read with the single read and the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.8",
-        "status": "proposed",
+        "status": "completed",
         "title": "Sizes of the eligible requests.",
         "narrative": {
           "Acceptance": "Given eligible requests, then the census reads each request's object id, type and size from the size call before it plans any content chunk."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.9",
-        "status": "proposed",
+        "status": "completed",
         "title": "One `git cat-file --batch-check` call takes the eligible request strings.",
         "narrative": {
           "Acceptance": "Given this repository with an active brief, when `task verify:scope-provenance` runs, then the census starts fewer than 20 git processes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.10",
-        "status": "proposed",
+        "status": "completed",
         "title": "A request whose record is not a `blob` (for example `missing`, `tree` or `commit`) is read with today's single `git show`.",
         "narrative": {
           "Acceptance": "Given a listed entry whose requested path is absent at the base ref, when the check runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.11",
-        "status": "proposed",
+        "status": "completed",
         "title": "Budgeted batches.",
         "narrative": {
           "Acceptance": "Given lifecycle briefs whose framed answers sum to more than the subprocess buffer limit, when the check runs, then the census reads them in more than one chunk and succeeds."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.12",
-        "status": "proposed",
+        "status": "completed",
         "title": "The remaining requests go to `git cat-file --batch` in chunks.",
         "narrative": {
           "Acceptance": "Given this repository with an active brief, when `task verify:scope-provenance` runs, then it prints its result in under 60 seconds."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.13",
-        "status": "proposed",
+        "status": "completed",
         "title": "A chunk's budget counts, for each record, its content size plus the header line and the trailing delimiter, and the sum stays under the existing subprocess buffer limit.",
         "narrative": {
           "Acceptance": "Given a lifecycle brief whose content size is one byte under the subprocess buffer limit, when the check runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.14",
-        "status": "proposed",
+        "status": "completed",
         "title": "The output is parsed as bytes by each record's header size, and each object is decoded as UTF-8 by itself.",
         "narrative": {
           "Acceptance": "Given briefs with multi-byte UTF-8 content in one chunk, when the census reads them, then each census text equals the text of today's single read."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.15",
-        "status": "proposed",
+        "status": "completed",
         "title": "A request whose own framed answer does not fit is read with today's single `git show`.",
         "narrative": {
           "Acceptance": "Given a single lifecycle brief that is larger than the subprocess buffer limit, when the check runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.16",
-        "status": "proposed",
+        "status": "completed",
         "title": "Batch is an accelerator only.",
         "narrative": {
           "Acceptance": "Given batch output that ends before the last requested record, when the check runs, then the census result is the same as a run that uses only single reads."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.17",
-        "status": "proposed",
+        "status": "completed",
         "title": "If a batch call exits non-zero, or its records do not match the requests one for one in order with the id and size from item 3, the census discards the batch results and reads every entry with today's single reads.",
         "narrative": {
           "Acceptance": "Given a batch record whose id or size differs from the size call, when the check runs, then the census result is the same as a run that uses only single reads."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.18",
-        "status": "proposed",
+        "status": "completed",
         "title": "The census errors, the missing-versus-error distinction and the JSON handling are produced only by today's code.",
         "narrative": {
           "Acceptance": "Given a listed entry whose requested path is a directory or a submodule entry at the base ref, when the check runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.19",
-        "status": "proposed",
+        "status": "completed",
         "title": "One in-run text map.",
         "narrative": {
           "Acceptance": "Given one evaluate, then evaluate.ts keeps one map of census texts that is created inside that evaluate call."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.20",
-        "status": "proposed",
+        "status": "completed",
         "title": "Texts read by the census are kept for that one evaluate, keyed by ref and normalised path.",
         "narrative": {
           "Acceptance": "Given a brief that the census has read, when a later step of the same run needs that brief at the same ref, then no further git process is started for it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.21",
-        "status": "proposed",
+        "status": "completed",
         "title": "The base reader serves from the map and falls back to today's single read for any other path.",
         "narrative": {
           "Acceptance": "Given a base read for a path the census did not read, when the evaluator needs it, then it is read with today's single `git show`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.22",
-        "status": "proposed",
+        "status": "completed",
         "title": "Injected readers keep their precedence.",
         "narrative": {
           "Acceptance": "Given injected base briefs or an injected base reader, when the evaluator runs, then the injected source is used and no git batch is started."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.23",
-        "status": "proposed",
+        "status": "completed",
         "title": "Nothing is cached between runs.",
         "narrative": {
           "Acceptance": "Given two evaluate calls in one process, when the second runs after a base brief changed, then the second reads the changed text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.24",
-        "status": "proposed",
+        "status": "completed",
         "title": "Phase lines.",
         "narrative": {
           "Acceptance": "Given a run without `--quiet`, then each phase line on file descriptor 2 starts with `verify_scope_provenance: phase:` and names the phase."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.25",
-        "status": "proposed",
+        "status": "completed",
         "title": "Before base resolution, the change-set read, the census (with its brief count) and the per-story evaluation, the runtime writes one line that names the phase to file descriptor 2 with a synchronous write (`fs.writeSync`).",
         "narrative": {
           "Acceptance": "Given a run without `--quiet`, then file descriptor 2 carries the name of each phase before that phase starts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.26",
-        "status": "proposed",
+        "status": "completed",
         "title": "`--quiet` suppresses the lines.",
         "narrative": {
           "Acceptance": "Given a run with `--quiet`, then no phase line is written."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.27",
-        "status": "proposed",
+        "status": "completed",
         "title": "Stdout, the verdict and the exit code do not change.",
         "narrative": {
           "Acceptance": "Given the same change set with and without phase lines, then stdout, the findings and the exit code are the same."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.28",
-        "status": "proposed",
+        "status": "completed",
         "title": "Per-call time limit, on by default.",
         "narrative": {
           "Acceptance": "Given no option, when the evaluator runs a git call, then the call has a time limit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.29",
-        "status": "proposed",
+        "status": "completed",
         "title": "Every git call of this check is started with the `timeout` option of `spawnSync` and `killSignal: \"SIGKILL\"`.",
         "narrative": {
           "Acceptance": "Given a git process that handles `SIGTERM` and does not exit, when it reaches the limit, then the check gets control back and reports the limit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.30",
-        "status": "proposed",
+        "status": "completed",
         "title": "At the limit the operating system ends the git process; git cannot handle or ignore that signal, and on Windows Node ends the process unconditionally.",
         "narrative": {
           "Acceptance": "Given a git call with a limit, then the spawn options carry `killSignal: \"SIGKILL\"`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.31",
-        "status": "proposed",
+        "status": "completed",
         "title": "`spawnSync` returns when that process has exited, and only then does the check act on the result.",
         "narrative": {
           "Acceptance": "Given a call that reaches the limit, then the warn line or the refusal is written only after the spawn call has returned."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.32",
-        "status": "proposed",
+        "status": "completed",
         "title": "The default is 120 seconds per call.",
         "narrative": {
           "Acceptance": "Given no flag and no variable, when a git call of this check runs, then its limit is 120 seconds."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.33",
-        "status": "proposed",
+        "status": "completed",
         "title": "The flag `--git-timeout-seconds <n>` on the verb overrides it, and `0` means no limit.",
         "narrative": {
           "Acceptance": "Given `--git-timeout-seconds 0`, when a git call of this check runs, then it has no limit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.34",
-        "status": "proposed",
+        "status": "completed",
         "title": "The environment variable `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS` overrides the default for runs that cannot pass the flag; the flag wins over the variable.",
         "narrative": {
           "Acceptance": "Given `--git-timeout-seconds 300` and the variable set to 60, when a git call of this check runs, then its limit is 300 seconds."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.35",
-        "status": "proposed",
+        "status": "completed",
         "title": "A call that reaches the limit is its own error kind: it is not folded into the census read failure and it does not trigger the item 5 fallback.",
         "narrative": {
           "Acceptance": "Given a batch call that reaches the limit, when the check runs, then the census does not fall back to single reads because of it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.36",
-        "status": "proposed",
+        "status": "completed",
         "title": "No optional locks.",
         "narrative": {
           "Acceptance": "Given the git runner of this check, then it sets `GIT_OPTIONAL_LOCKS` to `0` in the environment of each call it starts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.37",
-        "status": "proposed",
+        "status": "completed",
         "title": "Every git call of this check runs with `GIT_OPTIONAL_LOCKS=0`, so a call that is ended at the limit does not leave an index lock behind.",
         "narrative": {
           "Acceptance": "Given any git call of this check, then its environment carries `GIT_OPTIONAL_LOCKS=0`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.38",
-        "status": "proposed",
+        "status": "completed",
         "title": "Warn first, then refuse.",
         "narrative": {
           "Acceptance": "Given `warn` mode and a git call that reaches the limit, then the same command is run once more with no limit and the verdict and the exit code are the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.39",
-        "status": "proposed",
+        "status": "completed",
         "title": "The limit is one declared refusal with the id `scope-provenance-git-call-timeout`, a mode and a remedy, in the form of the #6281 declaration table (lean 6908087379 on #6281).",
         "narrative": {
           "Acceptance": "Given git-call.ts, then it exports one declaration row with the id `scope-provenance-git-call-timeout`, a mode, a reason and a remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.40",
-        "status": "proposed",
+        "status": "completed",
         "title": "It ships in `warn` mode.",
         "narrative": {
           "Acceptance": "Given the release that first ships it, then the declared mode of `scope-provenance-git-call-timeout` is `warn`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.41",
-        "status": "proposed",
+        "status": "completed",
         "title": "In `warn` mode, after `spawnSync` has returned from the ended call, one line names the id, the phase, the git command, the elapsed seconds and the remedy and says the check can refuse from a later release; the same command is then run once more with no limit.",
         "narrative": {
           "Acceptance": "Given `warn` mode and a git call that reaches the limit, when the check runs, then one line names the id, the phase, the git command, the elapsed seconds and the remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.42",
-        "status": "proposed",
+        "status": "completed",
         "title": "In `enforce` mode the same line is the refusal and the check exits 2.",
         "narrative": {
           "Acceptance": "Given `enforce` mode and a git call that reaches the limit, when the check runs, then it exits 2 and the line names the id, the phase, the git command and the remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.43",
-        "status": "proposed",
+        "status": "completed",
         "title": "The change to `enforce` is a later one-line change with its own CHANGELOG entry.",
         "narrative": {
           "Acceptance": "Given git-call.ts, then the mode of the row is one constant field, so a later change to `enforce` edits one line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.44",
-        "status": "proposed",
+        "status": "completed",
         "title": "The remedy is the verb with a larger `--git-timeout-seconds` value.",
         "narrative": {
           "Acceptance": "Given the refusal line in `enforce` mode, when the printed remedy is run exactly as printed against a git call that finishes inside the larger limit, then the check completes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.45",
-        "status": "proposed",
+        "status": "completed",
         "title": "If the #6281 table and helper exist when this is built, the row and the line use them.",
         "narrative": {
           "Acceptance": "Given that the #6281 table and helper do not exist on the base of this change, then no #6281 table import is added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.46",
-        "status": "proposed",
+        "status": "completed",
         "title": "If they do not, the row is a constant in the scope-provenance module with the same fields and the same line, and it moves to the table when the table exists.",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope-provenance/git-call.ts, then it holds the row as an exported constant with the id, the mode, the reason and the remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+          "recorded_at": "2026-11-16T23:54:29Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1600,9 +1922,39 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "a23e485db40054ff4d24429f3d537a149824a62f9b0543631aa49de755609a94"
+      },
+      "productPullRequest": 6458,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6bcd55ab3b362f4eca3062232e6bbe47791faf9b",
+        "prNumber": 6458,
+        "prBase": "master",
+        "mergeCommit": "a6f9c07d49b22c204e25ec62afae2783dbac9d2f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4288b3cc02e1b86cf04a093ed68db64f6a0cd92d",
+        "verifiedAt": "2026-11-16T23:54:29Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6461
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T23:54:29Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T23:54:29Z"
       }
     },
     "id": "github.issue.6414486260",
-    "updated": "2026-11-16T18:42:21Z"
+    "updated": "2026-11-16T23:54:29Z"
   }
 }
