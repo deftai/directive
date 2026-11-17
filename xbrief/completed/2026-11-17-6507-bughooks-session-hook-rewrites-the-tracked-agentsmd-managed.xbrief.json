@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6507",
-    "updated": "2026-11-17T06:54:31Z"
+    "updated": "2026-11-17T16:12:52Z"
   },
   "plan": {
     "title": "bug(hooks): session hook rewrites the tracked AGENTS.md managed section from the pinned runtime in this repo, rolling it back",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "In the framework source repository, `session:start`, `agents:refresh` and the self-complete setup that every hook call runs all plan the `AGENTS.md` managed section against the pinned runtime's copy of `agents-entry.md`, which is often older than the repository's own `content/templates/agents-entry.md`. A fresh worktree therefore gets its tracked section rolled back, and `agents:refresh` then reports the older section as current. This story makes the refresh plan read the checkout's own template file in a source checkout when the caller gives no template, and makes the setup writer stop passing the runtime template in a source checkout; consumer projects keep today's behaviour.",
       "UserStory": "As a worker in a worktree of the framework source repository, I want the session and setup steps to leave the tracked `AGENTS.md` alone when it matches the repository's own template, so that I do not restore it again and again or roll the managed rules back by committing it.",
@@ -20,82 +20,152 @@
     "items": [
       {
         "title": "Plan. In `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`), when the caller passes no `frameworkRoot` and no `readTemplate` seam, `DEFT_ROOT` is unset, and `isFrameworkSourceCheckoutAt(projectRoot)` is true, the plan reads the template from the file `<projectRoot>/content/templates/agents-entry.md` directly (not through `contentRoot`), and uses `projectRoot` as the framework root, so the marker sha of any write comes from the checkout.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/platform/agents-md.ts, when `agentsRefreshPlan` runs in a source checkout with no `frameworkRoot` or `readTemplate` seam and `DEFT_ROOT` unset, then it reads `<projectRoot>/content/templates/agents-entry.md` directly and stamps any write with the checkout's framework identity."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Setup. In `ensureAgentsManagedSection` (`packages/runtime/src/setup-wiring.ts`), when `isFrameworkSourceCheckoutAt(projectRoot)` is true, the call passes no `frameworkRoot` or `readTemplate` seam, so it takes item 1. Outside a source checkout it keeps passing the runtime package's template as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/setup-wiring.ts, when `ensureAgentsManagedSection` runs in a source checkout, then it passes no runtime template seam to `applyAgentsRefresh`; outside a source checkout it passes the runtime package's template as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Unchanged. States, the `current` comparison, the writer, the lock and the CLI text stay as they are. Callers that pass their own seams (the health gate, `migrate:xbrief`, init) and an explicit `DEFT_ROOT` keep winning. In a consumer project both conditions are false, so the plan and the setup write are the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/platform/agents-md.ts, then the refresh states, the `current` comparison, the writer, the lock and the CLI text are unchanged, and callers that pass seams or set `DEFT_ROOT` get today's plan."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Pin timing. The fix acts in this repository when a release that carries it is pinned; the docs or changelog line says so.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given changelog.d/6507-agents-source-template.md, then it states the fix and that it acts in this repository once a release that carries it is pinned."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a source-checkout fixture whose `AGENTS.md` managed section matches its own `content/templates/agents-entry.md`, and a different template on the module walk, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is not written.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/platform/agents-md-source-checkout-6507.test.ts, a source-checkout fixture whose section matches its own template and a different walk template, when `applyAgentsRefresh` runs with no seams, then the state is `current` and `AGENTS.md` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same fixture, and a runtime template (the file `resolveRuntimeAgentsEntryTemplatePath()` returns, replaced in the test) whose rendered section differs from the fixture section, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified. A build that still passes the runtime template as `readTemplate` in a source checkout fails this criterion.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/setup-wiring-framework-source.test.ts, a source-checkout fixture whose section matches its own template and a replaced runtime template whose rendered section differs, when `ensureAgentsManagedSection` runs, then `AGENTS.md` is not modified."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a source-checkout fixture whose own template is newer than its `AGENTS.md` section, when `agentsRefreshPlan` runs with no seams, then the state is `stale`, the new content carries the checkout template, and the `agents:refresh` CLI does not print `unchanged - sha match`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/agents-refresh.test.ts and a source-checkout fixture whose own template is newer than its section, when the plan and the `agents:refresh` CLI run with no seams, then the state is `stale`, the new content carries the checkout template, and the CLI does not print `unchanged - sha match`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then it reads the checkout's `content/templates/agents-entry.md`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/platform/agents-md-source-checkout-6507.test.ts and a source-checkout fixture with a staged content package whose template differs, when `agentsRefreshPlan` runs with no seams, then the plan uses the checkout's `content/templates/agents-entry.md`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a consumer fixture (not a source checkout), when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/setup-wiring-framework-source.test.ts and a consumer fixture that is not a source checkout, when `agentsRefreshPlan` and `ensureAgentsManagedSection` run, then they use the same template as today (the module walk and the runtime package template)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/platform/agents-md-source-checkout-6507.test.ts and a source checkout with `DEFT_ROOT` set or an explicit `frameworkRoot` or `readTemplate` seam, when `agentsRefreshPlan` runs, then it uses that root or seam as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+          "recorded_at": "2026-11-17T16:12:52Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -536,9 +606,36 @@
         "leanCommentId": 6940597836,
         "harvestDigest": "dd008944bd999fbbfe88d704fa76c48305cab129f9a4f7fd454146a6f85db6ae",
         "slice": null
+      },
+      "productPullRequest": 6525,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f0c586eab4cc1b7407c784f47f660a0485e3ad10",
+        "prNumber": 6525,
+        "prBase": "master",
+        "mergeCommit": "37c3548e326e475632dfb97d07eaf99dcb75a4e5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6e6d88b8035fe3c71bdbcab3102a394b5761859d",
+        "verifiedAt": "2026-11-17T16:12:52Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T16:12:52Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T16:12:52Z"
       }
     },
     "id": "github.issue.6438337828",
-    "updated": "2026-11-17T06:54:31Z"
+    "updated": "2026-11-17T16:12:52Z"
   }
 }
