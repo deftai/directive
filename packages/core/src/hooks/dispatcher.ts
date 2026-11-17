@@ -66,6 +66,7 @@ import {
   resolveWriteFence,
   type StoryWriteFenceView,
 } from "../policy/write-fence.js";
+import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { HOOK_COMPACT_HEAL_TRIGGER } from "../run-summary/types.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
@@ -201,6 +202,12 @@ import {
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
 import { excuseMergeArrivals } from "./merge-commit-excuse.js";
+import {
+  createMergeGateSignal,
+  type MergeGateSignal,
+  mergeGateWarningLine,
+  withMergeGateWarnings,
+} from "./merge-gate-signal.js";
 import {
   allTargetsOutsideEveryCheckout,
   OUTSIDE_EVERY_CHECKOUT_READY_CODE,
@@ -729,6 +736,17 @@ export interface HookPolicySeams {
    * Ignored when `verifyRitual` / `inspectRitual` is supplied.
    */
   readonly ritualRunGit?: GitRunner;
+  /**
+   * Test seam (#6535): gh runner for the merge-gate signal read. Defaults to one
+   * budgeted runner shared by the contents read and the required-context read.
+   */
+  readonly mergeGateRunGh?: RunGhFn;
+  /**
+   * Internal (#6535): per-checkout signal cache for one `decideHook` call, so every
+   * warn site and every target of one shell call shares one read budget. `decideHook`
+   * supplies it; callers and tests leave it unset.
+   */
+  readonly mergeGateSignals?: Map<string, MergeGateSignal>;
   readonly inspectScope?: (
     projectRoot: string,
     options?: InspectActiveScopeOptions,
@@ -1469,6 +1487,48 @@ function deny(
   };
 }
 
+/**
+ * Per-hook-call collector for the warn-only sites (#6535). `warn` reads the live
+ * merge-gate signal once (lazily, memoized) and, only when it is live, records
+ * `refusal` as a warning line and returns true so the caller continues instead
+ * of returning its refusal. When it returns false the caller refuses as today.
+ */
+interface MergeGateWarner {
+  readonly lines: string[];
+  warn(refusal: string): boolean;
+}
+
+function createMergeGateWarner(
+  root: string,
+  seams: HookPolicySeams,
+  runGit: GitRunner,
+  sink?: string[],
+): MergeGateWarner {
+  // One signal (and one read budget) per checkout for the whole dispatch: a shell
+  // call that checks several targets must not buy a new budget for each (#6535).
+  let signal: MergeGateSignal | undefined = seams.mergeGateSignals?.get(root);
+  if (signal === undefined) {
+    signal = createMergeGateSignal({
+      root,
+      runGit,
+      ...(seams.mergeGateRunGh !== undefined ? { runGh: seams.mergeGateRunGh } : {}),
+    });
+    seams.mergeGateSignals?.set(root, signal);
+  }
+  const live: MergeGateSignal = signal;
+  const lines: string[] = sink ?? [];
+  return {
+    lines,
+    warn(refusal: string): boolean {
+      const result = live.evaluate();
+      if (!result.live) return false;
+      const line = mergeGateWarningLine(refusal, result);
+      if (!lines.includes(line)) lines.push(line);
+      return true;
+    },
+  };
+}
+
 interface MutationActorResolution {
   readonly sessionId: string | undefined;
   readonly issue: "unavailable" | "conflict" | null;
@@ -1549,6 +1609,7 @@ function runtimeAuthorityForDirectWrite(
   seams: HookPolicySeams,
   scopePath: string | null,
   effectiveRoot: string,
+  warner?: MergeGateWarner,
 ): HookDecision | null {
   // #3794 commit 2: the project runtimeAuthority layer is project-level
   // authorization config and stays on payloadRoot, alongside authz. Only the
@@ -1651,14 +1712,13 @@ function runtimeAuthorityForDirectWrite(
       relPathPosix: relPath,
     });
     if (!verdict.allowed) {
-      return deny(
-        input,
-        verdict.code ?? "runtime-policy-deny-path",
-        toolName,
+      const refusal =
         (verdict.reason ?? "Directive denied this direct write under write fence policy.") +
-          fenceRootNote,
-        scopePath,
-      );
+        fenceRootNote;
+      // #6535 site (e): only the story file_scope verdict can warn; project
+      // denyPaths / allowPaths and every other verdict keep refusing.
+      if (verdict.storyScopeOnly === true && warner?.warn(refusal) === true) continue;
+      return deny(input, verdict.code ?? "runtime-policy-deny-path", toolName, refusal, scopePath);
     }
   }
   return null;
@@ -2220,6 +2280,11 @@ function inspectMutationGates(
      * writes never set it, so the outside-every-checkout class cannot reach them.
      */
     outsideEveryCheckoutEligible?: boolean;
+    /**
+     * #6535: collects this call's warn-site warnings for a caller that discards the
+     * allow (shell write reissue), so the final shell allow can carry them.
+     */
+    mergeGateWarningsOut?: string[];
   },
 ): HookDecision {
   // payloadRoot stays authoritative for authz grant scoping, the authz audit
@@ -2261,6 +2326,13 @@ function inspectMutationGates(
     ? { root: payloadRoot, foreign: false, candidate: null, refusal: null }
     : admitMutationTargetSet(payloadRoot, mutationTargets, dispatchGit);
   const effectiveRoot = admission.root;
+  // #6535: warn-only sites share one lazy signal read per hook call.
+  const mergeGateWarner = createMergeGateWarner(
+    effectiveRoot,
+    seams,
+    dispatchGit,
+    options.mergeGateWarningsOut,
+  );
   if (options.observation !== undefined) {
     if (!options.observation.effectiveRoots.includes(effectiveRoot)) {
       options.observation.effectiveRoots.push(effectiveRoot);
@@ -2713,25 +2785,25 @@ function inspectMutationGates(
     }
     // #2992: prefer re-arm recovery when age/compact stale; cold when bind invalid.
     const recoveryTier = ritual.recoveryTier === "rearm" ? "rearm" : "cold";
-    // #2994: best-effort local process-cost; never changes deny verdict.
-    emitSessionRitualBlockedProcessCost(
-      {
-        toolName,
-        code: "ritual-not-ready",
-        recoveryTier,
-        detail: ritual.message,
-      },
-      { projectRoot },
+    const ritualRefusal = ritualRecoveryText(
+      `Directive denied ${toolName}: ${ritual.message}${rootsNote}`,
+      recoveryTier,
     );
-    return deny(
-      input,
-      "ritual-not-ready",
-      toolName,
-      ritualRecoveryText(
-        `Directive denied ${toolName}: ${ritual.message}${rootsNote}`,
-        recoveryTier,
-      ),
-    );
+    // #6535 site (a): under a live merge-gate signal this arm warns and the
+    // later gates (occupancy recheck, authz, protected stores) still run.
+    if (!mergeGateWarner.warn(ritualRefusal)) {
+      // #2994: best-effort local process-cost; never changes deny verdict.
+      emitSessionRitualBlockedProcessCost(
+        {
+          toolName,
+          code: "ritual-not-ready",
+          recoveryTier,
+          detail: ritual.message,
+        },
+        { projectRoot },
+      );
+      return deny(input, "ritual-not-ready", toolName, ritualRefusal);
+    }
   }
 
   // Narrow the cooperative file-gate race: authorization/scope checks can
@@ -2811,8 +2883,12 @@ function inspectMutationGates(
     }
     return null;
   };
+  // Every allow built after the ritual arm carries the merge-gate warnings (#6535).
   const withOccupancyWarning = (message: string): string =>
-    occupancyWarning === null ? message : `${message} ${occupancyWarning}`;
+    withMergeGateWarnings(
+      occupancyWarning === null ? message : `${message} ${occupancyWarning}`,
+      mergeGateWarner.lines,
+    );
 
   if (options.proposedLifecycleExempt) {
     // UAT still allows xbrief/proposed/** as evidence/defect capture (#2944).
@@ -3011,18 +3087,32 @@ function inspectMutationGates(
         resolve(effectiveRoot) === payloadRoot
           ? ""
           : ` Active scope was read from ${effectiveRoot}, so run that recovery there rather than in ${payloadRoot}.`;
-      return deny(
-        input,
-        denyCode,
-        toolName,
+      const scopeRefusal =
         `Directive denied ${toolName}: ${scope.message}${proposedPathHint}` +
-          scopeNotReadyCoverageHint(
-            toolName,
-            loadRuntimeAuthorityPolicySafe(input, seams)?.shellDestForms === "enforce",
-          ) +
-          recoveryRootNote +
-          rootsNote,
-      );
+        scopeNotReadyCoverageHint(
+          toolName,
+          loadRuntimeAuthorityPolicySafe(input, seams)?.shellDestForms === "enforce",
+        ) +
+        recoveryRootNote +
+        rootsNote;
+      // #6535 site (b): a non-spawn not-ready scope (multiple eligible, zero
+      // eligible, env pin miss) warns under a live merge-gate signal when no
+      // worktree binding refused. Blocked briefs, spawns and binding refusals
+      // keep refusing. The write then continues with no selected story.
+      const warnableScopeMiss =
+        scope.denyKind === "multiple-eligible" ||
+        scope.denyKind === "zero-eligible" ||
+        scope.denyKind === "pin-miss";
+      if (
+        !(
+          denyCode === "scope-not-ready" &&
+          !worktreeBindingRefused &&
+          warnableScopeMiss &&
+          mergeGateWarner.warn(scopeRefusal)
+        )
+      ) {
+        return deny(input, denyCode, toolName, scopeRefusal);
+      }
     }
   }
 
@@ -3049,13 +3139,10 @@ function inspectMutationGates(
       return null;
     }
     const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
-    return deny(
-      input,
-      denyCode,
-      toolName,
-      `${formatPositiveGoverningAllowDeny(fence)}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`,
-      scope.path,
-    );
+    const positiveRefusal = `${formatPositiveGoverningAllowDeny(fence)}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`;
+    // #6535 site (c): a write warns under a live merge-gate signal; spawns keep refusing.
+    if (denyCode === "scope-not-ready" && mergeGateWarner.warn(positiveRefusal)) return null;
+    return deny(input, denyCode, toolName, positiveRefusal, scope.path);
   };
   if (!isSpawnTool(toolName)) {
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
@@ -3085,6 +3172,7 @@ function inspectMutationGates(
       seams,
       scope.path,
       effectiveRoot,
+      mergeGateWarner,
     );
     if (runtimeDeny !== null) return runtimeDeny;
     // Shell write-reissue may defer spend so decideShellOrMcpRuntimeAuthority can
@@ -3394,6 +3482,7 @@ function decideShellWriteReissue(
   seams: HookPolicySeams,
   observation: DispatchObservation,
   pendingConsumeOut?: string[],
+  mergeGateWarningsOut?: string[],
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
   if (command === null) return null;
@@ -3424,6 +3513,7 @@ function decideShellWriteReissue(
       observation,
       deferGrantConsume: true,
       pendingConsumeOut,
+      ...(mergeGateWarningsOut !== undefined ? { mergeGateWarningsOut } : {}),
     });
     if (destDecision.verdict === "deny") return destDecision;
   }
@@ -4571,6 +4661,14 @@ function decideLauncherFamilyArgv(
 
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
+  // #6535: one merge-gate signal cache per hook call (a shell call may check many targets).
+  return decideHookWithSignals(
+    input,
+    seams.mergeGateSignals === undefined ? { ...seams, mergeGateSignals: new Map() } : seams,
+  );
+}
+
+function decideHookWithSignals(input: HookDispatchInput, seams: HookPolicySeams): HookDecision {
   if (input.event === "session.end") {
     // #6274: shutdown must not restamp liveness or run policy; the runtime
     // calls runSessionEndHook instead. A direct decideHook call is a no-op.
@@ -5035,7 +5133,18 @@ function routeHookDecision(
         attachLifecycleIdentityRewrite(shellInput, shellToolName, destructive, seams),
       );
     }
-    const prospective = decideProspectiveGitCommitScopeCover(shellInput, shellToolName, seams);
+    // #6535: commit-check warnings ride on the final allow of this route.
+    const commitWarnings: string[] = [];
+    const carryCommitWarnings = (decided: HookDecision): HookDecision =>
+      decided.verdict === "allow" && commitWarnings.length > 0
+        ? { ...decided, message: withMergeGateWarnings(decided.message, commitWarnings) }
+        : decided;
+    const prospective = decideProspectiveGitCommitScopeCover(
+      shellInput,
+      shellToolName,
+      seams,
+      commitWarnings,
+    );
     if (prospective !== null) {
       return remapProxyShellUpdatedInput(
         input.payload,
@@ -5051,13 +5160,19 @@ function routeHookDecision(
       seams,
       observation,
       pendingShellGrantConsume,
+      commitWarnings,
     );
     if (writeReissue !== null) {
       return remapProxyShellUpdatedInput(
         input.payload,
         toolName,
         shellProxyUnwrap,
-        attachLifecycleIdentityRewrite(shellInput, shellToolName, writeReissue, seams),
+        attachLifecycleIdentityRewrite(
+          shellInput,
+          shellToolName,
+          carryCommitWarnings(writeReissue),
+          seams,
+        ),
       );
     }
     const decision = decideShellDestFormsThenRuntimeAuthority(
@@ -5073,7 +5188,12 @@ function routeHookDecision(
       input.payload,
       toolName,
       shellProxyUnwrap,
-      attachLifecycleIdentityRewrite(shellInput, shellToolName, decision, seams),
+      attachLifecycleIdentityRewrite(
+        shellInput,
+        shellToolName,
+        carryCommitWarnings(decision),
+        seams,
+      ),
     );
   }
 
@@ -5322,11 +5442,23 @@ function decideProspectiveGitCommitScopeCover(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
+  warnings: string[],
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
   if (command === null) return null;
   const target = resolveCommitTarget(command);
   if (target === null) return null;
+  // #6535 site (d): under a live merge-gate signal the staged-path-outside-file_scope
+  // result, the no-positive-allow result and the index-snapshot word warn instead of
+  // refusing; the shell route continues and the final allow carries the warning.
+  // The signal is the target checkout's own: each root has its own trigger copy.
+  const warnAt = (root: string, refusal: string): boolean =>
+    createMergeGateWarner(
+      root,
+      seams,
+      memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner),
+      warnings,
+    ).warn(refusal);
   if (target.kind === "unresolvable") {
     return deny(
       input,
@@ -5337,17 +5469,6 @@ function decideProspectiveGitCommitScopeCover(
     );
   }
   const indexWord = findGitCommitIndexMutatingWord(command);
-  if (indexWord !== null) {
-    return deny(
-      input,
-      "prospective-scope-cover-deny",
-      toolName,
-      `Directive denied ${toolName}: git commit -a/--all/-am/--include or pathspecs change the ` +
-        "file set after the pre-tool index snapshot (#5656). Stage the intended paths first " +
-        "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs. " +
-        `Word read as index-changing: ${JSON.stringify(indexWord)} (#6471).`,
-    );
-  }
   // The payload root stays the identity for authz, kill-switch and deny(); only
   // the index and story selection move to the target root (#6278).
   const payloadRoot = resolve(input.projectRoot);
@@ -5364,6 +5485,17 @@ function decideProspectiveGitCommitScopeCover(
       );
     }
     targetRoot = admitted.root;
+  }
+  if (indexWord !== null) {
+    // Judged on the checkout the commit names, not the payload root (#6278).
+    const indexRefusal =
+      `Directive denied ${toolName}: git commit -a/--all/-am/--include or pathspecs change the ` +
+      "file set after the pre-tool index snapshot (#5656). Stage the intended paths first " +
+      "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs. " +
+      `Word read as index-changing: ${JSON.stringify(indexWord)} (#6471).`;
+    if (!warnAt(targetRoot, indexRefusal)) {
+      return deny(input, "prospective-scope-cover-deny", toolName, indexRefusal);
+    }
   }
   const rootsNote =
     targetRoot === payloadRoot ? "" : ` ${formatHookRootNote(payloadRoot, targetRoot)}`;
@@ -5402,7 +5534,9 @@ function decideProspectiveGitCommitScopeCover(
       }),
   });
   if (cover.ok) return null;
-  return deny(input, "prospective-scope-cover-deny", toolName, `${cover.message}${rootsNote}`);
+  const coverRefusal = `${cover.message}${rootsNote}`;
+  if (cover.advisoryCapable === true && warnAt(targetRoot, coverRefusal)) return null;
+  return deny(input, "prospective-scope-cover-deny", toolName, coverRefusal);
 }
 
 /**
@@ -5448,6 +5582,12 @@ export interface ProspectiveScopeCoverResult {
   readonly message: string;
   readonly uncovered: readonly string[];
   readonly scopePath: string | null;
+  /**
+   * True only for the two story `file_scope` results (staged paths outside it, no
+   * positive governing allow). A caller may treat just these as advisory under a
+   * live merge-gate signal (#6535); every other not-ok result keeps refusing.
+   */
+  readonly advisoryCapable?: true;
 }
 
 /**
@@ -5577,6 +5717,7 @@ export function evaluateProspectiveScopeCover(
         `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${formatPositiveGoverningAllowDeny(fence)}`,
       uncovered: productStaged,
       scopePath: scope.path,
+      advisoryCapable: true,
     };
   }
   const outside = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
@@ -5601,6 +5742,7 @@ export function evaluateProspectiveScopeCover(
         "rewrite or bless earlier uncovered commits. Residuals: verify:hooks-installed; --no-verify.",
       uncovered,
       scopePath: scope.path,
+      advisoryCapable: true,
     };
   }
   return {

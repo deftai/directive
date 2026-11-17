@@ -267,6 +267,52 @@ product paths in that snapshot; it does not authenticate which actor commits. Ot
 (subshells, `pushd`, an exported `GIT_DIR`) are not interpreted; this is not a general shell
 parser.
 
+## Warn-only sites behind a live merge gate (#6535)
+
+Some local refusals repeat checks that the repository's merge path already runs. A repository can
+let those sites warn instead of refuse. It names one required status check in
+`plan.policy.mergeGateContext` of its project definition. Nothing else selects warn: no record, cache
+file, flag or table mode, and neither the #1517 merge-gate record nor the #6281 refusal table is read.
+
+**The signal.** The worktree copy of the project definition is only a trigger. With no name there,
+the hook makes no GitHub call and refuses as today. With a name, the hook makes one read with a
+ten-second budget at the site: it reads the project definition at the head of the delivery branch on
+GitHub (contents API) and the branch's required status contexts (the #3234 reader). The signal holds
+only when GitHub's copy names the same check and the contexts list it. A failed read, a timeout, a
+different name or a name that is not required means no signal. The result lives for one hook call and
+is written nowhere. The name is never taken from a local ref.
+
+**The warn sites.** These sites warn under the signal; each one records today's refusal text as a
+warning and evaluation continues, so every later check still runs and a later refusal wins:
+
+| Site | What warns |
+| --- | --- |
+| Gated ritual | A stale, missing or other-worktree ritual and a failed ritual step. The compact-heal refusal and an inspection that throws still refuse. |
+| Scope not ready | A write with multiple eligible briefs, zero eligible briefs or an env pin miss, when no worktree binding refused. Blocked-only scopes, spawns and binding refusals still refuse. |
+| Positive governing allow | A write whose selected story has no positive `file_scope` allow. Spawns still refuse. |
+| Commit check | Staged paths outside the story's `file_scope`, the same no-positive-allow result, and the index-snapshot word (`-a`, `-am`, pathspecs). The commit check then returns no decision and the shell route goes on to the write checks. |
+| Story write fence | A direct write outside the selected story's `file_scope` that no project `denyPaths` or `allowPaths` refuses. |
+
+The warning is the final allow's message. It starts with `Warning:`, gives today's refusal text and
+one clause that local enforcement is advisory because the named check is required on the delivery
+branch. It does not claim that check enforces the same condition. It uses the existing tool.before
+allow-advisory field of each host: `reason` on Grok, `agent_message` on Cursor and
+`additionalContext` on Claude and Codex.
+
+**The floor.** Every refusal not in the table keeps today's behaviour: protected stores, the
+kill-switch, occupancy, the intent ceiling, the installation identity check, foreign repositories,
+tree-wide destructive git, default-branch push and force push, runtime-authority refusals other than
+the story `file_scope` verdict, and the commit-target refusals.
+
+**What it does not do (limits, named and not closed here).** The change adds no guard for secrets paths, deletes outside
+the repository or force pushes to other branches; none exists today. It does not fix the hook-timeout
+fail-open (#5920). The read budget bounds the added latency; a hook that still runs past the host
+timeout fails open as before. The delivery branch name comes from the existing delivery-branch
+resolver. The change does not prove that the named check runs every Directive gate: the operator
+names it, and a wrong name, or a repository where an agent can merge its own pull request, weakens
+only that repository. Commit verdicts for worktrees inside and outside the repository folder still
+differ until #6471 is fixed in the runtime you run.
+
 ## Scope of this guarantee
 
 Root admission is **cooperative host-session routing**, the same posture as the occupancy lease it
@@ -286,4 +332,5 @@ the write fence.
 | Tool-name surfaces | `packages/core/src/hooks/tools.ts` — `isDirectWriteTool`, `isShellTool`, `isMcpTool` |
 | Commit-target tokenizer and resolver | `packages/core/src/hooks/commit-target.ts` — `resolveCommitTarget`, `tokenizeShellCommand` |
 | Commit-target admission and scope-cover | `packages/core/src/hooks/dispatcher.ts` — `decideProspectiveGitCommitScopeCover`, `evaluateProspectiveScopeCover` |
+| Merge-gate signal and warn sites | `packages/core/src/hooks/merge-gate-signal.ts`; `packages/core/src/hooks/dispatcher.ts` — `createMergeGateWarner`; `packages/core/src/policy/runtime-authority.ts` — `storyScopeOnly`; tests in `dispatcher-merge-gate-warn.test.ts` |
 | Behaviour lock | `packages/core/src/hooks/dispatcher-effective-root.test.ts`; commit targets in `dispatcher-active-scope.test.ts` and `commit-target.test.ts` |

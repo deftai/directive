@@ -16,6 +16,7 @@ import {
   fetchPrBaseRef,
   fetchPrHeadShaRest,
   fetchRequiredStatusContexts,
+  makeBudgetedRunGh,
   mergeGateEnforcementRecordPath,
   readMergeGateEnforcementRecord,
   resolveRepo,
@@ -26,6 +27,52 @@ import type { RunGhFn } from "./types.js";
 describe("defaultRunGh", () => {
   it("rejects non-gh commands", () => {
     expect(defaultRunGh(["git", "status"]).returncode).toBe(-1);
+  });
+});
+
+describe("makeBudgetedRunGh (#6535)", () => {
+  it("hands a call with time left to the runner (a non-gh argv is still rejected there)", () => {
+    const run = makeBudgetedRunGh(1000, () => 0);
+    const result = run(["git", "status"]);
+    expect(result.returncode).toBe(-1);
+    expect(result.stderr).toContain("expected gh as first argv element");
+  });
+
+  it("fails a call once the shared budget is spent, without running gh", () => {
+    const times = [0, 1000, 5000];
+    const run = makeBudgetedRunGh(1000, () => times.shift() ?? 9999);
+    // First clock read set the deadline (0 + 1000); the next reads are 1000 and 5000.
+    expect(run(["gh", "api", "rate_limit"])).toEqual({
+      returncode: -1,
+      stdout: "",
+      stderr: "gh read budget exhausted",
+    });
+    expect(run(["gh", "api", "rate_limit"]).stderr).toBe("gh read budget exhausted");
+  });
+
+  it("runs live gh only: never the cached ghx reader, and no fallback retry", async () => {
+    vi.resetModules();
+    const bins: string[] = [];
+    vi.doMock("node:child_process", async (importOriginal) => {
+      const real = await importOriginal<typeof import("node:child_process")>();
+      return {
+        ...real,
+        execFileSync: (bin: string) => {
+          bins.push(bin);
+          const failure = Object.assign(new Error("exit 1"), { status: 1, stderr: "HTTP 500" });
+          throw failure;
+        },
+      };
+    });
+    try {
+      const fresh = await import("./gh.js");
+      const result = fresh.makeBudgetedRunGh(1000)(["gh", "api", "repos/o/r/rules/branches/main"]);
+      expect(bins).toEqual(["gh"]);
+      expect(result).toMatchObject({ returncode: 1, stderr: "HTTP 500" });
+    } finally {
+      vi.doUnmock("node:child_process");
+      vi.resetModules();
+    }
   });
 });
 
