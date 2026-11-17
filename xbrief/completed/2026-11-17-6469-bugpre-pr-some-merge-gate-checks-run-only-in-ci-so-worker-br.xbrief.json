@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6469",
-    "updated": "2026-11-17T16:00:54Z"
+    "updated": "2026-11-17T21:22:18Z"
   },
   "plan": {
     "title": "bug(pre-pr): some merge-gate checks run only in CI, so worker branches fail late",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "CI's merge gate runs about fifty checks, and a worker learns of most failures only after push, one CI round per failing check; local `deft check` also runs the test suite, runs in a reduced mode on an ordinary session, and its list has drifted from CI's. This story adds `deft check --no-suite` (and `task check -- --no-suite`): CI's merge-gate list at full strength with the TypeScript lane's lint and build but not its tests, every failure reported, the base fetched as CI fetches it, and CI's inputs (no worker pin; the PR context when the head has exactly one open PR). The local list gains CI's two `--enforce` arguments, a unit test keeps the local and Taskfile lists equal, and the pre-PR skill runs the command once before push. No new gate, hook, push refusal or grant.",
       "UserStory": "As a worker agent opening a PR, I want one local command with no hand-computed values that runs the same non-test checks as CI's merge gate, so that I find every such failure before push instead of one CI round per check.",
@@ -20,210 +20,392 @@
     "items": [
       {
         "title": "Flag. `deft check` accepts `--no-suite`. The Taskfile `check` task passes its CLI arguments to the engine, so `task check -- --no-suite` is the same run. Without the flag, `deft check` and `task check` behave as today, except for item 6.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/check.ts, when `--no-suite` is passed, then the parser accepts it and passes it to the orchestrator, and `task check -- --no-suite` delivers the same flag; without it the run takes today's path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Gate set. With `--no-suite`, the run takes the context's gate list without the product-first AC gate. It runs `ts:check-lane` with `--no-test` (item 9), and does not run `verify:consumer-test-lane`, the declared project test command. The ceremony dial, `DEFT_CHECK_MODE`, `DEFT_CHECK_AC_ONLY`, `DEFT_HYGIENE_ADVISORY` and the hard-budget signal do not apply to this run: every gate in the list runs and every gate is fail-closed. The in-process prechecks run as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/cached-orchestrator.ts, when `noSuite` is set, then the gate list drops the product-first AC gate and `verify:consumer-test-lane`, runs `ts:check-lane` with `--no-test`, ignores every mode signal, and treats every gate as fail-closed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Every failure. With `--no-suite`, the run does not stop at the first failed gate. It runs every gate, prints each failed gate with that gate's own output, and exits with the exit code of the first failed gate (0 when none failed). Full `deft check` keeps its stop at the first failure.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/cached-orchestrator.ts, when `noSuite` is set and gates fail, then every gate still runs, each failed gate's output is printed, and the exit code is the first failed gate's; without `noSuite` the run stops at the first failure."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "CI inputs. With `--no-suite`, the gates run without `DEFT_ACTIVE_SCOPE` or `DEFT_BASE_REF`, and without any inherited `GITHUB_PR_NUMBER`, `GITHUB_REPOSITORY`, `GITHUB_BASE_REF`, `GITHUB_EVENT_NAME` or `GITHUB_EVENT_PATH`. The run looks up the head's pull request once by REST (`commits/<HEAD>/pulls`, the open PRs whose head SHA is HEAD). When there is exactly one, it reads `pulls/<N>` once and gives every gate CI's pull-request context: `GITHUB_PR_NUMBER`, `GITHUB_REPOSITORY`, `GITHUB_BASE_REF` set to the PR's base branch, `GITHUB_EVENT_NAME=pull_request`, and `GITHUB_EVENT_PATH` pointing at a temporary file holding `{\"number\": N, \"pull_request\": <that pulls/N object>}`. Otherwise those variables stay unset.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.ts, when the gate environment is built, then `DEFT_ACTIVE_SCOPE`, `DEFT_BASE_REF` and inherited `GITHUB_*` PR variables are removed, and with exactly one open PR at HEAD the PR number, repository, base ref, `pull_request` event name and an event payload file holding that PR are set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Base and header. Before any gate, every `--no-suite` run fetches `origin master:refs/remotes/origin/master`, the step CI's merge-gate job runs. When the PR's base branch has another name, the same step also fetches that branch onto `refs/remotes/origin/<branch>`. When either fetch fails, the run runs no gate, says why, and exits 2. Its first lines name the merge base computed after the fetch and the pull request it used, or say that there is none and that checks reading the PR ran in their no-PR form.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.ts, when a no-suite run starts, then it fetches `origin master:refs/remotes/origin/master` and, when different, the PR base branch before any gate, exits 2 with no gate run when a fetch fails, and prints the merge base and the PR used or the no-PR line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Shared list. `FRAMEWORK_CHECK_GATES` gains `verify:contained-writes` with `--enforce`, and its `codebase:validate-structure` entry gains `--enforce`. Both are the arguments CI's merge gate already passes, and both apply to full `deft check` too.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/gate-lists.ts, then `FRAMEWORK_CHECK_GATES` holds `verify:contained-writes` with `--enforce` and `codebase:validate-structure` with `--enforce`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Parity test. One test in `gate-lists.test.ts` reads the Taskfile `check:framework-source` deps, resolves each internal shim through its one `task:` call and `CLI_ARGS`, and asserts that this set of task and arguments equals `FRAMEWORK_CHECK_GATES` without the product-first AC gate. Two differences are recorded in the test and no others are allowed: `verify:presentation-coverage` carries `--json` on the engine side only, and `verify:persisted-planning-narratives --check-conjunct` is the in-process planning-narratives check, not a list row.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/gate-lists.test.ts, when the parity test reads the Taskfile `check:framework-source` deps and resolves each internal shim, then the task-and-arguments set equals `FRAMEWORK_CHECK_GATES` without the product-first AC gate, allowing only the two recorded differences."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Skill. The pre-PR skill (pack source, then render) runs `deft check --no-suite` once after the loop's zero-change exit and before push. A red is a finding and restarts the loop as any fix does. When the run said there is no PR and a red needs the PR, open the PR and run it once more before waiting on CI. The lines that keep `deft check` out of ordinary pre-PR are rewritten so they still keep out the test suite and the full gate, and still keep the command out of each loop iteration.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-pre-pr/SKILL.md, then it tells the worker to run `deft check --no-suite` once after the zero-change exit and before push, to run it again after opening the PR when a red needs the PR, and still keeps the test suite and the full gate out of ordinary pre-PR."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Lane flag. The `ts-check-lane` verb accepts `--no-test`: it runs the lane's lint and build commands in order and not its test command. The Taskfile `ts:check-lane` task passes its CLI arguments through. Without the flag the lane is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/ts-check-lane/run-lane.ts, when `--no-test` is set, then the lane runs `pnpm run lint` and `pnpm run build` in order and not the test command; without it the lane is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a feature branch in the framework repo, when `deft check --no-suite` runs with no other argument, then it runs every gate in `FRAMEWORK_CHECK_GATES` except the product-first AC gate, and it runs `ts:check-lane` with `--no-test`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when a framework-source no-suite run is planned, then its gates are `FRAMEWORK_CHECK_GATES` without the product-first AC gate and `ts:check-lane` carries `--no-test`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `task check -- --no-suite`, then the engine `check` verb receives `--no-suite`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given Taskfile.yml, when `task check -- --no-suite` runs, then the `check` task's engine command carries `{{.CLI_ARGS}}`, so the engine `check` verb receives `--no-suite`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `ts-check-lane --no-test` with pnpm present, then it runs `pnpm run lint` and `pnpm run build` and no test command; a lint or build failure fails it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/ts-check-lane/run-lane.test.ts, when the lane runs with `--no-test` and a recording runner, then only `run lint` and `run build` are invoked, and a non-zero lint or build exit fails the lane."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a ceremony depth of `rapid`, or `DEFT_CHECK_MODE=pressure`, or `DEFT_CHECK_AC_ONLY` set, when `deft check --no-suite` runs, then every gate of that list runs and a failing hygiene gate fails the run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when the ceremony depth is `rapid`, or `DEFT_CHECK_MODE=pressure`, or `DEFT_CHECK_AC_ONLY` is set, then a no-suite run still runs every gate of its list and a failing hygiene gate makes the run exit non-zero."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given two failing gates, when `deft check --no-suite` runs, then both gates run, both outputs are printed, and the exit code is that of the first failed gate; when `deft check` runs without the flag, it stops at the first.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when two gates fail under a stub spawner, then the no-suite run spawns every gate, prints both outputs and exits with the first failed gate's code, while the run without the flag stops at the first."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a branch that adds a raw write sink under `packages/core/src`, when `deft check --no-suite` runs, then `verify:contained-writes --enforce` fails with the message CI's merge gate prints.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/gate-lists.test.ts, then the framework list spawns `verify:contained-writes -- --enforce`, the same task and argument CI's `verify-contained-writes-enforce` shim runs, so a raw write sink fails with CI's message."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a branch that adds an unminted throw site or numeric constant and an open PR whose story line names its story, when `deft check --no-suite` runs, then `verify:intent-constraint` fails with the message CI's merge gate prints for that PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when the head has one open PR, then the `verify:intent-constraint` spawn gets that PR's number and repository and no `DEFT_ACTIVE_SCOPE`, so it adopts the PR's story line as CI does."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a module path glob that matches nothing, when `deft check --no-suite` or `deft check` runs, then `codebase:validate-structure --enforce` fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/gate-lists.test.ts, then the framework list spawns `codebase:validate-structure -- --enforce` for both the full and the no-suite run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `DEFT_ACTIVE_SCOPE` or `DEFT_BASE_REF` set in the caller's environment, when `deft check --no-suite` runs, then no gate sees it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when the caller's environment has `DEFT_ACTIVE_SCOPE` and `DEFT_BASE_REF`, then the environment passed to every gate spawn has neither."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a local `origin/master` behind the remote, when `deft check --no-suite` runs, then it fetches `origin master:refs/remotes/origin/master` before any gate, and `verify:changelog-unreleased` and the gates with `--base-ref origin/master` grade against the fetched ref as in CI.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when a no-suite run starts, then its first git call is `fetch origin master:refs/remotes/origin/master`, before any gate spawn."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an open PR whose base branch is not master, when `deft check --no-suite` runs, then it fetches both `origin/master` and that branch before any gate.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when the one open PR's base branch is not master, then the run also fetches that branch onto `refs/remotes/origin/<branch>` before any gate."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a fetch of either ref that fails, when `deft check --no-suite` runs, then no gate runs and the run exits 2 naming the failed fetch.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when a fetch fails, then no gate is spawned, the output names the failed fetch, and the run exits 2."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a head with exactly one open PR, when `deft check --no-suite` runs, then each gate sees `GITHUB_PR_NUMBER`, `GITHUB_REPOSITORY`, `GITHUB_BASE_REF`, `GITHUB_EVENT_NAME=pull_request` and an event payload whose `pull_request.body` is that PR's body, so `verify:completed-write-guard` judges that body as in CI.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when the head has exactly one open PR, then each gate's environment has `GITHUB_PR_NUMBER`, `GITHUB_REPOSITORY`, `GITHUB_BASE_REF`, `GITHUB_EVENT_NAME=pull_request` and a `GITHUB_EVENT_PATH` file whose `pull_request.body` is that PR's body."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a head with no open PR, or with more than one, when `deft check --no-suite` runs, then the gates run without those variables and the output says there is no PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when the head has no open PR or more than one, then no gate sees those variables and the header says there is no PR."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the Taskfile and `FRAMEWORK_CHECK_GATES`, the parity test passes, and it fails when a dep or an exit-changing argument is added to one side only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/gate-lists.test.ts, then the parity test passes on the real Taskfile and list, and fails on a fixture where a dep or an exit-changing argument is present on one side only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `deft check` without `--no-suite`, then its gate order, modes, full `ts:check-lane` and stop at the first failure are unchanged, apart from the two `--enforce` arguments.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given packages/core/src/check/no-suite.test.ts, when `deft check` runs without `noSuite`, then the gate list, mode resolution, full `ts:check-lane` and the stop at the first failure are as today, apart from the two `--enforce` arguments."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`content/skills/deft-directive-pre-pr/SKILL.md` names the once-before-push `deft check --no-suite` step and the run-again-after-PR rule, and still keeps the test suite and the full gate out of ordinary pre-PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-pre-pr/SKILL.md and packages/core/src/content-contracts/skills/pre_pr_no_suite_6469.test.ts, then the skill names the once-before-push `deft check --no-suite` step and the run-again-after-PR rule, and still keeps the test suite and the full gate out of ordinary pre-PR."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+          "recorded_at": "2026-11-17T21:22:18Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -996,6 +1178,33 @@
         "leanCommentId": 6952557447,
         "harvestDigest": "58adbb505bef1970b94686e13d84c8f5fc2072505278277ea9e4330c88660210",
         "slice": null
+      },
+      "productPullRequest": 6575,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "25fce57a7282ab240caeb31d62a93712ca8fcd1b",
+        "prNumber": 6575,
+        "prBase": "master",
+        "mergeCommit": "e63a5827df0f9ebc18c5d22ab7477770187811f7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d5385078715ed91ddcbcf881071bd44ef75af414",
+        "verifiedAt": "2026-11-17T21:22:18Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T21:22:18Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T21:22:18Z"
       }
     },
     "acceptance": {
@@ -1247,6 +1456,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6432924412",
-    "updated": "2026-11-17T16:00:54Z"
+    "updated": "2026-11-17T21:22:18Z"
   }
 }
