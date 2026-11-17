@@ -27,6 +27,7 @@ import { launchCloseoutLockPath } from "./launch-closeout-lock.js";
 import {
   findWorkerAuthAssignmentsForStories,
   readWorkerAuthAssignment,
+  workerAuthStoreDir,
   writeWorkerAuthAssignment,
 } from "./worker-auth-assignment.js";
 
@@ -1512,6 +1513,120 @@ describe("per-story close-out (#6422)", { timeout: 120_000 }, () => {
     expect(result.sweep?.errors.join("\n")).toContain("launch/close-out lock");
     expect(result.stdout).toContain("already on disk");
     expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses a record of another allocation plan and an ambient owner conflict", () => {
+    const project = gitProject("sw-6422-plan-ambient-");
+    const a = storyIn(project, "active", "pa-a");
+    const key = occupancyCohortKey("plan-x", ["pa-a"]);
+    const relpath = launchOccupancyRecordRelpath(key);
+    mkdirSync(join(project, ...relpath.slice(0, -1)), { recursive: true });
+    writeFileSync(
+      join(project, ...relpath),
+      JSON.stringify({
+        allocation_plan_id: "plan-x",
+        occupancy_session_id: S,
+        story_ids: ["pa-a"],
+        cohort_key: key,
+      }),
+      "utf8",
+    );
+    lease(project, S);
+    assign(project, S, "pa-a");
+    const wrongPlan = closeOut(project, [a], { allocationPlanId: "plan-y" });
+    expect(wrongPlan.exitCode).toBe(1);
+    expect(wrongPlan.sweep?.errors.join("\n")).toContain("not plan-y");
+    const ambient = completeCohort({
+      projectRoot: project,
+      stories: [a],
+      env: { DEFT_SESSION_ID: OTHER },
+    });
+    expect(ambient.exitCode).toBe(1);
+    expect(ambient.sweep?.errors.join("\n")).toContain(`ambient owner ${OTHER}`);
+    expect(assigned(project, ["pa-a"])).toEqual([`pa-a@${S}`]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("marks nothing for an open record whose session holds no live lease", () => {
+    const project = gitProject("sw-6422-no-lease-");
+    const a = storyIn(project, "active", "nl-a");
+    const rec = writeRecord(project, S, ["nl-a", "nl-b"]);
+    assign(project, S, "nl-a");
+    const result = closeOut(project, [a]);
+    expect(result.exitCode).toBe(0);
+    expect(result.sweep?.closeout_notes?.join("\n")).toContain("holds no live lease");
+    expect(readRecord(rec)?.closed_story_ids).toBeUndefined();
+    expect(assigned(project, ["nl-a"])).toEqual([`nl-a@${S}`]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("fails without marking when the registration index cannot be read", () => {
+    const project = gitProject("sw-6422-bad-index-");
+    const a = storyIn(project, "active", "bi-a");
+    const rec = writeRecord(project, S, ["bi-a", "bi-b"]);
+    lease(project, S);
+    assign(project, S, "bi-a");
+    const commonDir = execFileSync(
+      "git",
+      ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+      { cwd: project, encoding: "utf8" },
+    ).trim();
+    writeFileSync(join(workerAuthStoreDir(commonDir), "index.json"), "{broken", "utf8");
+    const result = closeOut(project, [a]);
+    expect(result.exitCode).toBe(1);
+    expect(result.sweep?.errors.join("\n")).toContain("worker auth index");
+    expect(readRecord(rec)?.closed_story_ids).toBeUndefined();
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("keeps a fully closed record of the live session it was not asked about", () => {
+    const project = gitProject("sw-6422-live-closed-");
+    const solo = storyIn(project, "active", "lc-solo");
+    const rec = writeRecord(project, S, ["lc-z"], ["lc-z"]);
+    lease(project, S);
+    expect(closeOut(project, [solo]).exitCode).toBe(0);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["lc-z"]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("skips non-JSON files and refuses a JSON file that is not a record", () => {
+    const project = gitProject("sw-6422-not-record-");
+    const a = storyIn(project, "active", "nr-a");
+    const dir = join(project, ".deft", "swarm-launch-occupancy");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "notes.txt"), "not a record", "utf8");
+    expect(closeOut(project, [a]).exitCode).toBe(0);
+    writeFileSync(join(dir, "empty.json"), JSON.stringify({ story_ids: ["nr-a"] }), "utf8");
+    const result = closeOut(project, [a]);
+    expect(result.exitCode).toBe(1);
+    expect(result.sweep?.errors.join("\n")).toContain("empty.json");
+    expect(result.sweep?.errors.join("\n")).toContain("not a launch-occupancy record");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses a launch when the shared lock stays busy", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const project = launchProject("sw-6422-launch-busy-");
+    launchStory(project, "lb-a", 64225);
+    holdLock(project);
+    let now = 0;
+    const result = launch(project, ["lb-a"], {
+      closeoutLockDeps: {
+        now: () => now,
+        sleepMs: () => {
+          now += 60_000;
+        },
+        acquisitionBudgetMs: 1,
+      },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(recordExists(project, ["lb-a"])).toBe(false);
+    expect(readOccupancy(project)).toBeNull();
     rmSync(project, { recursive: true, force: true });
   });
 });
