@@ -6,6 +6,7 @@ import {
   clauseWalkBlocks,
   formatAcceptanceVerdict,
   formatPassLeadClauseCounts,
+  hasGreenAcceptanceRun,
   relabelVerifyAcPassLead,
   resolveAcceptanceGateProfile,
   resolveAcceptanceVerdict,
@@ -335,11 +336,63 @@ describe("verify:ac pass lead keeps clause-walk counts (#4380)", () => {
         "Literal acceptance-command gate: no stated commands (nothing to run)",
     });
     const first = labelled.split("\n")[0];
-    expect(first).toBe("verify:ac passed (#3284) (0 verified, 5 unverifiable) [rung=derived]");
+    // #6374: zero verified and no green run -> "no acceptance evidence yet".
+    expect(first).toBe(
+      "verify:ac: no acceptance evidence yet (#3284) (0 verified, 5 unverifiable) [rung=derived]",
+    );
     expect(labelled).toContain(
       "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed",
     );
-    expect(labelled.match(/verify:ac passed \(#3284\)/g)).toHaveLength(1);
+    expect(labelled).not.toContain("verify:ac passed (#3284)");
+    expect(labelled.match(/no acceptance evidence yet/g)).toHaveLength(1);
+  });
+
+  it("keeps the passed lead when at least one clause verified (#6374)", () => {
+    const labelled = relabelVerifyAcPassLead({
+      ok: true,
+      sourceRung: "derived",
+      clauseOutcomes: [{ outcome: "verified" }, { outcome: "unverifiable" }],
+      message:
+        "verify:ac clause walk (#3323): 1 verified, 1 unverifiable, 0 failed\n" +
+        "verify:ac passed (#3284) [rung=derived]",
+    });
+    expect(labelled.split("\n")[0]).toBe(
+      "verify:ac passed (#3284) (1 verified, 1 unverifiable) [rung=derived]",
+    );
+    expect(labelled).not.toContain("no acceptance evidence yet");
+  });
+
+  it("keeps the passed lead when an acceptance command ran green (#6374)", () => {
+    const labelled = relabelVerifyAcPassLead({
+      ok: true,
+      sourceRung: "stated",
+      clauseOutcomes: [{ outcome: "unverifiable" }],
+      runs: [{ ok: true }],
+      message: "verify:ac passed (#3284) [rung=stated]",
+    });
+    expect(labelled).toBe("verify:ac passed (#3284) (0 verified, 1 unverifiable) [rung=stated]");
+  });
+
+  it("re-labels its own no-evidence lead without duplicating it (#6374)", () => {
+    const once = relabelVerifyAcPassLead({
+      ok: true,
+      sourceRung: "derived",
+      clauseOutcomes: [{ outcome: "unverifiable" }],
+      message: "verify:ac passed (#3284) [rung=derived]\nrest",
+    });
+    const twice = relabelVerifyAcPassLead({
+      ok: true,
+      sourceRung: "derived",
+      clauseOutcomes: [{ outcome: "unverifiable" }],
+      message: once,
+    });
+    expect(twice).toBe(once);
+  });
+
+  it("hasGreenAcceptanceRun needs every run green and at least one run", () => {
+    expect(hasGreenAcceptanceRun([])).toBe(false);
+    expect(hasGreenAcceptanceRun([{ ok: true }])).toBe(true);
+    expect(hasGreenAcceptanceRun([{ ok: true }, { ok: false }])).toBe(false);
   });
 
   it("keeps served_from=bank on the counted pass lead", () => {
@@ -364,7 +417,7 @@ describe("verify:ac pass lead keeps clause-walk counts (#4380)", () => {
       message: "verify:ac passed (#3284) served_from=cache [rung=derived]",
     });
     expect(labelled).toBe(
-      "verify:ac passed (#3284) served_from=cache (0 verified, 1 unverifiable) [rung=derived]",
+      "verify:ac: no acceptance evidence yet (#3284) served_from=cache (0 verified, 1 unverifiable) [rung=derived]",
     );
   });
 
@@ -418,7 +471,9 @@ describe("verify:ac pass lead keeps clause-walk counts (#4380)", () => {
     expect(verify.ok).toBe(true);
     expect(verify.code).toBe(0);
     const first = (verify.message.split("\n").find((row) => row.trim().length > 0) ?? "").trim();
-    expect(first).toBe("verify:ac passed (#3284) (0 verified, 2 unverifiable) [rung=derived]");
+    expect(first).toBe(
+      "verify:ac: no acceptance evidence yet (#3284) (0 verified, 2 unverifiable) [rung=derived]",
+    );
     expect(verify.message).not.toContain("verify:ac FAILED");
   });
 });
