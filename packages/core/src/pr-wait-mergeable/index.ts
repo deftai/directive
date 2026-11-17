@@ -29,11 +29,14 @@ export {
 export {
   classifyQueueRead,
   detectMergeQueue,
+  detectStrictUpToDate,
   formatResumeCommand,
   MERGE_QUEUE_GRAPHQL_FLOOR,
+  MERGE_QUEUE_PLAYBOOK_PATH,
   MERGE_QUEUE_RULE_TYPE,
   type MergeQueueDetectFn,
   type MergeQueueDetection,
+  mergeQueueAdvisoryLine,
   parseQueueState,
   QUEUE_RESULT_KINDS,
   type QueueEvent,
@@ -45,6 +48,8 @@ export {
   queueResultToDict,
   readQueueState,
   rulesRequireMergeQueue,
+  rulesRequireStrictChecks,
+  type StrictChecksDetectFn,
 } from "./merge-queue.js";
 export { makeResult, toResultDict } from "./result.js";
 export {

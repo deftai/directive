@@ -26,13 +26,16 @@ import {
 import {
   classifyQueueRead,
   detectMergeQueue,
+  detectStrictUpToDate,
   formatResumeCommand,
   type MergeQueueDetectFn,
+  mergeQueueAdvisoryLine,
   type QueueReadFn,
   type QueueResult,
   type QueueResultKind,
   queueResultToDict,
   readQueueState,
+  type StrictChecksDetectFn,
 } from "./merge-queue.js";
 import { makeResult } from "./result.js";
 import { evaluateSemanticGreen, type SemanticGreenFn } from "./semantic-green.js";
@@ -139,6 +142,12 @@ export interface WaitMergeableOptions {
    * (skipHumanMergeGate or VITEST), like watchFn.
    */
   readonly mergeQueueDetectFn?: MergeQueueDetectFn;
+  /**
+   * Strict up-to-date read for the direct-path advisory (#6366). Live default
+   * reads branch rules and classic protection REST. Skipped when omitted under
+   * the test-harness convention, like mergeQueueDetectFn.
+   */
+  readonly strictChecksDetectFn?: StrictChecksDetectFn;
   /** Post-enqueue PR read (#6295). Live default is readQueueState (GraphQL, #954 floor). */
   readonly queueReadFn?: QueueReadFn;
   /** Clock seam for the recorded enqueue time (#6295). */
@@ -162,6 +171,36 @@ export function sleepSecondsSync(seconds: number): void {
   const ms = Math.max(0, Math.trunc(seconds * 1000));
   if (ms === 0) return;
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * #6366: on the direct path, print one line naming the queue playbook when the
+ * branch requires up-to-date checks. Advisory only: no refusal, no exit-code change.
+ */
+function printMergeQueueAdvisory(
+  repo: string,
+  branch: string,
+  options: {
+    readonly strictChecksDetectFn?: StrictChecksDetectFn;
+    readonly skipHumanMergeGate?: boolean;
+  },
+): void {
+  if (
+    options.strictChecksDetectFn === undefined &&
+    (options.skipHumanMergeGate === true || process.env.VITEST === "true")
+  ) {
+    return;
+  }
+  const strictFn = options.strictChecksDetectFn ?? detectStrictUpToDate;
+  let strict = false;
+  try {
+    strict = strictFn(repo, branch);
+  } catch {
+    strict = false;
+  }
+  if (strict) {
+    process.stderr.write(`${mergeQueueAdvisoryLine(branch)}\n`);
+  }
 }
 
 function resolveUmbrellaFn(
@@ -504,6 +543,9 @@ export function waitMergeableAndMerge(
       });
     }
     queueMode = detection.status === "queue";
+    if (detection.status === "none") {
+      printMergeQueueAdvisory(repo, detection.branch, options);
+    }
   }
 
   // Queue mode deletes the up-to-date requirement (stale-base refusal) and the

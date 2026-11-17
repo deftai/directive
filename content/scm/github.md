@@ -339,6 +339,7 @@ When the delivery branch requires a GitHub merge queue (branch rules REST report
 - ! Consumers: a repository without a merge queue keeps the direct path. To use queue mode, enable the queue on the delivery branch and auto-merge on the repository, add `merge_group` to the workflows behind the required checks, and add a `merge_group`-only job named after any required app check that does not run on `merge_group` (this repository: `.github/workflows/greptile-review-merge-group.yml` for `Greptile Review`).
 - ! On `merge_group`, the PR-context checks inside `task check:merge` (`verify:closing-keywords`, `verify:scope-provenance`, `verify:intent-constraint`) skip themselves; they ran on the PR head and body at the PR's last CI run. All other checks run on the group commit.
 - ! Pre-PR (`deny-master-merge-gate-red`) refuses only when master's `Merge gate (task check)` is red, never while it is pending; on a merge-queue branch the refusal is removed.
+- ~ To turn the queue on, follow [`docs/github-merge-queue-setup.md`](../docs/github-merge-queue-setup.md) (#6366).
 - ⊗ Report `merged` on enqueue success, or report a merge as this session's without checking the head first (#6295).
 - ⊗ Treat a removed-from-queue event alone as a failure: a merged PR's timeline also holds one with reason `merged` (#6295).
 

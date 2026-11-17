@@ -206,6 +206,60 @@ export function detectMergeQueue(
   return { status: required ? "queue" : "none", branch };
 }
 
+/** Merge queue setup playbook, named by the direct-path advisory (#6366). */
+export const MERGE_QUEUE_PLAYBOOK_PATH = "content/docs/github-merge-queue-setup.md";
+
+/**
+ * Stable link to the playbook. An installed copy flattens `content/`, so the
+ * repository path alone does not resolve outside the source checkout.
+ */
+export const MERGE_QUEUE_PLAYBOOK_URL = `https://github.com/deftai/directive/blob/master/${MERGE_QUEUE_PLAYBOOK_PATH}`;
+
+/** The one advisory line for a strict branch with no merge queue (#6366). */
+export function mergeQueueAdvisoryLine(branch: string): string {
+  return (
+    `pr_wait_mergeable: advisory: ${branch} requires up-to-date checks and has no merge queue, ` +
+    `so each merge puts open PRs behind. To set up a queue, see ${MERGE_QUEUE_PLAYBOOK_URL}.`
+  );
+}
+
+/** True when a branch rules payload has a strict `required_status_checks` rule. */
+export function rulesRequireStrictChecks(payload: unknown): boolean {
+  if (!Array.isArray(payload)) return false;
+  return payload.some((rule) => {
+    const rec = asRecord(rule);
+    return (
+      rec?.type === "required_status_checks" &&
+      asRecord(rec.parameters)?.strict_required_status_checks_policy === true
+    );
+  });
+}
+
+export type StrictChecksDetectFn = (repo: string, branch: string) => boolean;
+
+/**
+ * Advisory read (#6366): does the branch require up-to-date checks, from a
+ * ruleset rule or from classic branch protection? A read error counts as no:
+ * the result only decides whether to print one advisory line.
+ */
+export function detectStrictUpToDate(
+  repo: string,
+  branch: string,
+  runGh: QueueRunGhFn = liveRunGh(),
+): boolean {
+  const ref = encodeURIComponent(branch);
+  const rules = runGh(["gh", "api", `repos/${repo}/rules/branches/${ref}`]);
+  if (rules.returncode === 0 && rulesRequireStrictChecks(parseJson(rules.stdout))) {
+    return true;
+  }
+  const classic = runGh([
+    "gh",
+    "api",
+    `repos/${repo}/branches/${ref}/protection/required_status_checks`,
+  ]);
+  return classic.returncode === 0 && asRecord(parseJson(classic.stdout))?.strict === true;
+}
+
 /** GraphQL read of everything the six results need, in one request. */
 export const QUEUE_STATE_QUERY = [
   "query($owner:String!,$name:String!,$number:Int!){",

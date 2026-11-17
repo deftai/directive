@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { resumeMergeQueueRead, waitMergeableAndMerge } from "./cascade.js";
 import {
   EXIT_CONFIG_ERROR,
@@ -9,9 +9,12 @@ import {
 import {
   classifyQueueRead,
   detectMergeQueue,
+  detectStrictUpToDate,
   fetchPrBaseRef,
   formatResumeCommand,
   MERGE_QUEUE_GRAPHQL_FLOOR,
+  MERGE_QUEUE_PLAYBOOK_PATH,
+  mergeQueueAdvisoryLine,
   parseQueueState,
   probeGraphqlRemaining,
   type QueueRead,
@@ -20,6 +23,7 @@ import {
   queueResultToDict,
   readQueueState,
   rulesRequireMergeQueue,
+  rulesRequireStrictChecks,
 } from "./merge-queue.js";
 import type { SemanticGreenFn } from "./semantic-green.js";
 import type { MergeFn, MonitorFn } from "./types.js";
@@ -603,6 +607,167 @@ describe("waitMergeableAndMerge in queue mode (#6295 items 4, 5, 9)", () => {
     expect(result.outcome).toBe("merged");
     expect(semanticCalls).toBe(2);
     expect(mergeFn.calls).toEqual([[5, REPO, { matchHeadCommit: HEAD }]]);
+  });
+});
+
+// ---- direct-path advisory (#6366) ------------------------------------------
+
+describe("merge queue advisory on the direct path (#6366)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function stderrLines(): { lines: string[] } {
+    const out = { lines: [] as string[] };
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk: unknown) => {
+      out.lines.push(
+        ...String(chunk)
+          .split("\n")
+          .filter((l) => l.length > 0),
+      );
+      return true;
+    });
+    return out;
+  }
+
+  function advisoryLines(lines: readonly string[]): string[] {
+    return lines.filter((l) => l.includes(MERGE_QUEUE_PLAYBOOK_PATH));
+  }
+
+  const greenSemantic = (() => ({
+    ok: true,
+    outcome: null,
+    exitCode: null,
+    error: null,
+    payload: {},
+  })) as unknown as SemanticGreenFn;
+
+  function directRun(strict: boolean) {
+    return waitMergeableAndMerge(5, REPO, {
+      ...queueBase({
+        mergeQueueDetectFn: () => ({ status: "none", branch: "master" }) as const,
+        semanticGreenFn: greenSemantic,
+      }),
+      strictChecksDetectFn: () => strict,
+      mergeFn: recordingMerge(),
+      umbrellaReconcileFn: null,
+    });
+  }
+
+  it("strict checks and no merge_queue rule: one advisory line, exit code unchanged", () => {
+    const quiet = directRun(false);
+    const out = stderrLines();
+    const result = directRun(true);
+    expect(advisoryLines(out.lines)).toEqual([mergeQueueAdvisoryLine("master")]);
+    expect(result.outcome).toBe(quiet.outcome);
+    expect(result.exitCode).toBe(quiet.exitCode);
+    expect(result.exitCode).toBe(EXIT_MERGED);
+  });
+
+  it("non-strict direct path prints no advisory line", () => {
+    const out = stderrLines();
+    directRun(false);
+    expect(advisoryLines(out.lines)).toEqual([]);
+  });
+
+  it("a merge_queue rule prints no advisory line and never reads strictness", () => {
+    const out = stderrLines();
+    let strictReads = 0;
+    const result = waitMergeableAndMerge(5, REPO, {
+      ...queueBase(),
+      strictChecksDetectFn: () => {
+        strictReads += 1;
+        return true;
+      },
+      mergeFn: recordingMerge(),
+      queueReadFn: reads(
+        graphqlResponse({ headRefOid: HEAD, entry: { state: "AWAITING_CHECKS", position: 1 } }),
+      ),
+    });
+    expect(result.outcome).toBe("queued");
+    expect(strictReads).toBe(0);
+    expect(advisoryLines(out.lines)).toEqual([]);
+  });
+
+  it("a strict read that throws prints nothing and keeps the result", () => {
+    const out = stderrLines();
+    const result = waitMergeableAndMerge(5, REPO, {
+      ...queueBase({
+        mergeQueueDetectFn: () => ({ status: "none", branch: "master" }) as const,
+        semanticGreenFn: greenSemantic,
+      }),
+      strictChecksDetectFn: () => {
+        throw new Error("boom");
+      },
+      mergeFn: recordingMerge(),
+      umbrellaReconcileFn: null,
+    });
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect(advisoryLines(out.lines)).toEqual([]);
+  });
+
+  it("the advisory line names the playbook path", () => {
+    expect(mergeQueueAdvisoryLine("main")).toContain(
+      "https://github.com/deftai/directive/blob/master/content/docs/github-merge-queue-setup.md",
+    );
+    expect(mergeQueueAdvisoryLine("main")).toContain("main requires up-to-date checks");
+  });
+});
+
+describe("detectStrictUpToDate (#6366)", () => {
+  it("reads a strict ruleset rule without a classic protection call", () => {
+    const gh = scriptedGh({
+      [`repos/${REPO}/rules/branches/master`]: {
+        returncode: 0,
+        stdout: JSON.stringify([
+          {
+            type: "required_status_checks",
+            parameters: { strict_required_status_checks_policy: true },
+          },
+        ]),
+      },
+    });
+    expect(detectStrictUpToDate(REPO, "master", gh.fn)).toBe(true);
+    expect(gh.calls).toHaveLength(1);
+  });
+
+  it("falls back to classic protection strict", () => {
+    const gh = scriptedGh({
+      [`repos/${REPO}/rules/branches/master`]: { returncode: 0, stdout: "[]" },
+      [`repos/${REPO}/branches/master/protection/required_status_checks`]: {
+        returncode: 0,
+        stdout: JSON.stringify({ strict: true }),
+      },
+    });
+    expect(detectStrictUpToDate(REPO, "master", gh.fn)).toBe(true);
+  });
+
+  it("is false when strict is off and when reads fail", () => {
+    const off = scriptedGh({
+      [`repos/${REPO}/rules/branches/master`]: {
+        returncode: 0,
+        stdout: JSON.stringify([
+          {
+            type: "required_status_checks",
+            parameters: { strict_required_status_checks_policy: false },
+          },
+        ]),
+      },
+      [`repos/${REPO}/branches/master/protection/required_status_checks`]: {
+        returncode: 0,
+        stdout: JSON.stringify({ strict: false }),
+      },
+    });
+    expect(detectStrictUpToDate(REPO, "master", off.fn)).toBe(false);
+    const failing = scriptedGh({
+      [`repos/${REPO}/rules/branches/master`]: { returncode: 1, stdout: "" },
+      [`repos/${REPO}/branches/master/protection/required_status_checks`]: {
+        returncode: 1,
+        stdout: "",
+      },
+    });
+    expect(detectStrictUpToDate(REPO, "master", failing.fn)).toBe(false);
+    expect(rulesRequireStrictChecks({})).toBe(false);
   });
 });
 
