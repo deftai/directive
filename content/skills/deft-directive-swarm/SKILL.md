@@ -120,6 +120,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ### Worktree isolation before parallel spawn
 
 ! One isolated git worktree per parallel agent (Phase 2). Create worktrees or consume a worktree-map **before** dispatch.
+! Before you start any implementation worker, run `swarm:pre-dispatch -- --scope-id <story> --target-id <worktree>` (begin); it also binds that worktree to its story, so the worker's commits are admitted (#6379).
 ! On **OpenClaw**, parallel leaves: worktree or worktree-map **before** `sessions_spawn`; worker cwd = that worktree; fail loud if the cohort would share the repo root (#2929). Full rules: [`references/host-openclaw.md`](references/host-openclaw.md).
 ⊗ DIY multi-leaf `sessions_spawn` without worktree prep (#2929).
 

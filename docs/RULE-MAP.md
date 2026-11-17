@@ -8,7 +8,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 291 documents
+- **Rules:** 25 groupings, 292 documents
 - **Tasks:** 66 namespaces, 292 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 235 | 16 | 149 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 47 | 30 | 13 | 67 | 1 | 3 |
+| docs | Explanatory docs and the framework glossary. | 48 | 33 | 17 | 69 | 1 | 3 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -34,7 +34,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | platforms | Platform-specific guidance. | 2 | 94 | 63 | 19 | 16 | 12 |
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
-| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 121 | 34 | 40 | 1 | 3 |
+| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 121 | 35 | 40 | 1 | 3 |
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 639 | 121 | 747 | 0 | 19 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
@@ -147,6 +147,7 @@ _Explanatory docs and the framework glossary._
 - `full-stop.md` — Uninstall plus delete `.deft/` is not a complete stop. Leftover host hook files still deny writes after the CLI is gone. This page is the reverse-init recipe: leftover classes, then the ordered stop while the CLI still exists.
 - `gate-integrity.md` — General product and process rule for Directive fix loops, refine loops, and quality-gate repair: **when a gate is red, clear red by fixing the work under test — not by mutating the gate.**
 - `getting-started.md` — Deft Directive is a CLI-native framework for AI-assisted software work (`directive` / `deft` primary; Taskfile optional parallel). It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and…
+- `github-merge-queue-setup.md` — Agent-facing playbook for a maintainer who wants Directive's queue mode (#6295) on a GitHub repository. Paste this file and say: follow this playbook. The human runs the settings changes (they need repository admin); the agent prepares…
 - `good-agents-md.md` — **Source**: https://x.com/augmentcode/status/2047164534310494709 **Author**: Slava Zhenylenko (Member of Technical Staff, Augment Code) **Published**: 2026-04-23
 - `grok-build-subscription-setup.md` — Agent-facing playbook for a new maintainer. Paste this file (or issue [#4035](https://github.com/deftai/directive/issues/4035)) and say: follow this playbook. The human completes browser logins when the agent stops.
 - `hook-root-admission.md` — Every PreToolUse mutation carries **two** roots, and they are not interchangeable:
