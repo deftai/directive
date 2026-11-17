@@ -259,9 +259,11 @@ describe("heredoc bodies are data to every commit detector (#6187)", () => {
   // The issue repro: a note whose body names a compound commit with a file
   // message and trailing prose, which used to read as an index-mutating commit.
   const body = "- the hook refuses `cd <wt> && git commit -F <file>`; a standalone commit works";
+  // An unquoted body runs backticks and $( ), so its plain-text form has neither.
+  const plainBody = "- the hook refuses cd <wt> && git commit -F <file>; a standalone commit works";
   const quotedNote = `cat >> /tmp/notes.md <<'NOTE'\n${body}\nNOTE`;
-  const unquotedNote = `cat >> /tmp/notes.md <<NOTE\n${body}\nNOTE`;
-  const tabNote = `cat >> /tmp/notes.md <<-NOTE\n\t${body}\n\tNOTE`;
+  const unquotedNote = `cat >> /tmp/notes.md <<NOTE\n${plainBody}\nNOTE`;
+  const tabNote = `cat >> /tmp/notes.md <<-'NOTE'\n\t${body}\n\tNOTE`;
 
   it("does not read a heredoc note that names a commit as a commit", () => {
     for (const note of [quotedNote, unquotedNote, tabNote]) {
@@ -307,6 +309,25 @@ describe("heredoc bodies are data to every commit detector (#6187)", () => {
     expect(commandHasGitCommitSubcommand(continued)).toBe(false);
     expect(commandHasGitCommitIndexMutatingForm(continued)).toBe(false);
     expect(commandHasGitCommitSubcommand("git commit \\\n  -m msg")).toBe(true);
+  });
+
+  it("keeps a commit run by a substitution in an unquoted heredoc body", () => {
+    const nested = "cat <<EOF\n$(\ngit commit -am msg\n)\nEOF";
+    expect(commandHasGitCommitSubcommand(nested)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(nested)).toBe(true);
+    expect(resolveCommitTarget(nested, posix)).toEqual({ kind: "hook-root" });
+    const backticks = `cat >> /tmp/notes.md <<NOTE\n${body}\nNOTE`;
+    expect(commandHasGitCommitSubcommand(backticks)).toBe(true);
+    // A quoted delimiter turns substitution off, so the same body is data.
+    expect(commandHasGitCommitSubcommand("cat <<'EOF'\n$(\ngit commit -am msg\n)\nEOF")).toBe(
+      false,
+    );
+  });
+
+  it("closes a quoted heredoc whose last body line ends in a backslash", () => {
+    const command = "cat <<'EOF'\nline \\\nEOF\ngit commit -am msg";
+    expect(commandHasGitCommitSubcommand(command)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(command)).toBe(true);
   });
 
   it("leaves text after an unclosed heredoc opener dropped, as authz does", () => {

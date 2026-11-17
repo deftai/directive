@@ -1800,6 +1800,8 @@ function zipShellWordWindowsLiteral(raw: string): string | null {
 type ZipHereDocSpec = {
   delimiter: string;
   stripLeadingTabs: boolean;
+  /** True when any part of the delimiter word is quoted or escaped: the body is not expanded. */
+  quoted: boolean;
 };
 
 /** Locate shifts inside `$((...))` or a bounded `((...))` command in one linear pass. */
@@ -1944,7 +1946,7 @@ function zipStripHereDocDeclarationsFromLine(line: string): {
           sanitized = sanitized.slice(0, ioNumberStart);
         }
         sanitized += " ";
-        specs.push({ delimiter, stripLeadingTabs });
+        specs.push({ delimiter, stripLeadingTabs, quoted: delimiter !== rawDelimiter });
         atWordStart = true;
         i = cursor - 1;
         continue;
@@ -1969,27 +1971,61 @@ function zipStripHereDocDeclarationsFromLine(line: string): {
   return { sanitized, specs };
 }
 
+/** Options for {@link shellWithoutHereDocBodies}. */
+export interface ShellHereDocOptions {
+  /**
+   * Keep the body of an unquoted heredoc that holds `$(` or a backtick: the
+   * shell runs those substitutions, so the body is commands, not data (#6187).
+   */
+  readonly keepExecutableBodies?: boolean;
+}
+
+const ZIP_HEREDOC_EXECUTABLE_BODY = /\$\(|`/;
+
+/** True when the line ends in a backslash-newline continuation (outside single quotes). */
+function zipShellEndsWithContinuation(line: string): boolean {
+  return !zipShellWithoutLineContinuations(`${line}\n`).endsWith("\n");
+}
+
 /**
  * Remove recognized heredoc bodies while preserving commands before and after
  * them. Here-strings remain ordinary redirections for the bounded word parser.
+ * Backslash-newline continuations are removed from command lines only; body
+ * lines are read as written, so a body line that ends in `\` cannot hide its
+ * closing delimiter and drop the commands after it (#6187).
  */
-function zipShellWithoutHereDocBodies(command: string): string {
+function zipShellWithoutHereDocBodies(command: string, options: ShellHereDocOptions = {}): string {
   const lines = command.split("\n");
   const kept: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const parsed = zipStripHereDocDeclarationsFromLine(lines[i] as string);
+    let logical = lines[i] as string;
+    while (i + 1 < lines.length && zipShellEndsWithContinuation(logical)) {
+      i++;
+      logical = `${logical}\n${lines[i] as string}`;
+    }
+    const parsed = zipStripHereDocDeclarationsFromLine(zipShellWithoutLineContinuations(logical));
     kept.push(parsed.sanitized);
     for (const spec of parsed.specs) {
+      const body: string[] = [];
       let foundDelimiter = false;
       while (i + 1 < lines.length) {
         i++;
-        let candidate = (lines[i] as string).replace(/\r$/, "");
+        const raw = lines[i] as string;
+        let candidate = raw.replace(/\r$/, "");
         if (spec.stripLeadingTabs) candidate = candidate.replace(/^\t+/, "");
         if (candidate === spec.delimiter) {
           foundDelimiter = true;
           break;
         }
+        body.push(raw);
+      }
+      if (
+        options.keepExecutableBodies === true &&
+        !spec.quoted &&
+        body.some((line) => ZIP_HEREDOC_EXECUTABLE_BODY.test(line))
+      ) {
+        kept.push(...body);
       }
       if (!foundDelimiter) return kept.join("\n");
     }
@@ -2000,13 +2036,16 @@ function zipShellWithoutHereDocBodies(command: string): string {
 
 /**
  * Shell text the shell runs as commands: backslash-newline continuations
- * removed, then recognized heredoc bodies removed (quoted and unquoted
- * delimiters; commands before and after are kept; an unclosed heredoc drops
- * the rest of the text). The one preprocess shared by the zip / protected-dest
- * classifiers and the #5656 commit-shape detectors (#6187).
+ * removed from command lines and recognized heredoc bodies removed (quoted and
+ * unquoted delimiters; commands before and after are kept; an unclosed heredoc
+ * drops the rest of the text). The one preprocess shared by the zip /
+ * protected-dest classifiers and the #5656 commit-shape detectors (#6187).
  */
-export function shellWithoutHereDocBodies(command: string): string {
-  return zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+export function shellWithoutHereDocBodies(
+  command: string,
+  options: ShellHereDocOptions = {},
+): string {
+  return zipShellWithoutHereDocBodies(command, options);
 }
 
 function zipLiteralHasDirSegment(pathish: string, dir: string): boolean {

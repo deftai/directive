@@ -11,8 +11,9 @@
  *
  * Every commit detector reads the command after the shared authz preprocess
  * removes line continuations and heredoc bodies, so heredoc text that only
- * names a commit is data, not a commit (#6187). Other string literals stay a
- * residual of the quote-aware tokenizer.
+ * names a commit is data, not a commit (#6187). The body of an unquoted
+ * heredoc that holds `$(` or a backtick stays visible, because the shell runs
+ * it. Other string literals stay a residual of the quote-aware tokenizer.
  */
 
 import { shellWithoutHereDocBodies } from "../authz/classify.js";
@@ -206,9 +207,12 @@ function commandWords(segment: ShellSegment): readonly ShellWord[] {
   return start === 0 ? segment.words : segment.words.slice(start);
 }
 
-/** Segments of the commands the shell runs: heredoc bodies removed first (#6187). */
+/**
+ * Segments of the commands the shell runs: heredoc bodies removed first, except
+ * an unquoted body with a command substitution, which runs (#6187).
+ */
 function commandSegments(command: string): ShellSegment[] {
-  return tokenizeShellCommand(shellWithoutHereDocBodies(command));
+  return tokenizeShellCommand(shellWithoutHereDocBodies(command, { keepExecutableBodies: true }));
 }
 
 function commitInvocations(
