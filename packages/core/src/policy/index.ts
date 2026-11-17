@@ -156,6 +156,7 @@ export * from "./merge-approval-head.js";
 export * from "./min-greptile-confidence.js";
 export * from "./no-deft-directive.js";
 export * from "./one-pr-scope-proof.js";
+export * from "./operator-notify.js";
 export * from "./org-force-on-migration.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";

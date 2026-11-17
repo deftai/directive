@@ -35,6 +35,11 @@ export interface PlanPolicy {
    */
   readonly forgeOutageRetryMinutes?: number | null;
   /**
+   * Operator-stop notifier channel (#6275): `off` (default) or `os`.
+   * USER.md Personal `operatorNotify` wins. Never a URL.
+   */
+  readonly operatorNotify?: "off" | "os" | null;
+  /**
    * Authored project-level must-not-break contracts (#3425).
    * Empty or omitted is a no-op.
    */

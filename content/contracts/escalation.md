@@ -55,7 +55,7 @@ the whole queue — one bad file must not hide the rest).
 ## CLI
 
 ```bash
-deft escalation:file -- --type cmd_approval --title "run tests" [--body …] [--dangerous]
+deft escalation:file -- --type cmd_approval --title "run tests" [--body …] [--command <cmd>]… [--dangerous]
 deft escalation:list [--open] [--type <type>] [--format json]
 deft escalation:resolve -- <id> --decision approved|denied|answered|dismissed
 deft escalation:batch-approve [--ids a,b] [--include-dangerous]
@@ -90,6 +90,38 @@ interrupt storm:
 3. Include `contextRefs` to the active xBRIEF and related issues.
 4. Continue other unblocked work; poll `escalation:list --open` or wait for
    operator drain.
+
+## Operator-stop notifier (#6275)
+
+When a worker stops on a step only the operator can do, Directive records the
+stop and can tell the operator. The notifier only tells: it never runs a
+command, resolves an escalation, or changes a gate verdict.
+
+- **Channel:** `plan.policy.operatorNotify` is `off` (default) or `os`.
+  USER.md Personal `operatorNotify` wins. A URL-shaped value is refused and the
+  channel stays `off`; webhook endpoints are never read from policy or USER.md.
+- **Record points:** the `authz-grant-*` PreToolUse deny and the agent-shell
+  branch of the mint refusal (`authz:*`, `scope:record-*`) record one stop with
+  the exact command and worktree path. Mints file as `approval` with
+  `dangerous: true`; other steps as `cmd_approval`. Repeats dedupe on (code,
+  target, session) through `.deft/escalations/.keys/`. With the channel `off`,
+  nothing is written. Code-less stops use `escalation:file --command <cmd>`
+  (repeatable).
+- **Body:** a `Worktree:` line, then the line
+  `Commands (agent-proposed; read before running):` and one command per line.
+- **Delivery:** a detached child takes `.deft/escalations/.notify.lock` with the
+  plan-sequence owner-token lock (no takeover while the owner is alive or
+  unknown; release only by the holding token), claims each open escalation by
+  exclusive-create of `.deft/escalations/.notified/<id>`, sends one OS
+  notification for the batch, and rescans until none is left. A contender waits
+  on the lock's acquisition loop (bounded, 30 s by default), then sends what is
+  still un-notified. Delivery is best effort and at most once per escalation; a
+  stop left un-notified after budget exhaustion goes out with the next stop.
+- **Payload:** data only (argv on macOS / Linux, stdin on Windows, never a
+  `-Command` string). Control characters are stripped. Mint commands are shown
+  one per line; other commands join into one script.
+- Nothing leaves the machine in this cut. A webhook or host channel is a later
+  slice.
 
 ## Residual (full #518 product — not this slim cut)
 

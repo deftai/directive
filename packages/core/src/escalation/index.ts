@@ -3,6 +3,8 @@
  */
 
 export * from "./actions.js";
+export * from "./operator-notify.js";
+export * from "./operator-stop.js";
 export * from "./paths.js";
 export * from "./store.js";
 export * from "./types.js";

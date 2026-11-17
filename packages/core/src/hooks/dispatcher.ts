@@ -21,6 +21,11 @@ import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/p
 import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
+import {
+  formatOperatorCommand,
+  type OperatorStopInput,
+  recordOperatorStop,
+} from "../escalation/operator-stop.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkCheapInSync } from "../install-health/cheap.js";
 import type { CheapInSyncResult } from "../install-health/types.js";
@@ -760,6 +765,8 @@ export interface HookPolicySeams {
   ) => readonly HumanOriginGrant[];
   /** When false, skip writing `.deft/authz/audit.jsonl` (tests). Default true. */
   readonly authzAudit?: boolean;
+  /** Test seam: operator-stop recorder for `authz-grant-*` denies (#6275). */
+  readonly recordOperatorStop?: (input: OperatorStopInput) => void;
   /** Test seam for restricting Task lifecycle rewrites to the Directive source repo. */
   readonly runningInsideDeftRepo?: (projectRoot: string) => boolean;
   /** Test seam for execution-root realpath binding in lifecycle rewrites. */
@@ -1728,6 +1735,106 @@ function recordAuthzAudit(
   }
 }
 
+/** Grant-deny codes whose remedy is an operator `deft authz:grant` mint (#6275). */
+const OPERATOR_REMEDY_GRANT_CODES: ReadonlySet<string> = new Set([
+  "authz-grant-missing",
+  "authz-grant-origin-reject",
+  "authz-grant-scope-deny",
+  "authz-grant-expired",
+  "authz-grant-revoked",
+  "authz-grant-single-use-spent",
+]);
+
+/** Ops that `authz:grant --operations` cannot name. */
+const NON_GRANTABLE_OPS: ReadonlySet<string> = new Set([
+  "test",
+  "evidence",
+  "unknown",
+  "protected_store",
+]);
+
+/**
+ * Record an `authz-grant-*` deny as an operator-only stop with the exact mint
+ * command (#6275). Writes nothing while the notifier is off; never changes the
+ * verdict and never throws.
+ */
+/** Placeholder for the fix-cohort name the operator chooses (the grant check requires one). */
+const OPERATOR_COHORT_PLACEHOLDER = "<fix-cohort>";
+
+/**
+ * Operator steps for an `authz-grant-*` deny. `authz:grant` refuses while a UAT
+ * lease is active, so under UAT the steps suspend the lease, mint the grant
+ * with a named fix cohort (the operator's choice), then restart the campaign.
+ */
+export function authzGrantRemedyCommands(input: {
+  readonly projectRoot: string;
+  readonly op: string;
+  readonly path: string | null;
+  readonly uatCampaignId: string | null;
+}): string[] {
+  const { projectRoot } = input;
+  const grantArgs = ["--operations", input.op];
+  if (input.path !== null && input.path.length > 0) grantArgs.push("--surfaces", input.path);
+  grantArgs.push("--cohort", OPERATOR_COHORT_PLACEHOLDER);
+  const grant = formatOperatorCommand({
+    projectRoot,
+    verb: "authz:grant",
+    args: grantArgs,
+    confirm: true,
+  });
+  if (input.uatCampaignId === null) return [grant];
+  return [
+    formatOperatorCommand({ projectRoot, verb: "authz:uat-suspend", args: [], confirm: true }),
+    grant,
+    formatOperatorCommand({
+      projectRoot,
+      verb: "authz:uat-start",
+      args: ["--campaign", input.uatCampaignId],
+      confirm: true,
+    }),
+  ];
+}
+
+function recordAuthzOperatorStop(
+  input: HookDispatchInput,
+  projectRoot: string,
+  decision: AuthzDecision,
+  state: AuthzState,
+  seams: HookPolicySeams,
+): void {
+  // Called only on a deny; the code decides whether a mint is the remedy.
+  if (!OPERATOR_REMEDY_GRANT_CODES.has(decision.code)) return;
+  const op = String(decision.attemptedOp);
+  if (NON_GRANTABLE_OPS.has(op)) return;
+  try {
+    const uatCampaignId = state.uat?.active === true ? state.uat.campaignId : null;
+    const record =
+      seams.recordOperatorStop ??
+      ((stop: OperatorStopInput) => {
+        recordOperatorStop(stop);
+      });
+    record({
+      projectRoot,
+      kind: "mint",
+      code: decision.code,
+      target: `${op}:${decision.path ?? "*"}`,
+      sessionId: input.environ?.DEFT_SESSION_ID ?? null,
+      title:
+        `Grant needed: ${op}${decision.path ? ` on ${decision.path}` : ""} (${decision.code}); ` +
+        `choose the fix cohort${uatCampaignId === null ? "" : ` and resume UAT ${uatCampaignId}`}`,
+      commands: authzGrantRemedyCommands({
+        projectRoot,
+        op,
+        path: decision.path,
+        uatCampaignId,
+      }),
+      contextRefs: [decision.code],
+    });
+  } catch {
+    // Recording must not crash the host tool gate or change its verdict.
+  }
+}
+
 /**
  * Resolve as far as the filesystem allows: realpath existing prefixes even when
  * the leaf is missing (dangling multi-hop symlink parents).
@@ -1954,6 +2061,7 @@ function authzForMutation(
     }
     recordAuthzAudit(projectRoot, decision, state, seams);
     if (!decision.allowed) {
+      recordAuthzOperatorStop(input, projectRoot, decision, state, seams);
       return deny(
         input,
         authzCodeToHook(decision.code),

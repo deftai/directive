@@ -1,8 +1,65 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { listOpenEscalations, operatorStopCommands } from "@deftai/directive-core/escalation";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { main } from "./escalation-cli.js";
+
+describe("escalation:file --command (#6275)", () => {
+  it("records each repeated --command in the body and notifies once", () => {
+    const root = tempRoot();
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const notified: string[] = [];
+    expect(
+      main(
+        [
+          "file",
+          "--project-root",
+          root,
+          "--type",
+          "cmd_approval",
+          "--title",
+          "operator merge",
+          "--body",
+          "Needs a GitHub-only merge",
+          "--command",
+          "gh pr merge 12 --squash",
+          "--command",
+          "  ",
+          "--command",
+          "deft scope:complete -- xbrief/active/a.json",
+        ],
+        { notify: (r) => notified.push(r) },
+      ),
+    ).toBe(0);
+    const [event] = listOpenEscalations(root);
+    expect(event?.body.startsWith("Needs a GitHub-only merge")).toBe(true);
+    expect(operatorStopCommands(event?.body ?? "")).toEqual([
+      "gh pr merge 12 --squash",
+      "deft scope:complete -- xbrief/active/a.json",
+    ]);
+    expect(notified).toEqual([root]);
+  });
+
+  it("without --command the body is unchanged, and the default notifier writes nothing extra while off", () => {
+    const root = tempRoot();
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const prev = process.env.DEFT_USER_PATH;
+    process.env.DEFT_USER_PATH = join(root, "no-USER.md");
+    try {
+      expect(
+        main(["file", "--project-root", root, "--type", "question", "--title", "q", "--body", "b"]),
+      ).toBe(0);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_USER_PATH;
+      else process.env.DEFT_USER_PATH = prev;
+    }
+    expect(listOpenEscalations(root)[0]?.body).toBe("b");
+    expect(
+      readdirSync(join(root, ".deft", "escalations")).filter((n) => !n.endsWith(".json")),
+    ).toEqual([]);
+  });
+});
 
 const roots: string[] = [];
 afterEach(() => {
