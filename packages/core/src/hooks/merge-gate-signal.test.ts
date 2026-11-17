@@ -204,6 +204,22 @@ describe("merge-gate signal (#6535)", () => {
     expect(notGitHub.evaluate().live).toBe(false);
   });
 
+  it("is off, and does not throw, when a reader throws (missing gh, broken git)", () => {
+    const root = project(LOCAL_POLICY);
+    const throwingGh: RunGhFn = () => {
+      throw new Error("gh not found");
+    };
+    expect(
+      createMergeGateSignal({ root, runGit: gitStub().run, runGh: throwingGh }).evaluate(),
+    ).toEqual({ live: false, check: null, branch: null });
+    const throwingGit: GitRunner = () => {
+      throw new Error("git not found");
+    };
+    expect(
+      createMergeGateSignal({ root, runGit: throwingGit, runGh: ghStub().run }).evaluate().live,
+    ).toBe(false);
+  });
+
   it("is off on an unreadable contents payload", () => {
     const root = project(LOCAL_POLICY);
     for (const stdout of ["not json", "[]", JSON.stringify({ encoding: "none", content: "" })]) {

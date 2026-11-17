@@ -49,6 +49,31 @@ describe("makeBudgetedRunGh (#6535)", () => {
     });
     expect(run(["gh", "api", "rate_limit"]).stderr).toBe("gh read budget exhausted");
   });
+
+  it("runs live gh only: never the cached ghx reader, and no fallback retry", async () => {
+    vi.resetModules();
+    const bins: string[] = [];
+    vi.doMock("node:child_process", async (importOriginal) => {
+      const real = await importOriginal<typeof import("node:child_process")>();
+      return {
+        ...real,
+        execFileSync: (bin: string) => {
+          bins.push(bin);
+          const failure = Object.assign(new Error("exit 1"), { status: 1, stderr: "HTTP 500" });
+          throw failure;
+        },
+      };
+    });
+    try {
+      const fresh = await import("./gh.js");
+      const result = fresh.makeBudgetedRunGh(1000)(["gh", "api", "repos/o/r/rules/branches/main"]);
+      expect(bins).toEqual(["gh"]);
+      expect(result).toMatchObject({ returncode: 1, stderr: "HTTP 500" });
+    } finally {
+      vi.doUnmock("node:child_process");
+      vi.resetModules();
+    }
+  });
 });
 
 describe("fetchGreptileBodyRest paginate", () => {

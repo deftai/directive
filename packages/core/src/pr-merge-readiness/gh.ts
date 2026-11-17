@@ -95,13 +95,15 @@ export function checkRunMatchesRequiredContext(
 
 /** UTF-8-safe gh capture via execFile (no shell) — mirrors _safe_subprocess.run_text (#1366). */
 export function defaultRunGh(cmd: readonly string[]): RunGhResult {
-  return runGhWithTimeout(cmd, GH_TIMEOUT_S * 1000, true);
+  return runGhWithTimeout(cmd, GH_TIMEOUT_S * 1000, false);
 }
 
 /**
  * gh runner that shares one time budget across calls (#6535). Each call gets the
  * time left; once the budget is spent a call returns a failed result without
- * running gh. No ghx fallback retry, so a single call cannot outlive the budget.
+ * running gh. Calls use live `gh` only: no cached `ghx` reader and no fallback
+ * retry, so a cached answer cannot stand in for the forge and a single call cannot
+ * outlive the budget.
  */
 export function makeBudgetedRunGh(budgetMs: number, now: () => number = Date.now): RunGhFn {
   const deadline = now() + budgetMs;
@@ -110,20 +112,25 @@ export function makeBudgetedRunGh(budgetMs: number, now: () => number = Date.now
     if (left <= 0) {
       return { returncode: -1, stdout: "", stderr: "gh read budget exhausted" };
     }
-    return runGhWithTimeout(cmd, Math.ceil(left), false);
+    return runGhWithTimeout(cmd, Math.ceil(left), true);
   };
 }
 
+/**
+ * `liveOnly` runs plain `gh` (never the cached `ghx` reader) and does not retry
+ * through the ghx fallback: a signal read must see live forge state (#6535).
+ */
 function runGhWithTimeout(
   cmd: readonly string[],
   timeoutMs: number,
-  allowFallbackRetry: boolean,
+  liveOnly: boolean,
 ): RunGhResult {
+  const allowFallbackRetry = !liveOnly;
   if (cmd.length === 0 || cmd[0] !== "gh") {
     return { returncode: -1, stdout: "", stderr: "expected gh as first argv element" };
   }
   const args = cmd.slice(1);
-  const binary = resolveBinaryForArgv(args[0] ?? "", args.slice(1));
+  const binary = liveOnly ? "gh" : resolveBinaryForArgv(args[0] ?? "", args.slice(1));
   const execOpts = {
     encoding: "utf8" as const,
     timeout: timeoutMs,

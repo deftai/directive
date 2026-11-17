@@ -113,7 +113,14 @@ export function createMergeGateSignal(options: MergeGateSignalOptions): MergeGat
   let cached: MergeGateSignalResult | null = null;
   return {
     evaluate(): MergeGateSignalResult {
-      if (cached === null) cached = evaluateSignal(options);
+      if (cached === null) {
+        try {
+          cached = evaluateSignal(options);
+        } catch {
+          // Any read or setup failure (missing gh, unreadable file) is no signal.
+          cached = NO_SIGNAL;
+        }
+      }
       return cached;
     },
   };

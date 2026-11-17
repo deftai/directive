@@ -449,6 +449,19 @@ describe("site (d): the commit check", () => {
     expect(both.message).toContain("staged path(s) outside governing file_scope");
   });
 
+  it("judges the index-snapshot word on the checkout the commit names", () => {
+    const root = repo(["packages/a/**"]);
+    const wt = join(root, ".deft-scratch", "worktrees", "story-no-signal");
+    mkdirSync(dirname(wt), { recursive: true });
+    git(root, ["worktree", "add", "--detach", "-q", wt]);
+    // The payload root has the trigger; the named checkout has none, so it has no signal.
+    writeProjectDefinition(wt, { deliveryBranch: "master" });
+    writeRunning(wt, "a-story.xbrief.json", ["packages/a/**"]);
+    const decision = shell(root, `git -C "${wt}" commit -am x`, seams("live"));
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toContain("change the file set after the pre-tool index snapshot");
+  });
+
   it("keeps refusing an unresolvable commit target", () => {
     const root = repo(["packages/a/**"]);
     const decision = shell(root, "cd $WT && git commit -m x", seams("live"));
@@ -462,6 +475,36 @@ describe("site (d): the commit check", () => {
     const decision = shell(root, command, seams("live"));
     expect(decision).toMatchObject({ verdict: "deny", code: "authz-uat-deny" });
     expect(decision.message).toContain("authz store");
+  });
+});
+
+describe("shell writes and the read budget", () => {
+  it("carries the warning of a recognized shell write to the final allow", () => {
+    const root = repo(["packages/a/**"]);
+    const command = `Set-Content -Path "${join(root, "packages", "b", "x.ts")}" -Value x`;
+    expect(shell(root, command, seams("off"))).toMatchObject({ verdict: "deny" });
+    const live = shell(root, command, seams("live"));
+    expectWarned(live, "story file_scope");
+  });
+
+  it("shares one signal read across every gate check of one shell call", () => {
+    const root = repo(["packages/a/**"]);
+    const gh = ghFor("live");
+    const enforce = {
+      loadRuntimeAuthority: () =>
+        resolveRuntimeAuthorityPolicy({
+          enabled: true,
+          shellDestForms: "enforce",
+          scopes: { edits: true, push: false, merge: false },
+        }),
+      mergeGateRunGh: gh.run,
+    };
+    const command = `Set-Content -Path "${join(root, "packages", "b", "x.ts")}" -Value x`;
+    const live = shell(root, command, seams("live", enforce));
+    expect(live.verdict).toBe("allow");
+    expect(live.message.startsWith("Warning:")).toBe(true);
+    expect(gh.calls.filter((call) => call.includes("/contents/"))).toHaveLength(1);
+    expect(gh.calls.filter((call) => call.includes("/rules/branches/"))).toHaveLength(1);
   });
 });
 
