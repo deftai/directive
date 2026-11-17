@@ -105,6 +105,53 @@ describe("resolveStoryWriteAllow (#6221)", () => {
     expect(d.assessment?.allowance).toBe(2);
   });
 
+  it("reads a staged deletion from the index, not the working tree, in commit mode", () => {
+    const { root, sha } = repo(BASE);
+    git(root, ["rm", "-q", "--cached", "packages/core/src/y.test.ts"]);
+    // Recreated on disk but not staged: the staged change is still a delete.
+    write(root, "packages/core/src/y.test.ts", "again\n");
+    const d = resolveStoryWriteAllow({
+      projectRoot: root,
+      fence: fence(sha, ["packages/core/src/a.ts"]),
+      targets: ["packages/core/src/y.test.ts"],
+      mode: "commit",
+    });
+    expect(d.kind).toBe("refuse");
+    if (d.kind === "refuse") expect(d.reason).toContain("extra-path-not-admitted");
+  });
+
+  it("matches a non-ASCII base fixture name and spends one allowance", () => {
+    const rel = "tests/fixtures/café.json";
+    const { root, sha } = repo({ ...BASE, [rel]: "{}\n" });
+    write(root, rel, '{"a":1}\n');
+    const d = resolveStoryWriteAllow({
+      projectRoot: root,
+      fence: fence(sha, ["packages/core/src/a.ts"]),
+      targets: [rel],
+    });
+    expect(d.kind).toBe("scope");
+  });
+
+  it("looks up the basename-keyed mint for a brief with no plan.id", () => {
+    const calls: string[][] = [];
+    const fake: WriteFenceGit = (_root, args) => {
+      calls.push([...args]);
+      return { code: 1, stdout: "" };
+    };
+    resolveStoryWriteAllow({
+      projectRoot: ".",
+      fence: {
+        fileScope: ["packages/core/src/a.ts"],
+        denyPaths: [],
+        mergeBaseSha: "abc",
+        briefRel: "xbrief/active/story-x.xbrief.json",
+      },
+      targets: ["packages/core/src/b.ts"],
+      git: fake,
+    });
+    expect(calls[0]).toEqual(["cat-file", "-e", "abc:.deft/approved-scope/story-x.json"]);
+  });
+
   it("refuses a new undeclared test file with extra-path-not-admitted", () => {
     const { root, sha } = repo(BASE);
     const d = resolveStoryWriteAllow({

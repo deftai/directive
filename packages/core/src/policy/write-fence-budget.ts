@@ -100,7 +100,7 @@ function normalizeRel(raw: string): string {
 
 function linesOf(stdout: string): string[] {
   return stdout
-    .split(/\r?\n/)
+    .split(/\0|\r?\n/)
     .map((line) => normalizeRel(line))
     .filter((line) => line.length > 0);
 }
@@ -126,8 +126,15 @@ function resolveAuthority(
   if (fence.onePrMint?.admitted === true) {
     return { kind: "ok", authority: "mint", allowlist: brief };
   }
-  const planId = fence.planId;
-  if (typeof planId !== "string" || planId.trim().length === 0) {
+  // A brief with no plan.id keys its mint by the brief's leaf name, as the PR check does.
+  const hasPlanId = typeof fence.planId === "string" && fence.planId.trim().length > 0;
+  const leaf = (fence.briefRel ?? "")
+    .split("/")
+    .pop()
+    ?.replace(/\.xbrief\.json$/i, "")
+    .replace(/\.vbrief\.json$/i, "");
+  const planId = hasPlanId ? (fence.planId as string) : (leaf ?? "");
+  if (planId.trim().length === 0) {
     return { kind: "ok", authority: "concrete", allowlist: brief };
   }
   const rel = `.deft/approved-scope/${approvedScopeSafePlanId(planId)}.json`;
@@ -194,8 +201,8 @@ export function resolveStoryWriteAllow(
     }
 
     // Cumulative inventory: merge base to the working tree, plus untracked.
-    const tracked = git(root, ["diff", "--name-only", "--no-renames", sha]);
-    const untracked = git(root, ["ls-files", "--others", "--exclude-standard"]);
+    const tracked = git(root, ["diff", "--name-only", "-z", "--no-renames", sha]);
+    const untracked = git(root, ["ls-files", "--others", "--exclude-standard", "-z"]);
     if (tracked.code !== 0 || untracked.code !== 0) {
       return {
         kind: "refuse",
@@ -220,7 +227,7 @@ export function resolveStoryWriteAllow(
     const onBase = new Set<string>();
     if (candidates.length > 0) {
       const pathspecs = candidates.map((p) => `:(literal)${p}`);
-      const listed = git(root, ["ls-tree", "-r", "--name-only", sha, "--", ...pathspecs]);
+      const listed = git(root, ["ls-tree", "-r", "--name-only", "-z", sha, "--", ...pathspecs]);
       if (listed.code !== 0) {
         return {
           kind: "refuse",
@@ -231,11 +238,32 @@ export function resolveStoryWriteAllow(
       for (const line of linesOf(listed.stdout)) onBase.add(line);
     }
     const mode = input.mode ?? "write";
-    // A Write/Edit target exists after the operation; a staged target is read from disk.
+    // A Write/Edit target exists after the operation; a staged target is read from the index.
     const writtenTargets = new Set(mode === "write" ? targets : []);
+    const inIndex = new Set<string>();
+    if (mode === "commit" && candidates.length > 0) {
+      const staged = git(root, [
+        "ls-files",
+        "--cached",
+        "-z",
+        "--",
+        ...candidates.map((p) => `:(literal)${p}`),
+      ]);
+      if (staged.code !== 0) {
+        return {
+          kind: "refuse",
+          reason: "story write fence could not read the staged index; fail closed (#6221)",
+          storyAllow,
+        };
+      }
+      for (const line of linesOf(staged.stdout)) inIndex.add(line);
+    }
     const changeKind = (rel: string): ExtraPathChangeKind | null => {
       const present = onBase.has(rel);
-      const exists = writtenTargets.has(rel) || existsSync(join(root, ...rel.split("/")));
+      const exists =
+        mode === "commit"
+          ? inIndex.has(rel)
+          : writtenTargets.has(rel) || existsSync(join(root, ...rel.split("/")));
       if (present && exists) return "modify";
       if (present) return "delete";
       return "add";

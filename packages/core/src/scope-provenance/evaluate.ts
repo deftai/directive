@@ -436,7 +436,10 @@ function resolveChangeKinds(input: {
   // One listing of the base tree, filtered here: no argv-length limit on a
   // large change set. A git error or timeout propagates like every other base
   // read here; a non-zero status leaves the kinds unknown (refused closed).
-  const listed = git(["ls-tree", "-r", "--name-only", input.baseRef], input.root, input.runner);
+  // List the merge-base tree, the same comparison point as the PR diff and the write fence.
+  const mb = git(["merge-base", input.baseRef, "HEAD"], input.root, input.runner);
+  const mbSha = mb.status === 0 && mb.stdout.trim().length > 0 ? mb.stdout.trim() : input.baseRef;
+  const listed = git(["ls-tree", "-r", "--name-only", mbSha], input.root, input.runner);
   if (listed.status !== 0) return () => null;
   const wanted = new Set(candidates);
   for (const line of listed.stdout.split("\n")) {

@@ -133,6 +133,8 @@ export type StoryWriteFenceView = {
   readonly mergeBaseSha?: string;
   /** plan.id of the merge-base brief, for the merge-base mint lookup (#6221). */
   readonly planId?: string;
+  /** Repo-relative brief path, for the basename-keyed mint of a brief with no plan.id (#6221). */
+  readonly briefRel?: string;
   /**
    * One-PR mint result (#6361). Set only when the brief is absent from the
    * merge base and the merge-base `onePrScopeProof` level is not off.
@@ -797,7 +799,7 @@ export function loadStoryWriteFenceFromMergeBase(
     withBase({
       fileScope: [...loaded.fileScope],
       denyPaths: [...loaded.denyPaths],
-      ...(basePlanId !== null ? { planId: basePlanId } : {}),
+      ...(basePlanId !== null ? { planId: basePlanId } : { briefRel: rel }),
     }),
   );
   memoSet(fenceLoadMemo, loadKey, { kind: "fence", fence });
