@@ -16,8 +16,8 @@ The **production fence** is the active brief's `plan.metadata.swarm.file_scope` 
 
 Two builds carry it:
 
-1. **Merge-time check** (`verify:scope-provenance` / `task check`) compares **changed production files** to the base brief. It does **not** read the head brief for the allow list. A PR that adds production paths and edits its own active brief to include them still fails.
-2. **Write fence** reads that same base brief (when present). An unreadable brief fails closed.
+1. **Merge-time check** (`verify:scope-provenance` / `task check`) compares **changed paths** to the base brief through the extra-path rule below. It runs whether or not the brief is in the change set (the Path-independent check). It does **not** read the head brief for the allow list. A PR that adds production paths and edits its own active brief to include them still fails.
+2. **Write fence** reads that same base brief (when present) and applies the same extra-path rule to each Write or Edit. An unreadable brief fails closed.
 
 When the brief is not on the merge base yet (first PR / undeclared scope), there is **no production fence** from this gate — class checks remain #4980. Membership still fail-closes first-PR product paths that ride with the active brief and have no continuity-resolved base brief (#5192).
 
@@ -27,18 +27,34 @@ Empty or absent merge-base `file_scope` yields **no production-fence finding**. 
 
 Authoring coverage (do not overstate): empty or missing `file_scope` is hard-refused on `scope:decompose` story validation, and nonempty `file_scope` is required for swarm-allocation readiness. Setup instructs nonempty declaration (#4988, supersedes closed #4383). Briefs authored without a swarm block reach neither gate; that path is ungated in code. Extending nonempty `file_scope` where absent (option b) prices as covering that no-swarm-block authoring route plus backlog — not as residual-path coverage. Raise-declaration options stay sequenced after #3714 notice (recut before ship-as-filed).
 
-### Production fence: test roots are free
+### Extra paths: one rule for three checks (#6221)
 
-On the **production fence only**, paths under configured test roots (and fixtures) pass and spend nothing. `CHANGELOG.md` is free. The fence budget applies to **production roots only**. Membership does **not** free test or fixture roots (#5192).
+Three checks read a story's `file_scope`: the **write fence** (each Write or Edit), **membership** (when the brief is in the change set) and the **Path-independent check** (the production fence above, on every PR). They use one rule for a path the brief does not declare (an *extra*). Code: `packages/core/src/scope-provenance/extra-path-admission.ts`.
 
-### Production allowance
+**Allowlist authority.** All three use the same allowlist: the human-stamped merge-base mint when present (or the admitted one-PR mint, #6273 / #6361), else the merge-base brief's **concrete** entries. Under a mint, glob entries match. Without a mint, a glob entry admits nothing on its own: a path it matches is an extra. On the write fence and the Path-independent check a declared path must also match the merge-base brief, so a broader mint does not widen the brief. #6203 forge approval is membership only; it is never write authority.
 
-Allowance = clamp(count of **concrete** production files on the merge-base `file_scope`, floor **2**, cap **5**). A glob entry is not a concrete file.
+**Classes and spend.**
 
-- On the production fence: production paths inside the base list (including glob matches) land without spending; extras within the allowance land.
-- On membership: a present mint may use glob matches; missing-mint Path B admits **concrete** merge-base entries only (glob-only Path B is residual — docs do not promise those matches land without a mint). Source-root extras spend the same allowance; undeclared test/fixture and other non-allowlist paths refuse.
-- Paths past the cap split to a follow-up story as an independently valid change, or the story stays blocked and is replanned. **No prompt.** Unrelated / low-confidence are not selectors. Parent text and model output are not an allow input.
-- Missing-mint membership remediation is **split, or land a widened concrete brief on the merge base**. Remediation does **not** name `scope:record-approved-scope` or `--kind renewed-approval`.
+| Extra path | Write fence | Membership | Path-independent check |
+|---|---|---|---|
+| Source root (production) | spends the allowance | spends the allowance | spends the allowance |
+| Test or fixture, modify of a path on the base | spends the allowance | spends the allowance | spends the allowance |
+| Test or fixture, add, delete or rename | refused | refused | refused |
+| Other (not source, test or fixture) | refused | refused | ignored (named residual) |
+
+Free paths never spend: `CHANGELOG.md` and changelog fragments, the bound brief and brief records, verified peer briefs and continuity lifecycle paths (membership).
+
+**Budget.** Allowance = clamp(count of **concrete** production files on the merge-base `file_scope`, floor **2**, cap **5**). A glob entry is not a concrete file. On the write fence the budget counts the story's whole change set: merge base to the working tree (committed, staged, unstaged), untracked files, and every target of the pending operation. A path already counted spends nothing again. If that inventory cannot be read, the write is refused (fail closed).
+
+**Refusal.** Past the allowance all three checks refuse with the reason token `extra-paths-over-budget`. A path the budget never admits is refused with `extra-path-not-admitted`. The remedy is a split to a follow-up story, or a widened concrete brief on the merge base; for a glob brief without a mint, replace the glob with concrete entries. Paths past the cap split as an independently valid change, or the story stays blocked and is replanned. **No prompt.** Unrelated / low-confidence are not selectors. Parent text and model output are not an allow input. Remediation does **not** name `scope:record-approved-scope` or `--kind renewed-approval`.
+
+**Report.** On success `verify:scope-provenance` lists each extra path with its class (`production|test|fixture|other`) and spend (`spent|free`), per story and check, and appends the list to `$GITHUB_STEP_SUMMARY` when set. A `free` other-class row on the Path-independent check is not write permission; membership and the write fence refuse it.
+
+**Unchanged.** The budget never overrides a missing declaration, an invalid mint, project allow or deny paths, story deny paths, protected stores or active-brief protection. The empty-base skip (#3715) stays: no merge-base `file_scope`, no Path-independent finding. Membership still does not free test or fixture roots (#5192): a test path spends the allowance like a production extra.
+
+**Named residual (other class).** An undeclared path that is neither source, test nor fixture (for example a doc) is refused at membership and the write fence, and ignored by the Path-independent check. This is a choice, not fence parity for that class.
+
+**Shell writes.** The write fence sees Write and Edit and the shell forms the hook recognizes. A shell delete, `git apply` or `sed -i` it does not see is caught by the PR check only.
 
 ### Membership (#4774 / #5192)
 

@@ -277,9 +277,16 @@ describe("write gate on a one-PR mint brief through the real fence loader (#6361
     expect(writeTo(root, "src/a.ts", "Edit")).toMatchObject({ verdict: "allow" });
   });
 
-  it("refuses a Write outside the minted file_scope", () => {
+  it("refuses a Write outside the minted file_scope that the extra-path budget does not admit", () => {
     const root = mintRepo();
-    expect(writeTo(root, "src/b.ts")).toMatchObject({ verdict: "deny" });
+    const decision = writeTo(root, "docs/b.md");
+    expect(decision).toMatchObject({ verdict: "deny" });
+    expect(decision.message).toContain("extra-path-not-admitted");
+  });
+
+  it("admits a production extra inside the allowance, as membership does (#6221)", () => {
+    const root = mintRepo();
+    expect(writeTo(root, "src/b.ts")).toMatchObject({ verdict: "allow" });
   });
 
   it("refuses Write and Edit to the mint record even though file_scope lists it", () => {

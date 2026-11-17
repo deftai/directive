@@ -61,6 +61,7 @@ import {
   resolveWriteFence,
   type StoryWriteFenceView,
 } from "../policy/write-fence.js";
+import { resolveStoryWriteAllow } from "../policy/write-fence-budget.js";
 import { HOOK_COMPACT_HEAL_TRIGGER } from "../run-summary/types.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
@@ -752,6 +753,8 @@ export interface HookPolicySeams {
     projectRoot: string,
     scopePath: string | null,
   ) => StoryWriteFenceView;
+  /** Test seam for the #6221 shared extra-path admission of the story allow layer. */
+  readonly resolveStoryWriteAllow?: typeof resolveStoryWriteAllow;
   /** Test seam for #2944 UAT lease + human-origin grants. */
   readonly loadAuthzState?: (projectRoot: string) => AuthzState;
   readonly loadAuthzGrants?: (
@@ -1629,18 +1632,44 @@ function runtimeAuthorityForDirectWrite(
       scopePath,
     );
   }
-  for (const target of normalized.paths) {
-    // #6189 Prefer-A Bound limbs 1 + 4: the story fence and project path globs
-    // govern the repository, not host memory or temp scratch. A target outside
-    // fenceRoot (the same root this loop relativises against; the #2885
-    // carve-out stays on payloadRoot) skips the path layer only. A null relPath
-    // still runs the non-path checks, so project scopes.edits=false keeps
-    // denying. The unclassified-target deny above stays ahead of this skip.
-    const relPath = isOutsideProjectRootWrite(fenceRoot, target)
-      ? null
-      : toProjectRelativePosix(fenceRoot, target);
+  // #6189 Prefer-A Bound limbs 1 + 4: the story fence and project path globs
+  // govern the repository, not host memory or temp scratch. A target outside
+  // fenceRoot (the same root this loop relativises against; the #2885
+  // carve-out stays on payloadRoot) skips the path layer only. A null relPath
+  // still runs the non-path checks, so project scopes.edits=false keeps
+  // denying. The unclassified-target deny above stays ahead of this skip.
+  const relTargets = normalized.paths.map((target) =>
+    isOutsideProjectRootWrite(fenceRoot, target) ? null : toProjectRelativePosix(fenceRoot, target),
+  );
+  // #6221: the story allow layer follows the shared extra-path rule (same
+  // authority and budget as membership and verify:scope-provenance), for all
+  // targets of this operation together. Only the story allow layer changes;
+  // project allow/deny, story deny and the protected checks still apply.
+  const storyAllow = (seams.resolveStoryWriteAllow ?? resolveStoryWriteAllow)({
+    projectRoot: fenceRoot,
+    fence: storyFence,
+    targets: relTargets,
+  });
+  if (storyAllow.kind === "refuse") {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      `Directive denied this direct write: ${storyAllow.reason}${fenceRootNote}`,
+      scopePath,
+    );
+  }
+  // An empty story allow would switch the story layer off; keep today's fence
+  // then (only reachable when no target is inside the tree).
+  const effectiveFence =
+    storyAllow.kind === "scope" && storyAllow.storyAllow.length > 0
+      ? resolveWriteFence(basePolicy, storyAllow.storyAllow, {
+          storyDenyPaths: storyFence.denyPaths,
+        })
+      : fence;
+  for (const relPath of relTargets) {
     const verdict = evaluateRuntimeAuthorityDirectWrite({
-      policy: fence.policy,
+      policy: effectiveFence.policy,
       relPathPosix: relPath,
     });
     if (!verdict.allowed) {
@@ -5284,6 +5313,9 @@ function decideProspectiveGitCommitScopeCover(
     ...(seams.readStagedBlob !== undefined ? { readStagedBlob: seams.readStagedBlob } : {}),
     inspectScope: seams.inspectScope,
     loadStoryWriteFence: seams.loadStoryWriteFence,
+    ...(seams.resolveStoryWriteAllow !== undefined
+      ? { resolveStoryWriteAllow: seams.resolveStoryWriteAllow }
+      : {}),
     env: environ,
     resolveStoryBinding: (root) =>
       resolveWorktreeStoryBinding(root, {
@@ -5316,6 +5348,8 @@ export interface ProspectiveScopeCoverInput {
     projectRoot: string,
     scopePath: string | null,
   ) => StoryWriteFenceView;
+  /** Shared extra-path decision for the outside portion (#6221 test seam). */
+  readonly resolveStoryWriteAllow?: typeof resolveStoryWriteAllow;
   readonly env?: NodeJS.ProcessEnv;
   /**
    * Worktree story binding on `projectRoot` (#6247 / #6233): `bound` selects
@@ -5471,25 +5505,62 @@ export function evaluateProspectiveScopeCover(
       scopePath: scope.path,
     };
   }
-  const outside = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
-  // A merge commit excuses only staged entries identical to an authoritative
-  // MERGE_HEAD entry; file_scope itself still comes from the merge base (#6379).
-  const merge =
-    outside.length === 0
-      ? null
-      : (input.excuseMergeArrivals ?? excuseMergeArrivals)({
-          projectRoot,
-          paths: outside,
-          stagedEntries: input.stagedEntries,
-          deliveryRef: fence.baseRef,
-        });
-  const uncovered = merge === null ? outside : [...merge.remaining];
+  // #6221: on a fence read at the merge base, the staged set uses the shared
+  // extra-path decision (same authority and budget as the write fence and
+  // verify:scope-provenance). Merge arrivals identical to an authoritative
+  // MERGE_HEAD entry are not the story's change: they neither spend nor count.
+  const sharedRule =
+    input.resolveStoryWriteAllow !== undefined ||
+    (typeof fence.mergeBaseSha === "string" && fence.fileScope.length > 0);
+  let extraRefusal = "";
+  let merge: ReturnType<typeof excuseMergeArrivals> | null = null;
+  let uncovered: string[];
+  if (sharedRule) {
+    merge =
+      productStaged.length === 0
+        ? null
+        : (input.excuseMergeArrivals ?? excuseMergeArrivals)({
+            projectRoot,
+            paths: productStaged,
+            stagedEntries: input.stagedEntries,
+            deliveryRef: fence.baseRef,
+          });
+    const excused = new Set(merge?.excused ?? []);
+    const storyStaged = productStaged.filter((rel) => !excused.has(rel));
+    const stagedAllow = (input.resolveStoryWriteAllow ?? resolveStoryWriteAllow)({
+      projectRoot,
+      fence,
+      targets: storyStaged,
+      mode: "commit",
+      excludeFromInventory: [...excused],
+    });
+    // A refusal never falls back to the raw file_scope (fail closed).
+    const coverGlobs = stagedAllow.kind === "unchanged" ? fence.fileScope : stagedAllow.storyAllow;
+    uncovered = storyStaged.filter((rel) => !matchAny(coverGlobs, rel));
+    if (stagedAllow.kind === "refuse" && uncovered.length > 0) {
+      extraRefusal = ` ${stagedAllow.reason}`;
+    }
+  } else {
+    const outside = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
+    // A merge commit excuses only staged entries identical to an authoritative
+    // MERGE_HEAD entry; file_scope itself still comes from the merge base (#6379).
+    merge =
+      outside.length === 0
+        ? null
+        : (input.excuseMergeArrivals ?? excuseMergeArrivals)({
+            projectRoot,
+            paths: outside,
+            stagedEntries: input.stagedEntries,
+            deliveryRef: fence.baseRef,
+          });
+    uncovered = merge === null ? outside : [...merge.remaining];
+  }
   if (uncovered.length > 0) {
     return {
       ok: false,
       message:
         `Prospective scope-cover denied: staged path(s) outside governing file_scope ` +
-        `(#5656): ${uncovered.join(", ")}. This gate is prospective only — it does not ` +
+        `(#5656): ${uncovered.join(", ")}.${extraRefusal} This gate is prospective only — it does not ` +
         "rewrite or bless earlier uncovered commits. Residuals: verify:hooks-installed; --no-verify.",
       uncovered,
       scopePath: scope.path,

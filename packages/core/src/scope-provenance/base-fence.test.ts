@@ -35,7 +35,7 @@ describe("evaluateProductionScopeFence (#4956)", () => {
     expect(hit).toBeNull();
   });
 
-  it("lets test-root paths pass without spending allowance", () => {
+  it("spends the allowance on test-root modifies; CHANGELOG stays free (#6221)", () => {
     expect(isTestOrFixturePath("packages/core/src/foo.test.ts")).toBe(true);
     const hit = evaluateProductionScopeFence({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
@@ -47,8 +47,79 @@ describe("evaluateProductionScopeFence (#4956)", () => {
         "tests/helpers/probe.ts",
         "CHANGELOG.md",
       ],
+      changeKind: () => "modify",
     });
     expect(hit).toBeNull();
+  });
+
+  it("refuses test-root paths with an unknown or add change kind (#6221)", () => {
+    const hit = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/a.ts"],
+      changedFiles: ["packages/core/src/a.ts", "packages/core/src/a.test.ts"],
+    });
+    expect(hit?.kind).toBe("production-scope-over-budget");
+    expect(hit?.detail).toContain("extra-path-not-admitted");
+  });
+
+  it("refuses a third test modify past the allowance with the shared token (#6221)", () => {
+    const hit = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/a.ts"],
+      changedFiles: [
+        "packages/core/src/a.test.ts",
+        "packages/core/src/b.test.ts",
+        "packages/core/src/c.ts",
+      ],
+      changeKind: () => "modify",
+    });
+    expect(hit?.detail).toContain("extra-paths-over-budget");
+    expect(hit?.remediation).toMatch(/follow-up story/i);
+  });
+
+  it("under a mint, globs match but a broader mint does not widen the brief (#6221 / #5192)", () => {
+    const changedFiles = [
+      "packages/core/src/b.ts",
+      "packages/core/src/c.ts",
+      "packages/core/src/d.ts",
+    ];
+    const globBrief = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/**"],
+      mintFileScope: ["packages/core/src/**"],
+      changedFiles,
+    });
+    expect(globBrief).toBeNull();
+    const narrowBrief = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/a.ts"],
+      mintFileScope: ["packages/core/src/**"],
+      changedFiles,
+    });
+    expect(narrowBrief?.detail).toContain("extra-paths-over-budget");
+  });
+
+  it("ignores other-class paths on the Path-independent check and reports them free (#6221)", () => {
+    const seen: string[] = [];
+    const hit = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/a.ts"],
+      changedFiles: ["docs/x.md", "content/y.md", "README.md"],
+      onAssessment: (a) => {
+        for (const e of a.entries) seen.push(`${e.path}:${e.pathClass}:${e.spend}`);
+      },
+    });
+    expect(hit).toBeNull();
+    expect(seen).toEqual([
+      "docs/x.md:other:free",
+      "content/y.md:other:free",
+      "README.md:other:free",
+    ]);
   });
 
   it("admits production extras inside the allowance", () => {
@@ -104,6 +175,22 @@ describe("evaluateProductionScopeFence (#4956)", () => {
     });
     // glob is not concrete; concrete count 1 → allowance 2; one extra lands
     expect(hit).toBeNull();
+  });
+
+  it("treats glob matches as extras without a mint (#6221 glob tightening)", () => {
+    const hit = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/authz/**"],
+      changedFiles: [
+        "packages/core/src/authz/a.ts",
+        "packages/core/src/authz/b.ts",
+        "packages/core/src/authz/c.ts",
+      ],
+    });
+    expect(hit?.kind).toBe("production-scope-over-budget");
+    expect(hit?.detail).toContain("extra-paths-over-budget");
+    expect(hit?.remediation).toContain("replace glob entries with concrete paths");
   });
 });
 
@@ -306,6 +393,66 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
       ],
     });
     expect(hit).toBeNull();
+  });
+
+  it("admits one undeclared test modify inside the allowance (#6221 / #5710 case)", () => {
+    const seen: string[] = [];
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "precommitment",
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/x/bank.test.ts",
+      ],
+      changeKind: () => "modify",
+      onAssessment: (a) => {
+        for (const e of a.entries) seen.push(`${e.path}:${e.pathClass}:${e.spend}`);
+      },
+    });
+    expect(hit).toBeNull();
+    expect(seen).toEqual(["packages/core/src/x/bank.test.ts:test:spent"]);
+  });
+
+  it("refuses a test add and an over-budget test modify with the shared tokens (#6221)", () => {
+    const kinds: Record<string, "modify" | "add"> = {
+      "packages/core/src/new.test.ts": "add",
+      "packages/core/src/b.test.ts": "modify",
+      "packages/core/src/c.test.ts": "modify",
+      "packages/core/src/d.test.ts": "modify",
+    };
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "precommitment",
+      changedFiles: ["xbrief/active/story.xbrief.json", ...Object.keys(kinds)],
+      changeKind: (rel) => kinds[rel] ?? null,
+    });
+    expect(hit?.kind).toBe("change-set-outside-approved-scope");
+    expect(hit?.expandedPaths).toEqual([
+      "packages/core/src/new.test.ts",
+      "packages/core/src/d.test.ts",
+    ]);
+    expect(hit?.detail).toContain("extra-paths-over-budget");
+    expect(hit?.detail).toContain("extra-path-not-admitted");
+  });
+
+  it("still refuses other-class undeclared paths at membership (#6221 residual)", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "precommitment",
+      changedFiles: ["xbrief/active/story.xbrief.json", "docs/notes.md"],
+      changeKind: () => "modify",
+    });
+    expect(hit?.expandedPaths).toEqual(["docs/notes.md"]);
   });
 
   it("refuses undeclared test paths even when source-root extras are in allowance (#5192)", () => {

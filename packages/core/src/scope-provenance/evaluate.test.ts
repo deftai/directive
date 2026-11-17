@@ -1310,7 +1310,7 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
     expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
   });
 
-  it("lets test-root and CHANGELOG changes pass under a base fence", () => {
+  it("spends the allowance on test/fixture modifies and keeps CHANGELOG free (#6221)", () => {
     const base = xbrief("story-1", ["packages/core/src/a.ts"]);
     const result = evaluateScopeProvenance("/tmp/proj", {
       changedFiles: [
@@ -1319,11 +1319,36 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
         "tests/fixtures/sample.json",
         "CHANGELOG.md",
       ],
+      changeKinds: new Map([
+        ["packages/core/src/a.test.ts", "modify"],
+        ["tests/fixtures/sample.json", "modify"],
+      ]),
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
       baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
       approvedRecords: [],
     });
     expect(result.exitCode).toBe(0);
+    expect(result.extraPathReport?.join("\n")).toContain(
+      "packages/core/src/a.test.ts class=test spend=spent",
+    );
+    expect(result.extraPathReport?.join("\n")).toContain(
+      "tests/fixtures/sample.json class=fixture spend=spent",
+    );
+  });
+
+  it("refuses an undeclared test add on the Path-independent check (#6221)", () => {
+    const base = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const result = evaluateScopeProvenance("/tmp/proj", {
+      changedFiles: ["packages/core/src/a.ts", "packages/core/src/new.test.ts"],
+      changeKinds: new Map([["packages/core/src/new.test.ts", "add"]]),
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
+      approvedRecords: [],
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
+    expect(result.findings[0]?.detail).toContain("extra-path-not-admitted");
+    expect(result.extraPathReport).toBeUndefined();
   });
 
   it("hard-fails same-PR rewrite of an approved-scope record without remint copy", () => {
@@ -1368,8 +1393,13 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
 
   it("does not charge story A with story B production extras when both are active", () => {
     const baseA = xbrief("story-a", ["packages/core/src/a.ts"]);
-    // B claims the whole cli src tree so x/y/z attribute to B, not A.
-    const baseB = xbrief("story-b", ["packages/cli/src/**"]);
+    // B claims x/y/z concretely so they attribute to B, not A (a glob claim
+    // would spend B's own allowance without a mint, #6221).
+    const baseB = xbrief("story-b", [
+      "packages/cli/src/x.ts",
+      "packages/cli/src/y.ts",
+      "packages/cli/src/z.ts",
+    ]);
     const result = evaluateScopeProvenance("/tmp/proj-multi", {
       changedFiles: [
         "packages/core/src/a.ts",
@@ -2139,9 +2169,12 @@ describe("forge-approved head-brief membership admit (#6203)", () => {
   });
 
   it("admits a widened brief (precommitment authority) under the same approval", () => {
+    // An other-class path: membership refuses it undeclared; the
+    // Path-independent check ignores it (#6221 residual), so only membership
+    // decides. A test path would also meet the merge-base fence (#6221).
     const base = xbrief("story-1", ["packages/core/src/a.ts"]);
-    const head = xbrief("story-1", ["packages/core/src/a.ts", "tests/helpers/probe.ts"]);
-    const changed = [REL, "packages/core/src/a.ts", "tests/helpers/probe.ts"];
+    const head = xbrief("story-1", ["packages/core/src/a.ts", "docs/probe.md"]);
+    const changed = [REL, "packages/core/src/a.ts", "docs/probe.md"];
     expect(run(head, changed, { base }).exitCode).toBe(1);
     expect(run(head, changed, { base, forge: forgeContext(JSON.stringify(head)) }).exitCode).toBe(
       0,
@@ -2149,14 +2182,14 @@ describe("forge-approved head-brief membership admit (#6203)", () => {
   });
 
   it("never consults the forge when a mint is present (clause 1)", () => {
-    const head = xbrief("story-1", ["packages/core/src/a.ts", "tests/helpers/probe.ts"]);
+    const head = xbrief("story-1", ["packages/core/src/a.ts", "docs/probe.md"]);
     const mint = buildApprovedScopeRecord({
       xbriefRelPath: REL,
       payload: xbrief("story-1", ["packages/core/src/a.ts"]),
       humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
     });
     const base = xbrief("story-1", ["packages/core/src/a.ts"]);
-    const changed = [REL, "packages/core/src/a.ts", "tests/helpers/probe.ts"];
+    const changed = [REL, "packages/core/src/a.ts", "docs/probe.md"];
     const calls: string[] = [];
     const without = run(head, changed, { base, mint });
     const withForge = run(head, changed, {
@@ -2209,7 +2242,7 @@ describe("forge-approved head-brief membership admit (#6203)", () => {
 
   it("refuses paths outside the forge-approved head scope with forge remediation", () => {
     const head = xbrief("story-1", ["packages/core/src/a.ts"]);
-    const result = run(head, [REL, "packages/core/src/a.ts", "tests/helpers/probe.ts"], {
+    const result = run(head, [REL, "packages/core/src/a.ts", "docs/probe.md"], {
       forge: forgeContext(JSON.stringify(head)),
     });
     expect(result.exitCode).toBe(1);

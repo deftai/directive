@@ -9,6 +9,7 @@ import {
   formatGitTimeoutRemedy,
   PHASE_LINE_PREFIX,
   parseArgs,
+  reportExtraPaths,
   reportMintLevelAdmits,
   resolveForgeContext,
   run,
@@ -233,6 +234,37 @@ describe("verify-scope-provenance CLI (#3145 / #5057)", () => {
     expect(quiet.stderr).toContain(ENFORCE_NOOP_NOTICE);
   });
 
+  it("admits one undeclared test modify and lists it with class and spend (#6221)", () => {
+    const root = initRepo();
+    roots.push(root);
+    writeTracked(
+      root,
+      "xbrief/active/story.xbrief.json",
+      xbrief("story", ["packages/core/src/a.ts"]),
+    );
+    writeTracked(root, "packages/core/src/a.ts", "export const a = 1;\n");
+    writeTracked(root, "packages/core/src/other.test.ts", "// old\n");
+    commit(root, "base");
+    git(root, ["branch", "base"]);
+    git(root, ["checkout", "-q", "-b", "impl"]);
+    writeTracked(root, "packages/core/src/a.ts", "export const a = 2;\n");
+    writeTracked(root, "packages/core/src/other.test.ts", "// fixed\n");
+    commit(root, "fix");
+
+    const ok = captureRun(["--project-root", root, "--base-ref", "base"]);
+    expect(ok.code).toBe(0);
+    expect(ok.stdout).toContain("extra paths for xbrief/active/story.xbrief.json");
+    expect(ok.stdout).toContain("packages/core/src/other.test.ts class=test spend=spent");
+
+    // A new undeclared test file is refused with the shared token.
+    writeTracked(root, "packages/core/src/new.test.ts", "// new\n");
+    commit(root, "add test");
+    const refused = captureRun(["--project-root", root, "--base-ref", "base"]);
+    expect(refused.code).toBe(1);
+    expect(refused.stderr).toContain("extra-path-not-admitted");
+    expect(refused.stderr).toContain("packages/core/src/new.test.ts");
+  });
+
   // Windows dest worktrees: one git show per lifecycle brief (~1800) is ~200ms
   // each here (~6 min serial); suite load pushes past the 240s win32 project
   // default. Do not undercut with a tighter per-it timeout (#5391 lane flake).
@@ -321,6 +353,42 @@ describe("mint-level admit visibility (#6273)", () => {
     );
     expect(bad.stdout).toContain("plan id: story-6273");
     expect(bad.stderr).toContain("GITHUB_STEP_SUMMARY");
+  });
+});
+
+describe("extra-path success report (#6221)", () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
+    while (dirs.length > 0) {
+      const d = dirs.pop();
+      if (d) rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  it("prints the lines, appends them to the step summary, and writes nothing when empty", () => {
+    let stdout = "";
+    let stderr = "";
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      stdout += String(c);
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      stderr += String(c);
+      return true;
+    });
+    const dir = mkdtempSync(join(tmpdir(), "scope-prov-extra-"));
+    dirs.push(dir);
+    const summary = join(dir, "summary.md");
+    reportExtraPaths([], { GITHUB_STEP_SUMMARY: summary });
+    expect(stdout).toBe("");
+    reportExtraPaths(["line one", "  - a class=test spend=spent"], {
+      GITHUB_STEP_SUMMARY: summary,
+    });
+    expect(stdout).toBe("line one\n  - a class=test spend=spent\n");
+    expect(readFileSync(summary, "utf8")).toContain("```text\nline one\n");
+    reportExtraPaths(["x"], { GITHUB_STEP_SUMMARY: join(dir, "missing", "s.md") });
+    expect(stderr).toContain("GITHUB_STEP_SUMMARY");
   });
 });
 

@@ -4,9 +4,11 @@
  *
  * Proceed writes no approved-scope digest for the #4956 production fence. That
  * fence is the active brief's file_scope on the merge base (agent-authored
- * precommitment). Test-root paths pass free on the production fence only.
- * Production extras spend a small concrete-file allowance (floor 2, cap 5).
- * Past the cap → split remediation, never remint.
+ * precommitment), or the merge-base mint when present. Extras follow the
+ * shared rule in extra-path-admission.ts (#6221): source extras and test or
+ * fixture modifies spend one allowance (floor 2, cap 5); other-class paths are
+ * ignored on this check (named residual). Past the cap → split remediation,
+ * never remint.
  *
  * Membership (#4774 / #5192 Path B): when the bound xBRIEF is in the change set,
  * the allowlist is a human-stamped merge-base mint when present for the
@@ -14,11 +16,10 @@
  * file_scope entries as agent precommitment. Empty mint is authoritative.
  * Glob entries admit only under a mint (F4). Free paths are the bound brief,
  * verified peers, CHANGELOG, caller-supplied lifecycle exempts, and the exact
- * spec-drift ledger under the completion-move shape only (#680 P5). Production
- * allowance applies only to concrete source-root extras; test/fixture and all
- * other undeclared paths must match the allowlist. Peer coverage never clears
- * a missing own allowlist. Missing-mint remediation is split or land a widened
- * concrete brief — never renew mint.
+ * spec-drift ledger under the completion-move shape only (#680 P5). Extras use
+ * the same shared rule; other-class undeclared paths must match the allowlist.
+ * Peer coverage never clears a missing own allowlist. Missing-mint remediation
+ * is split or land a widened concrete brief — never renew mint.
  *
  * Forge approval (#6203): when no mint is present, a qualifying human forge
  * approval (see forge-approval.ts) may admit the head brief's concrete
@@ -39,6 +40,14 @@ import {
   DEFAULT_TEST_ROOTS,
 } from "../test-boundary/policy.js";
 import { normalizeFileScope } from "./digest.js";
+import {
+  assessExtraPaths,
+  type ExtraPathAssessment,
+  type ExtraPathChangeKind,
+  extraPathRemedy,
+  extraPathsAdmitted,
+  formatExtraPathRefusal,
+} from "./extra-path-admission.js";
 
 /** Free path that never spends production allowance. */
 /** Root changelog path; path tests use `isChangelogEntryPath` (#6314). */
@@ -130,6 +139,15 @@ export interface ProductionScopeFenceInput {
   readonly testRoots?: readonly string[];
   readonly fixtureRoots?: readonly string[];
   readonly sourceRoots?: readonly string[];
+  /**
+   * Allowlist under the story's authority (#6221): the merge-base mint when
+   * present; absent or null means the merge-base brief's concrete entries.
+   */
+  readonly mintFileScope?: readonly string[] | null;
+  /** Change kind of a path against the base (#6221); absent means unknown. */
+  readonly changeKind?: (relPath: string) => ExtraPathChangeKind | null;
+  /** Receives the shared assessment for the success report (#6221 P4). */
+  readonly onAssessment?: (assessment: ExtraPathAssessment) => void;
 }
 
 export interface ProductionScopeFenceFinding {
@@ -153,57 +171,60 @@ function remediationForSplit(overflow: readonly string[]): string {
 }
 
 /**
- * Compare changed production files to the merge-base brief file_scope.
- * Does not read the head brief. Does not consult approved-scope digests.
+ * Path-independent check (#4956 / #6221): compare the changed paths to the
+ * story allowlist (the merge-base mint when present, else the merge-base
+ * brief's concrete entries) through the shared extra-path rule. Source extras
+ * and test or fixture modifies spend one allowance; other-class paths are
+ * ignored here (named residual). An empty merge-base file_scope skips (#3715).
+ * Does not read the head brief.
  */
 export function evaluateProductionScopeFence(
   input: ProductionScopeFenceInput,
 ): ProductionScopeFenceFinding | null {
-  const testRoots = input.testRoots ?? DEFAULT_TEST_ROOTS;
-  const fixtureRoots = input.fixtureRoots ?? DEFAULT_FIXTURE_ROOTS;
-  const sourceRoots = input.sourceRoots ?? DEFAULT_SOURCE_ROOTS;
   const baseScope = normalizeFileScope(input.baseFileScope);
   if (baseScope.length === 0) {
     return null;
   }
-
-  const concreteBase = concreteProductionScopeEntries(baseScope, {
-    testRoots,
-    fixtureRoots,
-    sourceRoots,
+  const mint = input.mintFileScope ?? null;
+  // Under a mint a declared path must match the mint and the merge-base brief
+  // (globs match under mint authority), so a broader mint does not widen this
+  // fence (#5192). The allowance counts the merge-base brief.
+  const assessment = assessExtraPaths({
+    allowlist: mint ?? baseScope,
+    ...(mint !== null ? { alsoAllowlist: baseScope } : {}),
+    allowanceScope: baseScope,
+    authority: mint !== null ? "mint" : "concrete",
+    changedPaths: input.changedFiles,
+    ...(input.changeKind !== undefined ? { changeKind: input.changeKind } : {}),
+    // Brief records are not extras of a story (they are other-class here anyway).
+    isFree: (rel) =>
+      isChangelogEntryPath(rel) || rel.startsWith("xbrief/") || rel.startsWith("vbrief/"),
+    otherClass: "ignore",
+    ...(input.testRoots !== undefined ? { testRoots: input.testRoots } : {}),
+    ...(input.fixtureRoots !== undefined ? { fixtureRoots: input.fixtureRoots } : {}),
+    ...(input.sourceRoots !== undefined ? { sourceRoots: input.sourceRoots } : {}),
   });
-  const allowance = productionAllowance(concreteBase.length);
-
-  const extras: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of input.changedFiles) {
-    const rel = raw.replace(/\\/g, "/").replace(/^\.\//, "");
-    if (rel.length === 0 || seen.has(rel)) continue;
-    seen.add(rel);
-    if (isChangelogEntryPath(rel)) continue;
-    if (isTestOrFixturePath(rel, testRoots, fixtureRoots)) continue;
-    if (!isProductionRootPath(rel, sourceRoots)) continue;
-    if (pathMatchesFileScope(rel, baseScope)) continue;
-    extras.push(rel);
-  }
-
-  if (extras.length <= allowance) {
+  input.onAssessment?.(assessment);
+  if (extraPathsAdmitted(assessment)) {
     return null;
   }
 
-  const overflow = extras.slice(allowance);
   return {
     xbriefRelPath: input.xbriefRelPath,
     planId: input.planId,
     kind: "production-scope-over-budget",
-    expandedPaths: extras,
+    expandedPaths: [...assessment.refused, ...assessment.spent],
     detail:
-      `changed production files exceed merge-base file_scope allowance ` +
-      `(extras=${extras.length}, allowance=${allowance}, concreteBase=${concreteBase.length}); ` +
-      "head brief edits do not widen the fence (#4956)",
-    remediation: remediationForSplit(overflow),
-    allowance,
-    concreteBaseCount: concreteBase.length,
+      `changed paths exceed merge-base file_scope allowance ` +
+      `(extras=${String(assessment.spent.length)}, allowance=${String(assessment.allowance)}, ` +
+      `concreteBase=${String(assessment.concreteBaseCount)}): ${formatExtraPathRefusal(assessment)}; ` +
+      "head brief edits do not widen the fence (#4956 / #6221)",
+    remediation:
+      assessment.overflow.length > 0
+        ? `${remediationForSplit(assessment.overflow)} ${extraPathRemedy(assessment)}`
+        : extraPathRemedy(assessment),
+    allowance: assessment.allowance,
+    concreteBaseCount: assessment.concreteBaseCount,
   };
 }
 
@@ -259,6 +280,10 @@ export interface ApprovedScopeMembershipInput {
    * Precommitment never treats empty as a present mint.
    */
   readonly emptyAllowlistAuthoritative?: boolean;
+  /** Change kind of a path against the base (#6221); absent means unknown. */
+  readonly changeKind?: (relPath: string) => ExtraPathChangeKind | null;
+  /** Receives the shared assessment for the success report (#6221 P4). */
+  readonly onAssessment?: (assessment: ExtraPathAssessment) => void;
 }
 
 export interface ApprovedScopeMembershipFinding {
@@ -308,23 +333,6 @@ function remediationForOutsideMembership(
     "widened concrete brief on the merge base before widening (#5192). Live HEAD " +
     `file_scope cannot authorize extras. ${outside}`
   );
-}
-
-function pathMatchesMembershipAllowlist(
-  relPath: string,
-  allow: readonly string[],
-  authority: MembershipAllowlistAuthority,
-): boolean {
-  if (authority === "mint") {
-    return pathMatchesFileScope(relPath, allow);
-  }
-  // Precommitment / missing: concrete exact match only (F4 — no glob land).
-  const n = normalizeMembershipRel(relPath);
-  for (const entry of allow) {
-    if (!isConcreteFileScopeEntry(entry)) continue;
-    if (normalizeMembershipRel(entry) === n) return true;
-  }
-  return false;
 }
 
 /**
@@ -437,37 +445,22 @@ export function evaluateApprovedScopeMembership(
     };
   }
 
-  const allow = normalizeFileScope([...ownAllow, ...peerAllow]);
-  const concreteBaseForAllowance = concreteProductionScopeEntries(ownAllow, {
+  // Shared extra-path rule (#6221): source extras and test/fixture modifies of
+  // a path on the base spend one allowance; other-class paths must match.
+  const assessment = assessExtraPaths({
+    allowlist: [...ownAllow, ...peerAllow],
+    allowanceScope: ownAllow,
+    authority: authority === "mint" ? "mint" : "concrete",
+    changedPaths: input.changedFiles,
+    ...(input.changeKind !== undefined ? { changeKind: input.changeKind } : {}),
+    isFree: isFreePath,
+    otherClass: "refuse",
     testRoots,
     fixtureRoots,
     sourceRoots,
   });
-  const allowance = productionAllowance(concreteBaseForAllowance.length);
-
-  const hardExtras: string[] = [];
-  const productionExtras: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of input.changedFiles) {
-    const rel = normalizeMembershipRel(raw);
-    if (rel.length === 0 || seen.has(rel)) continue;
-    seen.add(rel);
-    if (isFreePath(rel)) continue;
-    if (pathMatchesMembershipAllowlist(rel, allow, authority)) continue;
-    // Test/fixture class wins over source-root allowance — zero spend.
-    if (isTestOrFixturePath(rel, testRoots, fixtureRoots)) {
-      hardExtras.push(rel);
-      continue;
-    }
-    if (isProductionRootPath(rel, sourceRoots) && isConcreteFileScopeEntry(rel)) {
-      productionExtras.push(rel);
-      continue;
-    }
-    hardExtras.push(rel);
-  }
-
-  const overflow = productionExtras.length > allowance ? productionExtras.slice(allowance) : [];
-  const outside = [...hardExtras, ...overflow];
+  input.onAssessment?.(assessment);
+  const outside = [...assessment.refused, ...assessment.overflow];
   if (outside.length === 0) {
     return null;
   }
@@ -481,8 +474,8 @@ export function evaluateApprovedScopeMembership(
       `changed paths outside membership allowlist (#4774 / #5192` +
       `${authority === "precommitment" ? "; concrete precommitment" : ""}` +
       `${authority === "forge-approval" ? "; forge-approved head brief (#6203)" : ""}` +
-      `${overflow.length > 0 ? `; production extras past allowance ${String(allowance)}` : ""}` +
-      `): ${outside.join(", ")}`,
-    remediation: remediationForOutsideMembership(outside, authority),
+      `${assessment.overflow.length > 0 ? `; extras past allowance ${String(assessment.allowance)}` : ""}` +
+      `): ${outside.join(", ")}; ${formatExtraPathRefusal(assessment)}`,
+    remediation: `${remediationForOutsideMembership(outside, authority)} ${extraPathRemedy(assessment)}`,
   };
 }

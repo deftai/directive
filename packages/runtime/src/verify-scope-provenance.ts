@@ -169,6 +169,29 @@ export function reportMintLevelAdmits(
 }
 
 /**
+ * Print the success report of extra paths (#6221 P4): each extra path with its
+ * class and spend, from the shared assessment. Also appended to the step
+ * summary when `GITHUB_STEP_SUMMARY` is set; a write failure never changes the
+ * exit code. The refusal output keeps its own hard-refused wording.
+ */
+export function reportExtraPaths(lines: readonly string[], env: NodeJS.ProcessEnv): void {
+  if (lines.length === 0) return;
+  const block = `${lines.join("\n")}\n`;
+  process.stdout.write(block);
+  const summaryPath = (env.GITHUB_STEP_SUMMARY ?? "").trim();
+  if (summaryPath.length === 0) return;
+  const fence = "```";
+  try {
+    appendFileSync(summaryPath, `\n${fence}text\n${block}${fence}\n`, "utf8");
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    process.stderr.write(
+      `verify_scope_provenance: could not append to GITHUB_STEP_SUMMARY: ${detail}\n`,
+    );
+  }
+}
+
+/**
  * Quote one argument for the printed remedy only when it needs it. Single
  * quotes keep `$` and backticks literal in both bash and PowerShell; an
  * embedded single quote is doubled (the PowerShell form).
@@ -256,6 +279,7 @@ export function run(
     if (!args.quiet) {
       process.stdout.write(`${result.message}\n`);
     }
+    reportExtraPaths(result.extraPathReport ?? [], env);
   } else {
     process.stderr.write(`${result.message}\n`);
   }

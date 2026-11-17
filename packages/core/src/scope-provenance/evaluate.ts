@@ -1,20 +1,23 @@
 /**
  * verify:scope-provenance evaluation (#3145 / #4956 / #4774 / #5192 / #5412).
  *
- * Path fence (#4956): the active brief's `file_scope` on the merge base is the
- * precommitment. Changed production files are checked against that base list
- * plus a concrete-file allowance (floor 2, cap 5). Test-root paths spend
- * nothing on the production fence. Head brief edits do not widen the fence.
- * Proceed writes no `.deft/approved-scope` digest for that fence and must not
- * demand `scope:record-approved-scope` as remint remediation.
+ * Path fence (#4956 / #6221): the active brief's `file_scope` on the merge
+ * base is the precommitment (the merge-base mint when present). Changed paths
+ * go through the shared extra-path rule (extra-path-admission.ts) with the same
+ * allowlist authority as membership and the write fence: source extras and
+ * test or fixture modifies of a path on the base spend one allowance (floor 2,
+ * cap 5); other-class paths are ignored here (named residual). The check runs
+ * whether or not the brief is in the change set. Head brief edits do not widen
+ * the fence. Proceed writes no `.deft/approved-scope` digest for that fence and
+ * must not demand `scope:record-approved-scope` as remint remediation.
  *
  * Membership (#4774 / #5192): when the bound story is in the change set, the
  * allowlist is a human-stamped merge-base mint for the continuity-resolved
  * story when present (planId match ignores stale xbriefRelPath; no-plan.id is
  * path-first + basename-keyed mint). Missing mint falls to the merge-base
  * brief's **concrete** file_scope as agent precommitment. Glob matches do not
- * admit without a mint. Source-root extras spend production allowance; test /
- * fixture and other undeclared paths must match. xBRIEF-only change sets may
+ * admit without a mint. Extras follow the same shared rule; other-class
+ * undeclared paths must match. xBRIEF-only change sets may
  * omit a mint. Peer coverage never clears a missing own allowlist. Same-PR
  * approval rewrite stays fail-closed. Missing-mint remediation is split or
  * land a widened concrete brief — never renew mint.
@@ -97,6 +100,12 @@ import {
   readApprovedScopeRecord,
 } from "./digest.js";
 import {
+  classifyExtraPath,
+  type ExtraPathAssessment,
+  type ExtraPathChangeKind,
+  formatExtraPathReport,
+} from "./extra-path-admission.js";
+import {
   evaluateForgeHeadBriefApproval,
   type ForgeApprovalContext,
   type ForgeApprovalGit,
@@ -145,6 +154,11 @@ export interface ScopeProvenanceResult {
   readonly message: string;
   /** Same-PR mint records admitted at the one-PR mint level (#6273). */
   readonly mintLevelAdmits?: readonly MintLevelAdmit[];
+  /**
+   * Success report: each extra path with its class and spend, per story and
+   * check, from the shared assessment (#6221 P4). Absent when no extras.
+   */
+  readonly extraPathReport?: readonly string[];
 }
 
 export interface ScopeProvenanceOptions {
@@ -157,6 +171,11 @@ export interface ScopeProvenanceOptions {
   readonly baseRef?: string;
   /** Inject changed files (repo-relative POSIX). */
   readonly changedFiles?: readonly string[];
+  /**
+   * Inject change kinds against the base (#6221 test seam). Absent with
+   * injected changedFiles: every kind is unknown (test/fixture extras refuse).
+   */
+  readonly changeKinds?: ReadonlyMap<string, ExtraPathChangeKind>;
   /** Inject active xBRIEF payloads: relPath -> raw JSON text. */
   readonly activeXbriefs?: ReadonlyMap<string, string>;
   /** Inject approved records (skips disk). */
@@ -376,6 +395,66 @@ function changedFilesVsBase(
     }
   }
   return [...out];
+}
+
+/**
+ * Change kind against the base for each test/fixture candidate (#6221). A
+ * path on the base that still exists is a modify; absent from the base is an
+ * add; on the base but gone from the working tree is a delete (a rename is a
+ * delete plus an add). Any git failure leaves every kind unknown, so test and
+ * fixture extras refuse closed. Injected change sets use the injected map.
+ */
+function resolveChangeKinds(input: {
+  readonly root: string;
+  readonly changed: readonly string[];
+  readonly boundary: {
+    readonly testRoots?: readonly string[];
+    readonly fixtureRoots?: readonly string[];
+    readonly sourceRoots?: readonly string[];
+  };
+  readonly baseRef: string | null;
+  readonly injectedKinds: ReadonlyMap<string, ExtraPathChangeKind> | undefined;
+  readonly changedFilesInjected: boolean;
+  readonly runner: ScopeProvenanceGit;
+}): (relPath: string) => ExtraPathChangeKind | null {
+  if (input.injectedKinds !== undefined) {
+    const kinds = input.injectedKinds;
+    return (rel) => kinds.get(normalizeRepoRelPath(rel)) ?? null;
+  }
+  if (input.changedFilesInjected || input.baseRef === null || input.baseRef === "") {
+    return () => null;
+  }
+  const candidates = [
+    ...new Set(input.changed.map((p) => normalizeRepoRelPath(p)).filter((p) => p.length > 0)),
+  ].filter((rel) => {
+    const pathClass = classifyExtraPath(rel, input.boundary);
+    return pathClass === "test" || pathClass === "fixture";
+  });
+  const kinds = new Map<string, ExtraPathChangeKind>();
+  if (candidates.length === 0) return () => null;
+  const onBase = new Set<string>();
+  try {
+    // One listing of the base tree, filtered here: no argv-length limit on a
+    // large change set.
+    const listed = git(["ls-tree", "-r", "--name-only", input.baseRef], input.root, input.runner);
+    if (listed.status !== 0) return () => null;
+    const wanted = new Set(candidates);
+    for (const line of listed.stdout.split("\n")) {
+      const n = normalizeRepoRelPath(unquoteGitPath(line.trim()));
+      if (wanted.has(n)) onBase.add(n);
+    }
+  } catch (err) {
+    if (err instanceof GitCallTimeoutError) throw err;
+    return () => null;
+  }
+  for (const rel of candidates) {
+    const present = onBase.has(rel);
+    const exists = existsSync(join(input.root, ...rel.split("/")));
+    if (present && exists) kinds.set(rel, "modify");
+    else if (present) kinds.set(rel, "delete");
+    else kinds.set(rel, "add");
+  }
+  return (rel) => kinds.get(normalizeRepoRelPath(rel)) ?? null;
 }
 
 /**
@@ -1005,6 +1084,20 @@ function evaluateWithRunner(
           }
         })();
 
+  // Change kind of each test/fixture candidate against the base (#6221): only a
+  // modify of a path on the base spends the allowance. Unknown → null (refuse).
+  const changeKindFor = resolveChangeKinds({
+    root,
+    changed,
+    boundary,
+    baseRef: discoveryBaseRef,
+    injectedKinds: options.changeKinds,
+    changedFilesInjected: options.changedFiles !== undefined,
+    runner,
+  });
+  /** Success report lines from the shared assessments (#6221 P4). */
+  const extraPathReport: string[] = [];
+
   const headPlanIds = new Map<string, string | null>();
   for (const e of activeEntries) {
     try {
@@ -1561,7 +1654,12 @@ function evaluateWithRunner(
       testRoots: boundary.testRoots,
       fixtureRoots: boundary.fixtureRoots,
       sourceRoots: boundary.sourceRoots,
+      changeKind: changeKindFor,
+      onAssessment: (a: ExtraPathAssessment) => {
+        membershipSeen.assessment = a;
+      },
     };
+    const membershipSeen: { assessment: ExtraPathAssessment | null } = { assessment: null };
     let membershipHit = evaluateApprovedScopeMembership(membershipInput);
     // Forge-approved head-brief admit (#6203): membership-only, never under a
     // present mint. Reject keeps today's finding unchanged (Path B).
@@ -1598,6 +1696,15 @@ function evaluateWithRunner(
           `forge approval (#6203): ${rel} not admitted -- ${verdict.reason}; Path B applies`,
         );
       }
+    }
+    if (membershipHit === null && membershipSeen.assessment !== null) {
+      extraPathReport.push(
+        ...formatExtraPathReport(
+          `${rel} (${planId ?? rel})`,
+          "membership",
+          membershipSeen.assessment,
+        ),
+      );
     }
     // Only emit membership when the xBRIEF is in the change set (helper no-ops otherwise).
     if (membershipHit !== null) {
@@ -1747,6 +1854,12 @@ function evaluateWithRunner(
           });
         }
       }
+      // Same allowlist authority as membership and the write fence (#6221):
+      // the merge-base (or admitted one-PR) mint when present, else the
+      // merge-base brief's concrete entries.
+      const fenceMint =
+        mintLevelScope ?? (mintLookup.kind === "mint" ? mintLookup.fileScope : null);
+      const fenceSeen: { assessment: ExtraPathAssessment | null } = { assessment: null };
       const fenceHit = evaluateProductionScopeFence({
         xbriefRelPath: rel,
         planId: planId ?? rel,
@@ -1755,7 +1868,21 @@ function evaluateWithRunner(
         testRoots: boundary.testRoots,
         fixtureRoots: boundary.fixtureRoots,
         sourceRoots: boundary.sourceRoots,
+        mintFileScope: fenceMint,
+        changeKind: changeKindFor,
+        onAssessment: (a) => {
+          fenceSeen.assessment = a;
+        },
       });
+      if (fenceHit === null && fenceSeen.assessment !== null) {
+        extraPathReport.push(
+          ...formatExtraPathReport(
+            `${rel} (${planId ?? rel})`,
+            "path-independent",
+            fenceSeen.assessment,
+          ),
+        );
+      }
       if (fenceHit !== null) {
         findings.push({
           xbriefRelPath: fenceHit.xbriefRelPath,
@@ -1816,7 +1943,10 @@ function evaluateWithRunner(
 
   const notes = [...forgeNotes, ...onePrNotes];
   const forgeTail = notes.length > 0 ? `\n${notes.join("\n")}` : "";
-  const admits = mintLevelAdmits.length > 0 ? { mintLevelAdmits } : {};
+  const admits = {
+    ...(mintLevelAdmits.length > 0 ? { mintLevelAdmits } : {}),
+    ...(extraPathReport.length > 0 && findings.length === 0 ? { extraPathReport } : {}),
+  };
 
   if (findings.length === 0 && softFindings.length === 0) {
     return {
