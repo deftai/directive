@@ -411,6 +411,7 @@
           "packages/core/src/release/pipeline.test.ts",
           "packages/core/src/release/pipeline-branches.test.ts",
           "packages/core/src/release/pipeline-fixture.ts",
+          "packages/core/src/release/fifo-child.ts",
           "packages/core/src/release/pipeline-fixture.test.ts",
           "packages/core/src/release/pipeline-auto-hatch.test.ts",
           "packages/core/src/release/main.test.ts",
