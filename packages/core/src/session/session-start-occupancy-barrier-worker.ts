@@ -3,8 +3,6 @@ import { join } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { runSessionStart } from "./session-start.js";
 
-export const SESSION_START_BARRIER_DEST_REL = join(".deft", "core", "DEST-MARKER");
-
 function waitForCompetingAcquisitionWindow(): void {
   const dir = process.env.SESSION_START_BARRIER_WAIT_DIR;
   if (dir === undefined || dir.length === 0) return;
@@ -35,11 +33,9 @@ export function runSessionStartOccupancyBarrier(input: {
   readonly sessionId: string;
 }): {
   readonly code: number;
-  readonly destWrote: boolean;
   readonly sessionId: string;
 } {
   waitForCompetingAcquisitionWindow();
-  let destWrote = false;
   const result = runSessionStart(input.root, {
     sessionId: input.sessionId,
     writeHistory: false,
@@ -85,23 +81,8 @@ export function runSessionStartOccupancyBarrier(input: {
       login: null,
       failureKind: null,
     }),
-    reconstituteWorktreeDeposit: () => {
-      containedWrite({
-        root: input.root,
-        target: SESSION_START_BARRIER_DEST_REL,
-        data: `${input.sessionId}\n`,
-        mode: "replace",
-      });
-      destWrote = true;
-      return {
-        status: "reconstituted" as const,
-        source: "/payload",
-        dest: join(input.root, ".deft", "core"),
-        message: "reconstituted dest marker",
-      };
-    },
   });
-  return { code: result.code, destWrote, sessionId: input.sessionId };
+  return { code: result.code, sessionId: input.sessionId };
 }
 
 const invokedRoot = process.env.SESSION_START_BARRIER_ROOT ?? "";

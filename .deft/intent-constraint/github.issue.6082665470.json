@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6082665470",
+  "xbriefRelPath": "xbrief/active/2026-11-18-ovpr-p2-u6b.xbrief.json",
+  "approvedAt": "2026-11-18T19:26:05Z",
+  "constraints": [
+    {
+      "value": "20",
+      "unit": "numeric-const",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "polfer",
+    "mintedAt": "2026-11-18T19:26:05Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "823b121aae73be92e18178854c43da887810a70bb62622d85e9b8d8ee16c9216"
+}

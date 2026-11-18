@@ -484,4 +484,166 @@ describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
     expect(existsSync(join(root, "deft"))).toBe(false);
     expect(existsSync(join(root, ".deft", "core"))).toBe(false);
   });
+
+  it("records every .mjs outer setup wrote as whole-file (#6615 AC1)", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      ownership: Array<{ path: string; kind: string }>;
+    };
+    const outers = gen.ownership.filter((o) => /deft-hook-[a-f0-9]{8}\.mjs$/.test(o.path));
+    expect(outers.map((o) => o.path.replace(/deft-hook-[a-f0-9]{8}/, "X")).sort()).toEqual([
+      ".claude/X.mjs",
+      ".codex/X.mjs",
+      ".cursor/hooks/X.mjs",
+      ".grok/hooks/X.mjs",
+    ]);
+    expect(outers.every((o) => o.kind === "whole-file")).toBe(true);
+    for (const o of outers) expect(existsSync(join(root, o.path))).toBe(true);
+  });
+
+  it("a second setup with no change leaves GENERATION.json byte-identical (#6615 AC7 / AC13.2)", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const first = readFileSync(join(root, ".deft", "GENERATION.json"), "utf8");
+    runSetup({ operation: "repair", from: "none", root });
+    expect(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")).toBe(first);
+  });
+
+  it("a CRLF checkout of the .mjs outers does not change GENERATION.json", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const first = readFileSync(join(root, ".deft", "GENERATION.json"), "utf8");
+    const gen = JSON.parse(first) as { ownership: Array<{ path: string }> };
+    for (const o of gen.ownership.filter((e) => e.path.endsWith(".mjs"))) {
+      const abs = join(root, o.path);
+      writeFileSync(abs, readFileSync(abs, "utf8").replace(/\r?\n/g, "\r\n"));
+    }
+    runSetup({ operation: "repair", from: "none", root });
+    expect(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")).toBe(first);
+  });
+});
+
+describe("GENERATION.json keeps the raised generation (#6012 / AC10.9)", () => {
+  const genPath = (root: string): string => join(root, ".deft", "GENERATION.json");
+  const readGen = (root: string): { generation?: number; runtimeVersion?: string } =>
+    JSON.parse(readFileSync(genPath(root), "utf8")) as {
+      generation?: number;
+      runtimeVersion?: string;
+    };
+
+  function convertLegacy(root: string, generation: number): void {
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# deposit\n");
+    writeFileSync(genPath(root), `${JSON.stringify({ schemaVersion: 1, generation }, null, 2)}\n`);
+    const result = runSetup({ operation: "upgrade", from: "old-style", root });
+    expect(result.conflicts).toEqual([]);
+  }
+
+  it("conversion raises N to N+1 and a later version upgrade keeps it", () => {
+    const root = tempRoot();
+    initGit(root);
+    convertLegacy(root, 12);
+    expect(readGen(root).generation).toBe(13);
+
+    // Simulate the record written by an older runtime so the next upgrade rewrites it.
+    const prior = readGen(root);
+    writeFileSync(
+      genPath(root),
+      `${JSON.stringify({ ...prior, runtimeVersion: "0.0.1-older" }, null, 2)}\n`,
+    );
+    const result = runSetup({ operation: "upgrade", from: "0.0.1-older", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.modified).toContain(".deft/GENERATION.json");
+    const after = readGen(root);
+    expect(after.runtimeVersion).not.toBe("0.0.1-older");
+    expect(after.generation).toBe(13);
+  });
+
+  it("repair keeps the generation", () => {
+    const root = tempRoot();
+    initGit(root);
+    convertLegacy(root, 12);
+    const prior = readGen(root);
+    writeFileSync(
+      genPath(root),
+      `${JSON.stringify({ ...prior, runtimeVersion: "0.0.1-older" }, null, 2)}\n`,
+    );
+    runSetup({ operation: "repair", from: "0.0.1-older", root });
+    expect(readGen(root).generation).toBe(13);
+  });
+
+  it("a second identical run does not rewrite GENERATION.json (AC8.2 / AC13.2)", () => {
+    const root = tempRoot();
+    initGit(root);
+    convertLegacy(root, 12);
+    const version = readGen(root).runtimeVersion ?? "";
+    runSetup({ operation: "upgrade", from: version, root });
+    const before = readFileSync(genPath(root), "utf8");
+    const result = runSetup({ operation: "upgrade", from: version, root });
+    expect(result.modified).not.toContain(".deft/GENERATION.json");
+    expect(readFileSync(genPath(root), "utf8")).toBe(before);
+    expect(readGen(root).generation).toBe(13);
+  });
+});
+
+describe("retired deft-core-guard workflow on upgrade (#5835)", () => {
+  const guardRel = ".github/workflows/deft-core-guard.yml";
+  function writeGuard(root: string, body: string): void {
+    mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+    writeFileSync(join(root, guardRel), body);
+  }
+
+  it("upgrade from a version removes Directive's guard and lists it", () => {
+    const root = tempRoot();
+    writeGuard(root, "name: deft-core-guard\non:\n  pull_request:\n");
+    const result = runSetup({ operation: "upgrade", from: "0.129.1", root });
+    expect(result.removed).toContain(guardRel);
+    expect(existsSync(join(root, guardRel))).toBe(false);
+    expect(result.preserved ?? []).not.toContain(guardRel);
+  });
+
+  it("upgrade keeps a user-edited file at that path and names it", () => {
+    const root = tempRoot();
+    writeGuard(root, "name: team-guard\n");
+    const result = runSetup({ operation: "upgrade", from: "0.129.1", root });
+    expect(result.removed).not.toContain(guardRel);
+    expect(result.preserved).toContain(guardRel);
+    expect(readFileSync(join(root, guardRel), "utf8")).toBe("name: team-guard\n");
+  });
+
+  it("install that converts an old layout also removes Directive's guard or names a kept one", () => {
+    const managed = tempRoot();
+    mkdirSync(join(managed, ".deft", "core"), { recursive: true });
+    writeFileSync(join(managed, ".deft", "core", "main.md"), "# c\n");
+    writeGuard(managed, "name: deft-core-guard\n");
+    const removedResult = runSetup({
+      operation: "install",
+      from: "vendored-core-go",
+      root: managed,
+    });
+    expect(removedResult.removed).toContain(guardRel);
+    expect(existsSync(join(managed, guardRel))).toBe(false);
+
+    const kept = tempRoot();
+    mkdirSync(join(kept, ".deft", "core"), { recursive: true });
+    writeFileSync(join(kept, ".deft", "core", "main.md"), "# c\n");
+    writeGuard(kept, "name: team-guard\n");
+    const keptResult = runSetup({ operation: "install", from: "vendored-core-go", root: kept });
+    expect(keptResult.preserved).toContain(guardRel);
+    expect(existsSync(join(kept, guardRel))).toBe(true);
+  });
+
+  it("install and repair leave the guard in place", () => {
+    for (const operation of ["install", "repair"] as const) {
+      const root = tempRoot();
+      writeGuard(root, "name: deft-core-guard\n");
+      const result = runSetup({ operation, from: "0.129.1", root });
+      expect(result.removed).not.toContain(guardRel);
+      expect(existsSync(join(root, guardRel))).toBe(true);
+    }
+  });
 });

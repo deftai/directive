@@ -26,11 +26,8 @@ import {
   assertDestinationNotSymlink,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
-import { renderCoreGuardBranchSyncIfBlock } from "../policy/branch-sync.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
-import { CORE_GUARD_PIN_CONTENT_PYTHON } from "./core-guard-pin-content.js";
-import { assertInstallerAllowlistHonors1430, installerManagedGuardErePatterns } from "./hygiene.js";
 import { writeAgentsSkillsFromInventory } from "./skill-discovery-deposit.js";
 import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 
@@ -80,7 +77,6 @@ function containedProjectWrite(projectDir: string, target: string, data: string 
 }
 
 const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
-const CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
 const FRAMEWORK_SELF_TEST_REL = ".deft/core/tests";
 const VENDORED_TS_PACKAGES_REL = ".deft/core/packages";
 
@@ -650,299 +646,6 @@ export function writeConsumerGitHooks(
   return filesDeposited || configWired;
 }
 
-function githubActionsExpr(expression: string): string {
-  return ["$", "{{ ", expression, " }}"].join("");
-}
-
-/** Commit SHA for `actions/checkout` deposited in deft-core-guard.yml (#1672 / #1072). */
-export const CORE_GUARD_CHECKOUT_SHA = "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0";
-/** Tag comment paired with {@link CORE_GUARD_CHECKOUT_SHA}. */
-export const CORE_GUARD_CHECKOUT_TAG = "v7.0.0";
-
-const CHECKOUT_USES_PREFIX = "- uses: actions/checkout@";
-
-/**
- * Extract the `uses: actions/checkout@…` step line from a guard workflow, if present.
- * Uses linear string scanning (no regex) to avoid CodeQL js/polynomial-redos (#1672).
- */
-export function extractCoreGuardCheckoutUsesLine(content: string): string | null {
-  for (const line of content.split("\n")) {
-    const trimmed = line.trimStart();
-    if (!trimmed.startsWith(CHECKOUT_USES_PREFIX)) continue;
-    // YAML step lines are indented; a bare top-level match is not a step.
-    if (trimmed.length === line.length) continue;
-    return line;
-  }
-  return null;
-}
-
-/** Ref after `actions/checkout@` (tag, SHA, or major), stopping at whitespace. */
-function checkoutActionRef(usesLine: string): string | null {
-  const idx = usesLine.indexOf(CHECKOUT_USES_PREFIX);
-  if (idx < 0) return null;
-  const after = usesLine.slice(idx + CHECKOUT_USES_PREFIX.length);
-  let end = after.length;
-  for (let i = 0; i < after.length; i += 1) {
-    const c = after[i];
-    if (c === " " || c === "\t" || c === "\r") {
-      end = i;
-      break;
-    }
-  }
-  const ref = after.slice(0, end);
-  return ref.length > 0 ? ref : null;
-}
-
-/**
- * Whether refresh should keep the existing checkout pin instead of the template pin.
- * Legacy framework-deposited `@v4` tags migrate forward; consumer/Dependabot bumps do not.
- */
-export function shouldPreserveCoreGuardCheckoutPin(
-  existingUsesLine: string,
-  desiredUsesLine: string,
-): boolean {
-  if (existingUsesLine === desiredUsesLine) return false;
-  const existingRef = checkoutActionRef(existingUsesLine);
-  if (!existingRef) return false;
-  // Stale framework-deposited floating major tag — migrate to SHA template (#1672).
-  return existingRef !== "v4";
-}
-
-/** Canonical SHA-pinned checkout step for the deposited deft-core-guard workflow. */
-export function coreGuardCheckoutUsesLine(
-  sha: string = CORE_GUARD_CHECKOUT_SHA,
-  tag: string = CORE_GUARD_CHECKOUT_TAG,
-): string {
-  return `      - uses: actions/checkout@${sha} # ${tag}`;
-}
-
-/**
- * On refresh, preserve an existing consumer `actions/checkout@…` pin while updating
- * the managed guard script / allowlist body (#1672 option 1).
- */
-export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string): string {
-  const existingCheckout = extractCoreGuardCheckoutUsesLine(existing);
-  if (!existingCheckout) return desired;
-  const desiredCheckout = extractCoreGuardCheckoutUsesLine(desired);
-  if (!desiredCheckout || !shouldPreserveCoreGuardCheckoutPin(existingCheckout, desiredCheckout)) {
-    return desired;
-  }
-  const idx = desired.indexOf(desiredCheckout);
-  if (idx < 0) return desired;
-  return desired.slice(0, idx) + existingCheckout + desired.slice(idx + desiredCheckout.length);
-}
-
-/**
- * Indent for shell lines inside the deposited workflow `run: |` block.
- * YAML literal blocks end at any line less indented than this; the #3193
- * Python body must stay at this column so GHA can load the workflow (#3345).
- */
-const CORE_GUARD_RUN_INDENT = "          ";
-
-/**
- * Soft max line length for deposited core-guard workflow YAML (#3345).
- * Mega-line allowlist EREs previously sat near ~5k chars; keep well below.
- * Enforced by {@link assertCoreGuardWorkflowLoadable} before deposit write.
- */
-export const CORE_GUARD_WORKFLOW_MAX_LINE = 500;
-
-/**
- * Fail closed if a rendered deft-core-guard workflow would not load in GHA
- * (#3345): any `run: |` content line less indented than the block base, or a
- * line longer than {@link CORE_GUARD_WORKFLOW_MAX_LINE}.
- */
-export function assertCoreGuardWorkflowLoadable(content: string): void {
-  if (
-    !content.startsWith("name: deft-core-guard\n") &&
-    !content.startsWith("name: deft-core-guard\r\n")
-  ) {
-    throw new Error("deft-core-guard workflow must start with name: deft-core-guard (#3345)");
-  }
-  let inRun = false;
-  let baseIndent: number | null = null;
-  for (const [index, line] of content.split("\n").entries()) {
-    if (line.length > CORE_GUARD_WORKFLOW_MAX_LINE) {
-      throw new Error(
-        `deft-core-guard workflow line ${index + 1} is ${line.length} chars ` +
-          `(max ${CORE_GUARD_WORKFLOW_MAX_LINE}; #3345 loadable YAML)`,
-      );
-    }
-    if (line.trim() === "run: |") {
-      inRun = true;
-      baseIndent = null;
-      continue;
-    }
-    if (!inRun || line.trim() === "") continue;
-    const lead = line.match(/^( *)/)?.[1]?.length ?? 0;
-    if (baseIndent === null) {
-      baseIndent = lead;
-      continue;
-    }
-    if (lead < baseIndent) {
-      throw new Error(
-        `deft-core-guard workflow line ${index + 1} dedents below run-block base ` +
-          `(indent ${lead} < ${baseIndent}; #3345 YAML load failure class)`,
-      );
-    }
-  }
-}
-
-/**
- * Embedded python3 content check for package.json / lockfiles when co-travelling
- * with .deft/core/** (#3193 / #3427). Mirrors TS `isUpgradePinPathContentAllowed`.
- * Uses a single-quoted heredoc so GHA does not interpolate shell variables
- * inside the Python source (BASE/HEAD are argv). Body is
- * {@link CORE_GUARD_PIN_CONTENT_PYTHON} (twin of the Go embed).
- *
- * Every emitted line is indented to {@link CORE_GUARD_RUN_INDENT} so the YAML
- * `run: |` block stays intact (#3345). After GHA strips the common indent, the
- * shell heredoc body reaches python3 with correct relative indentation.
- */
-
-const CORE_GUARD_GENERATION_PYTHON = [
-  "import json, subprocess, sys",
-  "base_ref, head_sha = sys.argv[1], sys.argv[2]",
-  'path = ".deft/GENERATION.json"',
-  "def run(args):",
-  "    p = subprocess.run(args, capture_output=True, text=True)",
-  "    return p.returncode, p.stdout",
-  "def ls(tree):",
-  '    return run(["git", "--no-replace-objects", "ls-tree", tree, "--", path])',
-  "def show(spec):",
-  '    return run(["git", "--no-replace-objects", "show", spec])',
-  "if not base_ref:",
-  '    print("::error::BASE_REF missing for GENERATION.json monotonic check (#4120)")',
-  "    sys.exit(1)",
-  'code, out = ls("origin/" + base_ref)',
-  "if code != 0:",
-  '    print("::error::origin/$BASE_REF unreadable for GENERATION.json (#4120)")',
-  "    sys.exit(1)",
-  "base = None",
-  "if out.strip():",
-  '    code, blob = show("origin/" + base_ref + ":" + path)',
-  "    if code != 0:",
-  '        print("::error::cannot show origin base GENERATION.json (#4120)")',
-  "        sys.exit(1)",
-  '    base = json.loads(blob).get("generation")',
-  'code, blob = show(head_sha + ":" + path)',
-  "if code != 0:",
-  '    print("::error::cannot show head GENERATION.json (#4120)")',
-  "    sys.exit(1)",
-  'head = json.loads(blob).get("generation")',
-  "if type(head) is not int or head < 1:",
-  '    print("::error::head generation is not an int >= 1 (#4120)")',
-  "    sys.exit(1)",
-  "if base is not None:",
-  "    if type(base) is not int or base < 1 or not (head > base):",
-  '        print("::error::GENERATION.json must increase vs origin/$BASE_REF (#4120)")',
-  "        sys.exit(1)",
-  'print("OK: GENERATION.json monotonic vs origin/$BASE_REF")',
-].join("\n");
-
-function coreGuardGenerationPython(): string {
-  const run = CORE_GUARD_RUN_INDENT;
-  const pyBody = CORE_GUARD_GENERATION_PYTHON.replace(/\n$/, "").split("\n");
-  return [
-    `${run}if printf '%s\\n' "$changed" | grep -qx '.deft/GENERATION.json'; then`,
-    `${run}python3 - "$BASE_REF" "$HEAD_SHA" <<'PY'`,
-    ...pyBody.map((line) => `${run}${line}`),
-    `${run}PY`,
-    `${run}fi`,
-  ].join("\n");
-}
-
-function coreGuardPinContentPython(): string {
-  // Shared SoT with cmd/deft-install/core_guard_pin_content.embed (#3427).
-  // Consumer deposit stays a python3 heredoc; this repo has no .py file.
-  const run = CORE_GUARD_RUN_INDENT;
-  const pyBody = CORE_GUARD_PIN_CONTENT_PYTHON.replace(/\n$/, "").split("\n");
-  return [
-    `${run}python3 - "$BASE_SHA" "$HEAD_SHA" <<'PY'`,
-    ...pyBody.map((line) => `${run}${line}`),
-    `${run}PY`,
-  ].join("\n");
-}
-
-/**
- * Shell that materializes the installer-managed allowlist as one ERE per line
- * and filters "app" paths with `grep -vE -f` (#3345 — avoids a ~5k-char line
- * that contributed to invalid workflow load). Semantics match the prior
- * single-alternation ERE (OR of all matchers).
- */
-function coreGuardAllowlistShell(): string {
-  const run = CORE_GUARD_RUN_INDENT;
-  const patterns = installerManagedGuardErePatterns();
-  return [
-    `${run}# Installer-managed allowlist — one ERE per line (#3345 loadable YAML)`,
-    `${run}allowlist=$(mktemp)`,
-    `${run}trap 'rm -f "$allowlist"' EXIT`,
-    `${run}cat > "$allowlist" <<'ALLOW'`,
-    ...patterns.map((p) => `${run}${p}`),
-    `${run}ALLOW`,
-    `${run}app=$(printf '%s\\n' "$changed" | grep -vE '^\\.deft/core/' | grep -vE -f "$allowlist" | grep -v '^$' || true)`,
-  ].join("\n");
-}
-
-function coreGuardWorkflowContent(): string {
-  // Fail closed before emitting guard ERE if allowlist violates #1430 denylist (#3030).
-  assertInstallerAllowlistHonors1430();
-  const baseSha = githubActionsExpr("github.event.pull_request.base.sha");
-  const headSha = githubActionsExpr("github.event.pull_request.head.sha");
-  const baseRef = githubActionsExpr("github.event.pull_request.base.ref");
-  return (
-    "name: deft-core-guard\n\n" +
-    "# Deft framework guard (#1430 / #3127 / #3193 / #3345 / #3388 / #5552): a single PR should not mix changes to the\n" +
-    "# vendored framework payload (.deft/core/**) with true application/product files.\n" +
-    "# One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock\n" +
-    "# + .deft/GENERATION.json when package.json is @deftai/directive* dependency-key pin-only\n" +
-    "# and lockfiles are pin follow-through (#3193). Framework updates come from `deft update`\n" +
-    "# / install and should land without product feature work so reviewers treat the payload\n" +
-    "# as machine-managed. Delete this file if you do not want the guard.\n" +
-    "# Paths filter (#5552): skip (no check) on app-only PRs; still run for .deft/core/**\n" +
-    "# or .deft/GENERATION.json so #4120 monotonic stays live. Missing check ≠ skipped job.\n" +
-    "on:\n" +
-    "  pull_request:\n" +
-    "    paths:\n" +
-    "      - '.deft/core/**'\n" +
-    "      - '.deft/GENERATION.json'\n\n" +
-    "permissions:\n" +
-    "  contents: read\n\n" +
-    "jobs:\n" +
-    "  no-mixed-core-and-app:\n" +
-    "    runs-on: ubuntu-latest\n" +
-    "    steps:\n" +
-    `${coreGuardCheckoutUsesLine()}\n` +
-    "        with:\n" +
-    "          fetch-depth: 0\n" +
-    "      - name: Refuse PRs that mix .deft/core/** with non-framework paths\n" +
-    "        env:\n" +
-    `          BASE_SHA: ${baseSha}\n` +
-    `          HEAD_SHA: ${headSha}\n` +
-    `          BASE_REF: ${baseRef}\n` +
-    "        run: |\n" +
-    "          set -eu\n" +
-    '          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")\n' +
-    '          echo "Changed files:"\n' +
-    '          echo "$changed"\n' +
-    "          core=$(printf '%s\\n' \"$changed\" | grep -E '^\\.deft/core/' || true)\n" +
-    `${coreGuardAllowlistShell()}\n` +
-    '          if [ -n "$core" ] && [ -n "$app" ]; then\n' +
-    "            # Evidence-based branch-sync exemption (#3388). Not name-only.\n" +
-    `${renderCoreGuardBranchSyncIfBlock(CORE_GUARD_RUN_INDENT)}\n` +
-    '            echo "::error title=deft-core guard (#1430)::This PR changes the vendored framework payload (.deft/core/**) AND non-framework files. Split the framework update into its own PR."\n' +
-    '            echo "--- framework (.deft/core/**) changes ---"; printf \'%s\\n\' "$core"\n' +
-    '            echo "--- non-framework changes ---"; printf \'%s\\n\' "$app"\n' +
-    "            exit 1\n" +
-    "          fi\n" +
-    "          # Content-aware pin unit (#3193): path allowlist is not enough for package/lock.\n" +
-    '          if [ -n "$core" ]; then\n' +
-    `${coreGuardPinContentPython()}\n` +
-    "          fi\n" +
-    `${coreGuardGenerationPython()}\n` +
-    '          echo "OK: no mixed framework + app changes."\n'
-  );
-}
-
 export function ensureGitattributes(projectDir: string, io: InitDepositIo): boolean {
   // The framework source repository (linked worktrees and dogfood deposits
   // included) is not a consumer: never write the consumer block there (#6337).
@@ -1098,32 +801,6 @@ export function ensureCodeqlPathsIgnore(projectDir: string, io: InitDepositIo): 
   return true;
 }
 
-export function ensureCoreGuardWorkflow(projectDir: string, io: InitDepositIo): boolean {
-  const path = projectionTarget(projectDir, CORE_GUARD_WORKFLOW_REL);
-  const desired = coreGuardWorkflowContent();
-  assertCoreGuardWorkflowLoadable(desired);
-  if (existsSync(path)) {
-    const existing = readFileSync(path, "utf8");
-    if (!existing.includes("name: deft-core-guard")) {
-      io.printf(`${CORE_GUARD_WORKFLOW_REL} present but not deft-managed — leaving unchanged.\n`);
-      return false;
-    }
-    const refreshed = mergeCoreGuardWorkflowRefresh(existing, desired);
-    if (existing === refreshed) {
-      io.printf(`${CORE_GUARD_WORKFLOW_REL} already current — skipping.\n`);
-      return false;
-    }
-    containedProjectWrite(projectDir, path, refreshed);
-    io.printf(`${CORE_GUARD_WORKFLOW_REL} refreshed: deft-core-guard allowlist updated (#1478).\n`);
-    return true;
-  }
-  containedProjectWrite(projectDir, path, desired);
-  io.printf(
-    `${CORE_GUARD_WORKFLOW_REL} created: CI refuses PRs mixing ${CORE_GLOB} with app files.\n`,
-  );
-  return true;
-}
-
 export async function pruneFrameworkSelfTests(
   projectDir: string,
   io: InitDepositIo,
@@ -1170,28 +847,12 @@ export async function pruneVendoredTsTests(projectDir: string, io: InitDepositIo
   return removed;
 }
 
-export interface DepositNeutralizationOptions {
-  /**
-   * #2148: skip depositing `.github/workflows/deft-core-guard.yml` when the
-   * framework deposit is not git-tracked (npm-managed / gitignored layout). The
-   * guard CI check is meaningless when there is no committed `.deft/core/**` to
-   * guard; skipping it prevents the file from re-appearing as untracked noise
-   * after every `directive update`.
-   */
-  readonly skipGuardWorkflow?: boolean;
-}
-
 /** Best-effort #1430 neutralization deposit (mirrors depositNeutralization). */
-export async function depositNeutralization(
-  projectDir: string,
-  io: InitDepositIo,
-  options: DepositNeutralizationOptions = {},
-): Promise<void> {
+export async function depositNeutralization(projectDir: string, io: InitDepositIo): Promise<void> {
   const steps: Array<() => boolean | Promise<boolean>> = [
     () => ensureGitattributes(projectDir, io),
     () => ensureGreptileIgnore(projectDir, io),
     () => ensureCodeqlPathsIgnore(projectDir, io),
-    ...(options.skipGuardWorkflow ? [] : [() => ensureCoreGuardWorkflow(projectDir, io)]),
     () => pruneFrameworkSelfTests(projectDir, io),
     async () => (await pruneVendoredTsTests(projectDir, io)) > 0,
   ];

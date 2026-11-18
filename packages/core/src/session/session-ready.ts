@@ -17,10 +17,6 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { cacheFetchAll, cacheRefreshClosed } from "../cache/fetch.js";
-import {
-  reconstituteLinkedWorktreeDeposit,
-  type WorktreeDepositReconstituteResult,
-} from "../init-deposit/gitignore.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
 import type { GitRunner } from "./git.js";
 import {
@@ -110,11 +106,6 @@ export interface SessionReadyOptions {
   readonly inferRepo?: (projectRoot: string) => string | null;
   /** Skip cache recovery even when cache_fresh failed (tests). */
   readonly skipCacheRecovery?: boolean;
-  /**
-   * #4443: payload-only reconstitution before gated doctor.
-   * Inject in tests. Default copies a local payload; never occupancy/ritual.
-   */
-  readonly reconstituteWorktreeDeposit?: (projectRoot: string) => WorktreeDepositReconstituteResult;
 }
 
 function elapsedMs(started: number): number {
@@ -269,44 +260,6 @@ export function runSessionReady(
       }
     }
   };
-  const reconstitute =
-    options.reconstituteWorktreeDeposit ??
-    ((root) => reconstituteLinkedWorktreeDeposit(root, { runGit: options.runGit }));
-  let deposit: WorktreeDepositReconstituteResult;
-  try {
-    deposit = reconstitute(projectRoot);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    lines.push(message);
-    rollbackIfUnaligned();
-    return {
-      code: 2,
-      sessionId,
-      message,
-      path: SESSION_READY_FAILED,
-      lines,
-      steps,
-      duration_ms: elapsedMs(started),
-    };
-  }
-  if (deposit.status === "refused") {
-    const message = deposit.message;
-    lines.push(message);
-    rollbackIfUnaligned();
-    return {
-      code: 2,
-      sessionId,
-      message,
-      path: SESSION_READY_FAILED,
-      lines,
-      steps,
-      duration_ms: elapsedMs(started),
-    };
-  }
-  if (deposit.status === "reconstituted") {
-    steps.push("worktree-deposit");
-    lines.push(`[deft session] ${deposit.message}`);
-  }
   const finishReady = (path: SessionReadyPath, message: string): SessionReadyResult => {
     const claimed = applyOccupancy(projectRoot, occupancyInput(true, false));
     if (claimed.code !== 0) {

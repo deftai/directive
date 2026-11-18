@@ -1,0 +1,423 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5999",
+    "updated": "2026-11-18T18:45:47Z"
+  },
+  "plan": {
+    "title": "Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-E (story id ovpr-g-uninstall), unit P2-U7, issues #5999 and #6007, decision D-025. Uninstall deletes a sole-author package.json and lockfile before the package-manager remove (npm recreates `{}` + a stub lockfile; pnpm fails but uninstall exits 0 and claims the version was removed), and it keeps core.hooksPath, Directive-written lines, local state and registered scratch worktrees without saying so at default verbosity. Move the manifest-husk step after a successful PM remove, report the real PM result, count every leftover toward 'complete', strip Directive-written lines, and list kept items (hooksPath, local state and policy files, registered worktrees under .deft-scratch/) at default verbosity.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5999",
+      "Overview": "## Summary\nGreenfield uninstall deletes the `package.json` / lockfile that install created, then runs the package-manager remove. With npm this recreates `{}` + a stub lockfile. With pnpm the remove fails, but uninstall still reports success.\n\n## Steps / Actual\nnpm: `directive install --yes` in an empty git repo (creates `{ \"private\": true }`), then `directive uninstall --yes`. Left behind: `package.json` = `{}` (`private` gone), a 5-line `package-lock.json`, empty `node_modules/@deftai` and `node_modules/.bin`, plus `xbrief/.directive-seed-placeholder` and `xbrief/.triage-cache/doctor-state.json`. The report says only \"Preserved: xbrief\".\npnpm: same flow → stderr `pnpm remove -D @deftai/directive-runtime failed (exit 1) ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND … PM remove … failed; continuing`, exit 0, \"✓ Uninstalled … Removed … the Directive version from development tools\". The runtime stays in node_modules.\nControl: `npm uninstall --save-dev <pkg>` on a `{ \"private\": true }` manifest keeps `private`, so npm isn't the cause.\n\n## Expected\nSole-author manifest + lockfile removed (F-013/C5); the PM step skipped or run first; a failed PM remove not reported as success.\n\n## Root cause\n- Cause: the launcher runs the runtime uninstall (`removeSoleAuthorHusks` deletes the sole-author package.json + lockfile) **before** \"PM remove after wiring cleanup\". npm then recreates the files, and pnpm fails with no manifest.\n- Evidence: `packages/cli/src/bookends.ts` runUninstall ~1542-1600; `packages/runtime/src/uninstall.ts:380`; `removal-steps/steps.ts:184-196, 365-395`.\n- Confidence: confirmed.\n- Checked: npm and pnpm greenfield cycles, npm control on a private manifest.\n\n## Environment\n- Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag\n- Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`)\n- Shells: Git Bash, PowerShell 7, cmd.exe. Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs. Throwaway fixture repos.\n\n",
+      "Labels": "adoption-blocker, area:installer, core-capabilities, promise:lifecycle",
+      "UserStory": "As a developer uninstalling Directive, I want uninstall to remove the dependency through my package manager before it cleans up the manifest, to report honestly what it removed, kept and could not remove, and to warn me by name about live worktrees under .deft-scratch/, so that I am not left with a broken package.json, a false success, or lost work.",
+      "StoryId": "ovpr-g-uninstall (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U7-uninstall-cleans-up-properly.md (read in full; the 'Update 2026-11-17' banner (D-025) wins over the text below it, including the 'Open question' note, which D-025 answered).",
+      "ImplementationPlan": "1. packages/runtime/src/removal-steps/steps.ts and packages/runtime/src/uninstall.ts: split removeSoleAuthorHusks so the repository uninstaller no longer removes package.json or lockfiles; export removeSoleAuthorManifest(root) with the existing manifest + lockfile logic.\n2. packages/cli/src/bookends.ts runUninstall: before invoking the pinned runtime's uninstaller, read package.json and lockfile bytes; if an older runtime deleted them, write the same bytes back before the PM remove. Run the PM remove; only on success, and when the manifest is sole-author residue (launcher-local isSoleAuthorPackageJson), remove package.json and a near-empty lockfile.\n3. Honest PM result: on PM remove failure keep the manifest, add `package.json#@deftai/directive-runtime (PM remove failed: <pm> exit <n>)` to leftovers, exit non-zero; packages/cli/src/plan-present.ts presentUninstallSuccess says 'Removed the Directive version' only when the PM remove succeeded.\n4. complete is false when verifyUninstallComplete finds leftovers, applyLauncherCleanup reports leftovers, the PM remove failed, or node_modules/@deftai/directive-runtime is still present after a successful PM remove (reported as 'Directive package still installed', never listing node_modules).\n5. packages/cli/src/uninstall-map.ts: strip the exact retired `.deft/core` lines from .gitattributes, .prettierignore, greptile.json and .github/codeql/codeql-config.yml using a launcher-local copy of the P2-U5a (G-C) table plus a test that it equals the core table; remove the managed .gitattributes block via the P2-U0 ownership record, or by its `# Deft managed wiring:` marker when the record is missing. Never delete these files.\n6. Default-verbosity report (plan and result): the hooksPath outcome (siblingNeedsHooksPath returns the sibling paths; 'Kept core.hooksPath=.githooks: N other worktrees still use Directive hooks … run git config --unset core.hooksPath'); every registered git worktree under .deft-scratch/ by name (git worktree list --porcelain) with 'uninstall did not touch them; they may hold uncommitted work'; kept Directive data that exists (.deft/*.json state, .deft-cache/, .deft-scratch/, .deft-run-summary.json, .deft/forward-coverage.allow, .deft/test-boundary.policy.json, .deft/settings.json, Directive lines left in .gitignore) under 'Kept', not counted as leftovers (D-025, exit 0 for them); launcher-cleanup leftovers and uncertainty. Full removed-path list stays at -v.\n7. Optional: empty `includes:` key in Taskfile.yml only if go-task rejects it.\n8. Tests per the spec; changelog fragment changelog.d/5999-uninstall-order-and-report.md.",
+      "Constraint": "- Keep the design's step order: repository uninstaller, launcher cleanup, PM remove, hooksPath (AC11.4-AC11.6). Only the manifest-husk step moves to after the PM remove.\n- Do not unset core.hooksPath when a sibling worktree still needs it (AC11.6).\n- Do not touch xbrief/, including doctor-state.json and the seed placeholder (AC11.7).\n- D-025: never delete registered worktrees, .deft-scratch/, .deft-cache/, .deft/ state or tracked .deft policy files; list them under 'Kept'; they do not make uninstall exit non-zero. Warn by name about every registered worktree under .deft-scratch/.\n- Do not delete .gitattributes, .prettierignore, greptile.json or the CodeQL config.\n- Do not list node_modules in the human report (AC5.16).\n- Do not move swarm worktrees out of .deft-scratch/ (#6603, held) or change swarm naming (Scott).\n- Do not fix doctor writing doctor-state.json here (G-F / P3-U2).\n- The launcher imports nothing from @deftai/directive-core; keep launcher-local copies.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: G-C (ovpr-g-customer-files, P2-U5a retired-lines table, github.issue.6060536381); land it first. P2-U0's ownership API is merged on origin/master (PR #6658, commit 7dda3d6a1, #6615), so the managed .gitattributes block is found through the record. P2-U0 part 2 (#6662, record and remove the v261027 .mjs hook files) is still open; if this story needs the .mjs entries, use the marker fallback and note it. Coordinate with G-D and G-G (bookends.ts, plan-present.ts).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #5999. Closes #6007 except the worktree-placement ask (#6603, held). D-025. Refs #6615, #6658, #6662."
+    },
+    "items": [
+      {
+        "title": "npm: `directive install --yes` in an empty git repo, then `directive uninstall --yes`, leaves no `package.json`, no `package-lock.json`, and exits 0.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given an empty git repo after `directive install --yes` with npm, when `directive uninstall --yes` runs, then no package.json or package-lock.json remains and the exit code is 0."
+        }
+      },
+      {
+        "title": "pnpm: the same cycle removes the runtime through pnpm and leaves no `package.json` or `pnpm-lock.yaml`; if the pnpm remove fails, uninstall exits non-zero, keeps `package.json`, names the failure, and does not claim the version was removed.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given the same cycle with pnpm, when uninstall runs, then the runtime is removed through pnpm and no package.json or pnpm-lock.yaml remains; and given an injected pnpm remove failure, when uninstall runs, then it exits non-zero, keeps package.json, names the failure and does not print 'Removed the Directive version'."
+        }
+      },
+      {
+        "title": "With an older pinned runtime whose uninstaller deletes `package.json`, the launcher restores it before the PM remove, and criteria 1-2 still hold.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given an injected runtime uninstaller that deletes package.json and the lockfile, when `directive uninstall --yes` runs, then the launcher restores both byte-identical before the PM remove and the npm and pnpm outcomes match items 1 and 2."
+        }
+      },
+      {
+        "title": "A project with a user-authored `package.json` keeps every non-Directive field byte-identical (AC11.7).",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a user-authored package.json with other fields and dependencies, when uninstall runs, then every non-Directive field is byte-identical afterwards."
+        }
+      },
+      {
+        "title": "When a sibling worktree still has Directive hooks, `core.hooksPath` stays set, and the default output names the kept setting, how many worktrees need it, and the command to unset it.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given a repo with a linked worktree that still has Directive hooks, when uninstall runs at default verbosity, then core.hooksPath stays `.githooks` and the output names the kept setting, the worktree count and `git config --unset core.hooksPath`."
+        }
+      },
+      {
+        "title": "The default output lists, by name, registered worktrees under `.deft-scratch/` and the kept Directive data that exists; kept data does not make uninstall exit non-zero (D-025).",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given registered worktrees under .deft-scratch/ and existing .deft/ state, .deft-cache/, .deft-run-summary.json and tracked .deft policy files, when uninstall runs at default verbosity, then the plan and report name each worktree with a may-hold-uncommitted-work warning, list the kept data under 'Kept', delete none of it, and exit 0 for them."
+        }
+      },
+      {
+        "title": "After uninstall, none of `.gitattributes`, `.prettierignore`, `greptile.json`, `.github/codeql/codeql-config.yml` contains a line Directive wrote; all other lines are unchanged; the files still exist.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given those four files containing Directive-written lines and user lines, when uninstall runs, then the Directive-written lines and the managed .gitattributes block are gone, every other line is byte-identical, and all four files still exist."
+        }
+      },
+      {
+        "title": "Any launcher-cleanup leftover, failed PM remove, or still-installed runtime package makes uninstall print \"partially finished\" and exit non-zero (AC11.11).",
+        "status": "proposed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given an injected launcher-cleanup leftover, PM remove failure, or a runtime package still present after the PM remove, when uninstall runs, then it prints 'partially finished' and exits non-zero."
+        }
+      },
+      {
+        "title": "`xbrief/` is byte-identical before and after (AC11.7).",
+        "status": "proposed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given a project with xbrief/ content including xbrief/.triage-cache/doctor-state.json, when uninstall runs, then every file under xbrief/ is byte-identical afterwards."
+        }
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "area:installer",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5999",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5999: Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6007",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6007"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/cli/src packages/runtime/src/uninstall.test.ts packages/runtime/src/removal-steps/removal-steps.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (19), in order (#6333)",
+      "sentences": [
+        "Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success",
+        "Summary Greenfield uninstall deletes the `package.json` / lockfile that install created, then runs the package-manager remove.",
+        "With npm this recreates `{}` + a stub lockfile.",
+        "With pnpm the remove fails, but uninstall still reports success.",
+        "Steps / Actual npm: `directive install --yes` in an empty git repo (creates `{ \"private\": true }`), then `directive uninstall --yes`.",
+        "Left behind: `package.json` = `{}` (`private` gone), a 5-line `package-lock.json`, empty `node_modules/@deftai` and `node_modules/.bin`, plus `xbrief/.directive-seed-placeholder` and `xbrief/.triage-cache/doctor-state.json`.",
+        "The report says only \"Preserved: xbrief\".",
+        "pnpm: same flow → stderr `pnpm remove -D @deftai/directive-runtime failed (exit 1) ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND … PM remove … failed; continuing`, exit 0, \"✓ Uninstalled … Removed … the Directive version from development tools\".",
+        "The runtime stays in node_modules.",
+        "Control: `npm uninstall --save-dev <pkg>` on a `{ \"private\": true }` manifest keeps `private`, so npm isn't the cause.",
+        "Expected Sole-author manifest + lockfile removed (F-013/C5); the PM step skipped or run first; a failed PM remove not reported as success.",
+        "Root cause - Cause: the launcher runs the runtime uninstall (`removeSoleAuthorHusks` deletes the sole-author package.json + lockfile) before \"PM remove after wiring cleanup\".",
+        "npm then recreates the files, and pnpm fails with no manifest.",
+        "Evidence: `packages/cli/src/bookends.ts` runUninstall ~1542-1600; `packages/runtime/src/uninstall.ts:380`; `removal-steps/steps.ts:184-196, 365-395`.",
+        "Confidence: confirmed.",
+        "Checked: npm and pnpm greenfield cycles, npm control on a private manifest.",
+        "Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+        "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+        "Throwaway fixture repos."
+      ],
+      "admitted_source_sentences": [
+        "Summary Greenfield uninstall deletes the `package.json` / lockfile that install created, then runs the package-manager remove.",
+        "With npm this recreates `{}` + a stub lockfile.",
+        "With pnpm the remove fails, but uninstall still reports success.",
+        "Steps / Actual npm: `directive install --yes` in an empty git repo (creates `{ \"private\": true }`), then `directive uninstall --yes`.",
+        "Left behind: `package.json` = `{}` (`private` gone), a 5-line `package-lock.json`, empty `node_modules/@deftai` and `node_modules/.bin`, plus `xbrief/.directive-seed-placeholder` and `xbrief/.triage-cache/doctor-state.json`.",
+        "The report says only \"Preserved: xbrief\".",
+        "pnpm: same flow → stderr `pnpm remove -D @deftai/directive-runtime failed (exit 1) ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND … PM remove … failed; continuing`, exit 0, \"✓ Uninstalled … Removed … the Directive version from development tools\".",
+        "The runtime stays in node_modules.",
+        "Control: `npm uninstall --save-dev <pkg>` on a `{ \"private\": true }` manifest keeps `private`, so npm isn't the cause.",
+        "Expected Sole-author manifest + lockfile removed (F-013/C5); the PM step skipped or run first; a failed PM remove not reported as success.",
+        "Root cause - Cause: the launcher runs the runtime uninstall (`removeSoleAuthorHusks` deletes the sole-author package.json + lockfile) before \"PM remove after wiring cleanup\".",
+        "npm then recreates the files, and pnpm fails with no manifest.",
+        "Evidence: `packages/cli/src/bookends.ts` runUninstall ~1542-1600; `packages/runtime/src/uninstall.ts:380`; `removal-steps/steps.ts:184-196, 365-395`.",
+        "Confidence: confirmed.",
+        "Checked: npm and pnpm greenfield cycles, npm control on a private manifest.",
+        "Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+        "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+        "Throwaway fixture repos."
+      ],
+      "admitted_source_digest": "03c7c14cab3ba8e436842f3ca430e4c982efdf610b2cd742454948eb9c30661a",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary Greenfield uninstall deletes the `package.json` / lockfile that install created, then runs the package-manager remove.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "With npm this recreates `{}` + a stub lockfile.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "With pnpm the remove fails, but uninstall still reports success.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "Steps / Actual npm: `directive install --yes` in an empty git repo (creates `{ \"private\": true }`), then `directive uninstall --yes`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Left behind: `package.json` = `{}` (`private` gone), a 5-line `package-lock.json`, empty `node_modules/@deftai` and `node_modules/.bin`, plus `xbrief/.directive-seed-placeholder` and `xbrief/.triage-cache/doctor-state.json`.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "The report says only \"Preserved: xbrief\".",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 8,
+          "text": "pnpm: same flow → stderr `pnpm remove -D @deftai/directive-runtime failed (exit 1) ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND … PM remove … failed; continuing`, exit 0, \"✓ Uninstalled … Removed … the Directive version from development tools\".",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 9,
+          "text": "The runtime stays in node_modules.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 10,
+          "text": "Control: `npm uninstall --save-dev <pkg>` on a `{ \"private\": true }` manifest keeps `private`, so npm isn't the cause.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Expected Sole-author manifest + lockfile removed (F-013/C5); the PM step skipped or run first; a failed PM remove not reported as success.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Root cause - Cause: the launcher runs the runtime uninstall (`removeSoleAuthorHusks` deletes the sole-author package.json + lockfile) before \"PM remove after wiring cleanup\".",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 13,
+          "text": "npm then recreates the files, and pnpm fails with no manifest.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 14,
+          "text": "Evidence: `packages/cli/src/bookends.ts` runUninstall ~1542-1600; `packages/runtime/src/uninstall.ts:380`; `removal-steps/steps.ts:184-196, 365-395`.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Confidence: confirmed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Checked: npm and pnpm greenfield cycles, npm control on a private manifest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Throwaway fixture repos.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/uninstall-map.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/runtime/src/uninstall.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/cli/src/retired-lines.ts",
+          "packages/cli/src/uninstall-bookend.test.ts",
+          "packages/cli/src/uninstall-map.test.ts",
+          "packages/cli/src/plan-present-wave3g.test.ts",
+          "packages/cli/src/plan-present-uninstall.test.ts",
+          "packages/cli/src/retired-lines.test.ts",
+          "packages/runtime/src/uninstall.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "changelog.d/5999-uninstall-order-and-report.md"
+        ],
+        "module_boundary": "Launcher uninstall bookend (bookends.ts runUninstall, uninstall-map.ts, plan-present.ts uninstall text, an optional launcher-local retired-lines module) and the runtime repository uninstaller's sole-author husk step. No swarm, doctor or xbrief changes.",
+        "cohesion_exemption": "bookends.ts (1737 lines) and plan-present.ts (1118 lines) already exceed the review trigger. This fix reorders steps and adds report lines; the retired-lines copy may live in its own new module; splitting those files is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "### Duplicate / uniqueness triage (2026-10-28)\n\n**Verdict: UNIQUE — keep open.**\n\nNot in the sealed install-ovpr-problem-ledger-2026-10-23 Problems 1–33 ticket map.\n\n**Related (not duplicate):**\n- Closed #4674 / #4753 — uninstall leftover / incomplete remove class (different: leftovers after global uninstall + delete `.deft/`, not sole-author `package.json` deleted before PM remove)\n\nKeep for uninstall bookend order (runtime husk removal before PM remove → npm recreates `{}` + stub lockfile; pnpm fails but exit 0).\n\n",
+          "id": 6474892047,
+          "html_url": "https://github.com/deftai/directive/issues/5999#issuecomment-6474892047",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-28T16:40:21Z",
+          "updated_at": "2026-10-28T16:40:21Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6082664050,
+        "origin": "deftai/directive#5999",
+        "id": "github.issue.6082664050"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/uninstall-map.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/runtime/src/uninstall.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/cli/src/retired-lines.ts",
+          "packages/cli/src/uninstall-bookend.test.ts",
+          "packages/cli/src/uninstall-map.test.ts",
+          "packages/cli/src/plan-present-wave3g.test.ts",
+          "packages/cli/src/plan-present-uninstall.test.ts",
+          "packages/cli/src/retired-lines.test.ts",
+          "packages/runtime/src/uninstall.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "changelog.d/5999-uninstall-order-and-report.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6060536381"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src packages/runtime/src/uninstall.test.ts packages/runtime/src/removal-steps/removal-steps.test.ts"
+        ],
+        "Traces": [
+          "#5999",
+          "#6007"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "cli-bookends",
+        "expected_outputs": [
+          "npm: `directive install --yes` in an empty git repo, then `directive uninstall --yes`, leaves no `package.json`, no `package-lock.json`, and exits 0.",
+          "pnpm: the same cycle removes the runtime through pnpm and leaves no `package.json` or `pnpm-lock.yaml`; if the pnpm remove fails, uninstall exits non-zero, keeps `package.json`, names the failure, and does not claim the version was removed.",
+          "With an older pinned runtime whose uninstaller deletes `package.json`, the launcher restores it before the PM remove, and criteria 1-2 still hold.",
+          "A project with a user-authored `package.json` keeps every non-Directive field byte-identical (AC11.7).",
+          "When a sibling worktree still has Directive hooks, `core.hooksPath` stays set, and the default output names the kept setting, how many worktrees need it, and the command to unset it.",
+          "The default output lists, by name, registered worktrees under `.deft-scratch/` and the kept Directive data that exists; kept data does not make uninstall exit non-zero (D-025).",
+          "After uninstall, none of `.gitattributes`, `.prettierignore`, `greptile.json`, `.github/codeql/codeql-config.yml` contains a line Directive wrote; all other lines are unchanged; the files still exist.",
+          "Any launcher-cleanup leftover, failed PM remove, or still-installed runtime package makes uninstall print \"partially finished\" and exit non-zero (AC11.11).",
+          "`xbrief/` is byte-identical before and after (AC11.7).",
+          "one changelog fragment changelog.d/5999-uninstall-order-and-report.md"
+        ],
+        "acceptance_criteria_justification": "Nine items: unit spec P2-U7 acceptance criteria 1 to 9, one each; item 6 carries D-025 (kept data, exit 0, worktrees named)."
+      }
+    },
+    "id": "github.issue.6082664050",
+    "updated": "2026-11-18T18:45:47Z"
+  }
+}

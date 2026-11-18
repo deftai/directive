@@ -1,0 +1,197 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6680",
+    "updated": "2026-11-18T18:41:01Z"
+  },
+  "plan": {
+    "title": "fix(hygiene): two lockfile-reader patterns flagged by CodeQL as slow on crafted input",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-K (story id ovpr-g-codeql), decision D-035, issue #6680. CodeQL flags two lazy-group regexes in the pnpm lockfile reader in packages/core/src/init-deposit/hygiene.ts (`specifier:` and `version:` lines) as slow on crafted input. Replace them with a prefix match plus trim, and add a long-line test.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6680",
+      "Overview": "CodeQL flags two existing patterns in the pnpm lockfile reader, `packages/core/src/init-deposit/hygiene.ts` lines ~637 and ~642 (`/^ {8}specifier:\\s*(.+?)\\s*$/` and `/^ {8}version:\\s*(.+?)\\s*$/`, from #5245). A crafted lockfile line could make them slow (polynomial regex). The input is the project's own lockfile on the local machine, so the risk is low. P2-U0 (#6658, the read-only ownership API, #6615) now reaches this code, which is why CodeQL raised it there.\n\nFix: match the line prefix without the lazy group and trim the value (for example `line.startsWith(\"        specifier:\")` then `.slice(...).trim()`), with a test for a very long line.\n\nDecided by polfer (D-035): #6658 merged with the warning; this ticket fixes it.\n\n",
+      "Labels": "bug, area:installer",
+      "UserStory": "As a Directive maintainer, I want the pnpm lockfile reader to parse `specifier:` and `version:` lines without polynomial regexes, so that CodeQL is clean and a crafted lockfile line cannot slow the reader down.",
+      "StoryId": "ovpr-g-codeql (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "No unit spec: polfer decision D-035 (DECISIONS.md) and issue #6680 define the fix.",
+      "ImplementationPlan": "1. packages/core/src/init-deposit/hygiene.ts: replace `/^ {8}specifier:\\s*(.+?)\\s*$/` and `/^ {8}version:\\s*(.+?)\\s*$/` with a check for the exact 8-space prefix (`line.startsWith(\"        specifier:\")` / `\"        version:\"`) and `.slice(prefix.length).trim()`; keep the same results for empty and quoted values.\n2. packages/core/src/init-deposit/hygiene.test.ts: add a test that a lockfile line with a very long value (for example 100k spaces between the key and a value) parses quickly and gives the same specifier/version as before.\n3. Changelog fragment changelog.d/6680-lockfile-reader-regex.md.",
+      "Constraint": "- Two-line regex fix only; no other behaviour change in the lockfile reader.\n- Keep the existing hygiene tests green; do not weaken any assertion.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none (P2-U0 #6658 already merged). Blocks: none.",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #6680. Refs #6658, #6615, #5245."
+    },
+    "items": [
+      {
+        "title": "The pnpm lockfile reader no longer uses the two lazy-group `specifier:` / `version:` regexes; it matches the 8-space prefix and trims the value.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/init-deposit/hygiene.ts, when the pnpm lockfile reader parses a `specifier:` or `version:` line, then it uses a prefix match plus trim and the patterns `/^ {8}specifier:\\s*(.+?)\\s*$/` and `/^ {8}version:\\s*(.+?)\\s*$/` are gone."
+        }
+      },
+      {
+        "title": "A lockfile line with a very long value parses quickly and gives the same result as before.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a pnpm lockfile whose `specifier:` or `version:` line has a very long run of whitespace, when the hygiene lockfile reader parses it, then it returns the trimmed value and the test finishes well inside the default timeout."
+        }
+      },
+      {
+        "title": "Existing lockfile parsing results are unchanged (quoted values, empty values, other indent levels).",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given the existing hygiene.test.ts lockfile fixtures, when `pnpm exec vitest run packages/core/src/init-deposit/hygiene.test.ts` runs, then all existing cases pass unchanged."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6680",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6680: fix(hygiene): two lockfile-reader patterns flagged by CodeQL as slow on crafted input"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6658",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6658"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/init-deposit/hygiene.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (7), in order (#6333)",
+      "sentences": [
+        "fix(hygiene): two lockfile-reader patterns flagged by CodeQL as slow on crafted input",
+        "CodeQL flags two existing patterns in the pnpm lockfile reader, `packages/core/src/init-deposit/hygiene.ts` lines ~637 and ~642 (`/^ {8}specifier:\\s*(.+?)\\s*$/` and `/^ {8}version:\\s*(.+?)\\s*$/`, from #5245).",
+        "A crafted lockfile line could make them slow (polynomial regex).",
+        "The input is the project's own lockfile on the local machine, so the risk is low.",
+        "P2-U0 (#6658, the read-only ownership API, #6615) now reaches this code, which is why CodeQL raised it there.",
+        "Fix: match the line prefix without the lazy group and trim the value (for example `line.startsWith(\"        specifier:\")` then `.slice(...).trim()`), with a test for a very long line.",
+        "Decided by polfer (D-035): #6658 merged with the warning; this ticket fixes it."
+      ],
+      "admitted_source_sentences": [
+        "CodeQL flags two existing patterns in the pnpm lockfile reader, `packages/core/src/init-deposit/hygiene.ts` lines ~637 and ~642 (`/^ {8}specifier:\\s*(.+?)\\s*$/` and `/^ {8}version:\\s*(.+?)\\s*$/`, from #5245).",
+        "A crafted lockfile line could make them slow (polynomial regex).",
+        "The input is the project's own lockfile on the local machine, so the risk is low.",
+        "P2-U0 (#6658, the read-only ownership API, #6615) now reaches this code, which is why CodeQL raised it there.",
+        "Fix: match the line prefix without the lazy group and trim the value (for example `line.startsWith(\"        specifier:\")` then `.slice(...).trim()`), with a test for a very long line.",
+        "Decided by polfer (D-035): #6658 merged with the warning; this ticket fixes it."
+      ],
+      "admitted_source_digest": "da0959124551a403af7d1329399ba94ebda6cab1574154c66667ec8787649759",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "fix(hygiene): two lockfile-reader patterns flagged by CodeQL as slow on crafted input",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "CodeQL flags two existing patterns in the pnpm lockfile reader, `packages/core/src/init-deposit/hygiene.ts` lines ~637 and ~642 (`/^ {8}specifier:\\s*(.+?)\\s*$/` and `/^ {8}version:\\s*(.+?)\\s*$/`, from #5245).",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "A crafted lockfile line could make them slow (polynomial regex).",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "The input is the project's own lockfile on the local machine, so the risk is low.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "P2-U0 (#6658, the read-only ownership API, #6615) now reaches this code, which is why CodeQL raised it there.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Fix: match the line prefix without the lazy group and trim the value (for example `line.startsWith(\" specifier:\")` then `.slice(...).trim()`), with a test for a very long line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Decided by polfer (D-035): #6658 merged with the warning; this ticket fixes it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "changelog.d/6680-lockfile-reader-regex.md"
+        ],
+        "module_boundary": "The pnpm lockfile reader inside packages/core/src/init-deposit/hygiene.ts and its test. No other module changes.",
+        "cohesion_exemption": "hygiene.ts (2020 lines) already exceeds the review trigger. This fix changes two lines; splitting the file is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6473790242,
+        "origin": "deftai/directive#6680",
+        "id": "github.issue.6473790242"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "changelog.d/6680-lockfile-reader-regex.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/hygiene.test.ts"
+        ],
+        "Traces": [
+          "#6680",
+          "#6658"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "init-deposit-hygiene",
+        "expected_outputs": [
+          "The pnpm lockfile reader no longer uses the two lazy-group `specifier:` / `version:` regexes; it matches the 8-space prefix and trims the value.",
+          "A lockfile line with a very long value parses quickly and gives the same result as before.",
+          "Existing lockfile parsing results are unchanged (quoted values, empty values, other indent levels).",
+          "one changelog fragment changelog.d/6680-lockfile-reader-regex.md"
+        ],
+        "acceptance_criteria_justification": "Three items: the two-regex replacement, the long-line test the issue asks for, and no change to existing parsing."
+      }
+    },
+    "id": "github.issue.6473790242",
+    "updated": "2026-11-18T18:41:01Z"
+  }
+}
