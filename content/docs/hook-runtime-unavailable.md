@@ -15,7 +15,7 @@ Tracker: [#3785](https://github.com/deftai/directive/issues/3785), [#5656](https
 | Situation | Claude Code / Codex | Cursor | Grok |
 | --- | --- | --- | --- |
 | Runtime missing, or the runtime can't reach a decision | Blocks the tool call (exit 2) | Blocks (deny) | Blocks (deny) |
-| Installed runtime is not the pinned version | Blocks the tool call and names the project install; that exact install command is let through | Same | Same |
+| Installed runtime is not the pinned version | Blocks the tool call and names the project install. The exact install command may be let through when the hook can see the command's working folder; Codex often can't, so run it in a terminal outside the agent | Same | Same |
 | The hook never starts (Node missing, hook file not found, host timeout) | Carries on with a hook error; Directive never ran | Blocks (`failClosed: true`) | Host behaviour |
 
 Events other than a tool call (session start, compaction) never block (#6201).
