@@ -8,7 +8,6 @@ import {
   EXIT_CODES,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
   LAUNCHER_PACKAGE_NAME,
-  RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
 import {
@@ -20,6 +19,11 @@ import {
   setupArgv,
   uninstallArgv,
 } from "./contract-invoke.js";
+import {
+  classifyLauncherSituation,
+  formatEntryGuardMessage,
+  projectInstallCommand,
+} from "./entry-guard.js";
 import { type InteractiveLine, readInteractiveLine } from "./interactive-stdin.js";
 import {
   formatShapeRecoveryMessage,
@@ -827,7 +831,8 @@ function runRepair(
   const installed = readInstalledRuntime(projectRoot);
   if (installed === null || installed.version !== pinVersion) {
     io.writeErr(
-      `Repair verification failed: expected installed ${pinVersion}, found ${installed?.version ?? "nothing"}. ${RECOVERY_GUIDANCE}\n`,
+      `Repair could not install the pinned runtime (expected ${pinVersion}, found ${installed?.version ?? "nothing"}). ` +
+        `Run ${projectInstallCommand(projectRoot)} and read its output.\n`,
     );
     return EXIT_CODES.FAILURE;
   }
@@ -1194,8 +1199,10 @@ export function runUpgrade(
 
   if (!versionChange) {
     if (state.installed === null || !state.pinMatchesInstalled || !state.contractSupported) {
+      const blocked = classifyLauncherSituation(projectRoot, state);
       io.writeErr(
-        `Equal-version upgrade requires the pinned runtime installed and contract-supported. ${RECOVERY_GUIDANCE}\n`,
+        `Equal-version upgrade needs the pinned runtime installed. ${blocked?.message ?? ""}`.trimEnd() +
+          "\n",
       );
       return EXIT_CODES.FAILURE;
     }
@@ -1735,25 +1742,17 @@ export function runDoctor(
   const pinLabel = state.pin.version ?? state.pin.raw ?? "(none)";
   const installedLabel = state.installed?.version ?? "(missing)";
 
-  // Runtime missing or pin≠installed → launcher basic diagnosis (AC12.4 / A5.6).
+  // Runtime missing or pin≠installed → launcher basic diagnosis ending in one
+  // next command from the shared table (AC12.4 / A5.6 / AC9.7).
   if (state.installed === null || !state.pinMatchesInstalled) {
-    if (state.installed === null) {
-      io.writeOut(
-        `directive doctor: project ${projectRoot}\n` +
-          `  launcher: ${launcherVersion}\n` +
-          `  pin: ${pinLabel} (${state.pin.kind})\n` +
-          `  installed: missing\n` +
-          `Recovery: ${RECOVERY_GUIDANCE}\n`,
-      );
-    } else {
-      io.writeOut(
-        `directive doctor: project ${projectRoot}\n` +
-          `  launcher: ${launcherVersion}\n` +
-          `  pin: ${pinLabel} (${state.pin.kind})\n` +
-          `  installed: ${installedLabel} (≠ pin)\n` +
-          `Recovery: ${RECOVERY_GUIDANCE}\n`,
-      );
-    }
+    const blocked = classifyLauncherSituation(projectRoot, state);
+    io.writeOut(
+      `directive doctor: project ${projectRoot}\n` +
+        `  launcher: ${launcherVersion}\n` +
+        `  pin: ${pinLabel} (${state.pin.kind})\n` +
+        `  installed: ${state.installed === null ? "missing" : `${installedLabel} (≠ pin)`}\n` +
+        `Next: ${blocked?.message ?? formatEntryGuardMessage("runtime-missing", { install: projectInstallCommand(projectRoot) })}\n`,
+    );
     return EXIT_CODES.FAILURE;
   }
 

@@ -13,7 +13,12 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "./constants.js";
+import {
+  ENTRY_GUARD_MESSAGES,
+  formatEntryGuardMessage,
+  PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE,
+  projectInstallCommand,
+} from "./constants.js";
 import {
   type FsSeams,
   readInstalledRuntimeVersion,
@@ -32,8 +37,7 @@ export const RELEASE_CUT_CONTEXT_REL = ".deft-scratch/release-cut-context.json";
  * Operator-terminal recovery when the materialize overlay is present (#5910).
  * Exact restore first; retire the overlay before identity may pass.
  */
-export const OVERLAY_RESTORE_RECOVERY_GUIDANCE =
-  "Overlay present at .deft-scratch/materialize-runtime-overlay.json. Outside the blocked hook, run `pnpm install --frozen-lockfile` (or equivalent exact restore) to restore the published pin, then retire that overlay before identity may pass.";
+export const OVERLAY_RESTORE_RECOVERY_GUIDANCE = ENTRY_GUARD_MESSAGES.overlay;
 
 function overlayPresent(projectRoot: string, seams: FsSeams): boolean {
   const overlayPath = join(projectRoot, MATERIALIZE_RUNTIME_OVERLAY_REL);
@@ -94,4 +98,51 @@ export function checkCheapInSync(projectRoot: string, seams: FsSeams = {}): Chea
     allowSetup,
     recoveryGuidance,
   };
+}
+
+/**
+ * The runtime's own pin check for ordinary commands (AC2.6, #6620).
+ *
+ * Before any command operates, the runtime confirms its installed version
+ * equals the exact pin, however it was started: launcher, git hook or
+ * Taskfile. On a mismatch it names the project install (AC9.12) and the
+ * command does not run. Only a version mismatch counts here; the materialize
+ * overlay is a hook-only rule (#5910).
+ *
+ * Exempt: `doctor` (read-only diagnosis must still run), `--version`,
+ * `--help`, and `hook:dispatch` (the hook path has its own check, with the
+ * #6313 install admit).
+ */
+
+const EXEMPT_VERBS: ReadonlySet<string> = new Set(["doctor", "hook:dispatch", "help"]);
+const EXEMPT_FLAGS: ReadonlySet<string> = new Set(["--version", "-V", "--help", "-h"]);
+
+/** True when `argv` runs a command the identity check leaves alone. */
+export function isIdentityExempt(argv: readonly string[]): boolean {
+  if (argv.length === 0) return true;
+  if (argv.some((arg) => EXEMPT_FLAGS.has(arg))) return true;
+  const verb = argv.find((arg) => !arg.startsWith("-"));
+  return verb !== undefined && EXEMPT_VERBS.has(verb);
+}
+
+/**
+ * The `pin-mismatch` row when the installed runtime is not the pinned version
+ * and `argv` is not exempt; null otherwise (including when either version is
+ * unknown).
+ */
+export function runtimeIdentityRefusal(
+  projectRoot: string,
+  argv: readonly string[],
+  cheapInSync: (root: string) => CheapInSyncResult = (root) => checkCheapInSync(root),
+): string | null {
+  if (isIdentityExempt(argv)) return null;
+  const { pinVersion, installedVersion } = cheapInSync(projectRoot);
+  if (pinVersion === null || installedVersion === null || pinVersion === installedVersion) {
+    return null;
+  }
+  return formatEntryGuardMessage("pin-mismatch", {
+    install: projectInstallCommand(projectRoot),
+    pin: pinVersion,
+    installed: installedVersion,
+  });
 }

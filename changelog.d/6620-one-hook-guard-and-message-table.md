@@ -1,0 +1,4 @@
+section: Fixed
+- When Directive can't run, every entry point (the committed hook file, `deft-hook`, the runtime hook, `directive`/`deft`, `directive doctor`, git hooks and `task`) now checks in the same order and prints the same message: the untracked disable file stops quietly first; a missing or wrong-version runtime names the project install for your lockfile (`npm install` or `pnpm install --frozen-lockfile`), never Yarn or a global install (#6620, #6466, #5940, #5977, #6517, #6550).
+- The runtime now refuses ordinary commands when its installed version is not the pinned one, however it is started, so `git commit` and `task` stop with the install message instead of running the old version; `doctor`, `--version` and `--help` still run (AC2.6).
+- Runtimes released before this keep their older text until the pin moves to a release with this fix.

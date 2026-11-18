@@ -3,29 +3,40 @@
  * when basename(argv[1]) is deft-hook (or DEFT_LAUNCHER_MODE=hook).
  * OVPR host configs call the committed `.mjs` outer, never bare `deft-hook`.
  *
- * Entry order (RC-07 / RC-12): no runtime pin and an old-style project → run
- * the project's own installed pre-split copy, or block with the old-project
- * message when none is installed; a runtime pin → run the pinned runtime's
- * hook-bin, or block with project install guidance when it is missing or at
- * another version (AC10.11). Blocks use the host's response (RC-02,
+ * Entry order (the shared order in `entry-guard.ts`, AC9.12 / RC-07 / RC-12):
+ * untracked disable flag → stop quietly; no runtime pin and an old-style
+ * project → run the project's own installed pre-split copy, or block with the
+ * old-project message when none is installed; a runtime pin → run the pinned
+ * runtime's hook-bin, or block with the project install when it is missing or
+ * at another version (AC10.11). Blocks use the host's response (RC-02,
  * `hook-block.ts`). Never a global, out-of-project or different-version copy.
  */
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  EXIT_CODES,
-  HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
-  PRE_OVPR_LAYOUT_MESSAGE,
-  RECOVERY_GUIDANCE,
-  RUNTIME_PACKAGE_NAME,
-} from "./constants.js";
+import { EXIT_CODES, PRE_OVPR_LAYOUT_MESSAGE, RUNTIME_PACKAGE_NAME } from "./constants.js";
 import { discoverProject } from "./discover.js";
+import {
+  ENTRY_GUARD_PERSON_RUNS_INSTALL,
+  type EntryGuardMessageValues,
+  type EntrySituation,
+  formatEntryGuardMessage,
+  isDisableFlagActive,
+  projectInstallCommand,
+} from "./entry-guard.js";
 import { type HookBlock, isToolBefore, parseHookTarget, renderHookBlock } from "./hook-block.js";
 import { type ProjectLocalCopy, recognisePreOvprLayout } from "./legacy-shapes/pre-ovpr.js";
 import { checkNodeVersion } from "./node-check.js";
 import { readInstalledRuntime, readPin } from "./pin.js";
+
+/** Hook-path text for a pin row: the row, then that a person runs the install (D-013). */
+function hookPinMessage(situation: EntrySituation, values: EntryGuardMessageValues): string {
+  const row = formatEntryGuardMessage(situation, values);
+  return situation === "runtime-missing" || situation === "pin-mismatch"
+    ? `deft-hook: ${row} ${ENTRY_GUARD_PERSON_RUNS_INSTALL}`
+    : `deft-hook: ${row}`;
+}
 
 function emit(block: HookBlock): number {
   if (block.stdout.length > 0) process.stdout.write(block.stdout);
@@ -83,13 +94,12 @@ export function runHookLauncher(
       ? { ok: true as const, root: projectRoot }
       : discoverProject({ cwd: process.cwd() });
   if (!discovered.ok) {
-    process.stderr.write(
-      `deft-hook: no project root. Host hooks should call ` +
-        `node node_modules/${RUNTIME_PACKAGE_NAME}/dist/hook-bin.js\n` +
-        `Recovery: ${RECOVERY_GUIDANCE}\n`,
-    );
+    process.stderr.write("deft-hook: not inside a project, so there is nothing to check.\n");
     return EXIT_CODES.FAILURE;
   }
+
+  // AC9.12 step 1: the untracked disable flag stops quietly, before any check.
+  if (isDisableFlagActive(discovered.root)) return EXIT_CODES.SUCCESS;
 
   const { host, event } = parseHookTarget(argv);
 
@@ -118,11 +128,21 @@ export function runHookLauncher(
   );
   const installed = readInstalledRuntime(discovered.root);
   const pin = readPin(discovered.root);
-  const versionMismatch =
-    installed !== null && pin.kind === "exact" && pin.version !== installed.version;
-  if (installed === null || versionMismatch || !existsSync(hookEntry)) {
-    // "deft-hook:" names the source; the guidance itself stays the outer's text.
-    return emit(renderHookBlock(host, event, `deft-hook: ${HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE}`));
+  const install = projectInstallCommand(discovered.root);
+  if (pin.kind === "none" && installed === null) {
+    return emit(renderHookBlock(host, event, hookPinMessage("no-runtime-pin", {})));
+  }
+  if (pin.kind === "range" || pin.kind === "invalid") {
+    return emit(
+      renderHookBlock(host, event, hookPinMessage("pin-invalid", { spec: pin.raw ?? "" })),
+    );
+  }
+  if (installed === null || !existsSync(hookEntry)) {
+    return emit(renderHookBlock(host, event, hookPinMessage("runtime-missing", { install })));
+  }
+  if (pin.kind === "exact" && pin.version !== installed.version) {
+    const values = { install, pin: pin.version ?? "?", installed: installed.version };
+    return emit(renderHookBlock(host, event, hookPinMessage("pin-mismatch", values)));
   }
 
   // Claude/Codex treat exit 1 as "carry on"; a pre-tool non-decision must block.

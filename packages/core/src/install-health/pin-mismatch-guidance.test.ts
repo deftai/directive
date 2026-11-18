@@ -64,9 +64,10 @@ describe("renderPinMismatchRecoveryGuidance (#6375)", () => {
     expect(PIN_MISMATCH_TERMINAL_LINE).toMatch(/at that directory/);
   });
 
-  it("names `pnpm install` as the command to run with a pnpm lockfile, and no npm command", () => {
+  it("names `pnpm install --frozen-lockfile` with a pnpm lockfile, and no npm command (O-30)", () => {
     const text = render({ "pnpm-lock.yaml": PNPM_LOCK("1.2.3") });
-    expect(text.split("\n")).toContain("Run: `pnpm install`");
+    expect(text.split("\n")).toContain("Run: `pnpm install --frozen-lockfile`");
+    expect(text).not.toMatch(/`pnpm install`/);
     expect(namesNpmCommand(text)).toBe(false);
   });
 
@@ -77,17 +78,16 @@ describe("renderPinMismatchRecoveryGuidance (#6375)", () => {
     expect(text).not.toContain("pnpm");
   });
 
-  it("names `pnpm install` when both lockfiles are at the root", () => {
+  it("names `pnpm install --frozen-lockfile` when both lockfiles are at the root", () => {
     const text = render({
       "pnpm-lock.yaml": PNPM_LOCK("1.2.3"),
       "package-lock.json": NPM_LOCK("1.2.3"),
     });
-    expect(text.split("\n")).toContain("Run: `pnpm install`");
+    expect(text.split("\n")).toContain("Run: `pnpm install --frozen-lockfile`");
     expect(namesNpmCommand(text)).toBe(false);
   });
 
   it.each([
-    ["pnpm-lock.yaml", PNPM_LOCK("1.2.3"), "`pnpm install --frozen-lockfile`"],
     ["package-lock.json", NPM_LOCK("1.2.3"), "`npm ci`"],
   ])("with %s, says the frozen form can be tried when the lockfile already records the pin", (file, body, frozen) => {
     const text = render({ [file]: body });

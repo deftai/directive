@@ -23,7 +23,6 @@ import {
 } from "@deftai/directive-core/dist/hooks/tools.js";
 import {
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
-  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   hostHookOuterCommand,
   hostHookOuterRelPath,
   hostHookOuterSha8,
@@ -37,7 +36,7 @@ import {
   LEGACY_CORE_TEXT_EOL_LF,
 } from "@deftai/directive-core/dist/init-deposit/scaffold.js";
 import {
-  INSTALLATION_RECOVERY_GUIDANCE,
+  ENTRY_GUARD_MESSAGES,
   RUNTIME_PACKAGE_PATH_PREFIX,
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import {
@@ -161,6 +160,13 @@ export function yamlScalar(value: string): string {
   return needsQuotes ? JSON.stringify(value) : value;
 }
 
+/**
+ * Skill pointer recovery line (AC9.7, #6620): a missing path means the
+ * project install has not run; damaged wiring means repair.
+ */
+export const SKILL_POINTER_RECOVERY =
+  "if this path is missing, run `npm install` (or `pnpm install --frozen-lockfile`) in this project; if Directive's wiring is damaged, run `directive install --repair`.";
+
 function thinSkillPointer(
   dir: string,
   description: string,
@@ -178,7 +184,7 @@ description: ${yamlScalar(description)}
 
 Read and follow: ${RUNTIME_PREFIX}${targetRel}
 
-Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
+Recovery: ${SKILL_POINTER_RECOVERY}
 `,
   };
 }
@@ -1106,13 +1112,26 @@ export function ensureHostHooks(
   return { created, modified };
 }
 
+/** Escape `text` for use inside a double-quoted sh string. */
+function shDoubleQuoted(text: string): string {
+  return text.replace(/[\\"$`]/g, (ch) => `\\${ch}`);
+}
+
+/**
+ * The git-hook helper's missing-runtime line: the `runtime-missing` row, with
+ * `{install}` filled in by the helper from the lockfile at the repo root.
+ */
+const GITHOOK_RUNTIME_MISSING_LINE = shDoubleQuoted(
+  ENTRY_GUARD_MESSAGES["runtime-missing"],
+).replace("{install}", "$_directive_install");
+
 // Taskfile F1 disable-first + project-PM pin miss live in tasks/engine.yml +
 // tasks/engine-invoke.cjs (#5994) — disable-active runs BEFORE pin-bin / is-buildable-source;
 // pin-bin also quiet-exits when disable is active. This GITHOOK_HELPER is the .githooks twin.
 const GITHOOK_HELPER = `#!/usr/bin/env sh
 # Package-relative Directive git-hook helper (AC9.9 / AC9.12 / #5994).
 # Sourced by pre-commit/pre-push; defines run_directive.
-# F1 order: disable → missing pin (project PM) → pin bin.js.
+# Shared entry order: disable → runtime missing (project install, by lockfile) → pin bin.js.
 if [ -z "\${REPO_ROOT:-}" ]; then
   REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 fi
@@ -1130,8 +1149,15 @@ run_directive() {
   fi
   RUNTIME_BIN="$REPO_ROOT/${RUNTIME_BIN_REL}"
   if [ ! -f "$RUNTIME_BIN" ]; then
+    if [ -f "$REPO_ROOT/pnpm-lock.yaml" ]; then
+      _directive_install='\`pnpm install --frozen-lockfile\`'
+    elif [ -f "$REPO_ROOT/package-lock.json" ]; then
+      _directive_install='\`npm install\`'
+    else
+      _directive_install='\`npm install\` (or \`pnpm install --frozen-lockfile\`)'
+    fi
     echo "directive hooks: missing $RUNTIME_BIN" >&2
-    echo "${HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE}" >&2
+    echo "${GITHOOK_RUNTIME_MISSING_LINE}" >&2
     exit 1
   fi
   node "$RUNTIME_BIN" "$@"

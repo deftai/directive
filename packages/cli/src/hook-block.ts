@@ -10,7 +10,8 @@
  * | unknown / none | reason on stderr, exit 2         | stderr, exit 1      |
  *
  * Only `tool.before` blocks: exit 2 on other events can block compaction or
- * prompt submission (D-018). P4-U3a replaces this with the shared renderer.
+ * prompt submission (D-018). The outer keeps its own copy (Node built-ins
+ * only); `entry-guard-parity.test.ts` checks the two give the same response.
  */
 
 export const HOOK_TOOL_BEFORE_EVENT = "tool.before";
