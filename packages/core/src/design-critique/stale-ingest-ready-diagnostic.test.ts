@@ -246,6 +246,9 @@ describe("shared diagnostic mapping", () => {
     expect(diagnostic.text).toContain("Exact-byte Target-digest mismatch");
     expect(diagnostic.text).toContain("trailing-newline diagnostic only");
     expect(diagnostic.text).toContain("does not assert body drift");
+    expect(diagnostic.text).toContain("restore the issue body to the arced text");
+    expect(diagnostic.text).toContain("--disposition not_applicable");
+    expect(diagnostic.text).toContain("post a later lean");
     expect(diagnostic.text).not.toContain("#4496");
     expect(extractChipCommandArgv(diagnostic.text)).toBeNull();
     expect(digest).not.toBe(newlineDigest);

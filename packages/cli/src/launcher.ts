@@ -12,12 +12,12 @@ import {
   INSTALL_MANAGEMENT_COMMANDS,
   OLD_STYLE_LAUNCHER_COMMANDS,
   PRE_OVPR_LAYOUT_MESSAGE,
-  RECOVERY_GUIDANCE,
   RETIRED_INSTALL_VERBS,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
 import { invokeRuntime } from "./contract-invoke.js";
 import { discoverProject, takeRootFlag } from "./discover.js";
+import { classifyLauncherSituation, DISABLE_ONE_LINE, isDisableFlagActive } from "./entry-guard.js";
 import { runHookLauncher, runProjectLocalCopy } from "./hook-launcher.js";
 import { type ProjectLocalCopy, recognisePreOvprLayout } from "./legacy-shapes/pre-ovpr.js";
 import { checkNodeVersion } from "./node-check.js";
@@ -58,7 +58,8 @@ function printHelp(version: string, io: LauncherIo): void {
       `Ordinary product commands pass through to the pinned ${RUNTIME_PACKAGE_NAME}.\n` +
       `\n` +
       `First-time: npm i -g @deftai/directive && directive install\n` +
-      `Repair:     ${RECOVERY_GUIDANCE}\n` +
+      `After clone or pull: npm install (or pnpm install --frozen-lockfile)\n` +
+      `Repair wiring: directive install --repair\n` +
       `Upgrade:    directive upgrade\n` +
       `Uninstall:  directive uninstall\n` +
       `\n` +
@@ -234,6 +235,20 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
     return EXIT_CODES.SUCCESS;
   }
 
+  // --- AC9.12 step 1: an untracked disable flag stops commands that would
+  // start Directive (not install / upgrade / uninstall / doctor, --version or
+  // --help); the hook entry has its own check.
+  if (
+    projectRoot !== null &&
+    rawCmd !== "hook:dispatch" &&
+    !isInstallManagement(cmd) &&
+    !RETIRED_INSTALL_VERBS.has(cmd) &&
+    isDisableFlagActive(projectRoot)
+  ) {
+    io.writeErr(`${DISABLE_ONE_LINE}\n`);
+    return EXIT_CODES.SUCCESS;
+  }
+
   // --- Old-style project (§A6.7 / AC10.2, RC-12): every command except
   // upgrade / uninstall (and --version / --help, handled above) runs the
   // project's own installed pre-split copy, or stops when none is installed.
@@ -337,18 +352,10 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
   }
 
   // --- Ordinary passthrough (preserve --help/-h on product commands) ---
-  if (!state.pinMatchesInstalled || state.installed === null) {
-    io.writeErr(
-      `Pinned ${RUNTIME_PACKAGE_NAME}@${state.pin.version ?? state.pin.raw ?? "?"} ` +
-        `is not installed (found ${state.installed?.version ?? "nothing"}).\n` +
-        `Recovery: ${RECOVERY_GUIDANCE}\n`,
-    );
-    return EXIT_CODES.FAILURE;
-  }
-  if (!state.contractSupported) {
-    io.writeErr(
-      "This launcher is too old for this project. `npm i -g @deftai/directive@latest`.\n",
-    );
+  // One row per situation from the shared table (AC3.12, AC9.12, §A5.6).
+  const blocked = classifyLauncherSituation(projectRoot, state);
+  if (blocked !== null || state.installed === null) {
+    io.writeErr(`${blocked?.message ?? "Directive can't run here."}\n`);
     return EXIT_CODES.FAILURE;
   }
 

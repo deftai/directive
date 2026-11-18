@@ -359,16 +359,8 @@ function isSoleAuthorGitignore(body: string): boolean {
   return lines.every((l) => GITIGNORE_SEED_LINES.has(l));
 }
 
-/**
- * Remove sole-author Directive residue: `{ "private": true }`-only package.json
- * we created, empty `{}` host hooks we created, install-seeded AGENTS stubs
- * with no user body (C5 / F-013). Callers may also prune via pruneEmptyAncestors.
- * @returns relative paths removed
- */
-export function removeSoleAuthorHusks(root: string): string[] {
-  const removed: string[] = [];
-
-  const pushRemove = (rel: string): void => {
+function contained(root: string, removed: string[]): (rel: string) => void {
+  return (rel: string): void => {
     if (safeContainedRemove(root, rel)) {
       removed.push(toPosix(rel));
       for (const parent of pruneEmptyAncestors(root, rel)) {
@@ -376,6 +368,19 @@ export function removeSoleAuthorHusks(root: string): string[] {
       }
     }
   };
+}
+
+/**
+ * Remove a sole-author `package.json` (`{ "private": true }`, optionally with
+ * only Directive pins) and its lockfiles, or a near-empty lockfile left with
+ * no manifest (C5 / F-013). Only the launcher calls this, after the package
+ * manager has removed the runtime: deleting the manifest first makes npm
+ * recreate `{}` and pnpm fail (#5999).
+ * @returns relative paths removed
+ */
+export function removeSoleAuthorManifest(root: string): string[] {
+  const removed: string[] = [];
+  const pushRemove = contained(root, removed);
 
   const pkgAbs = join(root, "package.json");
   const pkg = existsSync(pkgAbs) ? readJsonObject(pkgAbs) : null;
@@ -393,6 +398,30 @@ export function removeSoleAuthorHusks(root: string): string[] {
     }
     if (!existsSync(pkgAbs) && isNearEmptyLockfile(abs)) {
       pushRemove(lock);
+    }
+  }
+  return [...new Set(removed)];
+}
+
+/**
+ * Remove sole-author Directive residue: empty `{}` host hooks we created,
+ * install-seeded AGENTS stubs with no user body, a sole-author Taskfile and
+ * `.gitignore` (C5 / F-013). Leaves `package.json` and lockfiles alone: the
+ * package manager still needs them to remove the runtime (#5999); see
+ * {@link removeSoleAuthorManifest}. Callers may also prune via pruneEmptyAncestors.
+ * @returns relative paths removed
+ */
+export function removeSoleAuthorHusks(root: string): string[] {
+  const removed: string[] = [];
+  const pushRemove = contained(root, removed);
+
+  // A near-empty lockfile with no package.json is residue the package
+  // manager cannot use anyway; with a manifest present, lockfiles wait for
+  // the launcher (removeSoleAuthorManifest after the package-manager remove).
+  if (!existsSync(join(root, "package.json"))) {
+    for (const lock of ["package-lock.json", "pnpm-lock.yaml"] as const) {
+      const abs = join(root, lock);
+      if (existsSync(abs) && isNearEmptyLockfile(abs)) pushRemove(lock);
     }
   }
 
