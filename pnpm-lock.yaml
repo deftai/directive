@@ -56,6 +56,9 @@ importers:
       archiver:
         specifier: ^8.0.0
         version: 8.0.0
+      minimatch:
+        specifier: ^10.2.5
+        version: 10.2.5
       parse5:
         specifier: ^7.3.0
         version: 7.3.0
