@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
+import { DEFT_DIRECTIVE_DISABLE_FLAG_NAME } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
 import {
   fixtureCaseById,
   fixtureCasesFor,
@@ -758,8 +759,7 @@ describe("hook-dispatch pin≠installed recovery (#6013 / #5893)", () => {
     const wire = JSON.parse(out.join("")) as { decision?: string; reason?: string };
     expect(wire.decision).toBe("deny");
     const msg = wire.reason ?? "";
-    expect(msg).toContain("pin=0.129.1");
-    expect(msg).toContain("installed=0.127.0");
+    expect(msg).toContain("installed @deftai/directive-runtime 0.127.0 is not the pinned 0.129.1");
     expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
     expect(msg).toMatch(/npm install|pnpm install/);
     expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
@@ -788,7 +788,7 @@ describe("hook-dispatch pin≠installed recovery (#6013 / #5893)", () => {
 });
 
 describe("hook-dispatch pin-mismatch recovery admit (#6313)", () => {
-  const PIN_LINE = "Directive hook refuse: pinned runtime does not match the installed runtime";
+  const PIN_LINE = "Directive can't run: the installed @deftai/directive-runtime";
 
   function cheapResult(pinMismatch: boolean): CheapInSyncResult {
     return pinMismatch
@@ -991,5 +991,71 @@ describe("hook-dispatch session.end (#6274)", () => {
     expect(code).toBe(0);
     expect(out.join("")).toBe("");
     expect(err.join("").trim().split("\n")).toHaveLength(1);
+  });
+});
+
+// hook-bin checks the untracked disable flag before any install check (AC9.12 step 1, #6620).
+
+const disableRoots: string[] = [];
+afterAll(() => {
+  for (const root of disableRoots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
+
+/** A git project pinning 1.2.4 with 1.2.3 installed. */
+function mismatchedProject(): string {
+  const root = mkdtempSync(join(tmpdir(), "hook-disable-first-"));
+  disableRoots.push(root);
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  writeFileSync(
+    join(root, "package.json"),
+    JSON.stringify({ devDependencies: { "@deftai/directive-runtime": "1.2.4" } }),
+  );
+  const dir = join(root, "node_modules", "@deftai", "directive-runtime");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "package.json"),
+    JSON.stringify({ name: "@deftai/directive-runtime", version: "1.2.3" }),
+  );
+  return root;
+}
+
+function dispatch(root: string, seams: { cheapInSync?: (r: string) => CheapInSyncResult } = {}) {
+  const out: string[] = [];
+  let cheapCalls = 0;
+  const code = run(["--host", "grok", "--event", "tool.before", `--project-root=${root}`], {
+    readStdin: () =>
+      JSON.stringify({ tool_name: "run_terminal_command", tool_input: { command: "echo hi" } }),
+    writeOut: (t) => out.push(t),
+    writeErr: () => undefined,
+    cwd: () => root,
+    launchingCheckoutRoot: () => "/some/other/checkout",
+    stdinEmptyRetryMs: 0,
+    cheapInSync: (r) => {
+      cheapCalls += 1;
+      return (seams.cheapInSync ?? (() => ({}) as CheapInSyncResult))(r);
+    },
+  });
+  return { code, text: out.join(""), cheapCalls: () => cheapCalls };
+}
+
+describe("hook-bin: disable flag before root and pin checks (#6620)", () => {
+  it("untracked flag + pin mismatch + root mismatch → disabled allow, no install check", () => {
+    const root = mismatchedProject();
+    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "1\n");
+    const result = dispatch(root);
+    expect(result.code).toBe(0);
+    expect(result.cheapCalls()).toBe(0);
+    expect(result.text).not.toContain("Directive can't run");
+    expect(result.text).not.toContain("payload project root does not match");
+    // Grok's allow is an empty response; nothing is denied.
+    expect(result.text).not.toContain("deny");
+  });
+
+  it("a tracked flag does not stop the checks", () => {
+    const root = mismatchedProject();
+    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "1\n");
+    execFileSync("git", ["add", DEFT_DIRECTIVE_DISABLE_FLAG_NAME], { cwd: root });
+    const result = dispatch(root);
+    expect(result.text).toContain("payload project root does not match");
   });
 });

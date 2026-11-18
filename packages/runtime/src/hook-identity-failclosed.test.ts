@@ -357,7 +357,7 @@ describe("packaged-consumer deposited outer (#6100 P4)", () => {
 });
 
 describe("pin-mismatch recovery admit (#6313)", () => {
-  const PIN_LINE = "Directive hook refuse: pinned runtime does not match the installed runtime";
+  const PIN_LINE = "Directive can't run: the installed @deftai/directive-runtime";
 
   function cheapPinMismatchOnly(): CheapInSyncResult {
     return { ...cheapFailClosed(), pinMismatchOnly: true };

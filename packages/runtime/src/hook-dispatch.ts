@@ -5,9 +5,11 @@ import { fileURLToPath } from "node:url";
 import { isShellTool } from "@deftai/directive-core/dist/hooks/tools.js";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import {
+  ENTRY_GUARD_MESSAGES,
   FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE,
+  formatEntryGuardMessage,
   HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
-  INSTALLATION_RECOVERY_GUIDANCE,
+  projectInstallCommand,
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
 import {
@@ -20,6 +22,7 @@ import {
   resolveLaunchingCheckoutRootFromPath,
 } from "@deftai/directive-core/dist/install-health/runtime-link.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
+import { isDeftDirectiveDisableActive } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
 import {
   decideHook,
   firstString,
@@ -49,8 +52,7 @@ import { maybeSelfCompleteSetup } from "./self-complete.js";
  * Session-start schema-behind notice (AC8.9 / AC14.11). Doctor uses the same
  * remedy name; other hooks must stay silent about data currency.
  */
-export const SESSION_START_SCHEMA_BEHIND_NOTICE =
-  "Project data schema is behind the runtime; run `directive upgrade`.";
+export const SESSION_START_SCHEMA_BEHIND_NOTICE = ENTRY_GUARD_MESSAGES["data-behind"];
 
 interface ParsedArgs {
   host?: HookHost;
@@ -96,6 +98,11 @@ export interface HookDispatchCliSeams {
    * dual fixture.
    */
   readonly cheapInSync?: (root: string) => CheapInSyncResult;
+  /**
+   * Untracked root disable-flag check (#6620). Defaults to
+   * `isDeftDirectiveDisableActive`; injected in unit tests.
+   */
+  readonly disableActive?: (root: string) => boolean;
   /** Strict session-end release (#6274). Injected in tests to force a throw. */
   readonly sessionEndRelease?: SessionEndHookSeams["release"];
 }
@@ -449,9 +456,16 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     args.projectRoot ? resolve(args.projectRoot) : projectRootFromHookPayload(payload, cwd),
   );
 
+  // #6620 / AC9.12 step 1: the untracked disable flag comes before every
+  // install check. Skip the root, pin and setup steps; decideHook returns the
+  // disabled allow (the decision itself stays in the dispatcher).
+  const disabled = (seams.disableActive ?? isDeftDirectiveDisableActive)(projectRoot);
+
   // Wave 2k / AC9.4+AC9.5: payload project root must match the checkout that
   // owns the running hook-bin. Mismatch → fail closed (no setup, no policy).
-  const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
+  const launchRoot = disabled
+    ? null
+    : (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
   if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
     const payloadRootText = normalizeHookProjectRoot(projectRoot);
     const launchRootText = normalizeHookProjectRoot(launchRoot);
@@ -488,8 +502,8 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // #6013/#5893: pin≠installed recovery names project PM install (not AC9.7).
   // #5910: overlay-present also fail-closes (even when versions match); recovery
   // names frozen-lockfile restore then overlay retirement.
-  const cheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
-  if (cheap.failClosed) {
+  const cheap = disabled ? null : (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
+  if (cheap?.failClosed === true) {
     // #6313: admit the refusal's own named recovery when pin ≠ installed is the
     // only fault; no setup and no policy dispatch on this path either.
     const admit = pinMismatchRecoveryAdmit(args.host, args.event, projectRoot, payload, cheap);
@@ -498,24 +512,25 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
       if (rendered.length > 0) writeOut(`${rendered}\n`);
       return 0;
     }
-    // #6375: pin ≠ installed as the only fault gets root-specific text on lines
-    // of its own (checked root, outside terminal, install by lockfile kind,
-    // retry). The admit above is unchanged; the overlay keeps its guidance.
-    const recovery =
+    // #6620: a version mismatch gets the `pin-mismatch` row (install named by
+    // lockfile, one the admit above lets through). As the only fault it adds
+    // #6375's root-specific lines; otherwise the cheap check's own recovery
+    // (the overlay row). Matching versions mean the overlay alone.
+    const pinRow = formatEntryGuardMessage("pin-mismatch", {
+      install: projectInstallCommand(projectRoot),
+      pin: cheap.pinVersion ?? "?",
+      installed: cheap.installedVersion ?? "?",
+    });
+    const cheapRecovery = cheap.recoveryGuidance ?? ENTRY_GUARD_MESSAGES.overlay;
+    const message =
       cheap.pinMismatchOnly === true
-        ? `Recovery:\n${renderPinMismatchRecoveryGuidance(projectRoot)}`
-        : `Recovery: ${cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE}`;
-    const identityLine = cheap.identityMatch
-      ? `Directive hook refuse: materialize-runtime overlay is present; identity cannot pass until the overlay is retired after exact restore ` +
-        `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). `
-      : `Directive hook refuse: pinned runtime does not match the installed runtime ` +
-        `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). `;
-    const decision = installationIdentityDeny(
-      args.host,
-      args.event,
-      projectRoot,
-      `${identityLine}${recovery}`,
-    );
+        ? `${pinRow}\n${renderPinMismatchRecoveryGuidance(projectRoot)}`
+        : cheap.identityMatch
+          ? `Directive hook refuse: materialize-runtime overlay is present; identity cannot pass until the overlay is retired after exact restore ` +
+            `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). ` +
+            `Recovery: ${cheapRecovery}`
+          : `${pinRow}\nRecovery: ${cheapRecovery}`;
+    const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
     const rendered = renderHostDecision(args.host, decision);
     if (rendered.length > 0) writeOut(`${rendered}\n`);
     return 0;
@@ -524,7 +539,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // Wave 2d / AC8.6: registered hooks self-complete when readiness is missing/stale.
   // Suppressed when DEFT_DOCTOR_HOOK_DIAGNOSTIC is set (AC9.10).
   // #5885: thread seams.writeErr so preserved tracked hooks disclose on stderr.
-  maybeSelfCompleteSetup(projectRoot, { fromHook: true, writeErr });
+  if (!disabled) maybeSelfCompleteSetup(projectRoot, { fromHook: true, writeErr });
   const environ = mergeHookDispatchEnviron(payload);
   let decision = decideHook({
     host: args.host,
@@ -536,7 +551,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   });
 
   // AC8.9: session-start (only) reports data behind and names `directive upgrade`.
-  if (args.event === "session.start") {
+  if (args.event === "session.start" && !disabled) {
     const dataStatus = readProjectDataStatus(projectRoot).dataStatus;
     if (dataStatus === "migration_needed" || dataStatus === "diagnosis_failed") {
       const base = decision.message.trim();
