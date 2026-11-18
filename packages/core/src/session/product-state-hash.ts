@@ -6,8 +6,9 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
+import { globSyncCompat } from "../fs/glob-sync.js";
 import { defaultGitRunner, type GitRunner, gitHead } from "./git.js";
 
 const EXCLUDED_DIR_NAMES = new Set([
@@ -455,7 +456,7 @@ function expandPath(root: string, relOrGlob: string, keepTelemetryFiles = false)
       const out: string[] = [];
       const seen = new Set<string>();
       for (const pattern of globPatternsIncludingDotfiles(rel)) {
-        for (const match of globSync(pattern, { cwd: root })) {
+        for (const match of globSyncCompat(pattern, { cwd: root })) {
           const posix = toPosix(relative(root, resolve(root, match)));
           if (
             posix.length === 0 ||
