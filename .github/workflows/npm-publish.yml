@@ -299,8 +299,20 @@ jobs:
       # actions/cache-poisoning/poisonable-step under workflow_dispatch).
       # One self-contained esbuild bundle (#5603): packages/core/dist alone
       # cannot load there (@deftai/directive-types and npm deps are not on disk).
+      # Tags older than the bundler (a workflow_dispatch re-run of an existing tag)
+      # use the bundler from this workflow's own commit; checkout has full history.
       - name: Bundle post-publish runner (#5603)
-        run: node packages/core/scripts/bundle-post-publish-runner.mjs --out post-publish-runner/npm-ops.mjs
+        shell: bash
+        env:
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          BUNDLER=packages/core/scripts/bundle-post-publish-runner.mjs
+          if [ ! -f "${BUNDLER}" ]; then
+            mkdir -p "$(dirname "${BUNDLER}")"
+            git show "${WORKFLOW_SHA}:${BUNDLER}" > "${BUNDLER}"
+          fi
+          node "${BUNDLER}" --out post-publish-runner/npm-ops.mjs
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
