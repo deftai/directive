@@ -1207,5 +1207,8 @@ jobs:
       - name: Build TypeScript workspace
         run: pnpm run build
 
+      # pwsh, not Git Bash: the runtime pack script calls `tar`, and Git Bash's
+      # GNU tar reads `C:\...` as a remote host. Windows' own tar.exe does not.
       - name: Lifecycle fixture step 4 (missing packages)
+        shell: pwsh
         run: node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js --step 4
