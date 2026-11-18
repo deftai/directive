@@ -941,45 +941,50 @@ function isLegacyRootMarker(legacyDir: string, rel: string): boolean {
 
 /**
  * Plan the finish-move of a leftover `vbrief/` into a populated `xbrief/`
- * (#6571). Reads only. Throws on a claimed-target or archive collision, so
+ * (#6571). Reads only. A claimed-target or archive collision is an expected
+ * data conflict the operator resolves, so it is returned as a refusal and
  * nothing is written when any file cannot be placed.
  */
-function planFinishLegacyMove(projectRoot: string, legacyDir: string): FinishMovePlan {
+function planFinishLegacyMove(
+  projectRoot: string,
+  legacyDir: string,
+):
+  | { readonly ok: true; readonly plan: FinishMovePlan }
+  | { readonly ok: false; readonly error: string } {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
   const files = collectFiles(legacyDir);
   const writes: FinishMoveWrite[] = [];
   const alreadyPresent: string[] = [];
   const claimedTargets = new Map<string, string>();
-  const claim = (targetRel: string, rel: string): void => {
+  /** Returns a refusal message, or null when `rel` now owns `targetRel`. */
+  const claim = (targetRel: string, rel: string): string | null => {
     const prior = claimedTargets.get(targetRel);
     if (prior !== undefined && prior !== rel) {
-      throw new Error(
-        `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${targetRel}' claimed by both '${prior}' and '${rel}'`,
-      );
+      return `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${targetRel}' claimed by both '${prior}' and '${rel}'`;
     }
     claimedTargets.set(targetRel, rel);
+    return null;
   };
-  // Raw copy into xbrief/archive/: skip when the same bytes are there, fail closed when different.
+  // Raw copy into xbrief/archive/: skip when the same bytes are there, refuse when different.
   const archiveRaw = (
     rel: string,
     targetRel: string,
     raw: string,
     kind: "archived" | "collision",
-  ): void => {
-    claim(targetRel, rel);
+  ): string | null => {
+    const claimed = claim(targetRel, rel);
+    if (claimed !== null) return claimed;
     const targetPath = join(migratedDir, targetRel);
     if (!existsSync(targetPath)) {
       writes.push({ targetRel, data: raw, kind });
-      return;
+      return null;
     }
     const existing = readTextOrNull(targetPath);
     if (existing !== null && normalizeEol(existing) === normalizeEol(raw)) {
       alreadyPresent.push(`${MIGRATED_ARTIFACT_DIR}/${targetRel}`);
-      return;
+      return null;
     }
-    throw new Error(
-      `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${targetRel}' already exists with different content than '${LEGACY_ARTIFACT_DIR}/${rel}'`,
-    );
+    return `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${targetRel}' already exists with different content than '${LEGACY_ARTIFACT_DIR}/${rel}'`;
   };
 
   for (const srcPath of files) {
@@ -987,26 +992,28 @@ function planFinishLegacyMove(projectRoot: string, legacyDir: string): FinishMov
     if (shouldOmitLegacyMigrationFile(rel) || isLegacyRootMarker(legacyDir, rel)) continue;
     const raw = readFileSync(srcPath, "utf8");
     const disposition = classifyLegacyMigrationFile(srcPath, raw);
+    let refused: string | null = null;
     if (disposition.kind === "archive") {
-      archiveRaw(rel, archiveDestRelative(rel), raw, "archived");
-      continue;
+      refused = archiveRaw(rel, archiveDestRelative(rel), raw, "archived");
+    } else {
+      const destRel = destRelForLegacy(rel);
+      refused = claim(destRel, rel);
+      const destPath = join(migratedDir, destRel);
+      if (refused === null && !existsSync(destPath)) {
+        writes.push({ targetRel: destRel, data: disposition.body, kind: "migrated" });
+      } else if (refused === null) {
+        const existing = readTextOrNull(destPath);
+        if (existing !== null && sameMigratedContent(existing, disposition.body)) {
+          alreadyPresent.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
+        } else {
+          // Destination taken with different content: never overwrite xbrief/.
+          refused = archiveRaw(rel, collisionArchiveRelative(rel), raw, "collision");
+        }
+      }
     }
-    const destRel = destRelForLegacy(rel);
-    claim(destRel, rel);
-    const destPath = join(migratedDir, destRel);
-    if (!existsSync(destPath)) {
-      writes.push({ targetRel: destRel, data: disposition.body, kind: "migrated" });
-      continue;
-    }
-    const existing = readTextOrNull(destPath);
-    if (existing !== null && sameMigratedContent(existing, disposition.body)) {
-      alreadyPresent.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
-      continue;
-    }
-    // Destination taken with different content: never overwrite xbrief/.
-    archiveRaw(rel, collisionArchiveRelative(rel), raw, "collision");
+    if (refused !== null) return { ok: false, error: refused };
   }
-  return { files: files.length, writes, alreadyPresent };
+  return { ok: true, plan: { files: files.length, writes, alreadyPresent } };
 }
 
 /**
@@ -1020,61 +1027,45 @@ function planFinishLegacyMove(projectRoot: string, legacyDir: string): FinishMov
 function finishLegacyMove(
   projectRoot: string,
   legacyDir: string,
-): {
-  backupDir: string;
-  files: number;
-  migratedPaths: string[];
-  archivedPaths: string[];
-  alreadyPresentPaths: string[];
-  collisionArchivedPaths: string[];
-} {
-  assertMigrationSourceSafe(projectRoot, legacyDir);
+):
+  | {
+      readonly ok: true;
+      readonly backupDir: string;
+      readonly files: number;
+      readonly migratedPaths: string[];
+      readonly archivedPaths: string[];
+      readonly alreadyPresentPaths: string[];
+      readonly collisionArchivedPaths: string[];
+    }
+  | { readonly ok: false; readonly error: string } {
   const root = resolve(projectRoot);
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
-  const plan = planFinishLegacyMove(projectRoot, legacyDir);
+  const planned = planFinishLegacyMove(projectRoot, legacyDir);
+  if (!planned.ok) return planned;
+  const plan = planned.plan;
   const backupDir = backupMigrationInputs(projectRoot, legacyDir, migratedDir);
   const readme = join(migratedDir, ARCHIVE_REL_DIR, ARCHIVE_README_FILENAME);
   const readmeExisted = existsSync(readme);
 
-  // Paths this run created, so a write that throws after creating its file is
+  // Paths this run created, so a write that fails after creating its file is
   // rolled back too. A refusal before any I/O (the target appeared meanwhile,
   // a symlink, an escape) did not create anything here, so that target is never
   // eligible for cleanup: it may belong to another writer.
   const created: string[] = [];
-  const createFile = (target: string, write: () => void): void => {
+  /** Runs one create; returns the failure message, or null on success. */
+  const createFile = (target: string, write: () => void): string | null => {
     try {
       write();
     } catch (err) {
       const refusedBeforeIo =
         err instanceof ContainedWriteError && err.code !== ContainedWriteErrorCode.IO;
       if (!refusedBeforeIo) created.push(target);
-      throw err;
+      return err instanceof Error ? err.message : String(err);
     }
     created.push(target);
+    return null;
   };
-  const migratedPaths: string[] = [];
-  const archivedPaths: string[] = [];
-  const collisionArchivedPaths: string[] = [];
-  try {
-    for (const entry of plan.writes) {
-      const target = join(migratedDir, entry.targetRel);
-      createFile(target, () => {
-        containedWrite({ root, target, data: entry.data, mode: "create" });
-      });
-      const shown = `${MIGRATED_ARTIFACT_DIR}/${entry.targetRel}`;
-      if (entry.kind === "migrated") {
-        migratedPaths.push(shown);
-      } else {
-        archivedPaths.push(shown);
-        if (entry.kind === "collision") collisionArchivedPaths.push(shown);
-      }
-    }
-    if (archivedPaths.length > 0 && !readmeExisted) {
-      createFile(readme, () => {
-        ensureArchiveReadme(projectRoot, migratedDir);
-      });
-    }
-  } catch (err) {
+  const rollback = (error: string): { readonly ok: false; readonly error: string } => {
     for (const target of created) {
       try {
         if (existsSync(target)) containedRemove({ root, target });
@@ -1082,10 +1073,34 @@ function finishLegacyMove(
         /* best-effort rollback; the backup still holds both trees */
       }
     }
-    throw err;
+    return { ok: false, error };
+  };
+  const migratedPaths: string[] = [];
+  const archivedPaths: string[] = [];
+  const collisionArchivedPaths: string[] = [];
+  for (const entry of plan.writes) {
+    const target = join(migratedDir, entry.targetRel);
+    const failed = createFile(target, () => {
+      containedWrite({ root, target, data: entry.data, mode: "create" });
+    });
+    if (failed !== null) return rollback(failed);
+    const shown = `${MIGRATED_ARTIFACT_DIR}/${entry.targetRel}`;
+    if (entry.kind === "migrated") {
+      migratedPaths.push(shown);
+    } else {
+      archivedPaths.push(shown);
+      if (entry.kind === "collision") collisionArchivedPaths.push(shown);
+    }
+  }
+  if (archivedPaths.length > 0 && !readmeExisted) {
+    const failed = createFile(readme, () => {
+      ensureArchiveReadme(projectRoot, migratedDir);
+    });
+    if (failed !== null) return rollback(failed);
   }
   rmSync(legacyDir, { recursive: true, force: true });
   return {
+    ok: true,
     backupDir,
     files: plan.files,
     migratedPaths,
@@ -1169,9 +1184,11 @@ function runFinishLegacyMove(
 
   try {
     const moved = finishLegacyMove(projectRoot, legacyDir);
+    if (!moved.ok) return { kind: "config", message: moved.error };
+    const { ok: _ok, ...result } = moved;
     return {
       kind: "migrated",
-      ...moved,
+      ...result,
       ...(residualMessage !== undefined ? { residualMessage } : {}),
     };
   } catch (err) {
