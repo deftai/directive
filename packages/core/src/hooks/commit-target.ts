@@ -84,9 +84,7 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
   let leadingOpens = 0;
   let onlyOpens = true;
   let trailingCloses = 0;
-  // The last character the unquoted path added to the word, so `>&` / `$(` are
-  // read only when both characters are unquoted and unescaped.
-  let prevUnquoted = "";
+  let prevUnquoted = ""; // the last unquoted, unescaped character, for `>&` and `$(`
   const flushWord = (): void => {
     if (started) {
       const word: ShellWord = { value: cur, expands };
@@ -472,25 +470,25 @@ function withoutRedirections(words: readonly ShellWord[]): ShellWord[] {
 /** Shells whose `-c` command string the gate reads (#6362). */
 const SHELL_BINS = new Set(["sh", "bash", "zsh", "dash", "ksh", "ash", "mksh"]);
 /** Commands that run the command after them, each with its options that take the next word. */
-const WRAPPER_VALUE_OPTIONS = new Map(
-  [
-    "env -u -C -P --unset --chdir",
-    "command",
-    "exec -a",
-    "nohup",
-    "time -f -o --format --output",
-    "timeout -s -k --signal --kill-after",
-    "xargs -a -d -E -I -L -n -P -s --arg-file --delimiter --eof --max-args --max-lines --max-procs",
-    "nice -n --adjustment",
-    "sudo -u -g -C -D -h -p -r -t -T -U --user --group --chdir --host --prompt --role --type",
-    "doas -u -C",
-    "stdbuf -i -o -e --input --output --error",
-    "ionice -c -n -p --class --classdata --pid",
-  ].map((row) => {
-    const [bin = "", ...options] = row.split(" ");
-    return [bin, new Set(options)] as const;
-  }),
-);
+const WRAPPER_VALUE_OPTIONS = new Map<string, ReadonlySet<string>>();
+for (const row of [
+  "env -u -C -P --unset --chdir",
+  "command",
+  "exec -a",
+  "nohup",
+  "time -f -o --format --output",
+  "timeout -s -k --signal --kill-after",
+  "xargs -a -d -E -I -J -L -n -P -R -S -s --arg-file --delimiter --max-args --max-chars --max-procs",
+  "nice -n --adjustment",
+  "sudo -u -g -C -D -h -p -r -t -T -U -R --user --group --close-from --chdir --host --prompt",
+  "sudo --role --type --command-timeout --other-user --chroot",
+  "doas -u -C",
+  "stdbuf -i -o -e --input --output --error",
+  "ionice -c -n -p -P -u --class --classdata --pid --pgid --uid",
+]) {
+  const [bin = "", ...options] = row.split(" ");
+  WRAPPER_VALUE_OPTIONS.set(bin, new Set([...(WRAPPER_VALUE_OPTIONS.get(bin) ?? []), ...options]));
+}
 const GROUPED_COMMIT = "the commit runs inside a `( … )` subshell group";
 
 /** What one command is (#6362); a wrapped command or a `-c` / `eval` string is read next. */
@@ -519,10 +517,7 @@ interface CallReading {
 
 /** The program a command word names: base name, lower case, no `.exe`. */
 function programName(word: ShellWord): string {
-  return word.value
-    .replace(/^.*[/\\]/, "")
-    .toLowerCase()
-    .replace(/\.exe$/, "");
+  return /^(?:.*[/\\])?(.*?)(?:\.exe)?$/is.exec(word.value)?.[1]?.toLowerCase() ?? "";
 }
 
 /** True when the program name holds a variable (`$GIT`, `` `which git` ``); `$HOME/bin/x` is readable. */
@@ -582,18 +577,17 @@ function readShellCommand(words: readonly ShellWord[], k: number, name: string):
   return body === undefined ? signal(`${what} is missing`) : commandString(body, what);
 }
 
-/** `eval …`: the arguments joined by spaces are read as a command string (#6362). */
-function readEval(words: readonly ShellWord[], k: number): CommandReading {
-  const args = withoutRedirections(words.slice(k + 1));
+/** `eval …` and `env -S …`: the words joined by spaces are read as one command string (#6362). */
+function joinedString(args: readonly ShellWord[], what: string): CommandReading {
   if (args.length === 0) return null;
   const text = args.map(withoutTrailingCloses).join(" ");
-  return commandString({ value: text, expands: args.some((arg) => arg.expands) }, "an `eval`");
+  return commandString({ value: text, expands: args.some((arg) => arg.expands) }, what);
 }
 
 /**
  * `env`, `xargs`, `timeout 60` and the like (#6362): the wrapped command is the
- * first word after the wrapper's own options and their values and, for
- * `timeout`, the duration. Only that command is read, not its arguments.
+ * first word after the wrapper's own options and their values, `timeout`'s
+ * duration and any number. Only that command is read, not its arguments.
  */
 function readWrapper(words: readonly ShellWord[], k: number, name: string): CommandReading {
   const valueOptions = WRAPPER_VALUE_OPTIONS.get(name);
@@ -612,15 +606,26 @@ function readWrapper(words: readonly ShellWord[], k: number, name: string): Comm
       c += 1;
       continue;
     }
-    if (!optionsDone && name === "env" && (v === "-S" || v === "--split-string")) {
-      const text = words[c + 1];
-      return text === undefined ? null : commandString(text, "an `env -S` string");
+    // `env -S` splits its string, and the words after it join the command it builds.
+    const split =
+      name === "env" && !optionsDone ? /^(?:-[^-uCPS]*S|--split-string=?)(.*)$/s.exec(v) : null;
+    if (split !== null) {
+      const rest = withoutRedirections(words.slice(c + 1));
+      const own = split[1] ? [{ value: split[1], expands: word?.expands ?? false }] : [];
+      return joinedString([...own, ...rest], "an `env -S` string");
     }
     if (!optionsDone && v.startsWith("-") && v.length > 1) {
-      c += valueOptions?.has(v) ? 2 : 1;
+      // `command -v` / `-V` only describe the command.
+      if (name === "command" && /^-[^-]*[vV]/.test(v)) return null;
+      // In a short cluster the first value-taking letter takes the rest, or the next word.
+      const at = v.startsWith("--")
+        ? -1
+        : [...v].findIndex((l, i) => i > 0 && valueOptions?.has(`-${l}`));
+      c += valueOptions?.has(v) || at === v.length - 1 ? 2 : 1;
       continue;
     }
-    if (skipOperand) {
+    // A number is an option value or `timeout`'s duration, not the program.
+    if (skipOperand || /^\d+(?:\.\d+)?[smhd]?$/.test(v)) {
       skipOperand = false;
       c += 1;
       continue;
@@ -658,7 +663,7 @@ function readCommand(words: readonly ShellWord[]): CommandReading {
     return git.subcommand === "commit" ? { kind: "commit", git } : null;
   }
   if (SHELL_BINS.has(name)) return readShellCommand(words, k, name);
-  if (name === "eval") return readEval(words, k);
+  if (name === "eval") return joinedString(withoutRedirections(words.slice(k + 1)), "an `eval`");
   if (WRAPPER_VALUE_OPTIONS.has(name)) return readWrapper(words, k, name);
   return null;
 }
