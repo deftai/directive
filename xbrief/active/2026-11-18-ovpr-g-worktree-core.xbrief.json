@@ -292,7 +292,13 @@
           "packages/core/src/vitest-runner/dest-contention-it-timeout.test.ts",
           "packages/core/src/vitest-runner/dest-contention-it-timeout.helper.test.ts",
           "packages/runtime/src/cli-router/router.test.ts",
-          "changelog.d/6562-no-worktree-deft-core.md"
+          "changelog.d/6562-no-worktree-deft-core.md",
+          "packages/core/src/session/process-cost.ts",
+          "packages/core/src/session/session-start-read-only.test.ts",
+          "packages/core/src/swarm/swarm-deep-coverage.test.ts",
+          "packages/core/src/swarm/worktrees.test.ts",
+          "content/commands.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md"
         ],
         "readiness": "ready",
         "depends_on": [

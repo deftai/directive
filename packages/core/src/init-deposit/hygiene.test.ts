@@ -2405,6 +2405,49 @@ describe("expected-verdict corpus (#5245 P3/P5)", () => {
     expect(Object.keys(importers).some((k) => k.includes("peerDependencies"))).toBe(false);
   });
 
+  it("reads specifier/version values with trimming and skips empty values (#6680)", () => {
+    const lock = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      lodash:",
+      "        specifier:    '^4.17.21'   \r",
+      "        version:\t4.17.21\t",
+      "      empty-pkg:",
+      "        specifier:   ",
+      "        version:",
+      "",
+    ].join("\n");
+    expect(pnpmLockImporterDeps(lock)).toEqual({ ".\0lodash": "^4.17.21|4.17.21" });
+  });
+
+  it("handles a very long lockfile line quickly (#6680)", () => {
+    const long = `${" ".repeat(200_000)}x${" ".repeat(200_000)}y`;
+    const lock = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      lodash:",
+      `        specifier:${long}`,
+      `        version:${long}`,
+      "      other:",
+      "        specifier: ^1.0.0",
+      `        version:${" ".repeat(400_000)}`,
+      "",
+    ].join("\n");
+    const start = Date.now();
+    const out = pnpmLockImporterDeps(lock);
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(out[".\0lodash"]).toBe(`${long.trim()}|${long.trim()}`);
+    expect(out[".\0other"]).toBeUndefined();
+  });
+
   it("specifier-only importer edit FAIL (H3 corpus row)", () => {
     const head = basePnpm.replace("specifier: ^4.17.21", "specifier: ^4.17.22");
     expect(isPnpmLockDirectivePinFollowThrough(basePnpm, head)).toBe(false);
