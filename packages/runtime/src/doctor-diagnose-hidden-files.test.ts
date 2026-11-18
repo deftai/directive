@@ -100,13 +100,14 @@ describe("doctor hidden Directive files (#6618)", () => {
 
   it("names a global excludes file (core.excludesFile in a temporary HOME)", () => {
     const { root, home } = repo();
-    const globalExcludes = join(home, "global-excludes");
+    // Forward slashes: git config treats `\` as an escape, so Windows paths need `/`.
+    const globalExcludes = join(home, "global-excludes").replace(/\\/g, "/");
     writeFileSync(globalExcludes, "# comment\n.claude/\n");
     writeFileSync(join(home, ".gitconfig"), `[core]\n\texcludesFile = ${globalExcludes}\n`);
     write(root, ".claude/settings.json");
     const found = hidden(root, home) ?? [];
     const hit = found.find((f) => f.path === ".claude/settings.json");
-    expect(hit?.source).toBe(`global excludes file (${globalExcludes})`);
+    expect(hit?.source.replace(/\\/g, "/")).toBe(`global excludes file (${globalExcludes})`);
     expect(hit?.line).toBe(2);
   });
 
