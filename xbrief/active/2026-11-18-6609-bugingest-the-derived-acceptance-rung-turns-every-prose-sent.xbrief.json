@@ -214,7 +214,8 @@
           "packages/runtime/src/verify-ac.test.ts",
           "changelog.d/6609-ingest-acceptance-criteria-units.md",
           "packages/core/src/scope/transition.ts",
-          "packages/core/src/scope/transition.test.ts"
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/product-first-done-gate/sentence-floor.test.ts"
         ]
       },
       "intended_placement": {
