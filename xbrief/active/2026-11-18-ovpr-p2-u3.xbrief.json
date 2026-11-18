@@ -1,0 +1,465 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5838",
+    "updated": "2026-11-18T03:05:12Z"
+  },
+  "plan": {
+    "title": "[framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan unit P2-U3 (story id ovpr-p2-u3), spec units/P2-U3-skill-pointers-correct-after-install-and-upgrade.md, issues #5838 and #6165. Setup knows only 10 of the 12 skill pointers that 0.126 wrote, so after upgrade the tutorial and feedback pointers still point at the deleted .deft/core folder (#5838). The refinement pointer's description contains ': ', which makes its front matter invalid YAML (#6165). The fix adds the two pointers to SKILL_POINTER_INVENTORY in packages/runtime/src/setup-wiring.ts and quotes a description only when YAML needs it.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5838",
+      "Overview": "## Summary\n\nAfter the 0.127.0 refresh, consumer skill pointers for `deft-directive-feedback` and `deft-directive-tutorial` still point at `.deft/core/skills/...`. That path no longer exists in the 0.127.0 layout. Agents that follow these pointers hit a missing file.\n\n## Context\n\n- Consumer repo upgraded from `@deftai/directive` 0.126.0 to `@deftai/directive-runtime` 0.127.0 with the managed refresh.\n- `.claude/skills/deft-directive-feedback/SKILL.md` and `.claude/skills/deft-directive-tutorial/SKILL.md` were last written by the 0.126.0 deposit. They say `Read and follow: .deft/core/skills/<name>/SKILL.md`.\n- The other skill pointers were rewritten correctly to `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`.\n\n## Expected behavior\n\nThe refresh rewrites, or removes, every Directive-managed skill pointer, so none points at the retired `.deft/core/` deposit.\n\n## Actual behavior\n\n- `SKILL_POINTER_INVENTORY` in `dist/setup-wiring.js` lists 9 skills: build, interview, portfolio-priority, pre-pr, refinement, review-cycle, setup, swarm, sync.\n- `deft-directive-feedback` and `deft-directive-tutorial` are not in it, so `ensureSkillPointers` never touches them.\n- The 0.126.0-era pointers remain, still naming `.deft/core/skills/...`.\n- The managed AGENTS.md hard-stop for an unreadable skill path then sends the agent to `directive install --repair`. As far as I can tell, that repair does not fix these two pointers either, because they are outside the inventory.\n\n## Reproduction\n\n1. Start from a consumer on 0.126.0 with all skill pointers deposited under `.claude/skills/`.\n2. Upgrade to `@deftai/directive-runtime` 0.127.0 and run the managed refresh.\n3. `grep -rl \".deft/core/skills\" .claude/skills` lists the feedback and tutorial pointers.\n\n## Suggested fixes\n\n1. Add every shipped skill to `SKILL_POINTER_INVENTORY`, or derive the inventory from the shipped `skills/` directory.\n2. On refresh, rewrite or remove any recognized managed pointer whose target is under `.deft/core/`.\n\n## Related wording note\n\n`deft-directive-feedback/SKILL.md` \"When to Use\" says the skill applies \"even while `plan.policy.valueFeedback.upstreamPrompt` is OFF\". Its Preconditions then say filing requires that setting ON. This seems to mean drafting works while OFF. Stating that directly would avoid the misreading.\n\n---\nFiled from a Directive consumer project. Refs #1709\n\n",
+      "Labels": "adoption-blocker, skill-lifecycle, area:installer, triaged, core-capabilities",
+      "StoryId": "ovpr-p2-u3 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U3-skill-pointers-correct-after-install-and-upgrade.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "1. In packages/runtime/src/setup-wiring.ts SKILL_POINTER_INVENTORY, add thinSkillPointer entries for deft-directive-tutorial and deft-directive-feedback, with one-line descriptions from the 0.126.2 pointer text or from each skill's own front matter. ensureSkillPointers, listSkillPointerPaths and removeOwnedSkillPointers then cover them on install, repair, upgrade, automatic setup and uninstall.\n2. In thinSkillPointer, write the description through a small yamlScalar helper: the text unchanged when it needs no quoting, JSON.stringify otherwise. Only the refinement pointer changes bytes.\n3. Tests: setup-wiring.test.ts checks all 12 names and parses every pointer's front matter (the refinement description round-trips to the original sentence); removal-steps.test.ts covers removal of a stale tutorial pointer on conversion; setup.test.ts checks that no file under the five host roots contains .deft/core/skills after old-style conversion; listSkillPointerPaths() has 60 entries.\n4. Optional (may be a follow-up PR): extend inspectHookAndSkillForm in packages/runtime/src/doctor-diagnose.ts to check every pointer path and name directive install --repair.\n5. Changelog fragment changelog.d/5838-skill-pointers-restored-and-valid-yaml.md. Do not add other shipped skills, a YAML library, or a general sweep of deft* folders.",
+      "Constraint": "- Do not put a version number in pointers (AC9.6).\n- Do not point at anything other than `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`.\n- Do not add every shipped skill to the inventory; only restore the 12-entry 0.126 set. Ask polfer first for more.\n- Do not add a YAML library to the runtime's production dependencies just for this.\n- Leave out the `valueFeedback` sub-flag setter and the feedback skill wording note from #5838's comment (Scott's policy area).\n- Do not add a general sweep that rewrites any `deft*` folder under host roots.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: none. Decision 1 (quote style): quote only descriptions that need it (spec default).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #5838 (pointer half) and #6165.",
+      "UserStory": "As a developer who installs or upgrades Directive, I want all 12 skill pointers to point at the installed runtime and to be valid YAML, so that my agent can load every Directive skill after install and upgrade."
+    },
+    "items": [
+      {
+        "title": "After `directive install` on an empty project, all 12 pointers exist under each of the 5 host roots and target `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given an empty project, when `directive install` runs, then all 12 pointers exist under each of the 5 host roots and each one targets `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`."
+        }
+      },
+      {
+        "title": "After `directive upgrade --yes` from a 0.126.2-layout repo, `grep -rl \".deft/core/skills\" .agents/skills .claude/skills .cursor/skills .codex/skills .github/skills` finds nothing (AC8.10, AC14.29).",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a 0.126.2-layout repo, when `directive upgrade --yes` runs, then `grep -rl \".deft/core/skills\" .agents/skills .claude/skills .cursor/skills .codex/skills .github/skills` returns nothing (AC8.10, AC14.29)."
+        }
+      },
+      {
+        "title": "After `directive install --repair` on a repo converted by 0.127–0.129 (stale tutorial and feedback pointers), the same grep finds nothing.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a repo converted by 0.127–0.129 with stale tutorial and feedback pointers, when `directive install --repair` runs, then the same grep returns nothing."
+        }
+      },
+      {
+        "title": "Every deposited pointer's front matter is valid YAML. The refinement description parses to the exact original sentence.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given every deposited pointer, when its front matter is parsed as YAML, then it parses, and the refinement description returns the exact original sentence."
+        }
+      },
+      {
+        "title": "Running setup twice changes nothing (AC8.2). Only the five refinement pointers change bytes compared to 0.129.10 output.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given a set-up project, when setup runs a second time, then no file changes (AC8.2); compared with 0.129.10 output, only the five refinement pointers change bytes."
+        }
+      },
+      {
+        "title": "`.deft/GENERATION.json` ownership lists the tutorial and feedback pointers as `whole-file`, and `directive uninstall` removes them.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given a fresh install, when `.deft/GENERATION.json` is read, then it records the tutorial and feedback pointers as `whole-file`, and `directive uninstall` deletes them."
+        }
+      },
+      {
+        "title": "Optional step 4: `directive doctor` reports a stale pointer under any host root and names `directive install --repair`.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given a stale pointer under any host root, when `directive doctor` runs (optional step 4), then it shows the stale pointer and names `directive install --repair`."
+        }
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "skill-lifecycle",
+      "area:installer",
+      "triaged",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5838",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5838: [framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6165",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6165"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (27), in order (#6333)",
+      "sentences": [
+        "[framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path",
+        "Summary After the 0.127.0 refresh, consumer skill pointers for `deft-directive-feedback` and `deft-directive-tutorial` still point at `.deft/core/skills/...`.",
+        "That path no longer exists in the 0.127.0 layout.",
+        "Agents that follow these pointers hit a missing file.",
+        "Context - Consumer repo upgraded from `@deftai/directive` 0.126.0 to `@deftai/directive-runtime` 0.127.0 with the managed refresh.",
+        "`.claude/skills/deft-directive-feedback/SKILL.md` and `.claude/skills/deft-directive-tutorial/SKILL.md` were last written by the 0.126.0 deposit.",
+        "They say `Read and follow: .deft/core/skills/<name>/SKILL.md`.",
+        "The other skill pointers were rewritten correctly to `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`.",
+        "Expected behavior The refresh rewrites, or removes, every Directive-managed skill pointer, so none points at the retired `.deft/core/` deposit.",
+        "Actual behavior - `SKILL_POINTER_INVENTORY` in `dist/setup-wiring.js` lists 9 skills: build, interview, portfolio-priority, pre-pr, refinement, review-cycle, setup, swarm, sync.",
+        "`deft-directive-feedback` and `deft-directive-tutorial` are not in it, so `ensureSkillPointers` never touches them.",
+        "The 0.126.0-era pointers remain, still naming `.deft/core/skills/...`.",
+        "The managed AGENTS.md hard-stop for an unreadable skill path then sends the agent to `directive install --repair`.",
+        "As far as I can tell, that repair does not fix these two pointers either, because they are outside the inventory.",
+        "Reproduction 1.",
+        "Start from a consumer on 0.126.0 with all skill pointers deposited under `.claude/skills/`.",
+        "Upgrade to `@deftai/directive-runtime` 0.127.0 and run the managed refresh.",
+        "`grep -rl \".deft/core/skills\" .claude/skills` lists the feedback and tutorial pointers.",
+        "Suggested fixes 1.",
+        "Add every shipped skill to `SKILL_POINTER_INVENTORY`, or derive the inventory from the shipped `skills/` directory.",
+        "On refresh, rewrite or remove any recognized managed pointer whose target is under `.deft/core/`.",
+        "Related wording note `deft-directive-feedback/SKILL.md` \"When to Use\" says the skill applies \"even while `plan.policy.valueFeedback.upstreamPrompt` is OFF\".",
+        "Its Preconditions then say filing requires that setting ON.",
+        "This seems to mean drafting works while OFF.",
+        "Stating that directly would avoid the misreading.",
+        "--- Filed from a Directive consumer project.",
+        "Refs #1709"
+      ],
+      "admitted_source_sentences": [
+        "Summary After the 0.127.0 refresh, consumer skill pointers for `deft-directive-feedback` and `deft-directive-tutorial` still point at `.deft/core/skills/...`.",
+        "That path no longer exists in the 0.127.0 layout.",
+        "Agents that follow these pointers hit a missing file.",
+        "Context - Consumer repo upgraded from `@deftai/directive` 0.126.0 to `@deftai/directive-runtime` 0.127.0 with the managed refresh.",
+        "`.claude/skills/deft-directive-feedback/SKILL.md` and `.claude/skills/deft-directive-tutorial/SKILL.md` were last written by the 0.126.0 deposit.",
+        "They say `Read and follow: .deft/core/skills/<name>/SKILL.md`.",
+        "The other skill pointers were rewritten correctly to `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`.",
+        "Expected behavior The refresh rewrites, or removes, every Directive-managed skill pointer, so none points at the retired `.deft/core/` deposit.",
+        "Actual behavior - `SKILL_POINTER_INVENTORY` in `dist/setup-wiring.js` lists 9 skills: build, interview, portfolio-priority, pre-pr, refinement, review-cycle, setup, swarm, sync.",
+        "`deft-directive-feedback` and `deft-directive-tutorial` are not in it, so `ensureSkillPointers` never touches them.",
+        "The 0.126.0-era pointers remain, still naming `.deft/core/skills/...`.",
+        "The managed AGENTS.md hard-stop for an unreadable skill path then sends the agent to `directive install --repair`.",
+        "As far as I can tell, that repair does not fix these two pointers either, because they are outside the inventory.",
+        "Reproduction 1.",
+        "Start from a consumer on 0.126.0 with all skill pointers deposited under `.claude/skills/`.",
+        "Upgrade to `@deftai/directive-runtime` 0.127.0 and run the managed refresh.",
+        "`grep -rl \".deft/core/skills\" .claude/skills` lists the feedback and tutorial pointers.",
+        "Suggested fixes 1.",
+        "Add every shipped skill to `SKILL_POINTER_INVENTORY`, or derive the inventory from the shipped `skills/` directory.",
+        "On refresh, rewrite or remove any recognized managed pointer whose target is under `.deft/core/`.",
+        "Related wording note `deft-directive-feedback/SKILL.md` \"When to Use\" says the skill applies \"even while `plan.policy.valueFeedback.upstreamPrompt` is OFF\".",
+        "Its Preconditions then say filing requires that setting ON.",
+        "This seems to mean drafting works while OFF.",
+        "Stating that directly would avoid the misreading.",
+        "--- Filed from a Directive consumer project.",
+        "Refs #1709"
+      ],
+      "admitted_source_digest": "9cb49b260fb765100083af041f49f6869ef16d0bb4c6393a33afd3af5aa7448f",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "[framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary After the 0.127.0 refresh, consumer skill pointers for `deft-directive-feedback` and `deft-directive-tutorial` still point at `.deft/core/skills/...`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "That path no longer exists in the 0.127.0 layout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Agents that follow these pointers hit a missing file.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Context - Consumer repo upgraded from `@deftai/directive` 0.126.0 to `@deftai/directive-runtime` 0.127.0 with the managed refresh.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "`.claude/skills/deft-directive-feedback/SKILL.md` and `.claude/skills/deft-directive-tutorial/SKILL.md` were last written by the 0.126.0 deposit.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "They say `Read and follow: .deft/core/skills/<name>/SKILL.md`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 8,
+          "text": "The other skill pointers were rewritten correctly to `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 9,
+          "text": "Expected behavior The refresh rewrites, or removes, every Directive-managed skill pointer, so none points at the retired `.deft/core/` deposit.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Actual behavior - `SKILL_POINTER_INVENTORY` in `dist/setup-wiring.js` lists 9 skills: build, interview, portfolio-priority, pre-pr, refinement, review-cycle, setup, swarm, sync.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 11,
+          "text": "`deft-directive-feedback` and `deft-directive-tutorial` are not in it, so `ensureSkillPointers` never touches them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The 0.126.0-era pointers remain, still naming `.deft/core/skills/...`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 13,
+          "text": "The managed AGENTS.md hard-stop for an unreadable skill path then sends the agent to `directive install --repair`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 14,
+          "text": "As far as I can tell, that repair does not fix these two pointers either, because they are outside the inventory.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Reproduction 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Start from a consumer on 0.126.0 with all skill pointers deposited under `.claude/skills/`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 17,
+          "text": "Upgrade to `@deftai/directive-runtime` 0.127.0 and run the managed refresh.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 18,
+          "text": "`grep -rl \".deft/core/skills\" .claude/skills` lists the feedback and tutorial pointers.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Suggested fixes 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Add every shipped skill to `SKILL_POINTER_INVENTORY`, or derive the inventory from the shipped `skills/` directory.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "On refresh, rewrite or remove any recognized managed pointer whose target is under `.deft/core/`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Related wording note `deft-directive-feedback/SKILL.md` \"When to Use\" says the skill applies \"even while `plan.policy.valueFeedback.upstreamPrompt` is OFF\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Its Preconditions then say filing requires that setting ON.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "This seems to mean drafting works while OFF.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Stating that directly would avoid the misreading.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "--- Filed from a Directive consumer project.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Refs #1709",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "changelog.d/5838-skill-pointers-restored-and-valid-yaml.md"
+        ],
+        "module_boundary": "packages/runtime setup wiring (skill pointer list and pointer YAML) and its doctor check; no new module.",
+        "cohesion_exemption": "setup-wiring.ts (1411 lines) already exceeds the review trigger. This bug fix changes the skill-pointer list and pointer front matter only; splitting the file is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Addition: no setter for individual valueFeedback sub-flags\n\n- `deft policy:enable-value-feedback -- --confirm --upstream-prompt` turns on `enabled`, `emitEvents`, `sessionLine` and `upstreamPrompt` together. This matches `VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED` in `vendor/directive-core/dist/policy/value-feedback.js` and the printed disclosure, so the behavior itself is intended.\n- `upstreamPrompt` takes effect only while `enabled` is true, so a consumer who wants only upstream filing must keep the master flag on.\n- The runtime does respect explicit `emitEvents: false` / `sessionLine: false` in the typed block (`readSubFlag`). But the setter has no flag to write them, and the disclosure says to reverse settings by editing PROJECT-DEFINITION.\n- The feedback skill says not to treat hand-edits to PROJECT-DEFINITION as the primary audited setter. So a consumer who wants filing without the local ledger and session line has no audited path.\n\nSuggested fix: accept `--no-emit-events` / `--no-session-line` (or `--only-upstream-prompt`) on `policy:enable-value-feedback`, writing the explicit sub-flags and the audit line.\n\n",
+          "id": 6350995631,
+          "html_url": "https://github.com/deftai/directive/issues/5838#issuecomment-6350995631",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T20:49:13Z",
+          "updated_at": "2026-10-22T20:49:13Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5986452868,
+        "origin": "deftai/directive#5838",
+        "id": "github.issue.5986452868"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "changelog.d/5838-skill-pointers-restored-and-valid-yaml.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/setup-wiring.test.ts packages/runtime/src/removal-steps packages/runtime/src/setup.test.ts packages/cli/src/legacy-conversion.test.ts"
+        ],
+        "Traces": [
+          "#5838",
+          "#6165"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-setup",
+        "expected_outputs": [
+          "After `directive install` on an empty project, all 12 pointers exist under each of the 5 host roots and target `node_modules/@deftai/directive-runtime/skills/<name>/SKILL.md`.",
+          "After `directive upgrade --yes` from a 0.126.2-layout repo, `grep -rl \".deft/core/skills\" .agents/skills .claude/skills .cursor/skills .codex/skills .github/skills` finds nothing (AC8.10, AC14.29).",
+          "After `directive install --repair` on a repo converted by 0.127–0.129 (stale tutorial and feedback pointers), the same grep finds nothing.",
+          "Every deposited pointer's front matter is valid YAML. The refinement description parses to the exact original sentence.",
+          "Running setup twice changes nothing (AC8.2). Only the five refinement pointers change bytes compared to 0.129.10 output.",
+          "`.deft/GENERATION.json` ownership lists the tutorial and feedback pointers as `whole-file`, and `directive uninstall` removes them.",
+          "Optional step 4: `directive doctor` reports a stale pointer under any host root and names `directive install --repair`.",
+          "one changelog fragment changelog.d/5838-skill-pointers-restored-and-valid-yaml.md"
+        ],
+        "acceptance_criteria_justification": "Seven items: the seven acceptance criteria of unit spec P2-U3, one each. Item 7 is the spec's optional step 4."
+      }
+    },
+    "id": "github.issue.5986452868",
+    "updated": "2026-11-18T03:05:12Z"
+  }
+}

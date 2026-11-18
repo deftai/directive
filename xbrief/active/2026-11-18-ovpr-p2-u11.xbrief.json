@@ -1,0 +1,267 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5873",
+    "updated": "2026-11-18T03:05:13Z"
+  },
+  "plan": {
+    "title": "Drop Node 20 from supported engines (runtime needs Node 22+)",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan unit P2-U11 (story id ovpr-p2-u11), spec units/P2-U11-node-20-load-crash.md, issue #5873. The runtime imports `globSync` from `node:fs`, which Node 20 does not have, so it fails at load on Node 20 although `engines.node` says `>=20`. This unit sends every such import through one compatibility helper in packages/core/src/fs/glob-sync.ts and adds a non-blocking Node 20 CI job. `engines.node` stays `>=20`, as the unit spec says; the issue's request to raise it is not taken.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5873",
+      "Overview": "The published packages declare Node >=20 support, but the runtime calls `fs.globSync`, which Node added in v22. On Node 20 the runtime fails at load. 0.127.0 and 0.129.0 behave the same, so this isn't a new regression; the stated support range is simply wrong.\n\n**Expected:** the engines field, docs and CI matrix state the real minimum (Node 22, or whichever version the maintainers choose), and Node 20 is no longer advertised.\n\n**Acceptance:**\n- `engines.node` in the published package.json files is raised to the real minimum.\n- README and install docs match it.\n- The CI test matrix no longer includes Node 20, or a check fails if the engines range drops below what the code needs.\n\nNote: confirm whether `engines` is declared in source or stamped at publish time.\n\nFiled for @MScottAdams",
+      "Labels": "urgent, core-capabilities, promise:lifecycle",
+      "StoryId": "ovpr-p2-u11 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U11-node-20-load-crash.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "Follow the unit spec's Fix section. Over 5 production files; split as the spec says: PR 1 = helper + five one-line import swaps + core package.json/lockfile (minimatch) + tests; PR 2 = the non-blocking Node 20 CI job (the spec names 'one workflow file'; ci.yml is the expected home) + the optional `import.meta.dirname` edits (dispatch.ts, framework-check-updates.ts, render/framework-commands.ts). If polfer prefers no new direct dependency, move the existing glob logic out of product-state-hash.ts instead of adding minimatch.",
+      "Constraint": "- Do not change `engines` in `packages/cli/package.json` or `packages/runtime/package.json` (AC16.1; D-017 O-24 keeps Node 20).\n- Do not drop the Node 20 warning or change `NODE_SUPPORTED_MAJOR` (AC16.5).\n- Do not make Node 20 a blocking CI gate (AC16.2 / AC15.1).\n- Do not change glob semantics on Node 22+: the helper calls `fs.globSync` unchanged there.\n- Do not edit decision logic in `product-state-hash.ts` or `operator-scope-limit/inventory.ts` (Scott's code); import swap only. Tell Scott.\n- Do not change the host outer's failure handling here; the exit-code gap is #6201 (Phase 1).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: none. Keep Node 20 (D-017, O-24); RC-11 not needed. The issue title and body ask to raise engines to Node 22; that prescription is rejected (AC16.1, decision row 15). The unit spec decides (D-008).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #5873 after retitling (polfer).",
+      "UserStory": "As a developer on Node 20, I want the Directive runtime to load without a module-link error, so that Directive works on every Node version its engines field says it supports."
+    },
+    "items": [
+      {
+        "title": "No production source file outside `fs/glob-sync.ts` imports `globSync` by name from `node:fs`; the guard test enforces it.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given the production sources, when the guard test runs, then it fails if any file outside `fs/glob-sync.ts` imports `globSync` by name from `node:fs`."
+        }
+      },
+      {
+        "title": "On Node 24, `globSyncCompat` returns exactly what `fs.globSync` returns for the parity fixture.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "On Node 24, `globSyncCompat` returns exactly what `fs.globSync` returns for the parity fixture."
+        }
+      },
+      {
+        "title": "With the native function hidden, the fallback returns the same set as `fs.globSync` for the parity fixture.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "With the native function hidden, the fallback returns the same set as `fs.globSync` for the parity fixture."
+        }
+      },
+      {
+        "title": "On Node 20 (CI job), the staged runtime's `dist/bin.js --version` and `dist/hook-bin.js` (empty payload) load without a module-link error.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given Node 20 in the CI job, when the staged runtime's `dist/bin.js --version` and `dist/hook-bin.js` (empty payload) run, then both load and exit without a module-link error."
+        }
+      },
+      {
+        "title": "`engines.node` stays `>=20` in both published packages.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given the change set, when the two published package.json files are read, then `engines.node` still shows `>=20` in both."
+        }
+      },
+      {
+        "title": "The Node 20 CI job is non-blocking.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given a failure in the Node 20 CI job, when the PR's required checks are evaluated, then that job does not block the PR (the job is non-blocking)."
+        }
+      }
+    ],
+    "tags": [
+      "urgent",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5873",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5873: Drop Node 20 from supported engines (runtime needs Node 22+)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (10), in order (#6333)",
+      "sentences": [
+        "Drop Node 20 from supported engines (runtime needs Node 22+)",
+        "The published packages declare Node >=20 support, but the runtime calls `fs.globSync`, which Node added in v22.",
+        "On Node 20 the runtime fails at load.",
+        "0.127.0 and 0.129.0 behave the same, so this isn't a new regression; the stated support range is simply wrong.",
+        "Expected: the engines field, docs and CI matrix state the real minimum (Node 22, or whichever version the maintainers choose), and Node 20 is no longer advertised.",
+        "Acceptance: - `engines.node` in the published package.json files is raised to the real minimum.",
+        "README and install docs match it.",
+        "The CI test matrix no longer includes Node 20, or a check fails if the engines range drops below what the code needs.",
+        "Note: confirm whether `engines` is declared in source or stamped at publish time.",
+        "Filed for @MScottAdams"
+      ],
+      "admitted_source_sentences": [
+        "The published packages declare Node >=20 support, but the runtime calls `fs.globSync`, which Node added in v22.",
+        "On Node 20 the runtime fails at load.",
+        "0.127.0 and 0.129.0 behave the same, so this isn't a new regression; the stated support range is simply wrong.",
+        "Expected: the engines field, docs and CI matrix state the real minimum (Node 22, or whichever version the maintainers choose), and Node 20 is no longer advertised.",
+        "Acceptance: - `engines.node` in the published package.json files is raised to the real minimum.",
+        "README and install docs match it.",
+        "The CI test matrix no longer includes Node 20, or a check fails if the engines range drops below what the code needs.",
+        "Note: confirm whether `engines` is declared in source or stamped at publish time.",
+        "Filed for @MScottAdams"
+      ],
+      "admitted_source_digest": "f0b40eaf12fff784a320769d5ae748fe94d1cf43f3d74133832977c7828fa3d2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Drop Node 20 from supported engines (runtime needs Node 22+)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The published packages declare Node >=20 support, but the runtime calls `fs.globSync`, which Node added in v22.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "On Node 20 the runtime fails at load.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "0.127.0 and 0.129.0 behave the same, so this isn't a new regression; the stated support range is simply wrong.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Expected: the engines field, docs and CI matrix state the real minimum (Node 22, or whichever version the maintainers choose), and Node 20 is no longer advertised.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Acceptance: - `engines.node` in the published package.json files is raised to the real minimum.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "README and install docs match it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The CI test matrix no longer includes Node 20, or a check fails if the engines range drops below what the code needs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Note: confirm whether `engines` is declared in source or stamped at publish time.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Filed for @MScottAdams",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/fs/glob-sync.ts",
+          "packages/core/src/cache/task-cache/hash.ts",
+          "packages/core/src/codebase/glob-files.ts",
+          "packages/core/src/intake/issue-emit.ts",
+          "packages/core/src/operator-scope-limit/inventory.ts",
+          "packages/core/src/session/product-state-hash.ts",
+          "packages/core/package.json",
+          "pnpm-lock.yaml",
+          ".github/workflows/ci.yml",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/framework-check-updates.ts",
+          "packages/core/src/render/framework-commands.ts",
+          "packages/core/src/fs/glob-sync.test.ts",
+          "packages/core/src/fs/no-static-globsync.test.ts",
+          "changelog.d/5873-node-20-loads-again.md"
+        ],
+        "module_boundary": "New Node-20-safe glob helper packages/core/src/fs/glob-sync.ts, used by the existing callers; no behaviour change beyond the import.",
+        "cohesion_exemption": "pnpm-lock.yaml, ci.yml and dispatch.ts already exceed the review trigger. This fix changes one dependency entry, one CI job and one import; splitting those files is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6005855460,
+        "origin": "deftai/directive#5873",
+        "id": "github.issue.6005855460"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/fs/glob-sync.ts",
+          "packages/core/src/cache/task-cache/hash.ts",
+          "packages/core/src/codebase/glob-files.ts",
+          "packages/core/src/intake/issue-emit.ts",
+          "packages/core/src/operator-scope-limit/inventory.ts",
+          "packages/core/src/session/product-state-hash.ts",
+          "packages/core/package.json",
+          "pnpm-lock.yaml",
+          ".github/workflows/ci.yml",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/framework-check-updates.ts",
+          "packages/core/src/render/framework-commands.ts",
+          "packages/core/src/fs/glob-sync.test.ts",
+          "packages/core/src/fs/no-static-globsync.test.ts",
+          "changelog.d/5873-node-20-loads-again.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/fs packages/core/src/cache packages/core/src/codebase packages/core/src/intake packages/core/src/operator-scope-limit packages/core/src/session/product-state-hash"
+        ],
+        "Traces": [
+          "#5873"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-dispatch",
+        "expected_outputs": [
+          "No production source file outside `fs/glob-sync.ts` imports `globSync` by name from `node:fs`; the guard test enforces it.",
+          "On Node 24, `globSyncCompat` returns exactly what `fs.globSync` returns for the parity fixture.",
+          "With the native function hidden, the fallback returns the same set as `fs.globSync` for the parity fixture.",
+          "On Node 20 (CI job), the staged runtime's `dist/bin.js --version` and `dist/hook-bin.js` (empty payload) load without a module-link error.",
+          "`engines.node` stays `>=20` in both published packages.",
+          "The Node 20 CI job is non-blocking.",
+          "one changelog fragment changelog.d/5873-node-20-loads-again.md"
+        ],
+        "acceptance_criteria_justification": "Six items: the six acceptance criteria of unit spec P2-U11, one each."
+      }
+    },
+    "id": "github.issue.6005855460",
+    "updated": "2026-11-18T03:05:13Z"
+  }
+}
