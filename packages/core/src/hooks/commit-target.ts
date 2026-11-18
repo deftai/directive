@@ -17,9 +17,20 @@
  * chunk of its own, so a quote in it cannot run into the commands after the
  * delimiter (operator ruling 2026-11-17). Other string literals stay a residual
  * of the quote-aware tokenizer.
+ *
+ * A lone `&` ends a segment. A commit signal outside the two named shapes makes
+ * the whole call unresolvable (#6362): a commit inside a `( … )` subshell group,
+ * a commit or a non-literal string in a `sh -c` / `bash -c` body or an `eval`, a
+ * wrapper such as `env` or `xargs` around a commit, and a command word or git
+ * subcommand that holds a variable. The gate does not rebuild a target through
+ * these forms; it refuses them. This is a guardrail over the commands it can
+ * read, not a security boundary.
  */
 
-import { shellCommandChunksWithoutQuotedHereDocBodies } from "../authz/classify.js";
+import {
+  shellCommandChunksWithoutQuotedHereDocBodies,
+  shellWithoutHereDocBodies,
+} from "../authz/classify.js";
 
 /** One shell word after quote removal. */
 export interface ShellWord {
@@ -33,10 +44,19 @@ export interface ShellWord {
    * same word. A redirection and its target are not command arguments (#6471).
    */
   readonly redirect?: "operator" | "attached";
+  /**
+   * The unquoted, unescaped parentheses in the word, in order (#6362): `(` opens
+   * a `( … )` group, `$` opens a `$(`, `<(` or `>(` substitution, `)` closes.
+   */
+  readonly parens?: string;
+  /** How many unquoted `(` start the word, before any other character (#6362). */
+  readonly leadingOpens?: number;
+  /** How many unquoted `)` end the word (#6362). */
+  readonly trailingCloses?: number;
 }
 
 /** Operator that ends a segment (`null` for the last segment). */
-export type ShellSegmentSeparator = "&&" | "||" | "|" | ";" | "\n" | null;
+export type ShellSegmentSeparator = "&&" | "||" | "|" | "&" | ";" | "\n" | null;
 
 export interface ShellSegment {
   readonly words: readonly ShellWord[];
@@ -44,14 +64,16 @@ export interface ShellSegment {
 }
 
 /** Characters an unquoted backslash escapes; other backslashes stay literal (Windows paths). */
-const UNQUOTED_ESCAPABLE = new Set([" ", "\t", '"', "'", "\\", "$", "`", ";", "&", "|", "<", ">"]);
+const UNQUOTED_ESCAPABLE = new Set(" \t\"'\\$`;&|<>()");
 /** Characters a backslash escapes inside double quotes (POSIX). */
 const DOUBLE_QUOTED_ESCAPABLE = new Set(['"', "\\", "$", "`"]);
 
 /**
- * Split a shell command into `&&` / `||` / `;` / newline segments of words.
- * Quotes are honoured for both splitting and word values; a quoted path with
- * spaces stays one word and Windows backslashes are not rewritten.
+ * Split a shell command into `&&` / `||` / `|` / `&` / `;` / newline segments of
+ * words. Quotes are honoured for both splitting and word values; a quoted path
+ * with spaces stays one word and Windows backslashes are not rewritten. A lone
+ * `&` ends a segment (#6362); `&>`, `>&`, `<&`, `2>&1` and `|&` stay attached to
+ * their redirection or pipe.
  */
 export function tokenizeShellCommand(command: string): ShellSegment[] {
   const text = command.replace(/\r\n/g, "\n");
@@ -65,6 +87,14 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
   // read as the start of a redirection (`'2'>x`, `\2>x`).
   let literalPrefix = false;
   let redirect = false;
+  // Parenthesis bookkeeping for the word (#6362); see ShellWord.
+  let parens = "";
+  let leadingOpens = 0;
+  let onlyOpens = true;
+  let trailingCloses = 0;
+  // The last character the unquoted path added to the word, so `>&` / `$(` are
+  // read only when both characters are unquoted and unescaped.
+  let prevUnquoted = "";
   const flushWord = (): void => {
     if (started) {
       const word: ShellWord = { value: cur, expands };
@@ -77,13 +107,30 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
             redirect: !literalPrefix && /^(?:\d*|&)[<>|&]+$/.test(cur) ? "operator" : "attached",
           } as const)
         : {};
-      words.push({ ...word, ...redirection });
+      words.push({
+        ...word,
+        ...redirection,
+        ...(parens === "" ? {} : { parens }),
+        ...(leadingOpens === 0 ? {} : { leadingOpens }),
+        ...(trailingCloses === 0 ? {} : { trailingCloses }),
+      });
     }
     cur = "";
     started = false;
     expands = false;
     literalPrefix = false;
     redirect = false;
+    parens = "";
+    leadingOpens = 0;
+    onlyOpens = true;
+    trailingCloses = 0;
+    prevUnquoted = "";
+  };
+  // A quoted or escaped character ends the leading `(` run and any trailing `)` run.
+  const literalChar = (): void => {
+    onlyOpens = false;
+    trailingCloses = 0;
+    prevUnquoted = "";
   };
   const endSegment = (next: ShellSegmentSeparator): void => {
     flushWord();
@@ -114,12 +161,14 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
       quote = ch;
       started = true;
       literalPrefix = true;
+      literalChar();
       continue;
     }
     if (ch === "\\" && UNQUOTED_ESCAPABLE.has(nextCh)) {
       cur += nextCh;
       started = true;
       literalPrefix = true;
+      literalChar();
       i += 1;
       continue;
     }
@@ -140,11 +189,19 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
     }
     if (ch === "|" && redirect && cur.endsWith(">")) {
       cur += ch;
+      prevUnquoted = ch;
       continue;
     }
     if (ch === "|") {
       endSegment("|");
       if (nextCh === "&") i += 1;
+      continue;
+    }
+    // A lone `&` runs the command before it in the background and ends the
+    // segment (#6362). It stays in the word after an unquoted `>` / `<` (`2>&1`,
+    // `>&2`, `<&3`) and before `>` (`&>`, `&>>`).
+    if (ch === "&" && nextCh !== ">" && prevUnquoted !== ">" && prevUnquoted !== "<") {
+      endSegment("&");
       continue;
     }
     if (
@@ -161,6 +218,17 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
       continue;
     }
     if (ch === "$" || ch === "`" || (ch === "~" && !started)) expands = true;
+    if (ch === "(") {
+      // `$(`, `<(` and `>(` open a substitution; any other `(` opens a group.
+      const substitution = prevUnquoted === "$" || prevUnquoted === "<" || prevUnquoted === ">";
+      parens += substitution ? "$" : "(";
+      if (onlyOpens && !substitution) leadingOpens += 1;
+    } else {
+      onlyOpens = false;
+    }
+    if (ch === ")") parens += ")";
+    trailingCloses = ch === ")" ? trailingCloses + 1 : 0;
+    prevUnquoted = ch;
     cur += ch;
     started = true;
   }
@@ -188,9 +256,17 @@ interface GitInvocation {
   /** True when a global `--git-dir` / `--work-tree` is present. */
   readonly gitDirOrWorkTree: boolean;
   readonly subcommand: string | null;
+  /** True when the subcommand word holds a variable or substitution (#6362). */
+  readonly subcommandExpands: boolean;
   /** Index of the first word after the subcommand. */
   readonly argsStart: number;
   readonly words: readonly ShellWord[];
+}
+
+/** The word value without the unquoted `)` that close a group after it (`commit)`). */
+function withoutTrailingCloses(word: ShellWord): string {
+  const closes = word.trailingCloses ?? 0;
+  return closes === 0 ? word.value : word.value.slice(0, -closes);
 }
 
 function parseGitInvocation(words: readonly ShellWord[]): GitInvocation | null {
@@ -233,51 +309,140 @@ function parseGitInvocation(words: readonly ShellWord[]): GitInvocation | null {
       i += 1;
       continue;
     }
+    const word = words[i];
     return {
       envNames,
       chdirs,
       gitDirOrWorkTree,
-      subcommand: w.toLowerCase(),
+      subcommand: (word === undefined ? w : withoutTrailingCloses(word)).toLowerCase(),
+      subcommandExpands: word?.expands ?? false,
       argsStart: i + 1,
       words,
     };
   }
-  return { envNames, chdirs, gitDirOrWorkTree, subcommand: null, argsStart: i, words };
+  return {
+    envNames,
+    chdirs,
+    gitDirOrWorkTree,
+    subcommand: null,
+    subcommandExpands: false,
+    argsStart: i,
+    words,
+  };
+}
+
+/** True when the word is only unquoted `(` group openers. */
+function isGroupOpenWord(word: ShellWord): boolean {
+  const opens = word.leadingOpens ?? 0;
+  return opens > 0 && opens === word.value.length;
 }
 
 /**
- * The command words of a segment: leading `{` brace-group openers dropped. A
- * brace group runs in the current shell, so a `cd` or commit inside it is read
- * like one outside it (`{ cd /x; } && git commit` is a `cd` joined by `;`).
- * A subshell `( … )` is not unwrapped: its `cd` does not move a later commit.
+ * The command words of a segment: leading `{` brace-group openers and `(`
+ * subshell openers dropped. A brace group runs in the current shell, so a `cd`
+ * or commit inside it is read like one outside it (`{ cd /x; } && git commit`
+ * is a `cd` joined by `;`). A `( … )` subshell is unwrapped only to read the
+ * command inside it; a commit inside one is refused, and its `cd` does not move
+ * a later commit (#6362).
  */
 function commandWords(segment: ShellSegment): readonly ShellWord[] {
+  const words = segment.words;
   let start = 0;
-  while (segment.words[start]?.value === "{") start++;
-  return start === 0 ? segment.words : segment.words.slice(start);
+  for (;;) {
+    const word = words[start];
+    if (word === undefined || (word.value !== "{" && !isGroupOpenWord(word))) break;
+    start++;
+  }
+  const first = words[start];
+  const opens = first?.leadingOpens ?? 0;
+  if (first === undefined || opens === 0) return start === 0 ? words : words.slice(start);
+  const stripped: ShellWord = { value: first.value.slice(opens), expands: first.expands };
+  return [stripped, ...words.slice(start + 1)];
+}
+
+/** A segment with the groups it runs in (#6362). */
+interface CommandSegment extends ShellSegment {
+  /** Ids of the groups and substitutions open at its command word, outermost first. */
+  readonly groups: readonly number[];
+  /** True when its command runs in a `( … )` group, or the segment opens or closes one. */
+  readonly grouped: boolean;
+}
+
+interface OpenGroup {
+  readonly id: number;
+  /** True for a `( … )` group; false for a `$( … )`, `<( … )` or `>( … )` substitution. */
+  readonly group: boolean;
+}
+
+/**
+ * Track unquoted parentheses across the segments of one call (#6362). The stack
+ * carries across heredoc chunks: a group can span a heredoc, and unquoted body
+ * text is read as commands (#6187). An unmatched `)` closes nothing.
+ */
+function markGroups(segments: readonly ShellSegment[]): CommandSegment[] {
+  const stack: OpenGroup[] = [];
+  let lastId = 0;
+  const nextId = (): number => {
+    lastId += 1;
+    return lastId;
+  };
+  return segments.map((segment) => {
+    let touchesGroup = false;
+    const apply = (event: string): void => {
+      if (event === ")") {
+        const closed = stack.pop();
+        if (closed === undefined || closed.group) touchesGroup = true;
+        return;
+      }
+      stack.push({ id: nextId(), group: event === "(" });
+      if (event === "(") touchesGroup = true;
+    };
+    // The command word is the first word after `{` and `(` openers; its own
+    // leading `(` are applied before the command is read.
+    const words = segment.words;
+    let w = 0;
+    while (w < words.length) {
+      const word = words[w];
+      if (word === undefined || (word.value !== "{" && !isGroupOpenWord(word))) break;
+      for (const event of word.parens ?? "") apply(event);
+      w++;
+    }
+    const command = words[w];
+    const leading = command?.leadingOpens ?? 0;
+    const events = command?.parens ?? "";
+    for (const event of events.slice(0, leading)) apply(event);
+    const groups = stack.map((open) => open.id);
+    const inGroup = stack.some((open) => open.group);
+    for (const event of events.slice(leading)) apply(event);
+    for (const word of words.slice(w + 1)) {
+      for (const event of word.parens ?? "") apply(event);
+    }
+    return { ...segment, groups, grouped: inGroup || touchesGroup };
+  });
 }
 
 /**
  * Segments of the commands the shell runs: quoted heredoc bodies removed, and
  * each unquoted body tokenized apart from the commands around it (#6187).
  */
-function commandSegments(command: string): ShellSegment[] {
+function commandSegments(command: string): CommandSegment[] {
   // A dangling `||` or `|` at the end of a chunk is still pending after the
   // heredoc body, so it is carried to the end of the next chunk (#6471).
   let pending: ShellSegmentSeparator = null;
-  return shellCommandChunksWithoutQuotedHereDocBodies(command).flatMap((chunk) => {
-    const segments = tokenizeShellCommand(chunk);
+  const segments = shellCommandChunksWithoutQuotedHereDocBodies(command).flatMap((chunk) => {
+    const chunkSegments = tokenizeShellCommand(chunk);
     // The end of a chunk is a heredoc boundary, not an `&&` join: a dangling
     // `&&` must not tie a `cd` here to a commit after the delimiter.
-    const last = segments[segments.length - 1];
+    const last = chunkSegments[chunkSegments.length - 1];
     if (last !== undefined) {
       const open = last.next === "||" || last.next === "|" ? last.next : null;
       const next = open ?? pending ?? (last.next === ";" ? ";" : "\n");
-      segments[segments.length - 1] = { words: last.words, next };
+      chunkSegments[chunkSegments.length - 1] = { words: last.words, next };
       pending = open;
     }
-    return segments;
+    return chunkSegments;
   });
+  return markGroups(segments);
 }
 
 /** The words of a segment that are command arguments: redirections and their targets dropped. */
@@ -292,25 +457,251 @@ function withoutRedirections(words: readonly ShellWord[]): ShellWord[] {
   return out;
 }
 
-function commitInvocations(
-  segments: readonly ShellSegment[],
-): { readonly index: number; readonly git: GitInvocation }[] {
-  const out: { index: number; git: GitInvocation }[] = [];
-  segments.forEach((segment, index) => {
-    const git = parseGitInvocation(commandWords(segment));
-    if (git !== null && git.subcommand === "commit") out.push({ index, git });
-  });
-  return out;
+/** Shells whose `-c` command string the gate reads (#6362). */
+const SHELL_BINS = new Set(["sh", "bash", "zsh", "dash", "ksh", "ash", "mksh"]);
+/** Long shell options that take the next word as their value. */
+const SHELL_VALUE_LONG_OPTIONS = new Set(["--rcfile", "--init-file"]);
+/** Commands that run the command written after them (#6362). */
+const WRAPPER_BINS = new Set(
+  "env command exec nohup time timeout xargs nice sudo doas stdbuf ionice".split(" "),
+);
+/** Wrapper options whose value is the next word, so it is not read as the wrapped command. */
+const WRAPPER_VALUE_OPTIONS = new Set(
+  (
+    "-a -C -c -D -d -E -e -f -g -h -I -i -k -L -n -o -P -p -r -S -s -T -t -U -u --adjustment " +
+    "--arg-file --chdir --delimiter --error --group --input --kill-after --max-args " +
+    "--max-lines --max-procs --output --replace --signal --split-string --unset --user"
+  ).split(" "),
+);
+/** Shells, wrappers and `eval` nested deeper than this are refused unread. */
+const MAX_NESTING = 8;
+
+const GROUPED_COMMIT = "the commit runs inside a `( … )` subshell group";
+
+/** What one command is, as far as the commit gate reads it (#6362). */
+type CommandReading =
+  | { readonly kind: "commit"; readonly git: GitInvocation }
+  | { readonly kind: "signal"; readonly reason: string }
+  | null;
+
+/** The commits in one call and the first commit signal, if any (#6362). */
+interface CallReading {
+  readonly segments: readonly CommandSegment[];
+  readonly commits: readonly { readonly index: number; readonly git: GitInvocation }[];
+  readonly signal: string | null;
+}
+
+/** The program a command word names: base name, lower case, no `.exe`. */
+function programName(word: ShellWord): string {
+  return word.value
+    .replace(/^.*[/\\]/, "")
+    .toLowerCase()
+    .replace(/\.exe$/, "");
 }
 
 /**
- * Detect `git commit` as the git subcommand in a Shell command string (#5656).
- * Handles env prefixes, -C/-c globals and &&/||/; compounds; non-commit git
- * parts do not stop the scan. Obscured forms remain a hooks-installed /
- * `--no-verify` residual.
+ * True when the program a command word names holds a variable or substitution
+ * (`$GIT`, `"$CMD"`, `` `which git` ``). A variable only in the directory part
+ * (`$HOME/bin/tool`) still names the program.
+ */
+function isUnreadableCommandWord(word: ShellWord): boolean {
+  return word.expands && /[$`]/.test(word.value.replace(/^.*[/\\]/, ""));
+}
+
+function signal(reason: string): CommandReading {
+  return { kind: "signal", reason };
+}
+
+/**
+ * Read a command string run by a shell `-c` or by `eval` (#6362). A commit in it
+ * is a signal: the gate does not rebuild the target inside the string.
+ */
+function readCommandString(text: string, what: string, depth: number): CommandReading {
+  const inner = readCall(text, depth + 1);
+  if (inner.commits.length > 0) return signal(`${what} runs a git commit`);
+  return inner.signal === null ? null : signal(`in ${what}, ${inner.signal}`);
+}
+
+/** `sh -c '…'` and the like: the first operand after options holding `c` (#6362). */
+function readShellCommand(
+  words: readonly ShellWord[],
+  k: number,
+  name: string,
+  depth: number,
+): CommandReading {
+  let hasC = false;
+  let i = k + 1;
+  while (i < words.length) {
+    const word = words[i];
+    const v = word?.value ?? "";
+    if (word?.redirect !== undefined) {
+      i += word.redirect === "operator" ? 2 : 1;
+      continue;
+    }
+    if (v === "--" || v === "-") {
+      i += 1;
+      break;
+    }
+    if (v.startsWith("--")) {
+      i += SHELL_VALUE_LONG_OPTIONS.has(v) ? 2 : 1;
+      continue;
+    }
+    if ((v.startsWith("-") || v.startsWith("+")) && v.length > 1) {
+      if (v.startsWith("-") && v.includes("c")) hasC = true;
+      // `-o` / `-O` take an option name as the next word (`bash -o pipefail -c …`).
+      i += /[oO]/.test(v.slice(1)) ? 2 : 1;
+      continue;
+    }
+    break;
+  }
+  if (!hasC) return null;
+  const what = `a \`${name} -c\` string`;
+  const body = words[i];
+  if (body === undefined) return signal(`${what} is missing`);
+  if (body.expands) {
+    return signal(
+      `${what} holds a variable or substitution, so the gate cannot tell whether it commits`,
+    );
+  }
+  return readCommandString(withoutTrailingCloses(body), what, depth);
+}
+
+/** `eval …`: the arguments joined by spaces are read as a command string (#6362). */
+function readEval(words: readonly ShellWord[], k: number, depth: number): CommandReading {
+  const args = withoutRedirections(words.slice(k + 1));
+  if (args.length === 0) return null;
+  if (args.some((arg) => arg.expands)) {
+    return signal(
+      "an `eval` argument holds a variable or substitution, so the gate cannot tell whether it commits",
+    );
+  }
+  return readCommandString(args.map(withoutTrailingCloses).join(" "), "an `eval`", depth);
+}
+
+/** `env`, `xargs`, `timeout 60` and the like around a command (#6362). */
+function readWrapper(
+  words: readonly ShellWord[],
+  k: number,
+  name: string,
+  depth: number,
+): CommandReading {
+  const behind = `the commit runs behind the \`${name}\` wrapper`;
+  // The wrapped command: the first word after options, option values and, for
+  // `timeout`, the duration.
+  let c = k + 1;
+  let optionsDone = false;
+  let skipOperand = name === "timeout";
+  while (c < words.length) {
+    const word = words[c];
+    const v = word?.value ?? "";
+    if (word?.redirect !== undefined) {
+      c += word.redirect === "operator" ? 2 : 1;
+      continue;
+    }
+    if (!optionsDone && v === "--") {
+      optionsDone = true;
+      c += 1;
+      continue;
+    }
+    if (!optionsDone && v.startsWith("-") && v.length > 1) {
+      c += WRAPPER_VALUE_OPTIONS.has(v) ? 2 : 1;
+      continue;
+    }
+    if (skipOperand) {
+      skipOperand = false;
+      c += 1;
+      continue;
+    }
+    break;
+  }
+  const wrapped = words[c];
+  if (wrapped !== undefined) {
+    const reading = readCommand(words.slice(c), depth + 1);
+    if (reading?.kind === "commit") return signal(behind);
+    if (reading !== null) return reading;
+    if (
+      name === "xargs" &&
+      programName(wrapped) === "git" &&
+      parseGitInvocation(words.slice(c))?.subcommand === null
+    ) {
+      return signal("`xargs` runs git with arguments from its input");
+    }
+  }
+  // An option value read as the command can hide a later `git … commit`.
+  for (let j = k + 1; j < words.length; j++) {
+    const word = words[j];
+    if (j === c || word === undefined || programName(word) !== "git") continue;
+    if (parseGitInvocation(words.slice(j))?.subcommand === "commit") return signal(behind);
+  }
+  return null;
+}
+
+/** Read one command's words (after `{` / `(` openers) for a commit or a commit signal (#6362). */
+function readCommand(words: readonly ShellWord[], depth: number): CommandReading {
+  if (depth > MAX_NESTING) {
+    return signal("shells, wrappers or `eval` nest too deeply for the gate to read");
+  }
+  let k = 0;
+  while (k < words.length && ENV_ASSIGNMENT.test(words[k]?.value ?? "")) k++;
+  const word = words[k];
+  if (word === undefined) return null;
+  if (isUnreadableCommandWord(word)) {
+    return signal(
+      `the command word ${JSON.stringify(word.value)} holds a variable or substitution, ` +
+        "so the gate cannot tell whether it commits",
+    );
+  }
+  const name = programName(word);
+  if (name === "git") {
+    const git = parseGitInvocation(words);
+    if (git === null) return null;
+    if (git.subcommandExpands) {
+      const sub = git.words[git.argsStart - 1]?.value ?? "";
+      return signal(`the git subcommand ${JSON.stringify(sub)} holds a variable or substitution`);
+    }
+    return git.subcommand === "commit" ? { kind: "commit", git } : null;
+  }
+  if (SHELL_BINS.has(name)) return readShellCommand(words, k, name, depth);
+  if (name === "eval") return readEval(words, k, depth);
+  if (WRAPPER_BINS.has(name)) return readWrapper(words, k, name, depth);
+  return null;
+}
+
+/**
+ * Read a call: its commits, from every chunk the shell runs or expands, and the
+ * first commit signal (#6362). A commit inside a `( … )` group is a signal.
+ * Wrappers, `-c` strings, `eval` and unreadable command words are read from the
+ * command text alone: a heredoc body is data apart from the commits it shows
+ * (#6187), so its text raises no signal.
+ */
+function readCall(command: string, depth: number): CallReading {
+  const segments = commandSegments(command);
+  const commits: { index: number; git: GitInvocation }[] = [];
+  let found: string | null = null;
+  for (let index = 0; index < segments.length; index++) {
+    const segment = segments[index];
+    const git = segment === undefined ? null : parseGitInvocation(commandWords(segment));
+    if (segment === undefined || git === null || git.subcommand !== "commit") continue;
+    commits.push({ index, git });
+    if (segment.grouped && found === null) found = GROUPED_COMMIT;
+  }
+  for (const segment of tokenizeShellCommand(shellWithoutHereDocBodies(command))) {
+    if (found !== null) break;
+    const reading = readCommand(commandWords(segment), depth);
+    if (reading?.kind === "signal") found = reading.reason;
+  }
+  return { segments, commits, signal: found };
+}
+
+/**
+ * True when the commit gate treats the command as a commit (#5656 / #6362): it
+ * holds a recognized `git commit`, or a commit signal the gate refuses. Forms the
+ * gate does not read at all (`if … then git commit`, `pushd`, other git verbs
+ * that create commits) are not caught later either: the git pre-commit hook runs
+ * only `verify:encoding`.
  */
 export function commandHasGitCommitSubcommand(command: string): boolean {
-  return commitInvocations(commandSegments(command)).length > 0;
+  return resolveCommitTarget(command) !== null;
 }
 
 /** Long commit options whose value is the next word (so it is not read as a pathspec). */
@@ -390,7 +781,7 @@ function commitIndexMutatingWord(git: GitInvocation): string | null {
  * `-am`, `--include` or a pathspec), or null (#5656 / #6471). The refusal names it.
  */
 export function findGitCommitIndexMutatingWord(command: string): string | null {
-  for (const { git } of commitInvocations(commandSegments(command))) {
+  for (const { git } of readCall(command, 0).commits) {
     const word = commitIndexMutatingWord(git);
     if (word !== null) return word;
   }
@@ -465,8 +856,17 @@ function isCdSegment(segment: ShellSegment): boolean {
   return commandWords(segment)[0]?.value.toLowerCase() === "cd";
 }
 
+/**
+ * True when a `cd` can move the commit: every group open at the `cd` is still
+ * open at the commit. A `cd` in a `( … )` that closed first moves nothing
+ * (`(cd /x) && git commit`, #6362).
+ */
+function cdReachesCommit(cd: CommandSegment, commit: CommandSegment): boolean {
+  return cd.groups.every((id, depth) => commit.groups[depth] === id);
+}
+
 function resolveOneCommit(
-  segments: readonly ShellSegment[],
+  segments: readonly CommandSegment[],
   index: number,
   git: GitInvocation,
   platform: NodeJS.Platform,
@@ -478,10 +878,18 @@ function resolveOneCommit(
   if (envOverride !== undefined) {
     return { kind: "unresolvable", reason: `the commit carries a ${envOverride}= prefix` };
   }
+  const commit = segments[index];
   const cdIndexes: number[] = [];
   for (let j = 0; j < index; j++) {
     const segment = segments[j];
-    if (segment !== undefined && isCdSegment(segment)) cdIndexes.push(j);
+    if (
+      segment !== undefined &&
+      commit !== undefined &&
+      isCdSegment(segment) &&
+      cdReachesCommit(segment, commit)
+    ) {
+      cdIndexes.push(j);
+    }
   }
   if (cdIndexes.length + git.chdirs.length > 1) {
     return { kind: "unresolvable", reason: "more than one `cd` or `-C` comes before the commit" };
@@ -518,16 +926,17 @@ function resolveOneCommit(
 
 /**
  * Resolve where a Shell command's `git commit` lands (#6278). Returns null when
- * the command holds no commit. Every commit in the call must resolve to the same
- * target; otherwise the target is unresolvable.
+ * the command holds no commit and no commit signal. A signal anywhere in the
+ * call makes it unresolvable, whatever visible commit comes before or after it
+ * (#6362). Every commit must resolve to the same target, or it is unresolvable.
  */
 export function resolveCommitTarget(
   command: string,
   options: ResolveCommitTargetOptions = {},
 ): CommitTarget | null {
   const platform = options.platform ?? process.platform;
-  const segments = commandSegments(command);
-  const commits = commitInvocations(segments);
+  const { segments, commits, signal: found } = readCall(command, 0);
+  if (found !== null) return { kind: "unresolvable", reason: found };
   if (commits.length === 0) return null;
   let target: CommitTarget | null = null;
   for (const { index, git } of commits) {

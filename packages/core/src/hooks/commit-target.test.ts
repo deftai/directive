@@ -529,3 +529,254 @@ describe("pipes, redirections and short clusters in a commit (#6471)", () => {
     expect(findGitCommitIndexMutatingWord("cat <<EOF\n'\nEOF\ngit commit -a")).toBe("-a");
   });
 });
+
+describe("a lone & ends a segment (#6362 clause 1)", () => {
+  it("splits on a lone & and keeps &>, >&, <&, 2>&1 and |& attached", () => {
+    const segments = tokenizeShellCommand("a & b 2>&1 >&2 <&3 &>x &>>y >&- |& c&d");
+    expect(segments.map((s) => s.words.map((w) => w.value))).toEqual([
+      ["a"],
+      ["b", "2>&1", ">&2", "<&3", "&>x", "&>>y", ">&-"],
+      ["c"],
+      ["d"],
+    ]);
+    expect(segments.map((s) => s.next)).toEqual(["&", "|", "&", null]);
+    expect(tokenizeShellCommand("a && b").map((s) => s.next)).toEqual(["&&", null]);
+  });
+
+  it("does not split a quoted or escaped &, or an & after a quoted >", () => {
+    expect(words("echo 'a & b' \"c & d\" e\\&f")).toEqual([["echo", "a & b", "c & d", "e&f"]]);
+    expect(words("echo '>'& git status")).toEqual([
+      ["echo", ">"],
+      ["git", "status"],
+    ]);
+    expect(words("echo \\>& git status")).toEqual([
+      ["echo", ">"],
+      ["git", "status"],
+    ]);
+  });
+
+  it("drops the empty segment after a trailing &", () => {
+    const segments = tokenizeShellCommand("nohup node server.js &");
+    expect(segments).toHaveLength(1);
+    expect(segments[0]?.next).toBe("&");
+  });
+
+  it("no longer reads a trailing & as a pathspec, and keeps redirections working", () => {
+    expect(findGitCommitIndexMutatingWord("git commit -m x &")).toBeNull();
+    expect(resolveCommitTarget("git commit -m x &", posix)).toEqual({ kind: "hook-root" });
+    for (const command of [
+      "git commit -m msg &> out.log",
+      "git commit -m msg >&2",
+      "git commit -m msg 2>&1 | tail -3",
+      "git commit -m msg |& tee log",
+    ]) {
+      expect(findGitCommitIndexMutatingWord(command), command).toBeNull();
+      expect(resolveCommitTarget(command, posix), command).toEqual({ kind: "hook-root" });
+    }
+    expect(resolveCommitTarget("git -C /wt commit -F /m 2>&1 | tail -5", posix)).toMatchObject({
+      kind: "named",
+      path: "/wt",
+    });
+  });
+
+  it("refuses a cd backgrounded before the commit, and reads an & before the cd like ;", () => {
+    for (const command of [
+      "cd /x & git commit -m x",
+      "cd /x && git commit -m a & git commit -m b",
+    ]) {
+      const target = resolveCommitTarget(command, posix);
+      expect(target, command).toMatchObject({ kind: "unresolvable" });
+      if (target?.kind === "unresolvable") expect(target.reason).toMatch(/not joined/);
+    }
+    expect(resolveCommitTarget("true & cd /x && git commit -m x", posix)).toEqual({
+      kind: "named",
+      path: "/x",
+      shape: "cd",
+    });
+  });
+});
+
+describe("commit signals outside the named shapes are unresolvable (#6362 clauses 2-3)", () => {
+  it("records unquoted parentheses only", () => {
+    const word = (command: string, n = 0) => tokenizeShellCommand(command)[0]?.words[n];
+    expect(word("((git")).toMatchObject({ value: "((git", parens: "((", leadingOpens: 2 });
+    expect(word("x)")).toMatchObject({ value: "x)", parens: ")", trailingCloses: 1 });
+    expect(word("$(a")).toMatchObject({ parens: "$" });
+    expect(word("<(a")).toMatchObject({ parens: "$" });
+    expect(word("fix(x)")).toMatchObject({ parens: "()", trailingCloses: 1 });
+    expect(word("fix(x)")?.leadingOpens).toBeUndefined();
+    for (const quoted of ["'(git'", '"(git"', "\\(git", "'x)'"]) {
+      expect(word(quoted), quoted).not.toHaveProperty("parens");
+      expect(word(quoted), quoted).not.toHaveProperty("leadingOpens");
+      expect(word(quoted), quoted).not.toHaveProperty("trailingCloses");
+    }
+  });
+
+  it.each([
+    ["(cd /x && git commit -m x)", /subshell group/],
+    ["cd /y && (cd /x && git commit -m x)", /subshell group/],
+    ["cd /x && (git commit -m x)", /subshell group/],
+    ["cd /x && ( git commit -m x )", /subshell group/],
+    ["(cd /x && git commit -m x && true)", /subshell group/],
+    ["(cd /x\ngit commit -m x\n)", /subshell group/],
+    ["{ (cd /x && git commit -m x); }", /subshell group/],
+    ["(git commit -am x)", /subshell group/],
+    ["git commit -m x)", /subshell group/],
+  ])("refuses the grouped commit %j", (command, reason) => {
+    const target = resolveCommitTarget(command, posix);
+    expect(target).toMatchObject({ kind: "unresolvable" });
+    if (target?.kind === "unresolvable") expect(target.reason).toMatch(reason);
+    expect(commandHasGitCommitSubcommand(command)).toBe(true);
+  });
+
+  it.each([
+    ["bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
+    ["sh -c 'git commit -m x'", /`sh -c` string runs a git commit/],
+    ["cd /y && bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
+    ["sh -c 'git -C /x commit -m x'", /`sh -c` string runs a git commit/],
+    ['bash -lc "cd /x && git commit -m y"', /`bash -c` string runs a git commit/],
+    ["bash -o pipefail -c 'git commit -m x'", /`bash -c` string runs a git commit/],
+    ["/bin/zsh --norc -c 'git commit -m x'", /`zsh -c` string runs a git commit/],
+    ["bash -c 'sh -c \"git commit -m x\"'", /in a `bash -c` string, a `sh -c` string runs/],
+    ["(bash -c 'git commit -m x')", /`bash -c` string runs a git commit/],
+    ['sh -c "$CMD"', /`sh -c` string holds a variable/],
+    ['bash -c "echo $HOME"', /`bash -c` string holds a variable/],
+    ["sh -c", /`sh -c` string is missing/],
+    ["sh -c '$CMD'", /in a `sh -c` string, the command word "\$CMD"/],
+    ["eval 'git commit -m x'", /`eval` runs a git commit/],
+    ["eval git commit -m x", /`eval` runs a git commit/],
+    ['eval "$X"', /`eval` argument holds a variable/],
+    ["env git commit -m x", /behind the `env` wrapper/],
+    ["env -C /x git commit -m x", /behind the `env` wrapper/],
+    ["command git commit -m x", /behind the `command` wrapper/],
+    ["exec git commit -m x", /behind the `exec` wrapper/],
+    ["nohup git commit -m x &", /behind the `nohup` wrapper/],
+    ["time git commit -m x", /behind the `time` wrapper/],
+    ["timeout 60 git commit -m x", /behind the `timeout` wrapper/],
+    ["xargs -I {} git -C {} commit -m x", /behind the `xargs` wrapper/],
+    ["sudo -u bob git commit -m x", /behind the `sudo` wrapper/],
+    ["nice -n 5 git commit -m x", /behind the `nice` wrapper/],
+    ["command -p git commit -m x", /behind the `command` wrapper/],
+    ["env FOO=1 bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
+    ["timeout 5 $CMD", /command word "\$CMD"/],
+    ["xargs git", /`xargs` runs git with arguments/],
+    ["G=git; $G commit -m x", /command word "\$G"/],
+    ['"$GIT" commit -m x', /command word "\$GIT"/],
+    ["`which git` commit -m x", /command word "`which"/],
+    ["git $SUB -m x", /git subcommand "\$SUB"/],
+  ])("refuses %j as a commit signal", (command, reason) => {
+    const target = resolveCommitTarget(command, posix);
+    expect(target).toMatchObject({ kind: "unresolvable" });
+    if (target?.kind === "unresolvable") expect(target.reason).toMatch(reason);
+    expect(commandHasGitCommitSubcommand(command)).toBe(true);
+  });
+
+  it("lets a signal win over a visible commit before or after it", () => {
+    for (const command of [
+      'sh -c "$CMD" && git commit -m x',
+      'git commit -m x && sh -c "$CMD"',
+      'git -C /x commit -m x && sh -c "$CMD"',
+      'cd /x && git commit -m x; eval "$X"',
+      "(git commit -m a) && git -C /x commit -m b",
+      "git -C /x commit -m b && env git commit -m a",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toMatchObject({ kind: "unresolvable" });
+    }
+  });
+
+  it("refuses shells, wrappers and eval nested too deeply to read", () => {
+    let command = "git commit -m x";
+    for (let i = 0; i < 10; i++) command = `env ${command}`;
+    expect(resolveCommitTarget(command, posix)).toMatchObject({
+      kind: "unresolvable",
+      reason: expect.stringMatching(/nest too deeply/),
+    });
+  });
+
+  it("never falls back to the hook root or an outer named path", () => {
+    for (const command of [
+      "(cd /x && git commit -m x)",
+      "cd /y && (cd /x && git commit -m x)",
+      "cd /y && bash -c 'git commit -m x'",
+    ]) {
+      const target = resolveCommitTarget(command, posix);
+      expect(target?.kind, command).toBe("unresolvable");
+    }
+  });
+});
+
+describe("controls that stay as they were (#6362 clause 4)", () => {
+  it("keeps a closed subshell cd from moving a later commit", () => {
+    for (const command of [
+      "(cd /r/wt) && git commit -m x",
+      "( cd /r/wt ) && git commit -m x",
+      "(true && cd /x) && git commit -m x",
+      "(cd /a) && (cd /b) && git commit -m x",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toEqual({ kind: "hook-root" });
+    }
+    expect(resolveCommitTarget("(cd /a) && cd /b && git commit -m x", posix)).toEqual({
+      kind: "named",
+      path: "/b",
+      shape: "cd",
+    });
+    expect(resolveCommitTarget("cd /x && (git status) && git commit -m x", posix)).toEqual({
+      kind: "named",
+      path: "/x",
+      shape: "cd",
+    });
+  });
+
+  it("keeps quoted commit text, quoted heredoc data and parentheses in quotes as data", () => {
+    expect(resolveCommitTarget('echo "git commit" && echo "(x)"', posix)).toBeNull();
+    expect(resolveCommitTarget("cat <<'EOF'\n(cd /x && git commit -m x)\nEOF", posix)).toBeNull();
+    expect(resolveCommitTarget("cat <<'EOF'\nbash -c \"$X\"\nEOF", posix)).toBeNull();
+    expect(resolveCommitTarget('git commit -m "fix(hooks): x (#6362)"', posix)).toEqual({
+      kind: "hook-root",
+    });
+    const heredocMessage = "git commit -m \"$(cat <<'EOF'\nfix(hooks): x (#6362)\nEOF\n)\"";
+    expect(resolveCommitTarget(heredocMessage, posix)).toEqual({ kind: "hook-root" });
+    expect(resolveCommitTarget("git commit -F - <<EOF\nfix(hooks): x (#6362)\nEOF", posix)).toEqual(
+      { kind: "hook-root" },
+    );
+  });
+
+  it("reads no signal from unquoted heredoc body text", () => {
+    const body = 'cat > /tmp/b.md <<EOF\n`task check` passes\n$PATH\neval "$X"\nEOF';
+    expect(resolveCommitTarget(body, posix)).toBeNull();
+    expect(resolveCommitTarget(`${body}\ngit commit -F /tmp/b.md`, posix)).toEqual({
+      kind: "hook-root",
+    });
+  });
+
+  it("reads commands that cannot commit as no commit", () => {
+    for (const command of [
+      "bash -lc 'npm test'",
+      "bash -c 'echo $HOME'",
+      "bash script.sh",
+      "sh -c 'git status && git log'",
+      "eval 'echo hi'",
+      "eval",
+      "env FOO=1 npm test",
+      "timeout 60 npm test",
+      "nohup node server.js &",
+      "command -v git",
+      "xargs git add",
+      "$HOME/bin/tool --flag",
+      '"$HOME/.local/bin/tool" run',
+      "echo $((1 << 2))",
+      "FOO=$(date) npm test",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toBeNull();
+      expect(commandHasGitCommitSubcommand(command), command).toBe(false);
+    }
+  });
+
+  it("still reads a git binary named by path with a variable directory", () => {
+    expect(resolveCommitTarget("~/bin/git commit -m x", posix)).toEqual({ kind: "hook-root" });
+    expect(resolveCommitTarget("$HOME/bin/git -C /x commit -m x", posix)).toMatchObject({
+      kind: "named",
+      path: "/x",
+    });
+  });
+});
