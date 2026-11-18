@@ -7,8 +7,10 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
-import { HOST_HOOK_OUTER_PIN_HOOK_BIN_REL } from "../init-deposit/host-hook-outer.js";
+import {
+  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+  HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
+} from "../init-deposit/host-hook-outer.js";
 import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import {
   liveOccupancyOnTree,
@@ -56,7 +58,6 @@ export type PrepareLinkedWorktreeFailureCode =
   | "not-linked"
   | "foreign-worktree"
   | "live-stranger-lease"
-  | "deposit-refused"
   | "pm-failed"
   | "pin-missing";
 
@@ -91,7 +92,6 @@ export interface PrepareLinkedWorktreeSeams {
     now?: Date,
   ) => OccupancyAdmission;
   readonly mainWorktreeRoot?: (root: string) => string | null;
-  readonly reconstitute?: typeof reconstituteLinkedWorktreeDeposit;
   /** When true, skip deposit/PM and only enforce lease/foreign gates + pin presence. */
   readonly requirePinOnly?: boolean;
 }
@@ -304,7 +304,7 @@ export function worktreeHasRuntimePin(worktreePath: string): boolean {
 /**
  * Shared guarded prep for an existing linked worktree (#6100 Prefer-A Recut-3).
  *
- * Order: foreign-worktree refuse → live stranger-lease refuse → deposit/PM →
+ * Order: foreign-worktree refuse → live stranger-lease refuse → pin check → PM →
  * success only when the outer-visible PIN_REL exists. Lease/foreign refuse runs
  * before any deposit write or PM invocation.
  */
@@ -375,40 +375,20 @@ export function prepareLinkedWorktree(
     };
   }
 
-  const reconstitute = seams.reconstitute ?? reconstituteLinkedWorktreeDeposit;
-  const pinned = worktreeHasRuntimePin(worktreePath);
-  const pkg = readPackageJson(worktreePath);
-
-  if (pinned) {
-    const pm = installWorktreePackages(worktreePath, { runner: seams.runner });
-    if (!pm.ok) {
-      return { ok: false, code: "pm-failed", message: pm.message };
-    }
-  } else {
-    const deposit = reconstitute(worktreePath, { preferPrimaryCore: true });
-    if (deposit.status === "refused") {
-      return {
-        ok: false,
-        code: "deposit-refused",
-        message: `linked-worktree prep deposit refused: ${deposit.message}`,
-      };
-    }
-    if (pkg !== null) {
-      // Unpinned consumer with package.json: install and require outer-visible pin.
-      const pm = installWorktreePackages(worktreePath, { runner: seams.runner });
-      if (!pm.ok) {
-        return { ok: false, code: "pm-failed", message: pm.message };
-      }
-    } else {
-      // No package.json: deposit-only / fixture path — not Codex pin handoff.
-      return {
-        ok: true,
-        worktreePath,
-        pm: null,
-        skippedInstall: true,
-        pinRel: OUTER_VISIBLE_RUNTIME_PIN_REL,
-      };
-    }
+  // #6562 / AC9.12: no runtime pin → fail closed with the project-install
+  // message. Never copy retired `.deft/core` content into the worktree.
+  if (!worktreeHasRuntimePin(worktreePath)) {
+    return {
+      ok: false,
+      code: "pin-missing",
+      message:
+        `linked-worktree prep refused: ${join(worktreePath, "package.json")} does not pin ` +
+        `@deftai/directive-runtime. ${HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE}`,
+    };
+  }
+  const pm = installWorktreePackages(worktreePath, { runner: seams.runner });
+  if (!pm.ok) {
+    return { ok: false, code: "pm-failed", message: pm.message };
   }
 
   if (!outerVisibleRuntimePinExists(worktreePath)) {
