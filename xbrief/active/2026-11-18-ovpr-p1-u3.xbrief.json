@@ -197,7 +197,8 @@
           "packages/core/src/release-e2e/fixtures/pre-ovpr/**",
           "changelog.d/6614-ovpr-lifecycle-fixture.md"
         ],
-        "module_boundary": "CI and test infrastructure under packages/core/src/release-e2e (new fixture harness, shared packed-consumer helpers lifted from the greenfield harness) and one advisory job in .github/workflows/ci.yml."
+        "module_boundary": "CI and test infrastructure under packages/core/src/release-e2e (new fixture harness, shared packed-consumer helpers lifted from the greenfield harness) and one advisory job in .github/workflows/ci.yml.",
+        "cohesion_exemption": "ci.yml (1088 lines) already exceeds the review trigger. This unit adds one advisory job to it (D-020: the job must live in ci.yml); splitting the workflow is out of scope."
       },
       "x-directive/plan-id": {
         "version": 1,
