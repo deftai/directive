@@ -8,6 +8,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { classifyDirectiveOwnedChange } from "../install-health/owned-paths.js";
 import { isLifecycleArtifactPath } from "../layout/resolve.js";
 import { unquoteGitPath } from "../scope-provenance/evaluate.js";
 import {
@@ -47,6 +48,11 @@ export interface ClassCheckResult {
   readonly exitCode: 0 | 1 | 2;
   readonly findings: readonly ClassCheckFinding[];
   readonly message: string;
+  /**
+   * Directive wiring files class 4 did not count because their change is not
+   * committed (D-026 / #6616). Omitted when there are none.
+   */
+  readonly notCounted?: readonly string[];
 }
 
 export interface ClassCheckOptions {
@@ -128,7 +134,7 @@ export function resolveClassCheckBaseRef(projectRoot: string): string | null {
 }
 
 type ChangedFilesResult =
-  | { readonly ok: true; readonly files: string[] }
+  | { readonly ok: true; readonly files: string[]; readonly mergeBase: string }
   | {
       readonly ok: false;
       readonly kind: "not-found" | "not-git" | "git-error";
@@ -235,7 +241,78 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): ChangedFilesR
     };
   }
   for (const line of untracked.stdout.split("\n")) addPath(line);
-  return { ok: true, files: [...out] };
+  return { ok: true, files: [...out], mergeBase: mergeBase.sha };
+}
+
+/**
+ * Directive wiring globs (D-026 / #6616). A protected path under one of these
+ * counts for class 4 only when it is committed, if Directive owns its change.
+ * Matches the wiring entries of DEFAULT_PROTECTED_GLOBS; ownership itself comes
+ * from classifyDirectiveOwnedChange (#6615), not from this list.
+ */
+const DIRECTIVE_WIRING_GLOBS = [".githooks/**", ".cursor/hooks.json", ".cursor/hooks/**"] as const;
+
+function isDirectiveWiringCandidate(relPath: string): boolean {
+  const posix = normalizeRepoRelPath(relPath);
+  return DIRECTIVE_WIRING_GLOBS.some((g) => matchPolicyGlob(posix, g) || matchesRootGlob(posix, g));
+}
+
+/** Paths that differ between the merge base and HEAD (committed changes only). */
+function committedFilesVsBase(projectRoot: string, mergeBase: string): Set<string> | null {
+  const diff = git(["diff", "--name-only", mergeBase, "HEAD"], projectRoot);
+  if (!diff.ok || diff.status !== 0) return null;
+  const out = new Set<string>();
+  for (const line of diff.stdout.split("\n")) {
+    const t = normalizeRepoRelPath(unquoteGitPath(line));
+    if (t.length > 0) out.add(t);
+  }
+  return out;
+}
+
+function readWorkingTreeFile(projectRoot: string, relPath: string): string | null {
+  const full = resolve(projectRoot, relPath);
+  if (!existsSync(full)) return null;
+  try {
+    return readFileSync(full, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Directive wiring paths in the change set whose change is not committed
+ * (D-026 / #6616): changed only in the working tree or untracked, and the
+ * uncommitted change (HEAD to working tree) is Directive's own per
+ * classifyDirectiveOwnedChange. A non-Directive file, or a change that also
+ * holds non-Directive material, is not returned and keeps the working-tree rule.
+ * Returns null when the committed set cannot be read (fail closed: count all).
+ */
+function uncommittedDirectiveWiring(
+  projectRoot: string,
+  mergeBase: string,
+  protectedHits: readonly string[],
+): string[] | null {
+  const candidates = protectedHits.filter((p) => isDirectiveWiringCandidate(p));
+  if (candidates.length === 0) return [];
+  const committed = committedFilesVsBase(projectRoot, mergeBase);
+  if (committed === null) return null;
+  const out: string[] = [];
+  for (const path of candidates) {
+    if (committed.has(path)) continue;
+    const before = readAtRef(projectRoot, "HEAD", path);
+    const after = readWorkingTreeFile(projectRoot, path);
+    if (classifyDirectiveOwnedChange(path, before, after) === "directive-only") out.push(path);
+  }
+  return out;
+}
+
+function notCountedLines(paths: readonly string[]): string {
+  return paths
+    .map(
+      (p) =>
+        `\n  Not counted: \`${p}\` (uncommitted change to Directive wiring, for example by automatic setup).`,
+    )
+    .join("");
 }
 
 function readAtRef(projectRoot: string, ref: string, relPath: string): string | null {
@@ -733,6 +810,9 @@ export function evaluateClassChecks(
   }
 
   let changed: string[];
+  // Merge base of the git-enumerated candidate tree; null when changedFiles is
+  // injected (no working tree to compare, so every path counts as today).
+  let candidateMergeBase: string | null = null;
   if (options.changedFiles) {
     changed = [...options.changedFiles].map((f) => normalizeRepoRelPath(f));
   } else {
@@ -773,6 +853,7 @@ export function evaluateClassChecks(
       );
     }
     changed = changedResult.files;
+    candidateMergeBase = changedResult.mergeBase;
   }
 
   // Empty change set: clean.
@@ -880,9 +961,18 @@ export function evaluateClassChecks(
   }
 
   // Class 4: protected glob in a story change set (mixed with story product).
-  const protectedHits = changed
+  const allProtectedHits = changed
     .map((p) => normalizeRepoRelPath(p))
     .filter((p) => !isExempt(p, baseTb.testRoots) && isProtected(p, classPolicy.protectedGlobs));
+  // D-026 / #6616: Directive's own wiring counts only by what is committed.
+  // Automatic setup rewrites it in CI before this check; that uncommitted
+  // rewrite is not a story edit. If the committed set cannot be read, count all.
+  const notCounted =
+    candidateMergeBase === null
+      ? []
+      : (uncommittedDirectiveWiring(root, candidateMergeBase, allProtectedHits) ?? []);
+  const notCountedSet = new Set(notCounted);
+  const protectedHits = allProtectedHits.filter((p) => !notCountedSet.has(p));
   // CLI authz is a composition companion only when paired with core authz
   // protected paths (#4233 / #4980) — not a blanket story-product exemption.
   const authzProtectedHit = protectedHits.some((p) => p.startsWith("packages/core/src/authz/"));
@@ -952,12 +1042,16 @@ export function evaluateClassChecks(
     }
   }
 
+  const notCountedText = notCountedLines(notCounted);
+  const notCountedField = notCounted.length > 0 ? { notCounted } : {};
+
   // Never mention scope:record-approved-scope in output.
   if (findings.length === 0) {
     return {
       exitCode: 0,
       findings,
-      message: `verify_class_checks: clean (${changed.length} changed file(s) vs ${baseRef}) (#4980).`,
+      message: `verify_class_checks: clean (${changed.length} changed file(s) vs ${baseRef}) (#4980).${notCountedText}`,
+      ...notCountedField,
     };
   }
 
@@ -970,11 +1064,11 @@ export function evaluateClassChecks(
     )
     .join("\n");
   const truncated = findings.length > 50 ? `\n  … and ${findings.length - 50} more.` : "";
-  const message = `${header}\n${body}${truncated}`;
+  const message = `${header}\n${body}${truncated}${notCountedText}`;
   if (/scope:record-approved-scope/i.test(message)) {
     return configError(
       "verify_class_checks: internal error — remediation must not name scope:record-approved-scope",
     );
   }
-  return { exitCode: 1, findings, message };
+  return { exitCode: 1, findings, message, ...notCountedField };
 }
