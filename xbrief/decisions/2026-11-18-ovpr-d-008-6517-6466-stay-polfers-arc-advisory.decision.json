@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-008-6517-6466-stay-polfers-arc-advisory",
+  "decision": "D-008 (option B): #6517 / #6466 worktree hook lockout stays polfer's. Scott's ARC on #6517 may finish as advisory input only; nothing ships from it. polfer owns the fix and decides it through the plan (re-opened O-04, answered by D-013). Any fix lands in the shared start-up guard and message table (P4-U3a) or P1-U1, not a one-off patch to the outer. #6466 and #6517 part 1 join the plan (Group A, Rule 3); #6530 stays a separate wording question.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-008)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Ship Scott's ARC (G1 changes .githooks/_directive-run.sh; G3 adds a payload reader to the host .mjs outer)",
+      "whyNot": "Both are polfer-owned files and overlap P1-U1, P4-U3a, P4-U3d"
+    }
+  ],
+  "whyWinner": "The files are polfer-owned and the fix belongs in the shared guard.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:25Z",
+  "revisitTrigger": "polfer hands #6517 / #6466 back to Scott",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "ownership"
+  ],
+  "relatedIssues": [
+    6517,
+    6466,
+    6550,
+    6328,
+    6530
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-013-no-runtime-in-checkout-follow-ovpr",
+  "decision": "D-013 (option A; closes O-04b): No runtime installed in a checkout or new worktree: follow OVPR as written. Fail closed with project package-install guidance on every entry point (host .mjs outer, git-hook helper, Taskfile entry; AC9.12, AC14.3, section A9, ledger line 54). Never run another checkout's runtime (AC9.4 / AC9.5); Scott's borrowing design is ruled out. A person runs the install; no install command is let through on the missing-runtime path. The residual in #6466 / #6517 / #6550 is the message, fixed in P4-U3a (outer) and P4-U3d (git hooks, Taskfile). P1-U1 is no longer gated on O-04b.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-013; AC9.12, AC9.4, AC9.5)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Borrow the primary checkout's runtime",
+      "whyNot": "Violates AC9.4 / AC9.5"
+    },
+    {
+      "option": "Let the install command through",
+      "whyNot": "Requirements change only polfer can raise as an RC"
+    }
+  ],
+  "whyWinner": "The OVPR requirements already decide this case.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:26Z",
+  "revisitTrigger": "polfer raises an RC to admit the install",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "rule-3"
+  ],
+  "relatedIssues": [
+    6466,
+    6517,
+    6550,
+    6375
+  ]
+}

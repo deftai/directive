@@ -49,8 +49,10 @@ describe("consumer task surface inline python cleanup (#2022 Phase 2)", () => {
     expect(readTaskfile("commit.yml")).toContain("commit-lint");
   });
 
-  it("install.yml dispatches install-uninstall via deft-ts", () => {
-    expect(readTaskfile("install.yml")).toContain("install-uninstall");
+  it("install.yml uninstall is retired and names directive uninstall (#6022)", () => {
+    const text = readTaskfile("install.yml");
+    expect(text).toContain("error: task uninstall is retired. Run: directive uninstall");
+    expect(text).not.toContain("install-uninstall");
   });
 });
 

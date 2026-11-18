@@ -37,6 +37,7 @@ import {
   formatStrictAxisAdvisory,
   HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION,
   HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
+  inferHiddenStrictAxes,
   inferRequiredStrictAxes,
   isClauseKeyedTitleFollowsIdPlaceholder,
   isEvidenceKindSuitable,
@@ -48,6 +49,7 @@ import {
   readNamespacedAcceptanceFields,
   restoreGrantedDispositionOriginals,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
+  type StrictAcceptanceAxis,
   stampDeclaredMergeEvidence,
   stampDeclaredTestEvidence,
   stampMatchAnyFileEvidence,
@@ -305,6 +307,86 @@ describe("strict axes match prose, not identifiers (#6270)", () => {
       items: [withEvidence({ title: "Smoke/UAT must pass", status: "pending" })],
     });
     expect(slashList.ok).toBe(false);
+  });
+});
+
+describe("strict axes keep matching inside code spans and fences (#6301)", () => {
+  const axes = (title: string) => inferRequiredStrictAxes({ title });
+  const FENCE = "```";
+  const lines = (...rows: string[]): string => rows.join("\n");
+
+  it("clause 2: a code-span claim keeps its axis", () => {
+    const claims: ReadonlyArray<readonly [string, StrictAcceptanceAxis]> = [
+      ["`npm run deploy` succeeds", "deploy"],
+      ["`vercel deploy --prod` succeeds", "deploy"],
+      ["`Deploy to staging` and confirm the site serves the new build", "deploy"],
+      ["the `deploy` job ran against staging and the site serves the new build", "deploy"],
+      ["`pnpm smoke` passes on staging", "smoke"],
+      ["`playwright test --grep smoke` passes against staging", "smoke"],
+      ["requires `smoke` evidence; the lint job is green", "smoke"],
+      ["record `uat` evidence from the staging walkthrough; update the workflow", "uat"],
+    ];
+    for (const [clause, axis] of claims) {
+      expect(axes(clause), clause).toEqual([axis]);
+    }
+  });
+
+  it("clause 3: a fenced deploy command keeps deploy, with and without a blockquote prefix", () => {
+    for (const body of ["npm run deploy -- --env staging", "flyctl deploy --app api-staging"]) {
+      for (const prefix of ["", "> "]) {
+        const block = lines(prefix + FENCE, prefix + body, prefix + FENCE);
+        expect(axes(block), block).toEqual(["deploy"]);
+      }
+    }
+  });
+
+  it("clause 4: an unclosed delimiter keeps the axis of later text", () => {
+    for (const opener of [FENCE, "~~~"]) {
+      expect(axes(lines(opener, "echo example", "smoke test passes"))).toEqual(["smoke"]);
+    }
+    expect(axes("Escape the ` character in titles; smoke tests pass on staging.")).toEqual([
+      "smoke",
+    ]);
+    expect(
+      inferRequiredStrictAxes({
+        title: "Fix the ` escaping bug",
+        narrative: { Acceptance: "Deploy to prod; then run `x` again" },
+      }),
+    ).toEqual(["deploy"]);
+    expect(
+      inferRequiredStrictAxes({
+        title: "Document the example",
+        narrative: {
+          Description: lines("Example:", FENCE, "ok"),
+          Test: "Smoke tests pass on staging",
+        },
+      }),
+    ).toEqual(["smoke"]);
+  });
+
+  it("clause 5: wrapping a prose claim in backticks changes neither the axes nor the listing", () => {
+    const prose = "Deploy to staging and run the smoke test";
+    const wrapped = "`Deploy to staging` and `run the smoke test`";
+    expect(axes(prose)).toEqual(["smoke", "deploy"]);
+    expect(axes(wrapped)).toEqual(axes(prose));
+    const row = (title: string) =>
+      listStrictAxisRequirements({ items: [{ id: "clause.1", title, status: "pending" }] });
+    expect(row(prose)).toEqual([
+      { path: "plan.items[0]", id: "clause.1", axes: ["smoke", "deploy"] },
+    ]);
+    expect(row(wrapped)).toEqual(row(prose));
+    // The gate still refuses test evidence, so backticks are not a silent waiver.
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ title: wrapped, status: "pending" })],
+    });
+    expect(gate.ok).toBe(false);
+  });
+
+  it("clause 6: observed_behavior matches on the same raw text, fences included", () => {
+    expect(axes(lines(FENCE, "check observed_behavior after deploy", FENCE))).toEqual([
+      "observed_behavior",
+      "deploy",
+    ]);
   });
 });
 
@@ -3843,6 +3925,8 @@ describe("strict-axis listing before completion (#6272)", () => {
       { path: "plan.items[0]", id: "clause.1", axes: ["deploy"] },
       { path: "plan.items[2]", id: "clause.3", axes: ["smoke", "deploy"] },
       { path: "plan.items[2].subItems[0]", id: "clause.3a", axes: ["uat"] },
+      // #6591: the merge declaration hides deploy, so the row is marked declared.
+      { path: "plan.items[3]", id: "clause.4", axes: ["deploy"], declared: true },
     ]);
     expect(listStrictAxisRequirements(null)).toEqual([]);
     expect(listStrictAxisRequirements({ items: [null, "x", { title: "smoke" }] })).toEqual([
@@ -3852,7 +3936,8 @@ describe("strict-axis listing before completion (#6272)", () => {
 
   it("clause.11: the listing and the completion gate use the same function", () => {
     const plan = strictPlan();
-    const listed = listStrictAxisRequirements(plan);
+    // Declared rows (#6591) are not gate rows; the equality holds on the rest.
+    const listed = listStrictAxisRequirements(plan).filter((r) => r.declared !== true);
     // Listing axes equal inferRequiredStrictAxes (the gate's function) per item.
     const items = plan.items as Record<string, unknown>[];
     const third = items[2] as Record<string, unknown>;
@@ -3883,31 +3968,150 @@ describe("strict-axis listing before completion (#6272)", () => {
     const refused = gate.reports
       .filter((r) => r.outcome === "invalid")
       .map((r) => ({ path: r.path, axes: /\[([^\]]+)\]/.exec(r.detail)?.[1] }));
-    const listedForGate = listStrictAxisRequirements(gatePlan).map((r) => ({
-      path: r.path,
-      axes: r.axes.join("|"),
-    }));
+    const listedForGate = listStrictAxisRequirements(gatePlan)
+      .filter((r) => r.declared !== true)
+      .map((r) => ({
+        path: r.path,
+        axes: r.axes.join("|"),
+      }));
     expect(refused).toEqual(listedForGate);
     expect(listedForGate.map((r) => r.path)).toContain("plan.items[3]");
   });
 
   it("clause.6: formats clause ids, axes and the x-directive/requires pointer", () => {
-    const lines = strictAxisAdvisoryLines({ plan: strictPlan() });
+    const lines = strictAxisAdvisoryLines({ plan: strictPlan() }, "scope:activate");
     expect(lines[0]).toMatch(/3 clause\(s\) will need strict-axis evidence at scope:complete/);
     expect(lines).toContain("  clause.1: deploy");
     expect(lines).toContain("  clause.3: smoke, deploy");
     expect(lines.at(-1)).toContain(ACCEPTANCE_REQUIRES_KEY);
     expect(lines.at(-1)).toContain("exit code unchanged");
-    expect(strictAxisAdvisoryLines(strictPlan())).toEqual(lines);
-    expect(formatStrictAxisAdvisory([])).toEqual([]);
-    expect(strictAxisAdvisoryLines("not an object")).toEqual([]);
-    expect(formatStrictAxisAdvisory([{ path: "plan.items[9]", id: null, axes: ["uat"] }])[1]).toBe(
-      "  plan.items[9]: uat",
-    );
+    expect(strictAxisAdvisoryLines(strictPlan(), "scope:activate")).toEqual(lines);
+    expect(formatStrictAxisAdvisory([], "scope:activate")).toEqual([]);
+    expect(strictAxisAdvisoryLines("not an object", "scope:activate")).toEqual([]);
+    expect(
+      formatStrictAxisAdvisory(
+        [{ path: "plan.items[9]", id: null, axes: ["uat"] }],
+        "scope:promote",
+      )[1],
+    ).toBe("  plan.items[9]: uat");
   });
 
   it("clause.12: identifiers such as deploy-dev.yml are not listed (#6270 classifier)", () => {
     const ids = listStrictAxisRequirements(strictPlan()).map((r) => r.id);
     expect(ids).not.toContain("clause.5");
+  });
+});
+
+describe("hidden strict axes and declared rows (#6591)", () => {
+  const DEPLOY = "Deploy to staging and confirm the site serves the new build";
+  const SMOKE = "Deploy to staging and run the smoke test";
+  const item = (title: string, extra: Record<string, unknown> = {}): Record<string, unknown> => ({
+    id: "clause.1",
+    title,
+    status: "pending",
+    ...extra,
+  });
+  /** The eight declaration fields: x-directive/requires and its seven aliases. */
+  const FIELDS = [
+    ACCEPTANCE_REQUIRES_KEY,
+    "x-directive/requiredEvidenceKind",
+    "x-directive/acceptanceAxis",
+    "requires",
+    "requiredEvidenceKind",
+    "required_evidence_kind",
+    "acceptanceAxis",
+    "acceptance_axis",
+  ];
+
+  it("item 1: hidden axes are the text axes minus the as-written axes, for all eight fields", () => {
+    for (const field of FIELDS) {
+      expect(inferHiddenStrictAxes(item(DEPLOY, { [field]: "merge" })), field).toEqual(["deploy"]);
+    }
+    expect(inferHiddenStrictAxes(item(DEPLOY))).toEqual([]);
+    expect(inferHiddenStrictAxes(item(SMOKE, { [ACCEPTANCE_REQUIRES_KEY]: "deploy" }))).toEqual([
+      "smoke",
+    ]);
+    expect(
+      inferHiddenStrictAxes(item("Deploy the service.", { [ACCEPTANCE_REQUIRES_KEY]: "deploy" })),
+    ).toEqual([]);
+    // Merge plus a strict axis keeps that axis; the other text axis is hidden.
+    expect(
+      inferHiddenStrictAxes(
+        item(SMOKE, { [ACCEPTANCE_REQUIRES_KEY]: "merge", acceptanceAxis: "smoke" }),
+      ),
+    ).toEqual(["deploy"]);
+    // A value the reader ignores hides nothing.
+    expect(inferHiddenStrictAxes(item(DEPLOY, { requires: 5 }))).toEqual([]);
+  });
+
+  it("item 7: a merge-declared deploy item is listed as declared with deploy hidden", () => {
+    expect(
+      listStrictAxisRequirements({ items: [item(DEPLOY, { [ACCEPTANCE_REQUIRES_KEY]: "merge" })] }),
+    ).toEqual([{ path: "plan.items[0]", id: "clause.1", axes: ["deploy"], declared: true }]);
+  });
+
+  it("item 7: the count stays on as-written axes; declared rows print after, marked", () => {
+    const plan = {
+      items: [
+        item(DEPLOY, { id: "a", [ACCEPTANCE_REQUIRES_KEY]: "merge" }),
+        item(DEPLOY, { id: "b" }),
+        item(SMOKE, { id: "c", [ACCEPTANCE_REQUIRES_KEY]: "deploy" }),
+      ],
+    };
+    const rows = listStrictAxisRequirements(plan);
+    expect(rows).toEqual([
+      { path: "plan.items[0]", id: "a", axes: ["deploy"], declared: true },
+      { path: "plan.items[1]", id: "b", axes: ["deploy"] },
+      { path: "plan.items[2]", id: "c", axes: ["deploy"] },
+      { path: "plan.items[2]", id: "c", axes: ["smoke"], declared: true },
+    ]);
+    // The gate holds exactly the rows that are not declared.
+    const gate = rows.filter((r) => r.declared !== true);
+    expect(gate.map((r) => r.axes)).toEqual(
+      [plan.items[1], plan.items[2]].map((i) =>
+        inferRequiredStrictAxes(i as Record<string, unknown>),
+      ),
+    );
+    const lines = formatStrictAxisAdvisory(rows, "scope:promote");
+    expect(lines).toEqual([
+      "[deft scope] advisory: 2 clause(s) will need strict-axis evidence at scope:complete (#6272):",
+      "  b: deploy",
+      "  c: deploy",
+      "  2 declared clause(s): the item's declaration hides these text axes, so scope:complete does not require them (#6591):",
+      "  a: deploy (declared)",
+      "  c: smoke (declared)",
+      `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} (merge or one axis) on the item. Advisory only; exit code unchanged.`,
+    ]);
+  });
+
+  it("item 6: promote and activate name x-directive/requires; preflight omits it", () => {
+    const plan = { items: [item(DEPLOY), item(SMOKE, { id: "d", requires: "merge" })] };
+    for (const verb of ["scope:promote", "scope:activate"] as const) {
+      expect(strictAxisAdvisoryLines(plan, verb).at(-1)).toContain(
+        `declare ${ACCEPTANCE_REQUIRES_KEY}`,
+      );
+    }
+    const preflight = strictAxisAdvisoryLines(plan, "xbrief:preflight");
+    expect(preflight.join("\n")).not.toContain(ACCEPTANCE_REQUIRES_KEY);
+    expect(preflight.join("\n")).not.toMatch(/\bdeclare\b/);
+    expect(preflight).toContain("  clause.1: deploy");
+    expect(preflight).toContain("  d: smoke, deploy (declared)");
+    expect(preflight.at(-1)).toBe("  Advisory only; exit code unchanged.");
+  });
+
+  it("item 7: a plan with only declared rows prints a zero count and the rows", () => {
+    const lines = strictAxisAdvisoryLines(
+      { items: [item(DEPLOY, { [ACCEPTANCE_REQUIRES_KEY]: "merge" })] },
+      "xbrief:preflight",
+    );
+    expect(lines[0]).toContain("0 clause(s) will need strict-axis evidence");
+    expect(lines).toContain("  clause.1: deploy (declared)");
+    // A declared row with no id is named by its path.
+    expect(
+      formatStrictAxisAdvisory(
+        [{ path: "plan.items[4]", id: null, axes: ["uat"], declared: true }],
+        "xbrief:preflight",
+      ),
+    ).toContain("  plan.items[4]: uat (declared)");
   });
 });

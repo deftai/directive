@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-rc-02-approved-as-drafted",
+  "decision": "RC-02 approved by polfer as drafted (D-030), text in drafts/RC-02.md of the OVPR planning folder (directive-ovpr-planning-202611): The launcher's deft-hook may know each host's blocking response and pre-tool event (exception to AC3.3, section A5.6, D4 rule 2). Gates: P1-U2 merge. Lands as its own docs-only PR with exactly the approved text, merged by polfer before the gated unit merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-030)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the current requirements text",
+      "whyNot": "Rejected by polfer's approval of the draft (D-030)"
+    }
+  ],
+  "whyWinner": "polfer approved the drafted text (D-030); see drafts/RC-02.md and drafts/RC-INDEX.md.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:32Z",
+  "revisitTrigger": "The RC-02 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-02"
+  ],
+  "relatedIssues": [
+    5960,
+    6201
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-026-class-4-counts-wiring-by-committed-changes",
+  "decision": "D-026 (option B): verify:class-checks class 4 counts only committed changes (merge base to HEAD) for protected paths that P2-U0's classifyDirectiveOwnedChange says are Directive-owned wiring (.githooks/**, .cursor/hooks.json, .cursor/hooks/**). A committed hook edit mixed with story code still fails. DEFAULT_PROTECTED_GLOBS unchanged; hooks/** and other protected paths keep the working-tree rule. New polfer unit P2-U14 (wave 2.1b, P2-U0 -> P2-U14 -> P2-U1); its PR touches only class-checks/**, tests and a changelog.d fragment. Tell Scott before the PR opens. Deliberate reviewed gate change (#3156); no RC; no repo settings.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-026)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "A: remove the globs",
+      "whyNot": "Lets committed hook edits through"
+    },
+    {
+      "option": "C: match what Directive writes",
+      "whyNot": "Fails for the shared .cursor/hooks.json"
+    }
+  ],
+  "whyWinner": "Automatic setup correctly rewrites wiring in CI after a pin-only bump; class 4 must not fail on that.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:30Z",
+  "revisitTrigger": "Class 4 lets a committed hook edit through",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "gates"
+  ],
+  "relatedIssues": [
+    4980,
+    6336,
+    6402,
+    6615,
+    6616,
+    3156
+  ]
+}

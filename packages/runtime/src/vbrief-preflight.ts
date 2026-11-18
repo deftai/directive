@@ -40,10 +40,17 @@ export function issuelessCodeBearingNote(briefPath: string): string | null {
   return ISSUELESS_CODE_BEARING_REMEDIATION;
 }
 
-/** Strict-axis advisory lines for the brief (#6272); empty when unreadable. */
+/**
+ * Strict-axis advisory lines for the brief (#6272); empty when unreadable.
+ * Preflight runs on an active brief, so the lines do not suggest adding a
+ * declaration (#6591).
+ */
 export function strictAxisAdvisoryForBrief(briefPath: string): string[] {
   try {
-    return strictAxisAdvisoryLines(JSON.parse(readFileSync(briefPath, "utf8")) as unknown);
+    return strictAxisAdvisoryLines(
+      JSON.parse(readFileSync(briefPath, "utf8")) as unknown,
+      "xbrief:preflight",
+    );
   } catch {
     return [];
   }

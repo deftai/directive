@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-012-upgrade-finishes-vbrief-to-xbrief-move",
+  "decision": "D-012 (option B; supersedes D-011): In the dual-populated and already-marked cases, directive upgrade finishes the vbrief to xbrief move: free destinations are migrated, identical ones skipped, differing ones copied raw to xbrief/archive/ (never overwriting xbrief/), then vbrief/ is deleted. The drift gate is not changed. --keep-legacy on a direct deft migrate:xbrief stays an explicit opt-in; upgrade never passes it. Unit P2-U13, wave 2.1, before P2-U1. No RC: requirements only say upgrade migrates (AC7.8); the changed rule is #2270's.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-012; AC7.8)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "A: drift-gate exemption",
+      "whyNot": "Keeps vbrief/"
+    },
+    {
+      "option": "C: B plus the exemption",
+      "whyNot": "Unnecessary"
+    }
+  ],
+  "whyWinner": "polfer's intent: upgraded vbriefs end in xbrief/ and vbrief/ goes away.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:26Z",
+  "revisitTrigger": "A repo needs vbrief/ kept after upgrade",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "xbrief"
+  ],
+  "relatedIssues": [
+    2270,
+    6465,
+    6571
+  ]
+}

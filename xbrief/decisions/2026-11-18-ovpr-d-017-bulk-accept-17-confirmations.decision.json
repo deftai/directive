@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-017-bulk-accept-17-confirmations",
+  "decision": "D-017: polfer accepted the recommended answer for all 17 confirmations and housekeeping items. O-08 deft-hook outside a repo exits 1. O-14 accept the lost generation key. O-15 retired core guard deleted by upgrade only. O-20 foreign hooksPath reported as inactive. O-24 keep Node 20 (AC16.1); reject #5873's floor raise. O-25 accept (a), (b), (c). O-35 git commit refuses while node_modules lags the pin (AC2.6). O-37 accept Scott's #6375 text (#6534); P4-U4 dropped, its wording check moves into P4-U3a. O-29 remove doctor --fix paths that write files, follow-up ticket after P3-U2. O-39 CI paperwork checks pass Directive-only PRs, follow-up ticket for Scott after P4-U1. O-40 decline #6358's session-start half; fold its release half into P3-U1a. O-41 keep #6304, #6300, #6328; fix #6300's doctor advice in P3-U2. O-42 stop advertising the dead docs URL now (P5-U2c). O-43 lift the hold on #5603 now (P5-U3a); #5867 after Phase 4 (P5-U2d). O-44 repro #4655, close if it doesn't reproduce. O-45 keep #2603 / #2697 assigned. O-46 close #5842 and remove ingest-ready.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-017)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Ask each of the 17 items one at a time",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Each item had a clear recommended answer.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:28Z",
+  "revisitTrigger": "A unit finds a recommended answer wrong",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "process"
+  ],
+  "relatedIssues": [
+    5873,
+    6375,
+    6534,
+    6358,
+    6304,
+    6300,
+    6328,
+    5603,
+    5867,
+    4655,
+    2603,
+    2697,
+    5842,
+    6622,
+    6623
+  ]
+}

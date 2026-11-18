@@ -1,0 +1,754 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6616",
+    "updated": "2026-11-18T14:47:18Z"
+  },
+  "plan": {
+    "title": "class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026)",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan unit P2-U14 (story id ovpr-p2-u14), spec units/P2-U14-class4-counts-committed-wiring-only.md, issue #6616, decision D-026. Class 4 of verify:class-checks counts working-tree and untracked changes, so when automatic setup rewrites Directive's wiring (.githooks/**, .cursor/hooks.json, .cursor/hooks/**) in CI, a story PR fails although nobody edited a hook. In packages/core/src/class-checks/, a protected path that P2-U0's classifyDirectiveOwnedChange says Directive owns now counts only when it differs between the merge base and HEAD; every other path keeps today's working-tree rule.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6616",
+      "Overview": "## Problem\n\n`verify:class-checks` class 4 (#4980) fails a PR when a protected path and a story product path are both in the change set. The protected paths include Directive's wiring files: `.githooks/**`, `.cursor/hooks.json` and `.cursor/hooks/**`.\n\nThe change set is the **working tree** against the merge base, plus untracked files. In CI after a pin-only bump (Dependabot), automatic setup correctly rewrites Directive's wiring before the check runs (AC8.6, AC14.10, D-023). Class 4 then counts those uncommitted rewrites as \"protected path changed\", and the story PR fails although nobody edited a hook. This is live today for Cursor hook files. For git hooks it starts when P2-U1b ships (D-023 reverses #5859).\n\nEvidence (origin/master `def527f5e`):\n- `DEFAULT_PROTECTED_GLOBS`: `packages/core/src/class-checks/policy.ts:29-32`.\n- `changedFilesVsBase`: `packages/core/src/class-checks/evaluate.ts:158`. It takes `git diff --name-only <merge-base>` (working tree) plus `git ls-files --others --exclude-standard` (`:200-237`; #6336 item 5, #6402).\n- Class 4 evaluation: `evaluate.ts:882-925`.\n- It runs in consumer CI and in `pre-pr:run`.\n\n## What the design says\n\n- AC4.3: automatic setup has setup's obligations. AC14.10 / AC8.6: it completes wiring after a pin-only bump.\n- D-023: automatic setup refreshes Directive's hooks with no approval, and names them in its output. The commit comes later.\n- D-026 (polfer, 2026-11-17): class 4 counts Directive's own wiring files only by what is committed (option B). `DEFAULT_PROTECTED_GLOBS` is unchanged. A committed hook edit mixed with story code still fails.\n- #3156 (gate integrity): this is a deliberate gate change through an issue and a reviewed PR.\n\n## Expected\n\n1. In the class-4 evaluation, split the protected paths in the change set into two groups:\n   - **Directive-owned wiring:** a protected path for which P2-U0's `classifyDirectiveOwnedChange` says Directive owns the file. No new hand-kept list.\n   - **Everything else:** unchanged.\n2. A Directive-owned wiring path counts for class 4 only when it differs between the merge base and `HEAD` (`git diff --name-only <merge-base> HEAD`). Uncommitted and untracked changes to these files don't count.\n3. All other paths keep the current working-tree rule (#6336 item 5).\n4. When a Directive-owned wiring file is not counted because it is uncommitted, the class-4 report prints one line: \"Not counted: `<path>` (uncommitted change to Directive wiring, for example by automatic setup).\"\n\nMust not do:\n- Don't remove any glob from `DEFAULT_PROTECTED_GLOBS`. Don't change `hooks/**` or any non-wiring protected glob.\n- Don't change how non-wiring paths are counted.\n- Don't treat a non-Directive file under `.githooks/` or `.cursor/hooks/` as wiring.\n- The PR touches only `packages/core/src/class-checks/**`, its tests and the changelog fragment (`changelog.d/<issue>-<slug>.md`). `class-checks/**` is itself protected, so it must not be mixed with story product code.\n- No repository settings changes (D-007).\n\n## Acceptance criteria\n\n1. These tests pass:\n   1. Committed story change + **uncommitted** rewrite of Directive-owned `.githooks/pre-commit`: class 4 passes, and the report names the file as not counted.\n   2. Same, with an **untracked** Directive-owned `.cursor/hooks/<file>`: class 4 passes.\n   3. Committed story change + **committed** edit to `.githooks/pre-commit`: class 4 fails, as today.\n   4. Committed story change + uncommitted change to a **non-Directive** file under `.githooks/`: class 4 fails, as today.\n   5. Committed story change + uncommitted change to `packages/core/src/class-checks/**`: class 4 fails, as today.\n   6. CI-shaped fixture: clean committed tip after a pin-only bump; run automatic setup, then `verify:class-checks`. It passes.\n2. `DEFAULT_PROTECTED_GLOBS` is unchanged.\n3. The PR's changed files are only under `packages/core/src/class-checks/**`, tests and the changelog fragment.\n4. Scott (class 4 owner) was told before the PR opened. The PR body links that note.\n\nVerification: run `deft verify:class-checks` on a branch with a committed product change after running automatic setup locally; it passes. If P1-U3 has merged, add test 6 to its fixture.\n\n## Related\n\n- #4980 (class 4, closed), #6336 / #6402 (working-tree counting, closed): comment on both when this merges.\n- #6615: provides `classifyDirectiveOwnedChange`.\n- #5808, #5976 (P2-U1): P2-U1b restores git-hook refresh by automatic setup, which makes this live for `.githooks/**`.\n\n## Plan placement\n\n- Unit P2-U14, story id `ovpr-p2-u14`. Phase 2, wave 2.1b. Size S.\n- Depends on P2-U0. Must merge before P2-U1b.\n- Owner polfer (automatic setup). Tell Scott before the PR opens.\n\n",
+      "Labels": "bug, area:installer",
+      "UserStory": "As a developer whose CI runs Directive's automatic setup after a pin-only bump, I want class 4 of verify:class-checks to count Directive's own wiring files only by what is committed, so that a story PR does not fail just because automatic setup rewrote a hook file in the CI checkout.",
+      "StoryId": "ovpr-p2-u14 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U14-class4-counts-committed-wiring-only.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "1. In packages/core/src/class-checks/evaluate.ts class-4 evaluation, split the protected paths in the change set into Directive-owned wiring (classifyDirectiveOwnedChange from P2-U0 says Directive owns the file; no new hand-kept list) and everything else.\n2. A Directive-owned wiring path counts for class 4 only when `git diff --name-only <merge-base> HEAD` lists it. Uncommitted and untracked changes to these files do not count.\n3. All other paths keep the current working-tree rule (#6336 item 5).\n4. When a Directive-owned wiring file is not counted because it is uncommitted, the class-4 report prints one line: \"Not counted: `<path>` (uncommitted change to Directive wiring, for example by automatic setup).\"\n5. Tests 1-6 from the unit spec in packages/core/src/class-checks/evaluate.test.ts.\n6. Changelog fragment changelog.d/6616-class4-committed-wiring-only.md. Tell Scott (class 4 owner, #4980) before the PR opens and link the note in the PR body.\nScope: Production files: class-checks/** only (evaluate.ts expected). class-checks/** is itself a protected path, so it must not be mixed with story product code.",
+      "Constraint": "- Don't remove any glob from `DEFAULT_PROTECTED_GLOBS`. Don't change `hooks/**` or any non-wiring protected glob.\n- Don't change how non-wiring paths are counted.\n- Don't treat a non-Directive file under `.githooks/` or `.cursor/hooks/` as wiring. If P2-U0 says it isn't Directive-owned, it keeps the working-tree rule.\n- The PR touches only `packages/core/src/class-checks/**`, its tests, and the `changelog.d/` fragment.\n- No repository settings changes (D-007).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: P2-U0 (classifyDirectiveOwnedChange; brief github.issue.6458882573). Blocks: P2-U1 (U1b must not merge before this unit). Decision D-026 (no RC). Deliberate gate change through issue and reviewed PR (#3156).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #6616. Comment on #4980 and #6336 when merged (unit spec ticket actions)."
+    },
+    "items": [
+      {
+        "title": "Committed story product change, plus an uncommitted rewrite of Directive-owned `.githooks/pre-commit`: class 4 passes, and the report names the file as not counted.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a committed story product change and an uncommitted rewrite of Directive-owned `.githooks/pre-commit`, when class 4 runs, then it passes and the report prints the \"Not counted\" line for that file."
+        }
+      },
+      {
+        "title": "Committed story product change, plus an untracked Directive-owned `.cursor/hooks/<file>`: class 4 passes.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a committed story product change and an untracked Directive-owned `.cursor/hooks/<file>`, when class 4 runs, then it passes."
+        }
+      },
+      {
+        "title": "Committed story product change, plus a committed edit to `.githooks/pre-commit`: class 4 fails, as today.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a committed story product change and a committed edit to `.githooks/pre-commit`, when class 4 runs, then it fails as it does today."
+        }
+      },
+      {
+        "title": "Committed story product change, plus an uncommitted change to a non-Directive file under `.githooks/`: class 4 fails, as today.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a committed story product change and an uncommitted change to a non-Directive file under `.githooks/`, when class 4 runs, then it fails as it does today."
+        }
+      },
+      {
+        "title": "Committed story product change, plus an uncommitted change to `packages/core/src/class-checks/**` (non-wiring protected path): class 4 fails, as today.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given a committed story product change and an uncommitted change under `packages/core/src/class-checks/`, when class 4 runs, then it fails as it does today."
+        }
+      },
+      {
+        "title": "CI-shaped fixture: clean committed tip after a pin-only bump; run automatic setup, then `verify:class-checks`. It passes.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given a clean committed tip after a pin-only bump, when automatic setup runs and then `verify:class-checks` runs, then class 4 passes."
+        }
+      },
+      {
+        "title": "`DEFAULT_PROTECTED_GLOBS` is unchanged.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given the PR diff, when `DEFAULT_PROTECTED_GLOBS` in `packages/core/src/class-checks/policy.ts` is compared with the merge base, then it shows no change."
+        }
+      },
+      {
+        "title": "The PR's changed files are only under `packages/core/src/class-checks/**`, tests and one `changelog.d/` fragment.",
+        "status": "proposed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given the PR, when its changed files are listed, then every file is under `packages/core/src/class-checks/` or is the one `changelog.d/6616-class4-committed-wiring-only.md` fragment."
+        }
+      },
+      {
+        "title": "Scott was told before the PR opened (link the comment or message in the PR body).",
+        "status": "proposed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given the opened PR, when its body is read, then it links the note that told Scott (class 4 owner) about the change before the PR opened."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6616",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6616: class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4980",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4980"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6336",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6336"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6615",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6615"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft verify:class-checks",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L51"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "changelog.d/6616-class4-committed-wiring-only.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6458882573"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/class-checks"
+        ],
+        "Traces": [
+          "#6616",
+          "#4980",
+          "#6336",
+          "#6615"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "class-checks",
+        "expected_outputs": [
+          "Committed story product change, plus an uncommitted rewrite of Directive-owned `.githooks/pre-commit`: class 4 passes, and the report names the file as not counted.",
+          "Committed story product change, plus an untracked Directive-owned `.cursor/hooks/<file>`: class 4 passes.",
+          "Committed story product change, plus a committed edit to `.githooks/pre-commit`: class 4 fails, as today.",
+          "Committed story product change, plus an uncommitted change to a non-Directive file under `.githooks/`: class 4 fails, as today.",
+          "Committed story product change, plus an uncommitted change to `packages/core/src/class-checks/**` (non-wiring protected path): class 4 fails, as today.",
+          "CI-shaped fixture: clean committed tip after a pin-only bump; run automatic setup, then `verify:class-checks`. It passes.",
+          "`DEFAULT_PROTECTED_GLOBS` is unchanged.",
+          "The PR's changed files are only under `packages/core/src/class-checks/**`, tests and one `changelog.d/` fragment.",
+          "Scott was told before the PR opened (link the comment or message in the PR body).",
+          "one changelog fragment changelog.d/6616-class4-committed-wiring-only.md"
+        ],
+        "acceptance_criteria_justification": "Nine items: unit spec P2-U14 tests 1-6 (acceptance criterion 1) and acceptance criteria 2-4, one each."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "changelog.d/6616-class4-committed-wiring-only.md"
+        ],
+        "module_boundary": "packages/core/src/class-checks/ only (class-4 evaluation and its report line); reads P2-U0's classifyDirectiveOwnedChange. No policy.ts glob change.",
+        "cohesion_exemption": "evaluate.ts (980 lines) is close to the review trigger. This gate change adds one split and one report line to the class-4 branch; splitting the file is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6458882780,
+        "origin": "deftai/directive#6616",
+        "id": "github.issue.6458882780"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (60), in order (#6333)",
+      "sentences": [
+        "class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026)",
+        "Problem `verify:class-checks` class 4 (#4980) fails a PR when a protected path and a story product path are both in the change set.",
+        "The protected paths include Directive's wiring files: `.githooks/`, `.cursor/hooks.json` and `.cursor/hooks/`.",
+        "The change set is the working tree against the merge base, plus untracked files.",
+        "In CI after a pin-only bump (Dependabot), automatic setup correctly rewrites Directive's wiring before the check runs (AC8.6, AC14.10, D-023).",
+        "Class 4 then counts those uncommitted rewrites as \"protected path changed\", and the story PR fails although nobody edited a hook.",
+        "This is live today for Cursor hook files.",
+        "For git hooks it starts when P2-U1b ships (D-023 reverses #5859).",
+        "Evidence (origin/master `def527f5e`): - `DEFAULT_PROTECTED_GLOBS`: `packages/core/src/class-checks/policy.ts:29-32`.",
+        "`changedFilesVsBase`: `packages/core/src/class-checks/evaluate.ts:158`.",
+        "It takes `git diff --name-only <merge-base>` (working tree) plus `git ls-files --others --exclude-standard` (`:200-237`; #6336 item 5, #6402).",
+        "Class 4 evaluation: `evaluate.ts:882-925`.",
+        "It runs in consumer CI and in `pre-pr:run`.",
+        "What the design says - AC4.3: automatic setup has setup's obligations.",
+        "AC14.10 / AC8.6: it completes wiring after a pin-only bump.",
+        "D-023: automatic setup refreshes Directive's hooks with no approval, and names them in its output.",
+        "The commit comes later.",
+        "D-026 (polfer, 2026-11-17): class 4 counts Directive's own wiring files only by what is committed (option B).",
+        "`DEFAULT_PROTECTED_GLOBS` is unchanged.",
+        "A committed hook edit mixed with story code still fails.",
+        "#3156 (gate integrity): this is a deliberate gate change through an issue and a reviewed PR.",
+        "Expected 1.",
+        "In the class-4 evaluation, split the protected paths in the change set into two groups: - Directive-owned wiring: a protected path for which P2-U0's `classifyDirectiveOwnedChange` says Directive owns the file.",
+        "No new hand-kept list.",
+        "Everything else: unchanged.",
+        "A Directive-owned wiring path counts for class 4 only when it differs between the merge base and `HEAD` (`git diff --name-only <merge-base> HEAD`).",
+        "Uncommitted and untracked changes to these files don't count.",
+        "All other paths keep the current working-tree rule (#6336 item 5).",
+        "When a Directive-owned wiring file is not counted because it is uncommitted, the class-4 report prints one line: \"Not counted: `<path>` (uncommitted change to Directive wiring, for example by automatic setup).\" Must not do: - Don't remove any glob from `DEFAULT_PROTECTED_GLOBS`.",
+        "Don't change `hooks/` or any non-wiring protected glob.",
+        "Don't change how non-wiring paths are counted.",
+        "Don't treat a non-Directive file under `.githooks/` or `.cursor/hooks/` as wiring.",
+        "The PR touches only `packages/core/src/class-checks/`, its tests and the changelog fragment (`changelog.d/<issue>-<slug>.md`).",
+        "`class-checks/` is itself protected, so it must not be mixed with story product code.",
+        "No repository settings changes (D-007).",
+        "Acceptance criteria 1.",
+        "These tests pass: 1.",
+        "Committed story change + uncommitted rewrite of Directive-owned `.githooks/pre-commit`: class 4 passes, and the report names the file as not counted.",
+        "Same, with an untracked Directive-owned `.cursor/hooks/<file>`: class 4 passes.",
+        "Committed story change + committed edit to `.githooks/pre-commit`: class 4 fails, as today.",
+        "Committed story change + uncommitted change to a non-Directive file under `.githooks/`: class 4 fails, as today.",
+        "Committed story change + uncommitted change to `packages/core/src/class-checks/`: class 4 fails, as today.",
+        "CI-shaped fixture: clean committed tip after a pin-only bump; run automatic setup, then `verify:class-checks`.",
+        "It passes.",
+        "The PR's changed files are only under `packages/core/src/class-checks/`, tests and the changelog fragment.",
+        "Scott (class 4 owner) was told before the PR opened.",
+        "The PR body links that note.",
+        "Verification: run `deft verify:class-checks` on a branch with a committed product change after running automatic setup locally; it passes.",
+        "If P1-U3 has merged, add test 6 to its fixture.",
+        "Related - #4980 (class 4, closed), #6336 / #6402 (working-tree counting, closed): comment on both when this merges.",
+        "#6615: provides `classifyDirectiveOwnedChange`.",
+        "#5808, #5976 (P2-U1): P2-U1b restores git-hook refresh by automatic setup, which makes this live for `.githooks/`.",
+        "Plan placement - Unit P2-U14, story id `ovpr-p2-u14`.",
+        "Phase 2, wave 2.1b.",
+        "Size S.",
+        "Depends on P2-U0.",
+        "Must merge before P2-U1b.",
+        "Owner polfer (automatic setup).",
+        "Tell Scott before the PR opens.",
+        "These tests pass:"
+      ],
+      "admitted_source_sentences": [
+        "Problem `verify:class-checks` class 4 (#4980) fails a PR when a protected path and a story product path are both in the change set.",
+        "The protected paths include Directive's wiring files: `.githooks/`, `.cursor/hooks.json` and `.cursor/hooks/`.",
+        "The change set is the working tree against the merge base, plus untracked files.",
+        "In CI after a pin-only bump (Dependabot), automatic setup correctly rewrites Directive's wiring before the check runs (AC8.6, AC14.10, D-023).",
+        "Class 4 then counts those uncommitted rewrites as \"protected path changed\", and the story PR fails although nobody edited a hook.",
+        "This is live today for Cursor hook files.",
+        "For git hooks it starts when P2-U1b ships (D-023 reverses #5859).",
+        "Evidence (origin/master `def527f5e`): - `DEFAULT_PROTECTED_GLOBS`: `packages/core/src/class-checks/policy.ts:29-32`.",
+        "`changedFilesVsBase`: `packages/core/src/class-checks/evaluate.ts:158`.",
+        "It takes `git diff --name-only <merge-base>` (working tree) plus `git ls-files --others --exclude-standard` (`:200-237`; #6336 item 5, #6402).",
+        "Class 4 evaluation: `evaluate.ts:882-925`.",
+        "It runs in consumer CI and in `pre-pr:run`.",
+        "What the design says - AC4.3: automatic setup has setup's obligations.",
+        "AC14.10 / AC8.6: it completes wiring after a pin-only bump.",
+        "D-023: automatic setup refreshes Directive's hooks with no approval, and names them in its output.",
+        "The commit comes later.",
+        "D-026 (polfer, 2026-11-17): class 4 counts Directive's own wiring files only by what is committed (option B).",
+        "`DEFAULT_PROTECTED_GLOBS` is unchanged.",
+        "A committed hook edit mixed with story code still fails.",
+        "#3156 (gate integrity): this is a deliberate gate change through an issue and a reviewed PR.",
+        "Expected 1.",
+        "In the class-4 evaluation, split the protected paths in the change set into two groups: - Directive-owned wiring: a protected path for which P2-U0's `classifyDirectiveOwnedChange` says Directive owns the file.",
+        "No new hand-kept list.",
+        "Everything else: unchanged.",
+        "A Directive-owned wiring path counts for class 4 only when it differs between the merge base and `HEAD` (`git diff --name-only <merge-base> HEAD`).",
+        "Uncommitted and untracked changes to these files don't count.",
+        "All other paths keep the current working-tree rule (#6336 item 5).",
+        "When a Directive-owned wiring file is not counted because it is uncommitted, the class-4 report prints one line: \"Not counted: `<path>` (uncommitted change to Directive wiring, for example by automatic setup).\" Must not do: - Don't remove any glob from `DEFAULT_PROTECTED_GLOBS`.",
+        "Don't change `hooks/` or any non-wiring protected glob.",
+        "Don't change how non-wiring paths are counted.",
+        "Don't treat a non-Directive file under `.githooks/` or `.cursor/hooks/` as wiring.",
+        "The PR touches only `packages/core/src/class-checks/`, its tests and the changelog fragment (`changelog.d/<issue>-<slug>.md`).",
+        "`class-checks/` is itself protected, so it must not be mixed with story product code.",
+        "No repository settings changes (D-007).",
+        "Acceptance criteria 1.",
+        "These tests pass: 1.",
+        "Committed story change + uncommitted rewrite of Directive-owned `.githooks/pre-commit`: class 4 passes, and the report names the file as not counted.",
+        "Same, with an untracked Directive-owned `.cursor/hooks/<file>`: class 4 passes.",
+        "Committed story change + committed edit to `.githooks/pre-commit`: class 4 fails, as today.",
+        "Committed story change + uncommitted change to a non-Directive file under `.githooks/`: class 4 fails, as today.",
+        "Committed story change + uncommitted change to `packages/core/src/class-checks/`: class 4 fails, as today.",
+        "CI-shaped fixture: clean committed tip after a pin-only bump; run automatic setup, then `verify:class-checks`.",
+        "It passes.",
+        "The PR's changed files are only under `packages/core/src/class-checks/`, tests and the changelog fragment.",
+        "Scott (class 4 owner) was told before the PR opened.",
+        "The PR body links that note.",
+        "Verification: run `deft verify:class-checks` on a branch with a committed product change after running automatic setup locally; it passes.",
+        "If P1-U3 has merged, add test 6 to its fixture.",
+        "Related - #4980 (class 4, closed), #6336 / #6402 (working-tree counting, closed): comment on both when this merges.",
+        "#6615: provides `classifyDirectiveOwnedChange`.",
+        "#5808, #5976 (P2-U1): P2-U1b restores git-hook refresh by automatic setup, which makes this live for `.githooks/`.",
+        "Plan placement - Unit P2-U14, story id `ovpr-p2-u14`.",
+        "Phase 2, wave 2.1b.",
+        "Size S.",
+        "Depends on P2-U0.",
+        "Must merge before P2-U1b.",
+        "Owner polfer (automatic setup).",
+        "Tell Scott before the PR opens."
+      ],
+      "admitted_source_digest": "4c746514b71bec4d538c6257d7289671e6254d8b06241cb81adddc74c6a363e0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Problem `verify:class-checks` class 4 (#4980) fails a PR when a protected path and a story product path are both in the change set.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "The protected paths include Directive's wiring files: `.githooks/`, `.cursor/hooks.json` and `.cursor/hooks/`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "The change set is the working tree against the merge base, plus untracked files.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "In CI after a pin-only bump (Dependabot), automatic setup correctly rewrites Directive's wiring before the check runs (AC8.6, AC14.10, D-023).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "Class 4 then counts those uncommitted rewrites as \"protected path changed\", and the story PR fails although nobody edited a hook.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "This is live today for Cursor hook files.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "For git hooks it starts when P2-U1b ships (D-023 reverses #5859).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Evidence (origin/master `def527f5e`): - `DEFAULT_PROTECTED_GLOBS`: `packages/core/src/class-checks/policy.ts:29-32`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 10,
+          "text": "`changedFilesVsBase`: `packages/core/src/class-checks/evaluate.ts:158`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 11,
+          "text": "It takes `git diff --name-only <merge-base>` (working tree) plus `git ls-files --others --exclude-standard` (`:200-237`; #6336 item 5, #6402).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 12,
+          "text": "Class 4 evaluation: `evaluate.ts:882-925`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 13,
+          "text": "It runs in consumer CI and in `pre-pr:run`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "What the design says - AC4.3: automatic setup has setup's obligations.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "AC14.10 / AC8.6: it completes wiring after a pin-only bump.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "D-023: automatic setup refreshes Directive's hooks with no approval, and names them in its output.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "The commit comes later.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "D-026 (polfer, 2026-11-17): class 4 counts Directive's own wiring files only by what is committed (option B).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "`DEFAULT_PROTECTED_GLOBS` is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "A committed hook edit mixed with story code still fails.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "#3156 (gate integrity): this is a deliberate gate change through an issue and a reviewed PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Expected 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "In the class-4 evaluation, split the protected paths in the change set into two groups: - Directive-owned wiring: a protected path for which P2-U0's `classifyDirectiveOwnedChange` says Directive owns the file.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "No new hand-kept list.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Everything else: unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "A Directive-owned wiring path counts for class 4 only when it differs between the merge base and `HEAD` (`git diff --name-only <merge-base> HEAD`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Uncommitted and untracked changes to these files don't count.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "All other paths keep the current working-tree rule (#6336 item 5).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "When a Directive-owned wiring file is not counted because it is uncommitted, the class-4 report prints one line: \"Not counted: `<path>` (uncommitted change to Directive wiring, for example by automatic setup).\" Must not do: - Don't remove any glob from `DEFAULT_PROTECTED_GLOBS`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "Don't change `hooks/` or any non-wiring protected glob.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Don't change how non-wiring paths are counted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "Don't treat a non-Directive file under `.githooks/` or `.cursor/hooks/` as wiring.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "The PR touches only `packages/core/src/class-checks/`, its tests and the changelog fragment (`changelog.d/<issue>-<slug>.md`).",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "`class-checks/` is itself protected, so it must not be mixed with story product code.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "No repository settings changes (D-007).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Acceptance criteria 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "These tests pass: 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "Committed story change + uncommitted rewrite of Directive-owned `.githooks/pre-commit`: class 4 passes, and the report names the file as not counted.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "Same, with an untracked Directive-owned `.cursor/hooks/<file>`: class 4 passes.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Committed story change + committed edit to `.githooks/pre-commit`: class 4 fails, as today.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "Committed story change + uncommitted change to a non-Directive file under `.githooks/`: class 4 fails, as today.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Committed story change + uncommitted change to `packages/core/src/class-checks/`: class 4 fails, as today.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "CI-shaped fixture: clean committed tip after a pin-only bump; run automatic setup, then `verify:class-checks`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "It passes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "The PR's changed files are only under `packages/core/src/class-checks/`, tests and the changelog fragment.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "Scott (class 4 owner) was told before the PR opened.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "The PR body links that note.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "Verification: run `deft verify:class-checks` on a branch with a committed product change after running automatic setup locally; it passes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 49,
+          "text": "If P1-U3 has merged, add test 6 to its fixture.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 50,
+          "text": "Related - #4980 (class 4, closed), #6336 / #6402 (working-tree counting, closed): comment on both when this merges.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 51,
+          "text": "#6615: provides `classifyDirectiveOwnedChange`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 52,
+          "text": "#5808, #5976 (P2-U1): P2-U1b restores git-hook refresh by automatic setup, which makes this live for `.githooks/`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 53,
+          "text": "Plan placement - Unit P2-U14, story id `ovpr-p2-u14`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 54,
+          "text": "Phase 2, wave 2.1b.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 55,
+          "text": "Size S.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 56,
+          "text": "Depends on P2-U0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 57,
+          "text": "Must merge before P2-U1b.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 58,
+          "text": "Owner polfer (automatic setup).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 59,
+          "text": "Tell Scott before the PR opens.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 60,
+          "text": "These tests pass:",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6458882780",
+    "updated": "2026-11-18T14:47:18Z"
+  }
+}

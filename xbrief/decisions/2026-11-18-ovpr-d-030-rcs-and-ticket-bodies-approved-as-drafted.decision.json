@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-030-rcs-and-ticket-bodies-approved-as-drafted",
+  "decision": "D-030: polfer approved RC-01 to RC-07 as drafted in drafts/RC-01.md to RC-07.md, and the rules in drafts/RC-08-09-rules.md for conditional RC-08 and RC-09 (OVPR-CHANGE-GATE step 3), settling the 13 RC-tied O-items with each draft's recommended answer. RC-11 not needed (D-017 keeps Node 20). RC-10 (keep launcher postinstall from #6147, an AC3.5 exception) is NOT covered; until polfer approves it, P4-U3b leaves the script alone. Applied: RC-01 option B only (option C not approved); tag rule v26MMDD, newest tag only, from RC-01's docs PR on; RC-07 also gates P1-U2 and edits AC9.12 and the architecture's Legacy conversion section, not line 48; RC-09 option C needs RC-09. Docs PR merge order RC-01, RC-07, RC-02, RC-03, RC-05, RC-04, RC-06; one docs-only PR per RC. Ticket titles and bodies in drafts/tickets/ approved for filing.",
+  "governingRule": {
+    "description": "polfer approval 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-030; OVPR-CHANGE-GATE.md)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Review each RC again one at a time",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "polfer: the wording is based on his approvals; move forward.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:31Z",
+  "revisitTrigger": "A draft is found not to trace to a polfer decision, FINAL or the plan",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate"
+  ],
+  "relatedIssues": [
+    6147,
+    4654
+  ]
+}

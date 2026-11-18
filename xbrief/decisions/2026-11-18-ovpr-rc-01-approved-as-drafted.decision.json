@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-rc-01-approved-as-drafted",
+  "decision": "RC-01 approved by polfer as drafted (D-030), text in drafts/RC-01.md of the OVPR planning folder (directive-ovpr-planning-202611): Old-repo message: 'This repo uses pre-OVPR Directive. Run directive upgrade, or keep the old tools: npm i -g @deftai/directive@0.126.2.'; old repos recognised broadly, for the message only; deft-hook blocks there. Option B only (option C, 'for this whole machine', not approved). Gates: P1-U2 merge. Lands as its own docs-only PR with exactly the approved text, merged by polfer before the gated unit merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-030)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the current requirements text",
+      "whyNot": "Rejected by polfer's approval of the draft (D-030)"
+    }
+  ],
+  "whyWinner": "polfer approved the drafted text (D-030); see drafts/RC-01.md and drafts/RC-INDEX.md.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:32Z",
+  "revisitTrigger": "The RC-01 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-01"
+  ],
+  "relatedIssues": [
+    5960
+  ]
+}
