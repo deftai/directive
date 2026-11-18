@@ -23,7 +23,11 @@ import {
   MIGRATED_INFO_ROOT_KEY,
   VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
-import { PROJECT_LIFECYCLE_FOLDERS, SKELETON_NARRATIVES } from "./constants.js";
+import {
+  PROJECT_LIFECYCLE_FOLDERS,
+  PROJECT_REGISTRY_FOLDERS,
+  SKELETON_NARRATIVES,
+} from "./constants.js";
 import { splitCamel, splitWords } from "./text-utils.js";
 
 type JsonObject = Record<string, unknown>;
@@ -74,6 +78,49 @@ export interface LifecycleItem {
   metadata: Record<string, unknown>;
 }
 
+/**
+ * Build the PROJECT-DEFINITION registry row for one scope brief. The one row builder:
+ * render and the lifecycle-move sync both use it so an inserted row equals a rendered
+ * row (#6648).
+ */
+export function buildLifecycleItem(
+  fullPath: string,
+  folderName: string,
+  vbriefFile: string,
+): LifecycleItem {
+  try {
+    const data = JSON.parse(readFileSync(fullPath, "utf8")) as JsonObject;
+    const plan = (data.plan ?? {}) as JsonObject;
+    const title = String(plan.title ?? stripArtifactSuffix(vbriefFile));
+    const status = deriveRegistryItemStatus(plan.status, folderName);
+    const references = registryMetadataReferencesFromScope(plan.references);
+    const item: LifecycleItem = {
+      id: stripArtifactSuffix(vbriefFile),
+      title,
+      status,
+      metadata: {
+        source_path: `${folderName}/${vbriefFile}`,
+        lifecycle_folder: folderName,
+      },
+    };
+    if (references.length > 0) {
+      item.metadata.references = references;
+    }
+    return item;
+  } catch {
+    return {
+      id: stripArtifactSuffix(vbriefFile),
+      title: `[unreadable] ${vbriefFile}`,
+      status: "draft",
+      metadata: {
+        source_path: `${folderName}/${vbriefFile}`,
+        lifecycle_folder: folderName,
+        error: "Failed to read or parse file",
+      },
+    };
+  }
+}
+
 export function scanLifecycleFolders(vbriefDir: string): LifecycleItem[] {
   const items: LifecycleItem[] = [];
   for (const folderName of PROJECT_LIFECYCLE_FOLDERS) {
@@ -88,41 +135,16 @@ export function scanLifecycleFolders(vbriefDir: string): LifecycleItem[] {
       continue;
     }
     for (const vbriefFile of files) {
-      const full = join(folder, vbriefFile);
-      try {
-        const data = JSON.parse(readFileSync(full, "utf8")) as JsonObject;
-        const plan = (data.plan ?? {}) as JsonObject;
-        const title = String(plan.title ?? stripArtifactSuffix(vbriefFile));
-        const status = deriveRegistryItemStatus(plan.status, folderName);
-        const references = registryMetadataReferencesFromScope(plan.references);
-        const item: LifecycleItem = {
-          id: stripArtifactSuffix(vbriefFile),
-          title,
-          status,
-          metadata: {
-            source_path: `${folderName}/${vbriefFile}`,
-            lifecycle_folder: folderName,
-          },
-        };
-        if (references.length > 0) {
-          item.metadata.references = references;
-        }
-        items.push(item);
-      } catch {
-        items.push({
-          id: stripArtifactSuffix(vbriefFile),
-          title: `[unreadable] ${vbriefFile}`,
-          status: "draft",
-          metadata: {
-            source_path: `${folderName}/${vbriefFile}`,
-            lifecycle_folder: folderName,
-            error: "Failed to read or parse file",
-          },
-        });
-      }
+      items.push(buildLifecycleItem(join(folder, vbriefFile), folderName, vbriefFile));
     }
   }
   return items;
+}
+
+/** Rows that belong in PROJECT-DEFINITION `plan.items`: open scopes only (#6648). */
+export function projectRegistryItems(items: readonly LifecycleItem[]): LifecycleItem[] {
+  const open: readonly string[] = PROJECT_REGISTRY_FOLDERS;
+  return items.filter((i) => open.includes(String(i.metadata.lifecycle_folder)));
 }
 
 export function flagStaleNarratives(
@@ -144,16 +166,24 @@ export function flagStaleNarratives(
   for (const narrativeKey of Object.keys(narratives).sort()) {
     const keyWords = new Set(splitCamel(narrativeKey).filter((w) => w.length > 3));
     if (keyWords.size === 0) continue;
+    let matchCount = 0;
+    const sharedWords = new Set<string>();
     for (const item of completedItems) {
       const titleLower = item.title.toLowerCase();
       const titleWords = new Set(splitWords(titleLower));
       const overlap = [...keyWords].filter((w) => titleWords.has(w));
       if (overlap.length > 0) {
-        flags.push(
-          `Narrative '${narrativeKey}' may be stale: completed scope '${item.title}' shares topics (${overlap.sort().join(", ")})`,
-        );
-        flaggedNarratives.add(narrativeKey);
+        matchCount += 1;
+        for (const w of overlap) sharedWords.add(w);
       }
+    }
+    // One line per narrative (#6648): the list is bounded by the narrative count,
+    // not by the number of completed scopes.
+    if (matchCount > 0) {
+      flags.push(
+        `Narrative '${narrativeKey}' may be stale: ${matchCount} completed scope(s) share topics (${[...sharedWords].sort().join(", ")})`,
+      );
+      flaggedNarratives.add(narrativeKey);
     }
   }
 
@@ -246,7 +276,7 @@ export function createSkeleton(
       title: "PROJECT-DEFINITION",
       status: "running",
       narratives: { ...SKELETON_NARRATIVES },
-      items,
+      items: projectRegistryItems(items),
       metadata: { staleness_flags: stalenessFlags },
       "x-directive/policy": { coverageMode: "initial" },
     },
@@ -304,7 +334,9 @@ export function renderProjectDefinition(
     // resolution of the same file (#3796). Resolving it again here is how a
     // render could lock one identity and materialise items into another.
     const projectDefPath = mutation.artifactPath;
-    const items = scanLifecycleFolders(vbriefDir);
+    const scanned = scanLifecycleFolders(vbriefDir);
+    // plan.items holds open scopes only; finished scopes feed the staleness flags (#6648).
+    const items = projectRegistryItems(scanned);
     const createdNew = !existsSync(projectDefPath);
 
     let projectDef: JsonObject;
@@ -334,7 +366,7 @@ export function renderProjectDefinition(
         !Array.isArray(plan.narratives)
           ? (plan.narratives as Record<string, string>)
           : {};
-      const completedItems = items.filter((i) => i.status === "completed");
+      const completedItems = scanned.filter((i) => i.status === "completed");
       if (
         typeof plan.metadata !== "object" ||
         plan.metadata === null ||
@@ -348,7 +380,7 @@ export function renderProjectDefinition(
       planMetadata.staleness_flags = flags;
       projectDef.plan = plan;
     } else {
-      projectDef = createSkeleton(items, now, layout);
+      projectDef = createSkeleton(scanned, now, layout);
     }
 
     mkdirSync(vbriefDir, { recursive: true });
