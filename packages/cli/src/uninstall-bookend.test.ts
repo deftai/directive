@@ -15,13 +15,21 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  directiveOwnedPathMatches,
+  HOST_HOOK_CONFIG_RELS,
+  listDirectiveOwnedPaths,
+} from "@deftai/directive-core/dist/install-health/index.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { isSoleAuthorPackageJson as runtimeIsSoleAuthorPackageJson } from "../../runtime/src/removal-steps/steps.js";
+import { runSetup } from "../../runtime/src/setup.js";
 import { type BookendIo, runUninstall, type UninstallDeps } from "./bookends.js";
 import type { ProjectInstallState } from "./pin.js";
 import {
   applyLauncherCleanup,
+  discoverKnownArtifacts,
   discoverUninstallFootprint,
+  HOST_HOOK_OUTER_DIRS,
   isSoleAuthorPackageJson,
   verifyUninstallComplete,
 } from "./uninstall-map.js";
@@ -482,6 +490,17 @@ function snapshotTree(root: string, rel: string): Record<string, string> {
   return out;
 }
 
+function outersOnDisk(root: string): string[] {
+  const out: string[] = [];
+  for (const dir of HOST_HOOK_OUTER_DIRS) {
+    if (!existsSync(join(root, dir))) continue;
+    for (const name of readdirSync(join(root, dir))) {
+      if (/^deft-hook-[a-f0-9]{8}\.mjs$/.test(name)) out.push(`${dir}/${name}`);
+    }
+  }
+  return out;
+}
+
 describe("uninstall keeps package.json until the package manager is done (#5999)", () => {
   it("npm greenfield cycle: no package.json or lockfile left, Directive lines gone, xbrief identical, exit 0", () => {
     const root = tempProject();
@@ -829,5 +848,117 @@ describe("uninstall says what it kept (#6007 / D-025)", () => {
       "Not touched: 1 registered Git worktree in .deft-scratch/worktrees/ (1).",
     );
     expect(existsSync(join(wt, ".githooks", "_directive-run.sh"))).toBe(true);
+  });
+});
+
+describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", () => {
+  it("record deleted: strips every .mjs registration, then removes the .mjs files", () => {
+    const root = tempProject("mjs-fallback");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    expect(outersOnDisk(root)).toHaveLength(4);
+    rmSync(join(root, ".deft", "GENERATION.json"));
+    writeFileSync(join(root, ".cursor", "hooks", "consumer-custom.mjs"), "// mine\n");
+
+    const discovery = discoverUninstallFootprint(root);
+    expect(discovery.ownershipInspection).toBe("absent");
+    applyLauncherCleanup(root, discovery);
+
+    for (const rel of HOST_HOOK_CONFIG_RELS) {
+      const body = existsSync(join(root, rel)) ? readFileSync(join(root, rel), "utf8") : "";
+      expect(body, rel).not.toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
+    }
+    expect(outersOnDisk(root)).toEqual([]);
+    expect(existsSync(join(root, ".cursor", "hooks", "consumer-custom.mjs"))).toBe(true);
+    const verify = verifyUninstallComplete(root);
+    expect(verify.leftovers.filter((l) => l.includes("deft-hook"))).toEqual([]);
+  });
+
+  it("verifyUninstallComplete reports a leftover .mjs outer or registration", () => {
+    const root = tempProject("mjs-verify");
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(join(root, ".claude", "deft-hook-1a2b3c4d.mjs"), "// outer\n");
+    writeFileSync(
+      join(root, ".claude", "settings.json"),
+      `${JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "node .claude/deft-hook-1a2b3c4d.mjs --host claude --event stop" }] }] } })}\n`,
+    );
+    const verify = verifyUninstallComplete(root);
+    expect(verify.complete).toBe(false);
+    expect(verify.leftovers).toEqual(
+      expect.arrayContaining([".claude/deft-hook-1a2b3c4d.mjs", ".claude/settings.json#hooks"]),
+    );
+  });
+
+  it("keeps a user command added to a Directive hook group", () => {
+    const root = tempProject("mjs-group");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const cfg = JSON.parse(readFileSync(rel, "utf8")) as {
+      hooks: Record<string, Array<{ hooks: Array<{ type: string; command: string }> }>>;
+    };
+    const event = Object.keys(cfg.hooks)[0] as string;
+    cfg.hooks[event]?.[0]?.hooks.push({ type: "command", command: "node scripts/mine.mjs" });
+    writeFileSync(rel, `${JSON.stringify(cfg, null, 2)}\n`);
+    rmSync(join(root, ".deft", "GENERATION.json"));
+    applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    const after = readFileSync(rel, "utf8");
+    expect(after).toContain("node scripts/mine.mjs");
+    expect(after).not.toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
+  });
+
+  it("keeps a Directive command that a user chained another command onto", () => {
+    const root = tempProject("mjs-chained");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const body = readFileSync(rel, "utf8");
+    const chained = body.replace(
+      /("command": "node \.claude\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
+      '$1 && node scripts/check.mjs"',
+    );
+    expect(chained).not.toBe(body);
+    writeFileSync(rel, chained);
+    rmSync(join(root, ".deft", "GENERATION.json"));
+    const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
+    expect(outersOnDisk(root)).toHaveLength(4);
+    expect(report.leftovers).toEqual(expect.arrayContaining([".claude/settings.json#hooks"]));
+  });
+
+  it("keeps the .mjs files as leftovers when a registration cannot be removed", () => {
+    const root = tempProject("mjs-stuck");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".codex", "hooks.json");
+    writeFileSync(rel, `${readFileSync(rel, "utf8")}\n{ broken`);
+    const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    expect(outersOnDisk(root)).toHaveLength(4);
+    expect(report.leftovers).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
+    expect(report.leftovers.filter((l) => l.endsWith(".mjs"))).toHaveLength(4);
+  });
+});
+
+describe("launcher known-map vs core ownership API (#6615 drift guard)", () => {
+  it("both name the same removable Directive files on a fresh install", () => {
+    const root = tempProject("drift");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+
+    const owned = listDirectiveOwnedPaths(root).filter(
+      (p) =>
+        p.kind === "whole-file" || p.kind === "marked-section" || p.kind === "structured-entry",
+    );
+    // Slash wrappers are removed through the record only; the launcher has no slash map yet.
+    const isSlash = (rel: string) => /\/(commands|prompts)\//.test(rel);
+    const fromCore = walkFiles(root)
+      .filter((rel) => owned.some((p) => directiveOwnedPathMatches(p, rel)))
+      .filter((rel) => !isSlash(rel))
+      .sort();
+    const fromLauncher = discoverKnownArtifacts(root)
+      .filter((a) => a.kind !== "retained")
+      .map((a) => a.path)
+      .sort();
+    expect(fromLauncher).toEqual(fromCore);
   });
 });

@@ -253,13 +253,14 @@
           "packages/runtime/src/bin.test.ts",
           "packages/runtime/src/doctor-remedy-inventory.test.ts",
           "tasks/engine-invoke.test.cjs",
-          "changelog.d/6620-one-hook-guard-and-message-table.md"
+          "changelog.d/6620-one-hook-guard-and-message-table.md",
+          "packages/runtime/src/hook-pin-mismatch-guidance.test.ts"
         ],
         "readiness": "ready",
         "depends_on": [],
         "verify_commands": [
           "pnpm exec vitest run packages/cli/src/entry-guard-parity.test.ts packages/cli/src/hook-launcher.test.ts packages/cli/src/launcher-smoke.test.ts packages/cli/src/doctor-bookend.test.ts packages/cli/src/legacy-conversion.test.ts packages/cli/src/install-bookend.test.ts packages/cli/src/upgrade-bookend.test.ts packages/cli/src/legacy-shapes packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/install-health packages/runtime/src/hook-dispatch.test.ts packages/runtime/src/hook-identity-failclosed.test.ts packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts packages/runtime/src/hook-foreign-runtime-link.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/bin-identity.test.ts packages/runtime/src/doctor-remedy-inventory.test.ts",
-          "node tasks/engine-invoke.test.cjs"
+          "node --test tasks/engine-invoke.test.cjs"
         ],
         "Traces": [
           "#6620",
@@ -355,7 +356,7 @@
     "acceptance": {
       "commands": [
         "pnpm exec vitest run packages/cli/src/entry-guard-parity.test.ts packages/cli/src/hook-launcher.test.ts packages/cli/src/launcher-smoke.test.ts packages/cli/src/doctor-bookend.test.ts packages/cli/src/legacy-conversion.test.ts packages/cli/src/install-bookend.test.ts packages/cli/src/upgrade-bookend.test.ts packages/cli/src/legacy-shapes packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/install-health packages/runtime/src/hook-dispatch.test.ts packages/runtime/src/hook-identity-failclosed.test.ts packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts packages/runtime/src/hook-foreign-runtime-link.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/bin-identity.test.ts packages/runtime/src/doctor-remedy-inventory.test.ts",
-        "node tasks/engine-invoke.test.cjs"
+        "node --test tasks/engine-invoke.test.cjs"
       ],
       "source_rung": "derived",
       "derived_reason": "one clause per sentence-list entry (98), in order (#6333)",

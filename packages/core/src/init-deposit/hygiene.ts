@@ -576,6 +576,18 @@ function pnpmUnquote(s: string): string {
 }
 
 /**
+ * Value of an 8-space-indented `<key>: <value>` lockfile line, or null when the
+ * line is not that key or has no value. Prefix check plus trim, so a crafted long
+ * line cannot trigger regex backtracking (#6680).
+ */
+function pnpmLockKeyValue(line: string, key: string): string | null {
+  const prefix = `        ${key}:`;
+  if (!line.startsWith(prefix)) return null;
+  const value = line.slice(prefix.length).trim();
+  return value === "" ? null : value;
+}
+
+/**
  * pnpm importers oracle (#5245): every importer, keyed at full identity, with
  * both specifier and version. Do not widen a version-only bare-name map.
  */
@@ -634,14 +646,14 @@ export function pnpmLockImporterDeps(raw: string): Record<string, string> {
       continue;
     }
     if (currentPkg) {
-      const specMatch = line.match(/^ {8}specifier:\s*(.+?)\s*$/);
-      if (specMatch) {
-        pendingSpecifier = pnpmUnquote(specMatch[1] ?? "");
+      const specValue = pnpmLockKeyValue(line, "specifier");
+      if (specValue !== null) {
+        pendingSpecifier = pnpmUnquote(specValue);
         continue;
       }
-      const verMatch = line.match(/^ {8}version:\s*(.+?)\s*$/);
-      if (verMatch) {
-        const version = pnpmUnquote(verMatch[1] ?? "");
+      const verValue = pnpmLockKeyValue(line, "version");
+      if (verValue !== null) {
+        const version = pnpmUnquote(verValue);
         const identity = `${pendingSpecifier ?? ""}|${version}`;
         out[`${currentImporter}\0${currentPkg}`] = identity;
         currentPkg = null;
