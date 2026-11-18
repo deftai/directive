@@ -200,21 +200,30 @@ describe("ensureGitHooks with another core.hooksPath (#4960 / #5846)", () => {
     expect(git(root, "config", "--local", "--get-all", "core.hooksPath")).toBe(".githooks");
   });
 
-  it("value from a later included config: takeover still wins, include file untouched", () => {
+  it("value from a later included config: hooks stay inactive, file named, nothing hand-edited", () => {
     const root = repo();
     const included = join(temp("hookspath-include-"), "extra.gitconfig");
     writeFileSync(included, "[core]\n\thooksPath = included-hooks\n");
-    // Include sits after [core], so a plain write there would not win.
+    // Include sits after [core], so the value git config writes there does not win.
     const configPath = join(root, ".git", "config");
     writeFileSync(
       configPath,
       `${readFileSync(configPath, "utf8")}[include]\n\tpath = ${included.replace(/\\/g, "/")}\n`,
     );
     const result = ensureGitHooks(root, { takeOverHooksPath: true });
-    expect(result.hooksPathActive).toBe(true);
-    expect(result.hooksPathTakenOver).toEqual({ previous: "included-hooks", scope: "local" });
-    expect(git(root, "config", "--get", "core.hooksPath")).toBe(".githooks");
+    expect(result.hooksPathActive).toBe(false);
+    expect(result.hooksPathTakenOver).toBeNull();
+    expect(result.inactiveDisclosure).toContain("still 'included-hooks'");
+    expect(result.inactiveDisclosure).toContain("extra.gitconfig");
+    expect(result.inactiveDisclosure).toContain("remove the core.hooksPath setting there");
+    expect(result.inactiveDisclosure).not.toContain("install --repair");
+    // The included file is untouched, and the repository config was changed only
+    // by git config itself: one [core] value, include still last, no lock left.
     expect(readFileSync(included, "utf8")).toBe("[core]\n\thooksPath = included-hooks\n");
+    const after = readFileSync(configPath, "utf8");
+    expect(after.match(/hooksPath = \.githooks/g)).toHaveLength(1);
+    expect(after.trimEnd().endsWith(`path = ${included.replace(/\\/g, "/")}`)).toBe(true);
+    expect(existsSync(`${configPath}.lock`)).toBe(false);
   });
 
   it("repository config locked by another writer: no unlocked write, hooks stay inactive", () => {
@@ -243,7 +252,7 @@ describe("ensureGitHooks with another core.hooksPath (#4960 / #5846)", () => {
       expect(result.hooksPathActive).toBe(false);
       expect(result.hooksPathTakenOver).toBeNull();
       expect(result.inactiveDisclosure).toContain("still 'cmd-hooks'");
-      expect(result.inactiveDisclosure).toContain("Remove that setting");
+      expect(result.inactiveDisclosure).toContain("remove the core.hooksPath setting there");
     } finally {
       keys.forEach((k, i) => {
         const v = saved[i];

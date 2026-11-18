@@ -4,17 +4,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import {
-  closeSync,
-  existsSync,
-  openSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  renameSync,
-  rmSync,
-  writeSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/dist/doctor/paths.js";
@@ -1313,54 +1303,6 @@ export function formatForeignHooksPathInactive(state: HooksPathState): string {
 }
 
 /**
- * Append `[core] hooksPath = .githooks` to the end of this repository's config
- * file (local or worktree), so it comes after any `[include]` that sets another
- * value. Repository config only; never global or system (P20). Best-effort.
- */
-function appendRepositoryHooksPath(projectRoot: string, scope: "local" | "worktree"): void {
-  try {
-    const rel = execFileSync(
-      "git",
-      [
-        "-C",
-        projectRoot,
-        "rev-parse",
-        "--git-path",
-        scope === "worktree" ? "config.worktree" : "config",
-      ],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    ).trim();
-    if (rel === "") return;
-    const file = resolve(projectRoot, rel);
-    const lock = `${file}.lock`;
-    // Git's own lock protocol: create <config>.lock exclusively (fails if another
-    // writer holds it), write the new file there, then rename it into place.
-    let fd: number;
-    try {
-      fd = openSync(lock, "wx");
-    } catch {
-      return; // locked by another process: leave it; the caller reports inactive
-    }
-    try {
-      const prior = readFileSync(file, "utf8");
-      const sep = prior.endsWith("\n") || prior === "" ? "" : "\n";
-      writeSync(fd, `${prior}${sep}[core]\n\thooksPath = .githooks\n`);
-      closeSync(fd);
-      renameSync(lock, file);
-    } catch {
-      try {
-        closeSync(fd);
-      } catch {
-        /* already closed */
-      }
-      rmSync(lock, { force: true });
-    }
-  } catch {
-    /* verified by the caller */
-  }
-}
-
-/**
  * Disclosure when setting `.githooks` did not take effect because another config
  * source still wins (an included file, or `git -c`). Names where it is set.
  */
@@ -1380,7 +1322,8 @@ export function formatHooksPathStillForeign(projectRoot: string, state: HooksPat
   const where = origin === "" ? describeHooksPathScope(state.scope) : origin;
   return (
     `Git hooks inactive: core.hooksPath is still '${state.value ?? ""}' after setting .githooks, ` +
-    `because ${where} sets it. Remove that setting, then run directive install --repair.`
+    `because ${where} sets it. Directive does not edit that file: remove the core.hooksPath ` +
+    `setting there to use Directive's .githooks.`
   );
 }
 
@@ -1540,17 +1483,7 @@ export function ensureGitHooks(
       } catch {
         /* verified below; a failed (for example locked) write never falls through */
       }
-      let after = readHooksPathState(projectRoot);
-      if (
-        wrote &&
-        after.kind === "foreign" &&
-        (after.scope === "local" || after.scope === "worktree")
-      ) {
-        // A file included later in the repository config still wins. Git uses the
-        // last value it reads, so add ours at the end of that same config file.
-        appendRepositoryHooksPath(projectRoot, after.scope);
-        after = readHooksPathState(projectRoot);
-      }
+      const after = readHooksPathState(projectRoot);
       if (after.kind === "ours") {
         hooksPathActive = true;
         if (state.kind === "foreign" && state.value !== null) {

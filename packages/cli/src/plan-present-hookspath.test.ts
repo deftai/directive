@@ -322,7 +322,7 @@ describe("first install with a global hooks folder (#4960)", () => {
 describe("takeover that did not take effect (#4960)", () => {
   it("repair names the setting to remove, not git init", () => {
     const disclosure =
-      "Git hooks inactive: core.hooksPath is still 'included-hooks' after setting .githooks, because file:/x/extra.gitconfig sets it. Remove that setting, then run directive install --repair.";
+      "Git hooks inactive: core.hooksPath is still 'included-hooks' after setting .githooks, because file:/x/extra.gitconfig sets it. Directive does not edit that file: remove the core.hooksPath setting there to use Directive's .githooks.";
     const summary = tryParseSetupSummary(
       JSON.stringify({
         created: [],
@@ -342,7 +342,7 @@ describe("takeover that did not take effect (#4960)", () => {
       verbosity: 0,
     });
     const text = c.text().replace(/\s+/g, " ");
-    expect(text).toContain("Remove that setting");
+    expect(text).toContain("remove the core.hooksPath setting there");
     expect(text).not.toContain("git init");
     expect(text).not.toContain("This repository now uses Directive's .githooks folder.");
   });
