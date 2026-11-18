@@ -29,7 +29,6 @@ import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   depositNeutralization,
   ensureCodeqlPathsIgnore,
-  ensureCoreGuardWorkflow,
   ensureGitattributes,
   ensureGreptileIgnore,
   writeAgentsMd,
@@ -156,16 +155,6 @@ describe("init-deposit refuses in-tree destination symlinks (#2912)", () => {
     expect(() => ensureCodeqlPathsIgnore(project, io)).toThrow(ProjectionContainmentError);
     // No codeql config written through the diverted .github tree.
     expect(existsSync(join(realDir, "codeql"))).toBe(false);
-  });
-
-  itSymlink("ensureCoreGuardWorkflow refuses an in-tree .github parent-dir symlink", () => {
-    const project = freshRoot("dest2912-guard-");
-    const realDir = join(project, "nested");
-    mkdirSync(realDir, { recursive: true });
-    symlinkSync(realDir, join(project, ".github"), "dir");
-
-    expect(() => ensureCoreGuardWorkflow(project, io)).toThrow(ProjectionContainmentError);
-    expect(existsSync(join(realDir, "workflows"))).toBe(false);
   });
 
   itSymlink(

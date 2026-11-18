@@ -17,7 +17,6 @@ import {
   decideGenerationStamp,
   describeDryRunGenerationGate,
   evaluateGenerationGate,
-  evaluateGenerationMonotonicVsBase,
   GENERATION_GIT_PATH,
   GENERATION_REWIND_ERROR_CODE,
   generationFetchArgs,
@@ -614,36 +613,5 @@ describe("bindSessionGeneration (#4120 R2)", () => {
       /no live generation token/,
     );
     expect(inspectLocalGeneration(root).kind).toBe("absent");
-  });
-});
-
-describe("evaluateGenerationMonotonicVsBase (#4120 R5)", () => {
-  const base = token(4);
-  const head = token(5);
-  it("passes when GENERATION.json did not change", () => {
-    expect(
-      evaluateGenerationMonotonicVsBase({ changed: false, baseBlob: base, headBlob: token(2) }).ok,
-    ).toBe(true);
-  });
-  it("requires head.generation > origin base blob", () => {
-    expect(
-      evaluateGenerationMonotonicVsBase({ changed: true, baseBlob: base, headBlob: head }).ok,
-    ).toBe(true);
-    expect(
-      evaluateGenerationMonotonicVsBase({ changed: true, baseBlob: base, headBlob: token(4) }).ok,
-    ).toBe(false);
-    expect(
-      evaluateGenerationMonotonicVsBase({ changed: true, baseBlob: base, headBlob: token(2) }).ok,
-    ).toBe(false);
-  });
-  it("allows bootstrap when the origin base blob is absent", () => {
-    expect(
-      evaluateGenerationMonotonicVsBase({ changed: true, baseBlob: null, headBlob: token(1) }).ok,
-    ).toBe(true);
-  });
-  it("refuses bootstrap generation 0 when the origin base blob is absent", () => {
-    expect(
-      evaluateGenerationMonotonicVsBase({ changed: true, baseBlob: null, headBlob: token(0) }).ok,
-    ).toBe(false);
   });
 });

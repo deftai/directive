@@ -3,10 +3,6 @@ import { resolveFrameworkRootForProject, runningInsideDeftRepo } from "../doctor
 import { emitSessionEvalReadback } from "../eval/readback.js";
 import { bindSessionGeneration } from "../freshness/bind.js";
 import { readLiveGeneration } from "../freshness/generation.js";
-import {
-  reconstituteLinkedWorktreeDeposit,
-  type WorktreeDepositReconstituteResult,
-} from "../init-deposit/gitignore.js";
 import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposit/migrate.js";
 import {
   evaluateLifecycleVisible,
@@ -676,11 +672,6 @@ export interface SessionStartOptions {
    * Inject in tests; default walks lifecycle xBRIEFs and GETs labels.
    */
   readonly scanWorkClaims?: (projectRoot: string) => readonly string[];
-  /**
-   * #4443: payload-only reconstitution for a linked worktree missing .deft/core.
-   * Inject in tests. Default copies a local payload; never occupancy/ritual.
-   */
-  readonly reconstituteWorktreeDeposit?: (projectRoot: string) => WorktreeDepositReconstituteResult;
 }
 
 function pushWorkClaimScan(
@@ -1936,13 +1927,6 @@ function runSessionRearm(
   }
   const acquired = persistTimeAcquisition(persistedOccupancy);
 
-  const linkedStarted = performance.now();
-  const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
-  pushExclusiveStep(stepTimings, "linked_deposit", linkedStarted);
-  if ("deny" in linkedDeposit) {
-    return returnAfterUnalignedAcquisition(projectRoot, options, acquired, linkedDeposit.deny);
-  }
-
   const resolveUserMd =
     options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
   const userMdStarted = performance.now();
@@ -1964,7 +1948,6 @@ function runSessionRearm(
   const effortBudget = resolveEffortBudget(options);
 
   const lines: string[] = [
-    ...(linkedDeposit.reconstituted !== null ? [linkedDeposit.reconstituted] : []),
     READ_ONLY_ALIGNMENT_MESSAGE,
     userMdLine,
     formatEnvironmentContext(environment),
@@ -2289,48 +2272,6 @@ function runSessionRearm(
   };
 }
 
-function linkedDepositDeny(
-  environment: EnvironmentContext,
-  message: string,
-): { deny: SessionStartResult } {
-  return {
-    deny: {
-      code: 2,
-      payload: {
-        ready: false,
-        exit_code: 2,
-        posture: MUTATION_POSTURE,
-        environment: environmentContextToDict(environment),
-        message,
-      },
-      lines: [formatEnvironmentContext(environment), message],
-    },
-  };
-}
-
-function applyLinkedWorktreeDeposit(
-  projectRoot: string,
-  options: SessionStartOptions,
-  environment: EnvironmentContext,
-): { deny: SessionStartResult } | { reconstituted: string | null } {
-  try {
-    const reconstitute =
-      options.reconstituteWorktreeDeposit ??
-      ((root) => reconstituteLinkedWorktreeDeposit(root, { runGit: options.runGit }));
-    const deposit = reconstitute(projectRoot);
-    if (deposit.status === "refused") {
-      return linkedDepositDeny(environment, deposit.message);
-    }
-    if (deposit.status === "reconstituted") {
-      return { reconstituted: `[deft session] ${deposit.message}` };
-    }
-    return { reconstituted: null };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return linkedDepositDeny(environment, message);
-  }
-}
-
 export function runSessionStart(
   projectRoot: string,
   options: SessionStartOptions = {},
@@ -2534,13 +2475,6 @@ export function runSessionStart(
   }
   const acquired = persistTimeAcquisition(persistedOccupancy);
 
-  const linkedStarted = performance.now();
-  const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
-  pushExclusiveStep(stepTimings, "linked_deposit", linkedStarted);
-  if ("deny" in linkedDeposit) {
-    return returnAfterUnalignedAcquisition(projectRoot, options, acquired, linkedDeposit.deny);
-  }
-
   const quickSteps: Record<string, Record<string, unknown>> = recordDeferredSteps(
     QUICK_STEPS,
     effectiveDeferrals,
@@ -2552,9 +2486,6 @@ export function runSessionStart(
     instant,
   );
   const lines: string[] = [];
-  if (linkedDeposit.reconstituted !== null) {
-    lines.push(linkedDeposit.reconstituted);
-  }
   lines.push(
     formatCeremonyDialStatusLine(ceremonyDialSelection, {
       startTierProvenance,

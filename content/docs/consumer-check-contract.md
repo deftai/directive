@@ -99,7 +99,7 @@ runs on the bare verb, at the delivery tip, and on the after-merge
 
 1. Restore deposit Taskfiles: `deft update` (includes `tasks/verify.yml` under `.deft/core/`)
 2. Ensure `check:consumer` / `check:framework-source` deps list the three gates (framework source already ships this wiring), **or** keep the include-only greenfield shape so the gate follows the canonical include
-3. Prefer CI that runs `task check` / `task deft:check` / `deft check` rather than a partial custom graph (installer-only workflows such as `deft-core-guard` stay warn-only for CI composition)
+3. Prefer CI that runs `task check` / `task deft:check` / `deft check` rather than a partial custom graph (installer-only workflows stay warn-only for CI composition)
 
 ## Relation to #3070
 

@@ -30,6 +30,7 @@ export type RemovalStepId =
   | "stripLegacyLauncherPin"
   | "removeOrphanDeftVersion"
   | "removeLegacyBareVersionMarkers"
+  | "removeRetiredCoreGuardWorkflow"
   | "normalizeGitmodules";
 
 export interface StepContext {
@@ -711,6 +712,45 @@ export function removeLegacyBareVersionMarkers(root: string): string[] {
   return removed;
 }
 
+/** Retired copy-model CI guard workflow old Directive wrote into projects (#5835). */
+export const RETIRED_CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
+
+/** Ownership line the old emitter wrote and checked before refreshing the file. */
+const RETIRED_CORE_GUARD_NAME_LINE = "name: deft-core-guard";
+
+export interface RetiredCoreGuardRemoval {
+  /** Paths removed (the workflow file only). */
+  readonly removed: readonly string[];
+  /** Paths left in place because they do not look like Directive's file. */
+  readonly kept: readonly string[];
+  /** Paths that could not be read or deleted (an error, not an ownership mismatch). */
+  readonly failed: readonly string[];
+}
+
+/**
+ * Remove the retired `deft-core-guard` workflow (#5835 / AC8.10). Same ownership
+ * test the old emitter used: a regular file containing `name: deft-core-guard`.
+ * A file at that path without the line looks user-edited and is kept (and named
+ * in `kept`). A file that cannot be read or deleted is named in `failed`.
+ * No other workflow is touched. Upgrade and convert only.
+ */
+export function removeRetiredCoreGuardWorkflow(root: string): RetiredCoreGuardRemoval {
+  const rel = RETIRED_CORE_GUARD_WORKFLOW_REL;
+  const abs = join(root, rel);
+  const none = { removed: [], kept: [], failed: [] };
+  try {
+    if (!lstatSync(abs).isFile()) return none;
+  } catch {
+    return none;
+  }
+  const body = readText(abs);
+  if (body === null) return { removed: [], kept: [], failed: [rel] };
+  if (!body.includes(RETIRED_CORE_GUARD_NAME_LINE)) return { removed: [], kept: [rel], failed: [] };
+  return safeContainedRemove(root, rel)
+    ? { removed: [rel], kept: [], failed: [] }
+    : { removed: [], kept: [], failed: [rel] };
+}
+
 /**
  * Normalize `.gitmodules` / leftover submodule metadata after deft/ removal.
  * Fail closed when parent index still has a gitlink (mode 160000) — caller must
@@ -796,6 +836,13 @@ export function runStep(stepId: RemovalStepId, ctx: StepContext): StepResult {
     }
     case "removeLegacyBareVersionMarkers": {
       return { stepId, removed: removeLegacyBareVersionMarkers(ctx.root), modified: [] };
+    }
+    case "removeRetiredCoreGuardWorkflow": {
+      return {
+        stepId,
+        removed: [...removeRetiredCoreGuardWorkflow(ctx.root).removed],
+        modified: [],
+      };
     }
     case "normalizeGitmodules": {
       return normalizeGitmodules(ctx.root);
