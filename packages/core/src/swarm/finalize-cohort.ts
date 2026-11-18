@@ -616,30 +616,32 @@ export function isLifecycleShapedPr(files: readonly PrChangedFile[]): boolean {
  * Persist productPullRequest on an active brief before leftover-complete so the
  * completed artifact still binds this PR for deft-story origin-close (#4864).
  */
+type StampOutcome = { ok: true } | { ok: false; boundTo: number | null };
+
 function stampProductPullRequestOnBriefFile(
   projectRoot: string,
   briefPath: string,
   prNumber: number,
-): boolean {
+): StampOutcome {
   if (!Number.isInteger(prNumber) || prNumber <= 0) {
-    return false;
+    return { ok: false, boundTo: null };
   }
   try {
     const raw = JSON.parse(readFileSync(briefPath, "utf8")) as unknown;
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-      return false;
+      return { ok: false, boundTo: null };
     }
     const data = raw as Record<string, unknown>;
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-      return false;
+      return { ok: false, boundTo: null };
     }
     const planObj = plan as Record<string, unknown>;
     if (productPullRequestFromPlan(planObj) === prNumber) {
-      return true;
+      return { ok: true };
     }
     if (!stampProductPullRequestOntoPlan(planObj, prNumber)) {
-      return false;
+      return { ok: false, boundTo: productPullRequestFromPlan(planObj) };
     }
     containedWrite({
       root: projectRoot,
@@ -647,9 +649,9 @@ function stampProductPullRequestOnBriefFile(
       data: `${JSON.stringify(data, null, 2)}\n`,
       mode: "replace",
     });
-    return true;
+    return { ok: true };
   } catch {
-    return false;
+    return { ok: false, boundTo: null };
   }
 }
 
@@ -2569,11 +2571,16 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             defaultEvidence;
           const prNumber = evidence?.prNumber;
           if (typeof prNumber === "number" && Number.isInteger(prNumber) && prNumber > 0) {
-            if (!stampProductPullRequestOnBriefFile(sweepRoot, storyPath, prNumber)) {
+            const stamp = stampProductPullRequestOnBriefFile(sweepRoot, storyPath, prNumber);
+            if (!stamp.ok) {
+              const cause =
+                stamp.boundTo !== null
+                  ? `brief is already bound to productPullRequest=${String(stamp.boundTo)}; ` +
+                    `pass --pr ${String(stamp.boundTo)}`
+                  : "brief could not be read, parsed, or written";
               stampErrors.push(
                 `${basename(storyPath)}: failed to stamp productPullRequest=${String(prNumber)} ` +
-                  `(already bound to another PR, or write failed); brief left active; ` +
-                  `origin not closed (#4864).`,
+                  `(${cause}); brief left active; origin not closed (#4864).`,
               );
             }
           }
