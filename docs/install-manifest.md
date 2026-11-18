@@ -3,6 +3,8 @@
 **Issue:** [#1046](https://github.com/deftai/directive/issues/1046) PR-B AC-4 (canonical install manifest).
 **Status:** active from v0.28; back-compatible with v0.27.x consumers via the bare `.deft-version` regeneration path.
 
+> **History (#6022):** this page records the pre-OVPR copied-core manifest contract. `task upgrade` (`task deft:upgrade` in a consumer) is retired and only prints the replacement. To upgrade now, run `directive upgrade`. On an old layout it converts the project to a package dependency and removes `.deft/core`, including `<install>/VERSION`; it does not write the manifest described below.
+
 ## Why the framework records its install provenance
 
 Every deft install (`deft update`, `task upgrade`, `oz-agent-upgrade`, the
@@ -92,7 +94,7 @@ The following surfaces write the canonical manifest:
 | --------------------- | --------------------------------------------------- | ---------------------- |
 | `run install`         | Fresh install / reinstall in a project directory    | `run-install`          |
 | `run upgrade`         | Marker-bump alongside `.deft-version` regeneration  | `run-upgrade`          |
-| `task upgrade`        | Wraps `run upgrade`; same writer                    | `run-upgrade`          |
+| `task upgrade`        | Retired (#6022); wrote via `run upgrade`            | `run-upgrade`          |
 | `oz-agent-upgrade`    | Cloud agent install pipeline                        | `oz-agent-upgrade`     |
 | `webinstaller`        | `upgrade.sh` / `upgrade.ps1` rail (#992 PR2 successors) | `webinstaller`     |
 
@@ -107,7 +109,7 @@ the install.
 - `deft doctor` -- `manifest-agreement` reads the manifest, compares
   the `tag` field against the framework's resolved VERSION, and reports
   drift. Recovery uses one ladder: `deft agents:refresh` (AGENTS.md stale,
-  CLI running), `deft update` (`task upgrade` is the documented alias),
+  CLI running), `deft update` (`task upgrade` was the alias; retired, #6022),
   `npx @deftai/directive …` / `npm i -g @deftai/directive` (CLI not on PATH),
   then the frozen Go bridge for pre-canonical layouts. Three-state exit
   (0 clean / 1 drift / 2 config error).

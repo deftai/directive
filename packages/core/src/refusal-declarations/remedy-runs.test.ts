@@ -19,6 +19,7 @@ import {
   prePrPushGateRefusal,
   prePrPushGateRefusalLine,
 } from "../preflight-gh/pre-push.js";
+import { declarationHidesAxisLines } from "../scope-provenance/declaration-hides-axis.js";
 import {
   assessExtraPaths,
   declaredExtraPathRefusal,
@@ -198,6 +199,26 @@ const CASES: Readonly<Record<string, RemedyCase>> = {
       });
       expect(assessment.overflow.length).toBeGreaterThan(0);
       return declaredExtraPathRefusal(assessment, "over-budget", "three extras.").line;
+    },
+    retry: null,
+  },
+  // #6591: warns only; the fix is a brief edit in the same change, so the row
+  // is deferred to #6591 and the line says so.
+  "declaration-hides-axis": {
+    refuse: () => {
+      const rel = "xbrief/active/story.xbrief.json";
+      const brief = (item: Record<string, unknown>): string =>
+        JSON.stringify({
+          plan: { items: [{ id: "clause.1", title: "Deploy to staging", ...item }] },
+        });
+      const lines = declarationHidesAxisLines({
+        headRel: rel,
+        headPayload: JSON.parse(brief({ "x-directive/requires": "merge" })) as unknown,
+        baseRel: rel,
+        baseRead: { kind: "text", text: brief({}) },
+      });
+      expect(lines).toHaveLength(1);
+      return lines[0] ?? "";
     },
     retry: null,
   },
