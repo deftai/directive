@@ -239,6 +239,29 @@ describe("acceptance-disposition grant values (#6644)", () => {
     );
   });
 
+  it("a bare numeric item id for a clause enters the granted set; a bare id that is no clause does not (#6644 review)", () => {
+    const root = repo();
+    const body = plan();
+    body.items = [
+      { id: "5", title: "Item five", status: "pending" },
+      { id: "9", title: "Item nine", status: "pending" },
+    ];
+    writeBrief(root, body);
+    const minted = mintFor(root, { disposition: "waived", storyIds: ["5", "9"] });
+    if (!minted.ok) throw new Error(minted.reason);
+    const applied = applyAcceptanceDispositionGrants({
+      projectRoot: root,
+      plan: body,
+      now: LATER,
+      recordedAt: LATER.toISOString(),
+    });
+    expect(applied).toMatchObject({
+      ok: true,
+      appliedIds: expect.arrayContaining(["5", "9"]),
+      grantedClauses: [{ id: 5, disposition: "waived", reason: "R" }],
+    });
+  });
+
   it("clause 13: a stored deferred grant with no deferred-to value is malformed and ignored", () => {
     const root = repo();
     writeBrief(root);

@@ -62,6 +62,7 @@ export const ACCEPTANCE_DISPOSITION_MINTED_AT_PREFIX = "acceptance-disposition:m
 
 const DIGEST_SEPARATOR = "@sha256:";
 const CLAUSE_ID_RE = /^clause[.:](\d+)$/;
+const BARE_CLAUSE_ID_RE = /^[1-9]\d*$/;
 const ISSUE_NUMBER_RE = /^\d+$/;
 const OWNER_REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 const SHA256_HEX_RE = /^[0-9a-f]{64}$/;
@@ -657,14 +658,19 @@ export function applyAcceptanceDispositionGrants(input: {
   ];
   const appliedSet = new Set(applied.appliedIds);
   const grantedClauses: GrantedClause[] = [];
+  // A bare integer id names clause N when acceptance.clauses has it, the same
+  // rule findClauseKeyedItem and citedItemKey use (#6644 review).
+  const clauseIds = new Set(readAcceptanceClauses(input.plan.acceptance).map((c) => c.id));
+  const seen = new Set<number>();
   for (const cover of resolved.covers) {
-    const match = CLAUSE_ID_RE.exec(cover.itemId);
-    if (match === null || !appliedSet.has(cover.itemId)) continue;
-    grantedClauses.push({
-      id: Number(match[1]),
-      disposition: cover.disposition,
-      reason: cover.reason,
-    });
+    if (!appliedSet.has(cover.itemId)) continue;
+    const prefixed = CLAUSE_ID_RE.exec(cover.itemId);
+    const bare = BARE_CLAUSE_ID_RE.test(cover.itemId.trim()) ? Number(cover.itemId.trim()) : null;
+    const id =
+      prefixed !== null ? Number(prefixed[1]) : bare !== null && clauseIds.has(bare) ? bare : null;
+    if (id === null || seen.has(id)) continue;
+    seen.add(id);
+    grantedClauses.push({ id, disposition: cover.disposition, reason: cover.reason });
   }
   return {
     ok: true,

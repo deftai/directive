@@ -10,7 +10,11 @@ import { evaluateStatementSentenceCoverage, readAcceptanceClauses } from "../ver
 import { formatBriefJson } from "./brief-io.js";
 import { CONFESS_ACTION, CONFESS_VERB, confessOnBrief, confessSentencesOnPlan } from "./confess.js";
 import { lifecycleMain } from "./main.js";
-import { minimalScopeBrief } from "./scope-test-fixtures.test.js";
+
+/** Same shape as minimalScopeBrief; inline so no fixture `.test` module registers its tests here. */
+function minimalScopeBrief(body: Record<string, unknown>): Record<string, unknown> {
+  return { xBRIEFInfo: { version: "0.8" }, plan: body };
+}
 
 const CLAUSE_ONE = "Clause one is an admitted criterion.";
 const NOISE_A = "Noise sentence A is prose, not a criterion.";
