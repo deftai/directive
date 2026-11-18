@@ -1,0 +1,967 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6613",
+    "updated": "2026-11-18T02:59:34Z"
+  },
+  "plan": {
+    "title": "P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill)",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan unit P3-U1a (story id ovpr-p3-u1a), Fix steps 1-3 of units/P3-U1-version-bump-is-just-a-bump.md. Remove the #6184 product code, rewrite `release:local-update` to pull, install, confirm installed = pin, and rewrite release skill Phase 7 step 8 to match. Part B of #6613 (fixture steps, #5952 text) is P3-U1b and gets its own brief; it is out of scope here.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6613",
+      "Overview": "Acceptance criteria (P3-U1a, Part A of #6613):\n1. `git grep -n -E 'validateCursorDepositAssociation|stageTipRequiredCursorDeposit|preparePinCandidateCursorDeposit|tipRequiredCursorDepositPaths|defaultGitAddForce'` returns nothing in `packages/` or `Taskfile.yml`.\n2. `hostHookOuterSha8()` is unchanged (a test compares it with the value on master).\n3. `release:local-update` contains no `verify:hooks-installed`, no `DEFT_DOCTOR_HOOK_DIAGNOSTIC`, no `directive upgrade`, and no failure on tracked-file changes after install.\n4. On a checkout where pin and installed are both V, `task release:local-update -- V --checkout <primary>` exits 0 after pull and install, even when committed hook files are older than V.\n5. Release skill Phase 7 step 8 lists exactly: checkout checks, pull, install, confirm installed = pin; and says a later upgrade diff is normal.",
+      "Labels": "area:installer, area:release",
+      "ImplementationPlan": "1. Remove the #6184 code. host-hook-outer.ts: header comment, the execFileSync import (if no other use), CURSOR_HOOKS_JSON_REL, tipRequiredCursorDepositPaths, the CursorDeposit* types, defaultReadTreeFile, hooksJsonRegistersOuter, defaultGitAddForce, stageTipRequiredCursorDeposit, validateCursorDepositAssociation. agent-hooks.ts: the #6184 imports, the wrapper, the re-exports, preparePinCandidateCursorDeposit and resolveCursorDepositAssociationForCloseout; keep HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE and the other existing exports. Delete the #6184 tests in host-hook-outer.test.ts and agent-hooks.test.ts. Add a test that hostHookOuterSha8() is unchanged.\n2. Rewrite `release:local-update` (Taskfile.yml): argument and checkout checks -> default branch + `git pull --ff-only` -> `pnpm install --frozen-lockfile` -> confirm package.json pin == installed == <version> -> print: `release:local-update COMPLETE; checkout=<path> version=<V>. Hook files refresh on the next hook run (AC8.6). Run 'directive upgrade' and commit when you choose.` Remove print_deposit_recovery, check A, check B, the AgeExclude check (D-006), the dirty-tree refusal (D-006), the `directive upgrade` call, the post-upgrade diff failure, the final verify:hooks-installed and the second version check. Keep 'never reset, force-push, commit or npm i -g'. Renew the xbrief/evaluator-surface-disposition.json disclosure the normal way.\n3. Rewrite release skill Phase 7 step 8 (content/skills/deft-directive-release/SKILL.md) to the same steps. Remove sub-steps 6, 8 and 9, the 'deposit-merge recovery' wording in Skill Completion, the deposit clauses in the anti-patterns, and the 'Prefer-A Bound' labels. Add: 'A post-release `directive upgrade` that changes hook files is normal. Commit it in an ordinary PR when you choose. It is not part of the release.' Fold in #6358's release half (D-017, O-40): one line naming the pin-bump PR step (package.json pin, AgeExclude row, lockfile, one changelog line) before release:local-update, and printing `npm i -g @deftai/directive@<version>` when the global launcher is behind. Regenerate content/packs/skills/skills-pack-0.1.json and docs/RULE-MAP.md with the repo's generators.\n4. Changelog fragment changelog.d/6613-release-finish-pull-install-confirm.md (never CHANGELOG.md).",
+      "Constraint": "Must not do:\n- Do not change AC14.10, AC8.6 or AC9.10 text.\n- Do not add any check that needs refreshed hook files on master before a release can finish, in any form.\n- Do not move refresh work into CI, and do not make a pin-bump PR carry hook files.\n- Do not run `npm i -g` from the release step (#3753).\n- Do not touch hostHookOuterSource() (the .mjs bytes); that would churn every consumer's sha8. #6166 / #6167 own outer-byte changes.\n- Do not implement #6358 item 1 (session start runs the install); declined by D-017.\n- Do not edit verify:evaluator-surface or other gates to make the PR green (gate integrity, #3156).\n- Do not edit .github/dependabot.yml (D-028 dropped the Dependabot step).\n- Do not do Part B (fixture steps 1-3, #5952 text); that is P3-U1b.\n- OVPR change gate: do not edit docs/installer-refactor-ovpr/ or ship behaviour that departs from the written OVPR design; stop and hand back a change proposal if needed.",
+      "Dependencies": "Depends on the #5994 close-out only (D-004). Does not depend on P1-U3 (that applies to P3-U1b). Decisions: D-001 (Rule 1), D-004 (split), D-006 (drop dirty-tree refusal and AgeExclude check), D-017 / O-40 (fold in #6358 release half), D-028 (no Dependabot change).",
+      "StoryId": "ovpr-p3-u1a (OVPR fix plan, Phase 0). Spec: units/P3-U1-version-bump-is-just-a-bump.md, Fix steps 1-3.",
+      "DesignCritique": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "#6613 (primary; Part A). Related: #6358 (release half folded in), #6127, #6184, #5947, #5948."
+    },
+    "items": [
+      {
+        "title": "`git grep -n -E 'validateCursorDepositAssociation|stageTipRequiredCursorDeposit|preparePinCandidateCursorDeposit|tipRequiredCursorDepositPaths|defaultGitAddForce'` returns nothing in `packages/` or `Taskfile.yml`.",
+        "status": "proposed",
+        "id": "clause.64",
+        "narrative": {
+          "Acceptance": "Given the PR head, when `git grep -n -E 'validateCursorDepositAssociation|stageTipRequiredCursorDeposit|preparePinCandidateCursorDeposit|tipRequiredCursorDepositPaths|defaultGitAddForce'` runs, then it returns nothing in packages/ or Taskfile.yml."
+        }
+      },
+      {
+        "title": "`hostHookOuterSha8()` is unchanged.",
+        "status": "proposed",
+        "id": "clause.65",
+        "narrative": {
+          "Acceptance": "Given the PR, when a test compares hostHookOuterSha8() with the value on master, then they are equal."
+        }
+      },
+      {
+        "title": "`release:local-update` contains no `verify:hooks-installed`, no `DEFT_DOCTOR_HOOK_DIAGNOSTIC`, no `directive upgrade`, and no failure on tracked-file changes after install.",
+        "status": "proposed",
+        "id": "clause.66",
+        "narrative": {
+          "Acceptance": "Given Taskfile.yml on the PR head, when release:local-update is read, then it has no verify:hooks-installed, no DEFT_DOCTOR_HOOK_DIAGNOSTIC, no directive upgrade, and no failure on tracked-file changes after install."
+        }
+      },
+      {
+        "title": "On a checkout where pin and installed are both V, `task release:local-update -- V --checkout <primary>` exits 0 after pull and install, even when committed hook files are older than V.",
+        "status": "proposed",
+        "id": "clause.67",
+        "narrative": {
+          "Acceptance": "Given a checkout where pin and installed are both V and committed hook files are older than V, when `task release:local-update -- V --checkout <primary>` runs, then it exits 0 after pull and install and prints the completion line."
+        }
+      },
+      {
+        "title": "Release skill Phase 7 step 8 lists exactly: checkout checks, pull, install, confirm installed = pin; and says a later upgrade diff is normal.",
+        "status": "proposed",
+        "id": "clause.68",
+        "narrative": {
+          "Acceptance": "Given the release skill, when Phase 7 step 8 is read, then it lists exactly checkout checks, pull, install, confirm installed = pin, and says a later upgrade diff is normal."
+        }
+      }
+    ],
+    "tags": [
+      "area:installer",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6613",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6613: Revert release checks that contradict the #5947 decision"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task release:local-update",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 … verify:hooks-installed --scope=agent",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        },
+        {
+          "command": "directive upgrade",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        },
+        {
+          "command": "verify:hooks-installed --scope=all",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        },
+        {
+          "command": "release:local-update COMPLETE; checkout=<path> version=<V>. Hook files refresh on the next hook run (AC8.6). Run 'directive upgrade' and commit when you choose",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L40"
+        },
+        {
+          "command": "npm i -g",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L41"
+        },
+        {
+          "command": "pnpm vitest run packages/core/src/init-deposit",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L67"
+        },
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L67"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "Taskfile.yml",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/6613-release-finish-pull-install-confirm.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "size": "medium",
+        "verify_commands": [
+          "pnpm vitest run packages/core/src/init-deposit packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts"
+        ],
+        "Traces": [
+          "#6613"
+        ],
+        "acceptance_criteria_justification": "Five items: Part A acceptance criteria 1-5 of #6613 (spec ACs 1-5). Part B criteria (fixture, #5952 text) belong to P3-U1b. Spec AC6 (Dependabot) was dropped by D-028."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "Taskfile.yml",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/6613-release-finish-pull-install-confirm.md"
+        ],
+        "module_boundary": "packages/core/src/init-deposit (removal only; hostHookOuterSource() untouched), the release:local-update task in Taskfile.yml, and Phase 7 step 8 of the release skill with its generated mirrors."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6458882139,
+        "origin": "deftai/directive#6613",
+        "id": "github.issue.6458882139"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (87), in order (#6333)",
+      "sentences": [
+        "Revert release checks that contradict the #5947 decision",
+        "Problem After each Directive release, the maintainer runs a finish step, `task release:local-update`, that updates their own checkout to the new version.",
+        "That step now refuses to finish unless the refreshed hook files were already committed to `master` with the version bump.",
+        "When it refuses, it prints instructions: repair, force-add the hook files past the ignore rules, open a second PR, then run the step again.",
+        "Only an agent can follow those instructions.",
+        "An ordinary repository has no agent in CI: Dependabot bumps the version, CI installs it, and nobody reads Directive's output.",
+        "polfer decided on 2026-11-09/10 (#5947) that a bump which changes only the version is complete.",
+        "Hook files refresh on the developer's machine the first time a hook runs, and a person runs `directive upgrade` and commits when they choose.",
+        "The finish step contradicts that decision.",
+        "It also ships about 190 lines of code to every customer that only this one release step uses.",
+        "Evidence (origin/master `def527f5e`): - #6127 (for #5953, merged 2026-11-09 01:52Z, before the #5947 seal) added `release:local-update` and its release-skill text.",
+        "#6184 (for #6163, merged 2026-11-11, after the decision file; released in 0.129.7) added check B and its product code.",
+        "`Taskfile.yml` `release:local-update` (`:861` onward): - `print_deposit_recovery` (`:956-962`): \"force-add tip-required Cursor paths … merge that pin+deposit tip, then re-run\".",
+        "dirty-tree refusal (`:1019-1023`); AgeExclude check on `pnpm-workspace.yaml` (`:1044-1091`).",
+        "pull, `pnpm install --frozen-lockfile` and the pin = installed check (`:1042`, `:1092-1100`).",
+        "These stay.",
+        "Check A (#6127): `DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 … verify:hooks-installed --scope=agent` (`:1106-1111`).",
+        "The env var turns automatic setup off, so it sees only what is committed.",
+        "Check B (#6184): imports `validateCursorDepositAssociation` from the installed runtime and requires the new-hash Cursor files in `HEAD` (`:1112-1143`).",
+        "`directive upgrade`, then post-upgrade diff = failure (`:1145-1162`), then a final `verify:hooks-installed --scope=all` and a second version check (`:1163-1171`).",
+        "#6184 product code: `packages/core/src/init-deposit/host-hook-outer.ts` (`execFileSync` import `:17`, `CURSOR_HOOKS_JSON_REL` `:30`, `tipRequiredCursorDepositPaths` `:75`, `defaultGitAddForce` `:159` which runs `git add -f`, `stageTipRequiredCursorDeposit` `:172`, `validateCursorDepositAssociation` `:190`) and `packages/core/src/init-deposit/agent-hooks.ts` (wrapper `:35`, `preparePinCandidateCursorDeposit` `:693` with no production caller, `resolveCursorDepositAssociationForCloseout` `:727`).",
+        "None of it is inside `hostHookOuterSource()`, so removing it does not change the deposited `.mjs` bytes or their sha8.",
+        "Release skill `content/skills/deft-directive-release/SKILL.md`, Phase 7 step 8 (`:411-426`): sub-step 6 (\"Keep Phase 7 local closeout incomplete until that deposit evidence exists\"), sub-step 8 (post-upgrade tracked diff = incomplete), sub-step 9; Skill Completion (`:470`); anti-patterns (`:478`).",
+        "What the design says - AC14.10: Dependabot changed only pin + lockfile to W; the first registered hook or eligible command completes wiring at W, then proceeds.",
+        "AC8.6: automatic setup on the first eligible hook or command; no lifecycle script is required.",
+        "AC9.10 / AC12.1: doctor and its probes never write.",
+        "LLM-CONTEXT §4 and §6 item 6: do not redefine \"a pin bump PR must also deposit/refresh all wiring\"; epic exit criteria that contradict AC14.10 lose.",
+        "Decision `xbrief/decisions/2026-11-10-close-5947-5948-via-ac14-10-proof-process-note-pin-only-dependab.decision.json`: pin-only/Dependabot OK; the rejected alternative is \"Require deposit refresh in every pin/Dependabot PR\".",
+        "polfer on #5947 (2026-11-09): \"Do not redefine pin-bump done as deposit-in-same-PR.\" On #5948: \"Doctor dirty before eligible auto-setup is expected.\" On #5952: epic exit criteria must not require \"deposit in the same pin PR\".",
+        "D-001 (Rule 1): remove check A, check B, the skill rule that treats a post-upgrade diff as failure, and the #6184 code.",
+        "The finish step becomes pull, install, confirm installed = pin.",
+        "D-004: split into P3-U1a (Phase 0) and P3-U1b (Phase 3).",
+        "D-006: also drop the dirty-tree refusal and the AgeExclude check.",
+        "D-017 (O-40): fold #6358's release half into P3-U1a; decline its session-start half.",
+        "D-028: no Dependabot change in this repo.",
+        "`.github/dependabot.yml` stays as it is.",
+        "Expected Part A (P3-U1a, Phase 0): 1.",
+        "Remove the #6184 code from `host-hook-outer.ts` and `agent-hooks.ts` (the functions and imports listed above, and their re-exports).",
+        "Keep `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` and the other existing exports.",
+        "Delete the #6184 tests in `host-hook-outer.test.ts` and `agent-hooks.test.ts`.",
+        "Add a test that `hostHookOuterSha8()` is unchanged by this PR.",
+        "Rewrite `release:local-update` to: argument and checkout checks → `git pull --ff-only` on the default branch → `pnpm install --frozen-lockfile` → confirm `package.json` pin = installed = `<version>` → one line: `release:local-update COMPLETE; checkout=<path> version=<V>.",
+        "Hook files refresh on the next hook run (AC8.6).",
+        "Run 'directive upgrade' and commit when you choose.` Remove `print_deposit_recovery`, check A, check B, the AgeExclude check, the dirty-tree refusal, the `directive upgrade` call, the post-upgrade diff failure, the final `verify:hooks-installed` and the second version check.",
+        "Keep \"never reset, force-push, commit or `npm i -g`\".",
+        "Renew the `xbrief/evaluator-surface-disposition.json` disclosure the normal way; don't edit the gate.",
+        "Rewrite release skill Phase 7 step 8 to the same steps.",
+        "Remove sub-steps 6, 8 and 9, the \"deposit-merge recovery\" wording in Skill Completion, the deposit clauses in the anti-patterns, and the \"Prefer-A Bound\" labels.",
+        "Add: \"A post-release `directive upgrade` that changes hook files is normal.",
+        "Commit it in an ordinary PR when you choose.",
+        "It is not part of the release.\" Fold in #6358's release half (D-017): one line naming the pin-bump PR step (`package.json` pin, AgeExclude row, lockfile, one CHANGELOG line) before `release:local-update`, and printing `npm i -g @deftai/directive@<version>` when the global launcher is behind.",
+        "Regenerate `content/packs/skills/skills-pack-0.1.json` and `docs/RULE-MAP.md` with the repo's generators.",
+        "Part B (P3-U1b, Phase 3): 4.",
+        "Extend the no-agent fixture test (P1-U3) with steps 1–3: 1.",
+        "Change only the `@deftai/directive-runtime` pin and lockfile in the fixture from V to W.",
+        "Run the project install, with no agent and no Directive command.",
+        "Run one registered hook command without `DEFT_DOCTOR_HOOK_DIAGNOSTIC`.",
+        "Assert: the hook proceeds; `GENERATION.json` records W; the readiness marker for W exists; the new-sha8 outer exists if the outer bytes changed; `package.json`, the lockfile and `xbrief/` are unchanged.",
+        "If the fixture can't get two real published versions, use a fake W as `self-complete.test.ts:285` does, and say so in the test.",
+        "#5952 tracking text (polfer edits): strike the #5947 and #5948 exit criteria that contradict AC14.10 and mark both SEALED 2026-11-09 (closed by #6170); in the current-shape comment, retire wave 4 \"Stop the incomplete pin\", remove the solo-pin open question as decided, move #5947, #5948, #5855 and #5970 to closed children, and bump to pass-4.",
+        "Keep the #5949 / #5950 criteria (P4-U1 delivers them).",
+        "Must not do: don't change AC14.10, AC8.6 or AC9.10 text; don't add any check that needs refreshed hook files on `master` before a release can finish; don't move refresh work into CI or make a pin-bump PR carry hook files; don't run `npm i -g` from the release step; don't touch `hostHookOuterSource()`; don't implement #6358's session-start half; don't edit `verify:evaluator-surface` or other gates to go green.",
+        "Acceptance criteria Part A: 1.",
+        "`git grep -n -E 'validateCursorDepositAssociation|stageTipRequiredCursorDeposit|preparePinCandidateCursorDeposit|tipRequiredCursorDepositPaths|defaultGitAddForce'` returns nothing in `packages/` or `Taskfile.yml`.",
+        "`hostHookOuterSha8()` is unchanged.",
+        "`release:local-update` contains no `verify:hooks-installed`, no `DEFT_DOCTOR_HOOK_DIAGNOSTIC`, no `directive upgrade`, and no failure on tracked-file changes after install.",
+        "On a checkout where pin and installed are both V, `task release:local-update -- V --checkout <primary>` exits 0 after pull and install, even when committed hook files are older than V.",
+        "Release skill Phase 7 step 8 lists exactly: checkout checks, pull, install, confirm installed = pin; and says a later upgrade diff is normal.",
+        "Part B: 6.",
+        "Fixture steps 1–3 pass with no agent and no Directive bookend command.",
+        "The #5952 body and current-shape comment no longer list the struck criteria.",
+        "Verification: `pnpm vitest run packages/core/src/init-deposit`; `task check`; `packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts` still passes; manual run on a scratch clone at the current pin exits 0 with the new completion line.",
+        "Related - #5947, #5948 (sealed), #6170, the 2026-11-10 decision file.",
+        "#6127, #6184 (the code removed here), #5953 and #6163 (closed): comment on both after merge.",
+        "#6163's real cause was a per-clone `.git/info/exclude` entry; doctor warns about that in #6618.",
+        "#6358: its release half folds in here (D-017); comment there.",
+        "#5952: exit-criteria text.",
+        "#6614: the fixture test Part B extends.",
+        "Plan placement - Unit P3-U1, split by D-004.",
+        "Two PRs, two briefs: - P3-U1a (`ovpr-p3-u1a`), Phase 0 step 2: Part A.",
+        "Runs after the #5994 close-out.",
+        "Depends on nothing else.",
+        "P3-U1b (`ovpr-p3-u1b`), Phase 3 wave 3.1: Part B.",
+        "Depends on P1-U3.",
+        "Owner polfer.",
+        "Scott reviews the release-skill and Taskfile changes, because Scott runs releases.",
+        "Closes when both parts have merged."
+      ],
+      "admitted_source_sentences": [
+        "Problem After each Directive release, the maintainer runs a finish step, `task release:local-update`, that updates their own checkout to the new version.",
+        "That step now refuses to finish unless the refreshed hook files were already committed to `master` with the version bump.",
+        "When it refuses, it prints instructions: repair, force-add the hook files past the ignore rules, open a second PR, then run the step again.",
+        "Only an agent can follow those instructions.",
+        "An ordinary repository has no agent in CI: Dependabot bumps the version, CI installs it, and nobody reads Directive's output.",
+        "polfer decided on 2026-11-09/10 (#5947) that a bump which changes only the version is complete.",
+        "Hook files refresh on the developer's machine the first time a hook runs, and a person runs `directive upgrade` and commits when they choose.",
+        "The finish step contradicts that decision.",
+        "It also ships about 190 lines of code to every customer that only this one release step uses.",
+        "Evidence (origin/master `def527f5e`): - #6127 (for #5953, merged 2026-11-09 01:52Z, before the #5947 seal) added `release:local-update` and its release-skill text.",
+        "#6184 (for #6163, merged 2026-11-11, after the decision file; released in 0.129.7) added check B and its product code.",
+        "`Taskfile.yml` `release:local-update` (`:861` onward): - `print_deposit_recovery` (`:956-962`): \"force-add tip-required Cursor paths … merge that pin+deposit tip, then re-run\".",
+        "dirty-tree refusal (`:1019-1023`); AgeExclude check on `pnpm-workspace.yaml` (`:1044-1091`).",
+        "pull, `pnpm install --frozen-lockfile` and the pin = installed check (`:1042`, `:1092-1100`).",
+        "These stay.",
+        "Check A (#6127): `DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 … verify:hooks-installed --scope=agent` (`:1106-1111`).",
+        "The env var turns automatic setup off, so it sees only what is committed.",
+        "Check B (#6184): imports `validateCursorDepositAssociation` from the installed runtime and requires the new-hash Cursor files in `HEAD` (`:1112-1143`).",
+        "`directive upgrade`, then post-upgrade diff = failure (`:1145-1162`), then a final `verify:hooks-installed --scope=all` and a second version check (`:1163-1171`).",
+        "#6184 product code: `packages/core/src/init-deposit/host-hook-outer.ts` (`execFileSync` import `:17`, `CURSOR_HOOKS_JSON_REL` `:30`, `tipRequiredCursorDepositPaths` `:75`, `defaultGitAddForce` `:159` which runs `git add -f`, `stageTipRequiredCursorDeposit` `:172`, `validateCursorDepositAssociation` `:190`) and `packages/core/src/init-deposit/agent-hooks.ts` (wrapper `:35`, `preparePinCandidateCursorDeposit` `:693` with no production caller, `resolveCursorDepositAssociationForCloseout` `:727`).",
+        "None of it is inside `hostHookOuterSource()`, so removing it does not change the deposited `.mjs` bytes or their sha8.",
+        "Release skill `content/skills/deft-directive-release/SKILL.md`, Phase 7 step 8 (`:411-426`): sub-step 6 (\"Keep Phase 7 local closeout incomplete until that deposit evidence exists\"), sub-step 8 (post-upgrade tracked diff = incomplete), sub-step 9; Skill Completion (`:470`); anti-patterns (`:478`).",
+        "What the design says - AC14.10: Dependabot changed only pin + lockfile to W; the first registered hook or eligible command completes wiring at W, then proceeds.",
+        "AC8.6: automatic setup on the first eligible hook or command; no lifecycle script is required.",
+        "AC9.10 / AC12.1: doctor and its probes never write.",
+        "LLM-CONTEXT §4 and §6 item 6: do not redefine \"a pin bump PR must also deposit/refresh all wiring\"; epic exit criteria that contradict AC14.10 lose.",
+        "Decision `xbrief/decisions/2026-11-10-close-5947-5948-via-ac14-10-proof-process-note-pin-only-dependab.decision.json`: pin-only/Dependabot OK; the rejected alternative is \"Require deposit refresh in every pin/Dependabot PR\".",
+        "polfer on #5947 (2026-11-09): \"Do not redefine pin-bump done as deposit-in-same-PR.\" On #5948: \"Doctor dirty before eligible auto-setup is expected.\" On #5952: epic exit criteria must not require \"deposit in the same pin PR\".",
+        "D-001 (Rule 1): remove check A, check B, the skill rule that treats a post-upgrade diff as failure, and the #6184 code.",
+        "The finish step becomes pull, install, confirm installed = pin.",
+        "D-004: split into P3-U1a (Phase 0) and P3-U1b (Phase 3).",
+        "D-006: also drop the dirty-tree refusal and the AgeExclude check.",
+        "D-017 (O-40): fold #6358's release half into P3-U1a; decline its session-start half.",
+        "D-028: no Dependabot change in this repo.",
+        "`.github/dependabot.yml` stays as it is.",
+        "Expected Part A (P3-U1a, Phase 0): 1.",
+        "Remove the #6184 code from `host-hook-outer.ts` and `agent-hooks.ts` (the functions and imports listed above, and their re-exports).",
+        "Keep `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` and the other existing exports.",
+        "Delete the #6184 tests in `host-hook-outer.test.ts` and `agent-hooks.test.ts`.",
+        "Add a test that `hostHookOuterSha8()` is unchanged by this PR.",
+        "Rewrite `release:local-update` to: argument and checkout checks → `git pull --ff-only` on the default branch → `pnpm install --frozen-lockfile` → confirm `package.json` pin = installed = `<version>` → one line: `release:local-update COMPLETE; checkout=<path> version=<V>.",
+        "Hook files refresh on the next hook run (AC8.6).",
+        "Run 'directive upgrade' and commit when you choose.` Remove `print_deposit_recovery`, check A, check B, the AgeExclude check, the dirty-tree refusal, the `directive upgrade` call, the post-upgrade diff failure, the final `verify:hooks-installed` and the second version check.",
+        "Keep \"never reset, force-push, commit or `npm i -g`\".",
+        "Renew the `xbrief/evaluator-surface-disposition.json` disclosure the normal way; don't edit the gate.",
+        "Rewrite release skill Phase 7 step 8 to the same steps.",
+        "Remove sub-steps 6, 8 and 9, the \"deposit-merge recovery\" wording in Skill Completion, the deposit clauses in the anti-patterns, and the \"Prefer-A Bound\" labels.",
+        "Add: \"A post-release `directive upgrade` that changes hook files is normal.",
+        "Commit it in an ordinary PR when you choose.",
+        "It is not part of the release.\" Fold in #6358's release half (D-017): one line naming the pin-bump PR step (`package.json` pin, AgeExclude row, lockfile, one CHANGELOG line) before `release:local-update`, and printing `npm i -g @deftai/directive@<version>` when the global launcher is behind.",
+        "Regenerate `content/packs/skills/skills-pack-0.1.json` and `docs/RULE-MAP.md` with the repo's generators.",
+        "Part B (P3-U1b, Phase 3): 4.",
+        "Extend the no-agent fixture test (P1-U3) with steps 1–3: 1.",
+        "Change only the `@deftai/directive-runtime` pin and lockfile in the fixture from V to W.",
+        "Run the project install, with no agent and no Directive command.",
+        "Run one registered hook command without `DEFT_DOCTOR_HOOK_DIAGNOSTIC`.",
+        "Assert: the hook proceeds; `GENERATION.json` records W; the readiness marker for W exists; the new-sha8 outer exists if the outer bytes changed; `package.json`, the lockfile and `xbrief/` are unchanged.",
+        "If the fixture can't get two real published versions, use a fake W as `self-complete.test.ts:285` does, and say so in the test.",
+        "#5952 tracking text (polfer edits): strike the #5947 and #5948 exit criteria that contradict AC14.10 and mark both SEALED 2026-11-09 (closed by #6170); in the current-shape comment, retire wave 4 \"Stop the incomplete pin\", remove the solo-pin open question as decided, move #5947, #5948, #5855 and #5970 to closed children, and bump to pass-4.",
+        "Keep the #5949 / #5950 criteria (P4-U1 delivers them).",
+        "Must not do: don't change AC14.10, AC8.6 or AC9.10 text; don't add any check that needs refreshed hook files on `master` before a release can finish; don't move refresh work into CI or make a pin-bump PR carry hook files; don't run `npm i -g` from the release step; don't touch `hostHookOuterSource()`; don't implement #6358's session-start half; don't edit `verify:evaluator-surface` or other gates to go green.",
+        "Acceptance criteria Part A: 1.",
+        "`git grep -n -E 'validateCursorDepositAssociation|stageTipRequiredCursorDeposit|preparePinCandidateCursorDeposit|tipRequiredCursorDepositPaths|defaultGitAddForce'` returns nothing in `packages/` or `Taskfile.yml`.",
+        "`hostHookOuterSha8()` is unchanged.",
+        "`release:local-update` contains no `verify:hooks-installed`, no `DEFT_DOCTOR_HOOK_DIAGNOSTIC`, no `directive upgrade`, and no failure on tracked-file changes after install.",
+        "On a checkout where pin and installed are both V, `task release:local-update -- V --checkout <primary>` exits 0 after pull and install, even when committed hook files are older than V.",
+        "Release skill Phase 7 step 8 lists exactly: checkout checks, pull, install, confirm installed = pin; and says a later upgrade diff is normal.",
+        "Part B: 6.",
+        "Fixture steps 1–3 pass with no agent and no Directive bookend command.",
+        "The #5952 body and current-shape comment no longer list the struck criteria.",
+        "Verification: `pnpm vitest run packages/core/src/init-deposit`; `task check`; `packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts` still passes; manual run on a scratch clone at the current pin exits 0 with the new completion line.",
+        "Related - #5947, #5948 (sealed), #6170, the 2026-11-10 decision file.",
+        "#6127, #6184 (the code removed here), #5953 and #6163 (closed): comment on both after merge.",
+        "#6163's real cause was a per-clone `.git/info/exclude` entry; doctor warns about that in #6618.",
+        "#6358: its release half folds in here (D-017); comment there.",
+        "#5952: exit-criteria text.",
+        "#6614: the fixture test Part B extends.",
+        "Plan placement - Unit P3-U1, split by D-004.",
+        "Two PRs, two briefs: - P3-U1a (`ovpr-p3-u1a`), Phase 0 step 2: Part A.",
+        "Runs after the #5994 close-out.",
+        "Depends on nothing else.",
+        "P3-U1b (`ovpr-p3-u1b`), Phase 3 wave 3.1: Part B.",
+        "Depends on P1-U3.",
+        "Owner polfer.",
+        "Scott reviews the release-skill and Taskfile changes, because Scott runs releases.",
+        "Closes when both parts have merged."
+      ],
+      "admitted_source_digest": "45398f947bb18b307855bd9f6639e59d2d96e0f9506f5523ca51a5349fbe34d8",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Revert release checks that contradict the #5947 decision",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Problem After each Directive release, the maintainer runs a finish step, `task release:local-update`, that updates their own checkout to the new version.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "That step now refuses to finish unless the refreshed hook files were already committed to `master` with the version bump.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When it refuses, it prints instructions: repair, force-add the hook files past the ignore rules, open a second PR, then run the step again.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Only an agent can follow those instructions.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "An ordinary repository has no agent in CI: Dependabot bumps the version, CI installs it, and nobody reads Directive's output.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "polfer decided on 2026-11-09/10 (#5947) that a bump which changes only the version is complete.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Hook files refresh on the developer's machine the first time a hook runs, and a person runs `directive upgrade` and commits when they choose.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The finish step contradicts that decision.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "It also ships about 190 lines of code to every customer that only this one release step uses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Evidence (origin/master `def527f5e`): - #6127 (for #5953, merged 2026-11-09 01:52Z, before the #5947 seal) added `release:local-update` and its release-skill text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "#6184 (for #6163, merged 2026-11-11, after the decision file; released in 0.129.7) added check B and its product code.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`Taskfile.yml` `release:local-update` (`:861` onward): - `print_deposit_recovery` (`:956-962`): \"force-add tip-required Cursor paths … merge that pin+deposit tip, then re-run\".",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "dirty-tree refusal (`:1019-1023`); AgeExclude check on `pnpm-workspace.yaml` (`:1044-1091`).",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "pull, `pnpm install --frozen-lockfile` and the pin = installed check (`:1042`, `:1092-1100`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "These stay.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Check A (#6127): `DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 … verify:hooks-installed --scope=agent` (`:1106-1111`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The env var turns automatic setup off, so it sees only what is committed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Check B (#6184): imports `validateCursorDepositAssociation` from the installed runtime and requires the new-hash Cursor files in `HEAD` (`:1112-1143`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "`directive upgrade`, then post-upgrade diff = failure (`:1145-1162`), then a final `verify:hooks-installed --scope=all` and a second version check (`:1163-1171`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "#6184 product code: `packages/core/src/init-deposit/host-hook-outer.ts` (`execFileSync` import `:17`, `CURSOR_HOOKS_JSON_REL` `:30`, `tipRequiredCursorDepositPaths` `:75`, `defaultGitAddForce` `:159` which runs `git add -f`, `stageTipRequiredCursorDeposit` `:172`, `validateCursorDepositAssociation` `:190`) and `packages/core/src/init-deposit/agent-hooks.ts` (wrapper `:35`, `preparePinCandidateCursorDeposit` `:693` with no production caller, `resolveCursorDepositAssociationForCloseout` `:727`).",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "None of it is inside `hostHookOuterSource()`, so removing it does not change the deposited `.mjs` bytes or their sha8.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Release skill `content/skills/deft-directive-release/SKILL.md`, Phase 7 step 8 (`:411-426`): sub-step 6 (\"Keep Phase 7 local closeout incomplete until that deposit evidence exists\"), sub-step 8 (post-upgrade tracked diff = incomplete), sub-step 9; Skill Completion (`:470`); anti-patterns (`:478`).",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "What the design says - AC14.10: Dependabot changed only pin + lockfile to W; the first registered hook or eligible command completes wiring at W, then proceeds.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "AC8.6: automatic setup on the first eligible hook or command; no lifecycle script is required.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "AC9.10 / AC12.1: doctor and its probes never write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "LLM-CONTEXT §4 and §6 item 6: do not redefine \"a pin bump PR must also deposit/refresh all wiring\"; epic exit criteria that contradict AC14.10 lose.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Decision `xbrief/decisions/2026-11-10-close-5947-5948-via-ac14-10-proof-process-note-pin-only-dependab.decision.json`: pin-only/Dependabot OK; the rejected alternative is \"Require deposit refresh in every pin/Dependabot PR\".",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "polfer on #5947 (2026-11-09): \"Do not redefine pin-bump done as deposit-in-same-PR.\" On #5948: \"Doctor dirty before eligible auto-setup is expected.\" On #5952: epic exit criteria must not require \"deposit in the same pin PR\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "D-001 (Rule 1): remove check A, check B, the skill rule that treats a post-upgrade diff as failure, and the #6184 code.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "The finish step becomes pull, install, confirm installed = pin.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "D-004: split into P3-U1a (Phase 0) and P3-U1b (Phase 3).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "D-006: also drop the dirty-tree refusal and the AgeExclude check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "D-017 (O-40): fold #6358's release half into P3-U1a; decline its session-start half.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "D-028: no Dependabot change in this repo.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "`.github/dependabot.yml` stays as it is.",
+          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "Expected Part A (P3-U1a, Phase 0): 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "Remove the #6184 code from `host-hook-outer.ts` and `agent-hooks.ts` (the functions and imports listed above, and their re-exports).",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "Keep `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` and the other existing exports.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Delete the #6184 tests in `host-hook-outer.test.ts` and `agent-hooks.test.ts`.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "Add a test that `hostHookOuterSha8()` is unchanged by this PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Rewrite `release:local-update` to: argument and checkout checks → `git pull --ff-only` on the default branch → `pnpm install --frozen-lockfile` → confirm `package.json` pin = installed = `<version>` → one line: `release:local-update COMPLETE; checkout=<path> version=<V>.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "Hook files refresh on the next hook run (AC8.6).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "Run 'directive upgrade' and commit when you choose.` Remove `print_deposit_recovery`, check A, check B, the AgeExclude check, the dirty-tree refusal, the `directive upgrade` call, the post-upgrade diff failure, the final `verify:hooks-installed` and the second version check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "Keep \"never reset, force-push, commit or `npm i -g`\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "Renew the `xbrief/evaluator-surface-disposition.json` disclosure the normal way; don't edit the gate.",
+          "artifact_path": "xbrief/evaluator-surface-disposition.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "Rewrite release skill Phase 7 step 8 to the same steps.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "Remove sub-steps 6, 8 and 9, the \"deposit-merge recovery\" wording in Skill Completion, the deposit clauses in the anti-patterns, and the \"Prefer-A Bound\" labels.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 49,
+          "text": "Add: \"A post-release `directive upgrade` that changes hook files is normal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 50,
+          "text": "Commit it in an ordinary PR when you choose.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 51,
+          "text": "It is not part of the release.\" Fold in #6358's release half (D-017): one line naming the pin-bump PR step (`package.json` pin, AgeExclude row, lockfile, one CHANGELOG line) before `release:local-update`, and printing `npm i -g @deftai/directive@<version>` when the global launcher is behind.",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 52,
+          "text": "Regenerate `content/packs/skills/skills-pack-0.1.json` and `docs/RULE-MAP.md` with the repo's generators.",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 53,
+          "text": "Part B (P3-U1b, Phase 3): 4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 54,
+          "text": "Extend the no-agent fixture test (P1-U3) with steps 1–3: 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 55,
+          "text": "Change only the `@deftai/directive-runtime` pin and lockfile in the fixture from V to W.",
+          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 56,
+          "text": "Run the project install, with no agent and no Directive command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 57,
+          "text": "Run one registered hook command without `DEFT_DOCTOR_HOOK_DIAGNOSTIC`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 58,
+          "text": "Assert: the hook proceeds; `GENERATION.json` records W; the readiness marker for W exists; the new-sha8 outer exists if the outer bytes changed; `package.json`, the lockfile and `xbrief/` are unchanged.",
+          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 59,
+          "text": "If the fixture can't get two real published versions, use a fake W as `self-complete.test.ts:285` does, and say so in the test.",
+          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 60,
+          "text": "#5952 tracking text (polfer edits): strike the #5947 and #5948 exit criteria that contradict AC14.10 and mark both SEALED 2026-11-09 (closed by #6170); in the current-shape comment, retire wave 4 \"Stop the incomplete pin\", remove the solo-pin open question as decided, move #5947, #5948, #5855 and #5970 to closed children, and bump to pass-4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 61,
+          "text": "Keep the #5949 / #5950 criteria (P4-U1 delivers them).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 62,
+          "text": "Must not do: don't change AC14.10, AC8.6 or AC9.10 text; don't add any check that needs refreshed hook files on `master` before a release can finish; don't move refresh work into CI or make a pin-bump PR carry hook files; don't run `npm i -g` from the release step; don't touch `hostHookOuterSource()`; don't implement #6358's session-start half; don't edit `verify:evaluator-surface` or other gates to go green.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 63,
+          "text": "Acceptance criteria Part A: 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 64,
+          "text": "`git grep -n -E 'validateCursorDepositAssociation|stageTipRequiredCursorDeposit|preparePinCandidateCursorDeposit|tipRequiredCursorDepositPaths|defaultGitAddForce'` returns nothing in `packages/` or `Taskfile.yml`.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 65,
+          "text": "`hostHookOuterSha8()` is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 66,
+          "text": "`release:local-update` contains no `verify:hooks-installed`, no `DEFT_DOCTOR_HOOK_DIAGNOSTIC`, no `directive upgrade`, and no failure on tracked-file changes after install.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 67,
+          "text": "On a checkout where pin and installed are both V, `task release:local-update -- V --checkout <primary>` exits 0 after pull and install, even when committed hook files are older than V.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 68,
+          "text": "Release skill Phase 7 step 8 lists exactly: checkout checks, pull, install, confirm installed = pin; and says a later upgrade diff is normal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 69,
+          "text": "Part B: 6.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 70,
+          "text": "Fixture steps 1–3 pass with no agent and no Directive bookend command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 71,
+          "text": "The #5952 body and current-shape comment no longer list the struck criteria.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 72,
+          "text": "Verification: `pnpm vitest run packages/core/src/init-deposit`; `task check`; `packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts` still passes; manual run on a scratch clone at the current pin exits 0 with the new completion line.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 73,
+          "text": "Related - #5947, #5948 (sealed), #6170, the 2026-11-10 decision file.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 74,
+          "text": "#6127, #6184 (the code removed here), #5953 and #6163 (closed): comment on both after merge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 75,
+          "text": "#6163's real cause was a per-clone `.git/info/exclude` entry; doctor warns about that in #6618.",
+          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 76,
+          "text": "#6358: its release half folds in here (D-017); comment there.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 77,
+          "text": "#5952: exit-criteria text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 78,
+          "text": "#6614: the fixture test Part B extends.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 79,
+          "text": "Plan placement - Unit P3-U1, split by D-004.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 80,
+          "text": "Two PRs, two briefs: - P3-U1a (`ovpr-p3-u1a`), Phase 0 step 2: Part A.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 81,
+          "text": "Runs after the #5994 close-out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 82,
+          "text": "Depends on nothing else.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 83,
+          "text": "P3-U1b (`ovpr-p3-u1b`), Phase 3 wave 3.1: Part B.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 84,
+          "text": "Depends on P1-U3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 85,
+          "text": "Owner polfer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 86,
+          "text": "Scott reviews the release-skill and Taskfile changes, because Scott runs releases.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 87,
+          "text": "Closes when both parts have merged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6458882139",
+    "updated": "2026-11-18T02:59:34Z"
+  }
+}
