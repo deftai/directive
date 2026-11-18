@@ -1,6 +1,12 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedRemove,
+  containedRename,
+  containedWrite,
+} from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
@@ -74,7 +80,9 @@ export interface XbriefMigrationArgs {
   readonly force?: boolean;
   /**
    * Retain a fully-migrated `vbrief/` for read-compatibility behind an explicit
-   * deprecation marker instead of removing it (#2270). Default: remove.
+   * deprecation marker instead of removing it (#2270). Default: remove, also
+   * when `vbrief/` and `xbrief/` both hold content or `vbrief/` is already
+   * marked (#6571). Opt-in on a direct `migrate:xbrief`; upgrade never sets it.
    */
   readonly keepLegacy?: boolean;
 }
@@ -95,7 +103,14 @@ export type XbriefMigrationOutcome =
       readonly backupDir: string;
       readonly files: number;
       readonly migratedPaths: readonly string[];
+      /** Every archived path: unconvertible files plus collision copies. */
       readonly archivedPaths: readonly string[];
+      /** Finish-move only (#6571): legacy files whose converted form was already in `xbrief/`. */
+      readonly alreadyPresentPaths?: readonly string[];
+      /** Finish-move only (#6571): raw legacy copies archived because `xbrief/` held different content. */
+      readonly collisionArchivedPaths?: readonly string[];
+      /** Finish-move only (#6571): residual envelope rewrite applied under `xbrief/` first. */
+      readonly residualMessage?: string;
     }
   | {
       readonly kind: "rewritten";
@@ -619,6 +634,26 @@ function rollbackStripWrites(
   };
 }
 
+interface StripDriftOptions {
+  /**
+   * The caller deletes `vbrief/` in the same operation (#6571 finish-move), so
+   * tracked `vbrief/` paths are not counted against the strip. Every other
+   * finding still blocks.
+   */
+  readonly legacyDirScheduledForRemoval?: boolean;
+}
+
+function isScheduledLegacyRemoval(
+  finding: { readonly kind: string; readonly path: string },
+  options: StripDriftOptions,
+): boolean {
+  return (
+    options.legacyDirScheduledForRemoval === true &&
+    finding.kind === "legacy-lifecycle-dir" &&
+    (finding.path === LEGACY_ARTIFACT_DIR || finding.path.startsWith(`${LEGACY_ARTIFACT_DIR}/`))
+  );
+}
+
 /**
  * Write planned leftover-envelope strips via contained temp+rename only after
  * every body is planned. Record the current file before replacing it. Restore
@@ -627,6 +662,7 @@ function rollbackStripWrites(
 function applyRedundantLegacyEnvelopeStrips(
   projectRoot: string,
   pending: ReadonlyArray<StripRewrite>,
+  options: StripDriftOptions = {},
 ): { ok: true; files: number } | { ok: false; error: string } {
   const pre = evaluateXbriefDrift(projectRoot, { quiet: true });
   if (pre.code === 2) {
@@ -634,7 +670,9 @@ function applyRedundantLegacyEnvelopeStrips(
   }
   const plannedRels = new Set(pending.map((entry) => stripRewriteRel(projectRoot, entry.path)));
   const leftover = pre.findings.filter(
-    (finding) => !(finding.kind === "legacy-envelope-key" && plannedRels.has(finding.path)),
+    (finding) =>
+      !(finding.kind === "legacy-envelope-key" && plannedRels.has(finding.path)) &&
+      !isScheduledLegacyRemoval(finding, options),
   );
   if (leftover.length > 0) {
     return {
@@ -664,7 +702,10 @@ function applyRedundantLegacyEnvelopeStrips(
   }
 
   const post = evaluateXbriefDrift(projectRoot, { quiet: true });
-  if (post.code !== 0) {
+  const postLeftover = post.findings.filter(
+    (finding) => !isScheduledLegacyRemoval(finding, options),
+  );
+  if (post.code === 2 || postLeftover.length > 0) {
     const restoreFailures = restoreStripOriginals(projectRoot, written);
     return {
       ok: false,
@@ -822,6 +863,342 @@ export function convergeLegacyVbriefRoot(
   writeVbriefDeprecationMarker(projectRoot, legacyDir);
   return "marker";
 }
+
+/** Ending for a raw collision copy of a lifecycle envelope under `xbrief/archive/` (#6571). */
+const COLLISION_ARCHIVE_SUFFIX = ".legacy.json";
+
+/**
+ * Raw collision copy path under `xbrief/archive/` (#6571). An envelope keeps
+ * its folder and stem but ends in `.legacy.json`, so the raw legacy bytes are
+ * not read as a canonical `*.xbrief.json` artifact by the drift gate.
+ */
+function collisionArchiveRelative(legacyRel: string): string {
+  const rel = archiveDestRelative(legacyRel);
+  return rel.endsWith(MIGRATED_ARTIFACT_SUFFIX)
+    ? `${rel.slice(0, -MIGRATED_ARTIFACT_SUFFIX.length)}${COLLISION_ARCHIVE_SUFFIX}`
+    : rel;
+}
+
+function readTextOrNull(path: string): string | null {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function normalizeEol(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
+/** Drop a migration-only lifecycle stamp so two migration runs compare equal (#5540). */
+function withoutMigrationStamp(value: unknown): unknown {
+  if (!isPlainJsonObject(value)) return value;
+  const plan = value.plan;
+  if (!isPlainJsonObject(plan) || !isMigrationLifecycleWrite(plan)) return value;
+  const metadata = plan.metadata;
+  if (!isPlainJsonObject(metadata)) return value;
+  const restMeta: JsonObject = {};
+  for (const [key, entry] of Object.entries(metadata)) {
+    if (key !== "lifecycleWrite") restMeta[key] = entry;
+  }
+  return { ...value, plan: { ...plan, metadata: restMeta } };
+}
+
+/**
+ * True when `existing` already holds `wanted` (#6571): same bytes, same bytes
+ * after CRLF to LF, or the same JSON value ignoring a migration-only stamp.
+ */
+function sameMigratedContent(existing: string, wanted: string): boolean {
+  if (normalizeEol(existing) === normalizeEol(wanted)) return true;
+  let a: unknown;
+  let b: unknown;
+  try {
+    a = JSON.parse(existing);
+    b = JSON.parse(wanted);
+  } catch {
+    return false;
+  }
+  return jsonFieldsEqual(withoutMigrationStamp(a), withoutMigrationStamp(b));
+}
+
+type FinishMoveWrite = {
+  readonly targetRel: string;
+  readonly data: string;
+  readonly kind: "migrated" | "archived" | "collision";
+};
+
+type FinishMovePlan = {
+  readonly files: number;
+  readonly writes: FinishMoveWrite[];
+  readonly alreadyPresent: string[];
+};
+
+/** True when `rel` is the deft-written deprecation marker at the legacy root. */
+function isLegacyRootMarker(legacyDir: string, rel: string): boolean {
+  return rel === VBRIEF_DEPRECATION_MARKER_FILENAME && hasVbriefDeprecationMarker(legacyDir);
+}
+
+/**
+ * Plan the finish-move of a leftover `vbrief/` into a populated `xbrief/`
+ * (#6571). Reads only. A claimed-target or archive collision is an expected
+ * data conflict the operator resolves, so it is returned as a refusal and
+ * nothing is written when any file cannot be placed.
+ */
+function planFinishLegacyMove(
+  projectRoot: string,
+  legacyDir: string,
+):
+  | { readonly ok: true; readonly plan: FinishMovePlan }
+  | { readonly ok: false; readonly error: string } {
+  const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  const files = collectFiles(legacyDir);
+  const writes: FinishMoveWrite[] = [];
+  const alreadyPresent: string[] = [];
+  const claimedTargets = new Map<string, string>();
+  /** Returns a refusal message, or null when `rel` now owns `targetRel`. */
+  const claim = (targetRel: string, rel: string): string | null => {
+    const prior = claimedTargets.get(targetRel);
+    if (prior !== undefined && prior !== rel) {
+      return `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${targetRel}' claimed by both '${prior}' and '${rel}'`;
+    }
+    claimedTargets.set(targetRel, rel);
+    return null;
+  };
+  // Raw copy into xbrief/archive/: skip when the same bytes are there, refuse when different.
+  const archiveRaw = (
+    rel: string,
+    targetRel: string,
+    raw: string,
+    kind: "archived" | "collision",
+  ): string | null => {
+    const claimed = claim(targetRel, rel);
+    if (claimed !== null) return claimed;
+    const targetPath = join(migratedDir, targetRel);
+    if (!existsSync(targetPath)) {
+      writes.push({ targetRel, data: raw, kind });
+      return null;
+    }
+    const existing = readTextOrNull(targetPath);
+    if (existing !== null && normalizeEol(existing) === normalizeEol(raw)) {
+      alreadyPresent.push(`${MIGRATED_ARTIFACT_DIR}/${targetRel}`);
+      return null;
+    }
+    return `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${targetRel}' already exists with different content than '${LEGACY_ARTIFACT_DIR}/${rel}'`;
+  };
+
+  for (const srcPath of files) {
+    const rel = relative(legacyDir, srcPath).replace(/\\/g, "/");
+    if (shouldOmitLegacyMigrationFile(rel) || isLegacyRootMarker(legacyDir, rel)) continue;
+    const raw = readFileSync(srcPath, "utf8");
+    const disposition = classifyLegacyMigrationFile(srcPath, raw);
+    let refused: string | null = null;
+    if (disposition.kind === "archive") {
+      refused = archiveRaw(rel, archiveDestRelative(rel), raw, "archived");
+    } else {
+      const destRel = destRelForLegacy(rel);
+      refused = claim(destRel, rel);
+      const destPath = join(migratedDir, destRel);
+      if (refused === null && !existsSync(destPath)) {
+        writes.push({ targetRel: destRel, data: disposition.body, kind: "migrated" });
+      } else if (refused === null) {
+        const existing = readTextOrNull(destPath);
+        if (existing !== null && sameMigratedContent(existing, disposition.body)) {
+          alreadyPresent.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
+        } else {
+          // Destination taken with different content: never overwrite xbrief/.
+          refused = archiveRaw(rel, collisionArchiveRelative(rel), raw, "collision");
+        }
+      }
+    }
+    if (refused !== null) return { ok: false, error: refused };
+  }
+  return { ok: true, plan: { files: files.length, writes, alreadyPresent } };
+}
+
+/**
+ * Finish a leftover `vbrief/` move into a populated `xbrief/`, then delete
+ * `vbrief/` (#6571 / D-012; replaces the #2270 marker on the default path).
+ * Free destinations are written, identical ones skipped, differing ones copied
+ * raw to `xbrief/archive/`. Existing `xbrief/` files are never overwritten
+ * (create-only writes). Every collision is found before the backup and the
+ * first write; a failed write removes what this run wrote.
+ */
+function finishLegacyMove(
+  projectRoot: string,
+  legacyDir: string,
+):
+  | {
+      readonly ok: true;
+      readonly backupDir: string;
+      readonly files: number;
+      readonly migratedPaths: string[];
+      readonly archivedPaths: string[];
+      readonly alreadyPresentPaths: string[];
+      readonly collisionArchivedPaths: string[];
+    }
+  | { readonly ok: false; readonly error: string } {
+  const root = resolve(projectRoot);
+  const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  const planned = planFinishLegacyMove(projectRoot, legacyDir);
+  if (!planned.ok) return planned;
+  const plan = planned.plan;
+  const backupDir = backupMigrationInputs(projectRoot, legacyDir, migratedDir);
+  const readme = join(migratedDir, ARCHIVE_REL_DIR, ARCHIVE_README_FILENAME);
+  const readmeExisted = existsSync(readme);
+
+  // Paths this run created, so a write that fails after creating its file is
+  // rolled back too. A refusal before any I/O (the target appeared meanwhile,
+  // a symlink, an escape) did not create anything here, so that target is never
+  // eligible for cleanup: it may belong to another writer.
+  const created: string[] = [];
+  /** Runs one create; returns the failure message, or null on success. */
+  const createFile = (target: string, write: () => void): string | null => {
+    try {
+      write();
+    } catch (err) {
+      const refusedBeforeIo =
+        err instanceof ContainedWriteError && err.code !== ContainedWriteErrorCode.IO;
+      if (!refusedBeforeIo) created.push(target);
+      return err instanceof Error ? err.message : String(err);
+    }
+    created.push(target);
+    return null;
+  };
+  const rollback = (error: string): { readonly ok: false; readonly error: string } => {
+    for (const target of created) {
+      try {
+        if (existsSync(target)) containedRemove({ root, target });
+      } catch {
+        /* best-effort rollback; the backup still holds both trees */
+      }
+    }
+    return { ok: false, error };
+  };
+  const migratedPaths: string[] = [];
+  const archivedPaths: string[] = [];
+  const collisionArchivedPaths: string[] = [];
+  for (const entry of plan.writes) {
+    const target = join(migratedDir, entry.targetRel);
+    const failed = createFile(target, () => {
+      containedWrite({ root, target, data: entry.data, mode: "create" });
+    });
+    if (failed !== null) return rollback(failed);
+    const shown = `${MIGRATED_ARTIFACT_DIR}/${entry.targetRel}`;
+    if (entry.kind === "migrated") {
+      migratedPaths.push(shown);
+    } else {
+      archivedPaths.push(shown);
+      if (entry.kind === "collision") collisionArchivedPaths.push(shown);
+    }
+  }
+  if (archivedPaths.length > 0 && !readmeExisted) {
+    const failed = createFile(readme, () => {
+      ensureArchiveReadme(projectRoot, migratedDir);
+    });
+    if (failed !== null) return rollback(failed);
+  }
+  rmSync(legacyDir, { recursive: true, force: true });
+  return {
+    ok: true,
+    backupDir,
+    files: plan.files,
+    migratedPaths,
+    archivedPaths,
+    alreadyPresentPaths: plan.alreadyPresent,
+    collisionArchivedPaths,
+  };
+}
+
+/** True when the legacy tree holds nothing but the marker, placeholders or omitted files. */
+function legacyHasNothingToMove(legacyDir: string): boolean {
+  return collectFiles(legacyDir).every((path) => {
+    const rel = relative(legacyDir, path).replace(/\\/g, "/");
+    const name = basename(path);
+    return (
+      shouldOmitLegacyMigrationFile(rel) ||
+      isLegacyRootMarker(legacyDir, rel) ||
+      name === ".gitkeep" ||
+      name === ".keep"
+    );
+  });
+}
+
+/**
+ * Default (no keepLegacy) handling of dual-populated and already-marked
+ * layouts (#6571 / D-012): residual rewrites under `xbrief/` first (marker
+ * case, as before), then the finish-move; `vbrief/` is always removed.
+ */
+function runFinishLegacyMove(
+  projectRoot: string,
+  legacyDir: string,
+  args: XbriefMigrationArgs,
+  options: { readonly residual: boolean },
+): XbriefMigrationOutcome {
+  if (!args.force) {
+    const git = checkGitClean(projectRoot);
+    if (git.status === "WARN") {
+      return {
+        kind: "refused",
+        message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
+      };
+    }
+  }
+  // Refuse a symlinked or escaping vbrief/ before any write or removal, including
+  // the marker-only shortcut below (collectFiles does not list links).
+  try {
+    assertMigrationSourceSafe(projectRoot, legacyDir);
+  } catch (err) {
+    return { kind: "config", message: err instanceof Error ? err.message : String(err) };
+  }
+  let residualMessage: string | undefined;
+  let residualFiles = 0;
+  if (options.residual) {
+    // Clean-tree check ran above; the residual pass must not re-refuse. Tracked
+    // vbrief/ paths do not block it: this operation deletes vbrief/.
+    const residual = rewriteResidualXbriefEnvelopes(
+      projectRoot,
+      { ...args, force: true },
+      { legacyDirScheduledForRemoval: true },
+    );
+    if (residual !== null) {
+      if (residual.kind !== "rewritten") return residual;
+      residualMessage = residual.message;
+      residualFiles = residual.files;
+    }
+  }
+
+  if (legacyHasNothingToMove(legacyDir)) {
+    rmSync(legacyDir, { recursive: true, force: true });
+    const removed = `Removed legacy '${LEGACY_ARTIFACT_DIR}/' — single '${MIGRATED_ARTIFACT_DIR}/' root.`;
+    if (residualMessage !== undefined) {
+      return { kind: "rewritten", files: residualFiles, message: `${residualMessage} ${removed}` };
+    }
+    return {
+      kind: "converged",
+      action: "removed",
+      already: false,
+      message: `Converged layout: ${removed}`,
+    };
+  }
+
+  try {
+    const moved = finishLegacyMove(projectRoot, legacyDir);
+    if (!moved.ok) return { kind: "config", message: moved.error };
+    const { ok: _ok, ...result } = moved;
+    return {
+      kind: "migrated",
+      ...result,
+      ...(residualMessage !== undefined ? { residualMessage } : {}),
+    };
+  } catch (err) {
+    return {
+      kind: "config",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 function renameOrReplace(src: string, dest: string): void {
   if (existsSync(dest)) {
     rmSync(dest, { recursive: true, force: true });
@@ -872,6 +1249,7 @@ function runAgentsRefresh(
 function rewriteResidualXbriefEnvelopes(
   projectRoot: string,
   args: XbriefMigrationArgs,
+  stripOptions: StripDriftOptions = {},
 ): XbriefMigrationOutcome | null {
   const plan = planHybridEnvelopeRewrites(projectRoot);
   if (!plan.ok) {
@@ -900,7 +1278,7 @@ function rewriteResidualXbriefEnvelopes(
   }
   let stripFiles = 0;
   if (strip.pending.length > 0) {
-    const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending);
+    const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending, stripOptions);
     if (!applied.ok) {
       return { kind: "config", message: applied.error };
     }
@@ -940,6 +1318,12 @@ export function runXbriefMigration(
     // envelopes under xbrief/ (#3236) — the marker must not skip JSON bumps
     // (Greptile P1 on #5790: early return previously left xBRIEFInfo@0.6 in place).
     case "xbrief-marker": {
+      // #6571 / D-012: without --keep-legacy, finish the move and delete vbrief/.
+      if (!keepLegacy) {
+        return runFinishLegacyMove(projectRoot, legacyDir, args, {
+          residual: convergence.xbriefHasContent,
+        });
+      }
       if (convergence.xbriefHasContent) {
         const residual = rewriteResidualXbriefEnvelopes(projectRoot, args);
         if (residual !== null) {
@@ -975,10 +1359,13 @@ export function runXbriefMigration(
       return { kind: "converged", action, already: false, message };
     }
 
-    // Legacy content coexisting with a populated canonical xbrief/. We never
-    // destructively merge; converge non-destructively by marking the legacy
-    // tree deprecated so it no longer looks like an active source of truth.
+    // Legacy content coexisting with a populated canonical xbrief/. Default
+    // (#6571 / D-012): finish the move without overwriting xbrief/ and delete
+    // vbrief/. With --keep-legacy, keep it behind the #2270 marker instead.
     case "dual-populated": {
+      if (!keepLegacy) {
+        return runFinishLegacyMove(projectRoot, legacyDir, args, { residual: false });
+      }
       convergeLegacyVbriefRoot(projectRoot, { retain: true });
       return {
         kind: "converged",
@@ -1079,10 +1466,18 @@ export function emitXbriefMigration(
     case "migrated": {
       const archived = outcome.archivedPaths.length;
       const migrated = outcome.migratedPaths.length;
+      const collision = outcome.collisionArchivedPaths?.length ?? 0;
+      const present = outcome.alreadyPresentPaths?.length ?? 0;
+      const unknowable = archived - collision;
       io.writeOut(
-        `Migrated ${migrated} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/` +
-          (archived > 0
-            ? `; archived ${archived} unknowable file(s) under ${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/`
+        (outcome.residualMessage !== undefined ? `${outcome.residualMessage}\n` : "") +
+          `Migrated ${migrated} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/` +
+          (present > 0 ? `; ${present} already present` : "") +
+          (unknowable > 0
+            ? `; archived ${unknowable} unknowable file(s) under ${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/`
+            : "") +
+          (collision > 0
+            ? `; archived ${collision} file(s) that differ from ${MIGRATED_ARTIFACT_DIR}/ under ${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/`
             : "") +
           `.\n` +
           `Backup written to ${outcome.backupDir}.\n`,
