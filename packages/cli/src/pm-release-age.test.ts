@@ -183,13 +183,30 @@ describe("pnpm release-age detection and recovery (#5854)", () => {
   });
 
   it("recovery names the exact version and never says Directive edited the file", () => {
-    const hint = formatPnpmReleaseAgeRecovery("0.129.10");
-    expect(hint).toContain("@deftai/directive-runtime@0.129.10");
+    const hint = formatPnpmReleaseAgeRecovery(
+      "0.129.10",
+      "ERR_PNPM_NO_MATURE_MATCHING_VERSION No matching version found for @deftai/directive-runtime@0.129.10",
+    );
+    expect(hint).toContain("'@deftai/directive-runtime@0.129.10'");
     expect(hint).toMatch(/minimumReleaseAgeExclude/);
     expect(hint).toMatch(/pnpm-workspace\.yaml/);
     expect(hint).toMatch(/\|\| 0\.129\.10/);
     expect(hint).toMatch(/Directive does not change it/);
     expect(hint).not.toMatch(/Directive (has )?(updated|edited|changed|wrote|added)/i);
+  });
+
+  it("gives general advice when pnpm blocked another package, not the runtime", () => {
+    for (const out of [
+      "ERR_PNPM_NO_MATURE_MATCHING_VERSION No matching version found for left-pad@2.0.0",
+      // a different runtime version (prefix of the target) is not the runtime at 0.129.1
+      "ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION @deftai/directive-runtime@0.129.10 is too new",
+    ]) {
+      const hint = formatPnpmReleaseAgeRecovery("0.129.1", out);
+      expect(hint).not.toContain("@deftai/directive-runtime@0.129.1");
+      expect(hint).toMatch(/package pnpm named/);
+      expect(hint).toMatch(/minimumReleaseAgeExclude/);
+      expect(hint).toMatch(/Directive does not change it/);
+    }
   });
 });
 
@@ -203,7 +220,23 @@ describe.each<Op>(["install", "upgrade", "repair"])("%s bookend (#5854 Outcome B
     const r = run(op, root, ageFail(errCode));
     expect(r.code).toBe(EXIT_CODES.FAILURE);
     expect(r.err).toContain(errCode);
-    expect(r.err).toContain(formatPnpmReleaseAgeRecovery(versionFor(op)));
+    expect(r.err).toContain(`blocks @deftai/directive-runtime@${versionFor(op)}:`);
+    expect(r.err).toContain(`Or add '@deftai/directive-runtime@${versionFor(op)}'`);
+    expect(readWs(root)).toBe(before);
+  });
+
+  it("prints general advice when pnpm blocked a dependency of the runtime", () => {
+    const root = fixture(op);
+    const before = readWs(root);
+    const r = run(op, root, () => ({
+      ok: false as const,
+      // The add argv in message names the runtime; only pnpm's own output decides.
+      message: `pnpm add -D --save-exact @deftai/directive-runtime@${versionFor(op)} failed (exit 1)`,
+      stderr: "ERR_PNPM_NO_MATURE_MATCHING_VERSION No matching version found for left-pad@2.0.0",
+    }));
+    expect(r.code).toBe(EXIT_CODES.FAILURE);
+    expect(r.err).toMatch(/package pnpm named/);
+    expect(r.err).not.toContain(`Or add '@deftai/directive-runtime@`);
     expect(readWs(root)).toBe(before);
   });
 

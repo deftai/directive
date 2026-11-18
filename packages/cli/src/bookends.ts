@@ -338,7 +338,8 @@ function reportPmFailure(
   }
   // #5854 (Outcome B): explain pnpm's release-age refusal; Directive never edits pnpm-workspace.yaml.
   if (runtimeVersion !== undefined && isPnpmReleaseAgeFailure(blob)) {
-    io.writeErr(`${formatPnpmReleaseAgeRecovery(runtimeVersion)}\n`);
+    // Judge the blocked package from pnpm's output only: add.message echoes the add argv.
+    io.writeErr(`${formatPnpmReleaseAgeRecovery(runtimeVersion, add.stderr ?? "")}\n`);
   }
   if (add.interrupted) {
     if (!/partial changes may remain/i.test(add.message)) {

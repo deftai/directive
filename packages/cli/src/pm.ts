@@ -454,11 +454,23 @@ export function isPnpmReleaseAgeFailure(text: string): boolean {
 }
 
 /**
- * #5854 (Outcome B): PM-shaped recovery when pnpm's minimumReleaseAge blocks the runtime.
+ * #5854 (Outcome B): PM-shaped recovery when pnpm's minimumReleaseAge blocks an install.
  * pnpm-workspace.yaml is owned by pnpm and the project; Directive does not change it.
+ * Runtime-specific advice only when pnpm's own output names the runtime at `version`;
+ * otherwise pnpm blocked another package, so point at the package pnpm named.
  */
-export function formatPnpmReleaseAgeRecovery(version: string): string {
+export function formatPnpmReleaseAgeRecovery(version: string, pmOutput: string): string {
   const spec = `@deftai/directive-runtime@${version}`;
+  const escaped = spec.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (!new RegExp(`${escaped}(?![0-9A-Za-z.+-])`).test(pmOutput)) {
+    return (
+      `pnpm's release-age policy in this project blocked a package that is newer than your configured minimum age (see pnpm's message above).\n` +
+      `This is your project's supply-chain setting. Directive does not change it.\n` +
+      `To recover, do one of these, then run the same command again:\n` +
+      `  - Wait until the package pnpm named is old enough.\n` +
+      `  - Or add that exact package@version under minimumReleaseAgeExclude in pnpm-workspace.yaml.`
+    );
+  }
   return (
     `pnpm's release-age policy in this project blocks ${spec}: it is newer than your configured minimum age.\n` +
     `This is your project's supply-chain setting. Directive does not change it.\n` +
