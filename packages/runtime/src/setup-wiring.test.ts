@@ -528,11 +528,9 @@ describe("skill pointer inventory (#5838 / #6165)", { timeout: 30_000 }, () => {
       const fm = parseFrontMatter(entry.body);
       expect(fm.name).toBe(entry.dir);
       expect(fm.description.length).toBeGreaterThan(0);
-      expect(entry.body).toMatch(
-        new RegExp(
-          `Read and follow: ${RUNTIME_PREFIX.replace(/[./]/g, "\\$&")}(skills/[^\n]+/)?SKILL\\.md`,
-        ),
-      );
+      const target = entry.body.match(/^Read and follow: (\S+)$/m)?.[1] ?? "";
+      expect(target.startsWith(RUNTIME_PREFIX)).toBe(true);
+      expect(target.endsWith("SKILL.md")).toBe(true);
       if (entry.dir !== "deft") {
         expect(entry.body).toContain(`${RUNTIME_PREFIX}skills/${entry.dir}/SKILL.md`);
       }
