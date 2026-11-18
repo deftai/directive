@@ -160,7 +160,6 @@ const HOOK_RUNTIME_UNAVAILABLE_MARKERS = [
   "`node --version` fails",
   "Directive is not protecting this session",
   "Install anything yourself",
-  "deft-hook-<sha8>.mjs",
   "policy:disable-host-hooks --host cursor --confirm",
   "hook-runtime-unavailable.md",
   "silently re-arms the lockout",

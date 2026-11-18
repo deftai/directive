@@ -275,7 +275,7 @@ export const NEVER_INCEPTED_SOFT_WARN =
   "proposed|pending|active|completed|cancelled (signal-only; doctor/session green ≠ process-use proof) (#4229)";
 
 export const FIRST_SCOPE_NEXT_HINT =
-  "No scope written yet. Ask your agent to read AGENTS.md and run the setup skill to write the first scope (#4229)";
+  "No scope written yet. Ask your agent to read AGENTS.md and run setup Phase 3 to write the first scope (#4229)";
 
 export const TASKFILE_UNAVAILABLE_CLI_SUPPORTED =
   "status=Taskfile-unavailable; CLI-supported (go-task absent; #3335 impact=none)";
