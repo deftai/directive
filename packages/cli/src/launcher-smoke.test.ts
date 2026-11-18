@@ -200,4 +200,38 @@ describe("deft hook:dispatch from old registrations (#5960)", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("honours --root: checks the selected repo, not the working directory", () => {
+    const here = mkdtempSync(join(tmpdir(), "hook-dispatch-cwd-"));
+    const old = mkdtempSync(join(tmpdir(), "hook-dispatch-root-"));
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const cwd = vi.spyOn(process, "cwd").mockReturnValue(here);
+    try {
+      // Working directory: a new-layout repo with no runtime (would say "install").
+      writeFileSync(
+        join(here, "package.json"),
+        JSON.stringify({ devDependencies: { "@deftai/directive-runtime": "0.129.14" } }),
+      );
+      writeFileSync(
+        join(old, "package.json"),
+        JSON.stringify({ dependencies: { "@deftai/directive": "0.126.2" } }),
+      );
+      mkdirSync(join(old, ".deft", "core"), { recursive: true });
+      writeFileSync(join(old, ".deft", "core", "VERSION"), "0.126.2\n");
+      const c = capture();
+      const code = runLauncher(
+        ["--root", old, "hook:dispatch", "--host", "claude", "--event", "tool.before"],
+        c.io,
+      );
+      expect(code).toBe(2);
+      expect(stderr.mock.calls.map((call) => String(call[0])).join("")).toBe(
+        `${PRE_OVPR_LAYOUT_MESSAGE}\n`,
+      );
+    } finally {
+      cwd.mockRestore();
+      stderr.mockRestore();
+      rmSync(here, { recursive: true, force: true });
+      rmSync(old, { recursive: true, force: true });
+    }
+  });
 });

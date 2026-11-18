@@ -280,7 +280,8 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
   }
 
   // Old registrations call `deft hook:dispatch`: same path as `deft-hook` (#5960).
-  if (rawCmd === "hook:dispatch") return runHookLauncher(cmdArgv);
+  // Pass the resolved root so `--root` is honoured.
+  if (rawCmd === "hook:dispatch") return runHookLauncher(cmdArgv, projectRoot);
 
   // --- Old-style layout (§A6.7 / AC10.2): only upgrade / uninstall ---
   // --version / --help already returned above.

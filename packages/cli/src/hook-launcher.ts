@@ -32,14 +32,21 @@ function emit(block: HookBlock): number {
   return block.exitCode;
 }
 
-export function runHookLauncher(argv: string[]): number {
+/**
+ * @param projectRoot a root the caller already resolved (`deft hook:dispatch
+ *   --root <path>`); when null, discover it from the working directory.
+ */
+export function runHookLauncher(argv: string[], projectRoot: string | null = null): number {
   const node = checkNodeVersion();
   if (!node.ok) {
     process.stderr.write(`${node.message}\n`);
     return node.exitCode;
   }
 
-  const discovered = discoverProject({ cwd: process.cwd() });
+  const discovered =
+    projectRoot !== null
+      ? { ok: true as const, root: projectRoot }
+      : discoverProject({ cwd: process.cwd() });
   if (!discovered.ok) {
     process.stderr.write(
       `deft-hook: no project root. Host hooks should call ` +
