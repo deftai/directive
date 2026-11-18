@@ -340,6 +340,36 @@ describe("runMigrate (R7 / AC7.8)", () => {
     }
   });
 
+  it("#6571: upgrade migrate moves a binary attachment from a marked vbrief/ byte for byte", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "vbrief", "assets"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "DEPRECATED.md"),
+      "<!-- deft:vbrief-deprecated -->\nlegacy retained\n",
+      "utf8",
+    );
+    // PNG signature plus bytes that are not valid UTF-8 and include NUL.
+    const png = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0xff, 0xfe, 0xc3, 0x28, 0x80,
+    ]);
+    writeFileSync(join(root, "vbrief", "assets", "logo.png"), png);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "current" },
+        plan: { title: "Story", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init", "-q"], { cwd: root });
+
+    const result = runMigrate({ from: "1.0.0", root });
+    expect(result.message).not.toMatch(/^migrate failed/);
+    expect(readFileSync(join(root, "xbrief", "assets", "logo.png"))).toEqual(png);
+    expect(existsSync(join(root, "vbrief"))).toBe(false);
+  });
+
   it("F-017: relative --root still sees residual xbrief@0.6 behind a marker", () => {
     // Greptile P1: resolve(relativeRoot, detectorRelativePath) doubled the prefix.
     const outer = tempRoot();
