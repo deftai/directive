@@ -28,6 +28,13 @@ const REGISTRY_MISS_PATTERNS: readonly RegExp[] = [
 /** Directive package names as they appear in PM output (plain or URL-encoded). */
 const DIRECTIVE_PACKAGE_PATTERN = /@deftai(?:\/|%2f)directive(?:-runtime)?(?![\w-])/i;
 
+/**
+ * Per-line evidence that the line itself reports the miss (not a command echo):
+ * npm `404 Not Found - GET …/@deftai%2fdirective-runtime`, `'…' is not in this
+ * registry`, `No matching version found for …`, pnpm `ERR_PNPM_FETCH_404 GET …`.
+ */
+const MISS_LINE_PATTERN = /\b404\b|not in this registry|no matching version|\bnot found\b/i;
+
 export type RegistryHintVerb = "install" | "upgrade" | "repair";
 
 export interface ScopedRegistryHintOptions {
@@ -48,9 +55,17 @@ export interface ScopedRegistryHint {
   readonly redact: (text: string) => string;
 }
 
-/** True when `blob` reports a registry miss for one of Directive's packages. */
+/**
+ * True when `blob` reports a registry miss for one of Directive's packages:
+ * a miss code, plus a line that both reports the miss and names the Directive
+ * package. A command echo naming the runtime does not count, so a miss for
+ * another dependency gives no hint.
+ */
 export function isDirectiveRegistryMiss(blob: string): boolean {
-  return DIRECTIVE_PACKAGE_PATTERN.test(blob) && REGISTRY_MISS_PATTERNS.some((p) => p.test(blob));
+  if (!REGISTRY_MISS_PATTERNS.some((p) => p.test(blob))) return false;
+  return blob
+    .split(/\r?\n/)
+    .some((line) => DIRECTIVE_PACKAGE_PATTERN.test(line) && MISS_LINE_PATTERN.test(line));
 }
 
 /** Read `@deftai:registry` without contacting a registry (`npm config get`). */
@@ -147,9 +162,13 @@ export function scopedRegistryHint(
     lines.push(
       `The lockfile already records the runtime: run \`${lockfileInstallCommand(options.pm ?? "npm")}\` in this project, then \`${command}\`.`,
     );
-    lines.push("Or override the registry for one run (changes no config):");
+    lines.push(
+      "Or re-run the same command with the same flags, overriding the registry for that one run (changes no config):",
+    );
   } else {
-    lines.push("Override the registry for one run (changes no config):");
+    lines.push(
+      "Re-run the same command with the same flags (for example --target-version, --root), overriding the registry for that one run (changes no config):",
+    );
   }
   lines.push(`  env '${OVERRIDE_ENV_KEY}=${PUBLIC_NPM_REGISTRY}' ${command}`);
   lines.push(

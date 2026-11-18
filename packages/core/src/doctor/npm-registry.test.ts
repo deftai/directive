@@ -168,11 +168,15 @@ describe("npm registry mirror doctor check (#2808)", () => {
     function runInProject(
       manifest: Record<string, unknown> | null,
       values: Readonly<Record<string, { ok: boolean; value: string }>>,
+      files: Readonly<Record<string, string>> = {},
     ): { findings: Finding[]; output: string } {
       const root = mkdtempSync(join(tmpdir(), "npm-registry-split-"));
       try {
         if (manifest !== null) {
           writeFileSync(join(root, "package.json"), JSON.stringify(manifest));
+        }
+        for (const [name, body] of Object.entries(files)) {
+          writeFileSync(join(root, name), body);
         }
         const findings: Finding[] = [];
         const output: string[] = [];
@@ -243,6 +247,36 @@ describe("npm registry mirror doctor check (#2808)", () => {
         status: "non-public",
         registry_source: "default",
       });
+    });
+
+    it("finds a workspace member's @deftai package through the lockfile", () => {
+      const result = runInProject(
+        { devDependencies: { "@deftai/directive-runtime": "1.2.3" } },
+        { "@deftai:registry": { ok: true, value: privateScope } },
+        {
+          "pnpm-lock.yaml":
+            "importers:\n  apps/web:\n    dependencies:\n      '@deftai/rivet-os':\n        specifier: 1.0.0\n",
+        },
+      );
+      expect(result.findings[0]).toMatchObject({ status: "split-scope" });
+    });
+
+    it("ignores Directive's own and retired packages in the lockfile", () => {
+      const result = runInProject(
+        { devDependencies: { "@deftai/directive-runtime": "1.2.3" } },
+        { "@deftai:registry": { ok: true, value: privateScope } },
+        {
+          "package-lock.json": JSON.stringify({
+            packages: {
+              "node_modules/@deftai/directive-runtime": {},
+              "node_modules/@deftai/directive": {},
+              "node_modules/@deftai/directive-core": {},
+              "node_modules/@deftai/directive-types": {},
+            },
+          }),
+        },
+      );
+      expect(result.findings[0]).toMatchObject({ status: "non-public" });
     });
 
     it("treats a missing package.json as no other packages", () => {

@@ -46,6 +46,21 @@ describe("isDirectiveRegistryMiss", () => {
     ).toBe(false);
   });
 
+  it("ignores another dependency's miss when only the command echo names Directive", () => {
+    const blob = [
+      "npm install --save-dev --save-exact @deftai/directive-runtime@1.2.3 failed",
+      "npm error code E404",
+      "npm error 404 Not Found - GET https://proxy.example/@acme%2fwidget - Not found",
+      "npm error 404 '@acme/widget@^2.0.0' is not in this registry.",
+    ].join("\n");
+    expect(isDirectiveRegistryMiss(blob)).toBe(false);
+    expect(
+      isDirectiveRegistryMiss(
+        "npm view @deftai/directive-runtime@2.0.0 directive failed: npm error code E404",
+      ),
+    ).toBe(false);
+  });
+
   it("ignores non-miss failures such as an unreachable host", () => {
     expect(isDirectiveRegistryMiss("npm error code ENOTFOUND for @deftai/directive-runtime")).toBe(
       false,
@@ -61,6 +76,7 @@ describe("scopedRegistryHint", () => {
     expect(hint).toContain("sends every @deftai package to a non-public registry");
     expect(hint).toContain("@deftai/directive, @deftai/directive-runtime");
     expect(hint).toContain("Do not remap the whole @deftai scope in .npmrc");
+    expect(hint).toContain("Re-run the same command with the same flags");
     expect(hint).toContain(
       "env 'npm_config_@deftai:registry=https://registry.npmjs.org/' directive upgrade",
     );

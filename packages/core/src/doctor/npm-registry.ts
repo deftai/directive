@@ -11,6 +11,13 @@ const DEFAULT_REGISTRY_KEY = "registry";
 const UNSET_NPM_VALUES = new Set(["", "null", "undefined"]);
 /** The only two packages Directive publishes (AC13.4). */
 const DIRECTIVE_PUBLISHED_PACKAGES = new Set(["@deftai/directive", "@deftai/directive-runtime"]);
+/** Retired Directive packages (public npm); old lockfiles may still list them. */
+const DIRECTIVE_RETIRED_PACKAGES = new Set([
+  "@deftai/directive-core",
+  "@deftai/directive-content",
+  "@deftai/directive-types",
+]);
+const LOCKFILES = ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock"];
 const DIRECTIVE_PACKAGES_LABEL = "`@deftai/directive` and `@deftai/directive-runtime`";
 const DEPENDENCY_MAPS = [
   "dependencies",
@@ -118,11 +125,23 @@ function isCanonicalPublicRegistry(value: string): boolean {
 }
 
 /**
- * True when the project `package.json` depends on any `@deftai/*` package other
- * than Directive's two published packages (#6141 split scope). Unreadable or
- * malformed manifests read as "no other packages" so today's advice stands.
+ * True when the root `package.json` or a lockfile names any `@deftai/*` package
+ * other than Directive's own (#6141 split scope). Unreadable or malformed files
+ * read as "no other packages" so today's advice stands.
  */
 function projectUsesOtherDeftaiPackages(projectRoot: string): boolean {
+  return rootManifestUsesOtherDeftai(projectRoot) || lockfileUsesOtherDeftai(projectRoot);
+}
+
+function isOtherDeftaiPackage(name: string): boolean {
+  return (
+    name.startsWith("@deftai/") &&
+    !DIRECTIVE_PUBLISHED_PACKAGES.has(name) &&
+    !DIRECTIVE_RETIRED_PACKAGES.has(name)
+  );
+}
+
+function rootManifestUsesOtherDeftai(projectRoot: string): boolean {
   let manifest: unknown;
   try {
     manifest = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf8"));
@@ -134,7 +153,26 @@ function projectUsesOtherDeftaiPackages(projectRoot: string): boolean {
     const deps = (manifest as Record<string, unknown>)[key];
     if (deps === null || typeof deps !== "object" || Array.isArray(deps)) continue;
     for (const name of Object.keys(deps)) {
-      if (name.startsWith("@deftai/") && !DIRECTIVE_PUBLISHED_PACKAGES.has(name)) return true;
+      if (isOtherDeftaiPackage(name)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Lockfiles cover workspace members and transitive dependencies that the root
+ * manifest does not list. A text scan is enough: any other `@deftai/*` name.
+ */
+function lockfileUsesOtherDeftai(projectRoot: string): boolean {
+  for (const file of LOCKFILES) {
+    let text: string;
+    try {
+      text = readFileSync(join(projectRoot, file), "utf8");
+    } catch {
+      continue;
+    }
+    for (const match of text.matchAll(/@deftai\/([a-z0-9][a-z0-9._-]*)/gi)) {
+      if (isOtherDeftaiPackage(`@deftai/${(match[1] ?? "").toLowerCase()}`)) return true;
     }
   }
   return false;

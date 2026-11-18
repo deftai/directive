@@ -952,7 +952,9 @@ describe("split @deftai registry hint (#6141)", () => {
       {
         resolvePublishedContract: () => ({
           ok: false as const,
-          message: "npm view @deftai/directive-runtime@2.0.0 directive failed: npm error code E404",
+          message:
+            "npm view @deftai/directive-runtime@2.0.0 directive failed: npm error code E404\n" +
+            "npm error 404 '@deftai/directive-runtime@2.0.0' is not in this registry.",
         }),
         readScopedRegistry: () => PRIVATE,
       },
@@ -1022,7 +1024,8 @@ describe("split @deftai registry hint (#6141)", () => {
       runPmAdd: () => ({
         ok: false as const,
         message: "npm install @deftai/directive-runtime@1.2.3 failed",
-        stderr: "npm error code E404",
+        stderr:
+          "npm error code E404\nnpm error 404 '@deftai/directive-runtime@1.2.3' is not in this registry.",
       }),
       readScopedRegistry: () => PRIVATE,
     });

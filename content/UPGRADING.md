@@ -284,8 +284,8 @@ packages. Instead:
 `directive install`, `directive upgrade` (including `--dry-run`) and
 `directive install --repair` print this hint when a Directive package misses
 under a non-public `@deftai:registry`. Doctor reports a `split-scope` finding
-when `@deftai:registry` is non-public and `package.json` uses other `@deftai`
-packages.
+when `@deftai:registry` is non-public and `package.json` or the lockfile uses
+other `@deftai` packages.
 
 `directive doctor` checks this routing with offline `npm config get` reads. A
 non-public effective registry produces an advisory warning but does not make
