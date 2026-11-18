@@ -1,0 +1,2 @@
+section: Fixed
+- `task upgrade` and `task uninstall` (`task deft:upgrade` / `task deft:uninstall` in a consumer) no longer call retired commands that always failed. They now exit 1 and name the command to run: `directive upgrade` or `directive uninstall`. The runtime's reply to `upgrade` now says it is a launcher command and names `directive upgrade`. The docs no longer send people to `task upgrade`. Refs #6022.
