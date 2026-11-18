@@ -13,12 +13,14 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
 import {
   approvedScopeIntentPath,
   extractPlanId,
   readApprovedScopeRecord,
 } from "../scope-provenance/digest.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveDeliveryBranch } from "./delivery-branch.js";
 import { evaluateMintLevelRecord, evaluateOnePrScopeProofGate } from "./one-pr-scope-proof.js";
 import { PROJECT_DEFINITION_REL_PATH } from "./resolve.js";
@@ -267,6 +269,8 @@ function gitFenceSpawn(
     cwd: projectRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    // Node's 1 MiB default would refuse a large PROJECT-DEFINITION blob (#6602).
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
   });
   return {
     status: result.status ?? 1,
@@ -302,7 +306,16 @@ type BriefRawResult =
 type BasePolicyRead =
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "missing" }
-  | { readonly kind: "error" };
+  | { readonly kind: "error"; readonly detail: string };
+
+/** Longest policy-read failure reason kept in a deny (#6602). */
+const POLICY_READ_REASON_MAX_CHARS = 300;
+
+/** Newlines out, cut to the ceiling, fenced as untrusted (#6602). */
+function fencePolicyReadReason(reason: string): string {
+  const oneLine = reason.replace(/\s*\r?\n\s*/g, " ").trim();
+  return fenceUntrustedAcceptanceText(oneLine.slice(0, POLICY_READ_REASON_MAX_CHARS));
+}
 
 /**
  * Merge-base half of a fence load. Only facts fixed by the merge-base SHA are
@@ -555,10 +568,26 @@ function readMergeBasePolicyRaw(projectRoot: string, mergeBaseSha: string): Base
     "show",
     `${mergeBaseSha}:${PROJECT_DEFINITION_REL_PATH}`,
   ]);
-  if (result.error || result.signal) return { kind: "error" };
+  if (result.error) {
+    return { kind: "error", detail: fencePolicyReadReason(detailFromUnknown(result.error)) };
+  }
+  if (result.signal) {
+    return {
+      kind: "error",
+      detail: fencePolicyReadReason(`git show killed by signal ${String(result.signal)}`),
+    };
+  }
   if (result.status === 0) return { kind: "text", text: result.stdout };
   const detail = `${result.stdout}\n${result.stderr}`.trim();
-  return isGitMissingPathDetail(detail) ? { kind: "missing" } : { kind: "error" };
+  if (isGitMissingPathDetail(detail)) return { kind: "missing" };
+  // The reason never carries stdout: it may hold part of the blob.
+  const stderr = result.stderr.trim();
+  return {
+    kind: "error",
+    detail: fencePolicyReadReason(
+      stderr.length > 0 ? stderr : `git show exited ${String(result.status)}`,
+    ),
+  };
 }
 
 function readTextOrNull(absPath: string): string | null {
@@ -685,8 +714,10 @@ function loadOnePrMintFence(
   basePolicy: BasePolicyRead,
 ): StoryWriteFenceView {
   try {
-    // Unreadable merge-base policy: the level is unknown, so keep today's empty fence.
-    if (basePolicy.kind === "error") return emptyFence();
+    // Unreadable merge-base policy: the level is unknown, so fail closed (#6602).
+    if (basePolicy.kind === "error") {
+      return unreadableFence(`merge-base:${PROJECT_DEFINITION_REL_PATH}`, basePolicy.detail);
+    }
     const gate = evaluateOnePrScopeProofGate({
       baseRaw: basePolicy.kind === "text" ? basePolicy.text : null,
       headRaw: readTextOrNull(join(root, ...PROJECT_DEFINITION_REL_PATH.split("/"))),

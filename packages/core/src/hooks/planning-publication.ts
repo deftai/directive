@@ -29,6 +29,7 @@ import {
   LIFECYCLE_MAINTENANCE_EXACT_PATHS,
 } from "../check/session-completed-ac.js";
 import { isClosedPlanSequenceShape, PLAN_SEQUENCE_REL_PATH } from "../plan-sequence/types.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 /** One staged index entry from `git diff --cached --raw -z` (#5839). */
 export interface StagedIndexEntry {
@@ -127,6 +128,7 @@ export function readStagedBlob(projectRoot: string, blob: string): string | null
       cwd: projectRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: SUBPROCESS_MAX_BUFFER,
     });
   } catch {
     return null;

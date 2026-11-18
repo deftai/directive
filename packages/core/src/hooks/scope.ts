@@ -84,6 +84,14 @@ export function formatOnePrMintNotAdmitted(reason: string): string {
 
 /** Positive-allow deny copy for a fence view: mint reason when it has one (#5656 / #6361). */
 export function formatPositiveGoverningAllowDeny(fence: StoryWriteFenceView): string {
+  if (isStoryWriteFenceUnreadable(fence)) {
+    return (
+      "Directive denied this mutation: the selected running scope's write fence could not be " +
+      `read (${fence.unreadableDetail}), so its one-PR mint was not checked (#6602). ` +
+      "Recovery: retry; if it repeats, report it, and land the brief through a separate " +
+      "activation PR so it is on the merge base."
+    );
+  }
   const mint = fence.onePrMint;
   if (mint !== undefined && !mint.admitted) return formatOnePrMintNotAdmitted(mint.reason);
   return POSITIVE_GOVERNING_ALLOW_REQUIRED;

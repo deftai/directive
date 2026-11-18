@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildApprovedScopeRecord } from "../scope-provenance/digest.js";
 import { extractIntentFromRaw } from "../scope-provenance/extract-intent.js";
 import { computeAuthHashV1 } from "../scope-provenance/forge-approval.js";
@@ -27,6 +27,21 @@ import {
   normalizeStoryWriteScope,
   resolveWriteFence,
 } from "./write-fence.js";
+
+// Pass-through `spawnSync` with a per-test override, so a policy read can fail on demand (#6602).
+const spawnOverride = vi.hoisted(() => ({
+  fn: null as null | ((args: readonly string[]) => unknown),
+}));
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return {
+    ...actual,
+    spawnSync: ((cmd: string, args: readonly string[], opts: object) => {
+      const forced = spawnOverride.fn?.(args);
+      return forced ?? (actual.spawnSync as (...a: unknown[]) => unknown)(cmd, args, opts);
+    }) as typeof actual.spawnSync,
+  };
+});
 
 describe("resolveWriteFence (#516 / #2443 / #2948 Wave 3)", () => {
   const projectOnly = resolveRuntimeAuthorityPolicy({
@@ -453,6 +468,7 @@ describe("one fence loader admits a one-PR mint brief (#6361)", () => {
   const MINT = { onePrScopeProof: "mint" };
 
   afterEach(() => {
+    spawnOverride.fn = null;
     clearWriteFenceMemosForTests();
     for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
     if (prevDeft === undefined) delete process.env.DEFT_BASE_REF;
@@ -461,10 +477,15 @@ describe("one fence loader admits a one-PR mint brief (#6361)", () => {
     else process.env.GITHUB_BASE_REF = prevGithub;
   });
 
-  function pdText(policy: Record<string, unknown> | null): string {
+  function pdText(policy: Record<string, unknown> | null, padBytes = 0): string {
     return JSON.stringify({
       xBRIEFInfo: { version: "0.8" },
-      plan: { title: "t", status: "running", ...(policy === null ? {} : { policy }) },
+      plan: {
+        title: "t",
+        status: "running",
+        ...(policy === null ? {} : { policy }),
+        ...(padBytes > 0 ? { notes: "x".repeat(padBytes) } : {}),
+      },
     });
   }
 
@@ -515,13 +536,18 @@ describe("one fence loader admits a one-PR mint brief (#6361)", () => {
     headPolicy?: Record<string, unknown> | null;
     mint?: boolean;
     briefOnBase?: readonly string[];
+    padBytes?: number;
   }): string {
     const root = mkdtempSync(join(tmpdir(), "wf-6361-"));
     roots.push(root);
     execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root });
     execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
     execFileSync("git", ["config", "user.name", "T"], { cwd: root });
-    write(root, "xbrief/PROJECT-DEFINITION.xbrief.json", pdText(options.basePolicy));
+    write(
+      root,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      pdText(options.basePolicy, options.padBytes),
+    );
     if (options.briefOnBase !== undefined) {
       write(root, BRIEF_REL, JSON.stringify(briefPayload(options.briefOnBase)));
     }
@@ -669,6 +695,105 @@ describe("one fence loader admits a one-PR mint brief (#6361)", () => {
     const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
     expect(fence.fileScope).toEqual(["src/base-only.ts"]);
     expect(fence.onePrMint).toBeUndefined();
+  });
+
+  describe("merge-base policy read (#6602)", () => {
+    const POLICY_LABEL = "merge-base:xbrief/PROJECT-DEFINITION.xbrief.json";
+    const TWO_MIB = 2 * 1024 * 1024;
+
+    /** Fail only the `git show <sha>:xbrief/PROJECT-DEFINITION...` read. */
+    function failPolicyRead(result: Record<string, unknown>): void {
+      spawnOverride.fn = (args) =>
+        args[0] === "show" && String(args[1]).endsWith(":xbrief/PROJECT-DEFINITION.xbrief.json")
+          ? { status: null, stdout: "", stderr: "", signal: null, ...result }
+          : null;
+    }
+
+    function detailOf(fence: ReturnType<typeof loadStoryWriteFenceFromMergeBase>): string {
+      expect(isStoryWriteFenceUnreadable(fence)).toBe(true);
+      return fence.unreadableDetail ?? "";
+    }
+
+    it("admits a one-PR mint brief when the merge-base policy is larger than 1 MiB", () => {
+      const root = repo({ basePolicy: MINT, padBytes: TWO_MIB });
+      const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+      expect(fence.fileScope).toEqual(sorted);
+      expect(fence.onePrMint).toEqual({ admitted: true });
+      expect(hasPositiveGoverningStoryAllow(fence)).toBe(true);
+      const policy = resolveWriteFence(DEFAULT_RUNTIME_AUTHORITY_POLICY, fence.fileScope).policy;
+      expect(
+        evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: "src/a.ts" }).allowed,
+      ).toBe(true);
+    });
+
+    it("keeps the empty fence for a large policy with the level off or no policy blob", () => {
+      const off = repo({ basePolicy: { onePrScopeProof: "off" }, padBytes: TWO_MIB });
+      expect(loadStoryWriteFenceFromMergeBase(off, join(off, BRIEF_REL))).toEqual({
+        fileScope: [],
+        denyPaths: [],
+        baseRef: "origin/master",
+      });
+      clearWriteFenceMemosForTests();
+      const absent = repo({ basePolicy: null });
+      execFileSync("git", ["rm", "-q", "-f", "xbrief/PROJECT-DEFINITION.xbrief.json"], {
+        cwd: absent,
+      });
+      execFileSync("git", ["commit", "-q", "-m", "drop policy"], { cwd: absent });
+      execFileSync("git", ["push", "-q", "origin", "HEAD:master"], { cwd: absent });
+      execFileSync("git", ["fetch", "-q", "origin"], { cwd: absent });
+      clearWriteFenceMemosForTests();
+      const fence = loadStoryWriteFenceFromMergeBase(absent, join(absent, BRIEF_REL));
+      expect(isStoryWriteFenceUnreadable(fence)).toBe(false);
+      expect(fence.fileScope).toEqual([]);
+    });
+
+    it("fails closed with a fenced reason on a spawn error, a signal and a bare exit", () => {
+      const root = repo({ basePolicy: MINT });
+      const label = `story write fence unreadable at ${POLICY_LABEL}: `;
+      failPolicyRead({ error: new Error("spawn EPERM") });
+      expect(detailOf(loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL)))).toBe(
+        `${label}«untrusted:spawn EPERM»`,
+      );
+      failPolicyRead({ signal: "SIGKILL" });
+      expect(detailOf(loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL)))).toBe(
+        `${label}«untrusted:git show killed by signal SIGKILL»`,
+      );
+      failPolicyRead({ status: 5 });
+      expect(detailOf(loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL)))).toBe(
+        `${label}«untrusted:git show exited 5»`,
+      );
+      failPolicyRead({ status: 128, stderr: "fatal: bad object\nsecond line\n" });
+      expect(detailOf(loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL)))).toBe(
+        `${label}«untrusted:fatal: bad object second line»`,
+      );
+    });
+
+    it("gives no positive allow for the failed read, and does not memoize it", () => {
+      const root = repo({ basePolicy: MINT });
+      failPolicyRead({ status: 128, stderr: "fatal: boom" });
+      const failed = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+      expect(failed.fileScope).toEqual([]);
+      expect(hasPositiveGoverningStoryAllow(failed)).toBe(false);
+      expect(isStoryWriteFenceUnreadable(failed)).toBe(true);
+      spawnOverride.fn = null;
+      const healed = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+      expect(healed.onePrMint).toEqual({ admitted: true });
+      expect(isStoryWriteFenceUnreadable(healed)).toBe(false);
+    });
+
+    it("cuts a 10 KB stderr to 300 characters and never carries stdout", () => {
+      const root = repo({ basePolicy: MINT });
+      failPolicyRead({ status: 128, stdout: "BLOB-PART-IN-STDOUT", stderr: "e".repeat(10_000) });
+      const detail = detailOf(loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL)));
+      const reason = detail.slice(detail.indexOf("«untrusted:") + "«untrusted:".length, -1);
+      expect(detail.endsWith("»")).toBe(true);
+      expect(reason).toBe("e".repeat(300));
+      expect(detail).not.toContain("BLOB-PART-IN-STDOUT");
+      failPolicyRead({ status: 128, stdout: "BLOB-PART-IN-STDOUT", stderr: "" });
+      const quiet = detailOf(loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL)));
+      expect(quiet).toContain("git show exited 128");
+      expect(quiet).not.toContain("BLOB-PART-IN-STDOUT");
+    });
   });
 });
 
