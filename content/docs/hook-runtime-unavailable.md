@@ -1,6 +1,6 @@
 # Hook runtime unavailable
 
-Current Directive hooks invoke `node node_modules/@deftai/directive-runtime/dist/hook-bin.js …` (AC9.1 — not bare `deft-hook` on PATH). When the runtime package is absent, Node reports `Cannot find module '…/directive-runtime/dist/hook-bin.js'`. Host behavior when that package-relative hook-bin cannot run is **not universal**. Cursor and Grok deny; Claude and Codex silently lose the gate.
+Current Directive hooks invoke `node node_modules/@deftai/directive-runtime/dist/hook-bin.js …` (AC9.1 — not bare `deft-hook` on PATH). When the runtime package is absent, Node reports `Cannot find module '…/directive-runtime/dist/hook-bin.js'`. When that package-relative hook-bin cannot run, every host blocks the tool call, each in its own form: Cursor and Grok deny, and Claude and Codex block with exit 2 from the committed outer (#6201).
 
 Tracker: [#3785](https://github.com/deftai/directive/issues/3785), [#5656](https://github.com/deftai/directive/issues/5656). Related: [#3736](https://github.com/deftai/directive/issues/3736) (timeout), [#3571](https://github.com/deftai/directive/issues/3571) (unused-host recovery), [#2752](https://github.com/deftai/directive/issues/2752) (per-host toggles).
 
@@ -10,7 +10,7 @@ Tracker: [#3785](https://github.com/deftai/directive/issues/3785), [#5656](https
 | --- | --- | --- |
 | Cursor | Deny (opaque non-zero / Node cannot-find-module) | Schema `failClosed: true` on `preToolUse` |
 | Grok | Deny when the deposited wrapper starts | `.grok/hooks/deft-pretooluse-wrapper.sh` emits `{"decision":"deny",...}` when `node_modules/@deftai/directive-runtime/dist/hook-bin.js` is missing, node cannot run it, the child crashes, or stdout is malformed. Empty stdout + exit 0 stays Grok allow wire. **Residual:** wrapper-never-starts (missing `sh` / host timeout with no decision) is host-contract, not closed by Directive. |
-| Claude / Codex | **Silent gate loss** — tools proceed | Nested deposits have no failClosed and no outer wrapper. Travel warning + `.deft/hook-gate-off.json` name this. |
+| Claude / Codex | **Blocks the tool call (exit 2)** | The committed outer `deft-hook-<sha8>.mjs` exits 2 on `tool.before` when the pin is missing or cannot decide (#6201). Other events keep exit 1, so they never block. |
 
 ⊗ Do not read Cursor-only fail-closed prose as host-universal. ⊗ Do not treat a missing package-relative hook-bin as permission to edit on Grok — when the wrapper starts, missing runtime is a deny. ⊗ Do not teach or deposit bare `deft-hook` on PATH for current-path hooks (AC9.1).
 
@@ -35,17 +35,19 @@ directive install --repair
 
 CI / swarm images may use `directive install --repair --yes` with a valid exact pin.
 
-## Out-of-band escape (disable Cursor / Grok hooks)
+## Out-of-band escape (disable host hooks)
 
-There is no in-session escape on a host without Node. Run this from a shell where Node and the CLI **are** available — your workstation, or the repo before you push it:
+There is no in-session escape on a host without Node. Run this from a shell where Node and the CLI **are** available — your workstation, or the repo before you push it. Disable each host you use; Claude and Codex block too (#6201):
 
 ```bash
 directive policy:disable-host-hooks --host cursor --confirm
 directive policy:disable-host-hooks --host grok --confirm
+directive policy:disable-host-hooks --host claude --confirm
+directive policy:disable-host-hooks --host codex --confirm
 directive install --repair   # or directive upgrade — refresh owned hook wiring
 ```
 
-That sets `plan.policy.hostHooks.<host> = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next repair/upgrade strips the Cursor registration and the Grok wrapper deposit. Commit and push; the locked-out environment clears on its next pull or fresh clone.
+That sets `plan.policy.hostHooks.<host> = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next repair/upgrade strips that host's registration (and the Grok wrapper deposit). Commit and push; the locked-out environment clears on its next pull or fresh clone.
 
 If the goal is to remove Directive entirely, follow the [full-stop recipe](./full-stop.md) before uninstalling — leftover `.cursor/hooks.json` can remain failClosed authority, and leftover Grok wrapper + registration can still deny when the host starts the wrapper.
 
