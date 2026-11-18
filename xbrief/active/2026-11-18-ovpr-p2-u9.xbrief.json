@@ -2,32 +2,65 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5854",
-    "updated": "2026-10-23T06:32:37Z"
+    "updated": "2026-11-18T14:47:23Z"
   },
   "plan": {
     "title": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
-      "Description": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
+      "Description": "OVPR fix plan unit P2-U9 (story id ovpr-p2-u9), spec units/P2-U9-pnpm-config-ownership.md (Outcome B), issue #5854, decision D-027. Since v0.129.0 (#5860) `directive install`, `upgrade` and `install --repair` rewrite the runtime row in pnpm's `minimumReleaseAgeExclude`, which can silently widen a strict release-age policy; pnpm owns that file (ledger Problem 13). This unit removes those writes, prints pnpm's own recovery when pnpm refuses an install as too new, and lists `pnpm-workspace.yaml` under 'Review and commit' when pnpm itself changed it. This brief was ingested for #5860 and parked; it is now rewritten for the Outcome B reversal.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5854",
       "Overview": "\n\n- relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).\n- relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.\n- relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased].\n\n\n",
-      "Labels": "bug, area:release, design-critique:ingest-ready"
+      "Labels": "bug, area:release, design-critique:ingest-ready",
+      "UserStory": "As a developer whose project sets pnpm's release-age policy, I want Directive to leave pnpm-workspace.yaml to pnpm and to explain pnpm's refusal with pnpm's own recovery steps, so that my supply-chain settings are never widened behind my back.",
+      "StoryId": "ovpr-p2-u9 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U9-pnpm-config-ownership.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "Outcome B (D-027). Do not do Outcome A.\n1. packages/cli/src/bookends.ts: runFirstInstall(), runRepair() and runUpgrade() call runPmExactAdd() (or deps.runPmAdd) directly. Delete the addWithRuntimeAgeExcludeHeal() wrappers, the unconditional repair write, and the three plan lines (previewRuntimeAgeExcludeHeal / formatAgeExcludeHealLine).\n2. packages/cli/src/age-exclude.ts: delete upsertRuntimeAgeExcludeText, previewRuntimeAgeExcludeHeal, healRuntimeAgeExclude, formatAgeExcludeHealLine and addWithRuntimeAgeExcludeHeal. Leave the #6181 release-gate functions for P3-U1.\n3. packages/cli/src/pm.ts: add isPnpmReleaseAgeFailure(text) (ERR_PNPM_NO_MATURE_MATCHING_VERSION or ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION) and formatPnpmReleaseAgeRecovery(version), modelled on the ignored-builds pair (#5797); bookends.ts reportPmFailure() prints it.\n4. Post-op: fingerprint pnpm-workspace.yaml before the PM add; if pnpm changed it, list it under 'Review and commit' (\"updated by pnpm\") in presentInstallSuccess / presentRepairSuccess / presentUpgradeSuccess (plan-present.ts).\n5. Extend the #5797 invariant test (pm-ignored-builds.test.ts) so no product writer touches pnpm-workspace.yaml. Delete upgrade-age-exclude.test.ts and the heal cases in age-exclude.test.ts (keep the #6181 gate cases). New pm-release-age.test.ts.\n6. content/UPGRADING.md:81: the whole pnpm-workspace.yaml is PM-owned, including release-age settings; show the recovery and the docs-only note that older pnpm 11 frozen installs in CI may fail for up to 24 h after a release. Changelog fragment changelog.d/5854-pnpm-config-not-edited.md. Tell Scott before merge.\nScope: Five production files (Outcome B). upgrade-age-exclude.test.ts is deleted.",
+      "Constraint": "- Do not write `allowBuilds` or any other `pnpm-workspace.yaml` key (Problem 13 / #5797).\n- Do not create `pnpm-workspace.yaml` or the `minimumReleaseAgeExclude` key.\n- Do not touch the `release:local-update` Taskfile gate or `evaluatePreInstallAgeExclude*`; that belongs to P3-U1 (Rule 1).\n- Do not change this repo's committed `pnpm-workspace.yaml` (repo policy).\n- Do not widen repair's mutations.\n- Do not do Outcome A (keep #5860 with guardrails); D-027 chose Outcome B.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: none (P2-U0 Q3 already decided by D-027: the row stays out of the ownership record). Decision D-027 (Outcome B). Tell Scott before merge.",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #5854. Partly addresses #6006 (pnpm-workspace.yaml in the post-op review list)."
     },
     "items": [
       {
-        "title": "relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).",
+        "title": "`directive install`, `directive upgrade` and `directive install --repair` never write `pnpm-workspace.yaml`. A byte-compare test proves it for all three, including repair with no PM restore.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a pnpm project with a `pnpm-workspace.yaml`, when `directive install`, `directive upgrade` or `directive install --repair` (including repair with no PM restore) runs with a stubbed package manager, then the file is byte-identical afterwards."
+        }
       },
       {
-        "title": "relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.",
+        "title": "When pnpm fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION` or `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`, the launcher prints the PM-shaped recovery naming the exact version and exits non-zero.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a pnpm add that fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION` or `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`, when install, upgrade or repair runs, then the launcher prints the release-age recovery naming the exact runtime version and exits non-zero."
+        }
       },
       {
-        "title": "relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased].",
+        "title": "When pnpm itself changed `pnpm-workspace.yaml` during the command, the post-op \"Review and commit\" list names it.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a pnpm add stub that rewrites `pnpm-workspace.yaml`, when the command finishes, then the \"Review and commit\" list names `pnpm-workspace.yaml`; given a stub that leaves it unchanged, then the list does not name it."
+        }
+      },
+      {
+        "title": "The #5797 invariant test fails if any product code writes `pnpm-workspace.yaml`.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given product code that writes `pnpm-workspace.yaml`, when the #5797 invariant test in `pm-ignored-builds.test.ts` runs, then it fails."
+        }
+      },
+      {
+        "title": "`UPGRADING.md` says the whole file is PM-owned and shows the recovery.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given `content/UPGRADING.md`, when its pnpm section is read, then it says the whole `pnpm-workspace.yaml` is owned by pnpm, including release-age settings, and shows the release-age recovery."
+        }
       }
     ],
     "tags": [
@@ -40,6 +73,21 @@
         "uri": "https://github.com/deftai/directive/issues/5854",
         "type": "x-xbrief/github-issue",
         "title": "Issue #5854: directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6006",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6006"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5860",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5860"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5797",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5797"
       }
     ],
     "acceptance": {
@@ -91,13 +139,20 @@
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
-          "packages/cli/src/age-exclude.ts",
-          "packages/cli/src/age-exclude.test.ts",
           "packages/cli/src/bookends.ts",
-          "CHANGELOG.md"
+          "packages/cli/src/age-exclude.ts",
+          "packages/cli/src/pm.ts",
+          "packages/cli/src/plan-present.ts",
+          "content/UPGRADING.md",
+          "packages/cli/src/age-exclude.test.ts",
+          "packages/cli/src/upgrade-age-exclude.test.ts",
+          "packages/cli/src/pm-release-age.test.ts",
+          "packages/cli/src/pm-ignored-builds.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "changelog.d/5854-pnpm-config-not-edited.md"
         ],
-        "module_boundary": "packages/cli/src/age-exclude.ts",
-        "cohesion_exemption": "CHANGELOG + bookends seam wiring for the zero-dep AgeExclude helper"
+        "module_boundary": "Launcher bookends (packages/cli): remove the pnpm-workspace.yaml writer, add the pnpm release-age recovery message and the post-op review line; UPGRADING pnpm note. No new module.",
+        "cohesion_exemption": "bookends.ts (1751 lines), plan-present.ts (1106 lines) and content/UPGRADING.md (1128 lines) already exceed the review trigger. This fix removes a wrapper and adds a few message lines; splitting those files is out of scope."
       },
       "issueCommentThread": [
         {
@@ -608,37 +663,48 @@
         "sha256": "b7730d616b7d37b525af649c0454b00a608a47da6e92254e593ff1a292b594dc"
       },
       "swarm": {
-        "readiness": "ready",
-        "conflict_group": "upgrade-pnpm-runtime-age-exclude-replace-not-append",
-        "expected_outputs": [
-          "prior-entry gated, line-scoped replace of exact runtime minimumReleaseAgeExclude rows with one quoted target",
-          "shared pre+post heal seam around every runPmExactAdd caller; repair-side heal when needsPmRestore is false; plan/dry-run disclosure",
-          "fail-closed fixtures (old-only, old+target, gate-false byte-identical, pre-add seam assert)",
-          "CHANGELOG Unreleased"
-        ],
-        "depends_on": [],
-        "model_tier": "standard",
-        "verify_commands": [
-          "npx vitest run packages/cli/src/age-exclude.test.ts packages/cli/src/install-bookend.test.ts packages/cli/src/bookend-robustness-2p.test.ts"
-        ],
         "file_scope": [
-          "packages/cli/src/age-exclude.ts",
-          "packages/cli/src/age-exclude.test.ts",
           "packages/cli/src/bookends.ts",
-          "CHANGELOG.md"
+          "packages/cli/src/age-exclude.ts",
+          "packages/cli/src/pm.ts",
+          "packages/cli/src/plan-present.ts",
+          "content/UPGRADING.md",
+          "packages/cli/src/age-exclude.test.ts",
+          "packages/cli/src/upgrade-age-exclude.test.ts",
+          "packages/cli/src/pm-release-age.test.ts",
+          "packages/cli/src/pm-ignored-builds.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "changelog.d/5854-pnpm-config-not-edited.md"
         ],
-        "size": "S",
-        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src"
+        ],
         "Traces": [
           "#5854",
-          "Prefer-A Recut-1 6357598598",
-          "#5848",
-          "#5783"
+          "#6006",
+          "#5860",
+          "#5797"
         ],
-        "parallel_safe": false
-      }
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "cli-bookends",
+        "expected_outputs": [
+          "`directive install`, `directive upgrade` and `directive install --repair` never write `pnpm-workspace.yaml`. A byte-compare test proves it for all three, including repair with no PM restore.",
+          "When pnpm fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION` or `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`, the launcher prints the PM-shaped recovery naming the exact version and exits non-zero.",
+          "When pnpm itself changed `pnpm-workspace.yaml` during the command, the post-op \"Review and commit\" list names it.",
+          "The #5797 invariant test fails if any product code writes `pnpm-workspace.yaml`.",
+          "`UPGRADING.md` says the whole file is PM-owned and shows the recovery.",
+          "one changelog fragment changelog.d/5854-pnpm-config-not-edited.md"
+        ],
+        "acceptance_criteria_justification": "Five items: the five Outcome B acceptance criteria of unit spec P2-U9, one each (D-027)."
+      },
+      "kind": "story"
     },
     "id": "github.issue.5991776980",
-    "updated": "2026-10-23T06:32:37Z"
+    "updated": "2026-11-18T14:47:23Z"
   }
 }
