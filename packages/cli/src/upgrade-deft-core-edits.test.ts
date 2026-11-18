@@ -162,6 +162,14 @@ describe("writeDeftCoreGitEdits escapes control characters (#6002)", () => {
     expect(text).toContain('".deft/core/a\\u001b[2Jb.md"');
     expect(text).toContain("    .deft/core/plain.md\n");
   });
+
+  it("escapes C1 control characters too", () => {
+    const c = capture();
+    writeDeftCoreGitEdits(c.io, [".deft/core/a\u009b2Jb.md"]);
+    const text = c.out();
+    expect(text).not.toContain("\u009b");
+    expect(text).toContain('".deft/core/a\\u009b2Jb.md"');
+  });
 });
 
 describe("upgrade plan lists .deft/core edits (#6002 / AC10.6)", () => {

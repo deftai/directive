@@ -108,10 +108,22 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly deftCoreGitEdits?: readonly string[] | null;
 }
 
-/** Quote a path that holds control characters so it cannot rewrite the terminal. */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point.
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/;
+
+/**
+ * Quote a path that holds C0 or C1 control characters, escaping each one as
+ * `\uXXXX`, so it cannot rewrite the terminal.
+ */
 function printablePath(path: string): string {
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point.
-  return /[\u0000-\u001f\u007f-\u009f]/.test(path) ? JSON.stringify(path) : path;
+  if (!CONTROL_CHARS.test(path)) return path;
+  let out = "";
+  for (const ch of path) {
+    if (ch === '"' || ch === "\\") out += `\\${ch}`;
+    else if (CONTROL_CHARS.test(ch)) out += `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
+    else out += ch;
+  }
+  return `"${out}"`;
 }
 
 /** Most `.deft/core` edit paths the upgrade plan lists before a count (AC10.6). */
