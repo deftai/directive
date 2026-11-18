@@ -1,2 +1,0 @@
-section: Fixed
-- The hook's root-mismatch refusal no longer blocks its own recovery: `directive --version`, `deft --version`, `directive doctor` and `directive policy:disable-host-hooks --host <this host> --confirm` (also the `deft` form) now run as exact simple commands, and the refusal text lists them. Chained or extended forms and other tools stay refused, and the foreign-runtime-link refusal is unchanged. Refs #6599.

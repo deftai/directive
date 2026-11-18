@@ -1,2 +1,0 @@
-section: Changed
-- Strict acceptance axes keep matching deploy, smoke and UAT inside backticks and code fences, because the same formatting holds real claims as well as names. Regression tests now hold this in place, and the `inferRequiredStrictAxes` comment says how to clear a name-only axis: reword the clause or declare `x-directive/requires`. Relief for name-only clauses moves to #6591. Refs #6301.

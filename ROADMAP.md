@@ -7,15 +7,23 @@
 
 ## Active
 
-- **#5988** -- feat(check): warn when linked worktrees/branches exceed a small hygiene threshold -- `[running]`
-- **#6185** -- One Directive launch root per host session: a worker's session:ready rebinds it and locks the parent and siblings out of their worktrees -- `[running]`
-- **#6221** -- bug(scope): a one-file test-only fix outside file_scope needs a widen PR: tests are free on the production fence but refused by membership and the write fence -- `[running]`
-- **#6275** -- feat(escalation): notify the operator when a worker stops on an operator-only step -- `[running]`
-- **#6281** -- feat(release): a new default gate ships warn-only for one release, and every refusal names a runnable remedy -- `[running]`
-- **#6296** -- feat(release): a maintainer cut needs only the release grant: no policy flip, no direct push, no hotfix label afterwards -- `[running]`
-- **#6374** -- bug(verify): verify:ac is green before any work exists -- `[running]`
-- **#6469** -- bug(pre-pr): some merge-gate checks run only in CI, so worker branches fail late -- `[running]`
-- **#6471** -- bug(hooks): commit file-set snapshot uses the payload root, so a bound worktree still refuses a subagent's commit -- `[running]`
+- **#6301** -- fix(scope): strict acceptance axes should skip text inside backticks and code fences -- `[running]`
+- **#6591** -- fix(scope): warn when a declaration added after activation lowers the evidence a clause requires -- `[running]`
+- **#6601** -- bug(swarm): finalize has no route for a long-shipped stranded brief (R7 refuses the product PR, the stamp refuses the activation PR) -- `[running]`
+- **#6201** -- P1-U1: hosts block a tool call when the Directive hook cannot decide (ovpr-p1-u1) -- `[running]`
+- **#5960** -- P1-U2: old (pre-OVPR) repos keep blocking when their hooks reach the new deft-hook (ovpr-p1-u2) -- `[running]`
+- **#6614** -- P1-U3: no-agent fixture test, steps 4 and 6 (missing packages, old layout) (ovpr-p1-u3) -- `[running]`
+- **#6615** -- installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check) -- `[running]`
+- **#5976** -- [framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push -- `[running]`
+- **#6141** -- bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty) -- `[running]`
+- **#5873** -- Drop Node 20 from supported engines (runtime needs Node 22+) -- `[running]`
+- **#6571** -- bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate -- `[running]`
+- **#6616** -- class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026) -- `[running]`
+- **#6001** -- After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version -- `[running]`
+- **#5838** -- [framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path -- `[running]`
+- **#6022** -- bug(installer): `task upgrade` still dispatches the retired `install-upgrade` verb, so it always refuses -- `[running]`
+- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[running]`
+- **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
 
 ## Proposed
 
@@ -45,13 +53,27 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#5732** -- leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual) -- `[proposed]`
 - **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[proposed]`
 - **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[proposed]`
-- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[proposed]`
-- **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[proposed]`
 
 ## Completed
 
-_Showing 25 of 1977 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1993 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6602** -- bug(hooks): write fence reads the merge-base PROJECT-DEFINITION with a 1 MiB buffer, so every one-PR story is refused once the file passes 1 MiB -- `[completed]`
+- **#6221** -- bug(scope): a one-file test-only fix outside file_scope needs a widen PR: tests are free on the production fence but refused by membership and the write fence -- `[completed]`
+- **#6362** -- bug(hooks): the commit gate misses commits after a background &, inside subshells, and in sh -c / bash -c wrappers -- `[completed]`
+- **#6599** -- bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1) -- `[completed]`
+- **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[completed]`
+- **#6264** -- bug(xbrief): xbrief:activate refuses a small-change lane brief that scope:activate admits -- `[completed]`
+- **#6188** -- Kill-switch plant guard (#6136) refuses a read-only existence check of the kill-switch file -- `[completed]`
+- **#6535** -- rfc(hooks): enforce on the merge path where it runs the full gate set; keep a small local hook floor -- `[completed]`
+- **#6275** -- feat(escalation): notify the operator when a worker stops on an operator-only step -- `[completed]`
+- **#6469** -- bug(pre-pr): some merge-gate checks run only in CI, so worker branches fail late -- `[completed]`
+- **#6185** -- One Directive launch root per host session: a worker's session:ready rebinds it and locks the parent and siblings out of their worktrees -- `[completed]`
+- **#6281** -- feat(release): a new default gate ships warn-only for one release, and every refusal names a runnable remedy -- `[completed]`
+- **#5988** -- feat(check): warn when linked worktrees/branches exceed a small hygiene threshold -- `[completed]`
+- **#6471** -- bug(hooks): commit file-set snapshot uses the payload root, so a bound worktree still refuses a subagent's commit -- `[completed]`
+- **#6296** -- feat(release): a maintainer cut needs only the release grant: no policy flip, no direct push, no hotfix label afterwards -- `[completed]`
+- **#6374** -- bug(verify): verify:ac is green before any work exists -- `[completed]`
 - **#6375** -- fix(hooks): pin-mismatch install recovery on a host that reports no run directory (Codex) -- `[completed]`
 - **#6372** -- feat(ingest,scope): ingest and promote write the derivable launch fields -- `[completed]`
 - **#6507** -- bug(hooks): session hook rewrites the tracked AGENTS.md managed section from the pinned runtime in this repo, rolling it back -- `[completed]`
@@ -61,20 +83,4 @@ _Showing 25 of 1977 completed scopes (newest first). Full history: lifecycle `co
 - **#6468** -- bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join -- `[completed]`
 - **#6477** -- bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans -- `[completed]`
 - **#6422** -- bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch -- `[completed]`
-- **#6484** -- test(flaky): pre-pr-controller coverage_headroom mode-skip test fails intermittently and reddens master's gate -- `[completed]`
-- **#6366** -- docs(scm): merge queue setup playbook, and point agents to it where they merge -- `[completed]`
-- **#6423** -- bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue -- `[completed]`
-- **#6337** -- fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex -- `[completed]`
-- **#6421** -- bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run -- `[completed]`
-- **#6378** -- bug(scope-provenance): verify:scope-provenance runs past 5 minutes with no output in a fresh worktree -- `[completed]`
-- **#6376** -- bug(hooks): a write outside every checkout is judged by the launching checkout's session ritual -- `[completed]`
-- **#6379** -- design(hooks,swarm): with more than one active brief, in-session workers cannot write; the only parallel route skips the local fence -- `[completed]`
-- **#6409** -- bug(session): session:start refuses mutation for owed completions that belong to other stories -- `[completed]`
-- **#6335** -- feat(lifecycle): completion PRs without ledger conflicts or half-written finalize -- `[completed]`
-- **#6336** -- fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause -- `[completed]`
-- **#6377** -- bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red -- `[completed]`
-- **#6361** -- bug(scope): the one-PR path has no lawful worker path (write fence reads the merge base; swarm:launch needs origin; no task alias) -- `[completed]`
-- **#5927** -- bug(session): cold/rearm session:start ceremony unbounded under many actives (finalize-owed inventory minutes) -- `[completed]`
-- **#6277** -- feat(scope): complete a delivered story without a separate human-reviewed completion PR -- `[completed]`
-- **#4433** -- bug(plan-sequence): batching_allowed is persisted but never authorizes parallel entries -- `[completed]`
 
