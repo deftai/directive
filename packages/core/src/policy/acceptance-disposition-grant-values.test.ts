@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { loadGrant, saveGrant } from "../authz/store.js";
 import { ACCEPTANCE_DISPOSITION_KEY } from "../scope/acceptance-evidence.js";
 import {
+  acceptanceDispositionCoverText,
   applyAcceptanceDispositionGrants,
   checkCitedAcceptanceDispositionGrants,
   formatAcceptanceDispositionCommand,
@@ -260,6 +261,33 @@ describe("acceptance-disposition grant values (#6644)", () => {
       appliedIds: expect.arrayContaining(["5", "9"]),
       grantedClauses: [{ id: 5, disposition: "waived", reason: "R" }],
     });
+  });
+
+  it("a bare numeric id binds to the clause text: a changed clause with an unchanged item title needs a new grant (#6644 review)", () => {
+    const root = repo();
+    const body = plan();
+    body.items = [{ id: "5", title: "Item five", status: "pending" }];
+    writeBrief(root, body);
+    const minted = mintFor(root, { disposition: "waived", storyIds: ["5"] });
+    if (!minted.ok) throw new Error(minted.reason);
+    const changed = plan();
+    (changed.acceptance as { clauses: { id: number; text: string }[] }).clauses[0] = {
+      id: 5,
+      text: "Clause five text, changed.",
+    };
+    changed.items = [{ id: "5", title: "Item five", status: "pending" }];
+    const refused = applyAcceptanceDispositionGrants({
+      projectRoot: root,
+      plan: changed,
+      now: LATER,
+      recordedAt: LATER.toISOString(),
+    });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) return;
+    expect(refused.reason).toContain("changed after grant");
+    expect("grantedClauses" in refused).toBe(false);
+    expect(acceptanceDispositionCoverText(body, "5")).toBe("Clause five text.");
+    expect(acceptanceDispositionCoverText(plan(), "9")).toBeNull();
   });
 
   it("clause 13: a stored deferred grant with no deferred-to value is malformed and ignored", () => {

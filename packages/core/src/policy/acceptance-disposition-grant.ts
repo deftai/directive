@@ -134,8 +134,10 @@ function findItemTitle(items: unknown, wanted: string): string | null {
 
 /**
  * Text a covered id binds to: `acceptance.clauses[id].text` for a clause id
- * (`clause.N`), else the title of the plan item with that id. Null when the id
- * resolves to neither.
+ * (`clause.N`), else the title of the plan item with that id. A bare integer id
+ * that names a clause binds to that clause's text too, the same rule the granted
+ * set uses (#6644 review), so a changed clause needs a new grant. Null when the
+ * id resolves to neither.
  */
 export function acceptanceDispositionCoverText(
   plan: Record<string, unknown>,
@@ -143,8 +145,9 @@ export function acceptanceDispositionCoverText(
 ): string | null {
   const id = canonicalAcceptanceDispositionId(itemId);
   const match = CLAUSE_ID_RE.exec(id);
-  if (match !== null) {
-    const clauseId = Number(match[1]);
+  const bare = BARE_CLAUSE_ID_RE.test(id) ? Number(id) : null;
+  const clauseId = match !== null ? Number(match[1]) : bare;
+  if (clauseId !== null) {
     const clause = readAcceptanceClauses(plan.acceptance).find((c) => c.id === clauseId);
     if (clause !== undefined) return clause.text;
   }
