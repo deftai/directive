@@ -4106,5 +4106,12 @@ describe("hidden strict axes and declared rows (#6591)", () => {
     );
     expect(lines[0]).toContain("0 clause(s) will need strict-axis evidence");
     expect(lines).toContain("  clause.1: deploy (declared)");
+    // A declared row with no id is named by its path.
+    expect(
+      formatStrictAxisAdvisory(
+        [{ path: "plan.items[4]", id: null, axes: ["uat"], declared: true }],
+        "xbrief:preflight",
+      ),
+    ).toContain("  plan.items[4]: uat (declared)");
   });
 });

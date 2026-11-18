@@ -335,6 +335,18 @@ describe("declarationHidesAxisLines (#6591 items 2 and 4)", () => {
     expect(lines[0]).toContain(`${COMPLETED} item clause.1: its declaration hides deploy`);
   });
 
+  it("names an item with no id by its path in the item tree", () => {
+    const noId = JSON.parse(brief([{ title: DEPLOY_TEXT, requires: "merge" }])) as unknown;
+    const lines = declarationHidesAxisLines({
+      headRel: ACTIVE,
+      headPayload: noId,
+      baseRel: ACTIVE,
+      baseRead: { kind: "text", text: brief([{ title: DEPLOY_TEXT }]) },
+    });
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain(`${ACTIVE} item plan.items[0]: its declaration hides deploy`);
+  });
+
   it("prints nothing when the base copy is not active, missing, unreadable or not JSON", () => {
     const cases = [
       { baseRel: PENDING, baseRead: { kind: "text", text: baseText } },
