@@ -101,6 +101,38 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly oldStyle: boolean;
   /** WAVE3-V2 convert-via-removals shape id when upgrading a historical layout. */
   readonly convertShapeId?: string | null;
+  /**
+   * Paths Git reports as modified or untracked under `.deft/core` (AC10.6 /
+   * RC-03, #6002). Listed in the conversion plan before removal; no prompt.
+   */
+  readonly deftCoreGitEdits?: readonly string[] | null;
+}
+
+/** Most `.deft/core` edit paths the upgrade plan lists before a count (AC10.6). */
+export const DEFT_CORE_EDIT_LIST_LIMIT = 20;
+
+/**
+ * List Git-reported edits under `.deft/core` that conversion removes (AC10.6 /
+ * RC-03, #6002). Information only: no prompt, no refusal.
+ */
+export function writeDeftCoreGitEdits(
+  io: PresentIo,
+  paths: readonly string[] | null | undefined,
+): void {
+  if (!paths || paths.length === 0) return;
+  const count = paths.length;
+  writeHumanParagraph(
+    io,
+    `Git reports ${count} modified or untracked ${count === 1 ? "file" : "files"} under .deft/core. ` +
+      "They are removed with it. Save any you need before you approve:",
+  );
+  for (const path of paths.slice(0, DEFT_CORE_EDIT_LIST_LIMIT)) {
+    io.writeOut(`    ${path}\n`);
+  }
+  if (count > DEFT_CORE_EDIT_LIST_LIMIT) {
+    io.writeOut(`    ...and ${count - DEFT_CORE_EDIT_LIST_LIMIT} more\n`);
+  }
+  writeBlank(io);
 }
 
 export interface UninstallRemovalSummary {
@@ -401,6 +433,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     writeBullet(io, `update ${lock}`);
     writeBullet(io, "run setup and any needed data updates for that version");
     writeBlank(io);
+    writeDeftCoreGitEdits(io, fields.deftCoreGitEdits);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
     writeHumanParagraph(io, "Your notes and briefs under xbrief/ stay as they are.");
   } else if (fields.versionChange) {
@@ -457,6 +490,10 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
         `remove: .deft/core (copied content tree, even if edited)`,
         `replace: @deftai/directive pin → @deftai/directive-runtime@${fields.targetVersion}`,
       );
+      const edits = fields.deftCoreGitEdits?.length ?? 0;
+      if (edits > 0) {
+        keyed.splice(7, 0, `.deft/core Git edits: ${edits} (listed above; removed with it)`);
+      }
     }
     if (fields.gitHooksInactive) {
       keyed.push(
