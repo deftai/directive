@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6602",
-    "updated": "2026-11-18T02:46:57Z"
+    "updated": "2026-11-18T04:56:49Z"
   },
   "plan": {
     "title": "bug(hooks): write fence reads the merge-base PROJECT-DEFINITION with a 1 MiB buffer, so every one-PR story is refused once the file passes 1 MiB",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks): write fence reads the merge-base PROJECT-DEFINITION with a 1 MiB buffer, so every one-PR story is refused once the file passes 1 MiB",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6602",
@@ -17,78 +17,183 @@
     "items": [
       {
         "title": "Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. The readers that return file content through it (the merge-base brief read, the policy read and the mint head-brief read) keep their `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text. The `rev-parse`, `merge-base` and delivery-branch lookups through it return refs and SHAs and are unchanged apart from the option.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Unpinned contest (P2). When `inspectActiveScope` returns the unpinned `multiple-eligible` result (`scope.ts` 526-532) and a brief in that competition set has an unreadable fence, the result carries the first such fence's `unreadableDetail` in a new optional field, and its message adds one sentence naming that brief and the detail. The fences are the ones the partition already loads; no extra read. In the dispatcher's #6535 site (b) (`dispatcher.ts` 3098-3115), `warnableScopeMiss` is false when that field is set, so the existing `scope-not-ready` deny is returned. Pinned and bound selections, other `multiple-eligible` results, `zero-eligible` and `pin-miss` are unchanged, and a not-ready scope whose briefs were all read keeps its #6535 warning.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself. The #6535 warner keeps its rules apart from item 5.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path) for the one selected brief, then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given two unpinned eligible briefs, one with a failed policy read and one with a readable `file_scope`, with or without a live merge-gate signal, then the Write is refused with `scope-not-ready`, and the message names the unreadable brief and the read failure.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given two unpinned eligible briefs whose fences were both read, under a live merge-gate signal, then the #6535 warning applies as today.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+          "recorded_at": "2026-11-18T04:56:49Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -524,6 +629,36 @@
         "leanCommentId": 6966881519,
         "harvestDigest": "316fc75e8b519f681e6afebf273d3763af17910277105c198c6ca72a3b7792e4",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6f30abe3df7e9abb79037e002e83a4c82d66a8e2",
+        "prNumber": 6641,
+        "prBase": "master",
+        "mergeCommit": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c569ca24830474d1998bb7d19e588aad7ee063fc",
+        "verifiedAt": "2026-11-18T04:56:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6611,
+          6640
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T04:56:49Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T04:56:49Z"
       }
     },
     "acceptance": {
@@ -676,6 +811,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6457863322",
-    "updated": "2026-11-18T02:46:57Z"
+    "updated": "2026-11-18T04:56:49Z"
   }
 }

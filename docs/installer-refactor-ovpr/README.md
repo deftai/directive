@@ -6,7 +6,7 @@ Durable in-repo home for the #5490 / #5514 installer redesign that replaced the 
 
 | File | Kind | Use |
 | --- | --- | --- |
-| [install-ovpr-requirements.md](./install-ovpr-requirements.md) | **Active (normative)** | Full product requirements / ACs. Includes revisions **v261118** (`.prettierignore` hook line; named per-checkout ignore lines; `.deft/core` edit list; `deft-hook` blocking response; launcher entry order; old-repo message) and **v261027** (entry guards + host `.mjs` outer). Prefer this when changing install/upgrade/uninstall/repair/doctor/hook-deposit behavior. |
+| [install-ovpr-requirements.md](./install-ovpr-requirements.md) | **Active (normative)** | Full product requirements / ACs. Includes revisions **v261118** (one recovery table; `.prettierignore` hook line; named per-checkout ignore lines; `.deft/core` edit list; `deft-hook` blocking response; launcher entry order; old-repo message) and **v261027** (entry guards + host `.mjs` outer). Prefer this when changing install/upgrade/uninstall/repair/doctor/hook-deposit behavior. |
 | [install-ovpr-architecture.md](./install-ovpr-architecture.md) | **Active (normative)** | Compact architecture map (packages, contract, setup/migrate, self-host, host-hook outer). |
 | [LLM-CONTEXT.md](./LLM-CONTEXT.md) | **Harness primer (not ACs)** | AI-audience OVPR context: ownership boundary (polfer install vs Scott dispatcher), verb matrix, entry guards / `.mjs` outer, Dependabot+AC8.6, anti-rathole. Read before triage/plan/feature work that intersects install. |
 | [install-ovpr-problem-ledger-2026-10-23.md](./install-ovpr-problem-ledger-2026-10-23.md) | **Decision record only** | Sealed 2026-10-23 FINALs for Problems 1–33 and ticket map. **Not requirements.** Points at requirements/architecture as SoT. |
@@ -25,6 +25,8 @@ Durable in-repo home for the #5490 / #5514 installer redesign that replaced the 
 On conflict: **requirements win** for installer semantics; architecture explains shape; `LLM-CONTEXT.md`, the problem ledger, and implementation-strategy history never relax an AC.
 
 ### v261118 (2026-11-18)
+
+Operator amendment: one recovery table (AC9.7). The project install (`npm install` / `pnpm install --frozen-lockfile`) for a missing or mismatched runtime; `directive install --repair` for wiring; `directive upgrade` for data and old layouts; `npm i -g @deftai/directive` only for a missing launcher. Does not change what any verb mutates. Implement via P4-U3a to P4-U3d.
 
 Operator amendment: when a root `.prettierignore` already exists, setup adds one Directive-owned line, `**/deft-hook-*.mjs`, so the committed host hook files don't fail the project's formatter check (AC8.5, AC13.3, §A6.1, D4 rule 11).
 
