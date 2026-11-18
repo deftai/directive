@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from "node:child_process";
+import { execFileSync, execSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -804,4 +804,95 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
     expect(code).toBe(2);
     expect(gitCalls).toEqual([]);
   });
+
+  it("a real widen commit at mint is admitted by the real evaluateScopeProvenance (#6643)", () => {
+    const base = mkdtempSync(join(tmpdir(), "widen-real-"));
+    tmpDirs.push(base);
+    const sh = (cwd: string, args: string[]): string =>
+      execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    const remote = join(base, "remote.git");
+    const work = join(base, "work");
+    const verify = join(base, "verify");
+    mkdirSync(remote);
+    mkdirSync(work);
+    sh(remote, ["init", "-q", "--bare", "-b", "master"]);
+    sh(work, ["init", "-q", "-b", "master"]);
+    sh(work, ["config", "user.name", "Op Erator"]);
+    sh(work, ["config", "user.email", "op@example.test"]);
+    const writeAt = (rel: string, body: string): void => {
+      mkdirSync(dirname(join(work, rel)), { recursive: true });
+      writeFileSync(join(work, rel), body, "utf8");
+    };
+    const projectDefinition = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "running",
+        items: [],
+        "x-directive/policy": { onePrScopeProof: "mint", requireHumanMerge: true },
+      },
+    };
+    writeAt(
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      `${JSON.stringify(projectDefinition, null, 2)}\n`,
+    );
+    const brief = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "github.issue.42",
+        title: "Story",
+        status: "running",
+        items: [{ id: "a", title: "A", status: "pending", narrative: { Acceptance: "it works" } }],
+        metadata: { swarm: { file_scope: ["src/a.ts"] } },
+      },
+    };
+    writeAt(BRIEF_REL, `${JSON.stringify(brief, null, 2)}\n`);
+    writeAt("src/a.ts", "export const a = 1;\n");
+    sh(work, ["add", "-A"]);
+    sh(work, ["commit", "-q", "-m", "base"]);
+    sh(work, ["remote", "add", "origin", remote]);
+    sh(work, ["push", "-q", "origin", "master"]);
+
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(
+      [
+        BRIEF_REL,
+        "--project-root",
+        work,
+        "--actor",
+        "scott",
+        "--confirm",
+        "--add-path",
+        "src/b.ts",
+      ],
+      operatorSeams(),
+      {
+        gh: () => ({ status: 0, stdout: "https://example.test/pull/1\n", stderr: "" }),
+        verifyBody: () => 0,
+      },
+    );
+    expect(code).toBe(0);
+
+    const pushed = sh(remote, ["branch", "--list", "widen/*"])
+      .trim()
+      .replace(/^\*?\s*/, "");
+    expect(pushed).toMatch(/^widen\/github\.issue\.42-/);
+    sh(base, ["clone", "-q", remote, verify]);
+    sh(verify, ["checkout", "-q", pushed]);
+    const changed = sh(verify, ["diff", "--name-only", "origin/master...HEAD"])
+      .split("\n")
+      .filter((l) => l.length > 0)
+      .sort();
+    expect(changed).toEqual([
+      ".deft/approved-scope/github.issue.42.intent.json",
+      ".deft/approved-scope/github.issue.42.json",
+      BRIEF_REL,
+    ]);
+    const result = scopeProvenance.evaluateScopeProvenance(verify, { baseRef: "origin/master" });
+    expect(result.exitCode, result.message).toBe(0);
+    expect(result.mintLevelAdmits ?? []).toHaveLength(1);
+    // The bound worktree stays untouched.
+    expect(sh(work, ["status", "--short"]).trim()).toBe("");
+  }, 60_000);
 });
