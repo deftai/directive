@@ -57,12 +57,15 @@ describe("support hub for #4098 / lean 5514459336", () => {
     const text = readme();
     expect(text, "README missing Support hub pointer").toContain(README_HUB_POINTER);
     expect(text, "README missing getting-started pointer").toContain(GETTING_STARTED_POINTER);
-    const afterCold = text.slice(text.indexOf("<!-- /deft:cold-start-bootstrap"));
-    const hubAt = afterCold.indexOf(README_HUB_POINTER);
-    const gettingStartedHeading = afterCold.indexOf("## \uD83D\uDE80 Getting Started");
+    // #5867: the cold-start block moved to the end of the README, so the
+    // pointers are checked from the top of the page.
+    const coldAt = text.indexOf("<!-- deft:cold-start-bootstrap");
+    const top = text.slice(0, coldAt >= 0 ? coldAt : text.length);
+    const hubAt = top.indexOf(README_HUB_POINTER);
+    const gettingStartedHeading = top.indexOf("## \uD83D\uDE80 Getting Started");
     expect(hubAt, "Support pointer must sit above Getting Started").toBeGreaterThanOrEqual(0);
     expect(gettingStartedHeading).toBeGreaterThan(hubAt);
-    const gsAt = afterCold.indexOf(GETTING_STARTED_POINTER);
+    const gsAt = top.indexOf(GETTING_STARTED_POINTER);
     expect(gsAt, "getting-started pointer must sit above Getting Started").toBeGreaterThanOrEqual(
       0,
     );

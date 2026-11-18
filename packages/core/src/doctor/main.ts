@@ -91,6 +91,7 @@ import {
   type LayoutTree,
   NETWORK_DISCLOSURE_LINE,
   PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE,
+  RECOVERY_LADDER_AGENTS_REFRESH,
   recoveryLadderFields,
   recoveryLadderProse,
   TASKFILE_INCLUDE_SNIPPET,
@@ -274,7 +275,7 @@ export const NEVER_INCEPTED_SOFT_WARN =
   "proposed|pending|active|completed|cancelled (signal-only; doctor/session green ≠ process-use proof) (#4229)";
 
 export const FIRST_SCOPE_NEXT_HINT =
-  "Write the first proposed scope (setup Phase 3 / directive bootstrap) — identity-only must not suppress Phase 3 when product mutation is requested (#4229)";
+  "No scope written yet. Ask your agent to read AGENTS.md and run the setup skill to write the first scope (#4229)";
 
 export const TASKFILE_UNAVAILABLE_CLI_SUPPORTED =
   "status=Taskfile-unavailable; CLI-supported (go-task absent; #3335 impact=none)";
@@ -1323,7 +1324,7 @@ export function runAgentHooksHealthCheck(
         check: checkName,
         status: result.code === 2 ? "unavailable" : "incomplete",
         registrations: result.registrations,
-        suggestion: "deft update",
+        suggestion: RECOVERY_LADDER_AGENTS_REFRESH,
       });
       return false;
     }
@@ -1351,7 +1352,12 @@ export function runAgentHooksHealthCheck(
   } catch (cause) {
     const message = `${checkName}: probe failed -- ${String(cause)}`;
     sink.warn(message);
-    addFinding({ severity: "warning", message, check: checkName, suggestion: "deft update" });
+    addFinding({
+      severity: "warning",
+      message,
+      check: checkName,
+      suggestion: RECOVERY_LADDER_AGENTS_REFRESH,
+    });
     return false;
   }
 }
@@ -1375,7 +1381,7 @@ export function runAgentHooksLiveProbeCheck(
         check: checkName,
         status: result.code === 2 ? "unavailable" : "incomplete",
         registrations: result.registrations,
-        suggestion: "deft update",
+        suggestion: RECOVERY_LADDER_AGENTS_REFRESH,
       });
       return;
     }
@@ -1394,7 +1400,7 @@ export function runAgentHooksLiveProbeCheck(
         check: liveCheckName,
         status: liveResult.code === 2 ? "unavailable" : "non-functional",
         cases: liveResult.cases,
-        suggestion: "npm i -g @deftai/directive@latest && deft update",
+        suggestion: RECOVERY_LADDER_AGENTS_REFRESH,
       });
       return;
     }
@@ -1446,7 +1452,12 @@ export function runAgentHooksLiveProbeCheck(
   } catch (cause) {
     const message = `${liveCheckName}: probe failed -- ${String(cause)}`;
     sink.warn(message);
-    addFinding({ severity: "warning", message, check: liveCheckName, suggestion: "deft update" });
+    addFinding({
+      severity: "warning",
+      message,
+      check: liveCheckName,
+      suggestion: RECOVERY_LADDER_AGENTS_REFRESH,
+    });
   }
 }
 
@@ -1823,7 +1834,7 @@ function runConsumerCheckGraphIntegrity(
       severity: "error",
       message,
       check: checkName,
-      suggestion: "deft update",
+      suggestion: RECOVERY_LADDER_AGENTS_REFRESH,
       status: "fail",
     });
     return;
@@ -2521,20 +2532,24 @@ export function runResolutionDecision(
   }
 
   // #4229: after install blockers clear, surface first-scope Next for never-incepted.
-  let resolvedNext = nextCommand;
+  const resolvedNext = nextCommand;
   let resolvedWarnings = [...plan.warnings];
   if (!actionRequired) {
     const occupancy = classifyLifecycleOccupancy(projectRoot);
     if (occupancy.kind === "never_incepted") {
-      resolvedNext = resolvedNext ?? "directive bootstrap";
+      // No fallback command: the first scope is written by the setup skill, not a CLI verb (#5867).
       resolvedWarnings = [...resolvedWarnings, FIRST_SCOPE_NEXT_HINT];
+      const nextLine =
+        resolvedNext === null
+          ? FIRST_SCOPE_NEXT_HINT
+          : `Next command: ${resolvedNext} -- ${FIRST_SCOPE_NEXT_HINT}`;
       if (!jsonMode) {
         sink.warn(NEVER_INCEPTED_SOFT_WARN);
-        sink.raw(`Next command: ${resolvedNext} -- ${FIRST_SCOPE_NEXT_HINT}`);
+        sink.raw(nextLine);
       }
       addFinding({
         severity: "warning",
-        message: `Next command: ${resolvedNext} -- ${FIRST_SCOPE_NEXT_HINT}`,
+        message: nextLine,
         check: "lifecycle-occupancy-next",
         status: "never_incepted",
         next_command: resolvedNext,

@@ -315,7 +315,7 @@ function buildWarning(
     lines.push(`  Or, accepting the capability cost: ${recoveryHosts(failClosed)}.`);
   }
   lines.push(
-    "  \u2297 Do not hand-edit `failClosed` in the deposited file -- the next `deft update` restores it.",
+    "  \u2297 Do not hand-edit `failClosed` in the deposited file -- the next `directive install --repair` or `directive upgrade` restores it.",
     "  Detail: .deft/core/docs/hook-runtime-unavailable.md",
   );
   return lines.join("\n");

@@ -102,10 +102,10 @@ describe("inspectHookRuntimeTravel", () => {
 
     expect(warning).toContain("policy:disable-host-hooks");
     expect(warning).toContain("--host cursor --confirm");
-    // #3785 prohibition: the hand-edit works once and the next `deft update`
+    // #3785 prohibition: the hand-edit works once and the next `directive install --repair`
     // silently re-arms the lockout, so the copy must warn against it.
     expect(warning).toContain("Do not hand-edit `failClosed`");
-    expect(warning).toContain("`deft update` restores it");
+    expect(warning).toContain("`directive install --repair` or `directive upgrade` restores it");
   });
 
   it("stays silent when a committed manifest lets a clone install the runtime", () => {

@@ -14,17 +14,18 @@ Two packages: global `@deftai/directive` (launcher) and project-pinned `@deftai/
 
 | Your situation | Run this |
 | --- | --- |
-| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` (`update` is an alias) |
-| Wiring broken; pin should stay | `npm i -g @deftai/directive`, then `directive install --repair` |
-| Fresh clone / new worktree | Project `pnpm install` / `npm install`, then first eligible runtime command or hook |
-| Not sure | `directive doctor` (read-only) |
-| First-time adoption | `directive install` (`init` alias) |
-| Supported latest legacy (pre-split pin + `.deft/core`) | `directive upgrade` |
-| Remove project wiring | `directive uninstall` (`remove` alias) |
+| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` |
+| Runtime missing or not the pinned version (fresh clone, new worktree, deleted `node_modules`) | The project install: `npm install`, or `pnpm install --frozen-lockfile` for pnpm. The first runtime command or hook then finishes local setup |
+| Wiring damaged with the right runtime installed | `directive install --repair` |
+| Project data behind, or an older Directive layout (pre-split pin + `.deft/core`) | `directive upgrade` |
+| `directive` command missing | `npm i -g @deftai/directive` |
+| Not sure | `directive doctor` (read-only; names one of the commands above) |
+| First-time adoption | `directive install` |
+| Remove project wiring | `directive uninstall` |
 
 Do not teach `npx`/`pnpm exec` as ongoing identity. Retired verbs (`migrate`, `bootstrap`, …) are unknown commands.
 
-Walkthrough history below keeps existing `UPGRADING.md#` anchors. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
+Walkthrough history below keeps existing `UPGRADING.md#` anchors. Older sections may say `deft update`; that command is retired as a recovery step, so use the table above instead. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
 
 ---
 
@@ -133,7 +134,7 @@ Commit `pnpm-workspace.yaml` when it changes. On older pnpm 11 releases, CI `pnp
 **What to do:**
 
 1. Prefer `xbrief/` and `.xbrief.json` in all new docs, skills, CLI help, and agent prose.
-2. On projects still on disk under `vbrief/`, run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+2. On projects still on disk under `vbrief/`, run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` signposts unmigrated layouts; `directive upgrade` migrates them.
 3. Do **not** tell users to “prefer vBRIEF” or treat xbrief and vBRIEF as two current models.
 4. Deep schema conventions still live under `content/vbrief/` (path name is historical for the schema package); public work-state name remains xBRIEF.
 

@@ -125,8 +125,9 @@ describe("payload-staleness (#2003 / #2004)", () => {
       });
       const stale = findings.find((f) => f.status === "stale");
       expect(stale?.suggestion).toBe(VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND);
-      expect(String(stale?.suggestion)).toContain("deft update");
-      expect(String(stale?.message)).toContain("deft update");
+      expect(String(stale?.suggestion)).toContain("directive upgrade");
+      expect(String(stale?.message)).toContain("directive upgrade");
+      expect(String(stale?.message)).not.toContain("deft update");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -14,7 +14,7 @@ Prose SoT for routing and deprecation aliases: [commands.md § Slash Command Nam
 
 ## What you get
 
-On `directive init` and `deft update`, Directive deposits **exactly 13** thin wrappers (L2) for every **enabled** host that has a real emitter (L6).
+On setup (`directive install`, `directive install --repair`, `directive upgrade`), Directive deposits **exactly 13** thin wrappers (L2) for every **enabled** host that has a real emitter (L6).
 
 | Host id | Directory | Surface |
 |---------|-----------|---------|

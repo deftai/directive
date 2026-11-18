@@ -12,6 +12,7 @@ import {
   cmdDoctor,
   collectFrameworkLayoutRows,
   enforceDirectiveSurface,
+  FIRST_SCOPE_NEXT_HINT,
   formatLifecycleOccupancySoftWarnLines,
   NEVER_INCEPTED_SOFT_WARN,
   resolveOperatingMode,
@@ -622,6 +623,33 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     // Exercise the proceed-branch guard message so a regression fails the suite
     // (SLizard #2283 validation-guard-test-gap).
     expect(resolutionFinding?.message).toContain("proceed");
+  });
+
+  it("never-incepted healthy project -> no retired bootstrap Next command (#5867)", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writePackagePin(root, "0.68.0");
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
+      "utf8",
+    );
+    expect(classifyLifecycleOccupancy(root).kind).toBe("never_incepted");
+    const { summary, findings, text } = runDecision(root, { engineProbe: engineAt("0.68.0") });
+    expect(summary.mode).toBe("proceed");
+    expect(summary.nextCommand).toBeNull();
+    expect(text).not.toContain("directive bootstrap");
+    expect(countNextCommands(text)).toBe(0);
+    expect(text).toContain(FIRST_SCOPE_NEXT_HINT);
+    const next = findings.find((f) => f.check === "lifecycle-occupancy-next");
+    expect(next?.next_command).toBeNull();
+    expect(next?.message).toBe(FIRST_SCOPE_NEXT_HINT);
   });
 
   it("engine behind pin (mismatched env) -> blocked + AC9.7 (install-global retired)", () => {

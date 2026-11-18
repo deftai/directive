@@ -895,7 +895,7 @@ function coreGuardWorkflowContent(): string {
     "# vendored framework payload (.deft/core/**) with true application/product files.\n" +
     "# One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock\n" +
     "# + .deft/GENERATION.json when package.json is @deftai/directive* dependency-key pin-only\n" +
-    "# and lockfiles are pin follow-through (#3193). Framework updates come from `deft update`\n" +
+    "# and lockfiles are pin follow-through (#3193). Framework updates come from `directive upgrade`\n" +
     "# / install and should land without product feature work so reviewers treat the payload\n" +
     "# as machine-managed. Delete this file if you do not want the guard.\n" +
     "# Paths filter (#5552): skip (no check) on app-only PRs; still run for .deft/core/**\n" +

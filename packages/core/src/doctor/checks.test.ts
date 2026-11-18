@@ -379,7 +379,7 @@ describe("checks", () => {
       readText: (p) => (p.includes(".deft-version") ? "0.1.0\n" : null),
     });
     expect(result.status).toBe("fail");
-    expect(result.data?.suggested_fix).toBe("deft update");
+    expect(result.data?.suggested_fix).toBe("directive upgrade");
   });
 
   it("missing YAML on eligible linked worktree suggests session:start (#5390)", () => {
@@ -399,7 +399,7 @@ describe("checks", () => {
     expect(result.detail).toContain("--rearm");
   });
 
-  it("missing YAML on non-linked tree keeps deft update (#5390)", () => {
+  it("missing YAML on non-linked tree names directive upgrade (#5390 / #5977)", () => {
     const result = checkManifestAgreement("/tmp/primary", ".deft/core", {
       isFile: (p) => p.replace(/\\/g, "/").includes("xbrief/.deft-version"),
       readText: (p) =>
@@ -410,7 +410,7 @@ describe("checks", () => {
       resolvePayloadSourceVersion: () => "0.119.13",
     });
     expect(result.status).toBe("fail");
-    expect(result.data?.suggested_fix).toBe("deft update");
+    expect(result.data?.suggested_fix).toBe("directive upgrade");
     expect(result.data?.missing_manifest_reconstitute_eligible).toBe(false);
   });
 
@@ -653,7 +653,7 @@ describe("checks", () => {
         });
         expect(result.status).toBe("fail");
         expect(result.detail).toContain("Bare .deft-version exists");
-        expect(result.data?.suggested_fix).toBe("deft update");
+        expect(result.data?.suggested_fix).toBe("directive upgrade");
       } finally {
         rmSync(root, { recursive: true, force: true });
       }
@@ -668,7 +668,7 @@ describe("checks", () => {
           isLinkedWorktree: () => false,
         });
         expect(result.status).toBe("fail");
-        expect(result.data?.suggested_fix).toBe("deft update");
+        expect(result.data?.suggested_fix).toBe("directive upgrade");
       } finally {
         rmSync(root, { recursive: true, force: true });
       }

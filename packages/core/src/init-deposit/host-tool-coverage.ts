@@ -192,6 +192,6 @@ export function inspectHostToolCoverage(
 
 /** Remediation line for the coverage class, distinct from the deposit-refresh one. */
 export const HOST_TOOL_COVERAGE_RECOVERY =
-  "Recovery: run `deft update` to re-deposit the current matchers. If a finding survives that, " +
+  "Recovery: run `directive install --repair` to re-deposit the current matchers. If a finding survives that, " +
   "the tool name is missing from Directive's own catalog rather than from your deposit — report " +
   "it upstream with the host and tool name. Audit record: .deft/core/docs/host-tool-surface-audit.md (#3987).";
