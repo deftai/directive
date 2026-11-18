@@ -427,7 +427,8 @@
           "packages/core/src/hooks/commit-target.test.ts",
           "packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts",
           "content/docs/hook-root-admission.md",
-          "changelog.d/6362-commit-gate-wrapper-forms.md"
+          "changelog.d/6362-commit-gate-wrapper-forms.md",
+          "xbrief/.audit/spec-drift/github.issue.6413053214.json"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",
