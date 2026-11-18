@@ -4135,7 +4135,13 @@ function isShellCommentStart(text: string, i: number): boolean {
   if (text[i] !== "#") return false;
   if (i === 0) return true;
   const prev = text[i - 1] as string;
-  return isCmdLauncherSpace(prev) || prev === ";" || prev === "&" || prev === "|" || prev === "(";
+  if (!(isCmdLauncherSpace(prev) || prev === ";" || prev === "&" || prev === "|" || prev === "(")) {
+    return false;
+  }
+  // A backslash-escaped space or separator is part of the word, so this `#` is not at a word start.
+  let backslashes = 0;
+  for (let j = i - 2; j >= 0 && text[j] === "\\"; j--) backslashes++;
+  return backslashes % 2 === 0;
 }
 
 /** True when quotes pair up at end of input (comments and escapes aware). */

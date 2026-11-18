@@ -3006,6 +3006,16 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expectNoPlant(`echo a#b '${kill}'`);
   });
 
+  it("does not treat a # after a backslash-escaped space as a comment", () => {
+    // The escaped space keeps `#` inside the FOO value, so `xargs touch` really runs.
+    expectPlant(`echo ${kill} | env FOO=x\\ # xargs touch`);
+    expectPlant(`echo ${kill} | env FOO=x\\;# xargs touch`);
+    expectStoreWrite(`echo ${authz} | env FOO=x\\ # xargs touch`);
+    // Control: an unescaped space makes it a real comment, and an even run of backslashes does too.
+    expectNoPlant(`echo ${kill} | env FOO=x # xargs touch`);
+    expectNoPlant(`echo ${kill} | env FOO=x\\\\ # xargs touch`);
+  });
+
   it("treats an unterminated xargs heredoc as fed by its remaining lines", () => {
     expectPlant(`xargs touch <<EOF\n${kill}`);
     expectNoPlant(`xargs grep touch <<EOF\n${kill}`);
