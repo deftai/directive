@@ -212,7 +212,9 @@
           "packages/core/src/scope-provenance/forge-approval.ts",
           "packages/runtime/src/verify-ac.ts",
           "packages/runtime/src/verify-ac.test.ts",
-          "changelog.d/6609-ingest-acceptance-criteria-units.md"
+          "changelog.d/6609-ingest-acceptance-criteria-units.md",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts"
         ]
       },
       "intended_placement": {
