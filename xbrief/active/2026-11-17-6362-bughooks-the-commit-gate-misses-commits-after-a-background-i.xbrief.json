@@ -1,0 +1,458 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6362",
+    "updated": "2026-11-18T00:30:03Z"
+  },
+  "plan": {
+    "title": "bug(hooks): the commit gate misses commits after a background &, inside subshells, and in sh -c / bash -c wrappers",
+    "status": "running",
+    "narratives": {
+      "Description": "The PreToolUse commit gate decides whether an agent's git commit runs scope-cover, story binding and named-target admission, but its tokenizer does not see a commit after a background &, inside a subshell, or inside a sh -c / bash -c wrapper, so those commits skip the gate. One subshell form that it does see, (cd /x && git commit), is judged against the hook root instead of /x, so a commit can land in a sibling worktree while admission reads the caller's clean index. This story splits a lone & into its own segment and makes every commit signal outside the canonical shapes resolve to unresolvable, which the dispatcher already denies with the accepted-forms remediation. It is a cooperative guardrail over recognized commands, not a security boundary: branch policy (at push) and the merge-base scope fence (in CI) are unchanged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6362",
+      "Overview": "\n\n1. Treat a lone & as a segment separator. Keep &>, >&, <&, 2>&1, and |& as they work today.\n2. A commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable and is denied with COMMIT_TARGET_ACCEPTED_FORMS. It does not fall back to hook-root or an outer named path unless the parse proves the target.\n3. Commit signals include grouping in the segment, a git commit word pair inside a literal sh|bash -c body, wrappers/eval/unreadable command words, and a non-literal -c or eval body.\n4. Deny fixtures include cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\", and cd /y && bash -c 'git commit'. Keep (cd /r/wt) && git commit as hook-root.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nLeftover-pain: remaining class members (if/for/env/xargs/pushd/GIT_DIR and other commit-creating git verbs) stay on #3595. This Bound remedy does not claim a security boundary.\n\n",
+      "Labels": "bug, security, design-critique:ingest-ready, framework-gap, promise:gates, leftover",
+      "UserStory": "As a maintainer whose agents commit through the PreToolUse hook, I want a commit after a background &, inside a subshell, or inside a sh -c / bash -c wrapper to be denied as an unresolvable target, so that no commit reaches git without the commit-time checks or with the wrong checkout's index.",
+      "ImplementationPlan": "1. packages/core/src/hooks/commit-target.ts: add \"&\" to ShellSegmentSeparator and end a segment on a lone & in tokenizeShellCommand, keeping &>, >&, <&, 2>&1 and |& attached to their redirections, as dest-form / launcher-argv already split it.\n2. In the same file, collect commit signals that sit outside the canonical shapes: unquoted ( or ) around or before the commit (also when the group spans segments), a git commit word pair inside a literal sh|bash -c body (inner git globals such as -C included), wrapper or eval command words, unreadable command words or git subcommands, and a non-literal -c or eval body. Any signal makes resolveCommitTarget return unresolvable for the whole call, before its no-commit exit, so a visible commit before or after the signal cannot mask it.\n3. Keep (cd /r/wt) && git commit -m x as hook-root, and keep quoted git commit text and quoted heredocs as non-executable data.\n4. Correct the commandHasGitCommitSubcommand residual comment: git pre-commit runs only verify:encoding, so obscured forms are not caught later.\n5. Tests: commit-target.test.ts for the tokenizer and resolver; new hooks/dispatcher-commit-wrapper-forms.test.ts for the real deny decision on the clause 4 fixtures and both mixed-call orders.\n6. content/docs/hook-root-admission.md commit-target section: name the new deny and its limits; changelog fragment changelog.d/6362-commit-gate-wrapper-forms.md.",
+      "Constraint": "- No general shell interpreter and no reconstruction of the target through &, subshells or -c bodies (critics C2 / F1; #3438 / #3597).\n- No edit to packages/core/src/hooks/dispatcher.ts (it already denies unresolvable; running brief #6221 declares it) or to packages/core/src/authz/classify.ts.\n- Leftover-pain on #3595: if/for/env/xargs/pushd/GIT_DIR forms and other commit-creating git verbs (merge, cherry-pick, revert, am, rebase, pull, stash, commit-tree).\n- The change does not claim a security boundary (critic C4 / F4).",
+      "Traces": "#6362"
+    },
+    "items": [
+      {
+        "title": "Treat a lone & as a segment separator. Keep &>, >&, <&, 2>&1, and |& as they work today.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given tokenizeShellCommand, when a command holds a lone &, then the & ends a segment, and &>, >&, <&, 2>&1 and |& stay attached to their redirections as today."
+        }
+      },
+      {
+        "title": "A commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable and is denied with COMMIT_TARGET_ACCEPTED_FORMS. It does not fall back to hook-root or an outer named path unless the parse proves the target.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given resolveCommitTarget, when a commit signal sits outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&), then the target is unresolvable, the hook denies the call with COMMIT_TARGET_ACCEPTED_FORMS, and it never falls back to hook-root or an outer named path unless the parse proves the target."
+        }
+      },
+      {
+        "title": "Commit signals include grouping in the segment, a git commit word pair inside a literal sh|bash -c body, wrappers/eval/unreadable command words, and a non-literal -c or eval body.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given resolveCommitTarget, when the command holds grouping around the commit, a git commit word pair inside a literal sh|bash -c body, a wrapper, eval or unreadable command word, or a non-literal -c or eval body, then each is a commit signal and the result is unresolvable, also when a visible commit comes before or after it."
+        }
+      },
+      {
+        "title": "Deny fixtures include cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\", and cd /y && bash -c 'git commit'. Keep (cd /r/wt) && git commit as hook-root.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the PreToolUse dispatcher, when it receives cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\" or cd /y && bash -c 'git commit', then it denies each one, and (cd /r/wt) && git commit still resolves to hook-root."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "promise:gates",
+      "leftover"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6362",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6362: bug(hooks): the commit gate misses commits after a background &, inside subshells, and in sh -c / bash -c wrappers"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6278",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6278"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3597",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3597"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (4), in list order (#6333)",
+      "sentences": [
+        "Treat a lone & as a segment separator. Keep &>, >&, <&, 2>&1, and |& as they work today.",
+        "A commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable and is denied with COMMIT_TARGET_ACCEPTED_FORMS. It does not fall back to hook-root or an outer named path unless the parse proves the target.",
+        "Commit signals include grouping in the segment, a git commit word pair inside a literal sh|bash -c body, wrappers/eval/unreadable command words, and a non-literal -c or eval body.",
+        "Deny fixtures include cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\", and cd /y && bash -c 'git commit'. Keep (cd /r/wt) && git commit as hook-root."
+      ],
+      "admitted_source_sentences": [
+        "Treat a lone & as a segment separator. Keep &>, >&, <&, 2>&1, and |& as they work today.",
+        "A commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable and is denied with COMMIT_TARGET_ACCEPTED_FORMS. It does not fall back to hook-root or an outer named path unless the parse proves the target.",
+        "Commit signals include grouping in the segment, a git commit word pair inside a literal sh|bash -c body, wrappers/eval/unreadable command words, and a non-literal -c or eval body.",
+        "Deny fixtures include cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\", and cd /y && bash -c 'git commit'. Keep (cd /r/wt) && git commit as hook-root."
+      ],
+      "admitted_source_digest": "289f8c8750881880f60cac1e23372dcff5de7386ca460d91ab4a60fe2be579d0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Treat a lone & as a segment separator. Keep &>, >&, <&, 2>&1, and |& as they work today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable and is denied with COMMIT_TARGET_ACCEPTED_FORMS. It does not fall back to hook-root or an outer named path unless the parse proves the target.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Commit signals include grouping in the segment, a git commit word pair inside a literal sh|bash -c body, wrappers/eval/unreadable command words, and a non-literal -c or eval body.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Deny fixtures include cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\", and cd /y && bash -c 'git commit'. Keep (cd /r/wt) && git commit as hook-root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts"
+        ],
+        "module_boundary": "Recognition and target resolution stay in hooks/commit-target.ts. The dispatcher already denies an unresolvable target (#6278), so it does not change; new tests drive the real dispatcher deny path from a new test file. Do not edit authz/classify.ts."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the commit-gate tokenizer at pin 4bdfb7e54b19 still misses background `&`, subshell, and sh -c / bash -c wrappers, so those commits skip the gate.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6362-dc\norigin-ref: origin/HEAD\ndispatch-sha: 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81\ndest-wo leftover-complete\nverification-path: pin-read git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:; dest cwd-without-occupy\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption that those forms are commits and must hit the same gate, with non-literal sh -c failing closed\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: commit-gate fail-open is high blast; Stop 2 panel permission applies\n\npain: P1, P2, P3, P4\n\nP1. A commit after a background `&` skips the commit gate.\nP2. A commit inside a subshell skips the commit gate.\nP3. A commit inside a literal `sh -c` / `bash -c` body skips the commit gate.\nP4. A non-literal `sh -c` body must fail closed as a commit, not pass as \"not a commit\".\n\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\nrefutation-target: the commit gate may leave background-&, subshell, and sh -c / bash -c commits unrecognized when a later parser pass would catch them, or treat an unreadable wrapper as \"not a commit\".\n\ntarget: #6362\ntarget-shape: single-issue\ntarget-kind: issue\naudit-targets: none\n\n",
+          "id": 6958482414,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6958482414",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:24:03Z",
+          "updated_at": "2026-11-17T19:24:03Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6958532677\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\nverification-path: pin-read git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:; dest cwd-without-occupy\n\nLaunch-probe (critic argv, dest cwd-without-occupy, no envelope path): claude opus pong rc 0; codex exec pong rc 0 model gpt-6-astra; grok-4.6 pong rc 0.\nNative spawn_subagent dest-cwd omitted: primary leftover eligible briefs plus host schema omit of process_only; Grok family recovers dest-rooted grok --cwd --prompt-file.\n\n",
+          "id": 6958532677,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6958532677",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:25:57Z",
+          "updated_at": "2026-11-17T19:26:15Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nThe missed forms are real at the dispatch pin. The proposed recognition fix is warranted, but “the gate runs” is insufficient acceptance: one subshell form already reaches the gate against the wrong checkout. I would bind a narrow extension of the existing recognizer/resolver, with unresolved forms denied, after the correction below.\n\nVerification: `4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81`; issue comments through `6958532677` only. I executed the pinned `commit-target.ts` functions under Node 24.20.0 using `stripTypeScriptTypes`, replacing only their import with the exact pinned heredoc-preprocessing functions from `authz/classify.ts`. No product logic was rewritten. This is a function-level probe, not the full hook test suite. The checkout runtime is absent; the pin declares 0.129.14, so these results concern the dispatched implementation containing the tokenizer work, not a separately executed 0.129.10 release. The commit-target blob matches the envelope: `9fa0ad1823df776ae64c842803d84577b4f4376f`.\n\n| Probe | Commit detected | Resolved target |\n|---|---|---|\n| `cd /x & git commit -m x` | false | null |\n| `cd /x && (git commit -m x)` | false | null |\n| `(cd /x && git commit -m x)` | true | **hook-root** |\n| `sh -c 'git commit -m x'` / `bash -c 'git commit -m x'` | false for each | null |\n| `sh -c \"$CMD\"` | false | null |\n| `sh -c \"$CMD\" && git commit -m x` | true | hook-root |\n\nInventory: the shared tokenizer feeds recognition, target resolution, and index-changing-argument checks. `resolveCommitTarget` already has `null`, resolved, and `unresolvable` outcomes; it refuses conflicting commit targets. The dispatcher already denies an unresolvable target, admits named targets through common-Git-directory checking, and reads the admitted index and worktree story. Reuse those mechanisms. [Pinned resolver](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/commit-target.ts#L295), [dispatcher](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/dispatcher.ts#L5213).\n\n### C1. A detected subshell can still check another checkout — blocks-the-design\n\n**Evidence:** The third probe returns `true`, `hook-root`, and no index-changing argument. `resolveOneCommit` sees no leading `cd` because the token is `(cd`, then falls back to hook-root at line 492. The dispatcher reads that root's staged index; its coverage evaluator admits an empty index at lines 5385–5391. Harmless `pwd` probes under both `/bin/sh` and `/bin/bash` confirmed that `(cd B && pwd)` runs inside B.\n\n**Failure mode:** With hook root A empty and B holding out-of-scope staged files, `(cd /absolute/B && git commit -m x)` can pass this coverage check using A. The issue's “gate runs” criterion is already satisfied for this spelling; dropping already-recognized forms would preserve the defect. This is also a sibling-worktree authority-selection risk.\n\n**Disposition:** Replace that acceptance oracle with “the commit is checked against its actual target/index and applicable story, or the call is denied as unresolvable.” Keep this subshell case in scope. Include the paired check where A is empty and B has an uncovered product path, plus nested `-a`/pathspec refusal. Detection-only assertions cannot establish relief. [Target fallback](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/commit-target.ts#L464), [index selection](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/dispatcher.ts#L5243).\n\n### C2. Background and subshell boundaries cannot be flattened into `&&` — sharpens-framing\n\n**Evidence:** In both real-shell probes, starting in A, `cd B & pwd; wait` printed A; `(cd B && pwd); pwd` printed B then A; `cd B && (pwd)` printed B. Existing tests deliberately preserve `(cd /r/wt) && git commit` as hook-root. The pinned tokenizer also correctly keeps `2>&1` and `&>` attached to redirections; the corresponding commit probes had no index-changing argument.\n\n**Failure mode:** Treating `&` like successful sequential `cd`, or globally removing parentheses, attributes a commit to a directory the shell does not use. Splitting every ampersand also corrupts already-supported redirections and quoted data.\n\n**Disposition:** State that recognition preserves execution boundaries and lexical quoting. If target context cannot be proven within the bounded implementation, use the existing unresolvable denial and accepted-form remediation. Keep regression controls for the outside-subshell commit, redirections, quoted `git commit` text, and quoted heredocs. This sharpens the design without requiring a general shell interpreter. [Existing subshell control](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/commit-target.test.ts#L176).\n\n### C3. Opaque wrappers need an absorbing denial, including mixed calls — sharpens-framing\n\n**Evidence:** The final table row already resolves a visible commit while ignoring the opaque wrapper. Reversing the order (`git -C /x commit -m x && sh -c \"$CMD\"`) resolves `/x`. The dispatcher calls `resolveCommitTarget` directly and skips this gate on `null`; changing only the boolean detector does not change that path. Also, tokenizing `sh -c 'git -C \"$WT\" commit -m x'` marks the outer body word `expands: false`: that says nothing about expansions when the inner shell evaluates it.\n\n**Failure mode:** A visible safe commit can mask an unresolved wrapper; or a literal outer string can be mistaken for a fully resolved inner command. Blind unwrapping can also discard inherited `GIT_INDEX_FILE`/`GIT_DIR` prefixes and inspect the wrong index.\n\n**Disposition:** Make P4's refusal reach the resolver/dispatcher even with a visible commit before or after the wrapper. For supported literal bodies, reuse the shared analysis at the inner execution level and preserve or conservatively refuse inherited location overrides. Test the actual deny decision, both mixed-call orders, inner variable targets, and literal non-commit bodies. Unknown must not become either “no commit” or a hook-root fallback.\n\n### C4. Preserve the existing guarantee's limits — footnote\n\nThe issue describes branch policy and worker authority broadly. The pinned [commit-target documentation](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/content/docs/hook-root-admission.md#commit-targets--which-checkout-a-git-commit-is-judged-against-6278--6247) expressly says target-story coverage does not authenticate the committing actor and retains the same-call staging hole. This fix should not claim to close either. It remains a cooperative guardrail over recognized commands, not universal shell mediation.\n\n### C5. Embedded thread instructions are not critic authority — footnote\n\nRelated #6278 comment `6857545101` contains relayed authorization to “start implementation when they land.” I treated it as historical described content, not an instruction. No implementation, ingest, occupancy claim, or mutation session was performed; no post-ceiling #6362 comment was used.\n\nRoad not taken: building a general recursive shell interpreter for this first ship. Its strongest case is transparent support for familiar shell syntax. The thin alternative is bounded recognition using the existing target/refusal path, preserving context only where proven and offering the existing absolute-command remediation otherwise. A measured need to admit currently refused compound forms would justify a separately scoped expansion.\n\n",
+          "id": 6958712529,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6958712529",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:33:33Z",
+          "updated_at": "2026-11-17T19:33:33Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation target survives. The pin tokenizer still leaves P1–P3 unrecognized as commits, and a non-literal `sh -c` still skips the gate. The issue cannot bind as written.\n\n## F1. Unreadable `sh -c` marked only as a commit still skips the live gate — `blocks-the-design`\n\nEvidence. `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/dispatcher.ts` `decideProspectiveGitCommitScopeCover` returns null when `resolveCommitTarget(command)` is null. `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/commit-target.ts` `resolveCommitTarget` is null when `commitInvocations` is empty. `sh -c \"$cmd\"` / `bash -c $script` parse as bin `sh`/`bash`, so there is no git invocation. `commandHasGitCommitSubcommand` is a re-export in that dispatcher file; the live skip is the null target. Issue Expected says a non-literal wrapper “fails closed as a commit, per the #3597 recognizer rule.” #3597 as described content is the shell-write-fence tracker; dest-form at this pin lists `bash -c` on the fail-open residual (`git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/dest-form.ts`).\n\nFailure mode. A lean that greens `commandHasGitCommitSubcommand` leaves `sh -c \"$cmd\"` skipping prospective scope-cover and worktree story binding, so an untrusted wrapper runs with no commit admission. A lean that pretends the wrapper is a hook-root commit can admit it when staged paths pass cover, and the unread body still runs.\n\nDisposition. Keep P4 AC (“the hook fails closed”). Recut Expected’s “as a commit” / #3597 cite. Bound remedy is an unreadable-wrapper deny on the same path as `target.kind === \"unresolvable\"`.\n\n## F2. Lone `&` stays one segment; dest-form already splits it — `sharpens-framing`\n\nEvidence. `tokenizeShellCommand` in `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/commit-target.ts` ends a segment on `&&` / `||` / `|` / `;` / newline. A lone `&` is a word. Manual run: `cd /x & git commit -m x` → one segment `cd`, `/x`, `&`, `git`, `commit`, `-m`, `x` → bin `cd` → null target → skip. `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/commit-target.test.ts` names those separators only. `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/dest-form.ts` `splitCommandSegments` and `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/launcher-argv.ts` already split lone `&`. `resolveOneCommit` already refuses a `cd` whose join to the commit is not `&&`. Trailing `git commit -m x &` is already a git invocation; `&` is then read as a pathspec (`commitIndexMutatingWord` returns `&`) and denied as index-mutating.\n\nFailure mode. Teaching `&` as an `&&` join names checkout `/x` for `cd /x & git commit`, which runs in the inherited cwd. Leaving `&` as a word keeps P1 skipped and keeps trailing `&` as a fake pathspec.\n\nDisposition. Add `\"&\"` to `ShellSegmentSeparator` using the dest-form / launcher-argv split. Target join stays `&&` only, so P1 becomes a running gate that refuses unresolvable. Trailing `&` then stops being a pathspec.\n\n## F3. A commit inside `(…)` must be found without treating subshell `cd` as a brace group — `sharpens-framing`\n\nEvidence. `commandWords` in `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/commit-target.ts` drops leading `{` and leaves `(…)`. Manual run: `cd /x && (git commit -m x)` → second-segment bin `(git` or `(` → null target → skip. Pin test `(cd /r/wt) && git commit -m x` is hook-root (`git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/commit-target.test.ts`). dest-form `isRecognizedBin` already strips leading `({!`. dest-form `hasUnsupportedSyntax` already fail-closes grouping for dest-form verbs. #6278 as described content required an unresolvable refuse for subshells.\n\nFailure mode. Unwrapping every `(` makes `(cd /x) && git commit` a named checkout `/x`. Refusing every `(` as unresolvable makes `(git commit -m x)` a deny even though the inner list is a plain hook-root commit. Either reading of “same gate as a plain commit” / “subshells stay refused” can bind the wrong rule.\n\nDisposition. P2 AC is that the commit gate runs. Find `git commit` on a grouping-stripped inner list. Keep the pin rule that a subshell `cd` does not move a later outer commit. `(cd /x && git commit)` resolves as that inner list.\n\n## F4. Literal `bash -c` / `sh -c` is a first-parser miss — `sharpens-framing`\n\nEvidence. Manual run: `bash -c 'git commit -m x'` → bin `bash` → skip. dest-form at this pin also returns `[]` for `bash -c 'rm …'` (fail-open residual). `classifyShellAuthzOps` marks quoted `bash`/`sh`/`zsh -c` unknown for dest-of-write; `bash -c 'cat .deft/authz/state.json'` is not unknown (`git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/authz/classify.test.ts`). A later dest-form pass does not catch a commit inside `-c`.\n\nFailure mode. Justifying P3 as “a later parser would catch it” under-states the miss: both dest-form and the commit gate skip `bash -c 'git commit …'`. Widening dest-form in this issue grows a second design.\n\nDisposition. For a literal `-c` body, run `commandSegments` on that body. Leave dest-form’s `bash -c` residual on #3595 / #3597.\n\n## F5. 0.129.10 recheck — `footnote`\n\n`CHANGELOG.md` 0.129.10 is the #6278 tokenizer. This pin is later (#6471 pipes / `&>` redirects). `&>` / `|&` are already handled. P1 example `cd /x & git commit`, P2 `(git commit …)`, P3 literal `sh`/`bash -c`, and P4 non-literal `-c` still skip. Trailing `git commit &` already reaches the gate (false pathspec, F2). None of P2–P4 drop out.\n\n## Injection / swarm\n\nThe Shell string chooses whether commit admission runs: branch policy, prospective scope-cover, and worktree story binding. Swarm workers share that gate. `cd <wt> && git commit` and `git -C <abs> commit` are the named forms. `cd /x & git commit`, `(git commit …)`, and `sh -c` are the skip. Untrusted command text is the authority input.\n\n## Bound remedy\n\n1. `tokenizeShellCommand`: lone `&` is a segment separator (same split as dest-form / launcher-argv).\n2. `sh|bash -c`: literal body → `commandSegments` on that body; expanding / missing body → deny on the existing unresolvable path in `decideProspectiveGitCommitScopeCover`.\n3. Grouping: strip `({!` on the commit-bearing word list (dest-form `isRecognizedBin`); keep subshell `cd` from joining an outer commit.\n\n## Road-not-taken\n\nA vendored POSIX grammar (#3597 R4) would close more wrappers. Thin Fail-Closed keeps the three mechanisms above. Flip if `sh -c` / background `&` become blessed worker commit forms. They are not in `COMMIT_TARGET_ACCEPTED_FORMS`.\n\n## Leftover — `footnote`\n\n`zsh -c`, `sudo`/`env` wrappers around `-c`, and `bash --norc -c` stay leftover-pain.",
+          "id": 6958854250,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6958854250",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:39:25Z",
+          "updated_at": "2026-11-17T19:39:25Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, charter refutation, fresh seat. Input ceiling 6958532677: I read the Stop 1 write-back 6958482414 and the panel-deposit 6958532677, and nothing after them. Pin `4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81`. The blobs match the envelope inventory: `commit-target.ts` 9fa0ad18, test aca7b809, `dispatcher.ts` 0f7553cb.\n\nVerification: I read the files with `git show <pin>:`. I also ran the pinned `commit-target.ts` from a scratch copy outside the repo (git archive of `packages/core/src` and `packages/types/src` at the pin, Node 24 type stripping). No install and no tree writes. I ran the same battery against the v0.129.10 blob 38a1703e.\n\n**Refutation verdict.** The refutation target fails on its main clause. The presumption survives in part:\n\n- All four pain forms are still missed at the pin and at v0.129.10. Nothing drops out under the 0.129.10 recheck AC.\n- No later commit-time pass catches them. The git pre-commit hook runs only `verify:encoding`. This is true of the repo `.githooks/pre-commit` and of the consumer `PRE_COMMIT` in `packages/runtime/src/setup-wiring.ts`.\n- The remedy shape \"go through the same gate as a plain commit\" does not survive. See F1.\n\nMeasured at the pin with `commandHasGitCommitSubcommand` / `resolveCommitTarget` (platform darwin):\n\n| Command | Commit? | Target |\n|---|---|---|\n| `cd /x & git commit -m x` | false | none |\n| `cd /x && (git commit -m x)` | false | none |\n| `bash -c 'git commit -m x'` | false | none |\n| `sh -c \"$CMD\"` | false | none |\n| `(cd /x && git commit -m x)` | true | hook-root |\n| `cd /y && (cd /x && git commit -m x)` | true | named /y |\n| `pushd /x && git commit -m x` | true | hook-root |\n| `export GIT_DIR=/x/.git; git commit -m x` | true | hook-root |\n\n### blocks-the-design: F1. The gate running is not the safety property; the gate must judge the checkout the commit lands in\n\nEvidence:\n\n- `(cd /x && git commit -m x)` is already recognized at the pin, and it resolves to `hook-root`. `cd /y && (cd /x && git commit -m x)` resolves to `named /y`.\n- The tokenizer does not track parentheses, so it cannot tell these apart from `(cd /r/wt) && git commit -m x`. The pinned test locks that form as `hook-root`, which is correct there.\n- `decideProspectiveGitCommitScopeCover` lists the staged paths at the resolved root. When that root has nothing staged, `evaluateProspectiveScopeCover` returns ok (\"No staged paths to cover.\").\n- `admitCommitTargetRoot` runs only for a `named` target, so a `hook-root` target skips it.\n\nFailure mode: a parent or worker with nothing staged in its own checkout runs `(cd /wt/sibling && git commit -m x)`. The hook allows it. The commit lands on the sibling's branch with the sibling's staged files, with no scope-cover, no story binding (#6247) and no target admission (#6278). P2 as written (\"given a commit inside a subshell, then the commit gate runs\") already passes for this form at the pin. A P3 fix that reads a `-c` body on its own has the same problem: it resolves `cd /y && bash -c 'git commit -m x'` to `hook-root`.\n\nDisposition consequence: the issue cannot bind with \"go through the same gate as a plain commit\" or \"the commit gate runs\" as the acceptance bar. The AC must require this: a commit found after `&`, inside a subshell, or inside a `-c` body resolves to `unresolvable` and is denied with `COMMIT_TARGET_ACCEPTED_FORMS`. It must never resolve to `hook-root` or to an outer `named` path unless the parse proves the target.\n\n- Fixtures that must deny: `(cd /x && git commit -m x)`, `cd /y && (cd /x && git commit -m x)`, `cd /y && bash -c 'git commit -m x'`.\n- Keep the existing lock: `(cd /r/wt) && git commit -m x` resolves to `hook-root`.\n- Recognize-then-deny also avoids reconstructing the target through `&` and subshells. #3438 tried that and withdrew it; #3597 records `&` vs `&&` precedence as not statically knowable.\n\n```quarantined\n### sharpens-framing: F2. The three forms belong to one class, and the pin misses at least 17 more members of it\n\nEvidence: in the same run, all of these return `commit: false`:\n\n- `if true; then git commit -m x; fi`\n- `for f in a; do git commit -m x; done`\n- `f() { git commit -m x; }; f`\n- `! git commit -m x`\n- `echo $(git commit -m x)` and ``echo `git commit -m x` ``\n- `git commit -m x` behind each of `env`, `command`, `exec`, `nohup`, `time`, `timeout 60`, `xargs`\n- `eval 'git commit -m x'`, `G=git; $G commit -m x`, `\"$GIT\" commit -m x`, `git $SUB -m x`\n\nOther wrong-target forms outside the subshell case: `pushd /x &&`, `builtin cd /x &&` and `export GIT_DIR=…;` all resolve to `hook-root`.\n\nExisting mechanisms:\n\n- `COMMAND_WRAPPER_BINS` in `authz/classify.ts` (not exported).\n- `hasUnsupportedSyntax` in `hooks/dest-form.ts` (recognize, then fail closed). It cannot be reused as is: it treats `$` inside double quotes as unsupported, so `git commit -m \"$MSG\"` would deny.\n- #3595 (open) designs the full list of command positions and says not to build on the hand-rolled tokenizer. I cite it as a design record, not as a directive.\n\nFailure mode: three point fixes to `tokenizeShellCommand` bind. The issue's own premise (\"a form it does not see is a commit with no gate\") then stays false for `if …; then git commit`, which agents use often, and for the rest of the list.\n\nDisposition consequence: state where the class ends. The cheapest option is one fail-closed rule: a commit signal outside the canonical shapes is `unresolvable`. The other option is to name the remaining forms as an explicit leftover (to #3595 or a new issue) instead of leaving them unstated.\n\n```\n```quarantined\n### sharpens-framing: F3. P4's test (\"a non-literal sh -c body\") is drawn wrong in both directions\n\nEvidence, under-coverage: `sh -c '$X'` has a literal single-quoted body, but its command word cannot be read. `G=git; $G commit`, `\"$GIT\" commit`, `git $SUB -m x` and `eval \"$X\"` cannot be read either, and they need no wrapper. The pin treats all of them as not a commit.\n\nEvidence, over-coverage: `ShellWord.expands` marks any `\"…$VAR…\"` body. Read literally, P4 refuses `bash -c \"cd $REPO && npm test\"`, which never commits, and the commit gate is always on. The comparable dest-forms recognizer ships behind `runtimeAuthority.shellDestForms`, which defaults to `off` (#3594). #3597 puts measurement and that knob before closing holes, because today those holes are how consumers get past the gate.\n\nFailure mode: P4 binds as worded. Unreadable commits outside a wrapper stay open. `sh -c \"…$VAR…\"` calls that never commit start to deny with a commit-target message that does not say why.\n\nDisposition consequence: restate P4 as follows. An unreadable command word or git subcommand at any command position, or a non-literal `-c` / `eval` body, resolves to `unresolvable`. Then either name the deny surface for calls that do not commit and accept it, or run warn-first and measure with the existing `.deft/shell-observations.jsonl` before enforcing.\n\n```\n### sharpens-framing: F4. \"A commit with no gate\" overstates what is lost\n\nEvidence:\n\n- At the pin, the only live caller of the commit detectors is `decideProspectiveGitCommitScopeCover`. It has no branch-policy check, and no file under `packages/core/src/hooks` references `allowDirectCommitsToMaster` or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT`. Branch policy is `verify:branch`, run at pre-push.\n- In this repo, `task check:merge` runs `verify:scope-provenance` through `check:framework-source`. That is the merge-base `file_scope` fence.\n- The doc comment on `commandHasGitCommitSubcommand` says \"Obscured forms remain a hooks-installed / `--no-verify` residual\". That suggests git hooks back up scope-cover. They do not: pre-commit runs only `verify:encoding`.\n\nFailure mode: the issue's \"Why it matters\" lists branch policy, which this gate does not enforce. The residual comment leads readers to think wrapper commits are caught when git runs its hooks.\n\nDisposition consequence: restate the blast radius. A missed form skips the checks made at commit time: scope-cover, story binding and worker assignment, the index-mutating-form refusal, and named-target admission. Branch policy (at push) and the merge-base scope fence (in CI) still apply. Correct or cite the residual comment. State the threat model as the #3597 guardrail class (careless agents, not adversaries), so the AC are not read as a completeness claim. R1 forms (`npm run`, scripts, `python -c`) stay open under any string recognizer.\n\n### footnote: F5. Citation and recheck hygiene\n\nThe illegible-verb fail-closed rule is in #3595 (\"the safety property is the illegibility check\"). #3597 is the tracker. The 0.129.10 recheck is done above. Build on the dispatch pin or later, not on 0.129.10: the tokenizer changed between them (`|` became a separator, and heredoc chunking was added).\n\n### footnote: F6. Other git verbs that create commits\n\n`git merge`, `cherry-pick`, `revert`, `am`, `rebase`, `pull`, `stash` and `commit-tree` all create commits, and the pin does not recognize any of them as commits. They are outside P1–P4. I note them so that F2's class statement does not imply they are covered.\n\n```quarantined\n### footnote: F7. Implementation note for `&`\n\nA lone `&` separator must leave `&>`, `>&`, `<&`, `2>&1` and `|&` working as they do today. Once `&` is a separator, the existing `&&`-chain rule in `resolveOneCommit` already denies `cd /x & git commit` (\"not joined to the commit by `&&`\"). It also denies `cd /x && git commit -m a & git commit -m b`. P1 needs no new target rule.\n\n**Injection / swarm lens.**\n\n- Swarm: F1 is a write to shared state across worktrees. One worker's commit can land on a sibling's branch while admission reads the caller's own root.\n- Injection: agents write these commands, and untrusted thread text can steer them. Recognize-then-deny turns every non-canonical spelling into a visible refusal that names the accepted forms. That is the right way for a guardrail to fail. It does not make the gate a security boundary (F4).\n- Embedded instructions: none in the issue body or in the two comments inside the envelope. #3595's `⊗` line is described content; I use it above as evidence only.\n\n**Road not taken / steelman.**\n\n- (a) Reconstruct the target through subshells, `&` and `-c` bodies. Rejected: #3438/#3597 withdrew this, and the pinned `(cd /r/wt) && git commit` lock depends on not doing it.\n- (b) Strongest rejected option: run scope-cover in the git pre-commit hook (`run_directive` plus `evaluateProspectiveScopeCover`). It does not depend on syntax, it sees the real index and cwd, and it covers R1. I reject it here because it would also gate human commits, which is a policy change, and because `--no-verify`, `-c core.hooksPath=` and uninstalled hooks bypass it. The verdict flips if the operator wants a security boundary, not a guardrail. Then (b) plus a PreToolUse deny on hook-bypass flags is the only route, and F2 and F3 reduce to recognizing bypass flags.\n- (c) Wait for #3595. Rejected: it is sequenced after measurement and the knob, and the commit fix is a narrow deny.\n\nSuggested remedy shape (Prefer-A, thin; input to the parent, not binding):\n\n1. A lone `&` ends a segment. Redirection forms are excluded.\n2. One fail-closed rule in `resolveCommitTarget`: a commit signal outside the canonical shapes (plain, `git -C <abs>`, one `cd <abs> &&`) resolves to `unresolvable` and is denied with `COMMIT_TARGET_ACCEPTED_FORMS`. Commit signals:\n   - a recognized commit with an unquoted `(` or `)` in its segment or in an earlier segment;\n   - a `git`…`commit` word pair inside a `-c` body, an `eval`, a wrapper from `COMMAND_WRAPPER_BINS`, or after a keyword, a `!` or a substitution;\n   - an unreadable command word or git subcommand;\n   - a non-literal `-c` / `eval` body.\n3. The F1 and F2 commands become deny fixtures. The existing `(cd /r/wt) && git commit` lock does not change.\n\n```\n",
+          "id": 6958868990,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6958868990",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:40:03Z",
+          "updated_at": "2026-11-17T19:40:03Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe commit-gate tokenizer still misses background &, subshell, and sh/bash -c, and one already-recognized subshell form judges the wrong checkout.\n\nThe accepted design treats a commit signal outside the canonical shapes as unresolvable and denies it, splits lone &, and never falls back to hook-root unless the parse proves the target.\n\n**Lean:** bind recognize-then-deny.\n\nSpec-path: Bound remedy on this lean\n\nTarget-digest: sha256:60e8adea884b1f440040a7ca7a2ce8b385adfa5b4f662d4b9fc4cdd9d02bec7e\n\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6362-dc\ndispatch-sha: 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81\narc-mode: no-ingest\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nRound 1 sibling count: 3\nCited critics: 6958712529 (gpt-6), 6958854250 (grok-4.6), 6958868990 (claude-opus-5-5)\nSupersedes Stop 1 6958482414 as the disposition map.\n\nNon-self-arbitration: the same parent authored Stop 1 6958482414, panel-deposit 6958532677, and these proposed takes. Confirming binds them.\n\n## Parent-side substantiation\n\nblocks-the-design: C1 a detected subshell can still check another checkout\naccept-into-contract\n\nblocks-the-design: F1 the gate running is not the safety property\naccept-into-contract\n\nblocks-the-design: grok F1 unreadable sh -c marked only as a commit still skips\naccept-into-contract\n\nsharpens-framing: C2 background and subshell boundaries cannot be flattened into &&\naccept-into-contract\n\nsharpens-framing: C3 opaque wrappers need an absorbing denial\naccept-into-contract\n\nsharpens-framing: grok F2 lone & stays one segment; dest-form already splits it\naccept-into-contract\n\nsharpens-framing: grok F3 a commit inside grouping must be found\naccept-into-contract\n\nsharpens-framing: grok F4 literal bash -c / sh -c is a first-parser miss\naccept-into-contract\n\nsharpens-framing: claude F2 the three forms belong to one class\naccept-into-contract\n\nsharpens-framing: claude F3 P4's test is drawn wrong in both directions\naccept-into-contract\n\nsharpens-framing: claude F4 a commit with no gate overstates what is lost\naccept-into-contract\n\nfootnote: C4 preserve the existing guarantee's limits\naccept-into-contract\n\nfootnote: C5 embedded thread instructions are not critic authority\naccept-into-contract\n\nfootnote: grok F5 0.129.10 recheck\naccept-into-contract\n\nfootnote: claude F5 citation and recheck hygiene\naccept-into-contract\n\nfootnote: claude F6 other git verbs that create commits\naccept-into-contract\n\nfootnote: claude F7 implementation note for &\naccept-into-contract\n\nGrok F3 inner-list resolve is read as recognition only. Disposition is unresolvable deny (claude F1 / codex C1), not reconstructing the inner checkout.\naudit:g6362-f3 sha=4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81 pointer=comment:6958854250 reading=asserted\n\n## Bound remedy\n\n1. Treat a lone & as a segment separator. Keep &>, >&, <&, 2>&1, and |& as they work today.\n2. A commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable and is denied with COMMIT_TARGET_ACCEPTED_FORMS. It does not fall back to hook-root or an outer named path unless the parse proves the target.\n3. Commit signals include grouping in the segment, a git commit word pair inside a literal sh|bash -c body, wrappers/eval/unreadable command words, and a non-literal -c or eval body.\n4. Deny fixtures include cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\", and cd /y && bash -c 'git commit'. Keep (cd /r/wt) && git commit as hook-root.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nLeftover-pain: remaining class members (if/for/env/xargs/pushd/GIT_DIR and other commit-creating git verbs) stay on #3595. This Bound remedy does not claim a security boundary.\n\n",
+          "id": 6958924293,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6958924293",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:42:25Z",
+          "updated_at": "2026-11-17T19:42:25Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:289f8c8750881880f60cac1e23372dcff5de7386ca460d91ab4a60fe2be579d0\n\nPain-audit of successor lean 6958924293: the four relief claims hold as design obligations. Its recognize-then-deny mechanism addresses the named misses and the wrong-checkout case. No blocking or sharpening finding changes the Bound remedy. This is not a claim that the unchanged pin implements that remedy.\n\n**Verification.** Issue body and comments through 6958924293 only; tree reads pinned to `4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81`. I ran 20 function-level probes under Node 24.20.0 using the exact pinned `commit-target.ts` after type stripping, replacing its import with the exact pinned heredoc-helper declarations from `authz/classify.ts`. No product logic was changed. These probes reproduce existing behavior, not a proposed implementation or the full hook suite. The checkout runtime is absent; no installation, mutation session, occupancy claim, or ingest occurred.\n\n| Target | Reproduced behavior at the pin | Why the Bound remedy provides relief |\n| --- | --- | --- |\n| pain-P1 | `cd /x & git commit -m x` is undetected; target is null. | Item 1 exposes the commit after the lone separator. Items 2 and 4 deny this ambiguous target. The existing resolver already refuses a `cd` whose chain to the commit is not entirely `&&`; it must not reinterpret background execution as a successful directory change. |\n| pain-P2 | `cd /x && (git commit -m x)` is undetected; `(cd /x && git commit -m x)` is detected but resolves to hook-root. | Items 2–4 recognize grouping and deny the unsupported inner commit instead of admitting the wrong index. The separate `(cd /r/wt) && git commit -m x` control correctly remains hook-root. |\n| pain-P3 | Literal `sh -c 'git commit -m x'` and `bash -c 'git commit -m x'` both return null. | Items 2–4 make the inner commit signal yield unresolvable. They do not need to reconstruct its target or admit the wrapper. This also avoids losing an outer `cd` or inherited location override while unwrapping. |\n| pain-P4 | `sh -c \"$CMD\"` returns null. With a visible commit before or after it, the resolver currently returns that visible commit's target. | Items 2–3 make the opaque body itself a refusal signal, including when no git invocation is readable. The refusal applies to the whole call; a visible commit cannot remove it. A literal outer body such as `sh -c '$CMD'` is covered by the unreadable-command-word clause. |\n\nThe existing mechanisms fit this design: [commit collection and recognition](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/commit-target.ts#L295), [target resolution and immediate unresolvable return](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/commit-target.ts#L468), and [dispatcher denial before index selection](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/dispatcher.ts#L5213). A boolean-detector-only change would not implement item 2.\n\n### PA1. Enclosing groups can span multiple segments — footnote\n\nThe additional probe `(cd /x && git commit -m x && true)` resolves to hook-root at the pin; with an outer `cd /y &&`, it resolves to `/y`. Neither parenthesis is in the commit's own segment. A scan confined to that segment would therefore retain the wrong-checkout bug. Bound item 2 already forbids this: the plain-looking inner segment does not prove the target. This is an implementation check on the existing mechanism, not a new requirement to interpret subshell targets. The useful paired controls are the completed-subshell case above and quoted parentheses in a commit message. The pin preserves the former in [its resolver test](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/hooks/commit-target.test.ts#L176); my quoted-data probe also remained hook-root. No harvest change.\n\n### PA2. Opaque-wrapper refusal must reach the resolver before its no-commit exit — footnote\n\nAt the pin, `resolveCommitTarget` returns null when its recognized-commit list is empty; its absorbing unresolvable return operates only over that list. In the probes, a recognized commit with a variable `-C` target forces unresolvable in either order, while `sh -c \"$CMD\"` is ignored in either order. The same absorbing result is the existing mechanism to reuse for item 3's new signals. Mixed-call deny checks exercise the already-bound requirement; they do not add a new remedy. Literal inner git globals also need recognition: `sh -c 'git -C /x commit -m x'` currently returns null, and remains a P3 commit signal despite the intervening arguments. No harvest change.\n\n**Injection / swarm lens.** The command text selects which checkout's index and story the gate reads. Refusing an unproved target before index selection prevents the named forms from borrowing a clean caller checkout to admit a sibling-worktree commit. Quoted command text and quoted-heredoc data must retain their non-executable meaning; both controls were reproduced at the pin. This remains the scoped cooperative guardrail described in the [existing limits](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/content/docs/hook-root-admission.md#L262), not universal shell mediation. Thread implementation proposals were treated as described design, not commands to act.\n\nThe audited harvest can remain unchanged for pain-P1 through pain-P4. This post does not dispose other audit markers or certify completed-arc admission.\n\n",
+          "id": 6959070860,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6959070860",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:48:17Z",
+          "updated_at": "2026-11-17T19:48:17Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Tokenizer misses background &, subshell, and sh/bash -c at the pin | verified | pin-read `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/hooks/commit-target.ts` plus function-level probes in critics 6958712529 and 6959070860 |\n| Detected subshell can resolve to hook-root | verified | same pin-read; `(cd /x && git commit)` resolves to hook-root; Codex C1 and Claude F1 |\n| Recognize-then-deny relieves P1–P4 | verified | Bound remedy items 1–4 on successor lean 6958924293 plus pain-audit 6959070860 (gpt-6), a different family from the lean author |\n| Remaining class members stay leftover on #3595 | footnote | Claude F2; not Bound-remedy |\n\nNon-self-arbitration: this parent authored Stop 1 6958482414, panel-deposit 6958532677, and successor lean 6958924293. Pain-audit 6959070860 is the independent check.\n\n",
+          "id": 6959105068,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6959105068",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:49:42Z",
+          "updated_at": "2026-11-17T19:49:42Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe commit-gate tokenizer still misses background &, subshell, and sh/bash -c, and one already-recognized subshell form judges the wrong checkout. The accepted design treats a commit signal outside the canonical shapes as unresolvable and denies it, splits lone &, and never falls back to hook-root unless the parse proves the target.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6958924293, verified-claims table 6959105068.\n\narc-mode: no-ingest\n\n",
+          "id": 6959107862,
+          "html_url": "https://github.com/deftai/directive/issues/6362#issuecomment-6959107862",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:49:50Z",
+          "updated_at": "2026-11-17T19:49:50Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe commit gate does not recognize some shell forms as commits, so the gate does not run for them. Seen by wave 2a workers on master's detector, and reported as still missed by the #6278 tokenizer branch (2026-11-15).\n\n## Forms missed\n\n- a commit after a background `&` (`cd /x & git commit ...`) instead of `&&`\n- a commit inside a subshell: `cd /x && (git commit ...)`\n- a commit inside a `sh -c` or `bash -c` wrapper\n\n## Why it matters\n\nThe commit gate is what admits or refuses a commit from an agent (branch policy, scope, worker authority). A form it does not see is a commit with no gate.\n\n## Expected\n\n- These forms are recognized as commits and go through the same gate as a plain commit.\n- A wrapper the parser cannot read (`sh -c` with a non-literal body) fails closed as a commit, per the #3597 recognizer rule, instead of passing as \"not a commit\".\n\n## Acceptance Criteria\n\n- Given a commit after a background `&`, when the PreToolUse hook classifies the command, then the commit gate runs.\n- Given a commit inside a subshell, then the commit gate runs.\n- Given a commit inside a `bash -c` or `sh -c` literal body, then the commit gate runs.\n- Given a `sh -c` body that is not a literal string, then the hook fails closed.\n- All three forms are rechecked against the 0.129.10 tokenizer first; any it already handles gets a test and drops out of this issue.\n\nRefs #6278. Refs #3597. Related: #3595.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6413053214,
+        "origin": "deftai/directive#6362",
+        "id": "github.issue.6413053214"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "60e8adea884b1f440040a7ca7a2ce8b385adfa5b4f662d4b9fc4cdd9d02bec7e"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6362,
+        "leanCommentId": 6958924293,
+        "harvestDigest": "289f8c8750881880f60cac1e23372dcff5de7386ca460d91ab4a60fe2be579d0",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts",
+          "content/docs/hook-root-admission.md",
+          "changelog.d/6362-commit-gate-wrapper-forms.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "hooks-commit-target",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/commit-target.test.ts packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts"
+        ],
+        "expected_outputs": [
+          "a lone & ends a shell segment; &>, >&, <&, 2>&1 and |& work as today",
+          "a commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable, and the hook denies it with COMMIT_TARGET_ACCEPTED_FORMS; it never falls back to hook-root or an outer named path",
+          "grouping, a git commit inside a literal sh|bash -c body, wrappers, eval, unreadable command words and a non-literal -c or eval body are commit signals, also when a visible commit comes before or after them",
+          "the clause 4 deny fixtures deny through the real dispatcher; (cd /r/wt) && git commit stays hook-root",
+          "one changelog fragment changelog.d/6362-commit-gate-wrapper-forms.md"
+        ],
+        "Traces": [
+          "#6362"
+        ],
+        "acceptance_criteria_justification": "Four clauses: the four Bound remedy items of the accepted lean (comment 6958924293, synthesis 6959107862), one same-text clause each as the harvest admitted them. parallel_safe is true: no running brief declares these files. packages/core/src/hooks/dispatcher.ts is left out on purpose: it already denies an unresolvable target, and running brief #6221 declares it. The lean's Leftover-pain (if/for/env/xargs/pushd/GIT_DIR and other commit-creating git verbs) stays on #3595."
+      }
+    },
+    "id": "github.issue.6413053214",
+    "updated": "2026-11-18T00:30:03Z"
+  }
+}

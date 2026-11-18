@@ -278,6 +278,8 @@
           "packages/core/src/scope-provenance/evaluate-git.test.ts",
           "packages/core/src/hooks/dispatcher-story-binding.test.ts",
           "packages/core/src/hooks/story-binding-in-pr-completion.test.ts",
+          "packages/core/src/refusal-declarations/table.ts",
+          "packages/core/src/refusal-declarations/remedy-runs.test.ts",
           "content/docs/scope-provenance.md",
           "changelog.d/6221-fence-parity-budgeted-extras.md"
         ],
