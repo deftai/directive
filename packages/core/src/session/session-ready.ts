@@ -25,6 +25,7 @@ import {
   formatOccupancyClaimProvenance,
   isPersistTimeAcquisition,
   type OccupancyDecision,
+  type OccupancyInvocation,
   resolveOccupancySessionClaim,
   rollbackAcquiredOccupancy,
 } from "./occupancy.js";
@@ -86,6 +87,8 @@ export interface SessionReadyOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Explicit lifecycle owner resolved by the host/session bridge (#3611). */
   readonly sessionId?: string;
+  /** Invoked verb and argv, used only to print the full re-run command (#6647). */
+  readonly invocation?: OccupancyInvocation;
   /** When set, overrides DEFT_TRIAGE_REPO / git remote inference for cache recovery. */
   readonly repo?: string | null;
   readonly sessionStartOptions?: Omit<SessionStartOptions, "now" | "runGit" | "env" | "sessionId">;
@@ -199,6 +202,7 @@ export function runSessionReady(
     sessionId: options.sessionId,
     env,
     newSessionId: options.sessionStartOptions?.newSessionId,
+    invocation: options.invocation,
   });
   if (claim.status === "refuse-mint") {
     lines.push(claim.message);
