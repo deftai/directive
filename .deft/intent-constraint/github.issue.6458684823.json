@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6458684823",
+  "xbriefRelPath": "xbrief/active/2026-11-18-6609-bugingest-the-derived-acceptance-rung-turns-every-prose-sent.xbrief.json",
+  "approvedAt": "2026-11-18T21:57:01Z",
+  "constraints": [
+    {
+      "value": "2",
+      "unit": "extractor-version",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-18T21:57:01Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "76835b308b02ebcd661731741f49d52a3b156ebb96a8a801dd3de7825310cab2"
+}
