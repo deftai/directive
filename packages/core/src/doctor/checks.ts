@@ -494,8 +494,12 @@ export function checkDanglingNodeModulesLinks(
   // platform packages it did not install). Only a Directive package link or a
   // link into an agent scratch worktree (#3749) is a broken install; any other
   // dangling link is an advisory warning.
+  // A Directive package can sit at the top or under a nested `node_modules`
+  // (for example `.pnpm/node_modules/@deftai/...`).
+  const isDirectivePackageLink = (rel: string): boolean =>
+    rel.startsWith("@deftai/") || rel.includes("node_modules/@deftai/");
   const hard = dangling.filter(
-    (d) => d.agentScratchWorktreeTarget || d.relativePath.startsWith("@deftai/"),
+    (d) => d.agentScratchWorktreeTarget || isDirectivePackageLink(d.relativePath),
   );
   if (hard.length === 0) {
     return {

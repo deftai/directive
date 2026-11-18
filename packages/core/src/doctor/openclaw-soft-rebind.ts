@@ -1,5 +1,6 @@
 /**
- * Doctor check + --fix wire for OpenClaw soft AGENTS re-bind skill (#3171).
+ * Doctor check for the OpenClaw soft AGENTS re-bind skill (#3171). Read-only
+ * (AC12.1, #6622): `directive install --repair` deposits it.
  *
  * Complements always-pins (#3001/#3008) and L2 product commands (#3064). This
  * skill is the required durable soft post-amnesia surface for OpenClaw — not
@@ -19,6 +20,7 @@ import {
   depositOpenClawSoftRebindSkill,
   type OpenClawSoftRebindDepositResult,
 } from "../session/openclaw-soft-rebind-deposit.js";
+import { OPENCLAW_MAIN_WORKSPACE_ONLY_NOTE } from "./openclaw-l2-adapter.js";
 import { detectOpenClaw, listInScopeSkillsDirs } from "./openclaw-skills.js";
 import type { OutputSink } from "./output.js";
 import type { DoctorSeams, Finding } from "./types.js";
@@ -136,7 +138,8 @@ export function runOpenClawSoftRebindCheck(
   }
   const message =
     `${OPENCLAW_SOFT_REBIND_CHECK}: OpenClaw soft AGENTS re-bind skill incomplete ` +
-    `(${parts.join("; ")}). Remediation: ${REMEDIATION_FIX} — see ${DOC_OPENCLAW_HOST}`;
+    `(${parts.join("; ")}). Remediation: ${REMEDIATION_FIX} — see ${DOC_OPENCLAW_HOST}` +
+    (options.allAgents ? `. ${OPENCLAW_MAIN_WORKSPACE_ONLY_NOTE}` : "");
   sink.warn(message);
   addFinding({
     severity: "warning",

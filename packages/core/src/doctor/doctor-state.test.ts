@@ -178,18 +178,20 @@ describe("doctor-state", () => {
   });
 
   it("readState returns null for corrupt json", () => {
-    expect(readState("/tmp", () => "{bad")).toBeNull();
+    expect(readState(tmpdir(), () => "{bad")).toBeNull();
   });
 
   it("readState parses optional numeric fields", () => {
-    const state = readState("/tmp", () => JSON.stringify({ last_run_at: "2026-01-01T00:00:00Z" }));
+    const state = readState(tmpdir(), () =>
+      JSON.stringify({ last_run_at: "2026-01-01T00:00:00Z" }),
+    );
     expect(state?.lastExitCode).toBe(0);
     expect(state?.lastFindingCount).toBe(0);
     expect(state?.lastErrorCount).toBe(0);
   });
 
   it("readState rejects invalid iso timestamp", () => {
-    expect(readState("/tmp", () => JSON.stringify({ last_run_at: "not-a-date" }))).toBeNull();
+    expect(readState(tmpdir(), () => JSON.stringify({ last_run_at: "not-a-date" }))).toBeNull();
   });
 
   it("formatIsoZ handles null", () => {
@@ -263,7 +265,7 @@ describe("doctor-state", () => {
   });
 
   it("readState leaves an absent or non-boolean deposit bit unset (#4886)", () => {
-    const absent = readState("/tmp", () =>
+    const absent = readState(tmpdir(), () =>
       JSON.stringify({
         last_run_at: "2026-01-01T00:00:00Z",
         last_error_count: 1,
@@ -271,7 +273,7 @@ describe("doctor-state", () => {
     );
     expect(absent?.lastErrorCount).toBe(1);
     expect(absent?.lastHasDeftCore).toBeUndefined();
-    const junk = readState("/tmp", () =>
+    const junk = readState(tmpdir(), () =>
       JSON.stringify({
         last_run_at: "2026-01-01T00:00:00Z",
         last_has_deft_core: "yes",

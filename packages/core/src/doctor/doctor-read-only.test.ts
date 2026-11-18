@@ -175,4 +175,49 @@ describe("dangling node_modules links (#5967 item 3)", () => {
     expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(false);
     expect(result.detail).toContain("Broken install");
   });
+
+  it("a dangling Directive link under a nested node_modules still fails", () => {
+    const root = temp();
+    const dir = join(root, "node_modules", ".pnpm", "node_modules", "@deftai");
+    mkdirSync(dir, { recursive: true });
+    symlinkSync(join(root, "nowhere"), join(dir, "directive-content"), "junction");
+    const result = checkDanglingNodeModulesLinks(root, { packageManager: "pnpm" });
+    expect(result.status).toBe("fail");
+    expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(false);
+  });
+});
+
+describe("legacy Taskfile include advice (#5967 item 1)", () => {
+  function taskfileFinding(root: string): { message?: string; suggestion?: string } | undefined {
+    const chunks: string[] = [];
+    const out = vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      chunks.push(String(c));
+      return true;
+    });
+    try {
+      cmdDoctor(["--json", "--project-root", root], { whichFn: () => "/bin/x" });
+    } finally {
+      out.mockRestore();
+    }
+    const payload = JSON.parse(chunks.join("")) as {
+      findings: Array<{ check?: string; message?: string; suggestion?: string }>;
+    };
+    return payload.findings.find((f) => f.check === "taskfile-include");
+  }
+
+  it("names repair for the .deft/core form setup rewrites", () => {
+    const root = temp();
+    taskfile(root, "./.deft/core/Taskfile.yml");
+    expect(taskfileFinding(root)?.suggestion).toBe("directive install --repair");
+  });
+
+  it("names the hand edit for a deft/ form setup does not rewrite", () => {
+    const root = temp();
+    taskfile(root, "./deft/Taskfile.yml");
+    const finding = taskfileFinding(root);
+    expect(finding?.suggestion).toBe(
+      "taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml",
+    );
+    expect(finding?.message).not.toContain("install --repair");
+  });
 });

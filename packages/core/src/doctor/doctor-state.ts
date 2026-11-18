@@ -35,9 +35,10 @@ function parseIso(ts: unknown): Date | null {
 }
 
 export function readState(projectRoot: string, readFile = defaultReadFile): DoctorState | null {
-  const path = statePath(projectRoot);
   try {
-    const raw = readFile(path);
+    // Inside the try: resolving the path can throw for a missing project
+    // directory (for example `/tmp` on Windows); an unreadable record is null.
+    const raw = readFile(statePath(projectRoot));
     const data = JSON.parse(raw) as Record<string, unknown>;
     const lastRunAt = parseIso(data.last_run_at);
     if (!lastRunAt) {

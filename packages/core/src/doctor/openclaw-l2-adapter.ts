@@ -10,6 +10,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { RUNTIME_PACKAGE_PATH_PREFIX } from "../install-health/constants.js";
 import {
   generateOpenClawSkillArtifacts,
   isManagedOpenClawL2Skill,
@@ -31,6 +32,13 @@ const DOC_SLASH_MULTI = "docs/slash-multi-host.md";
 /** Setup deposits (or, when opted out, removes) these skills; doctor only reports (AC12.1, #6622). */
 const REMEDIATION_FIX = "directive install --repair";
 
+/**
+ * `directive install --repair` deposits OpenClaw skills into the main workspace
+ * only; doctor names that limit when it also checked `workspace-*` seats.
+ */
+export const OPENCLAW_MAIN_WORKSPACE_ONLY_NOTE =
+  "Repair covers the main OpenClaw workspace only; other workspace seats keep their current files.";
+
 export interface RunOpenClawL2AdapterOptions {
   readonly projectRoot: string;
   readonly jsonMode: boolean;
@@ -44,6 +52,16 @@ function defaultIsDir(path: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The bytes setup leaves on disk: it deposits the generated skill, then
+ * rewrites `.deft/core/` paths to the installed runtime package path
+ * (`rewriteOpenClawSkillsDir`). Both forms are current.
+ */
+function setupRewrittenForm(markdown: string): string {
+  const next = markdown.split(".deft/core/").join(RUNTIME_PACKAGE_PATH_PREFIX);
+  return next.endsWith("\n") ? next : `${next}\n`;
 }
 
 function assessGaps(skillsDirs: readonly string[]): {
@@ -74,7 +92,7 @@ function assessGaps(skillsDirs: readonly string[]): {
         present += 1;
         continue;
       }
-      if (raw === art.skillMarkdown) {
+      if (raw === art.skillMarkdown || raw === setupRewrittenForm(art.skillMarkdown)) {
         present += 1;
       } else {
         stale.push(`${skillsDir}/${art.slug}`);
@@ -152,7 +170,8 @@ export function runOpenClawL2AdapterCheck(
   const message =
     `${OPENCLAW_L2_ADAPTER_CHECK}: OpenClaw L2 product-command skills incomplete ` +
     `(missing: ${gaps.missing.length}, stale: ${gaps.stale.length}) under ${skillsDirs.join(", ")}. ` +
-    `Remediation: ${REMEDIATION_FIX}. See ${DOC_OPENCLAW_HOST}, ${DOC_SLASH_MULTI}.`;
+    `Remediation: ${REMEDIATION_FIX}.${options.allAgents ? ` ${OPENCLAW_MAIN_WORKSPACE_ONLY_NOTE}` : ""} ` +
+    `See ${DOC_OPENCLAW_HOST}, ${DOC_SLASH_MULTI}.`;
   sink.warn(message);
   addFinding({
     severity: "warning",

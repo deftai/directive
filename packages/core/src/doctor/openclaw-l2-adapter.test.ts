@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { OPENCLAW_L2_ADAPTER_CHECK, runOpenClawL2AdapterCheck } from "./openclaw-l2-adapter.js";
+import { generateOpenClawSkillArtifacts } from "../slash/openclaw-adapter.js";
+import {
+  OPENCLAW_L2_ADAPTER_CHECK,
+  OPENCLAW_MAIN_WORKSPACE_ONLY_NOTE,
+  runOpenClawL2AdapterCheck,
+} from "./openclaw-l2-adapter.js";
 import { createPlainSink } from "./output.js";
 import type { Finding } from "./types.js";
 
@@ -88,5 +93,53 @@ describe("doctor OpenClaw L2 adapter check (#3064)", () => {
     });
     expect(findings[0]?.status).toBe("opted-out");
     expect(String(findings[0]?.message)).toContain("directive install --repair");
+  });
+
+  it("counts skills that setup rewrote to the runtime path as present", () => {
+    const project = makeTemp("oc-l2-doc-rewritten-");
+    const home = makeTemp("oc-l2-doc-home4-");
+    const state = join(home, ".openclaw");
+    const skills = join(state, "workspace", "skills");
+    for (const art of generateOpenClawSkillArtifacts()) {
+      mkdirSync(join(skills, art.slug), { recursive: true });
+      const rewritten = art.skillMarkdown
+        .split(".deft/core/")
+        .join("node_modules/@deftai/directive-runtime/");
+      writeFileSync(
+        join(skills, art.slug, "SKILL.md"),
+        rewritten.endsWith("\n") ? rewritten : `${rewritten}\n`,
+      );
+    }
+    const findings: Finding[] = [];
+    runOpenClawL2AdapterCheck(
+      createPlainSink({ write: () => undefined, jsonMode: true }),
+      (f) => findings.push(f),
+      {
+        projectRoot: project,
+        jsonMode: true,
+        allAgents: false,
+        seams: { openclawEnv: { OPENCLAW_STATE_DIR: state }, openclawHomeDir: () => home },
+      },
+    );
+    expect(findings[0]?.status).toBe("present");
+  });
+
+  it("says repair covers only the main workspace when all seats were checked", () => {
+    const project = makeTemp("oc-l2-doc-seats-");
+    const home = makeTemp("oc-l2-doc-home5-");
+    const state = join(home, ".openclaw");
+    mkdirSync(join(state, "workspace", "skills"), { recursive: true });
+    const findings: Finding[] = [];
+    runOpenClawL2AdapterCheck(
+      createPlainSink({ write: () => undefined, jsonMode: true }),
+      (f) => findings.push(f),
+      {
+        projectRoot: project,
+        jsonMode: true,
+        allAgents: true,
+        seams: { openclawEnv: { OPENCLAW_STATE_DIR: state }, openclawHomeDir: () => home },
+      },
+    );
+    expect(String(findings[0]?.message)).toContain(OPENCLAW_MAIN_WORKSPACE_ONLY_NOTE);
   });
 });

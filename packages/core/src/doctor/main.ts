@@ -132,6 +132,7 @@ import {
   formatMissingIncludeSnippet,
   GATES_SURFACE_DEFT_REMEDIATION,
   includesBlockHasDeftTaskfile,
+  RUNTIME_TASKFILE_INCLUDE_LINE,
   resolveConsumerTaskfile,
 } from "./taskfile.js";
 import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
@@ -1801,9 +1802,21 @@ function runTaskfileIncludeCheck(
   if (includeStatus === "legacy-include") {
     // #5967 item 1: the include still points at the old layout, which upgrade removed.
     const tf = resolveConsumerTaskfile(projectRoot);
+    let tfText = "";
+    try {
+      tfText = tf === null ? "" : readFileSync(tf, "utf8");
+    } catch {
+      tfText = "";
+    }
+    // Setup (`ensureTaskfileInclude`) rewrites only the `./.deft/core/Taskfile.yml`
+    // form; any other old form (`deft/`, `.yaml`) needs a hand edit.
+    const repairable = /taskfile:\s*\.\/\.deft\/core\/Taskfile\.yml/.test(tfText);
+    const fix = repairable
+      ? `Run \`${RECOVERY_LADDER_INSTALL_REPAIR}\`.`
+      : `Change that include to \`${RUNTIME_TASKFILE_INCLUDE_LINE}\`.`;
     const message =
       "Gates-surface readiness: root Taskfile.yml still includes the old `.deft/core` (or `deft/`) " +
-      `Taskfile, which no longer exists. Directive wiring is damaged. Run \`${RECOVERY_LADDER_INSTALL_REPAIR}\`.`;
+      `Taskfile, which no longer exists. Directive wiring is damaged. ${fix}`;
     sink.warn(message);
     addFinding({
       severity: "warning",
@@ -1811,7 +1824,7 @@ function runTaskfileIncludeCheck(
       check: "taskfile-include",
       status: "legacy-include",
       file: tf,
-      suggestion: RECOVERY_LADDER_INSTALL_REPAIR,
+      suggestion: repairable ? RECOVERY_LADDER_INSTALL_REPAIR : RUNTIME_TASKFILE_INCLUDE_LINE,
     });
     return;
   }
