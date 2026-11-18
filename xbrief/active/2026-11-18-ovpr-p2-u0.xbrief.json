@@ -8,7 +8,7 @@
     "title": "installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check)",
     "status": "running",
     "narratives": {
-      "Description": "installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check)",
+      "Description": "OVPR fix plan unit P2-U0 (story id ovpr-p2-u0), spec units/P2-U0-publish-ownership-record-api.md. A new read-only module, packages/core/src/install-health/owned-paths.ts, lists what Directive owns in a project (listDirectiveOwnedPaths) and says whether a file change is Directive-only (classifyDirectiveOwnedChange). Setup also records the four deft-hook-<sha8>.mjs hook files in GENERATION.json, and both uninstallers learn to match the .mjs hook command, so uninstall removes the registrations and then the files. The commit gate (P4-U1), doctor and uninstall read this API later instead of keeping their own lists.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6615",
       "Overview": "## Problem\n\nDirective writes files into every project: hook files, hook settings, git hooks, skill pointers, a block in `AGENTS.md`, lines in `.gitignore` and `.gitattributes`, and its own dependency line in `package.json` and the lockfile. Several parts of Directive need to know exactly which changes are Directive's own: uninstall (to remove them), doctor (to warn about them), the commit gate (to let them through), and the `.gitattributes` cleanup.\n\nToday each part keeps its own hand-written list. The lists disagree, and all of them are incomplete. The most visible result: a person or agent cannot commit Directive's own refreshed files without a planning brief (#5771, #5944, #5949). A second result: uninstall does not recognise the current hook files at all.\n\nEvidence (origin/master `def527f5e`):\n- The record exists and is written on every setup. Format, reader and writer: `packages/core/src/install-health/ownership.ts` (`GENERATION_REL` `:26`; `parseOwnershipRecord` `:193`, which rejects the whole record on an unknown kind; `readOwnershipRecord` `:316`). Writer: `buildOwnershipArtifacts` in `packages/runtime/src/setup.ts:276`, called from `runSetup` (`:486`).\n- Not in the record:\n  - the hook `.mjs` outers (`deft-hook-<sha8>.mjs`, four hosts), written by `ensureHostHooks` (`packages/runtime/src/setup-wiring.ts:1010`);\n  - the managed `.gitignore` lines (`setup.ts:166-168`);\n  - the managed `.gitattributes` lines (`ensureManagedPathGitattributes`, `setup-wiring.ts:480`);\n  - the managed `.prettierignore` line;\n  - the `package.json` dependency entry and the lockfile entries.\n- Other hand-kept lists, none of which reads the record:\n  - `MANAGED_HOOK_DEPOSIT_REL_PATHS` / `isLifecycleOrInstallerRelPath` in `packages/core/src/hooks/dispatcher.ts:5598-5615` (the commit gate);\n  - `installerManagedMatchers()` in `packages/core/src/init-deposit/hygiene.ts:100` (retired deft-core-guard, #5835);\n  - `INSTALLER_OUTPUT_INVENTORY` in `packages/runtime/src/installer-output-inventory.ts` (prose, not a machine list).\n- Uninstall defect (found by reading, not by running): both `isManagedHookCommand` functions (`packages/runtime/src/uninstall.ts:76-84`, `packages/cli/src/uninstall-map.ts:447-454`) test `/(^|[\\s\"`'])deft-hook([\\s\"`']|$)/`. The registered command is `node .claude/deft-hook-<sha8>.mjs …`. The character before `deft-hook` is `/` and the one after is `-`, so it never matches. Setup's own matcher uses `isHostHookOuterCommand` (`packages/core/src/init-deposit/host-hook-outer.ts:66-67`). After uninstall, the registrations and the `.mjs` files stay and point at a removed runtime (AC11.4, AC11.11).\n- Reusable content-aware helpers already exist in `hygiene.ts` (#3193): `isDirectiveDependencyKey` (`:345`), `isUpgradePinPathContentAllowed` (`:809`) and the lockfile follow-through checks it calls.\n\n## What the design says\n\n- AC11.10: the committed ownership record \"identifies wholly owned files, Directive-owned marked sections or structured entries in shared files, and settings/data that survive uninstall.\" The launcher treats it as bounded cleanup information, \"never authority to delete arbitrary paths or user content.\"\n- §A6.1: `GENERATION.json` holds ownership and removal information. \"Representation is an implementation detail, not a generic installer framework.\"\n- AC11.2, AC11.4: uninstall uses the record and the launcher's known-layout map; no owned registration may remain that targets a deleted file.\n- AC3.1 / AC3.3: the launcher may know the record and the uninstall map, but has no runtime or core dependency.\n- AC8.5: setup adds only the `node_modules` and readiness-marker ignore lines.\n- AC12.1: doctor writes nothing, so anything doctor calls must be a pure read.\n- D-001 (Rule 2): the commit gate reads the installer's ownership record, not a hand-kept list. polfer publishes the record (this ticket); Scott's gate reads it (P4-U1, #5771).\n- D-026: class 4 uses `classifyDirectiveOwnedChange` (P2-U14).\n- D-027: the `minimumReleaseAgeExclude` row in `pnpm-workspace.yaml` is not Directive-owned. Leave it out.\n\n## Expected\n\n1. **Record the `.mjs` outers.** `buildOwnershipArtifacts` adds a `whole-file` entry for each host outer on disk at `hostHookOuterRelPath(host, hostHookOuterSha8())`. No new ownership kind.\n2. **Fix both uninstall matchers in the same PR.** Add `isHostHookOuterCommand` to `runtime/src/uninstall.ts`. Add the same regex inline to `cli/src/uninstall-map.ts` (the launcher can't import core). Add the `.mjs` pattern for all four hosts to `discoverKnownArtifacts`, so a missing record still finds them. Without this step, step 1 makes uninstall delete the `.mjs` files while their registrations stay.\n3. **New module `packages/core/src/install-health/owned-paths.ts`** (pure, read-only), exported from `install-health/index.ts`:\n   - `listDirectiveOwnedPaths(projectRoot)`: the committed record plus the runtime's known Directive path classes. Each entry has `path` (or `pattern`), `kind` (`whole-file`, `marked-section`, `structured-entry`, `managed-lines`, `dependency-entry`, `retired`, `retained`), `mustCommit` (false only for readiness markers) and `source` (`record` or `known`).\n   - `classifyDirectiveOwnedChange(relPath, before, after)` → `\"directive-only\" | \"mixed\" | \"not-owned\"`. Rules:\n     - `whole-file` and the `.mjs` pattern (any sha8, any of the four host directories): `directive-only` for create, modify or delete.\n     - `retired` (Grok `.sh` wrapper, `.githooks/_deft-run.sh`, `.deft-version` markers): `directive-only` only on deletion.\n     - `AGENTS.md`: compare with the managed section removed from both sides.\n     - Host configs: compare with Directive's hook entries removed; invalid JSON is `mixed`.\n     - `Taskfile.yml`: compare with the `deft:` include removed; a new file equal to setup's minimal Taskfile is `directive-only`.\n     - `managed-lines`: compare as line multisets after removing Directive's known lines.\n     - `dependency-entry`: delegate to `isUpgradePinPathContentAllowed`; handle a new `package.json` or lockfile explicitly (the #5771 first-install case).\n     - Anything else: `not-owned`.\n   - Safety rule: a record entry counts only if its path is inside a known Directive path class. A record entry outside those classes (for example `src/app.ts`) is ignored and reported (AC11.10).\n4. **Use it in the runtime uninstaller now.** `runtime/src/uninstall.ts` builds its fallback lists from `listDirectiveOwnedPaths` instead of its local constants. The launcher keeps its own copy (AC3.1); a test compares the launcher's known-map paths with `listDirectiveOwnedPaths` on the same fixture.\n5. Leave `installerManagedMatchers()` alone (it belongs to #5835). Add a comment that points to the new API.\n\nMust not do: no new kind value in `GENERATION.json` (an older runtime would reject the whole record); no writes of any kind (doctor will call this); don't widen `.gitignore`; don't edit `dispatcher.ts` (the gate change is P4-U1); don't trust the record for arbitrary paths; no generic installer registry.\n\nOpen unit questions (the unit ships with the recommended answer unless polfer says otherwise):\n- Q1: shared-file lines and dependency entries stay as code knowledge in the API, not in `GENERATION.json`. (Putting them in the record would change uninstall behaviour.)\n- Q2: whole Directive files pass by path alone in v1. An optional byte check for the `.mjs` outer only.\n- Q3b: `.deft/hook-gate-off.json` is per-clone state, not owned for commit purposes.\n\nIf the PR must split: P2-U0a = steps 3 and 5 (API only, no behaviour change); P2-U0b = steps 1, 2 and 4. P2-U0b never merges without step 2.\n\n## Acceptance criteria\n\n1. After `directive install` in a fixture, `GENERATION.json` lists every `deft-hook-<sha8>.mjs` that setup wrote, as `whole-file`.\n2. `listDirectiveOwnedPaths(root)` returns: hook `.mjs`, host configs, `.githooks/*`, `GENERATION.json`, `data-schema.json`, the `AGENTS.md` block, skill pointers, slash wrappers, managed `.gitignore` / `.gitattributes` / `.prettierignore` lines, `package.json` / lockfile dependency entries, and readiness markers with `mustCommit: false`.\n3. `listDirectiveOwnedPaths` and `classifyDirectiveOwnedChange` perform no file or git writes (tested on a read-only fixture directory).\n4. `classifyDirectiveOwnedChange` returns the documented result for each test case: new `package.json` from install; `package.json` with an extra user script (`mixed`); `pnpm-lock.yaml` follow-through; `AGENTS.md` with user edits outside the block (`mixed`); `.claude/settings.json` with a user hook added (`mixed`); `.cursor/hooks/consumer-custom.mjs` (`not-owned`); old-sha8 `.mjs` deletion (`directive-only`).\n5. A record entry outside the known Directive path classes is ignored.\n6. `directive uninstall` on a current install removes all `.mjs` registrations before removing the `.mjs` files, and reports none left (AC11.4). Same through the launcher fallback with the record deleted.\n7. Running setup twice with no change leaves `GENERATION.json` byte-identical.\n\nVerification: `pnpm vitest run packages/core/src/install-health packages/runtime/src/uninstall.test.ts packages/cli/src/uninstall-bookend.test.ts packages/runtime/src/setup`, and `task check` on the PR.\n\n## Related\n\n- #5771, #5944, #5949: the commit gate reads this API in P4-U1 (Scott). Comment on each when this lands.\n- #6006: a correct owned-file list for the \"Review and commit\" output (that presenter fix stays in #6006).\n- #6007, #5999: uninstall lane (P2-U7). The `.mjs` uninstall defect is fixed here; #<uninstall .mjs ticket> if filed, else a comment on #6007.\n- #5835: retired deft-core-guard (`installerManagedMatchers`).\n- #6616, #6618: readers of this API.\n\n## Plan placement\n\n- Unit P2-U0, story id `ovpr-p2-u0`. Phase 2, wave 2.1. Size M.\n- Depends on: nothing.\n- Blocks: P2-U14 (class 4), P4-U1 (commit gate), P3-U2b (doctor hidden-file warning), P2-U5 (attributes cleanup).\n\n",
       "Labels": "enhancement, area:installer",
@@ -18,7 +18,8 @@
       "Constraint": "- No new `OwnershipKind` value in `GENERATION.json`. `managed-lines` and `dependency-entry` exist only in the API, from code knowledge.\n- No writes: both functions are pure reads (no `git add`, no file writes, no `git config`), so doctor can call them (AC12.1).\n- Do not widen `.gitignore` (AC8.5).\n- Do not edit `dispatcher.ts`. The gate change is Scott's (P4-U1).\n- Do not trust the record as authority for arbitrary paths (AC11.10).\n- Do not add a generic installer registry (AC8.10, §A6.1).\n- Do not change `installerManagedMatchers()`; add a comment pointing to the new API only.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
       "Dependencies": "Depends on: none. Blocks: P2-U14 (class 4 reads `classifyDirectiveOwnedChange`), P4-U1 (commit gate), P3-U2 (doctor ignore warning), P2-U5 (attributes cleanup). Open questions Q1/Q2/Q3b ship with the spec's recommended answers (code knowledge for managed lines and dependency entries; path-only for whole files; hook-gate-off.json is per-clone state). Q3 decided by D-027: leave the pnpm-workspace row out.",
       "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
-      "Traces": "The uninstall `.mjs` matcher fix (Fix step 2) stays in this unit, as the spec says. It is the uninstall defect tracked under #6007 (and #5999); no separate ticket is filed for it now."
+      "Traces": "The uninstall `.mjs` matcher fix (Fix step 2) stays in this unit, as the spec says. It is the uninstall defect tracked under #6007 (and #5999); no separate ticket is filed for it now.",
+      "UserStory": "As a Directive maintainer, I want one read-only API that lists what Directive owns in a project and says whether a file change is Directive-only, so that the commit gate, doctor and uninstall stop keeping their own lists and uninstall also removes the .mjs hook files."
     },
     "items": [
       {
@@ -26,7 +27,7 @@
         "status": "proposed",
         "id": "clause.61",
         "narrative": {
-          "Acceptance": "After `directive install` in a fixture, `GENERATION.json` lists every `deft-hook-<sha8>.mjs` that setup wrote, as `whole-file`."
+          "Acceptance": "Given a fixture project, when `directive install` runs, then `GENERATION.json` records every `deft-hook-<sha8>.mjs` that setup wrote as `whole-file`."
         }
       },
       {
@@ -42,7 +43,7 @@
         "status": "proposed",
         "id": "clause.63",
         "narrative": {
-          "Acceptance": "`listDirectiveOwnedPaths` and `classifyDirectiveOwnedChange` perform no file or git writes (test with a read-only fixture directory)."
+          "Acceptance": "Given a read-only fixture directory, when `listDirectiveOwnedPaths` and `classifyDirectiveOwnedChange` run, then they return their results and make no file or git writes."
         }
       },
       {
@@ -58,7 +59,7 @@
         "status": "proposed",
         "id": "clause.65",
         "narrative": {
-          "Acceptance": "A record entry outside the known Directive path classes is ignored."
+          "Acceptance": "Given a record entry outside the known Directive path classes, when `listDirectiveOwnedPaths` runs, then it ignores that entry."
         }
       },
       {
@@ -66,7 +67,7 @@
         "status": "proposed",
         "id": "clause.66",
         "narrative": {
-          "Acceptance": "`directive uninstall` on a current install removes all `.mjs` registrations before removing the `.mjs` files, and reports none left (AC11.4)."
+          "Acceptance": "Given a current install, when `directive uninstall` runs, then it removes all `.mjs` registrations before it deletes the `.mjs` files, and reports none left (AC11.4)."
         }
       },
       {
@@ -74,7 +75,7 @@
         "status": "proposed",
         "id": "clause.68",
         "narrative": {
-          "Acceptance": "Running setup twice with no change leaves `GENERATION.json` unchanged."
+          "Acceptance": "Given a set-up project with no change, when setup runs a second time, then `GENERATION.json` stays byte-identical."
         }
       }
     ],
@@ -156,7 +157,7 @@
         "readiness": "ready",
         "depends_on": [],
         "verify_commands": [
-          "pnpm vitest run packages/core/src/install-health packages/runtime/src/uninstall.test.ts packages/cli/src/uninstall-bookend.test.ts packages/runtime/src/setup"
+          "pnpm exec vitest run packages/core/src/install-health packages/runtime/src/uninstall.test.ts packages/cli/src/uninstall-bookend.test.ts packages/runtime/src/setup"
         ],
         "Traces": [
           "#6615",
@@ -166,7 +167,23 @@
           "#6006",
           "#5999",
           "#6007"
-        ]
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-setup",
+        "expected_outputs": [
+          "After `directive install` in a fixture, `GENERATION.json` lists every `deft-hook-<sha8>.mjs` that setup wrote, as `whole-file`.",
+          "`listDirectiveOwnedPaths(root)` returns: hook `.mjs`, host configs, `.githooks/*`, `GENERATION.json`, `data-schema.json`, the `AGENTS.md` block, skill pointers, slash wrappers, managed `.gitignore` / `.gitattributes` / `.prettierignore` lines, `package.json` / lockfile dependency entries, and readiness markers with `mustCommit: false`.",
+          "`listDirectiveOwnedPaths` and `classifyDirectiveOwnedChange` perform no file or git writes (tested on a read-only fixture directory).",
+          "`classifyDirectiveOwnedChange` returns the documented result for each test case: new `package.json` from install; `package.json` with an extra user script (`mixed`); `pnpm-lock.yaml` follow-through; `AGENTS.md` with user edits outside the block (`mixed`); `.claude/settings.json` with a user hook added (`mixed`); `.cursor/hooks/consumer-custom.mjs` (`not-owned`); old-sha8 `.mjs` deletion (`directive-only`).",
+          "A record entry outside the known Directive path classes is ignored.",
+          "`directive uninstall` on a current install removes all `.mjs` registrations before removing the `.mjs` files, and reports none left (AC11.4). Same through the launcher fallback with the record deleted.",
+          "Running setup twice with no change leaves `GENERATION.json` byte-identical.",
+          "one changelog fragment changelog.d/6615-ownership-record-api.md"
+        ],
+        "acceptance_criteria_justification": "Seven items: the seven acceptance criteria of unit spec P2-U0, one each. The spec allows a split into P2-U0a (API) and P2-U0b (record and uninstall) if the PR goes over five production files."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -380,7 +397,8 @@
           "text": "Problem Directive writes files into every project: hook files, hook settings, git hooks, skill pointers, a block in `AGENTS.md`, lines in `.gitignore` and `.gitattributes`, and its own dependency line in `package.json` and the lockfile.",
           "artifact_path": "packages/core/src/install-health/owned-paths.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 3,
@@ -429,35 +447,40 @@
           "text": "Format, reader and writer: `packages/core/src/install-health/ownership.ts` (`GENERATION_REL` `:26`; `parseOwnershipRecord` `:193`, which rejects the whole record on an unknown kind; `readOwnershipRecord` `:316`).",
           "artifact_path": "packages/core/src/install-health/owned-paths.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 10,
           "text": "Writer: `buildOwnershipArtifacts` in `packages/runtime/src/setup.ts:276`, called from `runSetup` (`:486`).",
           "artifact_path": "packages/runtime/src/setup.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 11,
           "text": "Not in the record: - the hook `.mjs` outers (`deft-hook-<sha8>.mjs`, four hosts), written by `ensureHostHooks` (`packages/runtime/src/setup-wiring.ts:1010`); - the managed `.gitignore` lines (`setup.ts:166-168`); - the managed `.gitattributes` lines (`ensureManagedPathGitattributes`, `setup-wiring.ts:480`); - the managed `.prettierignore` line; - the `package.json` dependency entry and the lockfile entries.",
           "artifact_path": "packages/runtime/src/setup-wiring.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 12,
           "text": "Other hand-kept lists, none of which reads the record: - `MANAGED_HOOK_DEPOSIT_REL_PATHS` / `isLifecycleOrInstallerRelPath` in `packages/core/src/hooks/dispatcher.ts:5598-5615` (the commit gate); - `installerManagedMatchers()` in `packages/core/src/init-deposit/hygiene.ts:100` (retired deft-core-guard, #5835); - `INSTALLER_OUTPUT_INVENTORY` in `packages/runtime/src/installer-output-inventory.ts` (prose, not a machine list).",
           "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 13,
           "text": "Uninstall defect (found by reading, not by running): both `isManagedHookCommand` functions (`packages/runtime/src/uninstall.ts:76-84`, `packages/cli/src/uninstall-map.ts:447-454`) test `/(^|[\\s\"`'])deft-hook([\\s\"`']|$)/`.",
           "artifact_path": "packages/runtime/src/uninstall.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 14,
@@ -478,26 +501,29 @@
           "text": "Setup's own matcher uses `isHostHookOuterCommand` (`packages/core/src/init-deposit/host-hook-outer.ts:66-67`).",
           "artifact_path": "packages/core/src/install-health/owned-paths.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 17,
           "text": "After uninstall, the registrations and the `.mjs` files stay and point at a removed runtime (AC11.4, AC11.11).",
           "artifact_path": "packages/core/src/install-health/owned-paths.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 18,
           "text": "Reusable content-aware helpers already exist in `hygiene.ts` (#3193): `isDirectiveDependencyKey` (`:345`), `isUpgradePinPathContentAllowed` (`:809`) and the lockfile follow-through checks it calls.",
           "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 19,
           "text": "What the design says - AC11.10: the committed ownership record \"identifies wholly owned files, Directive-owned marked sections or structured entries in shared files, and settings/data that survive uninstall.\" The launcher treats it as bounded cleanup information, \"never authority to delete arbitrary paths or user content.\" - §A6.1: `GENERATION.json` holds ownership and removal information.",
-          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -553,7 +579,7 @@
         {
           "id": 27,
           "text": "D-027: the `minimumReleaseAgeExclude` row in `pnpm-workspace.yaml` is not Directive-owned.",
-          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -735,14 +761,14 @@
         {
           "id": 53,
           "text": "Must not do: no new kind value in `GENERATION.json` (an older runtime would reject the whole record); no writes of any kind (doctor will call this); don't widen `.gitignore`; don't edit `dispatcher.ts` (the gate change is P4-U1); don't trust the record for arbitrary paths; no generic installer registry.",
-          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 54,
           "text": "Open unit questions (the unit ships with the recommended answer unless polfer says otherwise): - Q1: shared-file lines and dependency entries stay as code knowledge in the API, not in `GENERATION.json`.",
-          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -756,14 +782,14 @@
         {
           "id": 56,
           "text": "An optional byte check for the `.mjs` outer only.",
-          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 57,
           "text": "Q3b: `.deft/hook-gate-off.json` is per-clone state, not owned for commit purposes.",
-          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -847,7 +873,7 @@
         {
           "id": 69,
           "text": "Verification: `pnpm vitest run packages/core/src/install-health packages/runtime/src/uninstall.test.ts packages/cli/src/uninstall-bookend.test.ts packages/runtime/src/setup`, and `task check` on the PR.",
-          "artifact_path": "packages/runtime/src/uninstall.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -882,7 +908,7 @@
         {
           "id": 74,
           "text": "The `.mjs` uninstall defect is fixed here; #<uninstall .mjs ticket> if filed, else a comment on #6007.",
-          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
