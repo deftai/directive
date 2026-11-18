@@ -68,12 +68,20 @@ const SKILL_HOST_ROOTS = [
   ".github/skills",
 ] as const;
 
+/** Mirrors core `CONSUMER_SKILL_DISCOVERY_INVENTORY` dirs (drift test in uninstall-bookend.test.ts). */
 const SKILL_DIRS = [
   "deft",
   "deft-directive-setup",
   "deft-directive-build",
+  "deft-directive-review-cycle",
+  "deft-directive-refinement",
   "deft-directive-swarm",
+  "deft-directive-interview",
+  "deft-directive-portfolio-priority",
+  "deft-directive-pre-pr",
   "deft-directive-sync",
+  "deft-directive-tutorial",
+  "deft-directive-feedback",
 ] as const;
 
 const GITHOOK_RELS = [
@@ -89,6 +97,73 @@ const HOST_HOOK_RELS = [
   ".codex/hooks.json",
   ".grok/hooks/deft.json",
 ] as const;
+
+/**
+ * Host dirs for the v261027 committed `deft-hook-<sha8>.mjs` outers (AC9.1).
+ * Mirrors core `HOST_HOOK_OUTER_DIRS`; the launcher cannot import core (AC3.1).
+ */
+export const HOST_HOOK_OUTER_DIRS = [".claude", ".codex", ".cursor/hooks", ".grok/hooks"] as const;
+
+const HOST_HOOK_OUTER_FILE_RE = /^deft-hook-[a-f0-9]{8}\.mjs$/;
+
+/** Any mention of an outer file name inside a host config's text. */
+const HOST_HOOK_OUTER_TEXT_RE = /deft-hook-[a-f0-9]{8}\.mjs/;
+
+/** True for `<host dir>/deft-hook-<sha8>.mjs` in one of the four host dirs. */
+function isHostHookOuterRel(rel: string): boolean {
+  const slash = rel.lastIndexOf("/");
+  if (slash < 0) return false;
+  const dir = rel.slice(0, slash);
+  return (
+    (HOST_HOOK_OUTER_DIRS as readonly string[]).includes(dir) &&
+    HOST_HOOK_OUTER_FILE_RE.test(rel.slice(slash + 1))
+  );
+}
+
+/** A plain argument token: flags and values only, no shell syntax. */
+const PLAIN_ARG_TOKEN_RE = /^[A-Za-z0-9_.:=-]+$/;
+
+/**
+ * True when the whole command is the v261027 `.mjs` outer form
+ * (`node <host dir>/deft-hook-<sha8>.mjs [--flag value]…`). A user command
+ * chained after it (`&&`, `;`, newline, extra words) does not count, so
+ * uninstall keeps that entry. Mirrors the outer branch of core
+ * `isDirectiveHookCommand` (AC3.1: no core import).
+ */
+function isHostHookOuterCommand(command: string): boolean {
+  if (/[\r\n]/.test(command)) return false;
+  const tokens = command.trim().split(/[ \t]+/);
+  const target = tokens[1] ?? "";
+  if (tokens[0] !== "node" || !isHostHookOuterRel(target.replace(/^\.\//, ""))) return false;
+  const args = tokens.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const flag = args[i] ?? "";
+    if (!flag.startsWith("--") || !PLAIN_ARG_TOKEN_RE.test(flag)) return false;
+    const value = args[i + 1];
+    if (value !== undefined && !value.startsWith("-")) {
+      if (!PLAIN_ARG_TOKEN_RE.test(value)) return false;
+      i++;
+    }
+  }
+  return true;
+}
+
+/** Committed `.mjs` outers on disk (any sha8) in the four host dirs. */
+function listHostHookOuters(projectRoot: string): string[] {
+  const out: string[] = [];
+  for (const dir of HOST_HOOK_OUTER_DIRS) {
+    let names: string[] = [];
+    try {
+      names = readdirSync(join(projectRoot, dir));
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (HOST_HOOK_OUTER_FILE_RE.test(name)) out.push(`${dir}/${name}`);
+    }
+  }
+  return out;
+}
 
 function readText(path: string): string | null {
   try {
@@ -332,6 +407,11 @@ export function discoverKnownArtifacts(projectRoot: string): DiscoveredArtifact[
     }
   }
 
+  // v261027 host `.mjs` outers; removed after registrations (AC11.4 ordering).
+  for (const rel of listHostHookOuters(projectRoot)) {
+    push({ path: rel, kind: "whole-file", source: "known-map" });
+  }
+
   for (const rel of skillPointerRels()) {
     const body = readText(join(projectRoot, rel));
     if (body !== null && isOurSkillPointer(body)) {
@@ -448,6 +528,7 @@ function isManagedHookCommand(command: string): boolean {
   return (
     command.includes("directive-runtime/dist/hook-bin.js") ||
     command.includes(".deft/core/") ||
+    isHostHookOuterCommand(command) ||
     /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
     command.includes("deft hook:dispatch")
   );
@@ -468,19 +549,26 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
       nextHooks[key] = value;
       continue;
     }
-    const filtered = value.filter((entry) => {
+    const filtered: unknown[] = [];
+    for (const entry of value) {
       const e = object(entry);
-      if (e === null) return true;
-      if (typeof e.command === "string" && isManagedHookCommand(e.command)) return false;
-      if (Array.isArray(e.hooks)) {
-        const nestedManaged = e.hooks.some((h) => {
-          const hook = object(h);
-          return typeof hook?.command === "string" && isManagedHookCommand(hook.command);
-        });
-        if (nestedManaged) return false;
+      if (e === null) {
+        filtered.push(entry);
+        continue;
       }
-      return true;
-    });
+      if (typeof e.command === "string" && isManagedHookCommand(e.command)) continue;
+      if (Array.isArray(e.hooks)) {
+        // Drop only Directive commands; keep a group that still holds user commands.
+        const kept = e.hooks.filter((h) => {
+          const hook = object(h);
+          return !(typeof hook?.command === "string" && isManagedHookCommand(hook.command));
+        });
+        if (kept.length === e.hooks.length) filtered.push(entry);
+        else if (kept.length > 0) filtered.push({ ...e, hooks: kept });
+        continue;
+      }
+      filtered.push(entry);
+    }
     if (filtered.length > 0) nextHooks[key] = filtered;
   }
   if (Object.keys(nextHooks).length === 0) {
@@ -687,10 +775,37 @@ export function applyLauncherCleanup(
       continue;
     }
 
+    // AC11.4: hook `.mjs` files wait until registrations are confirmed gone (below).
+    if (isHostHookOuterRel(art.path)) continue;
     if (safeUnlink(projectRoot, art.path)) {
       removed.push(art.path);
       if (art.path.includes("/")) {
         removed.push(...maybeRemoveEmptyParents(projectRoot, art.path));
+      }
+    }
+  }
+
+  // Remove the `.mjs` hook files only when no host config still registers one.
+  // A config that could not be cleaned keeps its files, reported as leftovers.
+  const outers = [
+    ...new Set([
+      ...discovery.artifacts.map((a) => a.path).filter(isHostHookOuterRel),
+      ...listHostHookOuters(projectRoot),
+    ]),
+  ].filter((rel) => existsSync(join(projectRoot, rel)));
+  const stillRegistered = HOST_HOOK_RELS.filter((rel) =>
+    HOST_HOOK_OUTER_TEXT_RE.test(readText(join(projectRoot, rel)) ?? ""),
+  );
+  if (stillRegistered.length > 0 && outers.length > 0) {
+    leftovers.push(...stillRegistered.map((rel) => `${rel}#hooks`), ...outers);
+    uncertainty.push(
+      `kept ${outers.length} hook .mjs file(s): ${stillRegistered.join(", ")} still register them`,
+    );
+  } else {
+    for (const rel of outers) {
+      if (safeUnlink(projectRoot, rel)) {
+        removed.push(rel);
+        removed.push(...maybeRemoveEmptyParents(projectRoot, rel));
       }
     }
   }
@@ -847,5 +962,10 @@ export function verifyUninstallComplete(projectRoot: string): {
     leftovers.push(`package.json#${LAUNCHER_PACKAGE_NAME}`);
   }
   for (const rel of listWiringReady(projectRoot)) leftovers.push(rel);
+  for (const rel of listHostHookOuters(projectRoot)) leftovers.push(rel);
+  for (const rel of HOST_HOOK_RELS) {
+    const body = readText(join(projectRoot, rel));
+    if (body !== null && HOST_HOOK_OUTER_TEXT_RE.test(body)) leftovers.push(`${rel}#hooks`);
+  }
   return { complete: leftovers.length === 0, leftovers };
 }

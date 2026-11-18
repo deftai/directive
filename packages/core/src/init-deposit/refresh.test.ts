@@ -2435,7 +2435,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
   );
 
   it(
-    "#2148: DOES deposit deft-core-guard.yml when .deft/core is git-tracked (vendored layout)",
+    "#5835: does NOT deposit deft-core-guard.yml even when .deft/core is git-tracked",
     destContentionItTimeout(),
     async () => {
       const project = freshRoot("refresh-guard-tracked-");
@@ -2458,7 +2458,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
         },
       );
 
-      expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(true);
+      expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(false);
     },
   );
 

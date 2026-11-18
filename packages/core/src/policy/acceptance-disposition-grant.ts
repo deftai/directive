@@ -47,11 +47,22 @@ export const ACCEPTANCE_DISPOSITION_PLAN_PREFIX = "acceptance-disposition:plan:"
 export const ACCEPTANCE_DISPOSITION_ITEM_PREFIX = "acceptance-disposition:item:";
 export const ACCEPTANCE_DISPOSITION_DEFERRED_TO_PREFIX = "acceptance-disposition:deferred-to:";
 export const ACCEPTANCE_DISPOSITION_REASON_PREFIX = "acceptance-disposition:reason:";
+/** Stored disposition value (#6644). A grant without it reads as `deferred`. */
+export const ACCEPTANCE_DISPOSITION_VALUE_PREFIX = "acceptance-disposition:disposition:";
+
+/** Values the grant can record (#6644). `deferred` is the default. */
+export const ACCEPTANCE_GRANT_DISPOSITIONS = ["deferred", "not_applicable", "waived"] as const;
+export type AcceptanceGrantDisposition = (typeof ACCEPTANCE_GRANT_DISPOSITIONS)[number];
+
+function isGrantDisposition(value: string): value is AcceptanceGrantDisposition {
+  return (ACCEPTANCE_GRANT_DISPOSITIONS as readonly string[]).includes(value);
+}
 /** Millisecond mint time: origin.mintedAt has whole seconds only (#6343 review). */
 export const ACCEPTANCE_DISPOSITION_MINTED_AT_PREFIX = "acceptance-disposition:minted-at:";
 
 const DIGEST_SEPARATOR = "@sha256:";
 const CLAUSE_ID_RE = /^clause[.:](\d+)$/;
+const BARE_CLAUSE_ID_RE = /^[1-9]\d*$/;
 const ISSUE_NUMBER_RE = /^\d+$/;
 const OWNER_REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 const SHA256_HEX_RE = /^[0-9a-f]{64}$/;
@@ -123,8 +134,10 @@ function findItemTitle(items: unknown, wanted: string): string | null {
 
 /**
  * Text a covered id binds to: `acceptance.clauses[id].text` for a clause id
- * (`clause.N`), else the title of the plan item with that id. Null when the id
- * resolves to neither.
+ * (`clause.N`), else the title of the plan item with that id. A bare integer id
+ * that names a clause binds to that clause's text too, the same rule the granted
+ * set uses (#6644 review), so a changed clause needs a new grant. Null when the
+ * id resolves to neither.
  */
 export function acceptanceDispositionCoverText(
   plan: Record<string, unknown>,
@@ -132,8 +145,9 @@ export function acceptanceDispositionCoverText(
 ): string | null {
   const id = canonicalAcceptanceDispositionId(itemId);
   const match = CLAUSE_ID_RE.exec(id);
-  if (match !== null) {
-    const clauseId = Number(match[1]);
+  const bare = BARE_CLAUSE_ID_RE.test(id) ? Number(id) : null;
+  const clauseId = match !== null ? Number(match[1]) : bare;
+  if (clauseId !== null) {
     const clause = readAcceptanceClauses(plan.acceptance).find((c) => c.id === clauseId);
     if (clause !== undefined) return clause.text;
   }
@@ -201,12 +215,14 @@ export function formatAcceptanceDispositionCommand(
   planId: string | null,
   itemIds: readonly string[],
   deferredTo: string | null,
+  disposition: AcceptanceGrantDisposition = "deferred",
 ): string {
   const ids = itemIds.length > 0 ? itemIds.join(",") : "<itemIds>";
+  const target = disposition === "deferred" ? `--deferred-to ${deferredTo ?? "<issue>"} ` : "";
   return (
     `deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME} ` +
     `--plan-ref ${planId ?? "<scopeId>"} --story-ids ${ids} ` +
-    `--deferred-to ${deferredTo ?? "<issue>"} --reason <text> --confirm`
+    `--disposition ${disposition} ${target}--reason <text> --confirm`
   );
 }
 
@@ -232,8 +248,10 @@ export interface MintAcceptanceDispositionInput {
   readonly planRef: string;
   /** Covered item ids: `clause.N` or a plan item id (required). */
   readonly storyIds: readonly string[];
-  /** Issue the covered items are deferred to (required). */
-  readonly deferredTo: string;
+  /** Value recorded (default `deferred`) (#6644). */
+  readonly disposition?: string;
+  /** Issue the covered items are deferred to: required for `deferred`, refused otherwise. */
+  readonly deferredTo?: string;
   /** One-line reason (required). */
   readonly reason: string;
   readonly actor?: string;
@@ -281,8 +299,27 @@ export function mintAcceptanceDispositionTemplateGrant(
         "template acceptance-disposition requires --story-ids <itemIds> (clause.N or item id)",
     };
   }
-  const deferred = parseAcceptanceDispositionDeferredTo(input.deferredTo);
-  if (!deferred.ok) return deferred;
+  const disposition = (input.disposition ?? "deferred").trim();
+  if (!isGrantDisposition(disposition)) {
+    return {
+      ok: false,
+      reason:
+        `template acceptance-disposition: --disposition ${JSON.stringify(input.disposition)} ` +
+        `must be one of ${ACCEPTANCE_GRANT_DISPOSITIONS.join(", ")}`,
+    };
+  }
+  const hasDeferredTo = input.deferredTo !== undefined && input.deferredTo.trim().length > 0;
+  if (disposition !== "deferred" && input.deferredTo !== undefined) {
+    return {
+      ok: false,
+      reason: `template acceptance-disposition: --deferred-to is refused for --disposition ${disposition}`,
+    };
+  }
+  const deferred =
+    disposition === "deferred"
+      ? parseAcceptanceDispositionDeferredTo(hasDeferredTo ? (input.deferredTo as string) : "")
+      : null;
+  if (deferred !== null && !deferred.ok) return deferred;
   const reason = input.reason.trim();
   if (reason.length === 0 || /[\r\n]/.test(reason)) {
     return {
@@ -339,7 +376,10 @@ export function mintAcceptanceDispositionTemplateGrant(
     operations: ["settings"],
     surfaces: [
       `${ACCEPTANCE_DISPOSITION_PLAN_PREFIX}${planRef}`,
-      `${ACCEPTANCE_DISPOSITION_DEFERRED_TO_PREFIX}${deferred.target}`,
+      ...(deferred !== null && deferred.ok
+        ? [`${ACCEPTANCE_DISPOSITION_DEFERRED_TO_PREFIX}${deferred.target}`]
+        : []),
+      `${ACCEPTANCE_DISPOSITION_VALUE_PREFIX}${disposition}`,
       `${ACCEPTANCE_DISPOSITION_REASON_PREFIX}${reason}`,
       `${ACCEPTANCE_DISPOSITION_MINTED_AT_PREFIX}${now.toISOString()}`,
       ...itemSurfaces,
@@ -348,7 +388,7 @@ export function mintAcceptanceDispositionTemplateGrant(
     singleUse: true,
     planRef,
     branch: input.branch ?? null,
-    issueIds: [deferred.issueNumber],
+    issueIds: deferred !== null && deferred.ok ? [deferred.issueNumber] : [],
     storyIds: itemIds,
     eventRef: `template:${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME}`,
     now,
@@ -363,7 +403,9 @@ export function mintAcceptanceDispositionTemplateGrant(
 interface GrantView {
   readonly grant: HumanOriginGrant;
   readonly planId: string;
-  readonly deferredTo: string;
+  /** Null for `not_applicable` and `waived` (#6644). */
+  readonly deferredTo: string | null;
+  readonly disposition: AcceptanceGrantDisposition;
   readonly reason: string;
   readonly digests: ReadonlyMap<string, string>;
   readonly mintedMs: number;
@@ -378,9 +420,13 @@ function viewOf(grant: HumanOriginGrant): GrantView | null {
   const planId = surfaceValue(grant, ACCEPTANCE_DISPOSITION_PLAN_PREFIX);
   const deferredTo = surfaceValue(grant, ACCEPTANCE_DISPOSITION_DEFERRED_TO_PREFIX);
   const reason = surfaceValue(grant, ACCEPTANCE_DISPOSITION_REASON_PREFIX);
-  if (planId === null || deferredTo === null || reason === null || reason.trim().length === 0) {
-    return null;
-  }
+  const stored = surfaceValue(grant, ACCEPTANCE_DISPOSITION_VALUE_PREFIX);
+  // A grant minted before #6644 has no stored value and reads as `deferred`.
+  const disposition = stored === null ? "deferred" : stored.trim();
+  if (!isGrantDisposition(disposition)) return null;
+  if (planId === null || reason === null || reason.trim().length === 0) return null;
+  // deferred-to is required for `deferred` (stored or absent) only.
+  if (disposition === "deferred" && deferredTo === null) return null;
   const digests = new Map<string, string>();
   for (const surface of grant.scope.surfaces) {
     if (!surface.startsWith(ACCEPTANCE_DISPOSITION_ITEM_PREFIX)) continue;
@@ -397,7 +443,8 @@ function viewOf(grant: HumanOriginGrant): GrantView | null {
   return {
     grant,
     planId,
-    deferredTo,
+    deferredTo: disposition === "deferred" ? deferredTo : null,
+    disposition,
     reason: reason.trim(),
     digests,
     mintedMs: Number.isNaN(preciseMs) ? Date.parse(grant.origin.mintedAt) : preciseMs,
@@ -422,7 +469,8 @@ function planGrantViews(storeRoot: string, planId: string): GrantView[] {
 export interface AcceptanceDispositionGrantCover {
   readonly itemId: string;
   readonly grantId: string;
-  readonly deferredTo: string;
+  readonly deferredTo: string | null;
+  readonly disposition: AcceptanceGrantDisposition;
   readonly reason: string;
   /** True when the grant was already used (finalize retry / restamp). */
   readonly replay: boolean;
@@ -478,6 +526,7 @@ export function resolveAcceptanceDispositionGrants(
         planId,
         [...old.digests.keys()],
         old.deferredTo,
+        old.disposition,
       );
       return {
         ok: false,
@@ -500,7 +549,12 @@ export function resolveAcceptanceDispositionGrants(
     const text = acceptanceDispositionCoverText(input.plan, id);
     const digest = text === null ? null : acceptanceDispositionDigest(text);
     if (digest === null || digest !== view.digests.get(id)) {
-      const remint = formatAcceptanceDispositionCommand(planId, [id], view.deferredTo);
+      const remint = formatAcceptanceDispositionCommand(
+        planId,
+        [id],
+        view.deferredTo,
+        view.disposition,
+      );
       const what =
         text === null
           ? `${id} no longer resolves to a clause or plan item`
@@ -514,6 +568,7 @@ export function resolveAcceptanceDispositionGrants(
       itemId: id,
       grantId: view.grant.id,
       deferredTo: view.deferredTo,
+      disposition: view.disposition,
       reason: view.reason,
       replay: view.grant.semantics.usedAt !== null,
       grant: view.grant,
@@ -522,14 +577,17 @@ export function resolveAcceptanceDispositionGrants(
   return { ok: true, covers };
 }
 
-/** The `deferred` disposition a cover writes, with the grant id in provenance. */
+/**
+ * The disposition a cover writes (the grant's stored value), with the grant id
+ * in provenance. `deferred_to` is written for `deferred` only (#6644).
+ */
 export function acceptanceDispositionRecordFor(
   cover: AcceptanceDispositionGrantCover,
   recordedAt: string,
 ): AcceptanceDispositionRecord {
   const origin = cover.grant.origin;
   return {
-    disposition: "deferred",
+    disposition: cover.disposition,
     reason: cover.reason,
     provenance: {
       kind: origin.kind,
@@ -540,14 +598,28 @@ export function acceptanceDispositionRecordFor(
       grantId: cover.grantId,
     },
     recorded_at: recordedAt,
-    deferred_to: cover.deferredTo,
+    ...(cover.disposition === "deferred" && cover.deferredTo !== null
+      ? { deferred_to: cover.deferredTo }
+      : {}),
   };
+}
+
+/** A clause stamped from a grant in this run (#6644 granted set). */
+export interface GrantedClause {
+  readonly id: number;
+  readonly disposition: AcceptanceGrantDisposition;
+  readonly reason: string;
 }
 
 export type ApplyAcceptanceDispositionResult =
   | {
       readonly ok: true;
       readonly appliedIds: readonly string[];
+      /**
+       * Clauses stamped from a grant in this run (#6644). The only input of the
+       * completion walk's granted set; a disposition written into the brief is not.
+       */
+      readonly grantedClauses: readonly GrantedClause[];
       /** Covered items as they were before the apply, for the mid-flight write. */
       readonly originals: GrantedDispositionOriginals;
       /** Unused grants whose first use is recorded after the completed/ write. */
@@ -587,9 +659,26 @@ export function applyAcceptanceDispositionGrants(input: {
   const grantIdsToRecord = [
     ...new Set(resolved.covers.filter((c) => !c.replay).map((c) => c.grantId)),
   ];
+  const appliedSet = new Set(applied.appliedIds);
+  const grantedClauses: GrantedClause[] = [];
+  // A bare integer id names clause N when acceptance.clauses has it, the same
+  // rule findClauseKeyedItem and citedItemKey use (#6644 review).
+  const clauseIds = new Set(readAcceptanceClauses(input.plan.acceptance).map((c) => c.id));
+  const seen = new Set<number>();
+  for (const cover of resolved.covers) {
+    if (!appliedSet.has(cover.itemId)) continue;
+    const prefixed = CLAUSE_ID_RE.exec(cover.itemId);
+    const bare = BARE_CLAUSE_ID_RE.test(cover.itemId.trim()) ? Number(cover.itemId.trim()) : null;
+    const id =
+      prefixed !== null ? Number(prefixed[1]) : bare !== null && clauseIds.has(bare) ? bare : null;
+    if (id === null || seen.has(id)) continue;
+    seen.add(id);
+    grantedClauses.push({ id, disposition: cover.disposition, reason: cover.reason });
+  }
   return {
     ok: true,
     appliedIds: applied.appliedIds,
+    grantedClauses,
     originals: applied.originals,
     grantIdsToRecord,
   };
@@ -689,6 +778,7 @@ export function checkCitedAcceptanceDispositionGrants(input: {
     itemId,
     grantId: v.grant.id,
     deferredTo: v.deferredTo,
+    disposition: v.disposition,
     reason: v.reason,
     replay: used(v),
     grant: v.grant,
@@ -735,6 +825,7 @@ export function checkCitedAcceptanceDispositionGrants(input: {
       planId.length > 0 ? planId : null,
       [itemId],
       view?.deferredTo ?? null,
+      view?.disposition ?? "deferred",
     );
     return {
       ok: false,
