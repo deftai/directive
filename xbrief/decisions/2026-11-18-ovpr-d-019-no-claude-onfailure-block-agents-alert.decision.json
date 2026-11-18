@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-019-no-claude-onfailure-block-agents-alert",
+  "decision": "D-019 (option D; was O-06): Do not add Claude's onFailure: block. Document the residual on the known-limitations page (AC13.10) and add one managed AGENTS.md line telling the agent, if a Directive hook reports an error instead of a decision or node --version fails, to tell the operator once that Directive is not protecting the session, then continue, and not to install anything itself (any recovery command quotes the Rule 3 table; a person runs the install, D-013). Home: P5-U2b, same PR that replaces the #3785 card. P4-U5 option C2 settled: not used. Cursor failClosed not decided here.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-019; section A9 requirements line 544)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Add onFailure: block",
+      "whyNot": "Too many things fall apart when these hooks go wrong; Cursor's failClosed caused the #3785 lockout"
+    }
+  ],
+  "whyWinner": "Disclosure without a new lockout risk.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:28Z",
+  "revisitTrigger": "polfer asks about Cursor's failClosed",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "hooks"
+  ],
+  "relatedIssues": [
+    3785
+  ]
+}

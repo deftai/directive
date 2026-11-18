@@ -1,0 +1,714 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6591",
+    "updated": "2026-11-18T15:05:24Z"
+  },
+  "plan": {
+    "title": "fix(scope): warn when a declaration added after activation lowers the evidence a clause requires",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(scope): warn when a declaration added after activation lowers the evidence a clause requires",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6591",
+      "Overview": "\n\n1. Add one helper beside inferRequiredStrictAxes in packages/core/src/scope/acceptance-evidence.ts that returns an item's hidden axes: the axes inferred with the eight declaration fields ignored, minus the axes inferred as written. Do not copy the field list into another file.\n2. In evaluateScopeProvenance, for each brief modified in the change set, read its merge-base copy through the same continuity and pre-move resolution the path fence uses (resolveMergeBaseBriefRead), so a head brief under completed/ or cancelled/ is compared with its pre-move copy. Do not change evaluateLegacyIntent or what legacy-intent-edit reports.\n3. Warn for a head item when all three hold: (a) the resolved merge-base copy of the brief is under xbrief/active/; (b) the item is absent from that copy, or the value of any of the eight declaration fields differs from the base item, where items match by id and an item with no id matches by its position in the item tree; (c) the head item hides an axis that the base item does not hide, and an absent base item hides none.\n4. Print one line for each such item through formatDeclaredRefusal on the extra-path warning channel (extraPathReport), naming the brief path, the item and the newly hidden axes. The exit code does not change, and the line is not counted as an intent-pin finding.\n5. Add the row declaration-hides-axis to packages/core/src/refusal-declarations/table.ts with no mode (warn), remedy [\"deft verify:scope-provenance\"], and deferred \"the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591\". Add its case to remedy-runs.test.ts in the same form as extra-path-not-admitted.\n6. formatStrictAxisAdvisory takes the calling verb. At promote and activate it keeps the sentence that names x-directive/requires. At xbrief:preflight it prints the list and omits that sentence.\n7. listStrictAxisRequirements also returns a row for an item with hidden axes, marked declared, with those axes. The count in the advisory's first line and the equality with the completion gate stay on items whose as-written axis set is not empty. The advisory prints declared rows after them, marked as declared.\n8. Tests beside the changed sources, each on a brief with no intent pin. A line prints, exit 0, for: requires merge added to an item whose text infers deploy while the brief stays in active/; the same edit in the change that moves the brief to completed/; requires deploy added to \"Deploy to staging and run the smoke test\" (names smoke); a new item with requires merge and deploy text on a brief that is active on the base; and each of the seven alias fields in place of x-directive/requires. No line prints for: a lifecycle move with no declaration change; a declaration already on the base item; requires deploy added to deploy-only text; an edit that adds only x-directive/evidence; a title that gains \"deploy\" under an unchanged merge declaration; an alias swapped for another with the same hidden set; and a pending/ to active/ change that first writes the declaration.\n9. Document the row in content/docs/scope-provenance.md: what it compares, that it warns only, that a declaration on the merge base is agent precommitment and not human authorization, and that the intent pin already refuses the same edit when a pin exists. Add a changelog fragment that says the row ships in warn mode.\n10. Ship no new x-directive/requires value and no enforce mode for this row.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n",
+      "Labels": "design, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates, leftover"
+    },
+    "items": [
+      {
+        "title": "Add one helper beside inferRequiredStrictAxes in packages/core/src/scope/acceptance-evidence.ts that returns an item's hidden axes: the axes inferred with the eight declaration fields ignored, minus the axes inferred as written. Do not copy the field list into another file.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "In evaluateScopeProvenance, for each brief modified in the change set, read its merge-base copy through the same continuity and pre-move resolution the path fence uses (resolveMergeBaseBriefRead), so a head brief under completed/ or cancelled/ is compared with its pre-move copy. Do not change evaluateLegacyIntent or what legacy-intent-edit reports.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Warn for a head item when all three hold: (a) the resolved merge-base copy of the brief is under xbrief/active/; (b) the item is absent from that copy, or the value of any of the eight declaration fields differs from the base item, where items match by id and an item with no id matches by its position in the item tree; (c) the head item hides an axis that the base item does not hide, and an absent base item hides none.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Print one line for each such item through formatDeclaredRefusal on the extra-path warning channel (extraPathReport), naming the brief path, the item and the newly hidden axes. The exit code does not change, and the line is not counted as an intent-pin finding.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Add the row declaration-hides-axis to packages/core/src/refusal-declarations/table.ts with no mode (warn), remedy [\"deft verify:scope-provenance\"], and deferred \"the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591\". Add its case to remedy-runs.test.ts in the same form as extra-path-not-admitted.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "formatStrictAxisAdvisory takes the calling verb. At promote and activate it keeps the sentence that names x-directive/requires. At xbrief:preflight it prints the list and omits that sentence.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "listStrictAxisRequirements also returns a row for an item with hidden axes, marked declared, with those axes. The count in the advisory's first line and the equality with the completion gate stay on items whose as-written axis set is not empty. The advisory prints declared rows after them, marked as declared.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Tests beside the changed sources, each on a brief with no intent pin. A line prints, exit 0, for: requires merge added to an item whose text infers deploy while the brief stays in active/; the same edit in the change that moves the brief to completed/; requires deploy added to \"Deploy to staging and run the smoke test\" (names smoke); a new item with requires merge and deploy text on a brief that is active on the base; and each of the seven alias fields in place of x-directive/requires. No line prints for: a lifecycle move with no declaration change; a declaration already on the base item; requires deploy added to deploy-only text; an edit that adds only x-directive/evidence; a title that gains \"deploy\" under an unchanged merge declaration; an alias swapped for another with the same hidden set; and a pending/ to active/ change that first writes the declaration.",
+        "status": "proposed",
+        "id": "clause.8",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Document the row in content/docs/scope-provenance.md: what it compares, that it warns only, that a declaration on the merge base is agent precommitment and not human authorization, and that the intent pin already refuses the same edit when a pin exists. Add a changelog fragment that says the row ships in warn mode.",
+        "status": "proposed",
+        "id": "clause.9",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Ship no new x-directive/requires value and no enforce mode for this row.",
+        "status": "proposed",
+        "id": "clause.10",
+        "x-directive/requires": "merge"
+      }
+    ],
+    "tags": [
+      "design",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates",
+      "leftover"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6591",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6591: fix(scope): warn when a declaration added after activation lowers the evidence a clause requires"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6301",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6301"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (10), in list order (#6333)",
+      "sentences": [
+        "Add one helper beside inferRequiredStrictAxes in packages/core/src/scope/acceptance-evidence.ts that returns an item's hidden axes: the axes inferred with the eight declaration fields ignored, minus the axes inferred as written. Do not copy the field list into another file.",
+        "In evaluateScopeProvenance, for each brief modified in the change set, read its merge-base copy through the same continuity and pre-move resolution the path fence uses (resolveMergeBaseBriefRead), so a head brief under completed/ or cancelled/ is compared with its pre-move copy. Do not change evaluateLegacyIntent or what legacy-intent-edit reports.",
+        "Warn for a head item when all three hold: (a) the resolved merge-base copy of the brief is under xbrief/active/; (b) the item is absent from that copy, or the value of any of the eight declaration fields differs from the base item, where items match by id and an item with no id matches by its position in the item tree; (c) the head item hides an axis that the base item does not hide, and an absent base item hides none.",
+        "Print one line for each such item through formatDeclaredRefusal on the extra-path warning channel (extraPathReport), naming the brief path, the item and the newly hidden axes. The exit code does not change, and the line is not counted as an intent-pin finding.",
+        "Add the row declaration-hides-axis to packages/core/src/refusal-declarations/table.ts with no mode (warn), remedy [\"deft verify:scope-provenance\"], and deferred \"the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591\". Add its case to remedy-runs.test.ts in the same form as extra-path-not-admitted.",
+        "formatStrictAxisAdvisory takes the calling verb. At promote and activate it keeps the sentence that names x-directive/requires. At xbrief:preflight it prints the list and omits that sentence.",
+        "listStrictAxisRequirements also returns a row for an item with hidden axes, marked declared, with those axes. The count in the advisory's first line and the equality with the completion gate stay on items whose as-written axis set is not empty. The advisory prints declared rows after them, marked as declared.",
+        "Tests beside the changed sources, each on a brief with no intent pin. A line prints, exit 0, for: requires merge added to an item whose text infers deploy while the brief stays in active/; the same edit in the change that moves the brief to completed/; requires deploy added to \"Deploy to staging and run the smoke test\" (names smoke); a new item with requires merge and deploy text on a brief that is active on the base; and each of the seven alias fields in place of x-directive/requires. No line prints for: a lifecycle move with no declaration change; a declaration already on the base item; requires deploy added to deploy-only text; an edit that adds only x-directive/evidence; a title that gains \"deploy\" under an unchanged merge declaration; an alias swapped for another with the same hidden set; and a pending/ to active/ change that first writes the declaration.",
+        "Document the row in content/docs/scope-provenance.md: what it compares, that it warns only, that a declaration on the merge base is agent precommitment and not human authorization, and that the intent pin already refuses the same edit when a pin exists. Add a changelog fragment that says the row ships in warn mode.",
+        "Ship no new x-directive/requires value and no enforce mode for this row."
+      ],
+      "admitted_source_sentences": [
+        "Add one helper beside inferRequiredStrictAxes in packages/core/src/scope/acceptance-evidence.ts that returns an item's hidden axes: the axes inferred with the eight declaration fields ignored, minus the axes inferred as written. Do not copy the field list into another file.",
+        "In evaluateScopeProvenance, for each brief modified in the change set, read its merge-base copy through the same continuity and pre-move resolution the path fence uses (resolveMergeBaseBriefRead), so a head brief under completed/ or cancelled/ is compared with its pre-move copy. Do not change evaluateLegacyIntent or what legacy-intent-edit reports.",
+        "Warn for a head item when all three hold: (a) the resolved merge-base copy of the brief is under xbrief/active/; (b) the item is absent from that copy, or the value of any of the eight declaration fields differs from the base item, where items match by id and an item with no id matches by its position in the item tree; (c) the head item hides an axis that the base item does not hide, and an absent base item hides none.",
+        "Print one line for each such item through formatDeclaredRefusal on the extra-path warning channel (extraPathReport), naming the brief path, the item and the newly hidden axes. The exit code does not change, and the line is not counted as an intent-pin finding.",
+        "Add the row declaration-hides-axis to packages/core/src/refusal-declarations/table.ts with no mode (warn), remedy [\"deft verify:scope-provenance\"], and deferred \"the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591\". Add its case to remedy-runs.test.ts in the same form as extra-path-not-admitted.",
+        "formatStrictAxisAdvisory takes the calling verb. At promote and activate it keeps the sentence that names x-directive/requires. At xbrief:preflight it prints the list and omits that sentence.",
+        "listStrictAxisRequirements also returns a row for an item with hidden axes, marked declared, with those axes. The count in the advisory's first line and the equality with the completion gate stay on items whose as-written axis set is not empty. The advisory prints declared rows after them, marked as declared.",
+        "Tests beside the changed sources, each on a brief with no intent pin. A line prints, exit 0, for: requires merge added to an item whose text infers deploy while the brief stays in active/; the same edit in the change that moves the brief to completed/; requires deploy added to \"Deploy to staging and run the smoke test\" (names smoke); a new item with requires merge and deploy text on a brief that is active on the base; and each of the seven alias fields in place of x-directive/requires. No line prints for: a lifecycle move with no declaration change; a declaration already on the base item; requires deploy added to deploy-only text; an edit that adds only x-directive/evidence; a title that gains \"deploy\" under an unchanged merge declaration; an alias swapped for another with the same hidden set; and a pending/ to active/ change that first writes the declaration.",
+        "Document the row in content/docs/scope-provenance.md: what it compares, that it warns only, that a declaration on the merge base is agent precommitment and not human authorization, and that the intent pin already refuses the same edit when a pin exists. Add a changelog fragment that says the row ships in warn mode.",
+        "Ship no new x-directive/requires value and no enforce mode for this row."
+      ],
+      "admitted_source_digest": "faf2bf3a4cd4c14aa965d80e5487aace8ebd13121c47735e0deade3dddb0e642",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add one helper beside inferRequiredStrictAxes in packages/core/src/scope/acceptance-evidence.ts that returns an item's hidden axes: the axes inferred with the eight declaration fields ignored, minus the axes inferred as written. Do not copy the field list into another file.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "In evaluateScopeProvenance, for each brief modified in the change set, read its merge-base copy through the same continuity and pre-move resolution the path fence uses (resolveMergeBaseBriefRead), so a head brief under completed/ or cancelled/ is compared with its pre-move copy. Do not change evaluateLegacyIntent or what legacy-intent-edit reports.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Warn for a head item when all three hold: (a) the resolved merge-base copy of the brief is under xbrief/active/; (b) the item is absent from that copy, or the value of any of the eight declaration fields differs from the base item, where items match by id and an item with no id matches by its position in the item tree; (c) the head item hides an axis that the base item does not hide, and an absent base item hides none.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Print one line for each such item through formatDeclaredRefusal on the extra-path warning channel (extraPathReport), naming the brief path, the item and the newly hidden axes. The exit code does not change, and the line is not counted as an intent-pin finding.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Add the row declaration-hides-axis to packages/core/src/refusal-declarations/table.ts with no mode (warn), remedy [\"deft verify:scope-provenance\"], and deferred \"the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591\". Add its case to remedy-runs.test.ts in the same form as extra-path-not-admitted.",
+          "artifact_path": "packages/core/src/refusal-declarations/table.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "formatStrictAxisAdvisory takes the calling verb. At promote and activate it keeps the sentence that names x-directive/requires. At xbrief:preflight it prints the list and omits that sentence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "listStrictAxisRequirements also returns a row for an item with hidden axes, marked declared, with those axes. The count in the advisory's first line and the equality with the completion gate stay on items whose as-written axis set is not empty. The advisory prints declared rows after them, marked as declared.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Tests beside the changed sources, each on a brief with no intent pin. A line prints, exit 0, for: requires merge added to an item whose text infers deploy while the brief stays in active/; the same edit in the change that moves the brief to completed/; requires deploy added to \"Deploy to staging and run the smoke test\" (names smoke); a new item with requires merge and deploy text on a brief that is active on the base; and each of the seven alias fields in place of x-directive/requires. No line prints for: a lifecycle move with no declaration change; a declaration already on the base item; requires deploy added to deploy-only text; an edit that adds only x-directive/evidence; a title that gains \"deploy\" under an unchanged merge declaration; an alias swapped for another with the same hidden set; and a pending/ to active/ change that first writes the declaration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Document the row in content/docs/scope-provenance.md: what it compares, that it warns only, that a declaration on the merge base is agent precommitment and not human authorization, and that the intent pin already refuses the same edit when a pin exists. Add a changelog fragment that says the row ships in warn mode.",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Ship no new x-directive/requires value and no enforce mode for this row.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/main.test.ts",
+          "packages/runtime/src/vbrief-preflight.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "packages/core/src/scope-provenance/declaration-hides-axis.ts",
+          "packages/core/src/scope-provenance/declaration-hides-axis.test.ts",
+          "packages/runtime/src/verify-scope-provenance.ts",
+          "packages/runtime/src/verify-scope-provenance.test.ts",
+          "packages/core/src/refusal-declarations/table.ts",
+          "packages/core/src/refusal-declarations/remedy-runs.test.ts",
+          "content/docs/scope-provenance.md",
+          "changelog.d/6591-declaration-hides-axis-warn.md"
+        ],
+        "module_boundary": "packages/core/src/scope owns the hidden-axes helper, the verb-aware advisory and the declared listing rows; packages/core/src/scope-provenance owns the merge-base comparison and the warn line; packages/core/src/refusal-declarations owns the declared row; packages/runtime/src owns the preflight and verify:scope-provenance callers",
+        "cohesion_exemption": "packages/core/src/scope/acceptance-evidence.ts (about 2100 lines) gets only the bound hidden-axes helper beside inferRequiredStrictAxes, so the declaration field list stays in one file, plus the verb parameter on formatStrictAxisAdvisory and the declared rows in listStrictAxisRequirements. The merge-base comparison and the warn predicate live in the new packages/core/src/scope-provenance/declaration-hides-axis.ts with their tests in declaration-hides-axis.test.ts; evaluate.ts (about 2040 lines) only resolves the pre-move read through resolveMergeBaseBriefRead, calls the new module and appends its lines to extraPathReport. evaluate.test.ts and acceptance-evidence.test.ts take only the cases that must run through their existing harnesses. No split of these files is in scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a clause that only names a job or workflow still gets a strict axis from inferRequiredStrictAxes, and x-directive/requires has no non-strict value that turns the text match off while still admitting kind:test or kind:review.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6591-dc\norigin-ref: origin/HEAD\ndispatch-sha: 66d8171f5caaae7e5821e3f651fc1fec27873662\ndest-wo leftover-complete\nverification-path: pin-read git show 66d8171f5caaae7e5821e3f651fc1fec27873662:; dest cwd-without-occupy\n\ncharter: open critique\ncharter-why: leftover P1 of #6301; census-first plus optional non-strict requires; who-may-write and whether the value is needed are open; no single named presumption\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: operator \"use appropriate n\" is missing-token; spend-resolve --recommend N≥3. Stop 2 panel permission: census-empty close vs new requires value vs who-may-write (activation-only vs human-origin); blast radius is every scope:complete / stamp-evidence / listStrictAxisRequirements, and an agent-added declaration is a waiver without human origin.\n\npain: P1\n\nP1. A clause that only names a job or workflow still gets a strict axis, and there is no declaration that turns the text match off while still admitting test or review evidence.\n\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\ntarget: #6591\ntarget-shape: single-issue\ntarget-kind: issue\naudit-targets: none\n\n",
+          "id": 6965304715,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6965304715",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T00:36:22Z",
+          "updated_at": "2026-11-18T00:36:22Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6965320207\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\nverification-path: pin-read git show 66d8171f5caaae7e5821e3f651fc1fec27873662:; dest cwd-without-occupy\n\nLaunch-probe (critic argv, dest cwd-without-occupy, no envelope path): claude opus pong rc 0; codex exec pong rc 0 model gpt-6-astra; grok-4.6 pong rc 0.\nNative spawn_subagent dest-cwd omitted: primary leftover eligible briefs plus host schema omit of process_only; Grok family recovers dest-rooted grok --cwd --prompt-file.\n\n",
+          "id": 6965320207,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6965320207",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T00:37:15Z",
+          "updated_at": "2026-11-18T00:37:42Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe proposed new value is not justified by the current baseline: `x-directive/requires: merge` already turns off text inference while admitting test or review evidence.\n\n## F1 — blocks-the-design: the missing capability already exists\n\n**Evidence.** At dispatch SHA `66d8171f5caaae7e5821e3f651fc1fec27873662`, [inference returns an empty axis set for merge-only declarations](https://github.com/deftai/directive/blob/66d8171f5caaae7e5821e3f651fc1fec27873662/packages/core/src/scope/acceptance-evidence.ts#L366-L385). [Suitability](https://github.com/deftai/directive/blob/66d8171f5caaae7e5821e3f651fc1fec27873662/packages/core/src/scope/acceptance-evidence.ts#L543-L559) requires a declaration **when the evidence kind is merge**; it does not require merge evidence whenever the declaration is merge. Every non-merge kind passes suitability when the axis set is empty.\n\nI replayed the pinned `stampNamespacedEvidence` → `evaluateOneItem` functions on a pending `clause.1` titled “the `deploy` job is green”:\n\n| Declaration | Evidence | Axes | Per-item result |\n|---|---|---|---|\n| absent | test | deploy | invalid |\n| absent | review | deploy | invalid |\n| merge | test | none | evidence |\n| merge | review | none | evidence |\n\nPointers were `src/jobs.test.ts` and `docs/job-review.md`; neither was a commit SHA. The automatic [match-any stamper](https://github.com/deftai/directive/blob/66d8171f5caaae7e5821e3f651fc1fec27873662/packages/core/src/scope/acceptance-evidence.ts#L1057-L1075) also checks the inferred axes before choosing test/review from the artifact pointer.\n\n**Failure mode.** Step 2 would add a second spelling for existing admission behavior, based on the false assertion that `requires: merge` demands a commit pointer. Its positive acceptance case would not establish a new capability.\n\n**Disposition consequence.** Correct “What exists today” and the pain baseline before binding a new token. Census any remaining failure of the existing declared path. The real listing behavior is narrower: `listStrictAxisRequirements` omits the declared item (`[]`), so declaration visibility is a possible separate need, not proof that test/review admission is missing.\n\n## F2 — sharpens-framing: declaration authority already has an intent-pin control\n\n**Evidence.** [Item classification](https://github.com/deftai/directive/blob/66d8171f5caaae7e5821e3f651fc1fec27873662/packages/core/src/scope-provenance/known-machine.ts#L66-L83) excludes canonical evidence from intent, but does not exclude `x-directive/requires`. [Extraction](https://github.com/deftai/directive/blob/66d8171f5caaae7e5821e3f651fc1fec27873662/packages/core/src/scope-provenance/extract-intent.ts#L140-L187) retains that unknown key. A pinned-function replay of extraction and item comparison produced `intent-drift` when adding `requires: merge`, and no drift when adding only evidence. [Intent evaluation](https://github.com/deftai/directive/blob/66d8171f5caaae7e5821e3f651fc1fec27873662/packages/core/src/scope-provenance/intent-evaluate.ts#L148-L248) uses the base preimage, rejects same-change approval/preimage rewrites, and treats legacy intent edits as warnings.\n\n**Failure mode.** Treating declarations as machine-written evidence would let an agent suppress a real deployment requirement without changing the compared intent. Conversely, “present at activation” alone does not establish human approval, and legacy warning behavior is not a universal refusal. An injected instruction to add a declaration is precisely an authority-changing intent edit, not ordinary evidence capture.\n\n**Disposition consequence.** Inventory and preserve this existing control before adding a parallel approval mechanism. If a new value remains necessary, bind its authority to the approved declaration/intent and test subsequent changes through the existing provenance path. State the legacy/unpinned limit explicitly; do not claim that a pure inference function authenticates its caller or that reviewer attention closes the gap.\n\n## F3 — sharpens-framing: an empty refusal census needs an observation boundary\n\n**Evidence.** The body describes the earlier 0-of-114 result as an axis delta after removing code content from stored plan items. That is a different measurement from post-#6270 consumer refusal history. I have not reproduced or disputed that earlier count. Reworded and abandoned attempts can disappear from a current-brief scan.\n\n**Failure mode.** No accessible refusal records could be reported as zero consumer pain, allowing the empty-census branch to claim more than was observed.\n\n**Disposition consequence.** Name the repositories, versions/time window, and refusal/history sources actually covered. Distinguish zero observed cases from unavailable history, and test whether current `requires: merge` plus test/review serves each observed case. A bounded empty result can support no implementation for that corpus; it cannot establish universal absence or, by itself, relief of the text-inference behavior in P1. No new telemetry system is needed for this decision.\n\n**Road not taken.** A differently named non-strict token could communicate intent more clearly and could deliberately exclude merge evidence. That would be a distinct semantic contract worth considering if the census establishes that need. Neither distinction is required by the present positive AC, so I prefer correcting the baseline before expanding the value set.\n\n**Verification limits.** Source verification used dispatch-SHA-pinned reads; all three supplied blob hashes matched. Checks used Node type stripping on complete pinned function slices, with assertions for the cases above and explicit-strict-axis precedence. These were isolated function checks, not an end-to-end `scope:complete` run. The checkout runtime pin was absent, so the read-only session/routing commands could not run. No implementation, ingestion, occupancy claim, or mutation session occurred. Thread input stopped at comment 6965320207; sibling posts were not read.\n\n",
+          "id": 6965408516,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6965408516",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T00:42:24Z",
+          "updated_at": "2026-11-18T00:42:24Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 critic, fresh seat, open critique. Input: issue body and comments through 6965320207. Tree: `66d8171f5caaae7e5821e3f651fc1fec27873662`. Verification: pin-read with `git show <sha>:<path>`, plus scratch runs of the pinned source outside the dest (`git archive` of the dispatch SHA into `/tmp`, Node 24 `--experimental-transform-types`, `parse5` and `typescript` stubbed, no dest writes). The three inventory blob ids match the envelope.\n\n## Summary\n\nThe proposal rests on \"There is no declaration that says test or review evidence is enough for this clause\". At the dispatch SHA, `x-directive/requires: merge` is already that declaration. It turns the text match off, `scope:stamp-evidence` stamps `kind: test` on the item, and `scope:complete` accepts `kind: test` or `kind: review`. So step 2's first acceptance criterion already holds with `merge` in place of the new value. The \"who may write\" question is not about a future value: it is a live hole on the existing key, and the census cannot settle it either way.\n\n## Findings\n\n### F1. `requires: merge` already admits test and review evidence (`blocks-the-design`)\n\nEvidence, run at the pin on the clause text \"the `deploy` job is green\":\n\n| Item | `inferRequiredStrictAxes` | stamp | `evaluateAcceptanceEvidenceGate` |\n|---|---|---|---|\n| no declaration, `kind: test` | `[deploy]` | skipped `strict-axis` | invalid |\n| `requires: merge`, `kind: test` | `[]` | `stampMatchAnyFileEvidence` and `stampDeclaredTestEvidence` both stamp `kind: test` | evidence, ok |\n| `requires: merge`, `kind: review` (pointer `docs/x.md`) | `[]` | n/a | evidence, ok |\n\nCause: in `isEvidenceKindSuitable`, `mergeDeclared` only gates `kind: merge`. With an empty axis set every other kind returns true. The body's line \"then the item needs `kind: merge` evidence with a commit SHA\" is false.\n\nWhat `merge` does cost, measured at the pin:\n- `evaluateInPrCompletionInputs` (`scope/lands-with-product.ts`) refuses `scope:complete --in-pr` for any item that declares merge (\"c1 declares the merge requirement\", #6277).\n- `listStrictAxisRequirements` drops the item, so the #6272 listing shows it as absent.\n- The token says \"merge\" when the evidence is a test.\n\nFailure mode: a step-2 build passes every listed acceptance criterion while the only behaviour that moves is in-PR completion. Or the census closes the issue against a wrong baseline (\"merge needs a SHA\").\n\nDisposition consequence: rewrite \"What exists today\" and the step-2 trigger. A new value can only buy in-PR completion, the listing, and an honest label over `merge`. Name those as the goal, or drop step 2. The listing gap can be fixed for `merge` alone.\n\n### F2. The who-may-write hole is live today, so a census-empty close leaves it open (`blocks-the-design`)\n\nEvidence:\n- `inferRequiredStrictAxes` reads the declaration from the current item bytes. Nothing checks when or by whom it was written. That holds for the canonical key and its seven dual-read aliases (`readExplicitAcceptanceRequirementFields`).\n- Probe of `evaluateIntentForXbrief` with no approved-scope mint (the normal case after #4956): adding `x-directive/requires: merge` to an active item after activation returns two `legacy-intent-edit` findings, both `warnOnly: true`. A hand-added disposition gets the same result. With a mint, the same edit gives non-warn findings (code read, not run).\n- The gate probe in F1 used `recorded_by: agent-x`. Nothing on the evidence path asks for human origin.\n\nFailure mode: a `drive-to: merge-ready` worker whose `scope:complete` refuses on a real deploy claim adds `\"x-directive/requires\": \"merge\"` to the item, runs `scope:stamp-evidence`, and completes. The only signal is a warning. That is the \"waiver with no human origin\" the open question describes, and it is reachable now.\n\nDisposition consequence: the who-may-write decision must cover every declaration that lowers the inferred axis set, existing `merge` included, and must not depend on the census. Bind it here with its own acceptance criterion, or split it to a new issue before the close path can run. The AC \"If the census is empty, this issue closes with no code change\" cannot bind as written.\n\n### F3. The preflight advisory tells the implementing agent to write the declaration after activation (`sharpens-framing`)\n\nEvidence: `packages/runtime/src/vbrief-preflight.ts` appends `strictAxisAdvisoryForBrief` to `xbrief:preflight` output. AGENTS.md has workers run preflight on `xbrief/active/` before writing code. The advisory (`formatStrictAxisAdvisory`) says \"reword the clause or declare x-directive/requires (merge or one axis) on the item\".\n\nFailure mode: the framework itself prompts a worker to make the self-edit F2 describes, on an already active brief. Under the injection / swarm lens, this is an instruction aimed at the party the gate constrains.\n\nDisposition consequence: whichever who-may-write answer binds, scope the advisory by verb. Keep \"declare in the brief\" at promote and activate. At preflight, name the remedy that answer chooses.\n\n### F4. \"Present at activation\" is agent precommitment, not human origin (`sharpens-framing`)\n\nEvidence, all briefs at the pin: 1,951 of 10,554 plan items declare `requires: merge`. 139 briefs carry it, and 131 of them put it on every top-level item. The only code that writes the key (`stampDeclaredMergeEvidence` with `admitUndeclaredMerge`) skips strict-axis items, so these were written by brief authors. Example: the #6270 brief was activated in `065582a8e` (#6282) with `merge` on all 16 clauses, including clause.12 \"A real deploy claim (`deploys to prod`, `after deployment`) still requires deploy evidence.\" `content/docs/scope-provenance.md` calls the `file_scope` declaration \"agent-authored precommitment\" and \"a drift check against that list, not a human authorization\".\n\nFailure mode: if the answer is \"admitted only when present at activation\" and it is recorded as meeting human origin, a blanket default in an activation PR waives real claims while the record says a human chose it.\n\nDisposition consequence: state the two options as what they are. Option A is drift from activation: agent precommitment, reviewed in the activation PR, the same posture as the `file_scope` fence. Option B is a per-item human-origin record. Also qualify the body's \"A human disposition can waive an axis after the refusal (#2944)\": the only minted path, the #6318 `acceptance-disposition` template, writes `deferred` and requires `--deferred-to`. There is no minted `not_applicable`.\n\n### F5. The census population is not observable, and its class needs the judgment #6301 ruled out (`sharpens-framing`)\n\nEvidence: I found no surface at the pin that carries a consumer `scope:complete` refusal back to this repo, and value feedback defaults off (#1709). \"Came only from a name\" is a per-clause judgment, and #6301 recorded that no text rule makes it. A mechanical proxy does exist: compare `inferRequiredStrictAxes` with and without the declaration fields. At the pin that finds 14 items where a declaration hides a text axis (13 completed on `kind: merge`, 1 on a disposition). Most are clauses that talk about the axis words (the #6270 brief's own spec clauses), not job names.\n\nFailure mode: \"consumer refusals\" counts zero because nothing is observed, and the issue closes on the method, not the population. Separately, the in-repo record already shows `requires: merge` serving as the clearance, so under the step-2 trigger the census is predetermined to find \"served\".\n\nDisposition consequence: name the corpus as this repo's briefs plus filed consumer reports. Say that consumer refusals are not observable. Use the declared-vs-inferred delta as the method, and count \"cleared by `requires: merge`\" as served.\n\n### F6. If a value still ships, reuse an existing evidence-kind token (`footnote`)\n\n`x-directive/requires: test` (or `review`) needs no new vocabulary. With an empty axis set, `isEvidenceKindSuitable` admits any non-merge kind, so `requires: test` would also admit `review` unless suitability reads the declared kind.\n\n## Injection / swarm lens\n\nThe lens fires because the target changes which evidence kinds clear the completion gate and who may write the switch. The switch already exists (`merge` and its aliases). It is read from mutable brief bytes, and drift is warn-only without a mint. The framework's own preflight advisory points workers at it (F3). A safety case for \"present at activation\" that ends at the activation-PR reviewer is not a control: 131 briefs carry a blanket `merge` on every item, so that review approves scope, not per-clause axis changes. A deterministic check is needed (remedy item 2). I found no instruction-shaped text aimed at agents in the issue body or the two in-envelope comments.\n\n## Existing mechanisms\n\n- `x-directive/requires: merge`: no axes; admits `test`, `review` and `merge` (#5105).\n- Scope-provenance intent pin: `evaluateLegacyIntent` compares the active brief with its merge-base copy. Item `requires` keys are extracted, not machine keys. Warn-only without a mint.\n- Human-origin acceptance-disposition grant (#6318): per-clause digest binding and human-presence mint, `deferred` only.\n- #6272 advisory at promote, activate and preflight.\n- `scope:complete --in-pr` refusal on merge declarations (#6277).\n\n## Smallest remedy\n\n1. Correct \"What exists today\" per F1. Keep step 2 only if in-PR completion or an honest label is the stated goal.\n2. One fail-closed check: an edit after activation to any `requires` alias that lowers the inferred axis set (merge-base copy against head) refuses at the existing scope-provenance boundary instead of warning. One remediation: land the declaration in a reviewed brief-only PR. Decide this independent of the census. Implementation note: I did not verify that the lifecycle PR (active to completed move) passes through that comparison; confirm it does.\n3. At preflight, the advisory names that remediation instead of \"declare x-directive/requires\".\n\nRoad not taken: a new non-strict `requires` value with its own provenance rule. It adds a second waiver channel next to `merge` and leaves `merge` unguarded. What would flip this: evidence that name-only clauses block in-PR completion in briefs that carry no other merge declaration. At the pin, 131 of 139 merge-bearing briefs declare merge on every item, so that population is small today.\n\n",
+          "id": 6965496784,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6965496784",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T00:47:25Z",
+          "updated_at": "2026-11-18T00:47:25Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because dest-rooted Grok critic never posted: dest PreToolUse denied Write and Shell on the process-only dest after launch-probe pong rc 0; a dest-local runtime pin did not admit the gh POST; two reseats compacted without a critic comment.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6591-dc\norigin-ref: origin/HEAD\ndispatch-sha: 66d8171f5caaae7e5821e3f651fc1fec27873662\ndest-wo leftover-complete\ndest occupancy absent\n\nprevention: #6597\nsiblings-posted: 6965408516 (codex gpt-6), 6965496784 (claude-opus-5-5)\ngrok-unposted: yes\nDual-stop cap: 3 posts\nnumbered-posts-used: 2\ndual-stop-reserved: first post-lean pain-audit still unused; no bind lean posted\nchip: design-critique:in-progress (halt leaves standing chip)\n\nResume after halt is a new operator verb. No ingest.\n\n",
+          "id": 6965848164,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6965848164",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T01:07:52Z",
+          "updated_at": "2026-11-18T01:07:52Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nBody and title recut on operator instruction after the halt in 6965848164. This comment is a record only. It is not a Stop 1 write-back and not a successor map.\n\nWhat changed:\n\n- The first body said `x-directive/requires: merge` needs `kind: merge` evidence with a commit SHA, and proposed a new non-strict value. Critics 6965408516 (F1) and 6965496784 (F1) showed that is false. The recut drops the new value and the census step.\n- The recut takes 6965496784 F2, F3 and F5 and 6965408516 F2 and F3 as its content: the lifecycle-move blind spot in the unpinned intent comparison, one narrow declared row for a declaration that hides a text axis after activation, the preflight advisory wording, and the listing of declared items.\n- The row ships in `warn` mode under the warn-first rule in `main.md` (#6281), which is in the dispatch pin and which neither round-1 post weighed. A hard refusal in the first release, and a remedy that needs a brief-only PR, were set aside for that reason and for #4956 and #5057.\n\nBoth round-1 critic posts were written against the first body. Read their findings against that text; the pre-recut body is in the issue's edit history.\n\nParent-seat measurements in the new body (the four-row `evaluateScopeProvenance` table and the census) were run by this seat at 66d8171f5caaae7e5821e3f651fc1fec27873662. The census reproduces the figures in 6965496784 F4 and F5.\n\nArc state: still halted. The Stop 1 pain line in 6965304715 names a missing declaration, which the recut body no longer claims. No bind map exists. Resume needs a new Stop 1 against the recut body.\n\n",
+          "id": 6968678830,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6968678830",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:04:23Z",
+          "updated_at": "2026-11-18T04:04:23Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\ndesign-critique: warranted, because the recut body of #6591 proposes a new declared row at verify:scope-provenance, and at pin 66d8171f5caa a declaration added after activation lowers the evidence a clause requires with a warn-only finding on an active brief and no finding at all on a lifecycle move.\n\nmechanism-shaped: true\n\nSupersedes Stop 1 6965304715 as the warrant. Reason: its pain line names a missing declaration, and round-1 posts 6965408516 and 6965496784 showed that `x-directive/requires: merge` is that declaration. The body was recut on operator instruction (record 6968678830). Resume after halt 6965848164 is the operator's verb.\n\narc-mode: no-ingest\nyolo-standing: no\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6591-dc\norigin-ref: origin/HEAD\ndispatch-sha: 66d8171f5caaae7e5821e3f651fc1fec27873662\ndest-wo leftover-complete\nverification-path: pin-read git show 66d8171f5caaae7e5821e3f651fc1fec27873662:; dest cwd-without-occupy\n\ncharter: open critique\ncharter-why: the recut picks one of several places the edit could surface and leaves its remedy command open; no single presumption carries the design\nspend: N≥3\nspend-ask: resolved\nspend-why: carried from Stop 1 6965304715; no new spend is opened\n\npain: P1, P2, P3\n\nP1. A declaration added in the change that moves a brief to `completed/` lowers the evidence a clause requires, and verify:scope-provenance returns no finding.\nP2. The same edit on a brief that stays in `active/` gets only the general warn-only `legacy-intent-edit` finding: no declared row, no named item or axis, and no remedy that runs as printed.\nP3. The framework hides and prompts the edit: the preflight advisory on an active brief tells the worker to declare `x-directive/requires`, and the strict-axis listing drops an item once it is declared.\n\nPanel record: round 1 closed at two posted seats (codex 6965408516, claude 6965496784). The Grok round-1 seat is dispatch-fail (halt 6965848164, #6597) and is not re-run sibling-blind, because the body it would read has changed. The Grok family takes the one remaining numbered post as a fresh critic of the recut body, with the whole thread through this comment in envelope. That seat runs from a scratch copy of the pinned tree, not from the dest, because the dest hook denies Grok Shell and Write (#6597); it writes its comment to a file and the parent posts it unedited.\n\nDual-stop cap: 3 posts\nnumbered-posts-used: 2\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\nrefutation-target: verify:scope-provenance in warn mode is the right place for this edit to surface, rather than scope:stamp-evidence or scope:complete, where the declaration is consumed.\n\ntarget: #6591\ntarget-shape: single-issue\ntarget-kind: issue\naudit-targets: none\n\n",
+          "id": 6968760207,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6968760207",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:09:36Z",
+          "updated_at": "2026-11-18T04:09:36Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nCorrection to the panel record in Stop 1 6968760207. This comment is a record only.\n\nThe Grok seat does not run from a scratch copy. The launcher hook refuses a Grok launch outside a dest worktree (#4066), so the seat runs in the arc dest at the pin as a read-only seat: file reads only, no Shell, no Write (#6597). It prints its comment as its final answer and the parent posts that text unedited.\n\nConsequence: the Grok critique rests on code reading, not on executed probes. Its input ceiling is still 6968760207; this comment is out of its envelope.\n\n",
+          "id": 6968801295,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6968801295",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:12:15Z",
+          "updated_at": "2026-11-18T04:12:15Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 2 critic, fresh seat, open critique of the recut body. Envelope through 6968760207. Tree `66d8171f5caaae7e5821e3f651fc1fec27873662`. Every finding rests on reading tracked source at that pin. This seat did not execute checks.\n\n## Round-1 take\n\nThe recut drops the new `x-directive/requires` value and the claim that `requires: merge` needs `kind: merge` with a commit SHA. That matches 6965408516 F1 and 6965496784 F1; `isEvidenceKindSuitable` returns true for every non-merge kind when the axis list is empty. It takes the who-may-write hole, the preflight prompt, the listing drop, the unobservable consumer-refusal census, and “present at activation is agent precommitment” as its remaining content. It ships that hole as a `warn` row under `#6281`, which neither round-1 post weighed, and it sets aside a first-release refuse plus a brief-only PR.\n\n## Refutation-target\n\n`verify:scope-provenance` in `warn` mode is the right surface for this edit.\n\n`evaluateOneItem` and the three stamp helpers (`stampMatchAnyFileEvidence`, `stampDeclaredTestEvidence`, `stampDeclaredMergeEvidence`) call `inferRequiredStrictAxes` on the live item only. They have no merge-base reader, so they cannot tell a post-activation declaration from one that landed at activate. `evaluateScopeProvenance` already walks a completed brief that `wasActiveOnMergeBase`, and it already prints `#6281` warn lines through `formatDeclaredRefusal` (`declaredExtraPathRefusal`). Putting the row there is one check at the existing delta surface.\n\nProposal 3 is load-bearing for the injection lens. `xbrief:preflight` is the verb AGENTS.md runs on `xbrief/active/` before code, and it appends `strictAxisAdvisoryForBrief` → `formatStrictAxisAdvisory`. Provenance is a merge-time / `task check` gate, not that prompt. The advisory recut is what the implementing agent sees; the declared row is what the PR records.\n\n## Evidence section\n\nControl flow at the pin agrees with the four-row table. I did not rerun `evaluateScopeProvenance`.\n\n- Test evidence only, brief stays in `active/`: `ITEM_MACHINE_KEYS` includes `x-directive/evidence`, so extract omits it. Unpinned compare stays clean.\n- Add `requires: merge` on an `active/` brief: `classifyItemKey` returns `unknown` for that key; `extractItems` copies it and records `items[].x-directive/requires`; `compareItems` then reports `intent-drift` and `compareUnknownKeys` reports `unclassified-key`. `evaluateLegacyIntent` maps both to `legacy-intent-edit` with `warnOnly: true`. That is the parent’s two warn-only findings.\n- Lifecycle move: `evaluateIntentForXbrief` is called with `xbriefRelPath: rel` (the head path) and `readAtBase` that does not call `resolveMergeBaseBriefRead`. `evaluateLegacyIntent` does `readBase(input, input.xbriefRelPath)` and returns `[]` when that read is `missing`. The path fence in the same function already uses `resolveMergeBaseBriefRead`, which probes `preMoveSameBasenameLifecyclePaths` when the head path is under `xbrief/completed/` or `xbrief/cancelled/` and is absent on base. The last row of the table follows from that split.\n- `evaluateInPrCompletionInputs` pushes a reason when `itemDeclaresMergeRequirement(item)` is true, so a merge-declared brief completes on the post-merge lifecycle move, which is that missing-path read.\n\nCensus counts (1,951 / 10,554, 139 briefs, 14 hidden-axis items) are parent-measured. This seat did not recount. The statement that consumer refusals are not observable from this repository matches the absence of a refusal-history surface in the inventoried files.\n\n## Findings\n\n### F1 — sharpens-framing: one warn predicate, including the activation window\n\n**Evidence.** Proposal 2 defines hidden axes as “the axes its text infers with the declaration fields removed, minus the axes it infers as written,” and warns when the head item hides an axis the matched base item did not hide, “or the item is new.” The AC set is different: no warn when the declaration is already on the merge-base copy; no warn when the edit adds `x-directive/requires: deploy`; no warn on a lifecycle move with no declaration change.\n\n`inferRequiredStrictAxes` returns an explicit strict token when one is declared, returns `[]` when it saw `merge` and no explicit strict token, and only then reads title/narrative. Set-difference therefore grows when title text gains “deploy” under a stable `requires: merge`, and it can grow when `requires: deploy` masks a second text axis such as smoke. Both trip proposal 2 and miss those AC bullets.\n\nProposal 1 resolves a missing head path only for `completed/` and `cancelled/`. An activation PR is `pending/` → `active/`. Continuity can bind the pending copy (`resolveStoryContinuity` unique `plan.id` move). The new row, if it treats a missing `active/` path as “item is new,” warns on the activation PR that first writes `requires: merge`. Constraints on this issue call that write agent precommitment reviewed at activation. `itemDeclaresMergeRequirement` already walks all eight declaration fields.\n\n**Failure mode.** An implementer who codes the set-difference ships warns the AC forbids, or ships “item is new” and warns on activate, where proposal 3 still tells the author to declare `x-directive/requires`.\n\n**Disposition consequence.** Bind one predicate before implementation: warn when a declaration-field change against the continuity-resolved merge-base copy newly empties the axis set. Head: `itemDeclaresMergeRequirement` is true and `inferRequiredStrictAxes` on the item with those eight fields ignored is nonempty. Base: the continuity-resolved brief lives under `xbrief/active/` and that same pair was false on the matched item. Pending→active is the precommitment window and stays quiet. A completed/cancelled head uses the pre-move `active/` copy the path fence already resolves. Adding `requires: deploy` keeps a nonempty as-written axis set, so it stays quiet. A stable merge declaration with only a title edit stays quiet.\n\n### F2 — sharpens-framing: the warn-row remedy is the extra-path deferred shape\n\n**Evidence.** The recut leaves the remedy command open and requires that it run as printed with no extra pull request. `main.md` `#6281` asks for a remedy that runs as printed. The table already has the brief-edit exception: `extra-path-not-admitted` and `extra-paths-over-budget` set `remedy` to `[\"deft verify:scope-provenance\"]` and `deferred` to “the fix is a brief edit … no printed command can make it for you.” `formatDeclaredRefusal` then appends `Not runnable exactly as printed:`. In `remedy-runs.test.ts`, a deferred row’s `retry` is `null`; a non-deferred row is dispatched through `runPrinted`, which accepts only `directive install`. Clearing this warn means editing the brief (delete the new merge declaration, or reword the clause). `scope:stamp-evidence` calls `stampMatchAnyFileEvidence`, which stamps `kind: test` or `kind: review` once `inferRequiredStrictAxes` is empty — that is the waiver, not a clearer. `scope:complete` consumes the empty axis set. `scope:record-approved-scope` is proceed ceremony (`#4956`).\n\n**Failure mode.** A non-deferred `deft verify:scope-provenance` re-prints the warn and fails the remedy test, because `runPrinted` cannot dispatch it and rerunning the check does not restore the axis. A new mutator verb is a second mechanism. A brief-only PR as the printed remedy is the `#4956` ceremony this issue already declined.\n\n**Disposition consequence.** Existing command that fits: the extra-path pair. New row: `mode: \"warn\"`, `remedy: [\"deft verify:scope-provenance\"]`, `deferred` naming a same-change brief edit and `#6591`. That passes the remedy test the way `#6221` does, and it needs no extra PR.\n\n### F3 — sharpens-framing: give the new row its own pre-move read\n\n**Evidence.** Proposal 1 teaches “the unpinned intent comparison” to read the pre-move brief. That comparison is `evaluateLegacyIntent`, which today returns `[]` on a missing head path and maps every extract delta to `legacy-intent-edit` with `warnOnly: true`. The intent call site still passes the head `rel`. Reusing that function for this issue would start warning on every unpinned extract delta that rides with a completed/ move (title, narrative, new items), which is a larger `#5057` surface than “one narrow declared row.” Constraints keep `legacy-intent-edit` advisory and add one declared row.\n\n**Failure mode.** Lifecycle PRs that only retitle or append a clause pick up a new intent-pin WARN block, while the declared line the AC names is a different print path.\n\n**Disposition consequence.** Call `resolveMergeBaseBriefRead` / `resolveStoryContinuity` from the new comparator, the same way the path fence and Path B precommitment already do. Leave `evaluateLegacyIntent` as it is. Soft-findings still render as `intent-pin finding(s)`; print this row through `formatDeclaredRefusal` on the extra-path warning channel (`onWarning` / `extraPathReport`), so a lone hide does not borrow the intent-pin summary.\n\n### F4 — sharpens-framing: keep the `#6272` “will need” count on the gate set\n\n**Evidence.** `listStrictAxisRequirements` pushes a row only when `inferRequiredStrictAxes(item).length > 0`. Its comment and the `clause.11` test bind that list to the items `evaluateAcceptanceEvidenceGate` holds. `formatStrictAxisAdvisory` then prints `N clause(s) will need strict-axis evidence at scope:complete` and, for each row, `id: axes`. A merge-declared item has an empty axis set, so today it is absent (P3). Proposal 4 and the listing AC put it back marked declared with hidden `deploy`. Promote and activate call the same `strictAxisAdvisoryLines` path (`briefStrictAxisAdvisory` in `scope/main.ts`).\n\n**Failure mode.** Counting declared-hidden rows in `N` tells the author those clauses still need deploy/smoke/UAT evidence at complete, after the declaration has already emptied the axis set.\n\n**Disposition consequence.** Extend `StrictAxisRequirement` with a declared/hidden mark. Keep the leading “will need” count and the complete-gate equality on nonempty `inferRequiredStrictAxes`. Show hidden rows as declared, with the hidden axes. Pass the verb into `formatStrictAxisAdvisory`: promote and activate keep “declare `x-directive/requires`”; `strictAxisAdvisoryForBrief` (preflight) omits that sentence.\n\n### F5 — footnote: helper lives next to `inferRequiredStrictAxes`\n\n`readExplicitAcceptanceRequirementFields` is file-private. The eight-field list should not be copied into `evaluate.ts`. A small helper beside `inferRequiredStrictAxes` (text-inferred axes with those fields ignored) plus existing `itemDeclaresMergeRequirement` is the whole predicate. Needs an executed unit test to lock the eight aliases; this seat did not run one.\n\n## Injection / swarm lens\n\nThe lens fires: the field an agent edits is the switch `inferRequiredStrictAxes` / `isEvidenceKindSuitable` use to admit `kind: test` or `kind: review`, and preflight currently tells that agent to flip it. After this issue, preflight stops naming the declaration (proposal 3) and `verify:scope-provenance` prints a declared warn when the flip is new against an already-active base copy. The switch remains live brief bytes; this release still completes. That is the `#6281` warn-first shape extra-path already uses. Proposal 3 is the in-loop control because provenance is not on the preflight path. I found no instruction-shaped text in the recut body or in-envelope comments aimed at this critic.\n\n## Existing mechanisms\n\n- `itemDeclaresMergeRequirement` + `inferRequiredStrictAxes` (eight fields, merge short-circuit, explicit strict wins).\n- `resolveMergeBaseBriefRead` / `resolveStoryContinuity` (pre-move `active/` before `pending/` for a completed head).\n- `evaluateLegacyIntent` (unpinned, `warnOnly`, missing head path → `[]`).\n- `formatDeclaredRefusal` + extra-path deferred rows (`deft verify:scope-provenance`, brief edit, `#6221`).\n- `formatStrictAxisAdvisory` / `listStrictAxisRequirements` (`#6272`), shared by promote, activate, and preflight.\n- `evaluateInPrCompletionInputs` (`#6277`) sending merge-declared briefs onto the lifecycle move.\n- Intent pin: same edit is hard `intent-drift` / `unclassified-key` when `intentDigest` is present. After `#4956` the unpinned path is the normal one.\n\n## Bound remedy\n\n1. One declared `warn` row at `evaluateScopeProvenance`, predicate as F1, printed through `formatDeclaredRefusal` on the extra-path warning channel, pre-move read as F3.\n2. Table row as F2 (`extra-path-not-admitted` deferred shape). Same-change brief edit; no extra PR.\n3. Advisory by verb and listing mark as F4.\n\nLeftover: a later release turns the row to `enforce` with its own CHANGELOG entry, still at provenance.\n\n## Road not taken\n\nThread a merge-base read into `evaluateOneItem` or `stampMatchAnyFileEvidence` so the completing agent sees the line at the consumption site. That duplicates provenance’s git reader and splits `#6281` across two verbs. What would flip it: shipping the declared row while leaving the preflight sentence “declare `x-directive/requires`” in place, so the constrained party is still prompted to make the edit and never runs provenance before `scope:complete`.\n\n## Verification limits\n\nTracked-file reads of the inventoried modules at dispatch SHA `66d8171f5caaae7e5821e3f651fc1fec27873662`. No Shell, no `gh`, no Node replay, no `evaluateScopeProvenance` run, no brief census. Line numbers above are navigation aids; the quoted functions and conditions are the evidence. Findings F1–F4 do not need an executed probe to bind. The four-row table and the census figures do.\n\n",
+          "id": 6968938547,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6968938547",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:20:19Z",
+          "updated_at": "2026-11-18T04:20:19Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nTree record for critic post 6968938547. This comment is a record only; the critic text is unedited.\n\nThe post attests tree `66d8171f5caaae7e5821e3f651fc1fec27873662`. The seat in fact read `2128e8e3ae862fad848b5e3e4447ee629c41949d`. The dest reflog shows a checkout from the first to the second at 2026-11-17 23:12:02 -0500, the moment the Grok seat launched; the parent did not run that checkout and had confirmed the pin and a clean index just before. `2128e8e3ae86` is `origin/master` at this time.\n\nWhat that changes:\n\n- F2 and F3 cite `extra-path-not-admitted`, `extra-paths-over-budget`, `declaredExtraPathRefusal`, `extraPathReport` and `extra-path-admission.ts`. Those exist at `2128e8e3ae86` (#6221) and do not exist at `66d8171f5caa`. They are valid at the tip only.\n- `acceptance-evidence.ts`, `intent-evaluate.ts`, `compare-intent.ts`, `extract-intent.ts`, `vbrief-preflight.ts` and `lands-with-product.ts` are byte-identical between the two commits, so the round-2 reading of those files holds at both.\n- The parent re-ran the four-row `evaluateScopeProvenance` table from the issue body at `2128e8e3ae86` in disposable git repositories. All four rows give the same result as at `66d8171f5caa`, including the silent lifecycle-move row.\n\nThe successor map will pin `2128e8e3ae862fad848b5e3e4447ee629c41949d`.\n\n",
+          "id": 6968957878,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6968957878",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:21:34Z",
+          "updated_at": "2026-11-18T04:21:34Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn agent can add a declaration to a brief that is already active and so switch off the runtime evidence a clause needs. Today that gets a general warning on an active brief, and nothing at all when the brief moves to completed in the same change. The framework's own preflight message suggests the edit.\n\nThe accepted design prints one named warning when a changed declaration hides a required kind of evidence that was not hidden before, including across the move to completed. It warns and does not refuse. Preflight stops suggesting the edit, and the listing shows declared items instead of dropping them. No new declaration value is added.\n\n**Lean:** bind warn-mode declared row for a declaration that hides an axis after activation.\n\nSpec-path: Bound remedy on this lean\n\nTarget-digest: sha256:18606f0c2903466ab4e5a9841c29a70bd5e64da5382fc335a3b6aa514c4f507b\n\ndispatch-sha: 2128e8e3ae862fad848b5e3e4447ee629c41949d\narc-mode: no-ingest\nDual-stop cap: 3 posts\nStop 1: 6968760207\nCited critics: 6965408516, 6965496784, 6968938547\nTree record: 6968957878. The round-2 post read 2128e8e3ae86, so this map pins that commit. The round-1 posts read 66d8171f5caa; the files their findings rest on are unchanged between the two.\n\nNon-self-arbitration: this parent seat wrote the first body, the recut body, Stop 1 6968760207 and these takes. The first body's false baseline was this seat's error. A later critic of all three pain markers is the independent check.\n\n## Parent-side substantiation\n\nblocks-the-design: 6965408516 F1 the missing capability already exists\naccept-into-contract\n\nsharpens-framing: 6965408516 F2 declaration authority already has an intent-pin control\naccept-into-contract\n\nsharpens-framing: 6965408516 F3 an empty refusal census needs an observation boundary\naccept-into-contract\n\nblocks-the-design: 6965496784 F1 requires merge already admits test and review evidence\naccept-into-contract\n\nblocks-the-design: 6965496784 F2 the who-may-write hole is live today\naccept-into-contract\n\nsharpens-framing: 6965496784 F3 the preflight advisory tells the implementing agent to write the declaration\naccept-into-contract\n\nsharpens-framing: 6965496784 F4 present at activation is agent precommitment, not human origin\naccept-into-contract\n\nsharpens-framing: 6965496784 F5 the census population is not observable\naccept-into-contract\n\nfootnote: 6965496784 F6 if a value still ships, reuse an existing evidence-kind token\naccept-into-contract\n\nsharpens-framing: 6968938547 F1 one warn predicate, including the activation window\naccept-into-contract\n\nsharpens-framing: 6968938547 F2 the warn-row remedy is the extra-path deferred shape\naccept-into-contract\n\nsharpens-framing: 6968938547 F3 give the new row its own pre-move read\naccept-into-contract\n\nsharpens-framing: 6968938547 F4 keep the will-need count on the gate set\naccept-into-contract\n\nfootnote: 6968938547 F5 helper lives next to inferRequiredStrictAxes\naccept-into-contract\n\nWhere each take lands:\n\n- 6965408516 F1, 6965496784 F1 and F6: item 10. No new value ships.\n- 6965408516 F2: items 2 and 9. The intent pin stays as it is; the new row covers the unpinned path.\n- 6965408516 F3 and 6965496784 F5: no census step is bound. The body's census names its corpus and says consumer refusals are not observable.\n- 6965496784 F2: items 2 to 5, decided here and not tied to a census, over all eight declaration fields with existing `merge` included. One difference from that post's smallest remedy: the row warns and does not refuse, because `main.md` (#6281) requires a new default refusal to ship in warn mode for a release, and the brief-only-PR remedy is the ceremony #4956 removed.\n- 6965496784 F3 and 6968938547 F4: items 6 and 7.\n- 6965496784 F4: item 3 condition (a) and item 9. A declaration on the merge base is precommitment and stays quiet.\n- 6968938547 F1: item 3, with one widening. That post warns only when a new `merge` declaration empties the axis set. Item 3 also warns when a changed declaration hides part of the set, for example `requires: deploy` on text that also needs smoke. Parent-run model of item 3 at 2128e8e3ae86: 16 cases, each as items 3 and 8 state.\n- 6968938547 F2: item 5. F3: item 2. F5: item 1.\n\nKnown limit, not covered: lowering a requirement by rewording the clause text with no declaration change. That stays on the general warn-only finding.\n\n## Bound remedy\n\n1. Add one helper beside inferRequiredStrictAxes in packages/core/src/scope/acceptance-evidence.ts that returns an item's hidden axes: the axes inferred with the eight declaration fields ignored, minus the axes inferred as written. Do not copy the field list into another file.\n2. In evaluateScopeProvenance, for each brief modified in the change set, read its merge-base copy through the same continuity and pre-move resolution the path fence uses (resolveMergeBaseBriefRead), so a head brief under completed/ or cancelled/ is compared with its pre-move copy. Do not change evaluateLegacyIntent or what legacy-intent-edit reports.\n3. Warn for a head item when all three hold: (a) the resolved merge-base copy of the brief is under xbrief/active/; (b) the item is absent from that copy, or the value of any of the eight declaration fields differs from the base item, where items match by id and an item with no id matches by its position in the item tree; (c) the head item hides an axis that the base item does not hide, and an absent base item hides none.\n4. Print one line for each such item through formatDeclaredRefusal on the extra-path warning channel (extraPathReport), naming the brief path, the item and the newly hidden axes. The exit code does not change, and the line is not counted as an intent-pin finding.\n5. Add the row declaration-hides-axis to packages/core/src/refusal-declarations/table.ts with no mode (warn), remedy [\"deft verify:scope-provenance\"], and deferred \"the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591\". Add its case to remedy-runs.test.ts in the same form as extra-path-not-admitted.\n6. formatStrictAxisAdvisory takes the calling verb. At promote and activate it keeps the sentence that names x-directive/requires. At xbrief:preflight it prints the list and omits that sentence.\n7. listStrictAxisRequirements also returns a row for an item with hidden axes, marked declared, with those axes. The count in the advisory's first line and the equality with the completion gate stay on items whose as-written axis set is not empty. The advisory prints declared rows after them, marked as declared.\n8. Tests beside the changed sources, each on a brief with no intent pin. A line prints, exit 0, for: requires merge added to an item whose text infers deploy while the brief stays in active/; the same edit in the change that moves the brief to completed/; requires deploy added to \"Deploy to staging and run the smoke test\" (names smoke); a new item with requires merge and deploy text on a brief that is active on the base; and each of the seven alias fields in place of x-directive/requires. No line prints for: a lifecycle move with no declaration change; a declaration already on the base item; requires deploy added to deploy-only text; an edit that adds only x-directive/evidence; a title that gains \"deploy\" under an unchanged merge declaration; an alias swapped for another with the same hidden set; and a pending/ to active/ change that first writes the declaration.\n9. Document the row in content/docs/scope-provenance.md: what it compares, that it warns only, that a declaration on the merge base is agent precommitment and not human authorization, and that the intent pin already refuses the same edit when a pin exists. Add a changelog fragment that says the row ships in warn mode.\n10. Ship no new x-directive/requires value and no enforce mode for this row.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n",
+          "id": 6969056377,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6969056377",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:28:01Z",
+          "updated_at": "2026-11-18T04:28:01Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:faf2bf3a4cd4c14aa965d80e5487aace8ebd13121c47735e0deade3dddb0e642\n\nFootnote-only audit of [bind lean 6969056377](https://github.com/deftai/directive/issues/6591#issuecomment-6969056377) against the pains in [operative Stop 1 6968760207](https://github.com/deftai/directive/issues/6591#issuecomment-6968760207). No change to the Bound remedy mechanism is required. The relief is visibility and removal of the framework's prompt to lower requirements; it does not prevent completion after an unpinned declaration edit. The remedy is explicitly deferred manual repair, not an executable fixer.\n\nThe initial `git rev-parse HEAD` returned `cff0e85c34b1ddcaeeb70de2cc6662a4a769fdf6`, **not** the dispatch SHA. All product-source verification and executed source slices used `git show '2128e8e3ae862fad848b5e3e4447ee629c41949d:<path>'`. Bootstrap deviation: I initially read `main.md` from cwd while loading the envelope, then discarded that read and reread it at the dispatch SHA. No conclusion below uses the moving checkout. Thread input was only the supplied issue/comments JSON, through 6969056377 inclusive.\n\n## Pain coverage\n\n| Target | Result against the Bound remedy |\n| --- | --- |\n| pain-P1 | Items 2–4 cover the silent lifecycle-move case. The existing resolver supplies the active base copy, item 3 detects newly hidden axes, and item 4 emits the named warning without turning it into an intent-pin finding. |\n| pain-P2 | Items 3–5 cover the active-brief case with a declared warning naming the item and newly hidden axis. Item 5 uses the refusal table's existing deferred-remedy form. This is actionable manual-edit guidance plus a verification command, not proof that running the command repairs the brief; see F1. |\n| pain-P3 | Items 6–7 remove the declaration suggestion at preflight and display declared-hidden items. Keeping the count on nonempty as-written axes preserves the completion-gate requirement set. |\n\n**P1: the pre-move reader is real and fits this case.** I executed the pinned `resolveStoryContinuity`, `resolveMergeBaseBriefRead`, and `wasActiveOnMergeBase` functions with injected base maps. Both terminal folders resolved to `xbrief/active/story.xbrief.json` for a same-name identity move, a renamed identity move, and a no-id same-basename fallback: six passing checks. Two controls also passed: the fallback does not borrow an active counterpart still present on HEAD; pending→active resolves to the pending base and therefore fails item 3(a), as intended.\n\nThe source establishes the integration points: [changed-lifecycle admission](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/core/src/scope-provenance/evaluate.ts#L1022-L1069), [the resolver](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/core/src/scope-provenance/evaluate.ts#L533-L574), and [the path-fence call](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/core/src/scope-provenance/evaluate.ts#L1756-L1776). The existing [legacy comparison](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/core/src/scope-provenance/intent-evaluate.ts#L230-L248) still returns no finding for a missing head path. Item 2 correctly gives the new comparison its own resolved base without widening that legacy check.\n\n**P2: the output path accepts a warning alongside legacy warnings.** `extraPathReport` survives when there are no hard findings, including the exit-0 branch with soft intent findings; [the CLI prints it on exit 0](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/runtime/src/verify-scope-provenance.ts#L277-L286). Thus the active case can retain its general legacy warnings and also print the new item/axis line. This channel does not promise output alongside an unrelated hard failure.\n\nI passed a proposed `declaration-hides-axis` row through the pinned `normalizeDeclarations`, `formatDeclaredRefusal`, and `parsePrintedRemedy`: omitted mode became `warn`; the result was declared with `proceed: true`; the line retained the brief, item, and `deploy`; the parsed command was exactly `deft verify:scope-provenance`; and the deferred explanation named #6591. These satisfy the [existing deferred-case assertions](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/core/src/refusal-declarations/remedy-runs.test.ts#L225-L247). That branch checks the explanation and returns without executing the command or retrying the refused operation.\n\n**P3: visible rows and the requirement count can remain distinct.** The pinned [listing and formatter](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/core/src/scope/acceptance-evidence.ts#L472-L527) omit a merge-declared deploy item today. In an isolated three-item check—merge-declared deploy, undeclared deploy, and deploy-declared deploy-plus-smoke—the as-written requirement count is two. The proposed display has three visible items, with hidden `deploy` on the first and hidden `smoke` on the third; the count remains two. Item 7 states that partition. Passing the verb through the existing advisory wrappers is sufficient for item 6; it needs no inference or completion-gate change.\n\n## Predicate replay\n\nI executed the pinned `inferRequiredStrictAxes` and its complete local dependencies using Node 24.20.0 type stripping. I obtained the eight keys from the pinned field reader and modeled items 1 and 3 in memory: active resolved base, absent item or changed declaration field, and a nonempty newly-hidden-axis difference. This is a model of the proposed comparator, not shipped #6591 code.\n\n| Item 8 case | Instances | Model result |\n| --- | ---: | --- |\n| Add merge on active deploy item: canonical key and seven aliases | 8 | warn, `deploy` |\n| Same edit with move to completed | 1 | warn, `deploy` |\n| Add deploy declaration to deploy-plus-smoke text | 1 | warn, `smoke` |\n| New merge-declared deploy item on an active base brief | 1 | warn, `deploy` |\n| Lifecycle move with no declaration change | 1 | quiet |\n| Declaration already present on base item | 1 | quiet |\n| Add deploy declaration to deploy-only text | 1 | quiet |\n| Evidence-only edit | 1 | quiet |\n| Title gains deploy under unchanged merge declaration | 1 | quiet: condition (b) fails |\n| Swap aliases with the same hidden set | 1 | quiet: condition (c) fails |\n| First declaration during pending→active | 1 | quiet: condition (a) fails |\n\nAll 18 enumerated instances agree with item 8: 11 warn, seven quiet. This verifies the stated cases, not an end-to-end provenance exit code for an implementation that does not yet exist.\n\n## F1 — footnote: deferred repair is not a runnable fix, and evidence alone does not clear this comparison\n\nEvidence: the [table contract](https://github.com/deftai/directive/blob/2128e8e3ae862fad848b5e3e4447ee629c41949d/packages/core/src/refusal-declarations/table.ts#L30-L35) expressly permits deferred remedies, and the printer says `Not runnable exactly as printed`. The item-3 replay still warns after deploy evidence is added while the new merge declaration remains. Removing that declaration clears the warning.\n\nDo not report P2 as having gained an automatic repair command, or say that evidence alone clears this warning. Its literal “remedy that runs as printed” wording is satisfied only in the qualified, deferred form explicitly chosen by the lean, not as executable repair. The same-change declaration removal is an effective manual remedy; rerunning provenance verifies the edit. This qualification needs no new mutator, evidence-based exemption, extra brief-only PR, or reminted mechanism.\n\n## F2 — footnote: the recorded 16-case total is not an independently reproduced count\n\nThe supplied record contains no original 16-case fixture table or script. Expanding every item-8 case and every alias gives the 18 instances above, all passing. That is a transparent independent enumeration, not a refutation of a differently grouped parent run. Preserve the behavioral result and qualify the quantitative claim; no predicate change follows.\n\n## Accepted takes and authority limits\n\nNo accepted mechanism is missing from the Bound remedy. The no-new-value findings land in item 10; the existing intent-pin control and precommitment limit land in items 2 and 9; the declaration comparison and output/remedy land in items 1–5; the preflight/listing findings land in items 6–7. The census findings are addressed by dropping the census-conditioned close path and stating the observation boundary; they do not require a new bound census step. The lean explicitly disposes the earlier enforce/brief-only-PR suggestion in favor of warn-first and same-change repair, rather than silently omitting it.\n\nWarn-only is honest relief of the operative visibility pains: P1 lacks a signal, P2 lacks a specific declared signal and usable remediation guidance, and P3 concerns a prompt and a hidden listing row. It is not closure of the broader authority hole. A worker can still ignore the warning. The stated text-rewording limit does not leave these declaration-edit pains uncovered: P1/P2 concern a newly added declaration, and P3's two surfaces are directly changed. The replay confirms that rewording without a declaration change remains outside item 3.\n\nThe injection/worker-authority lens therefore remains relevant: declaration bytes stay agent-editable; a declaration present on the base is precommitment, not authenticated human authorization. Removing the preflight suggestion reduces framework encouragement, while the new comparison supplies an explicit signal. Neither reviewer attention nor the warn row is claimed as a prevention control. I found no embedded instruction aimed at redirecting this critic in the supplied thread.\n\nVerification was limited to pinned source inspection and isolated function/model assertions. I did not run the full provenance evaluator, the full Vitest suite, a census, or a remedy command. No implementation, ingest, occupancy claim, mutation session, network call, or GitHub post occurred. This is the single reserved-slot comment artifact; exit to the parent for verbatim posting and disposition.\n\n",
+          "id": 6969140454,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6969140454",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:33:33Z",
+          "updated_at": "2026-11-18T04:33:33Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nNon-self-arbitration: this seat wrote the recut body, Stop 1 6968760207 and bind lean 6969056377. Rows marked verified were re-derived by a cross-family critic, by this seat from the source, or both.\n\n| Claim | Method | Status |\n| --- | --- | --- |\n| `x-directive/requires: merge` empties the axis set and admits `kind: test` and `kind: review` | Pinned-function replays in 6965408516 (gpt-6) and 6965496784 (claude-opus-5-5); this seat ran `inferRequiredStrictAxes` and `isEvidenceKindSuitable` on the same clause | verified |\n| On an unpinned active brief the edit is warn-only; with a lifecycle move it produces no finding | This seat ran `evaluateScopeProvenance` in disposable git repositories at 66d8171f5caa and at 2128e8e3ae86, four rows each; 6968938547 (grok-4.6) traced the same control flow by reading; 6969140454 confirmed the missing-head-path return by reading | verified by one executing seat, confirmed by reading in two families |\n| The path fence's resolver returns the pre-move active copy for a completed or cancelled head | 6969140454 executed `resolveStoryContinuity`, `resolveMergeBaseBriefRead` and `wasActiveOnMergeBase` at the pin: six checks, two controls | verified |\n| The item 3 predicate returns what item 8 states | 6969140454 rebuilt it from pinned `inferRequiredStrictAxes`: 18 instances, 11 warn, 7 quiet. This seat's own model agrees; its \"16 cases\" count in the lean has no posted fixture list and is not a reproduced number | verified on behaviour; the count 16 is not |\n| A `declaration-hides-axis` row with no mode and a deferred reason is accepted by the refusal table and its remedy test | 6969140454 passed a draft row through pinned `normalizeDeclarations`, `formatDeclaredRefusal` and `parsePrintedRemedy`; this seat read the two extra-path rows and their test cases at 2128e8e3ae86 | verified |\n| Census: 1,951 of 10,554 items declare merge in 139 briefs, 131 on every top-level item; 14 items hide a text axis | 6965496784 at 66d8171f5caa; reproduced by this seat with its own script at the same commit | verified, same family as the parent |\n| The row's remedy repairs the brief when run | It does not. 6969140454 F1: the remedy is a manual brief edit; the printed command only re-checks | refuted as worded; the lean's item 5 states the deferred form |\n| The warn row stops an agent from completing after the edit | It does not, and the lean does not claim it. 6969140454: visibility relief only | not claimed |\n| The new comparison, row, advisory and listing pass under Vitest | Not run; none of it is written | not verified; implementation |\n\n",
+          "id": 6979965348,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6979965348",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T13:28:14Z",
+          "updated_at": "2026-11-18T13:28:14Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn agent can add a declaration to a brief that is already active and so switch off the runtime evidence a clause needs. On an active brief that gets a general warning. When the brief moves to completed in the same change it gets nothing, and the framework's preflight message suggests the edit.\n\nThe accepted solution prints one named warning when a changed declaration newly hides a required kind of evidence, including across the move to completed. Preflight stops suggesting the edit and the listing shows declared items. It warns and does not refuse, so it makes the edit visible and does not prevent it. No new declaration value is added.\n\ndesign-critique: synthesis accepted, because the operator explicitly chose accept synthesis after footnote-only pain-audit 6969140454.\n\nBound contract: successor lean 6969056377.\nRecord: verified-claims table 6979965348.\n\n",
+          "id": 6979968047,
+          "html_url": "https://github.com/deftai/directive/issues/6591#issuecomment-6979968047",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T13:28:21Z",
+          "updated_at": "2026-11-18T13:28:21Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\nAn agent can switch off a runtime-evidence requirement on a brief that is already active, and the framework says little or nothing about it.\n\n`inferRequiredStrictAxes` (`packages/core/src/scope/acceptance-evidence.ts`) gives a clause such as \"Deploy to staging and confirm the site serves the new build\" a deploy axis, so `scope:complete` refuses test evidence for it. If the item then gains `\"x-directive/requires\": \"merge\"`, the axis set becomes empty and `kind: test` or `kind: review` evidence is accepted. Nothing checks who added the declaration or when.\n\nThis issue makes that edit visible, in warn mode, and stops the framework from suggesting it. It adds no new `x-directive/requires` value.\n\n## Recut note\n\nThe first version of this issue said that `requires: merge` needs `kind: merge` evidence with a commit SHA, and proposed a new non-strict value. That was wrong. Round-1 critics 6965408516 and 6965496784 showed that a merge declaration already turns the text match off and admits test or review evidence. The clause that only names a job or workflow (#6301 P1) is therefore already served: the author declares `x-directive/requires: merge` before activation. What remains is the authority gap below.\n\n## Evidence\n\nMeasured at `66d8171f5caaae7e5821e3f651fc1fec27873662`.\n\nReal `evaluateScopeProvenance` in disposable git repositories, on a brief with the clause above and no intent pin:\n\n| Change against the merge base | Result |\n| --- | --- |\n| Add test evidence only; brief stays in `active/` | clean |\n| Add `requires: merge` and test evidence; brief stays in `active/` | exit 0, two warn-only `legacy-intent-edit` findings |\n| Move the brief to `completed/` only | clean |\n| Move to `completed/` and add `requires: merge` and test evidence | clean: exit 0, no finding, no warning |\n\n- The last row is a blind spot. `evaluateLegacyIntent` reads the merge-base copy at the head path. After a lifecycle move that path does not exist on the base, so the comparison returns nothing. The path fence in the same file already resolves the pre-move path.\n- `scope:complete --in-pr` refuses an item that declares merge (#6277), so a merge-declared brief completes through the later lifecycle move, which is the blind spot.\n- With an intent pin, the same edit returns hard `intent-drift` and `unclassified-key` findings (function-level probe of `evaluateIntentForXbrief`).\n- `xbrief:preflight` prints the #6272 advisory on an active brief: \"reword the clause or declare x-directive/requires (merge or one axis) on the item\". That tells the worker to make this edit.\n- `listStrictAxisRequirements` lists only items with a non-empty axis set, so an item whose declaration hides a text axis is absent from the listing.\n- Census of all briefs at the pin: 1,951 of 10,554 plan items declare merge, in 139 briefs, 131 of which declare it on every top-level item. 14 items have a declaration that hides a text-inferred axis (13 completed on `kind: merge`, 1 on a disposition). Consumer refusals are not observable from this repository.\n\n## Constraints\n\n- Warn-first (#6281): a new default refusal is declared in the refusal table (`packages/core/src/refusal-declarations/table.ts`) and ships in `warn` mode for at least one release. This issue ships `warn` only. A move to `enforce` is a later release with its own CHANGELOG entry and is not part of this issue.\n- No scope ceremony after proceed (#4956): the remedy must not require an extra brief-only PR.\n- `legacy-intent-edit` stays advisory (#5057). This issue adds one narrow declared row; it does not turn intent edits in general into refusals.\n- A declaration that is present on the merge base is agent precommitment reviewed at activation, not human authorization (`content/docs/scope-provenance.md`). This issue does not claim otherwise and does not address blanket declarations made before activation.\n\n## Proposal\n\n1. **Close the blind spot.** When the head brief is under `completed/` or `cancelled/` and its path is absent on the merge base, the unpinned intent comparison reads the pre-move brief the same way the path fence does.\n2. **One declared warn row.** For each head item, compute the hidden axes: the axes its text infers with the declaration fields removed, minus the axes it infers as written. When an item hides an axis that the same item (matched by id) did not hide on the merge base, or the item is new, print one declared refusal line in `warn` mode that names the item, the hidden axes, and a remedy that runs as printed. All eight declaration fields count (`x-directive/requires` and its aliases).\n3. **Advisory by verb.** At promote and activate the #6272 advisory keeps \"declare x-directive/requires\". At `xbrief:preflight` on an active brief it does not suggest adding a declaration.\n4. **Listing.** `listStrictAxisRequirements` and the advisory show an item whose declaration hides a text axis as declared, with the hidden axes, not as absent.\n\n## Out of scope\n\n- A new `x-directive/requires` value.\n- Any inference from clause text (#6301 is the record).\n- `enforce` mode for the new row.\n- Human-origin records for declarations made before activation.\n\n## Acceptance Criteria\n\n- Given an active brief with no intent pin whose item text infers deploy, when the head adds `x-directive/requires: merge` to that item and the brief stays in `active/`, then `verify:scope-provenance` prints the declared warn line naming the item and `deploy`, and exits 0.\n- Given the same edit made in the change that moves the brief to `completed/`, then the same warn line prints.\n- Given a lifecycle move with no declaration change, then no warn line prints.\n- Given a declaration that is already on the merge-base copy of the item, then no warn line prints.\n- Given an edit that raises the requirement (adds `x-directive/requires: deploy`), then no warn line prints.\n- Given an edit that adds only `x-directive/evidence`, then no warn line prints.\n- Given each of the seven alias fields in place of `x-directive/requires`, then the warn line prints.\n- The new row is in the refusal table with mode `warn`, prints through the one helper with its gate id, and its remedy passes the remedy test.\n- Given an active brief, when `xbrief:preflight` prints the strict-axis advisory, then the text does not tell the reader to declare `x-directive/requires`.\n- Given an item with `x-directive/requires: merge` whose text infers deploy, then `listStrictAxisRequirements` returns a row for it marked declared with `deploy` as hidden.\n- Tests live beside the changed sources and pass under Vitest.\n\nRefs #6301, #6270, #6272, #6277, #6281, #5105, #5057, #4956, #2944.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6456097206,
+        "origin": "deftai/directive#6591",
+        "id": "github.issue.6456097206"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "18606f0c2903466ab4e5a9841c29a70bd5e64da5382fc335a3b6aa514c4f507b"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6591,
+        "leanCommentId": 6969056377,
+        "harvestDigest": "faf2bf3a4cd4c14aa965d80e5487aace8ebd13121c47735e0deade3dddb0e642",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/main.test.ts",
+          "packages/runtime/src/vbrief-preflight.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "packages/core/src/scope-provenance/declaration-hides-axis.ts",
+          "packages/core/src/scope-provenance/declaration-hides-axis.test.ts",
+          "packages/runtime/src/verify-scope-provenance.ts",
+          "packages/runtime/src/verify-scope-provenance.test.ts",
+          "packages/core/src/refusal-declarations/table.ts",
+          "packages/core/src/refusal-declarations/remedy-runs.test.ts",
+          "content/docs/scope-provenance.md",
+          "changelog.d/6591-declaration-hides-axis-warn.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [
+          "github.issue.6376468589"
+        ],
+        "conflict_group": "strict-axis-classifier",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts packages/core/src/scope/main.test.ts packages/core/src/scope-provenance/declaration-hides-axis.test.ts packages/core/src/scope-provenance/evaluate.test.ts packages/core/src/scope-provenance/evaluate-git.test.ts packages/core/src/refusal-declarations/remedy-runs.test.ts packages/runtime/src/vbrief-preflight.test.ts packages/runtime/src/verify-scope-provenance.test.ts"
+        ],
+        "expected_outputs": [
+          "one hidden-axes helper beside inferRequiredStrictAxes that reuses the existing declaration field list",
+          "evaluateScopeProvenance compares each modified brief with its merge-base copy through resolveMergeBaseBriefRead, so a completed/ or cancelled/ head is compared with its pre-move active copy; evaluateLegacyIntent and legacy-intent-edit are unchanged",
+          "one declaration-hides-axis line per item through formatDeclaredRefusal on the extraPathReport channel when the base copy is active, the declaration changed or the item is new, and the head hides an axis the base did not; exit code unchanged",
+          "declaration-hides-axis row in the refusal table in warn mode with the deferred remedy, and its remedy-runs.test.ts case",
+          "formatStrictAxisAdvisory takes the calling verb: promote and activate keep the x-directive/requires sentence, xbrief:preflight omits it",
+          "listStrictAxisRequirements returns declared rows with hidden axes; the advisory count stays on as-written axes",
+          "content/docs/scope-provenance.md documents the row; changelog fragment says it ships in warn mode"
+        ],
+        "Traces": [
+          "#6591",
+          "#6301",
+          "#6270",
+          "#6272",
+          "#6277",
+          "#6281",
+          "#5105",
+          "#5057",
+          "#4956"
+        ]
+      }
+    },
+    "id": "github.issue.6456097206",
+    "updated": "2026-11-18T15:05:24Z"
+  }
+}

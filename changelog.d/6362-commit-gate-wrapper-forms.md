@@ -1,2 +1,0 @@
-section: Fixed
-- Hooks: the commit gate now refuses, as an unresolvable target, a commit after `cd <path> &`, inside a `( … )` subshell, in a `sh -c` / `bash -c` string or `eval`, or behind a wrapper such as `env`, `timeout` or `xargs`, and a `-c` / `eval` string or command word that holds a variable. A visible commit elsewhere in the call does not lift the refusal, and `(cd /r/wt) && git commit` is still judged at the hook root (#6362, #6278).

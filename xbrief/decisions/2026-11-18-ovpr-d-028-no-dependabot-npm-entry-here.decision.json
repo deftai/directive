@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-028-no-dependabot-npm-entry-here",
+  "decision": "D-028 (option C; was O-26c): No Dependabot npm entry in this repo. P3-U1b drops Fix step 4; .github/dependabot.yml unchanged; acceptance criterion 6 and the post-merge Dependabot verification dropped; Q4c closed. The customer path is already proven by P1-U3's no-agent fixture test and this repo's pin-only bump PRs (#6557, #6511, #6491). Customer repos unaffected. A real Dependabot run can be added later as a separate small change.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-028; AC14.10)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "A: runtime-only Dependabot entry",
+      "whyNot": "Redundant"
+    },
+    {
+      "option": "B: all npm packages",
+      "whyNot": "About 5 PRs a week that aren't the customer path"
+    }
+  ],
+  "whyWinner": "Nothing in the requirements asks for Dependabot in this repo; the path is proven twice already.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:31Z",
+  "revisitTrigger": "The pin-only bump path regresses unnoticed",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "release"
+  ],
+  "relatedIssues": [
+    6557,
+    6511,
+    6491,
+    6613
+  ]
+}

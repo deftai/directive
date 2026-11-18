@@ -32,8 +32,12 @@ import {
 } from "./installer-output-inventory.js";
 import { runSetup } from "./setup.js";
 import {
+  listSkillPointerPaths,
   resolveDeftSkillTargetRel,
   resolveRuntimeAgentsEntryTemplatePath,
+  SKILL_HOST_ROOTS,
+  SKILL_POINTER_INVENTORY,
+  yamlScalar,
 } from "./setup-wiring.js";
 
 const TEMPS: string[] = [];
@@ -468,5 +472,133 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     expect(cursor?.kind).toBe("structured-entry");
     expect(taskfile?.kind).toBe("structured-entry");
     expect(taskfile?.entryKey).toBe("includes.deft");
+  });
+});
+
+// #5838 / #6165: the 12-pointer 0.126 set, valid YAML front matter.
+const KNOWN_POINTER_NAMES = [
+  "deft",
+  "deft-directive-setup",
+  "deft-directive-build",
+  "deft-directive-review-cycle",
+  "deft-directive-refinement",
+  "deft-directive-swarm",
+  "deft-directive-interview",
+  "deft-directive-portfolio-priority",
+  "deft-directive-pre-pr",
+  "deft-directive-sync",
+  "deft-directive-tutorial",
+  "deft-directive-feedback",
+];
+const UNSAFE_PLAIN = /: |:$| #|^[-?:,[\]{}#&*!|>'"%@`]|^\s|\s$/;
+
+/** Parse the two front-matter keys; fail on anything a strict YAML reader would reject. */
+function parseFrontMatter(body: string): { name: string; description: string } {
+  const m = body.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!m) throw new Error("no front matter");
+  const out: Record<string, string> = {};
+  for (const lineText of (m[1] ?? "").split("\n")) {
+    const idx = lineText.indexOf(": ");
+    if (idx < 0) throw new Error(`bad front-matter line: ${lineText}`);
+    const key = lineText.slice(0, idx);
+    const raw = lineText.slice(idx + 2);
+    if (raw.startsWith('"')) {
+      out[key] = JSON.parse(raw) as string;
+    } else {
+      if (UNSAFE_PLAIN.test(raw)) throw new Error(`unsafe plain scalar: ${raw}`);
+      out[key] = raw;
+    }
+  }
+  return { name: out.name ?? "", description: out.description ?? "" };
+}
+
+describe("skill pointer inventory (#5838 / #6165)", { timeout: 30_000 }, () => {
+  it("inventory holds all 12 known pointers; ownership paths are 12 x 5", () => {
+    expect(SKILL_POINTER_INVENTORY.map((e) => e.dir).sort()).toEqual(
+      [...KNOWN_POINTER_NAMES].sort(),
+    );
+    expect(SKILL_HOST_ROOTS).toHaveLength(5);
+    expect(listSkillPointerPaths()).toHaveLength(60);
+    expect(listSkillPointerPaths()).toContain(".claude/skills/deft-directive-tutorial/SKILL.md");
+    expect(listSkillPointerPaths()).toContain(".github/skills/deft-directive-feedback/SKILL.md");
+  });
+
+  it("every pointer has valid front matter, runtime target and no version", () => {
+    for (const entry of SKILL_POINTER_INVENTORY) {
+      const fm = parseFrontMatter(entry.body);
+      expect(fm.name).toBe(entry.dir);
+      expect(fm.description.length).toBeGreaterThan(0);
+      const target = entry.body.match(/^Read and follow: (\S+)$/m)?.[1] ?? "";
+      expect(target.startsWith(RUNTIME_PREFIX)).toBe(true);
+      expect(target.endsWith("SKILL.md")).toBe(true);
+      if (entry.dir !== "deft") {
+        expect(entry.body).toContain(`${RUNTIME_PREFIX}skills/${entry.dir}/SKILL.md`);
+      }
+      expect(entry.body).not.toContain(".deft/core/");
+      expect(entry.body).not.toMatch(/\d+\.\d+\.\d+/);
+    }
+  });
+
+  it("refinement description round-trips; only it is quoted", () => {
+    const refinement = SKILL_POINTER_INVENTORY.find((e) => e.dir === "deft-directive-refinement");
+    expect(parseFrontMatter(refinement?.body ?? "").description).toBe(
+      "Structured refinement workflow: triage issues and update the roadmap.",
+    );
+    const quoted = SKILL_POINTER_INVENTORY.filter((e) => /^description: "/m.test(e.body));
+    expect(quoted.map((e) => e.dir)).toEqual(["deft-directive-refinement"]);
+  });
+
+  it("yamlScalar quotes only text YAML would misread", () => {
+    expect(yamlScalar("Plain text (ok).")).toBe("Plain text (ok).");
+    expect(yamlScalar("a: b")).toBe('"a: b"');
+    expect(yamlScalar("a #b")).toBe('"a #b"');
+    expect(yamlScalar("-a")).toBe('"-a"');
+    expect(yamlScalar("`x`")).toBe('"`x`"');
+    expect(yamlScalar(" a")).toBe('" a"');
+    expect(yamlScalar('say "hi": now')).toBe('"say \\"hi\\": now"');
+    expect(JSON.parse(yamlScalar('say "hi": now'))).toBe('say "hi": now');
+  });
+
+  it("install writes all 12 pointers under all 5 roots; second setup changes nothing", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    for (const rel of listSkillPointerPaths()) {
+      const body = readFileSync(join(root, rel), "utf8");
+      expect(body).toContain(RUNTIME_PREFIX);
+      expect(body).not.toContain(".deft/core/");
+      parseFrontMatter(body);
+    }
+    const before = listSkillPointerPaths().map((rel) => readFileSync(join(root, rel), "utf8"));
+    const again = runSetup({ operation: "repair", from: "none", root });
+    const after = listSkillPointerPaths().map((rel) => readFileSync(join(root, rel), "utf8"));
+    expect(after).toEqual(before);
+    const touched = [...again.created, ...again.modified];
+    expect(touched.filter((p) => p.includes("/skills/"))).toEqual([]);
+  });
+
+  it("repair rewrites stale .deft/core tutorial and feedback pointers (0.127-0.129 converts)", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    for (const host of SKILL_HOST_ROOTS) {
+      for (const name of ["deft-directive-tutorial", "deft-directive-feedback"]) {
+        writeFileSync(
+          join(root, host, name, "SKILL.md"),
+          `---\nname: ${name}\ndescription: >-\n  old\n---\n\nRead and follow: .deft/core/skills/${name}/SKILL.md\n`,
+        );
+      }
+    }
+    runSetup({ operation: "repair", from: "none", root });
+    for (const rel of listSkillPointerPaths()) {
+      expect(readFileSync(join(root, rel), "utf8")).not.toContain(".deft/core/skills");
+    }
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      ownership: Array<{ path: string; kind: string }>;
+    };
+    for (const rel of [
+      ".claude/skills/deft-directive-tutorial/SKILL.md",
+      ".agents/skills/deft-directive-feedback/SKILL.md",
+    ]) {
+      expect(gen.ownership.find((a) => a.path === rel)?.kind).toBe("whole-file");
+    }
   });
 });

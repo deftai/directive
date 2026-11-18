@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-001-three-rule-approach-and-five-phase-order",
+  "decision": "D-001: Adopt the OVPR fix plan's three rules (a version bump is just a version bump; Directive's own changes pass the commit gate; every entry point fails the same way with the right instruction), proven by the no-agent fixture test, in five fixed phases (safety; upgrade and refresh defects; Rule 1; Rules 2 and 3 in full; small fixes, docs and close-outs). Release checks A (#6127) and B (#6184) and the #6184 code are removed (they contradict the #5947 decision); #6163's cause (a local .git/info/exclude entry) gets a read-only doctor warning; the commit gate reads the installer's ownership record.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-16 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-001)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep release checks A and B",
+      "whyNot": null
+    },
+    {
+      "option": "Handle #6163 with a release rule",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "polfer adopted the plan's approach and fixed the order.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:23Z",
+  "revisitTrigger": "polfer changes the plan's rules or phase order",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "process"
+  ],
+  "relatedIssues": [
+    6127,
+    6184,
+    6163,
+    5947
+  ]
+}

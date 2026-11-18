@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-009-6141-split-registry-message-now",
+  "decision": "D-009: #6141 split @deftai registry. Now (P2-U10): message only. Detect when a non-public @deftai:registry plus a registry miss for a Directive package interferes, and make upgrade, install, repair and --dry-run errors carry a hint: the cause, don't remap the scope, and the one-run environment override. Repair does not switch to a lockfile install (Q1 = A). Later (option B): publishing to GitHub Packages too is #6558, held and assigned to polfer.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17, was O-23 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-009)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Launcher forces npmjs for its own packages",
+      "whyNot": "Breaks AC5.8"
+    },
+    {
+      "option": "Publish to GitHub Packages now",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "A clear hint fixes the dead end now without breaking AC5.8.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:25Z",
+  "revisitTrigger": "#6558 is released from hold",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "registry"
+  ],
+  "relatedIssues": [
+    6141,
+    6558
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-007-codeowners-for-ovpr-docs-no-settings-changes",
+  "decision": "D-007: Add a .github/CODEOWNERS entry naming polfer as code owner of docs/installer-refactor-ovpr/ in a small Phase 0 PR, backing the change gate (D-002). Do not change GitHub repository settings (branch protection, rulesets, required reviews, required checks). If code-owner review isn't already required, CODEOWNERS stays advisory. Settings may be read and reported only.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-16, was O-47 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-007)",
+    "path": ".github/CODEOWNERS",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Turn on required code-owner review",
+      "whyNot": "polfer: never change repository settings"
+    }
+  ],
+  "whyWinner": "Backs the change gate without touching repository settings.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:25Z",
+  "revisitTrigger": "polfer decides to change repository settings himself",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "process",
+    "change-gate"
+  ]
+}

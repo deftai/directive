@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-027-directive-does-not-edit-pnpm-config",
+  "decision": "D-027 (option A = P2-U9 Outcome B; was O-22): Directive doesn't edit pnpm's config. P2-U9 removes #5860's writes to pnpm-workspace.yaml. When pnpm refuses an install as too new, Directive prints pnpm's own recovery steps (message to be built); when pnpm changed the file, Directive lists it under Review and commit. P2-U0 Q3: leave the row out of the ownership record. This repo's own exception row stays. Docs note: older pnpm 11 frozen installs in CI may fail for up to 24 h after a release. Tell Scott before the merge. No RC.",
+  "governingRule": {
+    "description": "polfer #5797 FINAL (2026-10-22) and ledger Problem 13 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-027; AC5.8, AC6.11)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep #5860's pnpm-workspace.yaml writes",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "pnpm-workspace.yaml is policy owned by pnpm; no silent patches of PM policy.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:30Z",
+  "revisitTrigger": "pnpm changes its release-age behaviour",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "pnpm"
+  ],
+  "relatedIssues": [
+    5797,
+    5860
+  ]
+}

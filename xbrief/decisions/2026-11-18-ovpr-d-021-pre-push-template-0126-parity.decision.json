@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-021-pre-push-template-0126-parity",
+  "decision": "D-021 (was O-10): Answered by polfer's #5808 Locked disposition and Problem 8 FINAL. The deposited pre-push template calls preflight-gh --pre-push-stdin, as 0.126 did; no verify:branch in pre-push. P2-U1a removes the #5804 marker and refuse-to-downgrade logic from setup-wiring.ts. Whether the bound pre-PR gate is on by default is Scott's policy call via plan.policy.requireBoundPrePrPush; Scott is told, not asked. P2-U1a notes to Scott that the preflight-gh opt-in path doesn't pass raw stdin.",
+  "governingRule": {
+    "description": "polfer #5808 Locked disposition and Problem 8 FINAL (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-021)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Put verify:branch in pre-push",
+      "whyNot": null
+    },
+    {
+      "option": "Set the bound pre-PR default in the template",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "The OVPR cutover fixed the version source only; git hooks keep 0.126 feature points.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:29Z",
+  "revisitTrigger": "Scott changes the bound pre-PR policy",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "hooks"
+  ],
+  "relatedIssues": [
+    5808,
+    5804
+  ]
+}

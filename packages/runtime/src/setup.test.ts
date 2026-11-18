@@ -308,6 +308,44 @@ describe("runSetup old-style conversion (Wave 2f / AC10.3 / AC10.6 / AC10.9)", (
     expect(managed?.[0] ?? "").not.toMatch(/\.deft\/core/);
   });
 
+  it("#5838: from old-style rewrites the 0.126 pointer set so none targets .deft/core", () => {
+    const root = tempRoot();
+    seedLegacyCore(root);
+    const hostRoots = [
+      ".agents/skills",
+      ".claude/skills",
+      ".cursor/skills",
+      ".codex/skills",
+      ".github/skills",
+    ];
+    for (const host of hostRoots) {
+      for (const name of [
+        "deft-directive-tutorial",
+        "deft-directive-feedback",
+        "deft-directive-sync",
+      ]) {
+        mkdirSync(join(root, host, name), { recursive: true });
+        writeFileSync(
+          join(root, host, name, "SKILL.md"),
+          `---\nname: ${name}\ndescription: >-\n  old\n---\n\nRead and follow: .deft/core/skills/${name}/SKILL.md\n`,
+        );
+      }
+    }
+    const result = runSetup({ operation: "upgrade", from: "old-style", root });
+    expect(result.conflicts).toEqual([]);
+    for (const host of hostRoots) {
+      for (const name of [
+        "deft-directive-tutorial",
+        "deft-directive-feedback",
+        "deft-directive-sync",
+      ]) {
+        const body = readFileSync(join(root, host, name, "SKILL.md"), "utf8");
+        expect(body).not.toContain(".deft/core/skills");
+        expect(body).toContain(`node_modules/@deftai/directive-runtime/skills/${name}/SKILL.md`);
+      }
+    }
+  });
+
   it("non-old-style upgrade does not remove an unrelated .deft/core tree", () => {
     // Defence: only conversion from old-style deletes core (AC10.3 scope).
     const root = tempRoot();

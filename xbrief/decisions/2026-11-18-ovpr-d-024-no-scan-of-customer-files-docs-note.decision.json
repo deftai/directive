@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-024-no-scan-of-customer-files-docs-note",
+  "decision": "D-024 (option A; was O-18): Upgrade does not scan or list .deft/core references in files Directive doesn't own. content/UPGRADING.md's old-layout conversion section tells people to run git grep .deft/core after converting and to check CI conditions that test for .deft/core files (the #5961 case). No code change, no RC.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-024; AC10.6, AC8.3, AC8.10)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Print the matching files",
+      "whyNot": "Reversed 2026-11-16 answer; would need a small RC"
+    }
+  ],
+  "whyWinner": "Directive doesn't read files it doesn't own; a docs note covers the case.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:30Z",
+  "revisitTrigger": "Customers repeatedly miss leftover .deft/core references",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "upgrade",
+    "docs"
+  ],
+  "relatedIssues": [
+    5961
+  ]
+}

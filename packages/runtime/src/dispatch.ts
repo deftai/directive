@@ -3560,6 +3560,12 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
   }
 
   // Alias `upgrade` → install-upgrade must not revive the retired install verb (AC13.6).
+  // `upgrade` is a launcher verb: name `directive upgrade` instead of the
+  // self-contradicting "Did you mean: upgrade?" (#6022).
+  if (verb === "upgrade") {
+    io.writeErr("'upgrade' is a launcher command. Run: directive upgrade\n");
+    return 2;
+  }
   if (canonical === "install-upgrade" || canonical === "install-uninstall") {
     const suggestion =
       canonical === "install-upgrade" ? " Did you mean: upgrade?" : " Did you mean: uninstall?";

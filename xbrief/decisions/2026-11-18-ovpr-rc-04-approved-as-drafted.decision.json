@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-rc-04-approved-as-drafted",
+  "decision": "RC-04 approved by polfer as drafted (D-030), text in drafts/RC-04.md of the OVPR planning folder (directive-ovpr-planning-202611): One .prettierignore line (**/deft-hook-*.mjs), only when that file exists (AC13.3, AC8.5, section A6.1). Gates: P2-U5b start. Lands as its own docs-only PR with exactly the approved text, merged by polfer before the gated unit merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-030)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the current requirements text",
+      "whyNot": "Rejected by polfer's approval of the draft (D-030)"
+    }
+  ],
+  "whyWinner": "polfer approved the drafted text (D-030); see drafts/RC-04.md and drafts/RC-INDEX.md.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:32Z",
+  "revisitTrigger": "The RC-04 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-04"
+  ],
+  "relatedIssues": [
+    6167
+  ]
+}

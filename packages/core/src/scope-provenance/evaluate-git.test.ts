@@ -527,3 +527,75 @@ describe("evaluateScopeProvenance one-PR mint level (#6273)", () => {
     });
   });
 });
+
+describe("declaration-hides-axis on real git reads (#6591)", () => {
+  let root: string | undefined;
+
+  afterEach(() => {
+    if (root !== undefined) {
+      rmSync(root, { recursive: true, force: true });
+      root = undefined;
+    }
+  });
+
+  const ACTIVE = "xbrief/active/2026-11-18-hides.xbrief.json";
+  const COMPLETED = "xbrief/completed/2026-11-18-hides.xbrief.json";
+  const TEXT = "Deploy to staging and confirm the site serves the new build";
+
+  function story(item: Record<string, unknown>, status = "running"): string {
+    const payload = xbrief("story-hides", ["packages/core/src/foo.ts"], status);
+    (payload.plan as Record<string, unknown>).items = [{ id: "clause.1", title: TEXT, ...item }];
+    return `${JSON.stringify(payload, null, 2)}\n`;
+  }
+
+  function baseRepo(): string {
+    const repo = initRepo();
+    writeTracked(repo, ACTIVE, story({ status: "pending" }));
+    commit(repo, "base: active brief");
+    git(repo, ["branch", "base"]);
+    git(repo, ["checkout", "-q", "-b", "impl"]);
+    return repo;
+  }
+
+  const declared = (line: string): boolean => line.includes("deft gate declaration-hides-axis ");
+
+  it("warns when the brief stays in active/ (beside the legacy-intent-edit warnings)", () => {
+    root = baseRepo();
+    writeTracked(root, ACTIVE, story({ status: "pending", "x-directive/requires": "merge" }));
+    commit(root, "declare merge");
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.every((f) => f.kind === "legacy-intent-edit")).toBe(true);
+    const lines = (result.extraPathReport ?? []).filter(declared);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain(`${ACTIVE} item clause.1: its declaration hides deploy`);
+  });
+
+  it("warns when the same edit moves the brief to completed/ (pre-move read)", () => {
+    root = baseRepo();
+    git(root, ["rm", "-q", "--", ACTIVE]);
+    writeTracked(
+      root,
+      COMPLETED,
+      story({ status: "completed", "x-directive/requires": "merge" }, "completed"),
+    );
+    commit(root, "complete with merge declared");
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings).toEqual([]);
+    const lines = (result.extraPathReport ?? []).filter(declared);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain(`${COMPLETED} item clause.1: its declaration hides deploy`);
+    expect(lines[0]).toContain(`merge base (${ACTIVE})`);
+  });
+
+  it("stays quiet on a move to completed/ with no declaration change", () => {
+    root = baseRepo();
+    git(root, ["rm", "-q", "--", ACTIVE]);
+    writeTracked(root, COMPLETED, story({ status: "completed" }, "completed"));
+    commit(root, "complete");
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode).toBe(0);
+    expect((result.extraPathReport ?? []).filter(declared)).toEqual([]);
+  });
+});
