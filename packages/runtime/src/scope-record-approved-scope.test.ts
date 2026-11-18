@@ -529,7 +529,7 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
     for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
   });
 
-  function setup() {
+  function setup(level?: "mint") {
     const bound = mkdtempSync(join(tmpdir(), "widen-bound-"));
     const checkout = mkdtempSync(join(tmpdir(), "widen-checkout-"));
     tmpDirs.push(bound, checkout);
@@ -550,12 +550,24 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
         gitCalls.push([cwd === bound ? "bound" : "tmp", ...args]);
         if (args[0] === "remote")
           return { status: 0, stdout: "https://example.test/o/r.git\n", stderr: "" };
+        if (args[0] === "config") {
+          const v = args[2] === "user.name" ? "Op Erator" : "op@example.test";
+          return { status: 0, stdout: `${v}\n`, stderr: "" };
+        }
         if (args[0] === "checkout" && args.includes("FETCH_HEAD")) {
           mkdirSync(join(checkout, "xbrief", "active"), { recursive: true });
           writeFileSync(join(checkout, BRIEF_REL), text, "utf8");
+          if (level !== undefined) {
+            writeFileSync(
+              join(checkout, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+              JSON.stringify({ plan: { policy: { onePrScopeProof: level } } }),
+              "utf8",
+            );
+          }
         }
         return { status: 0, stdout: "", stderr: "" };
       },
+      verifyBody: () => 0,
       gh: (_cwd: string, args: string[]) => {
         ghCalls.push(args);
         return { status: 0, stdout: "https://example.test/o/r/pull/9\n", stderr: "" };
@@ -576,8 +588,8 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
     expect(normalizeAddPath("a\\b.ts")).toBe("a/b.ts");
   });
 
-  it("opens a brief-only PR from a temporary checkout and leaves the bound worktree alone", () => {
-    const { bound, checkout, text, gitCalls, ghCalls, seams } = setup();
+  it("opens a PR with the approval pair at mint level and leaves the bound worktree alone", () => {
+    const { bound, checkout, text, gitCalls, ghCalls, seams } = setup("mint");
     const out: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((c) => {
       out.push(String(c));
@@ -612,15 +624,111 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
       ".deft/approved-scope/github.issue.42.intent.json",
     ]);
     expect(
-      gitCalls.some((c) => c[1] === "push" && c.includes("HEAD:refs/heads/widen/github.issue.42")),
+      gitCalls.some(
+        (c) =>
+          c[1] === "push" && c.some((a) => a.startsWith("HEAD:refs/heads/widen/github.issue.42-")),
+      ),
     ).toBe(true);
     expect(ghCalls[0]?.slice(0, 2)).toEqual(["pr", "create"]);
     // Temporary checkout removed.
     expect(existsSync(checkout)).toBe(false);
   });
 
-  it("writes the widened file_scope once per path with existing entries kept", () => {
+  it("opens a brief-only PR at the default policy: no record, no preimage (#6643)", () => {
     const { bound, checkout, gitCalls, seams } = setup();
+    let written = "";
+    let hadDeft = true;
+    const capture = {
+      ...seams,
+      git: (cwd: string, args: string[]) => {
+        if (args[0] === "add") {
+          written = readFileSync(join(checkout, BRIEF_REL), "utf8");
+          hadDeft = existsSync(join(checkout, ".deft"));
+        }
+        return seams.git(cwd, args);
+      },
+    };
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(
+      run(
+        [
+          BRIEF_REL,
+          "--project-root",
+          bound,
+          "--actor",
+          "scott",
+          "--confirm",
+          "--add-path",
+          "src/b.ts",
+        ],
+        operatorSeams(),
+        capture,
+      ),
+    ).toBe(0);
+    expect(gitCalls.find((c) => c[1] === "add")?.slice(2)).toEqual(["-f", "--", BRIEF_REL]);
+    expect(hadDeft).toBe(false);
+    const scope = (
+      JSON.parse(written) as { plan: { metadata: { swarm: { file_scope: string[] } } } }
+    ).plan.metadata.swarm.file_scope;
+    expect(scope).toEqual(["src/a.ts", "src/b.ts"]);
+  });
+
+  it("fetches the fully qualified ref after --, uses a unique branch, and keeps git identity", () => {
+    const { bound, gitCalls, seams } = setup();
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const argv = [
+      BRIEF_REL,
+      "--project-root",
+      bound,
+      "--actor",
+      "scott",
+      "--confirm",
+      "--add-path",
+      "src/b.ts",
+    ];
+    expect(run(argv, operatorSeams(), seams)).toBe(0);
+    const fetch = gitCalls.find((c) => c[1] === "fetch");
+    expect(fetch?.slice(2)).toEqual(["--quiet", "--", "origin", "refs/heads/master"]);
+    const commit = gitCalls.find((c) => c.includes("commit"));
+    expect(commit?.slice(1, 5)).toEqual([
+      "-c",
+      "user.name=Op Erator",
+      "-c",
+      "user.email=op@example.test",
+    ]);
+    const branchOf = () =>
+      gitCalls.filter((c) => c[1] === "checkout" && c[3] === "-b").map((c) => c[4]);
+    const first = branchOf()[0];
+    expect(first).toMatch(/^widen\/github\.issue\.42-[0-9a-z]+$/);
+    for (const c of gitCalls.filter((x) => x[1] === "push")) {
+      expect(c.slice(2, 4)).toEqual(["--quiet", "--"]);
+    }
+  });
+
+  it("stops before gh pr create when the PR body check fails (#6643)", () => {
+    const { bound, ghCalls, seams } = setup();
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(
+      [
+        BRIEF_REL,
+        "--project-root",
+        bound,
+        "--actor",
+        "scott",
+        "--confirm",
+        "--add-path",
+        "src/b.ts",
+      ],
+      operatorSeams(),
+      { ...seams, verifyBody: () => 1 },
+    );
+    expect(code).toBe(1);
+    expect(ghCalls).toEqual([]);
+  });
+
+  it("writes the widened file_scope once per path with existing entries kept", () => {
+    const { bound, checkout, gitCalls, seams } = setup("mint");
     let written = "";
     const capture = {
       ...seams,

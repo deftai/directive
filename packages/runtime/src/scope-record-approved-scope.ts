@@ -20,7 +20,8 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, relative, resolve, sep } from "node:path";
 import { scopeProvenance, slice } from "@deftai/directive-core";
-import { resolveDeliveryBranch } from "@deftai/directive-core/policy";
+import { verifyDocsImpactBodyFile } from "@deftai/directive-core/dist/docs/docs-impact.js";
+import { evaluateOnePrScopeProofGate, resolveDeliveryBranch } from "@deftai/directive-core/policy";
 import { isDirectEntrypoint } from "./entrypoint.js";
 import {
   type HumanPresenceMintSeams,
@@ -259,6 +260,8 @@ export interface WidenSeams {
   gh?: (cwd: string, args: string[]) => ToolResult;
   makeTempDir?: () => string;
   removeDir?: (dir: string) => void;
+  /** Runs `verify:docs-impact --body-file` on the generated PR body; 0 passes. */
+  verifyBody?: (bodyFile: string, root: string, baseRef: string) => number;
 }
 
 interface ToolResult {
@@ -323,10 +326,26 @@ function runWiden(input: {
   if (origin.status !== 0) return fail(`no origin remote (${origin.stderr.trim()})`);
   const originUrl = origin.stdout.trim();
   const delivery = resolveDeliveryBranch(input.projectRoot).branch;
+  // Strict ref shape: never starts with `-`, no `..`, so it cannot read as a git option (#6643).
+  if (!/^[A-Za-z0-9_][A-Za-z0-9._/-]*$/.test(delivery) || delivery.includes("..")) {
+    return fail(`delivery branch name is not a plain ref name: ${delivery}`);
+  }
   const safeId = planId.replace(/[^a-zA-Z0-9._-]/g, "_");
   const recordRel = `.deft/approved-scope/${safeId}.json`;
   const intentRel = scopeProvenance.approvedScopeIntentRel(planId);
-  const branch = `widen/${safeId}`;
+  // A fresh branch per run: a retained branch from an earlier widen cannot block the push.
+  const branch = `widen/${safeId}-${Date.now().toString(36)}`;
+  const gitConfigValue = (key: string): string | null => {
+    const r = git(input.projectRoot, ["config", "--get", key]);
+    const v = r.stdout.trim();
+    return r.status === 0 && v.length > 0 ? v : null;
+  };
+  const userName = gitConfigValue("user.name");
+  const userEmail = gitConfigValue("user.email");
+  const identityArgs = [
+    ...(userName !== null ? ["-c", `user.name=${userName}`] : []),
+    ...(userEmail !== null ? ["-c", `user.email=${userEmail}`] : []),
+  ];
   const tmp = (input.seams.makeTempDir ?? (() => mkdtempSync(join(tmpdir(), "deft-widen-"))))();
   const cleanup =
     input.seams.removeDir ?? ((d: string) => rmSync(d, { recursive: true, force: true }));
@@ -336,13 +355,15 @@ function runWiden(input: {
       "--quiet",
       "--shared",
       "--no-checkout",
+      "--",
       input.projectRoot,
       tmp,
     ]);
     if (clone.status !== 0) return fail(`temporary clone failed (${clone.stderr.trim()})`);
     for (const args of [
-      ["remote", "set-url", "origin", originUrl],
-      ["fetch", "--quiet", "origin", delivery],
+      ["remote", "set-url", "--", "origin", originUrl],
+      // Fully qualified ref: a tag of the same name cannot be selected.
+      ["fetch", "--quiet", "--", "origin", `refs/heads/${delivery}`],
       ["checkout", "--quiet", "--detach", "FETCH_HEAD"],
     ]) {
       const r = git(tmp, args);
@@ -363,7 +384,18 @@ function runWiden(input: {
     const metadata = (plan.metadata ?? {}) as Record<string, unknown>;
     const swarm = (metadata.swarm ?? {}) as Record<string, unknown>;
     const merged: unknown[] = Array.isArray(swarm.file_scope) ? [...swarm.file_scope] : [];
-    for (const p of [...added, recordRel, intentRel]) {
+    // The approval pair rides in the PR only at merge-base `onePrScopeProof: mint`. At any other
+    // level a brief-only change is what the gate admits; a co-changed record is refused as
+    // self-authorizing-scope-expansion, and proceed writes no digest (#4956).
+    let pdRaw: string | null = null;
+    try {
+      pdRaw = readFileSync(join(tmp, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8");
+    } catch {
+      pdRaw = null;
+    }
+    const withPair =
+      evaluateOnePrScopeProofGate({ baseRaw: pdRaw, headRaw: pdRaw }).kind === "mint";
+    for (const p of withPair ? [...added, recordRel, intentRel] : added) {
       if (!merged.includes(p)) merged.push(p);
     }
     swarm.file_scope = merged;
@@ -372,30 +404,39 @@ function runWiden(input: {
     let nextRaw = `${JSON.stringify(tipPayload, null, 2)}\n`;
     if (tipRaw.includes("\r\n")) nextRaw = nextRaw.replace(/\n/g, "\r\n");
     writeFileSync(briefAbs, nextRaw, "utf8");
-    const repoSeed = slice.resolveProjectRepo(input.repo.length > 0 ? input.repo : undefined, tmp);
-    const authHashV1 = computeAuthHashV1(tipPayload, input.xbriefRelPath);
-    try {
-      mintApprovedScopeArtifacts({
-        xbriefRelPath: input.xbriefRelPath,
-        payload: tipPayload,
-        rawText: nextRaw,
-        projectRoot: tmp,
-        humanApproval: input.stamp,
-        ...(authHashV1 !== null ? { authHashV1 } : {}),
-        extract: { projectRoot: tmp, approvedReposSeed: repoSeed !== null ? [repoSeed] : [] },
-      });
-    } catch (err: unknown) {
-      return fail(String(err));
+    if (withPair) {
+      const repoSeed = slice.resolveProjectRepo(
+        input.repo.length > 0 ? input.repo : undefined,
+        tmp,
+      );
+      const authHashV1 = computeAuthHashV1(tipPayload, input.xbriefRelPath);
+      try {
+        mintApprovedScopeArtifacts({
+          xbriefRelPath: input.xbriefRelPath,
+          payload: tipPayload,
+          rawText: nextRaw,
+          projectRoot: tmp,
+          humanApproval: input.stamp,
+          ...(authHashV1 !== null ? { authHashV1 } : {}),
+          extract: { projectRoot: tmp, approvedReposSeed: repoSeed !== null ? [repoSeed] : [] },
+        });
+      } catch (err: unknown) {
+        return fail(String(err));
+      }
     }
     const title = `chore(xbrief): widen file_scope for ${planId}`;
+    const staged = withPair ? [input.xbriefRelPath, recordRel, intentRel] : [input.xbriefRelPath];
     for (const args of [
       ["checkout", "--quiet", "-b", branch],
-      ["add", "-f", "--", input.xbriefRelPath, recordRel, intentRel],
-      ["commit", "--quiet", "-m", `${title}\n\nAdds: ${added.join(", ")}`],
-      ["push", "--quiet", "origin", `HEAD:refs/heads/${branch}`],
+      ["add", "-f", "--", ...staged],
+      [...identityArgs, "commit", "--quiet", "-m", `${title}\n\nAdds: ${added.join(", ")}`],
+      ["push", "--quiet", "--", "origin", `HEAD:refs/heads/${branch}`],
     ]) {
       const r = git(tmp, args);
-      if (r.status !== 0) return fail(`git ${args[0]} failed (${r.stderr.trim()})`);
+      if (r.status !== 0) {
+        const verb = args.includes("commit") ? "commit" : args[0];
+        return fail(`git ${verb} failed (${r.stderr.trim()})`);
+      }
     }
     const bodyPath = join(tmp, ".widen-pr-body.txt");
     writeFileSync(
@@ -410,11 +451,22 @@ function runWiden(input: {
         "",
         "change_class: none",
         "surfaces: none",
-        'rationale: "Lifecycle only: one brief, its approval record and its intent preimage change."',
+        `rationale: "Lifecycle only: one brief${withPair ? ", its approval record and its intent preimage change" : " changes"}."`,
         "",
       ].join("\n"),
       "utf8",
     );
+    // Explicit --body-file skips the PR template: check the declaration on these same bytes.
+    const verifyBody =
+      input.seams.verifyBody ??
+      ((file: string, root: string, baseRef: string) =>
+        verifyDocsImpactBodyFile(file, root, { baseRef }));
+    const bodyCode = verifyBody(bodyPath, tmp, "FETCH_HEAD");
+    if (bodyCode !== 0) {
+      return fail(
+        `verify:docs-impact --body-file failed (exit ${String(bodyCode)}); branch ${branch} was pushed`,
+      );
+    }
     const pr = gh(tmp, [
       "pr",
       "create",
