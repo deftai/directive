@@ -283,7 +283,7 @@ export function hostHookOuterSource(): string {
  * Eligible = lstat regular-file + successful untracked git ls-files listing.
  * Any failure on tool.before blocks the tool call in the host's own form.
  */
-import { existsSync, lstatSync, writeSync } from "node:fs";
+import { existsSync, lstatSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -349,17 +349,16 @@ function quietAllow() {
  */
 function blockToolCall(host, event, reason) {
   if (host === "grok") {
-    writeSync(1, JSON.stringify({ decision: "deny", reason }) + "\\n");
+    process.stdout.write(JSON.stringify({ decision: "deny", reason }) + "\\n");
     process.exit(0);
   }
   if (event === "tool.before" && host === "cursor") {
-    writeSync(
-      1,
+    process.stdout.write(
       JSON.stringify({ permission: "deny", user_message: reason, agent_message: reason }) + "\\n",
     );
     process.exit(0);
   }
-  writeSync(2, reason + "\\n");
+  process.stderr.write(reason + "\\n");
   process.exit(event === "tool.before" ? 2 : 1);
 }
 
