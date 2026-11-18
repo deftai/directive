@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6591",
-    "updated": "2026-11-18T15:05:24Z"
+    "updated": "2026-11-18T17:58:04Z"
   },
   "plan": {
     "title": "fix(scope): warn when a declaration added after activation lowers the evidence a clause requires",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(scope): warn when a declaration added after activation lowers the evidence a clause requires",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6591",
@@ -16,63 +16,123 @@
     "items": [
       {
         "title": "Add one helper beside inferRequiredStrictAxes in packages/core/src/scope/acceptance-evidence.ts that returns an item's hidden axes: the axes inferred with the eight declaration fields ignored, minus the axes inferred as written. Do not copy the field list into another file.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "In evaluateScopeProvenance, for each brief modified in the change set, read its merge-base copy through the same continuity and pre-move resolution the path fence uses (resolveMergeBaseBriefRead), so a head brief under completed/ or cancelled/ is compared with its pre-move copy. Do not change evaluateLegacyIntent or what legacy-intent-edit reports.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Warn for a head item when all three hold: (a) the resolved merge-base copy of the brief is under xbrief/active/; (b) the item is absent from that copy, or the value of any of the eight declaration fields differs from the base item, where items match by id and an item with no id matches by its position in the item tree; (c) the head item hides an axis that the base item does not hide, and an absent base item hides none.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Print one line for each such item through formatDeclaredRefusal on the extra-path warning channel (extraPathReport), naming the brief path, the item and the newly hidden axes. The exit code does not change, and the line is not counted as an intent-pin finding.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Add the row declaration-hides-axis to packages/core/src/refusal-declarations/table.ts with no mode (warn), remedy [\"deft verify:scope-provenance\"], and deferred \"the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591\". Add its case to remedy-runs.test.ts in the same form as extra-path-not-admitted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "formatStrictAxisAdvisory takes the calling verb. At promote and activate it keeps the sentence that names x-directive/requires. At xbrief:preflight it prints the list and omits that sentence.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "listStrictAxisRequirements also returns a row for an item with hidden axes, marked declared, with those axes. The count in the advisory's first line and the equality with the completion gate stay on items whose as-written axis set is not empty. The advisory prints declared rows after them, marked as declared.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Tests beside the changed sources, each on a brief with no intent pin. A line prints, exit 0, for: requires merge added to an item whose text infers deploy while the brief stays in active/; the same edit in the change that moves the brief to completed/; requires deploy added to \"Deploy to staging and run the smoke test\" (names smoke); a new item with requires merge and deploy text on a brief that is active on the base; and each of the seven alias fields in place of x-directive/requires. No line prints for: a lifecycle move with no declaration change; a declaration already on the base item; requires deploy added to deploy-only text; an edit that adds only x-directive/evidence; a title that gains \"deploy\" under an unchanged merge declaration; an alias swapped for another with the same hidden set; and a pending/ to active/ change that first writes the declaration.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Document the row in content/docs/scope-provenance.md: what it compares, that it warns only, that a declaration on the merge base is agent precommitment and not human authorization, and that the intent pin already refuses the same edit when a pin exists. Add a changelog fragment that says the row ships in warn mode.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Ship no new x-directive/requires value and no enforce mode for this row.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+          "recorded_at": "2026-11-18T17:58:04Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       }
     ],
     "tags": [
@@ -706,9 +766,36 @@
           "#5057",
           "#4956"
         ]
+      },
+      "productPullRequest": 6669,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "18b0ce42022939175dfaf657cd14dae043084a20",
+        "prNumber": 6669,
+        "prBase": "master",
+        "mergeCommit": "fcb5ea5b41d010d6848b778539b358dbd9bce243",
+        "deliveryBranch": "master",
+        "deliveryCommit": "41fcd4b57753ee1e00322ea2bc2ae964b550b4a4",
+        "verifiedAt": "2026-11-18T17:58:04Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:N2Y4YjdkMjUtOWQ5My00OGU2LTgzMTMtZWI0NjFkNzA4ZjYw",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T17:58:04Z",
+      "completedSessionId": "host:claude:v1:N2Y4YjdkMjUtOWQ5My00OGU2LTgzMTMtZWI0NjFkNzA4ZjYw",
+      "capacityBucket": "cognitive-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T17:58:04Z"
       }
     },
     "id": "github.issue.6456097206",
-    "updated": "2026-11-18T15:05:24Z"
+    "updated": "2026-11-18T17:58:04Z"
   }
 }

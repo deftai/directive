@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { globSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
+import { globSyncCompat } from "../../fs/glob-sync.js";
 import type { TaskContract, TaskInputSpec } from "./types.js";
 
 export interface InputEnumeration {
@@ -34,7 +35,7 @@ export function expandInputGlobs(projectRoot: string, spec: TaskInputSpec): stri
   for (const pattern of globs) {
     let matches: string[];
     try {
-      matches = globSync(pattern, { cwd: root }).filter((match) => {
+      matches = globSyncCompat(pattern, { cwd: root }).filter((match) => {
         try {
           return !statSync(resolve(root, match)).isDirectory();
         } catch {

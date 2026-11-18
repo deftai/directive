@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCheckUpdates } from "@deftai/directive-core/check-updates";
 
@@ -12,7 +12,7 @@ export interface ParsedCheckUpdatesArgs {
 
 export function parseArgs(argv: readonly string[]): ParsedCheckUpdatesArgs {
   let projectRoot = process.cwd();
-  let deftRoot = resolve(import.meta.dirname, "..", "..", "..");
+  let deftRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
   const passthrough: string[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
