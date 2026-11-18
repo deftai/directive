@@ -260,8 +260,8 @@ a later commit); a variable, `~` or substitution in the path; `--git-dir` / `--w
 cannot know which index the commit will use.
 
 **Commit signals (#6362).** These are refused the same way, for the whole call, whatever visible
-commit comes before or after them: a commit after a lone `&` (a `cd` before it is not joined by
-`&&`); a commit inside a `( … )` subshell, also when the group spans several commands (a group
+commit comes before or after them: a commit after `cd <path> &` (a lone `&` ends the command, so
+the `cd` is not joined by `&&`); a commit inside a `( … )` subshell, also when the group spans several commands (a group
 that closes first does not move a later commit, so `(cd /r/wt) && git commit` is still judged at
 the hook root); a `git commit` in a literal `sh -c` / `bash -c` string or in `eval`; a commit
 behind a wrapper (`env`, `command`, `exec`, `nohup`, `time`, `timeout`, `xargs`, `nice`, `sudo`,
