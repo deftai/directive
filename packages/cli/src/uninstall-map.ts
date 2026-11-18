@@ -120,8 +120,33 @@ function isHostHookOuterRel(rel: string): boolean {
   );
 }
 
-/** Mirrors core `isHostHookOuterCommand` (AC3.1: no core import). */
-const HOST_HOOK_OUTER_COMMAND_RE = /(?:^|[\s/])deft-hook-[a-f0-9]{8}\.mjs(?:\s|$)/;
+/** A plain argument token: flags and values only, no shell syntax. */
+const PLAIN_ARG_TOKEN_RE = /^[A-Za-z0-9_.:=-]+$/;
+
+/**
+ * True when the whole command is the v261027 `.mjs` outer form
+ * (`node <host dir>/deft-hook-<sha8>.mjs [--flag value]…`). A user command
+ * chained after it (`&&`, `;`, newline, extra words) does not count, so
+ * uninstall keeps that entry. Mirrors the outer branch of core
+ * `isDirectiveHookCommand` (AC3.1: no core import).
+ */
+function isHostHookOuterCommand(command: string): boolean {
+  if (/[\r\n]/.test(command)) return false;
+  const tokens = command.trim().split(/[ \t]+/);
+  const target = tokens[1] ?? "";
+  if (tokens[0] !== "node" || !isHostHookOuterRel(target.replace(/^\.\//, ""))) return false;
+  const args = tokens.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const flag = args[i] ?? "";
+    if (!flag.startsWith("--") || !PLAIN_ARG_TOKEN_RE.test(flag)) return false;
+    const value = args[i + 1];
+    if (value !== undefined && !value.startsWith("-")) {
+      if (!PLAIN_ARG_TOKEN_RE.test(value)) return false;
+      i++;
+    }
+  }
+  return true;
+}
 
 /** Committed `.mjs` outers on disk (any sha8) in the four host dirs. */
 function listHostHookOuters(projectRoot: string): string[] {
@@ -503,7 +528,7 @@ function isManagedHookCommand(command: string): boolean {
   return (
     command.includes("directive-runtime/dist/hook-bin.js") ||
     command.includes(".deft/core/") ||
-    HOST_HOOK_OUTER_COMMAND_RE.test(command) ||
+    isHostHookOuterCommand(command) ||
     /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
     command.includes("deft hook:dispatch")
   );

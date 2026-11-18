@@ -199,6 +199,24 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     expect(after).not.toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
   });
 
+  it("keeps a Directive command that a user chained another command onto", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const body = readFileSync(rel, "utf8");
+    const chained = body.replace(
+      /("command": "node \.claude\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
+      '$1 && node scripts/check.mjs"',
+    );
+    expect(chained).not.toBe(body);
+    writeFileSync(rel, chained);
+    const result = runUninstall({ root });
+    expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
+    // Still registered by the user's entry: the .mjs files stay and are reported.
+    expect(mjsOuters(root)).toHaveLength(4);
+    expect(result.remaining).toEqual(expect.arrayContaining([".claude/settings.json#hooks"]));
+  });
+
   it("keeps the .mjs files and reports them when a registration cannot be removed", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });

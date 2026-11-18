@@ -7,11 +7,11 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
-import { isHostHookOuterCommand } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   type DirectiveOwnedPath,
   HOST_HOOK_OUTER_DIRS,
   inspectOwnershipRecord,
+  isDirectiveHookCommand,
   listDirectiveOwnedPaths,
   MANAGED_SECTION_CLOSE,
   MANAGED_SECTION_OPEN_PREFIX,
@@ -120,7 +120,9 @@ function isManagedHookCommand(command: string): boolean {
     command.includes(HOOK_BIN_COMMAND) ||
     command.includes("directive-runtime/dist/hook-bin.js") ||
     command.includes(".deft/core/") ||
-    isHostHookOuterCommand(command) ||
+    // `.mjs` outer form: the whole command must be Directive's, so a user
+    // command chained after it (`&& …`) keeps the entry (#6615).
+    isDirectiveHookCommand(command) ||
     /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
     command.includes("deft hook:dispatch")
   );

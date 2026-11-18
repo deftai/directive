@@ -499,6 +499,25 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     expect(after).not.toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
   });
 
+  it("keeps a Directive command that a user chained another command onto", () => {
+    const root = tempProject("mjs-chained");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const body = readFileSync(rel, "utf8");
+    const chained = body.replace(
+      /("command": "node \.claude\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
+      '$1 && node scripts/check.mjs"',
+    );
+    expect(chained).not.toBe(body);
+    writeFileSync(rel, chained);
+    rmSync(join(root, ".deft", "GENERATION.json"));
+    const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
+    expect(outersOnDisk(root)).toHaveLength(4);
+    expect(report.leftovers).toEqual(expect.arrayContaining([".claude/settings.json#hooks"]));
+  });
+
   it("keeps the .mjs files as leftovers when a registration cannot be removed", () => {
     const root = tempProject("mjs-stuck");
     writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
