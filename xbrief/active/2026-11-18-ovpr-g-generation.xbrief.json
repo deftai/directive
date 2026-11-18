@@ -1,0 +1,310 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6012",
+    "updated": "2026-11-18T18:45:20Z"
+  },
+  "plan": {
+    "title": "0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-B (story id ovpr-g-generation), unit P2-U4, issues #6012 and #5835. Every upgrade or repair rewrites `.deft/GENERATION.json` without its `generation` key, dropping the only defence against old global CLIs (AC10.9) and turning leftover `deft-core-guard` CI red. Keep the key on every rewrite (U4a), delete a managed `.github/workflows/deft-core-guard.yml` on upgrade and tell the user to drop the required check (U4b), and remove the dead guard emitter and the docs that teach it (U4c). One PR.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6012",
+      "Overview": "Found on 0.129.1 (0.127.0 -> 0.129.1 upgrade).\n\n**What happens.** `directive upgrade` rewrites `.deft/GENERATION.json` (runtime version, managed-section fingerprints, a new retained entry) but drops the top-level `\"generation\": N` key (it was 12). The `deft-core-guard` workflow (`no-mixed-core-and-app`) requires an integer `generation` strictly greater than the base's, so the upgrade PR fails it, and the automated reviewer flagged the missing key as P1.\n\n**Workaround.** Append `\"generation\": N+1` by hand (13 here).\n\n**Impact.** Every upgrade PR in a repo that runs the guard needs a hand edit to a generated file, and nothing in the upgrade output says so.\n\n**Suggested fix.** Have the upgrade write `generation` (incremented) when it rewrites the file, or relax the guard to the shape the installer produces. Related: #3378 (guard rejecting the installer's own file set).",
+      "Labels": "bug, area:installer, triaged",
+      "UserStory": "As a developer upgrading a converted Directive project, I want `GENERATION.json` to keep its generation number and the retired deft-core-guard workflow to be removed, so that my upgrade PR is not red and old global CLIs still refuse to overwrite my repo.",
+      "StoryId": "ovpr-g-generation (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U4-generation-key-kept-and-retired-core-guard-removed.md (read in full). groups.md G-B: one PR (U4a + U4b + U4c together).",
+      "ImplementationPlan": "U4a (#6012, AC10.9):\n1. packages/core/src/install-health/ownership.ts `writeOwnershipRecord`: when `options.generation` is undefined, read `readEvidenceGenerationNumber(projectRoot)` and, if >= 1, write it as `payload.generation`. Keep the 'already current' early return and keep `generation` out of `stableOwnershipFingerprint`. Conversion still raises it (setup.ts unchanged there).\nU4b (#5835 consumer half):\n2. packages/runtime/src/removal-steps/steps.ts: add `removeRetiredCoreGuardWorkflow(root)`: delete `.github/workflows/deft-core-guard.yml` only when it is a regular file containing `name: deft-core-guard`; otherwise keep it and return a notice naming it.\n3. Call it from runtime setup when `operation === \"upgrade\"` (any `from`) and add it to every convert strategy in removal-steps/strategies.ts. Not from automatic setup or doctor.\n4. packages/cli/src/plan-present.ts: plan line 'remove retired `.github/workflows/deft-core-guard.yml`' when the file exists; success line 'Removed the retired deft-core-guard workflow. If `deft-core-guard` is a required status check in branch protection, remove it there, or this PR cannot merge.' when it was removed.\n5. packages/runtime/src/installer-output-inventory.ts: `core-guard-workflow` stays `na-retired-copy-model`, justification cites the removal step.\nU4c (#5835 remainder):\n6. Delete `ensureCoreGuardWorkflow` and its builders from init-deposit/scaffold.ts and drop it from `depositNeutralization`; delete core-guard-pin-content.ts and its test; remove the core-guard parts of hygiene.ts and refresh.ts (`skipGuardWorkflow`); remove `evaluateGenerationMonotonicVsBase` and its messages from freshness/generation-gate.ts if only tests use them.\n7. Scrub current docs: content/UPGRADING.md, content/commands.md, content/docs/consumer-check-contract.md, content/docs/freshness-contract.md, content/scm/github.md; SPECIFICATION.md via its xbrief source if it is rendered. Leave CHANGELOG.md, the OVPR requirements and the ledger as history.\n8. Tests per the spec (ownership.test.ts, setup.test.ts, removal-steps.test.ts, upgrade-bookend / plan-present tests; delete the emitter tests). No grep-only guard tests (groups.md).\n9. Changelog fragment changelog.d/6012-generation-kept-core-guard-removed.md.",
+      "Constraint": "- Do not raise `generation` on ordinary upgrades or repairs (AC10.9: conversion only).\n- Do not relax or patch the guard to accept the installer's file set; the guard is retired (#5835 Locked).\n- Do not reintroduce any mixed-commit `.deft/core` CI guard.\n- Do not delete a workflow that lacks `name: deft-core-guard`, or any other workflow.\n- Do not delete the guard from automatic setup or doctor (AC8.6 / AC12.1).\n- Do not edit Scott's policy files (packages/core/src/policy/branch-sync.ts, policy/sync-default.ts, packages/runtime/src/scm-sync-default.ts); list them for Scott in the PR instead.\n- Decisions per spec defaults: repos that already lost the key are accepted as-is (say so in the changelog); repair does not delete the guard (upgrade only, as locked).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: none. Inside the PR, U4c follows U4b.",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #6012 and #5835. Refs #3378, #4121."
+    },
+    "items": [
+      {
+        "title": "After converting a legacy repo with `generation: N`, `GENERATION.json` has `generation: N+1`.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a legacy `.deft/GENERATION.json` with `generation: 12`, when conversion setup runs, then the rewritten file has `generation: 13`."
+        }
+      },
+      {
+        "title": "After any later `directive upgrade`, `directive install --repair` or automatic setup, `generation` is still N+1.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a converted project with `generation: 13`, when `runSetup` runs with `operation: \"upgrade\"` and a different runtime version, or with `operation: \"repair\"`, then the rewritten `GENERATION.json` still has `generation: 13`; and an explicit `{ generation: 14 }` option still wins in `writeOwnershipRecord`."
+        }
+      },
+      {
+        "title": "Running setup twice on an in-sync checkout does not rewrite `GENERATION.json`.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given an in-sync checkout, when setup runs a second time with identical inputs, then `GENERATION.json` is not rewritten (AC8.2, AC13.2)."
+        }
+      },
+      {
+        "title": "`directive upgrade` on a repo with a managed `deft-core-guard.yml` deletes it; the plan announces it and the result says to remove the required check if one is configured.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given `.github/workflows/deft-core-guard.yml` containing `name: deft-core-guard`, when `directive upgrade` runs, then the plan lists 'remove retired `.github/workflows/deft-core-guard.yml`', the file is deleted, and the success output says to remove the `deft-core-guard` required status check from branch protection."
+        }
+      },
+      {
+        "title": "A workflow at that path without `name: deft-core-guard` is not deleted, and the output names it.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given `.github/workflows/deft-core-guard.yml` without the `name: deft-core-guard` line, when `directive upgrade` runs, then the file is kept and the output names it as looking user-edited."
+        }
+      },
+      {
+        "title": "No install, upgrade or repair path can create or refresh `deft-core-guard.yml`; the emitter code is gone.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given the changed tree, when packages/core/src/init-deposit/scaffold.ts and refresh.ts are read, then `ensureCoreGuardWorkflow` and its builders and core-guard-pin-content.ts no longer exist and no setup path writes `deft-core-guard.yml`."
+        }
+      },
+      {
+        "title": "Current docs no longer teach landing a deposit PR so deft-core-guard passes.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given content/ (excluding CHANGELOG.md), when `git grep -i core-guard -- content ':!CHANGELOG.md'` is run, then no hit instructs landing a deposit PR so deft-core-guard passes or describes the guard as live protection."
+        }
+      },
+      {
+        "title": "The inventory entry `core-guard-workflow` stays `na-retired-copy-model` with a justification that matches the removed emitter and the removal step.",
+        "status": "proposed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given packages/runtime/src/installer-output-inventory.ts, when the `core-guard-workflow` entry is read, then its status is `na-retired-copy-model` and its justification cites the upgrade removal step."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:installer",
+      "triaged"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6012",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6012: 0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5835",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5835"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/install-health/ownership.test.ts packages/runtime/src/setup.test.ts packages/runtime/src/removal-steps packages/cli/src/upgrade-bookend.test.ts packages/cli/src/plan-present-wave3g.test.ts packages/core/src/init-deposit packages/core/src/freshness/generation-gate.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (8), in order (#6333)",
+      "sentences": [
+        "0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects",
+        "Found on 0.129.1 (0.127.0 -> 0.129.1 upgrade).",
+        "What happens. `directive upgrade` rewrites `.deft/GENERATION.json` (runtime version, managed-section fingerprints, a new retained entry) but drops the top-level `\"generation\": N` key (it was 12).",
+        "The `deft-core-guard` workflow (`no-mixed-core-and-app`) requires an integer `generation` strictly greater than the base's, so the upgrade PR fails it, and the automated reviewer flagged the missing key as P1.",
+        "Workaround. Append `\"generation\": N+1` by hand (13 here).",
+        "Impact. Every upgrade PR in a repo that runs the guard needs a hand edit to a generated file, and nothing in the upgrade output says so.",
+        "Suggested fix. Have the upgrade write `generation` (incremented) when it rewrites the file, or relax the guard to the shape the installer produces.",
+        "Related: #3378 (guard rejecting the installer's own file set)."
+      ],
+      "admitted_source_sentences": [
+        "Found on 0.129.1 (0.127.0 -> 0.129.1 upgrade).",
+        "What happens. `directive upgrade` rewrites `.deft/GENERATION.json` (runtime version, managed-section fingerprints, a new retained entry) but drops the top-level `\"generation\": N` key (it was 12).",
+        "The `deft-core-guard` workflow (`no-mixed-core-and-app`) requires an integer `generation` strictly greater than the base's, so the upgrade PR fails it, and the automated reviewer flagged the missing key as P1.",
+        "Workaround. Append `\"generation\": N+1` by hand (13 here).",
+        "Impact. Every upgrade PR in a repo that runs the guard needs a hand edit to a generated file, and nothing in the upgrade output says so.",
+        "Suggested fix. Have the upgrade write `generation` (incremented) when it rewrites the file, or relax the guard to the shape the installer produces.",
+        "Related: #3378 (guard rejecting the installer's own file set)."
+      ],
+      "admitted_source_digest": "c7fada2a7eeb8de81fdd84269816a63c7f363ab647a610256485966e0f8aa43f",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects",
+          "artifact_path": "packages/core/src/install-health/ownership.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Found on 0.129.1 (0.127.0 -> 0.129.1 upgrade).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "What happens. `directive upgrade` rewrites `.deft/GENERATION.json` (runtime version, managed-section fingerprints, a new retained entry) but drops the top-level `\"generation\": N` key (it was 12).",
+          "artifact_path": "packages/core/src/install-health/ownership.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "The `deft-core-guard` workflow (`no-mixed-core-and-app`) requires an integer `generation` strictly greater than the base's, so the upgrade PR fails it, and the automated reviewer flagged the missing key as P1.",
+          "artifact_path": "packages/core/src/install-health/ownership.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "Workaround. Append `\"generation\": N+1` by hand (13 here).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Impact. Every upgrade PR in a repo that runs the guard needs a hand edit to a generated file, and nothing in the upgrade output says so.",
+          "artifact_path": "packages/core/src/install-health/ownership.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "Suggested fix. Have the upgrade write `generation` (incremented) when it rewrites the file, or relax the guard to the shape the installer produces.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Related: #3378 (guard rejecting the installer's own file set).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/install-health/ownership.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/runtime/src/removal-steps/strategies.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/runtime/src/installer-output-inventory.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/core-guard-pin-content.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/freshness/generation-gate.ts",
+          "content/UPGRADING.md",
+          "content/commands.md",
+          "content/docs/consumer-check-contract.md",
+          "content/docs/freshness-contract.md",
+          "content/scm/github.md",
+          "SPECIFICATION.md",
+          "xbrief/specification.xbrief.json",
+          "packages/core/src/install-health/ownership.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/cli/src/plan-present-wave3g.test.ts",
+          "packages/core/src/init-deposit/scaffold.test.ts",
+          "packages/core/src/init-deposit/core-guard-pin-content.test.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/freshness/generation-gate.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "changelog.d/6012-generation-kept-core-guard-removed.md"
+        ],
+        "module_boundary": "The ownership-record writer (carry `generation`), one upgrade removal step plus its plan/success lines and inventory entry, deletion of the dead core-guard emitter in init-deposit and freshness, and the docs that teach it. Scott's policy files are out of scope.",
+        "cohesion_exemption": "hygiene.ts (2020 lines), refresh.ts (2104 lines), scaffold.ts (1208 lines), plan-present.ts (1118 lines) and content/UPGRADING.md (1139 lines) already exceed the review trigger. This change only removes guard code or adds one plan/success line and one doc fix; splitting them is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6086301565,
+        "origin": "deftai/directive#6012",
+        "id": "github.issue.6086301565"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/install-health/ownership.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/runtime/src/removal-steps/strategies.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/runtime/src/installer-output-inventory.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/core-guard-pin-content.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/freshness/generation-gate.ts",
+          "content/UPGRADING.md",
+          "content/commands.md",
+          "content/docs/consumer-check-contract.md",
+          "content/docs/freshness-contract.md",
+          "content/scm/github.md",
+          "SPECIFICATION.md",
+          "xbrief/specification.xbrief.json",
+          "packages/core/src/install-health/ownership.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/cli/src/plan-present-wave3g.test.ts",
+          "packages/core/src/init-deposit/scaffold.test.ts",
+          "packages/core/src/init-deposit/core-guard-pin-content.test.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/freshness/generation-gate.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "changelog.d/6012-generation-kept-core-guard-removed.md",
+          "packages/core/src/init-deposit/dest-symlink-2912.test.ts",
+          "packages/core/src/init-deposit/gitattributes-framework-source.test.ts",
+          "packages/core/src/vitest-runner/dest-contention-it-timeout.test.ts"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/install-health/ownership.test.ts packages/runtime/src/setup.test.ts packages/runtime/src/removal-steps packages/cli/src/upgrade-bookend.test.ts packages/cli/src/plan-present-wave3g.test.ts packages/core/src/init-deposit packages/core/src/freshness/generation-gate.test.ts"
+        ],
+        "Traces": [
+          "#6012",
+          "#5835"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-setup",
+        "expected_outputs": [
+          "After converting a legacy repo with `generation: N`, `GENERATION.json` has `generation: N+1`.",
+          "After any later `directive upgrade`, `directive install --repair` or automatic setup, `generation` is still N+1.",
+          "Running setup twice on an in-sync checkout does not rewrite `GENERATION.json`.",
+          "`directive upgrade` on a repo with a managed `deft-core-guard.yml` deletes it; the plan announces it and the result says to remove the required check if one is configured.",
+          "A workflow at that path without `name: deft-core-guard` is not deleted, and the output names it.",
+          "No install, upgrade or repair path can create or refresh `deft-core-guard.yml`; the emitter code is gone.",
+          "Current docs no longer teach landing a deposit PR so deft-core-guard passes.",
+          "The inventory entry `core-guard-workflow` stays `na-retired-copy-model` with a justification that matches the removed emitter and the removal step.",
+          "one changelog fragment changelog.d/6012-generation-kept-core-guard-removed.md"
+        ],
+        "acceptance_criteria_justification": "Eight items: unit spec P2-U4 acceptance criteria 1 to 8, one each (criterion 6 proven by behaviour, not a grep-only guard, per groups.md)."
+      }
+    },
+    "id": "github.issue.6086301565",
+    "updated": "2026-11-18T18:45:20Z"
+  }
+}

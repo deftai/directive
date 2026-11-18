@@ -1,0 +1,363 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5961",
+    "updated": "2026-11-18T18:45:23Z"
+  },
+  "plan": {
+    "title": "directive upgrade leaves consumer wiring pointing at the deleted .deft/core, including CI steps that would silently skip",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-C (story id ovpr-g-customer-files), units P2-U5a + P2-U5b, issues #5961, #6167, #6256. Every setup run still appends retired `.deft/core/**` lines to customer `.gitattributes`, never removes the `.deft/core` lines old Directive wrote into `.prettierignore`, `greptile.json` and the CodeQL config, leaves three hook files without an LF rule, and the hook files fail customer Prettier. Stop writing and strip the retired lines, add hash-free LF lines, record the managed block, add the one RC-04 `.prettierignore` line when that file exists, remove #6479's framework-source skip (D-029) and commit the clean managed block in this repo once, and add the D-024 UPGRADING note.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5961",
+      "Overview": "## Summary\n\n`directive upgrade` removes the copied `.deft/core` tree and repoints the Taskfile `deft:` include, but does not look for other consumer files that still reference the old path. In the case below that included CI steps that would have **silently skipped** the Directive gates.\n\n## Evidence\n\nMeasured on a TypeScript pnpm repo upgraded 0.119.11 → 0.127.0 (`directive upgrade --yes`); retested on 0.129.1 in a scratch copy: the tool does not touch CI or consumer docs there either.\n\n- `.github/workflows/ci.yml` had two steps conditioned on `if: hashFiles('.deft/core/Taskfile.yml') != ''` (installing the Directive CLI, and the xBRIEF validation). With the tree gone both steps skip and CI stays green without running the gates. A unit test in the repo asserted that exact string.\n- About 20 references in the repo's own `AGENTS.md` header, plus README, a spec doc, a dependabot comment, `.gitattributes`, `.prettierignore`, codeql and greptile config.\n- Doctor immediately fails `skill-paths-resolve` on a skill path in the consumer's own `AGENTS.md` (`.deft/core/.agents/skills/.../SKILL.md`). `Gates-surface readiness` also still warns, suggesting the old include path.\n- The Taskfile include change is an evaluator-surface diff, so `verify:evaluator-surface` fails until a human writes `xbrief/evaluator-surface-disposition.json`. The upgrade could write, or at least name, that record.\n\n## Suggested fix\n\nAfter the swap, grep the repo for `.deft/core` and print every hit grouped by kind (CI conditions, docs, ignore files); rewrite the unambiguous ones; call out CI conditions that now evaluate false in the release notes and upgrade summary. Offer the evaluator-surface disclosure record as part of the plan.\n\n",
+      "Labels": "bug, adoption-blocker, area:installer, triaged",
+      "UserStory": "As a developer upgrading to the new Directive layout, I want Directive to stop writing and to remove its old `.deft/core` lines and to keep its hook files out of my lint and line-ending trouble, so that my upgrade PR is clean and my files only hold lines that mean something.",
+      "StoryId": "ovpr-g-customer-files (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U5-stop-writing-retired-deft-core-lines.md (read in full; the 'Update 2026-11-17' banner wins). groups.md G-C: P2-U5a + P2-U5b in one PR. RC-04 approved and merged (drafts/RC-04.md: one `.prettierignore` line). Decisions D-024 (docs note only, no scan) and D-029 (remove #6479's writer skip; commit the clean block once here).",
+      "ImplementationPlan": "U5a:\n1. packages/core/src/init-deposit/scaffold.ts: `DESIRED_GITATTRIBUTES_LINES` = managed wiring lines only; rename the core lines to a retired list (with `LEGACY_CORE_TEXT_EOL_LF`); `gitattributesDepositComment` returns only the `# Deft managed wiring:` header. Remove #6479's framework-source skip (`isFrameworkSourceCheckoutAt` use in the writer) per D-029; keep #6479's pack-render change.\n2. Strip every exact retired line and the known Directive comment lines (the strings `isDirectiveManagedGitattributes` lists) on every setup; add the header above remaining managed lines if missing; touch no other line; second run is a no-op.\n3. Add hash-free LF lines `.claude/deft-hook-*.mjs`, `.codex/deft-hook-*.mjs`, `.cursor/hooks/deft-hook-*.mjs` (`text=auto eol=lf`).\n4. New packages/core/src/init-deposit/retired-copy-model-lines.ts: the table of exact pre-OVPR strings and a strip helper for `.prettierignore` (the `.deft/core/` line, its alternates, and its header), `greptile.json` (the `.deft/core/**` ignorePatterns entry only), `.github/codeql/codeql-config.yml` (the `- '.deft/core/**'` item in all three quote forms and the two default comment lines). Call it from a runtime setup step in packages/runtime/src/setup.ts; keep the files; report each change in setup's `modified` list.\n5. Record the managed `.gitattributes` block in the ownership record using P2-U0's API (marker: the `# Deft managed wiring:` header). Inventory entries `gitattributes-managed-wiring-lf` (retained, `setupActivator: \"ensureManagedPathGitattributes\"`) and `prettierignore-core-exclusion` (`na-retired-copy-model`).\n6. This repo: commit the clean managed `.gitattributes` block once (from the worker's own worktree after setup with the fix; never polfer's uncommitted primary-checkout change).\nU5b (RC-04, exact approved text):\n7. In runtime setup, when a root `.prettierignore` already exists, add `**/deft-hook-*.mjs` under a `# Deft managed wiring:` header once; never create the file; record the line as Directive-owned so uninstall (G-E) can remove it.\n8. content/UPGRADING.md: the ESLint flat-config `ignores: [\"**/deft-hook-*.mjs\"]` note (Directive never edits ESLint config) and, per D-024, in the old-layout conversion section: after converting run `git grep .deft/core` and check CI conditions that test for `.deft/core` files.\n9. Tests per the spec (scaffold.test.ts, setup-wiring.test.ts, ownership-fix.test.ts, inventory test, the framework-source tests that cover the removed skip, `.prettierignore` append-only-when-present). No grep-only guard tests (groups.md).\n10. Changelog fragment changelog.d/5961-no-retired-deft-core-lines.md.",
+      "Constraint": "- Do not commit, stage or revert polfer's uncommitted `.gitattributes` change in the primary checkout.\n- Do not rewrite customer-authored files: CI workflows, README, specs, the customer's AGENTS.md header (AC10.6).\n- Do not scan or list `.deft/core` references in files Directive doesn't own (D-024); docs note only.\n- Do not delete `greptile.json` or the CodeQL config file.\n- Do not add a framework-source or 'is this the Directive repo' check to the writer; remove the existing one (D-029).\n- Do not create `.prettierignore` or ESLint config in a project that lacks them; never edit ESLint config (AC7.7).\n- Use the RC-04 approved text exactly for the `.prettierignore` line; no other new ignore or attribute lines.\n- Do not touch `.github/workflows/deft-core-guard.yml` (G-B) or the hook outer source, its hash or old-shim cleanup.\n- Scott's dispatcher, scope gate and `verify:scope-provenance` stay untouched.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: P2-U0 ownership record API (#6658 merged; part 2 #6662 / github.issue.6458882573 active) for step 5; if the needed form is missing, ship the rest and report. Blocks: G-E (uninstall reuses the retired-lines table and removes the recorded lines), P4-U1 (Scott's commit gate reads the record). Tell Scott before dispatch (D-029).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #5961 and #6256. Partly addresses #6167 (items 1 and 2; items 3 and 4 belong elsewhere). Refs #6337, #6479, #2534."
+    },
+    "items": [
+      {
+        "title": "On a fresh `directive install`, no file Directive writes contains `.deft/core`.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given an empty repo, when `runSetup({ operation: \"install\" })` runs, then no file it writes or modifies contains the text `.deft/core`."
+        }
+      },
+      {
+        "title": "On upgrade, repair and automatic setup, the exact retired lines are removed from `.gitattributes`, `.prettierignore`, `greptile.json` and `.github/codeql/codeql-config.yml`; every other line and key is byte-identical and the files are kept.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a repo with the old 19-line `.gitattributes` block, an old `.prettierignore`, `greptile.json` and CodeQL config, when setup runs with `operation` upgrade, repair or automatic setup, then exactly the retired lines are removed, all other lines and keys are byte-identical, and all four files still exist."
+        }
+      },
+      {
+        "title": "The removals are listed as modified files in the install, upgrade and repair report.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a repo with retired lines, when `directive upgrade` or `directive install --repair` runs, then each file whose retired lines were removed is listed under the files to review and commit."
+        }
+      },
+      {
+        "title": "Running setup twice in a row changes nothing the second time.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a repo where setup has just run, when setup runs again, then no file is modified."
+        }
+      },
+      {
+        "title": "`.gitattributes` has an LF rule matching each of the four hook files for any sha8.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given a repo after setup, when `git check-attr eol --` runs on `.claude/deft-hook-<sha8>.mjs`, `.codex/deft-hook-<sha8>.mjs`, `.cursor/hooks/deft-hook-<sha8>.mjs` and `.grok/hooks/deft-hook-<sha8>.mjs` for an arbitrary sha8, then each reports `eol: lf`."
+        }
+      },
+      {
+        "title": "The managed `.gitattributes` block is in the ownership record in the P2-U0 form.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given a repo after setup, when `.deft/GENERATION.json` is read through the P2-U0 ownership API, then it lists the managed `.gitattributes` block identified by the `# Deft managed wiring:` header."
+        }
+      },
+      {
+        "title": "The inventory lists the managed LF block and the retired `.prettierignore` line.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given packages/runtime/src/installer-output-inventory.ts, when it is read, then it has `gitattributes-managed-wiring-lf` (retained, activator `ensureManagedPathGitattributes`) and `prettierignore-core-exclusion` (`na-retired-copy-model`)."
+        }
+      },
+      {
+        "title": "In this repo, with the framework-source skip removed and the clean block committed once, session start, verify tasks and swarm worktree prep in a linked worktree leave `.gitattributes` unchanged.",
+        "status": "proposed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given this repo with the clean managed block committed and no framework-source skip in the writer, when `session:start`, `task verify:*` or `swarm-worktrees prep` runs in a linked worktree, then `git status` shows no change to `.gitattributes`."
+        }
+      },
+      {
+        "title": "An existing `.prettierignore` gets `**/deft-hook-*.mjs` once under the managed header (RC-04); a project without one gets no new file; UPGRADING names the Prettier and ESLint entries and the D-024 `git grep .deft/core` note.",
+        "status": "proposed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given a project with a root `.prettierignore`, when setup runs twice, then the file has exactly one `**/deft-hook-*.mjs` line under `# Deft managed wiring:`; given a project without one, when setup runs, then no `.prettierignore` is created; and content/UPGRADING.md names the Prettier line, the ESLint `ignores` entry and the post-conversion `git grep .deft/core` / CI-condition check."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "area:installer",
+      "triaged"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5961",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5961: directive upgrade leaves consumer wiring pointing at the deleted .deft/core, including CI steps that would silently skip"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6167",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6167"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6256",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6256"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/init-deposit/scaffold.test.ts packages/core/src/init-deposit/retired-copy-model-lines.test.ts packages/core/src/init-deposit/prettierignore.test.ts packages/core/src/init-deposit/gitattributes-framework-source.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup-wiring-framework-source.test.ts packages/runtime/src/setup.test.ts packages/runtime/src/ownership-fix.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (14), in order (#6333)",
+      "sentences": [
+        "directive upgrade leaves consumer wiring pointing at the deleted .deft/core, including CI steps that would silently skip",
+        "Summary `directive upgrade` removes the copied `.deft/core` tree and repoints the Taskfile `deft:` include, but does not look for other consumer files that still reference the old path.",
+        "In the case below that included CI steps that would have silently skipped the Directive gates.",
+        "Evidence Measured on a TypeScript pnpm repo upgraded 0.119.11 → 0.127.0 (`directive upgrade --yes`); retested on 0.129.1 in a scratch copy: the tool does not touch CI or consumer docs there either.",
+        "`.github/workflows/ci.yml` had two steps conditioned on `if: hashFiles('.deft/core/Taskfile.yml') != ''` (installing the Directive CLI, and the xBRIEF validation).",
+        "With the tree gone both steps skip and CI stays green without running the gates.",
+        "A unit test in the repo asserted that exact string.",
+        "About 20 references in the repo's own `AGENTS.md` header, plus README, a spec doc, a dependabot comment, `.gitattributes`, `.prettierignore`, codeql and greptile config.",
+        "Doctor immediately fails `skill-paths-resolve` on a skill path in the consumer's own `AGENTS.md` (`.deft/core/.agents/skills/.../SKILL.md`).",
+        "`Gates-surface readiness` also still warns, suggesting the old include path.",
+        "The Taskfile include change is an evaluator-surface diff, so `verify:evaluator-surface` fails until a human writes `xbrief/evaluator-surface-disposition.json`.",
+        "The upgrade could write, or at least name, that record.",
+        "Suggested fix After the swap, grep the repo for `.deft/core` and print every hit grouped by kind (CI conditions, docs, ignore files); rewrite the unambiguous ones; call out CI conditions that now evaluate false in the release notes and upgrade summary.",
+        "Offer the evaluator-surface disclosure record as part of the plan."
+      ],
+      "admitted_source_sentences": [
+        "Summary `directive upgrade` removes the copied `.deft/core` tree and repoints the Taskfile `deft:` include, but does not look for other consumer files that still reference the old path.",
+        "In the case below that included CI steps that would have silently skipped the Directive gates.",
+        "Evidence Measured on a TypeScript pnpm repo upgraded 0.119.11 → 0.127.0 (`directive upgrade --yes`); retested on 0.129.1 in a scratch copy: the tool does not touch CI or consumer docs there either.",
+        "`.github/workflows/ci.yml` had two steps conditioned on `if: hashFiles('.deft/core/Taskfile.yml') != ''` (installing the Directive CLI, and the xBRIEF validation).",
+        "With the tree gone both steps skip and CI stays green without running the gates.",
+        "A unit test in the repo asserted that exact string.",
+        "About 20 references in the repo's own `AGENTS.md` header, plus README, a spec doc, a dependabot comment, `.gitattributes`, `.prettierignore`, codeql and greptile config.",
+        "Doctor immediately fails `skill-paths-resolve` on a skill path in the consumer's own `AGENTS.md` (`.deft/core/.agents/skills/.../SKILL.md`).",
+        "`Gates-surface readiness` also still warns, suggesting the old include path.",
+        "The Taskfile include change is an evaluator-surface diff, so `verify:evaluator-surface` fails until a human writes `xbrief/evaluator-surface-disposition.json`.",
+        "The upgrade could write, or at least name, that record.",
+        "Suggested fix After the swap, grep the repo for `.deft/core` and print every hit grouped by kind (CI conditions, docs, ignore files); rewrite the unambiguous ones; call out CI conditions that now evaluate false in the release notes and upgrade summary.",
+        "Offer the evaluator-surface disclosure record as part of the plan."
+      ],
+      "admitted_source_digest": "d2f089b4e64717bddd5e04941a8723aa5dcc5c48e95032c7b74fc4f5d0f8cd48",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "directive upgrade leaves consumer wiring pointing at the deleted .deft/core, including CI steps that would silently skip",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary `directive upgrade` removes the copied `.deft/core` tree and repoints the Taskfile `deft:` include, but does not look for other consumer files that still reference the old path.",
+          "artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "In the case below that included CI steps that would have silently skipped the Directive gates.",
+          "artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "Evidence Measured on a TypeScript pnpm repo upgraded 0.119.11 → 0.127.0 (`directive upgrade --yes`); retested on 0.129.1 in a scratch copy: the tool does not touch CI or consumer docs there either.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`.github/workflows/ci.yml` had two steps conditioned on `if: hashFiles('.deft/core/Taskfile.yml') != ''` (installing the Directive CLI, and the xBRIEF validation).",
+          "artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "With the tree gone both steps skip and CI stays green without running the gates.",
+          "artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "A unit test in the repo asserted that exact string.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "About 20 references in the repo's own `AGENTS.md` header, plus README, a spec doc, a dependabot comment, `.gitattributes`, `.prettierignore`, codeql and greptile config.",
+          "artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 9,
+          "text": "Doctor immediately fails `skill-paths-resolve` on a skill path in the consumer's own `AGENTS.md` (`.deft/core/.agents/skills/.../SKILL.md`).",
+          "artifact_path": "content/UPGRADING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "`Gates-surface readiness` also still warns, suggesting the old include path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The Taskfile include change is an evaluator-surface diff, so `verify:evaluator-surface` fails until a human writes `xbrief/evaluator-surface-disposition.json`.",
+          "artifact_path": "content/UPGRADING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The upgrade could write, or at least name, that record.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Suggested fix After the swap, grep the repo for `.deft/core` and print every hit grouped by kind (CI conditions, docs, ignore files); rewrite the unambiguous ones; call out CI conditions that now evaluate false in the release notes and upgrade summary.",
+          "artifact_path": "content/UPGRADING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Offer the evaluator-surface disclosure record as part of the plan.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/retired-copy-model-lines.ts",
+          "packages/core/src/init-deposit/prettierignore.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/installer-output-inventory.ts",
+          "packages/core/src/install-health/ownership.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "content/UPGRADING.md",
+          ".gitattributes",
+          "packages/core/src/init-deposit/scaffold.test.ts",
+          "packages/core/src/init-deposit/retired-copy-model-lines.test.ts",
+          "packages/core/src/init-deposit/prettierignore.test.ts",
+          "packages/core/src/init-deposit/gitattributes-framework-source.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/setup-wiring-framework-source.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/ownership-fix.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "changelog.d/5961-no-retired-deft-core-lines.md"
+        ],
+        "module_boundary": "The `.gitattributes` writer in init-deposit/scaffold.ts, a new retired-lines table and strip helper in init-deposit, the runtime setup steps that call them and add the one RC-04 `.prettierignore` line, the inventory, the ownership record entry, one UPGRADING note and this repo's committed `.gitattributes`. No customer-authored files.",
+        "cohesion_exemption": "scaffold.ts (1208 lines), setup-wiring.ts (1433 lines) and content/UPGRADING.md (1139 lines) already exceed the review trigger. This change edits one constant list and one writer, adds one setup call and one doc note; the new table lives in its own module; splitting the files is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6060536381,
+        "origin": "deftai/directive#5961",
+        "id": "github.issue.6060536381"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/retired-copy-model-lines.ts",
+          "packages/core/src/init-deposit/prettierignore.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/installer-output-inventory.ts",
+          "packages/core/src/install-health/ownership.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "content/UPGRADING.md",
+          ".gitattributes",
+          "packages/core/src/init-deposit/scaffold.test.ts",
+          "packages/core/src/init-deposit/retired-copy-model-lines.test.ts",
+          "packages/core/src/init-deposit/prettierignore.test.ts",
+          "packages/core/src/init-deposit/gitattributes-framework-source.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/setup-wiring-framework-source.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/ownership-fix.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "changelog.d/5961-no-retired-deft-core-lines.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6458882573"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/scaffold.test.ts packages/core/src/init-deposit/retired-copy-model-lines.test.ts packages/core/src/init-deposit/prettierignore.test.ts packages/core/src/init-deposit/gitattributes-framework-source.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup-wiring-framework-source.test.ts packages/runtime/src/setup.test.ts packages/runtime/src/ownership-fix.test.ts"
+        ],
+        "Traces": [
+          "#5961",
+          "#6167",
+          "#6256"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-setup",
+        "expected_outputs": [
+          "On a fresh `directive install`, no file Directive writes contains `.deft/core`.",
+          "On upgrade, repair and automatic setup, the exact retired lines are removed from `.gitattributes`, `.prettierignore`, `greptile.json` and `.github/codeql/codeql-config.yml`; every other line and key is byte-identical and the files are kept.",
+          "The removals are listed as modified files in the install, upgrade and repair report.",
+          "Running setup twice in a row changes nothing the second time.",
+          "`.gitattributes` has an LF rule matching each of the four hook files for any sha8.",
+          "The managed `.gitattributes` block is in the ownership record in the P2-U0 form.",
+          "The inventory lists the managed LF block and the retired `.prettierignore` line.",
+          "In this repo, with the framework-source skip removed and the clean block committed once, session start, verify tasks and swarm worktree prep in a linked worktree leave `.gitattributes` unchanged.",
+          "An existing `.prettierignore` gets `**/deft-hook-*.mjs` once under the managed header (RC-04); a project without one gets no new file; UPGRADING names the Prettier and ESLint entries and the D-024 `git grep .deft/core` note.",
+          "one changelog fragment changelog.d/5961-no-retired-deft-core-lines.md"
+        ],
+        "acceptance_criteria_justification": "Nine items: unit spec P2-U5 acceptance criteria 1 to 9 (criterion 9 is U5b under approved RC-04, extended with the D-024 UPGRADING note)."
+      }
+    },
+    "id": "github.issue.6060536381",
+    "updated": "2026-11-18T18:45:23Z"
+  }
+}

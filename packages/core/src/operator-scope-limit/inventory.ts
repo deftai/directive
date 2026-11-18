@@ -1,5 +1,6 @@
-import { existsSync, globSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, posix, relative } from "node:path";
+import { globSyncCompat } from "../fs/glob-sync.js";
 import type { ShippedSurface } from "./types.js";
 
 const SKIP_DIR_RE =
@@ -110,7 +111,7 @@ function expandGlobs(projectRoot: string, globs: readonly string[]): string[] {
   for (const pattern of globs) {
     let matches: string[] = [];
     try {
-      matches = globSync(pattern, { cwd: projectRoot });
+      matches = globSyncCompat(pattern, { cwd: projectRoot });
     } catch {
       matches = [];
     }
