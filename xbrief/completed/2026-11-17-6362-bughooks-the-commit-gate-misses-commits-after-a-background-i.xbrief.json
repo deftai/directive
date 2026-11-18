@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6362",
-    "updated": "2026-11-18T00:30:03Z"
+    "updated": "2026-11-18T03:25:16Z"
   },
   "plan": {
     "title": "bug(hooks): the commit gate misses commits after a background &, inside subshells, and in sh -c / bash -c wrappers",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The PreToolUse commit gate decides whether an agent's git commit runs scope-cover, story binding and named-target admission, but its tokenizer does not see a commit after a background &, inside a subshell, or inside a sh -c / bash -c wrapper, so those commits skip the gate. One subshell form that it does see, (cd /x && git commit), is judged against the hook root instead of /x, so a commit can land in a sibling worktree while admission reads the caller's clean index. This story splits a lone & into its own segment and makes every commit signal outside the canonical shapes resolve to unresolvable, which the dispatcher already denies with the accepted-forms remediation. It is a cooperative guardrail over recognized commands, not a security boundary: branch policy (at push) and the merge-base scope fence (in CI) are unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6362",
@@ -20,34 +20,62 @@
     "items": [
       {
         "title": "Treat a lone & as a segment separator. Keep &>, >&, <&, 2>&1, and |& as they work today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given tokenizeShellCommand, when a command holds a lone &, then the & ends a segment, and &>, >&, <&, 2>&1 and |& stay attached to their redirections as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a7a784714693ffcfd6b20c3cc854bd39f45d94f0",
+          "recorded_at": "2026-11-18T03:25:16Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A commit signal outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&) resolves to unresolvable and is denied with COMMIT_TARGET_ACCEPTED_FORMS. It does not fall back to hook-root or an outer named path unless the parse proves the target.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given resolveCommitTarget, when a commit signal sits outside the canonical shapes (plain, git -C <abs>, one cd <abs> &&), then the target is unresolvable, the hook denies the call with COMMIT_TARGET_ACCEPTED_FORMS, and it never falls back to hook-root or an outer named path unless the parse proves the target."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a7a784714693ffcfd6b20c3cc854bd39f45d94f0",
+          "recorded_at": "2026-11-18T03:25:16Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Commit signals include grouping in the segment, a git commit word pair inside a literal sh|bash -c body, wrappers/eval/unreadable command words, and a non-literal -c or eval body.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given resolveCommitTarget, when the command holds grouping around the commit, a git commit word pair inside a literal sh|bash -c body, a wrapper, eval or unreadable command word, or a non-literal -c or eval body, then each is a commit signal and the result is unresolvable, also when a visible commit comes before or after it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a7a784714693ffcfd6b20c3cc854bd39f45d94f0",
+          "recorded_at": "2026-11-18T03:25:16Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Deny fixtures include cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\", and cd /y && bash -c 'git commit'. Keep (cd /r/wt) && git commit as hook-root.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given the PreToolUse dispatcher, when it receives cd /x & git commit, (cd /x && git commit), cd /y && (cd /x && git commit), bash -c 'git commit', sh -c \"$CMD\" or cd /y && bash -c 'git commit', then it denies each one, and (cd /r/wt) && git commit still resolves to hook-root."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a7a784714693ffcfd6b20c3cc854bd39f45d94f0",
+          "recorded_at": "2026-11-18T03:25:16Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -450,9 +478,35 @@
           "#6362"
         ],
         "acceptance_criteria_justification": "Four clauses: the four Bound remedy items of the accepted lean (comment 6958924293, synthesis 6959107862), one same-text clause each as the harvest admitted them. parallel_safe is true: no running brief declares these files. packages/core/src/hooks/dispatcher.ts is left out on purpose: it already denies an unresolvable target, and running brief #6221 declares it. The lean's Leftover-pain (if/for/env/xargs/pushd/GIT_DIR and other commit-creating git verbs) stays on #3595."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "fb55110584e4b6ab351de39047b94c6b571635df",
+        "prNumber": 6606,
+        "prBase": "master",
+        "mergeCommit": "a7a784714693ffcfd6b20c3cc854bd39f45d94f0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a7a784714693ffcfd6b20c3cc854bd39f45d94f0",
+        "verifiedAt": "2026-11-18T03:25:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MzA3N2VmMWUtZGFkMC00ZDEyLWI5YTQtNWE4NjY1MTJiNjQ3",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T03:25:16Z",
+      "completedSessionId": "host:claude:v1:MzA3N2VmMWUtZGFkMC00ZDEyLWI5YTQtNWE4NjY1MTJiNjQ3",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T03:25:16Z"
       }
     },
     "id": "github.issue.6413053214",
-    "updated": "2026-11-18T00:30:03Z"
+    "updated": "2026-11-18T03:25:16Z"
   }
 }
