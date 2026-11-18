@@ -2306,7 +2306,17 @@ export function evaluateAdmittedSourceAtActivation(
     readonly fetchSpecPathLiveIdentities?: EvaluateVerifyAcOptions["fetchSpecPathLiveIdentities"];
   },
 ): AdmittedSourceActivationResult {
-  if (plan.acceptance === undefined || plan.acceptance === null) {
+  // Only a brief that carries a stored sentence list or an admitted-source pin
+  // (an ingested brief) is checked. A hand-authored brief has neither; its
+  // sentence list is derived from narratives at completion, as before.
+  const stored = asPlanRecord(plan.acceptance);
+  if (
+    stored === null ||
+    (readAdmittedSourceSentences(stored) === null &&
+      readAdmittedSourceDigest(stored) === null &&
+      !Array.isArray(stored.sentences) &&
+      !planHasSpecPathRefusedBody(plan))
+  ) {
     return { ok: true, message: "" };
   }
   const projectRoot = resolve(options.projectRoot);

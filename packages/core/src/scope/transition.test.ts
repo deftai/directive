@@ -256,7 +256,9 @@ describe("runTransition", () => {
         "2026-01-01-pin-ok.xbrief.json",
         pinnedAcceptance(PINNED),
       );
-      const result = runTransition("activate", file, { admittedSourceActivation: seams });
+      const result = runTransition("activate", file, new Date(), {
+        admittedSourceActivation: seams,
+      });
       expect(result.ok).toBe(true);
       expect(existsSync(join(root, "xbrief", "active", "2026-01-01-pin-ok.xbrief.json"))).toBe(
         true,
@@ -272,7 +274,9 @@ describe("runTransition", () => {
         "2026-01-01-pin-cut.xbrief.json",
         pinnedAcceptance(PINNED.slice(0, 1)),
       );
-      const result = runTransition("activate", file, { admittedSourceActivation: seams });
+      const result = runTransition("activate", file, new Date(), {
+        admittedSourceActivation: seams,
+      });
       expect(result.ok).toBe(false);
       expect(result.message).toContain("verify:ac admitted-source identity (#5055)");
       expect(existsSync(file)).toBe(true);

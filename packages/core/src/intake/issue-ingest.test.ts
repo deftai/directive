@@ -3033,7 +3033,17 @@ describe("#4119 plan.id mint, admission, and repair", () => {
         expect(promoted.ok).toBe(true);
         const pending = join(xbriefDir, "pending", (path as string).split(/[/\\]/).pop() as string);
         expect(planOf(pending).id).toBe(minted);
-        const activated = runTransition("activate", pending);
+        // #6609 item 7: activation re-reads the live body; serve it offline.
+        const activated = runTransition("activate", pending, new Date(), {
+          admittedSourceActivation: {
+            briefOnMergeBase: false,
+            admittedSourceMergeBase: null,
+            fetchAdmittedSourceText: () => ({
+              ok: true,
+              text: "## Acceptance criteria\n- Preserve the minted plan id through complete\n",
+            }),
+          },
+        });
         expect(activated.ok).toBe(true);
         const active = join(xbriefDir, "active", (path as string).split(/[/\\]/).pop() as string);
         expect(planOf(active).id).toBe(minted);
