@@ -1,0 +1,2 @@
+section: Fixed
+- Doctor is green after an old-repo upgrade. In a project that uses the runtime pin and has no `.deft/core`, `manifest-agreement` now skips leftover `.deft-version` markers (the pin is the only version authority) and no longer advises `deft update`, which looped. `directive upgrade` of an old layout now deletes `xbrief/.deft-version`, root `.deft-version` and `vbrief/.deft-version` when each holds only a version string, and lists each removal in the upgrade report. Install, repair, uninstall and doctor never delete them (#6001).

@@ -25,6 +25,7 @@ import {
   RemovalStepError,
   removeCopiedCore,
   removeDeftFrameworkTree,
+  removeLegacyBareVersionMarkers,
   removeOrphanDeftVersion,
   removeSoleAuthorHusks,
   runStep,
@@ -289,6 +290,38 @@ describe("layout removal steps (WAVE3-V2 3f)", () => {
     expect(removeOrphanDeftVersion(root)).toContain(".deft/VERSION");
     expect(existsSync(join(root, ".deft", "VERSION"))).toBe(false);
     expect(existsSync(join(root, ".deft", "settings.json"))).toBe(true);
+  });
+
+  it("removeLegacyBareVersionMarkers removes version-only markers (D-022 / #6001)", () => {
+    const root = tempRoot("p2u2-markers");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\n");
+    writeFileSync(join(root, ".deft-version"), "v0.120.0-rc.1\r\n");
+    writeFileSync(join(root, "vbrief", ".deft-version"), "0.100.0");
+    writeFileSync(join(root, "xbrief", "active", "story.xbrief.json"), "{}\n");
+    const removed = removeLegacyBareVersionMarkers(root);
+    expect(removed.sort()).toEqual(
+      [".deft-version", "vbrief/.deft-version", "xbrief/.deft-version"].sort(),
+    );
+    expect(existsSync(join(root, "xbrief", ".deft-version"))).toBe(false);
+    expect(existsSync(join(root, ".deft-version"))).toBe(false);
+    expect(existsSync(join(root, "vbrief", ".deft-version"))).toBe(false);
+    // Nothing else under xbrief/ or vbrief/ is touched.
+    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "vbrief"))).toBe(true);
+  });
+
+  it("removeLegacyBareVersionMarkers keeps markers with other content or non-files", () => {
+    const root = tempRoot("p2u2-keep");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".deft-version"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\nmy notes\n");
+    writeFileSync(join(root, ".deft-version"), "latest\n");
+    expect(runStep("removeLegacyBareVersionMarkers", { root }).removed).toEqual([]);
+    expect(readFileSync(join(root, "xbrief", ".deft-version"), "utf8")).toBe("0.126.2\nmy notes\n");
+    expect(existsSync(join(root, ".deft-version"))).toBe(true);
+    expect(existsSync(join(root, "vbrief", ".deft-version"))).toBe(true);
   });
 
   it("normalizeGitmodules strips deft stanza; unsafe gitlink throws", () => {

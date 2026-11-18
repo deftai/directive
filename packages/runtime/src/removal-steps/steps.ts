@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { bareVersionMarkerRelativePaths } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import {
   CONSUMER_HEADER_PLACEHOLDER_ONELINER,
   renderConsumerHeader,
@@ -28,6 +29,7 @@ export type RemovalStepId =
   | "removeSoleAuthorHusks"
   | "stripLegacyLauncherPin"
   | "removeOrphanDeftVersion"
+  | "removeLegacyBareVersionMarkers"
   | "normalizeGitmodules";
 
 export interface StepContext {
@@ -655,6 +657,31 @@ export function removeOrphanDeftVersion(root: string): string[] {
   return removed;
 }
 
+/** Whole-file content of a version-only marker: one version string, optional `v`. */
+const BARE_VERSION_MARKER_RE = /^v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+
+/**
+ * Remove the copy-model bare `.deft-version` markers (`xbrief/`, root, `vbrief/`)
+ * on old-layout upgrade (D-022 / #6001; AC1.6 / AC8.10). A marker is removed only
+ * when it is a regular file whose trimmed content is a single version string.
+ * Nothing else under `xbrief/` or `vbrief/` is touched.
+ */
+export function removeLegacyBareVersionMarkers(root: string): string[] {
+  const removed: string[] = [];
+  for (const rel of bareVersionMarkerRelativePaths()) {
+    const abs = join(root, rel);
+    try {
+      if (!lstatSync(abs).isFile()) continue;
+    } catch {
+      continue;
+    }
+    const body = readText(abs);
+    if (body === null || !BARE_VERSION_MARKER_RE.test(body.trim())) continue;
+    if (safeContainedRemove(root, rel)) removed.push(rel);
+  }
+  return removed;
+}
+
 /**
  * Normalize `.gitmodules` / leftover submodule metadata after deft/ removal.
  * Fail closed when parent index still has a gitlink (mode 160000) — caller must
@@ -737,6 +764,9 @@ export function runStep(stepId: RemovalStepId, ctx: StepContext): StepResult {
     }
     case "removeOrphanDeftVersion": {
       return { stepId, removed: removeOrphanDeftVersion(ctx.root), modified: [] };
+    }
+    case "removeLegacyBareVersionMarkers": {
+      return { stepId, removed: removeLegacyBareVersionMarkers(ctx.root), modified: [] };
     }
     case "normalizeGitmodules": {
       return normalizeGitmodules(ctx.root);
