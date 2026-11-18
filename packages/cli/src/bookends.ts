@@ -1243,6 +1243,7 @@ export function runUpgrade(
     needMigrate,
     oldStyle: state.oldStyle,
     convertShapeId: convertViaRemovals ? upgradeShape?.shapeId : null,
+    willCreatePkg: convertViaRemovals && !existsSync(join(projectRoot, "package.json")),
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
@@ -1277,6 +1278,7 @@ export function runUpgrade(
       // no-op and drop the private greenfield marker.
       if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
         ensurePackageJson(projectRoot);
+        io.writeOut('Created package.json { "private": true }\n');
       }
       // Strip launcher pin + retired triad before PM add (wave4e / AC10.3).
       // Upgrade must not require old triad tarballs on the registry.
@@ -1304,6 +1306,7 @@ export function runUpgrade(
     // Convert shapes may lack a package.json (rare); ensure before PM add.
     if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
       ensurePackageJson(projectRoot);
+      io.writeOut('Created package.json { "private": true }\n');
     }
     const add =
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??

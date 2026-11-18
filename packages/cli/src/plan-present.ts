@@ -101,6 +101,8 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly oldStyle: boolean;
   /** WAVE3-V2 convert-via-removals shape id when upgrading a historical layout. */
   readonly convertShapeId?: string | null;
+  /** Convert shape with no package.json: upgrade creates `{ "private": true }` (#5965). */
+  readonly willCreatePkg?: boolean;
 }
 
 export interface UninstallRemovalSummary {
@@ -374,6 +376,10 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
   }
 }
 
+/** Plain-language upgrade plan bullet for a project with no package.json (#5965 / AC5.10). */
+export const UPGRADE_CREATE_PKG_BULLET =
+  "create a minimal package.json for this project (Directive needs one even when the project is not a JavaScript project)";
+
 /** §C9 Example C — upgrade plan (wave 4g). */
 export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): void {
   const lock = lockfileNameFor(fields.pm);
@@ -393,6 +399,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     );
     writeBlank(io);
     io.writeOut("If you approve, Directive will:\n");
+    if (fields.willCreatePkg) writeBullet(io, UPGRADE_CREATE_PKG_BULLET);
     writeBullet(io, "remove the copied .deft/core tree (including any local edits there)");
     writeBullet(
       io,
@@ -457,6 +464,9 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
         `remove: .deft/core (copied content tree, even if edited)`,
         `replace: @deftai/directive pin → @deftai/directive-runtime@${fields.targetVersion}`,
       );
+    }
+    if (fields.willCreatePkg) {
+      keyed.splice(5, 0, `manifest: create package.json { "private": true }`);
     }
     if (fields.gitHooksInactive) {
       keyed.push(
@@ -771,7 +781,12 @@ export function presentInstallSuccess(
   io.writeOut("  package.json\n");
   io.writeOut(`  ${lock}\n`);
   if (opts.pnpmWorkspaceChanged) io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
-  const review = collectReviewPaths(opts.summary);
+  const review = collectReviewPaths(
+    [opts.summary],
+    opts.pnpmWorkspaceChanged
+      ? ["package.json", lock, "pnpm-workspace.yaml"]
+      : ["package.json", lock],
+  );
   for (const p of review) {
     io.writeOut(`  ${p}\n`);
   }
@@ -818,12 +833,15 @@ export function presentRepairSuccess(
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
   }
   writeHumanParagraph(io, "The project version has not changed.");
-  const review = collectReviewPaths(opts.summary);
-  if (opts.restoredPackage && opts.pm) {
-    const lock = lockfileNameFor(opts.pm);
-    if (!review.includes("package.json")) review.unshift("package.json");
-    if (!review.includes(lock)) review.splice(1, 0, lock);
-  }
+  const pkgFiles =
+    opts.restoredPackage && opts.pm ? ["package.json", lockfileNameFor(opts.pm)] : [];
+  const review = [
+    ...pkgFiles,
+    ...collectReviewPaths(
+      [opts.summary],
+      opts.pnpmWorkspaceChanged ? [...pkgFiles, "pnpm-workspace.yaml"] : pkgFiles,
+    ),
+  ];
   if (opts.pnpmWorkspaceChanged) review.push(PNPM_WORKSPACE_REVIEW_LINE);
   if (review.length > 0) {
     writeBlank(io);
@@ -866,16 +884,17 @@ export function presentUpgradeSuccess(
   }
   writeBlank(io);
   io.writeOut("Review and commit:\n");
+  const printed: string[] = [];
   if (opts.versionChange) {
+    printed.push("package.json", lockfileNameFor(opts.pm));
     io.writeOut("  package.json\n");
     io.writeOut(`  ${lockfileNameFor(opts.pm)}\n`);
   }
-  if (opts.pnpmWorkspaceChanged) io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
-  const review = [...collectReviewPaths(opts.summary), ...collectReviewPaths(opts.migrateSummary)];
-  const seen = new Set<string>();
-  for (const p of review) {
-    if (seen.has(p)) continue;
-    seen.add(p);
+  if (opts.pnpmWorkspaceChanged) {
+    printed.push("pnpm-workspace.yaml");
+    io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
+  }
+  for (const p of collectReviewPaths([opts.summary, opts.migrateSummary], printed)) {
     io.writeOut(`  ${p}\n`);
   }
   if (opts.verbosity >= 1) {
@@ -1064,35 +1083,80 @@ function writeBlankErr(io: PresentIo): void {
   io.writeErr("\n");
 }
 
+/** Headline files listed first in "Review and commit" (AC5.16). */
+const REVIEW_HEADLINE_PATHS = ["AGENTS.md", ".gitignore", "Taskfile.yml", ".deft/GENERATION.json"];
+
+/** A folder with more than this many changed files is shown as one grouped line. */
+const REVIEW_GROUP_THRESHOLD = 3;
+
+/** Never offered for commit: installed packages and ignored readiness markers (AC5.16). */
+function isNeverReviewPath(p: string): boolean {
+  const norm = p.replace(/\\/g, "/");
+  if (
+    norm === "node_modules" ||
+    norm.startsWith("node_modules/") ||
+    norm.includes("/node_modules/")
+  ) {
+    return true;
+  }
+  return /^\.deft\/directive\/wiring-ready\.[^/]*\.json$/.test(norm);
+}
+
+function commonFolder(paths: readonly string[]): string {
+  const dirs = paths.map((p) => p.split("/").slice(0, -1));
+  let prefix = dirs[0] ?? [];
+  for (const d of dirs.slice(1)) {
+    let i = 0;
+    while (i < prefix.length && i < d.length && prefix[i] === d[i]) i++;
+    prefix = prefix.slice(0, i);
+  }
+  return `${prefix.join("/")}/`;
+}
+
 /**
- * Prefer a short, human review list — skip noisy skill forests on default.
- * Always include migrated paths (AC5.16 / Greptile): e.g. data-schema.json.
+ * Complete "Review and commit" list (AC5.16 / #6006): every created, modified, migrated
+ * and archived path, with the headline files first. A top-level folder with more than a
+ * few changed files prints as one line (`.agents/skills/ (12 files)`), so nothing is
+ * hidden and skill folders stay short. `skip` holds paths the caller already printed.
  */
-function collectReviewPaths(summary: SetupSummary | null | undefined): string[] {
-  if (!summary) return [];
-  const prefer = ["AGENTS.md", ".gitignore", "Taskfile.yml", ".deft/GENERATION.json"];
-  const migrated = summary.migrated ?? [];
-  const archived = summary.archived ?? [];
-  const all = [...summary.created, ...summary.modified, ...migrated, ...archived];
-  const out: string[] = [];
-  for (const p of prefer) {
-    if (all.includes(p)) out.push(p);
-  }
-  for (const p of [...migrated, ...archived]) {
-    if (!out.includes(p)) out.push(p);
-  }
-  for (const p of all) {
-    if (out.includes(p)) continue;
-    if (
-      p === ".claude/settings.json" ||
-      p === ".cursor/hooks.json" ||
-      p === ".codex/hooks.json" ||
-      p === ".grok/hooks/deft.json"
-    ) {
-      out.push(p);
+export function collectReviewPaths(
+  summaries: readonly (SetupSummary | null | undefined)[],
+  skip: readonly string[] = [],
+): string[] {
+  const seen = new Set<string>(skip);
+  const all: string[] = [];
+  for (const summary of summaries) {
+    if (!summary) continue;
+    for (const raw of [
+      ...summary.created,
+      ...summary.modified,
+      ...(summary.migrated ?? []),
+      ...(summary.archived ?? []),
+    ]) {
+      const p = raw.replace(/\\/g, "/");
+      if (seen.has(p) || isNeverReviewPath(p)) continue;
+      seen.add(p);
+      all.push(p);
     }
   }
-  return out.slice(0, 16);
+  const out: string[] = REVIEW_HEADLINE_PATHS.filter((p) => all.includes(p));
+  const rest = all.filter((p) => !REVIEW_HEADLINE_PATHS.includes(p));
+  const byTop = new Map<string, string[]>();
+  for (const p of rest) {
+    const slash = p.indexOf("/");
+    const key = slash === -1 ? p : p.slice(0, slash + 1);
+    const members = byTop.get(key) ?? [];
+    members.push(p);
+    byTop.set(key, members);
+  }
+  for (const [key, members] of byTop) {
+    if (key.endsWith("/") && members.length > REVIEW_GROUP_THRESHOLD) {
+      out.push(`${commonFolder(members)} (${members.length} files)`);
+    } else {
+      out.push(...members);
+    }
+  }
+  return out;
 }
 
 export function tryParseSetupSummary(stdout: string): SetupSummary | null {
