@@ -27,6 +27,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { defaultWhich, spawnText } from "../release/spawn.js";
+import { NPM_INSTALL_RUN_TIMEOUT_SECONDS } from "./constants.js";
 import {
   backupPackageManifests,
   installPackedConsumer,
@@ -38,8 +39,8 @@ import type { E2ESeams } from "./types.js";
 
 export const FIXTURE_VERSION = "9.9.9-fixture";
 const PROGRESS_PREFIX = "lifecycle fixture";
-/** npm installs can be slow on a busy machine; the CI job has its own 12-minute cap. */
-const INSTALL_TIMEOUT_MS = 300_000;
+/** The release-e2e npm install budget; the CI job has its own 12-minute cap. */
+const INSTALL_TIMEOUT_MS = NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000;
 
 export type FixtureHost = "claude" | "codex" | "cursor" | "grok";
 export const FIXTURE_HOSTS: readonly FixtureHost[] = ["claude", "codex", "cursor", "grok"];
