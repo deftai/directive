@@ -1,0 +1,681 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6602",
+    "updated": "2026-11-18T02:46:57Z"
+  },
+  "plan": {
+    "title": "bug(hooks): write fence reads the merge-base PROJECT-DEFINITION with a 1 MiB buffer, so every one-PR story is refused once the file passes 1 MiB",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks): write fence reads the merge-base PROJECT-DEFINITION with a 1 MiB buffer, so every one-PR story is refused once the file passes 1 MiB",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6602",
+      "Overview": "\n1. Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. The readers that return file content through it (the merge-base brief read, the policy read and the mint head-brief read) keep their `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text. The `rev-parse`, `merge-base` and delivery-branch lookups through it return refs and SHAs and are unchanged apart from the option.\n2. Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.\n3. Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.\n4. Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.\n5. Unpinned contest (P2). When `inspectActiveScope` returns the unpinned `multiple-eligible` result (`scope.ts` 526-532) and a brief in that competition set has an unreadable fence, the result carries the first such fence's `unreadableDetail` in a new optional field, and its message adds one sentence naming that brief and the detail. The fences are the ones the partition already loads; no extra read. In the dispatcher's #6535 site (b) (`dispatcher.ts` 3098-3115), `warnableScopeMiss` is false when that field is set, so the existing `scope-not-ready` deny is returned. Pinned and bound selections, other `multiple-eligible` results, `zero-eligible` and `pin-miss` are unchanged, and a not-ready scope whose briefs were all read keeps its #6535 warning.\n6. Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.\n7. Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself. The #6535 warner keeps its rules apart from item 5.\n\n## Acceptance Criteria\n\n- Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.\n- Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.\n- Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path) for the one selected brief, then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.\n- Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.\n- Given two unpinned eligible briefs, one with a failed policy read and one with a readable `file_scope`, with or without a live merge-gate signal, then the Write is refused with `scope-not-ready`, and the message names the unreadable brief and the read failure.\n- Given two unpinned eligible briefs whose fences were both read, under a live merge-gate signal, then the #6535 warning applies as today.\n- Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.\n- Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text.\n\n\n",
+      "Constraint": "- Keeping `emptyFence()` for a failed policy read with only a note on the deny (comment 6966654494, finding 1): it lets a write through under the merge-gate warning and changes the unpinned contest.\n- Letting the #6535 site (b) warning continue a not-ready contest that holds an unreadable fence (comment 6966857234, finding 1): the write would run with no story fence at all.\n- Treating a failed policy read as non-fencing in the contest: that is the empty-fence behaviour finding 1 of comment 6966654494 refused.\n- Routing the fence through `createScopeProvenanceGit` (adds a throwing timeout to every fence spawn) or `defaultGitRunner` (drops `error` and `signal`) (comment 6966654494, finding 2).\n- Treating status 0 as success when `error` is set (comment 6966654494, finding 2): truncated bytes would parse as level off.\n- Putting stdout, or uncapped stderr, into the deny (comment 6966654494, finding 3).\n- Slimming `PROJECT-DEFINITION` below 1 MiB as the fix (#3156).\n- A larger special ceiling for this one read: 64 MiB is the shared ceiling, and a read past it gets the unreadable refusal.",
+      "Labels": "bug, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. The readers that return file content through it (the merge-base brief read, the policy read and the mint head-brief read) keep their `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text. The `rev-parse`, `merge-base` and delivery-branch lookups through it return refs and SHAs and are unchanged apart from the option.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Unpinned contest (P2). When `inspectActiveScope` returns the unpinned `multiple-eligible` result (`scope.ts` 526-532) and a brief in that competition set has an unreadable fence, the result carries the first such fence's `unreadableDetail` in a new optional field, and its message adds one sentence naming that brief and the detail. The fences are the ones the partition already loads; no extra read. In the dispatcher's #6535 site (b) (`dispatcher.ts` 3098-3115), `warnableScopeMiss` is false when that field is set, so the existing `scope-not-ready` deny is returned. Pinned and bound selections, other `multiple-eligible` results, `zero-eligible` and `pin-miss` are unchanged, and a not-ready scope whose briefs were all read keeps its #6535 warning.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself. The #6535 warner keeps its rules apart from item 5.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path) for the one selected brief, then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Given two unpinned eligible briefs, one with a failed policy read and one with a readable `file_scope`, with or without a live merge-gate signal, then the Write is refused with `scope-not-ready`, and the message names the unreadable brief and the read failure.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given two unpinned eligible briefs whose fences were both read, under a live merge-gate signal, then the #6535 warning applies as today.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text.",
+        "status": "proposed",
+        "id": "clause.15"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6602",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6602: bug(hooks): write fence reads the merge-base PROJECT-DEFINITION with a 1 MiB buffer, so every one-PR story is refused once the file passes 1 MiB"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "maxBuffer: SUBPROCESS_MAX_BUFFER",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/policy/write-fence.ts",
+          "packages/core/src/policy/write-fence.test.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/planning-publication.ts",
+          "packages/core/src/hooks/planning-publication.test.ts",
+          "changelog.d/6602-fence-policy-read-buffer.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "hooks-write-fence",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/write-fence.test.ts packages/core/src/hooks/scope.test.ts packages/core/src/hooks/planning-publication.test.ts"
+        ],
+        "expected_outputs": [
+          "gitFenceSpawn and readStagedBlob pass the 64 MiB maxBuffer, so a merge-base policy over 1 MiB is read and the one-PR mint is checked",
+          "a failed policy read returns an unreadable fence with a fenced reason of at most 300 characters, and the deny text names the failed read",
+          "one changelog fragment changelog.d/6602-fence-policy-read-buffer.md"
+        ],
+        "Traces": [
+          "#6602"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/policy/write-fence.ts",
+          "packages/core/src/policy/write-fence.test.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/planning-publication.ts",
+          "packages/core/src/hooks/planning-publication.test.ts",
+          "changelog.d/6602-fence-policy-read-buffer.md"
+        ],
+        "module_boundary": "write-fence.ts keeps owning the fence's git reads and the unreadable-fence result; scope.ts keeps owning the positive-allow deny text; planning-publication.ts keeps owning readStagedBlob. The change adds one buffer option in two git helpers, one reason on an existing failure result and one deny branch. No new module; new tests go beside the existing ones.",
+        "cohesion_exemption": "packages/core/src/hooks/scope.ts (1331 lines) and packages/core/src/hooks/scope.test.ts (1271 lines) are the existing home of the active-scope selection and its deny text. The story adds one deny branch and test cases there; splitting those files is out of scope for a bug fix."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6602; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix decides what the hook write fence does when it cannot read the merge-base policy file, and which git reads on the hook write path get a larger buffer; a wrong rule there either admits a write without a checked mint or keeps refusing every one-PR story.\n\nTarget-digest: sha256:e1d22d9e5ab6b43f9c93d413ab964e135c033317ba96cc275c79baccbddac871\ndispatch-sha: e506478e9305a8006c3545b5e161fcb0982a0d87\ndest: .deft-scratch/worktrees/arc-6602 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: one `maxBuffer: SUBPROCESS_MAX_BUFFER` option in `gitFenceSpawn` removes the refusal; the policy-read error can keep today's empty fence (still a refusal) and only add its reason to the deny text; and no other git read on the agent-hook write path returns whole file content without a bound.\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: a narrow bug with one presumed fix in one file and a deny-text change; the operator set N=1 for headless arcs. One critic of a different model family.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show e506478e9305a8006c3545b5e161fcb0982a0d87: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nThe hook write fence reads the merge-base copy of `xbrief/PROJECT-DEFINITION.xbrief.json` with `git show` through Node's `spawnSync`, with no buffer size. Node's default is 1 MiB. The file is now 1,092,575 bytes, so the read stops with ENOBUFS. The fence then treats the policy as unknown, does not check the one-PR mint, and refuses every write for a story whose brief is not yet on the merge base, with the generic \"no file_scope\" message. CI admits the same brief, because its git reader has a 64 MiB buffer. The recommended fix gives the fence's git helper the same 64 MiB buffer, keeps the refusal when the policy still cannot be read but names the reason in the deny, and checks the other git reads on the hook write path for the same default.\n\n## Pains\n#6602 has no Acceptance Criteria heading. These three pains are derived from its Summary and Fix sections.\n- P1 — Once the merge-base `PROJECT-DEFINITION` passes 1 MiB, every one-PR story (#6273 / #6361) is refused on every Write and Edit, although `verify:scope-provenance` in CI admits the same brief.\n- P2 — When the merge-base policy cannot be read, the deny shows the generic #5656 no-file_scope text, so the operator cannot see that the policy read failed or what to do.\n- P3 — Other git reads on the agent-hook write path that return whole file content may use the same 1 MiB default and fail the same way as their files grow.\n\n## Constraints (not pains)\n- Add no gate and no grant. Prefer the smallest rule. A fix removes a failure mode; it does not add a check.\n- Not a fix: slimming `PROJECT-DEFINITION` under 1 MiB to make the read pass (#3156). Its growth is not a pain of this arc.\n- When the policy truly cannot be read, the write stays refused: the mint is never treated as admitted without a check.\n- Running stories not to overlap: #6480 (`hooks/scope.ts`, `hooks/dispatcher.ts`, `scope/lands-with-product.ts`, `policy/write-fence.ts`). The build must sequence after it or check `parallel_safe`.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/policy/write-fence.ts` 247-268 `gitFenceSpawn`: `spawnSync(\"git\", …, { cwd, encoding: \"utf8\", stdio })`, no `maxBuffer`. Every fence git call goes through it: `rev-parse` (386, 449), `merge-base` (469), the merge-base brief `git show` (519), the policy `git show` (544-549) and the mint head-brief `git show` (655).\n- `write-fence.ts` 544-553 `readMergeBasePolicyRaw`: `error` or `signal` → `{ kind: \"error\" }` with no detail. 767-776: the brief is absent from the merge base, so the policy is read; an `error` result is not memoized. 672-680 `loadOnePrMintFence`: `basePolicy.kind === \"error\"` → `emptyFence()`.\n- Reproduced at the dispatch SHA with Node 24: `spawnSync(\"git\", [\"show\", \"<sha>:xbrief/PROJECT-DEFINITION.xbrief.json\"], { encoding: \"utf8\" })` returns status 0, `error.code` ENOBUFS, 1,064,597 characters of stdout.\n- `packages/core/src/subprocess/max-buffer.ts` 1-17: `SUBPROCESS_MAX_BUFFER` = 64 MiB, with the rule that large captures must pass it. Users include `session/git.ts` 46-51 (`defaultGitRunner`) and `scope-provenance/git-call.ts` 207 (CI reader).\n- `packages/core/src/hooks/scope.ts` 61-90: `POSITIVE_GOVERNING_ALLOW_REQUIRED` and `formatPositiveGoverningAllowDeny` (mint reason only when `onePrMint.admitted` is false).\n- Fence consumers: `hooks/dispatcher.ts` 3134-3146 (positive allow; #6535 warner on writes), 1632-1663 (runtime-policy direct write; unreadable → deny), 5700-5722 (prospective scope cover: unreadable → deny without `advisoryCapable`; empty → deny with `advisoryCapable: true`); `hooks/scope.ts` 276-299 (unpinned partition: unreadable counts as fencing, empty does not).\n- Other git captures near the hook write path: `hooks/planning-publication.ts` 124-134 `readStagedBlob` (`git cat-file blob`, no `maxBuffer`; reads the staged `plan-sequence.json`); `hooks/dispatcher.ts` 5348-5361 and `hooks/scope.ts` 1276-1287 (names and refs only); `policy/branch-sync.ts` 215-218 (`git show` of the policy through `defaultGitRunner`, already bounded); `write-fence.ts` 583-642 `newestInRangeCommitWithPath` (through `defaultGitRunner`).\n\n## Recommended mechanism (the thing to critique)\n- M1 (P1). `gitFenceSpawn` passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. One option, so every fence read shares the CI cap. No new shared reader: `defaultGitRunner` trims stdout and drops `error` and `signal`, which the fence needs.\n- M2 (P2). `readMergeBasePolicyRaw` keeps a detail on its `error` result (the spawn error message, the signal, or git's stderr). `loadOnePrMintFence` still returns an empty fence for that case, so the write is still refused, with the same deny code, the same `advisoryCapable` and the same partition result as today. It adds one optional note on the fence view that only `formatPositiveGoverningAllowDeny` reads: the deny then says that the merge-base `PROJECT-DEFINITION` could not be read (the detail, fenced as untrusted text), that the one-PR mint was not checked, and that the brief can land through a separate activation PR meanwhile. The error branch does not become an unreadable fence, because that would add refusals (runtime-policy deny, no advisory on scope cover, a change in partition).\n- M3 (P3). On the agent-hook write path, a git call that returns whole file content passes `SUBPROCESS_MAX_BUFFER`: the fence reads in M1 and `readStagedBlob`. The other captures on that path return names, refs or SHAs, or already use `defaultGitRunner`, and stay as they are.\n- M4. A test reads a merge-base `PROJECT-DEFINITION` larger than 1 MiB and gets the one-PR mint result that CI gets.\n\nQuestions for the critic:\n1. Is a per-call `maxBuffer` in `gitFenceSpawn` enough, or is a shared reader with CI (`createScopeProvenanceGit`) needed for parity?\n2. Is \"empty fence plus a deny note\" the right fail-closed shape for an unreadable policy, or does any consumer let a write through on an empty fence that an unreadable policy should refuse?\n3. Is there any other git read on the agent-hook write path (or in the deposited git hooks) that returns file content without a bound?\n\n",
+          "id": 6966479127,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966479127",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T01:44:59Z",
+          "updated_at": "2026-11-18T01:44:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6966479448\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: refutation\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: e506478e9305a8006c3545b5e161fcb0982a0d87\ndest: .deft-scratch/worktrees/arc-6602\nverification-path: pin-read git show e506478e9305a8006c3545b5e161fcb0982a0d87: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6966479127\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Grok, a different model family, run with the launcher above against the dest (permission mode auto, no web search, no sub-agents). The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Grok seat is told not to read GitHub. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration and says so.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6966479448,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966479448",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T01:45:01Z",
+          "updated_at": "2026-11-18T01:45:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nCode was read from the dest checkout. The shell hook refused `git show` because `node_modules/@deftai/directive-runtime` is missing. The worktree HEAD file is `e506478e9305a8006c3545b5e161fcb0982a0d87`.\n\n## In plain English\n\nThe agent write hook loads the merge-base copy of `xbrief/PROJECT-DEFINITION.xbrief.json` through `git show`. That capture uses Node's 1 MiB default. The file is larger, the capture fails, and the one-PR path then behaves as if the story had an empty allow-list. The write is refused with the generic no-allow-list text. The CI check reads the same blob with a 64 MiB limit and can admit the story.\n\nThe buffer half of the recommended mechanism holds. One 64 MiB limit on the fence's own git helper removes this refusal for a file that fits. The fence does not need the CI git wrapper to do that. Both sides already run the same one-PR checks once the bytes are in hand.\n\nThe empty-allow-list half does not hold. A failed policy read is a different event from a policy that was read and is level off, and from a policy file that is absent. Today those three events share one empty allow-list. That empty result is a refusal for a bound story while the merge-gate warning is off. It is an allow when that warning is on, because the write and the commit check then continue and the story layer is inactive. With two unpinned stories it also drops this story out of the contest, and the other story's allow-list can admit the write. CI already treats a failed read of this file as a refusal.\n\nThe smallest rule that keeps an unread policy from admitting a write is the fence's existing unreadable result, with the failed read named on the refusal the write hook actually returns. A missing file, and a file that reads as level off, stay on today's empty allow-list.\n\nQuestion 1. The per-call limit is enough for the successful read. The CI wrapper also applies a timeout that throws, and the session git helper drops the error and the signal this fence still has to see.\n\nQuestion 2. Empty allow-list plus a sentence on the refusal leaves the allows above in place. The unreadable result is the closed shape those consumers already implement.\n\nQuestion 3. The commit-time staged-blob read is the only other whole-file git capture on this hook with no limit. A failed read there does not admit the planning shortcut. The deposited pre-commit hook's git calls return names, and the file bytes come from disk. The deposited pre-push hook's branch check returns a name. Its content hash already stops at 16 MiB and fails closed.\n\n### 1. A failed policy read is not an empty allow-list (blocks-the-design)\n\nEvidence. `readMergeBasePolicyRaw` maps a spawn error, a signal, or any other git failure to `{ kind: \"error\" }` with no detail (`packages/core/src/policy/write-fence.ts` 544-552). `loadOnePrMintFence` turns that into `emptyFence()` (672-680), the same view as level off. The brief read beside it already returns an unreadable fence for the same class of git error (513-541). CI does the other thing: a failed merge-base read of this file becomes `kind: \"refuse\"` with the read failure in the reason (`packages/core/src/scope-provenance/evaluate.ts` 1057-1062), before `evaluateOnePrScopeProofGate`. That gate treats null and unparseable text as level off (`packages/core/src/policy/one-pr-scope-proof.ts` 190-223).\n\nFailure mode. Empty and unreadable already diverge, and the recommended mechanism keeps the empty side.\n\n- While `plan.policy.mergeGateContext` matches a required status check, `warn` records the refusal and returns true (`packages/core/src/hooks/merge-gate-signal.ts` 79-108, `packages/core/src/hooks/dispatcher.ts` 1522-1527). The write hook then continues (`dispatcher.ts` 3143-3144). The default project runtime policy is disabled (`packages/core/src/policy/runtime-authority.ts` 67-74), so an empty story fence is inactive and the write is allowed (`write-fence.ts` 827-832, `dispatcher.ts` 1659-1663). An unreadable fence is refused before that, at `dispatcher.ts` 1649-1657.\n- The same warning lets a product commit through when the scope-cover result is `advisoryCapable` (`dispatcher.ts` 5712-5720 and 5536-5538). The unreadable result has no such flag (5702-5710).\n- An empty allow-list is non-fencing, so an unpinned one-PR brief is dropped when any other brief has a fence (`packages/core/src/hooks/scope.ts` 276-284 and 518-524). The remaining story's allow-list can admit the write. An unreadable brief stays in the set, and two fencing briefs are a not-ready scope.\n\nThis checkout's project definition has no `mergeGateContext` field, so the reported bound-story writes stay on the hard refusal. The allow is still the behavior of the same hook wherever that field is set, and the unpinned drop does not need the warning.\n\n`formatPositiveGoverningAllowDeny` reads only a rejected mint (`scope.ts` 85-89). On the common path the positive-allow refusal fires before the runtime-policy refusal, so switching the view to unreadable without changing that text leaves the generic no-allow-list message. Pain P2 stays open either way until that text carries the read failure.\n\nDisposition. M2 cannot bind as \"still a refusal, same advisory flag, same partition, plus a sentence.\" The policy-read error has to take the existing unreadable fence, with a short reason kept from the spawn. The positive-allow text has to include `unreadableDetail` when it is set. A missing blob and a parsed level of off stay empty, so the activation window stays. That reuses a refusal the brief read and the runtime hook already have. It is the recorded constraint that an unread policy does not admit a write. The extra closure is real: scratch outside the repo skips the positive-allow check (`dispatcher.ts` 3165-3167) and is then refused because unreadable is tested first. That scratch closure is what the recorded constraint requires. A later carve-out that re-opens scratch while the policy is unread would be a separate rule.\n\nThe strongest case for keeping the empty view is that a git outage should not change partition or turn the merge-gate warning off. That case treats an unread file as a successful read of level off. The level-off window remains available once the read succeeds, or when the blob is absent. What would flip this finding is a recorded requirement that product writes proceed while this blob cannot be read.\n\n### 2. The 64 MiB option removes the reported refusal only while the error check stays (sharpens-framing)\n\nEvidence. `gitFenceSpawn` captures with `encoding: \"utf8\"` and no `maxBuffer` (`write-fence.ts` 247-261). `readMergeBasePolicyRaw` returns `kind: \"error\"` when `result.error` or `result.signal` is set, before it looks at status (549). Stop 1 measured Node 24 returning status 0 together with `ENOBUFS` and a truncated stdout for this blob. `SUBPROCESS_MAX_BUFFER` is 64 MiB (`packages/core/src/subprocess/max-buffer.ts` 17). The CI runner passes that limit (`packages/core/src/scope-provenance/git-call.ts` 207-227) and throws on `result.error` (`evaluate.ts` 232-240). `defaultGitRunner` also passes the limit and then drops `error` and `signal` (`packages/core/src/session/git.ts` 46-55 and 83-93).\n\nFailure mode. A file between 1 MiB and 64 MiB is fully captured, the error is unset, and the existing one-PR evaluators run. That removes the reported refusal. If the error check were dropped and status 0 were treated as success, a later overflow would hand truncated bytes to `evaluateOnePrScopeProofGate`, and unparseable text there is level off (`one-pr-scope-proof.ts` 190-223), which is again the empty allow-list. Sharing `createScopeProvenanceGit` would also put a throwing timeout on every fence spawn, including `rev-parse` and `merge-base`. Sharing `defaultGitRunner` would hide the overflow the fence currently detects.\n\nDisposition. M1 binds as one `maxBuffer: SUBPROCESS_MAX_BUFFER` on `gitFenceSpawn`, with the existing error and signal checks left in place. The CI wrapper and the session git helper stay where they are. The shared 64 MiB ceiling remains a ceiling. This file fits. A later file past 64 MiB is the same failure class, closed by finding 1 rather than by a larger special limit.\n\n### 3. Git text on the refusal has to be short, fenced, and free of the blob (sharpens-framing)\n\nEvidence. The recommended detail is the spawn error, the signal, or git's stderr. `fenceUntrustedAcceptanceText` strips fence markers and newlines and wraps the rest (`packages/core/src/scope/acceptance-evidence.ts` 729-731). It does not cap length. After M1, each of stdout and stderr may hold up to 64 MiB. Overflow itself reports empty stderr (`max-buffer.ts` 8-15). A long stderr is a different git failure. Stdout on that failure can be a prefix of the project definition.\n\nFailure mode. The hook message is shown to the agent. An uncapped stderr, or any slice of the blob, becomes untrusted text in that message. The existing fencer stops a newline from breaking out of the sentence. It does not stop a multi-megabyte payload.\n\nDisposition. Whichever channel carries the reason, positive-allow text or `unreadableDetail`, the reason is capped to a short length, passed through `fenceUntrustedAcceptanceText`, and taken from the spawn error, the signal, or stderr. Stdout stays out of it.\n\n### 4. Other whole-file git reads (footnote)\n\n`readStagedBlob` runs `git cat-file blob` with no `maxBuffer` (`packages/core/src/hooks/planning-publication.ts` 123-133). It is reached from the commit scope-cover in `dispatcher.ts` 5623-5628, which is the same dispatcher and is not the Write tool path. A null blob fails the closed-shape check (`planning-publication.ts` 177-179 and 215-216), so the planning shortcut is not admitted. Bounding it, as M3 says, stops a large closed `plan-sequence.json` from being treated as not closed.\n\nOn the write decision, the other git captures return names, refs, or SHAs, or they already use `defaultGitRunner`, `showBlobsBatch` (64 MiB), or the small-change runner (64 MiB). Deposited `.githooks/pre-commit` runs `verify:encoding --staged`, whose git helper returns paths (`packages/core/src/encoding/git.ts` 9-37) and whose scan reads the worktree from disk. Deposited `.githooks/pre-push` runs `verify:branch`, which reads the branch name (`packages/core/src/branch/git.ts` 21-27), and `pre-pr:run --push-admit`. That arm hashes blobs with `maxBuffer: 16 * 1024 * 1024` (`packages/core/src/preflight-gh/pre-push.ts` 272-283) and fails closed when the hash is null. That 16 MiB cap is a different ceiling. It does not admit a write, and it is outside this fix.\n\nThe issue text and the Stop 1 comment describe a fix. They do not contain a separate instruction that this critique followed.\n\n",
+          "id": 6966654494,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966654494",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T01:55:50Z",
+          "updated_at": "2026-11-18T01:55:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6966479127 (round 1: 1 of 1 critic posted, comment 6966654494)\n\n## In plain English\nProblem: the hook write fence reads the merge-base `xbrief/PROJECT-DEFINITION.xbrief.json` with `git show` and Node's 1 MiB default buffer. The file is now 1,092,575 bytes, so the read fails with ENOBUFS. The fence then treats the policy like one that was read and is off, does not check the one-PR mint, and every one-PR story is refused with the generic \"no file_scope\" text. CI reads the same file with a 64 MiB buffer and admits the story.\n\nWhat the critic found: the buffer fix holds as one option on the fence's own git helper; neither the CI reader nor the session git helper should replace it. The \"keep the empty fence\" half does not hold. A failed policy read is not the same as a policy that is off: under a live merge-gate warning an empty fence lets the write through, an empty fence drops the story out of the unpinned contest so another story's scope can admit the write, and CI already refuses when this read fails. The reason text must also be short, fenced as untrusted, and never contain file bytes. The only other unbounded whole-file read on the hook is the staged-blob read for `plan-sequence.json`.\n\nSolution this lean proposes: give the fence's git helper the shared 64 MiB buffer, so the file is read and the mint is checked, as in CI. When the policy read still fails, the fence returns its existing \"unreadable\" result with a short, fenced reason, the same result a failed brief read already gives. The write refusal then names that reason instead of the generic text. A policy file that is absent, or that reads as off, keeps today's empty fence. The staged-blob read gets the same buffer.\n\nWhat this adds: one buffer option in two git helpers, one reason on an existing failure result, and one branch in the deny text. No new gate, grant, flag or stored state. The refusal it uses for a failed read already exists; it now also covers this read, as CI does.\n\nWhat it does not do:\n- It does not slim or split `PROJECT-DEFINITION` (#3156). The file's growth toward the 64 MiB ceiling is outside this design.\n- It does not change the CI reader, `defaultGitRunner`, the merge-gate warning rules (#6535), or the 16 MiB blob-hash cap on the pre-push path.\n- It does not sweep git captures outside the agent-hook and deposited git-hook paths.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:e1d22d9e5ab6b43f9c93d413ab964e135c033317ba96cc275c79baccbddac871\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6966479127. Sibling count: 1 (comment 6966654494). Panel deposit: comment 6966479448.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. Every fence git call goes through it, so the merge-base brief read, the policy read and the mint head-brief read all get the CI ceiling. Every caller keeps its `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text.\n2. Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.\n3. Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.\n4. Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.\n5. Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.\n6. Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #6535 merge-gate warner, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself.\n\n## Acceptance Criteria\n- Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.\n- Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.\n- Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path), then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.\n- Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.\n- Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.\n- Given two unpinned eligible briefs, one with a failed policy read, then that brief stays in the contest as fencing, and the scope is not ready, as for any unreadable fence today.\n- Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text.\n\n## Reject\n- Keeping `emptyFence()` for a failed policy read with only a note on the deny (comment 6966654494, finding 1): it lets a write through under the merge-gate warning and changes the unpinned contest.\n- Routing the fence through `createScopeProvenanceGit` (adds a throwing timeout to every fence spawn) or `defaultGitRunner` (drops `error` and `signal`) (finding 2).\n- Treating status 0 as success when `error` is set (finding 2): truncated bytes would parse as level off.\n- Putting stdout, or uncapped stderr, into the deny (finding 3).\n- Slimming `PROJECT-DEFINITION` below 1 MiB as the fix (#3156).\n- A larger special ceiling for this one read: 64 MiB is the shared ceiling, and a read past it gets the unreadable refusal.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6966654494 | 1. A failed policy read is not an empty allow-list | blocks-the-design | accept-into-contract (items 3 and 4) |\n| comment 6966654494 | 2. The 64 MiB option removes the reported refusal only while the error check stays | sharpens-framing | accept-into-contract (item 1) |\n| comment 6966654494 | 3. Git text on the refusal has to be short, fenced, and free of the blob | sharpens-framing | accept-into-contract (item 2) |\n\nFootnote in the census, no take: comment 6966654494 finding 4 (folded into item 5).\n\nRelay: the parent posted the critic body verbatim. It removed only the Grok progress text printed before the `model:` line, as the panel deposit says. The critic reports that its shell refused `git show` because the dest has no runtime installed, and that it read the dest's checked-out files with HEAD at the dispatch SHA.\n\n- audit:A1 sha=e506478e9305a8006c3545b5e161fcb0982a0d87 pointer=packages/core/src/scope-provenance/evaluate.ts:1057-1062 reading=asserted\n\nA1: CI refuses when the merge-base `PROJECT-DEFINITION` read fails (`kind: \"refuse\"`, \"merge-base PROJECT-DEFINITION read failed\"), before `evaluateOnePrScopeProofGate`. Item 3 makes the hook fence agree with that. The parent read these lines but did not run them.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. A1 and the three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 6966675124,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966675124",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T01:57:07Z",
+          "updated_at": "2026-11-18T01:57:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:dd74e44a53447137a97169ff5f19984de5251fbc33258b19f652ab31648d795d\n\n## In plain English\n\nThe buffer change and the closed failure result are enough for one selected story. A merge-base policy between 1 MiB and 64 MiB is read, the one-PR mint runs, and a Write inside that scope is allowed. When the read still fails, that selected story's Write is refused, and the refusal names the failed read. A missing policy blob and a policy that reads as level off stay on today's empty allow-list. The other whole-file git read on this hook gets the same buffer.\n\nThe refusal does not survive an unpinned contest. A failed policy read counts as fencing, so two fencing briefs leave the scope not ready. With the merge-gate signal live, that not-ready result is only a warning. The Write then continues with no story selected, the loader treats the missing story as an empty allow-list, and the Write is allowed. The acceptance criterion that the Write stays refused while that signal is live is false for this path.\n\nCode was read from `C:/Repos/deft/wt/ow-6601-activate`. Its branch `chore/6601-activate` is `e506478e9305a8006c3545b5e161fcb0982a0d87`. The shell refused `git show` because the Directive hook requires `node_modules/@deftai/directive-runtime`, which this dest does not have. The dest worktree HEAD is `e2e5b403435fe94075d5ea4aa3ae27f8d377dcd5`; its reflog shows a checkout from the dispatch SHA onto that commit. These line numbers match the earlier critic's read of the dispatch tree. A clean-tree status could not be run.\n\nThe issue text and the comments describe the defect and the remedy. They do not contain a separate instruction this audit followed.\n\npain-P1: holds - `gitFenceSpawn` is the reader for the policy, the brief, and the mint head brief, and each of those checks the spawn error and the signal before status. A file under 64 MiB is then parsed by the existing one-PR evaluators, and a Write inside the admitted scope is allowed.\npain-P2: does not hold - a selected story is refused, and that refusal includes the capped read failure and no stdout. Two unpinned fencing briefs plus a live merge-gate signal allow the Write with no deny.\npain-P3: holds - the other whole-file git capture on this hook is `readStagedBlob`, which item 5 bounds. The deposited pre-commit and pre-push verbs return names or a 16 MiB hash that fails closed.\nA1: holds - a merge-base policy read that returns `kind: \"error\"` becomes `kind: \"refuse\"` with the read-failed reason before `evaluateOnePrScopeProofGate`. A spawn error on that read throws and is not turned into an admit.\n\n### 1. A not-ready scope throws away the unreadable fence (blocks-the-design)\n\nEvidence. `isFencingEligibleBrief` treats an unreadable fence as fencing (`packages/core/src/hooks/scope.ts` 276-284). Two fencing briefs make `inspectActiveScope` not ready, with `path: null` and `denyKind: \"multiple-eligible\"` (`scope.ts` 518-531). In `inspectMutationGates`, that deny is warnable. When the merge-gate signal is live, `warn` returns true and the function does not return the denial (`packages/core/src/hooks/dispatcher.ts` 3098-3115, `1522-1527`). `requirePositiveGoverningAllow` then returns without loading a fence because the scope is not ready (`dispatcher.ts` 3134-3136). `runtimeAuthorityForDirectWrite` is called with `scope.path` null (`dispatcher.ts` 3169-3177). `loadStoryWriteFenceFromMergeBase` turns a null path into an empty fence with no unreadable detail (`packages/core/src/policy/write-fence.ts` 730-736). The default project policy is disabled, so that empty fence is inactive and the Write is allowed (`write-fence.ts` 817-832, `dispatcher.ts` 1659-1663). The unreadable deny at `dispatcher.ts` 1649-1657 runs only after a story path has been loaded.\n\nA selected story still refuses. Positive allow has no governing allow (`scope.ts` 166-168), and under the live signal it warns and continues (`dispatcher.ts` 3141-3144). Runtime policy then refuses the unreadable fence and does not consult the warner (`dispatcher.ts` 1649-1657). Prospective scope cover refuses a not-ready scope with no advisory flag (`dispatcher.ts` 5690-5698 and 5536-5539), and it refuses a selected unreadable fence with the existing unreadable sentence (`dispatcher.ts` 5702-5710). An absent blob stays `kind: \"missing\"`, and level off stays an empty fence (`write-fence.ts` 544-552, 679-685; `packages/core/src/policy/one-pr-scope-proof.ts` 190-225). Item 2's detail sources exclude stdout. `fenceUntrustedAcceptanceText` strips fence markers and newlines and does not cap length (`packages/core/src/scope/acceptance-evidence.ts` 729-731); the 300-character cut before that wrap is what keeps the policy reason short.\n\nFailure mode. One selected one-PR story stays refused, with the read failure in the denial. Two unpinned briefs, one of them this failed read and the other already fencing, do not. The live merge-gate signal turns that not-ready scope into a Write that never loads the unreadable fence. The allow is wider than the empty-fence behavior the earlier finding closed: there the other story's allow-list still governed the Write. Here no story allow-list is applied.\n\nDisposition. Items 3 and 6 and the merge-gate acceptance criterion cannot bind as written. The criterion says the Write is still refused while the signal is live. The unchanged warner allows it once the unreadable fence has made the scope not ready. The smallest change that passes: when an eligible brief's fence is unreadable, `inspectMutationGates` refuses that Write before the site-(b) continuation at `dispatcher.ts` 3106-3114, using the existing unreadable denial. A null `scope.path` must not be loaded as an empty fence on that path. The two-brief acceptance criterion then says the Write is refused while the signal is live.\n\nThe case for leaving the warner untouched is that several eligible stories already continue with no story selected while the signal is live, and an unreadable brief is one more way into that continuation. What would remove this finding is a recorded rule that product writes may proceed while this blob is unread whenever no single story is selected. Stop 1 requires the write to stay refused, and the acceptance criterion says the same for a live signal.\n\n### 2. Delivery-branch lookup does not check the spawn error (footnote)\n\n`typedDeliveryForFence` passes `gitFenceSpawn`'s status, stdout, and stderr onward and never reads `error` or `signal` (`write-fence.ts` 355-357). `resolveDeliveryBranch` uses that runner for `show-ref --verify --quiet` of branch refs (`packages/core/src/policy/delivery-branch.ts` 189-208). Those commands do not return the policy file. The policy read, the brief read, the merge-base read, and the mint head-brief read each check the spawn error and the signal before status (`write-fence.ts` 449-461, 470-491, 520-532, 544-550, 655-658). Item 1's \"every caller\" sentence is broader than those readers. The buffer change does not need a new check on the branch lookup.\n\n",
+          "id": 6966857234,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966857234",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:08:28Z",
+          "updated_at": "2026-11-18T02:08:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6966857234 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6966675124\n\n## In plain English\nThe audit held the buffer fix (P1), the staged-blob bound (P3) and marker A1. It refused one part, and the parent agrees after reading the code it cites. Once a failed policy read counts as an unreadable fence, that brief counts as fencing in the unpinned contest. Two fencing briefs make the scope not ready, and under a live #6535 merge-gate signal that not-ready scope is only a warning. The write then goes on with no story selected, and the unreadable fence is never loaded. Before this lean the other brief governed that write, so the lean made this case wider, not narrower. The audit also noted that item 1's \"every caller\" sentence is broader than the readers that return file content.\n\nThe Bound remedy on 6966675124 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:e1d22d9e5ab6b43f9c93d413ab964e135c033317ba96cc275c79baccbddac871\n\nrelieves: P1\ndoes-not-relieve: P2\nrelieves: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6966857234 | 1. A not-ready scope throws away the unreadable fence | blocks-the-design | accept-into-contract (the #6535 site (b) warning does not apply when a brief in the unpinned contest has an unreadable fence; the existing scope-not-ready deny is returned and names that fence's detail) |\n\nFootnote in the census, no take: comment 6966857234 finding 2 (item 1 wording narrowed to the content readers).\n\nAudit verdicts recorded: `pain-P1` holds; `pain-P2` does not hold; `pain-P3` holds; A1 holds.\n\n",
+          "id": 6966864662,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966864662",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:08:55Z",
+          "updated_at": "2026-11-18T02:08:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6966864662 (does-not-relieve `P2` on a Recut map)\nopen-question: When the #6535 site (b) warning is withheld for an unpinned contest that holds a brief with an unreadable fence, and the existing scope-not-ready deny names that fence's detail, does every write with a failed merge-base policy read stay refused, also under a live merge-gate signal, while an absent or level-off policy keeps today's behaviour?\n\n## In plain English\nOne change is needed. `inspectActiveScope` already loads each unpinned candidate's fence to build the contest. When any brief left in that contest has an unreadable fence, the inspection result carries that fence's detail. The dispatcher then does not let the #6535 merge-gate warning turn that not-ready scope into a continuation; it returns the existing scope-not-ready deny, with the detail in its text. Pinned scopes, zero-eligible and pin-miss results are unchanged. Item 1's wording is narrowed to the readers that return file content. The rest of the retracted lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 2 of 6. The parent continues only while each audit returns fewer blocking findings than the one before; this audit returned one, so the next audit must return none.\n\n",
+          "id": 6966865175,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966865175",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:08:57Z",
+          "updated_at": "2026-11-18T02:08:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6966479127, after pain audit 6966857234 (round 1: 1 of 1 critic posted, comment 6966654494)\n\n## In plain English\nProblem: the hook write fence reads the merge-base `xbrief/PROJECT-DEFINITION.xbrief.json` with `git show` and Node's 1 MiB default buffer. The file is now 1,092,575 bytes, so the read fails with ENOBUFS. The fence then treats the policy like one that was read and is off, does not check the one-PR mint, and every one-PR story is refused with the generic \"no file_scope\" text. CI reads the same file with a 64 MiB buffer and admits the story.\n\nWhat the critics found: the round-1 critic held the buffer fix as one option on the fence's own git helper, and showed that a failed policy read must not look like a policy that is off: CI refuses that case, and an empty fence can let a write through. The reason text must be short, fenced and free of file bytes. The audit of the previous lean held the buffer fix and the staged-blob bound, and found one gap: a brief whose fence is unreadable counts as fencing, so with a second fencing brief the scope is not ready, and under a live #6535 merge-gate signal that not-ready scope was only a warning; the write then went on with no story selected.\n\nSolution this lean proposes: give the fence's git helper the shared 64 MiB buffer, so the file is read and the mint is checked, as in CI. When the policy read still fails, the fence returns its existing \"unreadable\" result with a short, fenced reason, and the write refusal names it. A policy file that is absent, or that reads as off, keeps today's empty fence. When an unpinned contest is not ready and one of its briefs has an unreadable fence, the merge-gate warning does not turn that into a continuation; the existing scope-not-ready deny is returned and names the read failure. The staged-blob read gets the same buffer.\n\nWhat this adds: one buffer option in two git helpers, one reason on an existing failure result, one branch in the deny text, and one condition that keeps an existing refusal from becoming a warning. No new gate, grant, flag or stored state. Every refusal used here already exists.\n\nWhat it does not do:\n- It does not slim or split `PROJECT-DEFINITION` (#3156). The file's growth toward the 64 MiB ceiling is outside this design.\n- It does not change the CI reader, `defaultGitRunner`, the 16 MiB blob-hash cap on the pre-push path, or the #6535 warning for not-ready scopes whose briefs were all read.\n- It does not sweep git captures outside the agent-hook and deposited git-hook paths.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:e1d22d9e5ab6b43f9c93d413ab964e135c033317ba96cc275c79baccbddac871\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes retraction map 6966864662 and successor lean 6966675124. Stop 1 write-back: comment 6966479127. Handoff: comment 6966865175. Sibling count: 1 (comment 6966654494). Panel deposit: comment 6966479448.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. The readers that return file content through it (the merge-base brief read, the policy read and the mint head-brief read) keep their `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text. The `rev-parse`, `merge-base` and delivery-branch lookups through it return refs and SHAs and are unchanged apart from the option.\n2. Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.\n3. Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.\n4. Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.\n5. Unpinned contest (P2). When `inspectActiveScope` returns the unpinned `multiple-eligible` result (`scope.ts` 526-532) and a brief in that competition set has an unreadable fence, the result carries the first such fence's `unreadableDetail` in a new optional field, and its message adds one sentence naming that brief and the detail. The fences are the ones the partition already loads; no extra read. In the dispatcher's #6535 site (b) (`dispatcher.ts` 3098-3115), `warnableScopeMiss` is false when that field is set, so the existing `scope-not-ready` deny is returned. Pinned and bound selections, other `multiple-eligible` results, `zero-eligible` and `pin-miss` are unchanged, and a not-ready scope whose briefs were all read keeps its #6535 warning.\n6. Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.\n7. Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself. The #6535 warner keeps its rules apart from item 5.\n\n## Acceptance Criteria\n- Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.\n- Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.\n- Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path) for the one selected brief, then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.\n- Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.\n- Given two unpinned eligible briefs, one with a failed policy read and one with a readable `file_scope`, with or without a live merge-gate signal, then the Write is refused with `scope-not-ready`, and the message names the unreadable brief and the read failure.\n- Given two unpinned eligible briefs whose fences were both read, under a live merge-gate signal, then the #6535 warning applies as today.\n- Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.\n- Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text.\n\n## Reject\n- Keeping `emptyFence()` for a failed policy read with only a note on the deny (comment 6966654494, finding 1): it lets a write through under the merge-gate warning and changes the unpinned contest.\n- Letting the #6535 site (b) warning continue a not-ready contest that holds an unreadable fence (comment 6966857234, finding 1): the write would run with no story fence at all.\n- Treating a failed policy read as non-fencing in the contest: that is the empty-fence behaviour finding 1 of comment 6966654494 refused.\n- Routing the fence through `createScopeProvenanceGit` (adds a throwing timeout to every fence spawn) or `defaultGitRunner` (drops `error` and `signal`) (comment 6966654494, finding 2).\n- Treating status 0 as success when `error` is set (comment 6966654494, finding 2): truncated bytes would parse as level off.\n- Putting stdout, or uncapped stderr, into the deny (comment 6966654494, finding 3).\n- Slimming `PROJECT-DEFINITION` below 1 MiB as the fix (#3156).\n- A larger special ceiling for this one read: 64 MiB is the shared ceiling, and a read past it gets the unreadable refusal.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6966654494 | 1. A failed policy read is not an empty allow-list | blocks-the-design | accept-into-contract (items 3 and 4) |\n| comment 6966654494 | 2. The 64 MiB option removes the reported refusal only while the error check stays | sharpens-framing | accept-into-contract (item 1) |\n| comment 6966654494 | 3. Git text on the refusal has to be short, fenced, and free of the blob | sharpens-framing | accept-into-contract (item 2) |\n| comment 6966857234 | 1. A not-ready scope throws away the unreadable fence | blocks-the-design | accept-into-contract (item 5) |\n\nFootnotes in the census, no take: comment 6966654494 finding 4 (folded into item 6); comment 6966857234 finding 2 (item 1 wording narrowed).\n\nRelay: the parent posted both critic bodies verbatim. It removed only the Grok progress text printed before the `model:` line, as the panel deposit says. Both critics report that their shell refused `git show` because the dest has no runtime installed. The round-1 critic read the dest's checked-out files at the dispatch SHA. The audit critic found the dest HEAD moved off the dispatch SHA (a hook re-pin) and read another local checkout whose HEAD is the dispatch SHA.\n\n- audit:A1 sha=e506478e9305a8006c3545b5e161fcb0982a0d87 pointer=packages/core/src/scope-provenance/evaluate.ts:1057-1062 reading=asserted\n- audit:A2 sha=e506478e9305a8006c3545b5e161fcb0982a0d87 pointer=packages/core/src/hooks/scope.ts:276-299 reading=asserted\n\nA1: CI refuses when the merge-base `PROJECT-DEFINITION` read fails (`kind: \"refuse\"`, \"merge-base PROJECT-DEFINITION read failed\"), before `evaluateOnePrScopeProofGate`. Items 3 and 5 make the hook agree with that. Audit 6966857234 held A1.\n\nA2: an unreadable fence counts as fencing in the unpinned partition, so a brief with a failed policy read is always in the competition set whenever any brief fences; item 5 therefore sees it whenever the contest is not ready. The parent read these lines but did not run them.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism, the retraction map and both leans. A2 and the three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 6966881519,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6966881519",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:09:59Z",
+          "updated_at": "2026-11-18T02:09:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:316fc75e8b519f681e6afebf273d3763af17910277105c198c6ca72a3b7792e4\n\n## In plain English\n\nThe hook write fence reads the merge-base project definition through `git show` with Node's 1 MiB capture limit. The file is larger, so the one-PR check never runs and the story is refused with the generic no-allow-list text. CI reads the same file with a 64 MiB limit and can admit the story.\n\nThe bound remedy relieves that. One 64 MiB limit on the fence's own git helper lets a file under that limit through, and the existing spawn-error check still treats a larger capture as a failed read. A failed policy read becomes the fence's existing unreadable result, with a short fenced reason taken from the spawn error, the signal, or stderr. A Write or a product commit for that selected story is refused, and the refusal names the failed read. A missing policy blob and a policy that reads as level off stay on today's empty fence.\n\nWhen two unpinned briefs are both fencing and one fence is unreadable, the scope is not ready. That result keeps the unreadable brief in the contest, names it on the refusal, and the merge-gate warning does not turn the refusal into a continuation. A product commit of that same not-ready scope already refuses, with the signal live or absent, because that result carries no advisory flag. A not-ready contest whose fences were all read still takes the merge-gate warning. The staged plan-sequence read gets the same 64 MiB limit.\n\nCode was read from `C:/Repos/deft/wt/ow-6601-activate`. The shell refused every command, including `git show`, because the Directive hook requires `node_modules/@deftai/directive-runtime`. The dest worktree HEAD is `def527f5ee656464058525407a3e11fd29f1afde`. No local checkout HEAD is the dispatch SHA. This checkout is `1b3bc91c50a2145b4ec5a2d2ee193d17845ba2a5`, whose parent is the dispatch SHA; the commit message says the commit is a brief-only activation. The line numbers below match the earlier read of the dispatch tree.\n\nThe issue text and the comments describe the defect and the remedy. They do not contain a separate instruction this audit followed.\n\npain-P1: holds - `gitFenceSpawn` is the reader for the policy, the brief, and the mint head brief, and each checks the spawn error and the signal before status (`packages/core/src/policy/write-fence.ts` 247-261, 519-532, 544-550, 655-658). `SUBPROCESS_MAX_BUFFER` is 64 MiB (`packages/core/src/subprocess/max-buffer.ts` 17). A file under that limit is parsed by the existing one-PR evaluators, and a Write inside the admitted scope is allowed.\npain-P2: holds - a failed policy read is specified to return `unreadableFence`, while a missing blob and a level-off parse stay `emptyFence` (`write-fence.ts` 544-552, 672-685; `packages/core/src/policy/one-pr-scope-proof.ts` 190-225). The selected-story Write is refused by the item 4 text when the merge-gate signal is off, and by the runtime unreadable deny when it is live (`packages/core/src/hooks/dispatcher.ts` 3134-3145, 1649-1657). That runtime deny includes `unreadableDetail` and does not consult the warner. The reason is cut to 300 characters, passed through `fenceUntrustedAcceptanceText`, and taken from the spawn error, the signal, or stderr (`packages/core/src/scope/acceptance-evidence.ts` 729-731). Two fencing briefs make the scope not ready (`packages/core/src/hooks/scope.ts` 276-299, 518-532). Site (b) returns that deny once the new field is set, with the signal live or off (`dispatcher.ts` 3098-3115). A product commit of that not-ready scope has no advisory flag (`dispatcher.ts` 5690-5710, 5536-5539). A not-ready scope with no unreadable fence stays warnable.\npain-P3: holds - `readStagedBlob` is the other whole-file git capture on this hook (`packages/core/src/hooks/planning-publication.ts` 123-133). Item 6 gives it the same 64 MiB limit. A null blob fails the closed-shape check (`planning-publication.ts` 177-179, 215-216).\nA2: holds - `isFencingEligibleBrief` counts an unreadable fence as fencing, and the unpinned partition keeps every fencing brief (`scope.ts` 276-299). A failed policy read is in that set whenever any brief fences. The not-ready result of that set is the `multiple-eligible` return at `scope.ts` 526-532, which is the result item 5 annotates, so the warning stays off for that contest and on for a contest whose fences were all read.\n\n",
+          "id": 6967039915,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6967039915",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:19:41Z",
+          "updated_at": "2026-11-18T02:19:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6966881519. Dispatch SHA: e506478e9305a8006c3545b5e161fcb0982a0d87. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism, the retraction map and both leans. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Grok critic, a different model family, or is marked otherwise. No tests were run; apart from row 2, every method is a source read at the pin. All three critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation. The critics' shells refused `git show` because the dest has no runtime installed. The round-1 critic read the dest's checked-out files at the dispatch SHA; the first audit read another local checkout at that SHA; the second audit read a local checkout one brief-only commit after it, as it disclosed.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `gitFenceSpawn` runs `spawnSync(\"git\")` with no `maxBuffer`, and the merge-base brief read, the policy read and the mint head-brief read all go through it | verified | parent pin-read of `packages/core/src/policy/write-fence.ts` 247-268, 513-553, 650-659; critic 6966654494 finding 2; audit 6967039915 (`pain-P1`) |\n| 2 | Reading the 1,092,575-byte merge-base `PROJECT-DEFINITION` with Node's default returns status 0, `error.code` ENOBUFS and truncated stdout | verified by execution | parent ran `spawnSync(\"git\", [\"show\", \"<sha>:xbrief/PROJECT-DEFINITION.xbrief.json\"], { encoding: \"utf8\" })` under Node 24 at the pin (Stop 1) |\n| 3 | `SUBPROCESS_MAX_BUFFER` is 64 MiB and the CI reader and `defaultGitRunner` already pass it; `defaultGitRunner` drops `error` and `signal` | verified | parent pin-read of `packages/core/src/subprocess/max-buffer.ts` 17, `scope-provenance/git-call.ts` 207-232, `session/git.ts` 38-93; critic 6966654494 finding 2 |\n| 4 | A failed policy read returns `{ kind: \"error\" }` with no detail, and `loadOnePrMintFence` turns it into the same empty fence as level off | verified | parent pin-read of `write-fence.ts` 544-553 and 672-685; critic 6966654494 finding 1 |\n| 5 | CI refuses when the merge-base policy read fails, before the one-PR gate (A1) | verified | parent pin-read of `packages/core/src/scope-provenance/evaluate.ts` 1057-1066; critic 6966654494 finding 1; audit 6966857234 (`A1: holds`) |\n| 6 | An empty fence and an unreadable fence differ in the consumers: runtime-policy direct write, prospective scope cover (`advisoryCapable`), and the unpinned partition | verified | parent pin-read of `packages/core/src/hooks/dispatcher.ts` 1632-1663, 5700-5722 and `hooks/scope.ts` 276-299; critic 6966654494 finding 1 |\n| 7 | The runtime-policy unreadable deny does not consult the #6535 warner, so a selected story with an unreadable fence stays refused under a live signal | verified | parent pin-read of `dispatcher.ts` 1606-1663 and 3134-3175; audits 6966857234 and 6967039915 (`pain-P2`) |\n| 8 | An unreadable fence counts as fencing in the unpinned contest, and the #6535 site (b) warning turned a not-ready contest into a write with no story fence (A2) | verified | parent pin-read of `hooks/scope.ts` 276-299, 518-532 and `dispatcher.ts` 3098-3115; audit 6966857234 finding 1; audit 6967039915 (`A2: holds`) |\n| 9 | `readStagedBlob` is the only other whole-file git capture on the agent-hook write decision without a ceiling; the deposited git-hook verbs read names, refs, files on disk, or a 16 MiB blob hash that fails closed | verified as a source read | parent `git grep` of `spawnSync`/`execFileSync` git captures at the pin and pin-reads of `hooks/planning-publication.ts` 123-133, `encoding/git.ts`, `preflight-gh/pre-push.ts` 272-283; critic 6966654494 finding 4; audit 6967039915 (`pain-P3`); captures reached only through other runner names were not traced |\n| 10 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6967039915 (`pain-P1`, `pain-P2`, `pain-P3` and `A2` hold, `finding-classes: none`, `harvest-changed: false`, digest equal to the lean's) |\n| 11 | The fix behaves as designed when built (large-blob admit, capped reason, contest refusal) | endorsed, not verified | nothing was executed beyond row 2; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 6967079956,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6967079956",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:22:09Z",
+          "updated_at": "2026-11-18T02:22:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: the hook write fence read the merge-base `xbrief/PROJECT-DEFINITION.xbrief.json` with Node's 1 MiB default buffer. The file is now larger, so the read failed, the one-PR mint was never checked, and every one-PR story was refused with the generic \"no file_scope\" text, although CI admits the same brief.\n\nAccepted solution: the fence's git helper passes the shared 64 MiB ceiling (`SUBPROCESS_MAX_BUFFER`), so the file is read and the mint is checked, as in CI; the spawn-error check stays, so a read past 64 MiB is still a failure. When the policy read fails, the fence returns its existing unreadable result with a short reason (at most 300 characters, fenced as untrusted, never file bytes), and the write refusal names that reason. A policy that is absent, or that reads as off, keeps today's empty fence. When an unpinned contest is not ready and one of its briefs has an unreadable fence, the #6535 merge-gate warning does not turn that into a continuation; the existing scope-not-ready deny is returned and names the failed read. The staged `plan-sequence.json` read gets the same ceiling.\n\nLimits accepted: `PROJECT-DEFINITION` is not slimmed (#3156), and its growth toward the 64 MiB ceiling is outside this design; the CI reader, `defaultGitRunner` and the pre-push 16 MiB blob hash are unchanged; no sweep beyond the agent-hook and deposited git-hook paths. The design adds no gate, grant, flag or stored state; every refusal it uses already exists. It was checked by reading the source at the pinned commit; only the ENOBUFS reproduction was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6966881519.\nverified-claims table 6967079956\n\nConfirm conjunct: yolo standing (Stop 1 6966479127, `yolo-standing: on`). Round-1 critic: comment 6966654494, posted by the parent verbatim as disclosed on panel-deposit 6966479448; its three classified findings are accepted on the lean. Pain audit 6966857234 returned one blocking finding; it was retracted (6966864662), handed off (6966865175) and accepted on the recut lean. Clean audit: comment 6967039915 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 3 of 6.\n\n",
+          "id": 6967080342,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6967080342",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:22:10Z",
+          "updated_at": "2026-11-18T02:22:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Operator decision (Scott, 2026-11-18)\n\nBuild the Bound from lean 6966881519 (accepted in synthesis 6967080342) without item 5, the unpinned-contest narrowing of the #6535 site (b) warning. A contest whose brief has an unreadable fence keeps the #6535 merge-gate warning. It is not turned into a `scope-not-ready` deny, and `inspectActiveScope` / `dispatcher.ts` site (b) are not changed.\n\nReasons:\n- The buffer fix removes the usual trigger for an unreadable fence.\n- CI still reads with the 64 MiB buffer and catches out-of-scope writes at merge.\n- An immediate new refusal would break the #6281 warn-first rule and runs against the fewer-gates direction.\n\nEverything else in the Bound stands:\n- `maxBuffer: SUBPROCESS_MAX_BUFFER` on `gitFenceSpawn` and on `readStagedBlob`.\n- An unreadable fence, not `emptyFence()`, when the merge-base policy read fails.\n- The deny text that names the failed read (items 1 to 4 and 6; item 7 unchanged).\n\nAcceptance criteria on the issue body now cover the Bound minus item 5.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 6967286497,
+          "html_url": "https://github.com/deftai/directive/issues/6602#issuecomment-6967286497",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T02:35:03Z",
+          "updated_at": "2026-11-18T02:35:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe local write fence reads the merge-base `xbrief/PROJECT-DEFINITION.xbrief.json` with `spawnSync` and no `maxBuffer`. Node's 1 MiB default applies. This repo's file is now 1,092,575 bytes, so the read fails with ENOBUFS and the fence falls back to an empty allow list. Every one-PR story (#6273 / #6361), meaning any brief absent from the merge base, is then refused on every Write/Edit with the generic #5656 message. CI admits the same brief, because `verify:scope-provenance` reads git with a 64 MiB buffer.\n\n## Path\n\n1. `packages/core/src/policy/write-fence.ts:767-775`: the brief is absent from the merge base, so the loader calls `loadOnePrMintFence`.\n2. `write-fence.ts:544-549`, `readMergeBasePolicyRaw`: `git show <mb>:xbrief/PROJECT-DEFINITION.xbrief.json` via `gitFenceSpawn` (`write-fence.ts:247-261`), with no `maxBuffer`. The call returns status 0 with error ENOBUFS.\n3. `write-fence.ts:680`: `basePolicy.kind === \"error\"` returns `emptyFence()`. The mint record and brief checks never run.\n4. `hooks/dispatcher.ts:3134-3145`: `requirePositiveGoverningAllow` refuses: \"the selected running scope lacks positive governing story allow coverage ... (#5656)\".\n\nCI path: `scope-provenance/git-call.ts:207` uses `maxBuffer ?? SUBPROCESS_MAX_BUFFER` (64 MiB, `subprocess/max-buffer.ts:17`).\n\n## Evidence\n\nHit on #6599, a one-PR story with an operator mint. Story binding and active-scope selection are both correct (`resolveWorktreeStoryBinding` bound, `inspectActiveScope` ready). `loadStoryWriteFenceFromMergeBase` returns `{fileScope: [], denyPaths: [], baseRef: \"origin/master\"}` with no `onePrMint`. Reproduced on pinned 0.129.14, both from the primary checkout and from the worktree as hook root.\n\n## Fix\n\n- Pass `maxBuffer: SUBPROCESS_MAX_BUFFER` in `gitFenceSpawn`, matching the CI reader.\n- Make the `basePolicy.kind === \"error\"` branch carry its reason, so the deny names \"merge-base policy unreadable\" and not the generic no-file_scope copy. Review decides the exact wording.\n- Check the other unbounded `spawnSync` git reads in the fence and hook path for the same default.\n\nNot a fix: slimming PROJECT-DEFINITION to get under 1 MiB, which would be editing data to turn a check green (#3156).\n\nWorkaround until this ships and is pinned: land the brief through a separate activation PR (two-PR route), so the brief is on the merge base and the one-PR path is not used.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6457863322,
+        "origin": "deftai/directive#6602",
+        "id": "github.issue.6457863322"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e1d22d9e5ab6b43f9c93d413ab964e135c033317ba96cc275c79baccbddac871"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6602,
+        "leanCommentId": 6966881519,
+        "harvestDigest": "316fc75e8b519f681e6afebf273d3763af17910277105c198c6ca72a3b7792e4",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (15), in list order (#6333)",
+      "sentences": [
+        "Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. The readers that return file content through it (the merge-base brief read, the policy read and the mint head-brief read) keep their `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text. The `rev-parse`, `merge-base` and delivery-branch lookups through it return refs and SHAs and are unchanged apart from the option.",
+        "Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.",
+        "Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.",
+        "Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.",
+        "Unpinned contest (P2). When `inspectActiveScope` returns the unpinned `multiple-eligible` result (`scope.ts` 526-532) and a brief in that competition set has an unreadable fence, the result carries the first such fence's `unreadableDetail` in a new optional field, and its message adds one sentence naming that brief and the detail. The fences are the ones the partition already loads; no extra read. In the dispatcher's #6535 site (b) (`dispatcher.ts` 3098-3115), `warnableScopeMiss` is false when that field is set, so the existing `scope-not-ready` deny is returned. Pinned and bound selections, other `multiple-eligible` results, `zero-eligible` and `pin-miss` are unchanged, and a not-ready scope whose briefs were all read keeps its #6535 warning.",
+        "Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.",
+        "Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself. The #6535 warner keeps its rules apart from item 5.",
+        "Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.",
+        "Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.",
+        "Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path) for the one selected brief, then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.",
+        "Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.",
+        "Given two unpinned eligible briefs, one with a failed policy read and one with a readable `file_scope`, with or without a live merge-gate signal, then the Write is refused with `scope-not-ready`, and the message names the unreadable brief and the read failure.",
+        "Given two unpinned eligible briefs whose fences were both read, under a live merge-gate signal, then the #6535 warning applies as today.",
+        "Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.",
+        "Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text."
+      ],
+      "admitted_source_sentences": [
+        "Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. The readers that return file content through it (the merge-base brief read, the policy read and the mint head-brief read) keep their `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text. The `rev-parse`, `merge-base` and delivery-branch lookups through it return refs and SHAs and are unchanged apart from the option.",
+        "Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.",
+        "Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.",
+        "Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.",
+        "Unpinned contest (P2). When `inspectActiveScope` returns the unpinned `multiple-eligible` result (`scope.ts` 526-532) and a brief in that competition set has an unreadable fence, the result carries the first such fence's `unreadableDetail` in a new optional field, and its message adds one sentence naming that brief and the detail. The fences are the ones the partition already loads; no extra read. In the dispatcher's #6535 site (b) (`dispatcher.ts` 3098-3115), `warnableScopeMiss` is false when that field is set, so the existing `scope-not-ready` deny is returned. Pinned and bound selections, other `multiple-eligible` results, `zero-eligible` and `pin-miss` are unchanged, and a not-ready scope whose briefs were all read keeps its #6535 warning.",
+        "Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.",
+        "Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself. The #6535 warner keeps its rules apart from item 5.",
+        "Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.",
+        "Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.",
+        "Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path) for the one selected brief, then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.",
+        "Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.",
+        "Given two unpinned eligible briefs, one with a failed policy read and one with a readable `file_scope`, with or without a live merge-gate signal, then the Write is refused with `scope-not-ready`, and the message names the unreadable brief and the read failure.",
+        "Given two unpinned eligible briefs whose fences were both read, under a live merge-gate signal, then the #6535 warning applies as today.",
+        "Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.",
+        "Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text."
+      ],
+      "admitted_source_digest": "2e20c7a3e6eea535849c5c06b200008914eb2bf2dbbe104b12c90dcba4462910",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Buffer (P1). `gitFenceSpawn` (`packages/core/src/policy/write-fence.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. The readers that return file content through it (the merge-base brief read, the policy read and the mint head-brief read) keep their `error` and `signal` checks ahead of the status check, so an overflow past 64 MiB is still detected and never parsed as text. The `rev-parse`, `merge-base` and delivery-branch lookups through it return refs and SHAs and are unchanged apart from the option.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Reason on a failed policy read (P2). `readMergeBasePolicyRaw` returns `{ kind: \"error\", detail }`. The detail is the first of: the spawn error message, `git show killed by signal <S>`, git's trimmed stderr, or `git show exited <N>`. It never uses stdout. The detail has newlines removed, is cut to at most 300 characters, and is wrapped with `fenceUntrustedAcceptanceText`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fail-closed shape (P2). In `loadOnePrMintFence`, `basePolicy.kind === \"error\"` returns `unreadableFence(\"merge-base:xbrief/PROJECT-DEFINITION.xbrief.json\", detail)`, the result a failed brief read already returns, instead of `emptyFence()`. A policy blob absent from the merge base, and a policy that reads as level off, keep today's empty fence. The error result stays unmemoized, as today.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Deny text (P2). `formatPositiveGoverningAllowDeny` (`packages/core/src/hooks/scope.ts`) gets one branch ahead of the others: when the fence is unreadable, it returns \"Directive denied this mutation: the selected running scope's write fence could not be read (<unreadableDetail>), so its one-PR mint was not checked (#6602). Recovery: retry; if it repeats, report it, and land the brief through a separate activation PR so it is on the merge base.\" The deny code and the other callers' existing unreadable messages (`dispatcher.ts` 1649-1657 and 5702-5710) are unchanged.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Unpinned contest (P2). When `inspectActiveScope` returns the unpinned `multiple-eligible` result (`scope.ts` 526-532) and a brief in that competition set has an unreadable fence, the result carries the first such fence's `unreadableDetail` in a new optional field, and its message adds one sentence naming that brief and the detail. The fences are the ones the partition already loads; no extra read. In the dispatcher's #6535 site (b) (`dispatcher.ts` 3098-3115), `warnableScopeMiss` is false when that field is set, so the existing `scope-not-ready` deny is returned. Pinned and bound selections, other `multiple-eligible` results, `zero-eligible` and `pin-miss` are unchanged, and a not-ready scope whose briefs were all read keeps its #6535 warning.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Other hook reads (P3). `readStagedBlob` (`packages/core/src/hooks/planning-publication.ts`) passes `maxBuffer: SUBPROCESS_MAX_BUFFER`. No other capture changes: on the agent-hook write decision and in the verbs the deposited `.githooks/pre-commit` and `.githooks/pre-push` run, the other git captures return names, refs or SHAs, already pass a ceiling (`defaultGitRunner`, the small-change runner, the 16 MiB pre-push blob hash), or read files from disk.",
+          "artifact_path": "packages/core/src/hooks/planning-publication.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Unchanged: `createScopeProvenanceGit`, `defaultGitRunner`, the #5656 positive-allow requirement, the one-PR evaluators, and `PROJECT-DEFINITION` itself. The #6535 warner keeps its rules apart from item 5.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a merge base whose `xbrief/PROJECT-DEFINITION.xbrief.json` is larger than 1 MiB (for example 2 MiB) with `onePrScopeProof` at `mint`, and a brief absent from the merge base with a matching same-PR mint record, when `loadStoryWriteFenceFromMergeBase` runs, then it returns that brief's `file_scope` with `onePrMint.admitted` true, and a Write inside that scope is allowed.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given the same large policy with the level off, or a merge base without the policy blob, then the fence is empty as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given the policy read fails (spawn error, signal, or a non-zero exit that is not a missing path) for the one selected brief, then the fence is unreadable, its detail names `merge-base:xbrief/PROJECT-DEFINITION.xbrief.json`, and a Write is refused with the item 4 text.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given the same failure while the #6535 merge-gate signal is live, then the Write is still refused (the runtime-policy unreadable deny is not warnable), and the prospective scope cover refuses with its existing unreadable message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given two unpinned eligible briefs, one with a failed policy read and one with a readable `file_scope`, with or without a live merge-gate signal, then the Write is refused with `scope-not-ready`, and the message names the unreadable brief and the read failure.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given two unpinned eligible briefs whose fences were both read, under a live merge-gate signal, then the #6535 warning applies as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given git prints 10 KB of stderr, or stdout holds part of the blob, then the reason in the deny has at most 300 characters of detail, is fenced, and contains no stdout bytes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a staged `plan-sequence.json` blob larger than 1 MiB, then `readStagedBlob` returns its text.",
+          "artifact_path": "packages/core/src/hooks/planning-publication.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6457863322",
+    "updated": "2026-11-18T02:46:57Z"
+  }
+}
