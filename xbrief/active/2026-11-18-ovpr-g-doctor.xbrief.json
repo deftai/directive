@@ -1,0 +1,930 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6617",
+    "updated": "2026-11-18T18:45:47Z"
+  },
+  "plan": {
+    "title": "doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1)",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-F (story id ovpr-g-doctor): P3-U2 + P4-U3c + P5-U1b + O-29, issues #6617, #6618, #6622, #5967 items 1-3, #6004. Doctor must write nothing (AC12.1) and tell the truth. Doctor stops writing xbrief/.triage-cache/doctor-state.json (the time window moves into session start's .deft/orientation-state.json); the `--fix` / `--repair` / `--repair-taskfile` write paths are removed; doctor warns read-only when a Directive file that must be committed is hidden by an ignore rule; the #6300 `directive update --allow-dirty-no-stage` advice goes; gitignore coverage expects exactly the RC-05 named AC8.5 list (setup adds the runtime-file lines) with remedy `directive install --repair`; the Taskfile check accepts the runtime include and never teaches `.deft/core`; chooseRemedy names one next command per failure class from the message table; `--json` prints one JSON document; the headline tracks the worst result; absent is 'not present', not 'ok'; pnpm's own dangling links are a warning.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6617",
+      "Overview": "## Problem\n\n`directive doctor` is meant to only look, never change anything. In fact it writes a small state file into the project every time it runs a full check. In a customer project that file is not ignored. After running doctor, `git status` shows a new file, and `git add -A` commits it. Two customer reports show this (#6006, #5999).\n\nEvidence (origin/master `def527f5e`):\n- The write: `packages/core/src/doctor/main.ts:1172-1179` calls `persist(...)` (`seams.writeState ?? writeState`) after every full run. `writeState` (`packages/core/src/doctor/doctor-state.ts:59`) writes `xbrief/.triage-cache/doctor-state.json`.\n- The launcher path reaches it: `directive doctor` → `runDoctor` (`packages/cli/src/bookends.ts:1662`, whose comment at `:1660` says \"Never writes\") → runtime contract `doctor` → `cmdDoctor` → the write.\n- Why it writes: a rate limit (#1315), with two readers.\n  1. `cmdDoctor` without `--full` (`main.ts:716` onward) skips only when a live `.deft/core` exists (`:720`, #4723 / #4886). **An OVPR project has no `.deft/core`, so on an OVPR project doctor writes the file and never uses it.**\n  2. Session start: `runDoctorOrientationSection` (`packages/core/src/session/orientation-compression.ts:210`) reads it with `decideThrottle` (`:231`). This is the only live use on OVPR projects.\n- Session start already keeps its own record in `.deft/orientation-state.json` (`OrientationState.doctor`, `packages/core/src/session/orientation-state.ts:32`).\n- Why trees get dirty: OVPR setup adds only two ignore lines (`packages/runtime/src/setup.ts:166-168`), as AC8.5 says. `xbrief/.triage-cache/doctor-state.json` is only in the legacy baseline (`packages/core/src/init-deposit/gitignore.ts:122`), which OVPR setup never writes.\n\n## What the design says\n\n- AC12.1: \"Doctor writes no files and runs no installs in any state. … Snapshot the project, relevant Git configuration and isolated global location before/after diagnostic tests.\" Writing to a user cache instead would also fail this.\n- AC8.8 / AC9.10: plain doctor never triggers setup; every doctor child suppresses installation writes.\n- LLM-CONTEXT §3 verb matrix and locked rule 5: doctor is read-only.\n- AC8.5: only the `node_modules` and readiness-marker ignore lines are added.\n- D-001 (Rule 1): doctor stops writing `doctor-state.json`.\n- O-28 (RC-05, default OK): session start keeps its timestamp in `.deft/orientation-state.json`. Whether that file is ignored is RC-05.\n\n## Expected\n\n1. Remove the `persist(...)` call in `main.ts`. Remove the throttle-skip branch in `cmdDoctor` (it only fires on `.deft/core` projects, which the launcher already turns away with \"Run `directive upgrade`\"). Keep `--full` as an accepted flag with no effect, because the launcher forwards it.\n2. Move the time window into session start. `runDoctorOrientationSection` decides skip from `readOrientationState(root)?.doctor` (the time doctor last actually ran, and its exit code), with the same `decideThrottle` windows. A skipped section carries the previous `doctor` record forward unchanged; a new `ts` is stamped only when doctor actually ran. With `--read-only`, session start writes nothing.\n3. One-time compatibility: if `xbrief/.triage-cache/doctor-state.json` exists and there is no `orientation-state.doctor`, session start may read it once. Doctor never deletes it (AC12.1). Uninstall lists it as a known leftover (hand to the #5999 lane).\n4. Remove `writeState` from `doctor-state.ts` and its export from `doctor/index.ts`. Update the tests that call it (`doctor-state-write.test.ts`, `doctor-state.test.ts`, `main-branches.test.ts`, `coverage-final.test.ts`, `triage/cache-path.test.ts`).\n5. Add an AC12.1 test: run `cmdDoctor` and the contract `doctor` entry on a fixture; snapshot every project file and `.git/config` before and after; assert no change. Run git probes with `GIT_OPTIONAL_LOCKS=0`.\n\nMust not do: don't move the state file to a user cache or temp directory; don't add `xbrief/.triage-cache/` or any other line to the consumer `.gitignore` to hide the symptom (\"fix the write, not `.gitignore`\"); don't add any `--fix` or auto-repair.\n\n## Acceptance criteria\n\n1. Running `directive doctor` and `directive doctor --full` on an OVPR fixture leaves every project file, `.git/config` and `.git/index` byte-identical.\n2. Doctor never creates `xbrief/.triage-cache/doctor-state.json`.\n3. Session start still skips the doctor run when doctor ran less than 24 h (clean) or 4 h (failing) ago, using `.deft/orientation-state.json`. A skipped run does not extend the window.\n4. All new git probes are read-only and run with `GIT_OPTIONAL_LOCKS=0`.\n\nVerification: `pnpm vitest run packages/core/src/doctor packages/core/src/session`; on a scratch OVPR clone, `git status --porcelain` is identical before and after `directive doctor --full`; `task check` on the PR.\n\n## Related\n\n- #6006, #5999: the `doctor-state.json` part is fixed here; the rest of each ticket stays open. Comment on both when this merges.\n- #4673 (closed): the 22 h throttle surprise, same mechanism.\n- #6618: the hidden-file warning and the #6300 advice fix (same unit, second PR).\n- #6622: removes doctor's `--fix` write paths, which this ticket leaves alone.\n\n## Plan placement\n\n- Unit P3-U2, Part A (P3-U2a), story id `ovpr-p3-u2`. Phase 3, wave 3.1. Size M for the whole unit.\n- Depends on: nothing. Can ship before Part B.\n- Owner polfer.\n\n",
+      "Labels": "bug, doctor, area:installer",
+      "UserStory": "As a developer running directive doctor, I want doctor to change nothing in my project, to name exactly one correct next command for each problem, and to give honest, parseable output, so that I can trust its verdict and script against it.",
+      "StoryId": "ovpr-g-doctor (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P3-U2-doctor-read-only-and-hidden-file-warning.md, P4-U3c-runtime-doctor-advice-uses-table.md and P5-U1b-doctor-output-honesty.md, plus O-29 (DECISIONS.md, D-017; ticket #6622). Read all three in full; 'Update' banners win. RC-05 (drafts/RC-05.md) is approved and merged: it settles P3-U2 Q7a/Q7b and P5-U1b Q1 (the named .gitignore list). RC-06 is merged: use its wording via the G-G (P4-U3a) message table.",
+      "ImplementationPlan": "Part A (P3-U2a, #6617): 1. packages/core/src/doctor/main.ts: remove the persist(...) call and the throttle-skip branch in cmdDoctor; keep --full accepted with no effect. 2. packages/core/src/session/orientation-compression.ts runDoctorOrientationSection: decide skip from readOrientationState(root)?.doctor with the same decideThrottle windows; a skipped section carries the old record forward; stamp ts only when doctor ran; --read-only writes nothing; one-time read of a legacy doctor-state.json if no orientation record. 3. packages/core/src/doctor/doctor-state.ts / doctor/index.ts: remove writeState and its export; update the tests that call it. 4. AC12.1 snapshot test (project files, .git/config, .git/index; GIT_OPTIONAL_LOCKS=0).\nO-29 (#6622): 5. Remove every doctor write path under fixMode: Taskfile create in main.ts, OpenClaw pin install (openclaw-skills.ts), soft re-bind deposit (openclaw-soft-rebind.ts), L2 skills (openclaw-l2-adapter.ts); packages/core/src/doctor/flags.ts. Before removing a path with no other owner (e.g. OpenClaw skill pins), and before choosing whether --fix/--repair/--repair-taskfile become a usage error or a no-op, stop that part and report to the orchestrator for polfer (#6622 Expected 2-3).\nPart B (P3-U2b, #6618): 6. packages/runtime/src/doctor-diagnose.ts: read-only `directive-files-hidden` warning over listDirectiveOwnedPaths(root) mustCommit paths (P2-U0, merged), one chunked `git check-ignore -v --no-index -z --stdin`, reusing exported probe/parser/source mapping from packages/core/src/lifecycle-visible/evaluate.ts; `git ls-files -v` for skip-worktree / assume-unchanged; exact message from the spec; exclude readiness markers and node_modules.\nPart C + RC-05: 7. packages/core/src/doctor/checks.ts: delete GITIGNORE_DIRTY_TREE_FIX / GITIGNORE_DIRTY_TREE_RECOVERY / data.dirty_tree_fix; gitignore-coverage expects the RC-05 AC8.5 list (node_modules/, .deft/directive/wiring-ready.*.json, .deft/pre-pr-execution-private/, .deft/plan-sequence.json.generation, .deft/plan-sequence.json.lock, .deft/plan-sequence.json.lock.claim-*, .deft/orientation-state.json) with remedy `directive install --repair`; other legacy baseline lines are information only; pre-pr-secret-tracked text matches. packages/runtime/src/setup.ts ensureGitignore adds the RC-05 runtime-file lines (runtime setup, not the launcher).\nP4-U3c (#5967 item 1): 8. packages/core/src/install-health/in-sync.ts recoveryGuidance on failClosed = pin-mismatch row; doctor-diagnose.ts chooseRemedy split into pin-mismatch / runtime-missing / pin-invalid / wiring-damaged rows from the G-G (P4-U3a) table in install-health/constants.ts; packages/core/src/doctor/taskfile.ts accepts ./node_modules/@deftai/directive-runtime/Taskfile.yml, adds legacy-include status, snippet uses the runtime include; packages/core/src/doctor/constants.ts snippet and ladder text use the table rows.\nP5-U1b (#6004, #5967 items 2-3): 9. packages/runtime/src/contract-entry.ts: under --json exactly one JSON document with install_sync, contract, dataStatus and findings (pass the diagnosis through cmdDoctor seams; no stdout interception); packages/cli/src/bookends.ts launcher --json: Node warning to stderr, JSON object when the runtime can't run (recovery string from the message table). 10. Headline: 'Install sync: …' section label plus one final overall line from the worse exit code. 11. 'not present' / 'not probed' display states in doctor-diagnose.ts. 12. checks.ts dangling links: fail only for the node_modules root, node_modules/@deftai/, or links into agent scratch worktrees; elsewhere an advisory warning.\n13. Changelog fragment changelog.d/6617-doctor-read-only-and-honest.md. May ship as more than one PR (Part A first) if the orchestrator prefers; the brief covers all.",
+      "Constraint": "- Doctor writes nothing anywhere under any flag (AC12.1): no state file in the project, user cache or temp dir; no git config or ignore-file writes; no new --fix or auto-repair.\n- Do not add xbrief/.triage-cache/ or any line outside the RC-05 named list to the consumer .gitignore. Only runtime setup adds the RC-05 runtime-file lines; the launcher does not (AC3.3).\n- Do not suggest `npm i -g` + repair or `upgrade` for an ignore-rule problem; never print --allow-dirty-no-stage; never name `directive update` as the remedy for ignore lines (AC12.7).\n- Recovery wording comes from the G-G (P4-U3a) message table and RC-06 text; do not invent new recovery strings. Do not change WIRING_RECOVERY_GUIDANCE or the no-git remedy.\n- Keep exit-code meaning, except the dangling-link downgrade (fail -> warning for pnpm's own links).\n- Do not touch verify:consumer-check-contract (#5967 item 4, Scott).\n- O-29: stop and report before removing a write path that has no other owner, and before deciding usage-error vs no-op for --fix/--repair/--repair-taskfile (#6622).\n- chooseRemedy() is also edited by G-D (foreign hooksPath branch); keep the two changes mergeable.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: G-G (ovpr-g-message-table, P4-U3a core message table in install-health/constants.ts, github.issue.6458883594) for the P4-U3c and P5-U1b recovery rows; land it first or rebase on it. P2-U0 ownership API (listDirectiveOwnedPaths) is merged (#6658). RC-05 and RC-06 docs are merged. Part A (#6617) has no dependency and can land first. Coordinate with G-D (doctor-diagnose.ts chooseRemedy, setup.ts) and G-E (bookends.ts).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #6617, #6618, #6622, #6004. Partly addresses #5967 (items 1-3 and the #6003 ACs; item 4 is Scott's). Refs #6006, #5999 (doctor-state.json leftover), #6163, #6300, #6271. Decisions D-001, D-017 (O-29), D-030 (RC-05, RC-06)."
+    },
+    "items": [
+      {
+        "title": "Running `directive doctor` and `directive doctor --full` on an OVPR fixture leaves every project file, `.git/config` and `.git/index` byte-identical.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given an OVPR fixture, when `directive doctor` and `directive doctor --full` run, then every project file, .git/config and .git/index are byte-identical before and after (AC12.1 snapshot test)."
+        }
+      },
+      {
+        "title": "Doctor never creates `xbrief/.triage-cache/doctor-state.json`.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given an OVPR fixture without xbrief/.triage-cache/doctor-state.json, when doctor runs, then that file does not exist afterwards."
+        }
+      },
+      {
+        "title": "Session start still skips the doctor run inside the window (24 h clean, 4 h failing) using `.deft/orientation-state.json`; a skipped run does not extend the window.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given an orientation-state doctor record 1 h old with exit 0, when session start runs, then doctor is not run and the record's ts is unchanged; given a record 25 h old, when session start runs, then doctor runs and a new record is stamped."
+        }
+      },
+      {
+        "title": "`deft doctor --fix`, `--repair` and `--repair-taskfile` write nothing: no Taskfile, no OpenClaw pins, no skills (O-29 / #6622).",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a fixture with a missing Taskfile.yml and missing OpenClaw pins, when `deft doctor --fix`, `--repair` and `--repair-taskfile` run, then the project, .git/config and the isolated global location are byte-identical, and no write path remains under fixMode in packages/core/src/doctor."
+        }
+      },
+      {
+        "title": "With `.cursor/` in `.git/info/exclude`, `directive doctor` warns naming the hidden `.cursor/hooks/deft-hook-<sha8>.mjs` and `.git/info/exclude:<line>`, and its exit code is unchanged.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given `.cursor/` in .git/info/exclude, when `directive doctor` runs, then it prints the directive-files-hidden warning naming the .mjs path and `.git/info/exclude:<line>`, and the exit code equals the run without that rule."
+        }
+      },
+      {
+        "title": "A global excludes file is named the same way; a `!` negation gives no warning; skip-worktree on `.claude/settings.json` warns; an ignored readiness marker gives no warning.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given core.excludesFile in a temporary HOME hiding an owned file, a `!` negation rule, skip-worktree on .claude/settings.json, and an ignored readiness marker, when doctor runs, then the first and third warn with their source, and the negation and readiness marker give no warning."
+        }
+      },
+      {
+        "title": "Gitignore coverage expects exactly the RC-05 named AC8.5 list, with remedy `directive install --repair`; setup adds the runtime-file lines; no doctor output contains `--allow-dirty-no-stage` or names `directive update` / `upgrade` for an ignore line.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given an OVPR project with an exact pin and only the RC-05 named lines, when doctor runs, then gitignore coverage does not warn; given one named line missing, then the remedy is `directive install --repair`; and given runtime setup on a fresh project, then .gitignore gains the RC-05 runtime-file lines; no doctor output contains `--allow-dirty-no-stage` or advises update/upgrade for an ignore line."
+        }
+      },
+      {
+        "title": "On an upgraded fixture whose Taskfile includes the runtime Taskfile, doctor reports no Gates-surface include warning, and no doctor output or snippet contains `.deft/core/Taskfile.yml`.",
+        "status": "proposed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given a Taskfile including ./node_modules/@deftai/directive-runtime/Taskfile.yml, when doctor runs, then there is no include warning; given a `.deft/core` include, then the status is legacy-include with the wiring-damaged row; and no output or snippet contains `.deft/core/Taskfile.yml`."
+        }
+      },
+      {
+        "title": "For each failure class (installed != pin, runtime missing, pin invalid, lockfile disagrees, GENERATION missing, readiness missing) doctor prints exactly one next command matching the message table; no runtime doctor remedy contains `npm i -g @deftai/directive, then`.",
+        "status": "proposed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given a fixture for each failure class, when the runtime doctor runs, then it prints exactly one next command equal to that class's message-table row, and no remedy contains `npm i -g @deftai/directive, then`."
+        }
+      },
+      {
+        "title": "For a stale node_modules, `directive doctor` (launcher) and the runtime doctor (via `task doctor`) print the same next command (#5967 AC 3).",
+        "status": "proposed",
+        "id": "ac.10",
+        "narrative": {
+          "Acceptance": "Given a stale node_modules, when `directive doctor` and `task doctor` run, then both print the same next command."
+        }
+      },
+      {
+        "title": "`directive doctor --json` and `directive doctor --full --json` write exactly one JSON document to stdout in every state (healthy, unhealthy, runtime missing, pin != installed), including install_sync and the product findings; exit codes unchanged.",
+        "status": "proposed",
+        "id": "ac.11",
+        "narrative": {
+          "Acceptance": "Given each of those four states, when `directive doctor --json` and `--full --json` run, then stdout parses with one JSON.parse and contains install_sync, contract, dataStatus and findings, and the exit code matches today's."
+        }
+      },
+      {
+        "title": "Human doctor output never shows `directive doctor: in sync` or `OK` as the overall verdict when any section reports an error.",
+        "status": "proposed",
+        "id": "ac.12",
+        "narrative": {
+          "Acceptance": "Given a healthy install sync and a product suite with errors, when `directive doctor` runs, then the final overall line is 'problems found', not 'in sync' or 'OK'."
+        }
+      },
+      {
+        "title": "When no host hook configs or skill pointers exist, doctor shows 'not present', not 'ok'; the default hook probe shows 'not probed'.",
+        "status": "proposed",
+        "id": "ac.13",
+        "narrative": {
+          "Acceptance": "Given a project with no host hook configs and no skill pointers, when doctor runs, then those rows read 'not present' and the default hook probe reads 'not probed'."
+        }
+      },
+      {
+        "title": "A dangling link under `node_modules/.pnpm/` gives a warning, not an error; a dangling Directive package link still fails.",
+        "status": "proposed",
+        "id": "ac.14",
+        "narrative": {
+          "Acceptance": "Given a dangling link at node_modules/.pnpm/node_modules/foo, when doctor runs, then it is a warning; given a dangling node_modules/@deftai/directive-runtime, then it is a fail."
+        }
+      },
+      {
+        "title": "All new git probes are read-only and run with `GIT_OPTIONAL_LOCKS=0`; `git status` is unchanged after `directive doctor`.",
+        "status": "proposed",
+        "id": "ac.15",
+        "narrative": {
+          "Acceptance": "Given the doctor git probes, when they run, then each runs with GIT_OPTIONAL_LOCKS=0 and `git status --porcelain` is identical before and after `directive doctor`."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6617",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6617: doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6618",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6618"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6622",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6622"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5967",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5967"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6004",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6004"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "seams.writeState ?? writeState",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "directive upgrade",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L27"
+        },
+        {
+          "command": "pnpm vitest run packages/core/src/doctor packages/core/src/session",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L42"
+        },
+        {
+          "command": "git status --porcelain",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L42"
+        },
+        {
+          "command": "directive doctor --full",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L42"
+        },
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L42"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/doctor-state.ts",
+          "packages/core/src/doctor/index.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/taskfile.ts",
+          "packages/core/src/doctor/constants.ts",
+          "packages/core/src/doctor/flags.ts",
+          "packages/core/src/doctor/openclaw-skills.ts",
+          "packages/core/src/doctor/openclaw-soft-rebind.ts",
+          "packages/core/src/doctor/openclaw-l2-adapter.ts",
+          "packages/core/src/session/orientation-compression.ts",
+          "packages/core/src/session/orientation-state.ts",
+          "packages/core/src/lifecycle-visible/evaluate.ts",
+          "packages/core/src/lifecycle-visible/index.ts",
+          "packages/core/src/install-health/in-sync.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/runtime/src/doctor.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/core/src/doctor/doctor-state-write.test.ts",
+          "packages/core/src/doctor/doctor-state.test.ts",
+          "packages/core/src/doctor/main-branches.test.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/doctor/coverage-final.test.ts",
+          "packages/core/src/doctor/coverage-boost.test.ts",
+          "packages/core/src/doctor/branches.test.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/constants.test.ts",
+          "packages/core/src/doctor/index.test.ts",
+          "packages/core/src/doctor/openclaw-skills.test.ts",
+          "packages/core/src/doctor/openclaw-soft-rebind.test.ts",
+          "packages/core/src/doctor/openclaw-soft-rebind-branches.test.ts",
+          "packages/core/src/doctor/openclaw-l2-adapter.test.ts",
+          "packages/core/src/doctor/doctor-read-only.test.ts",
+          "packages/core/src/triage/cache-path.test.ts",
+          "packages/core/src/session/orientation-compression.test.ts",
+          "packages/core/src/session/session-start-orientation.test.ts",
+          "packages/core/src/lifecycle-visible/evaluate.test.ts",
+          "packages/core/src/install-health/in-sync.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/runtime/src/doctor-diagnose-hidden-files.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "packages/runtime/src/contract-entry-doctor-compose.test.ts",
+          "packages/runtime/src/doctor.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/cli/src/doctor-bookend.test.ts",
+          "changelog.d/6617-doctor-read-only-and-honest.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6458883594"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor packages/core/src/session packages/core/src/lifecycle-visible packages/core/src/install-health packages/core/src/triage/cache-path.test.ts packages/runtime/src/doctor-diagnose packages/runtime/src/doctor packages/runtime/src/contract-entry packages/runtime/src/setup.test.ts packages/cli/src"
+        ],
+        "Traces": [
+          "#6617",
+          "#6618",
+          "#6622",
+          "#5967",
+          "#6004"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "doctor",
+        "expected_outputs": [
+          "Running `directive doctor` and `directive doctor --full` on an OVPR fixture leaves every project file, `.git/config` and `.git/index` byte-identical.",
+          "Doctor never creates `xbrief/.triage-cache/doctor-state.json`.",
+          "Session start still skips the doctor run inside the window (24 h clean, 4 h failing) using `.deft/orientation-state.json`; a skipped run does not extend the window.",
+          "`deft doctor --fix`, `--repair` and `--repair-taskfile` write nothing: no Taskfile, no OpenClaw pins, no skills (O-29 / #6622).",
+          "With `.cursor/` in `.git/info/exclude`, `directive doctor` warns naming the hidden `.cursor/hooks/deft-hook-<sha8>.mjs` and `.git/info/exclude:<line>`, and its exit code is unchanged.",
+          "A global excludes file is named the same way; a `!` negation gives no warning; skip-worktree on `.claude/settings.json` warns; an ignored readiness marker gives no warning.",
+          "Gitignore coverage expects exactly the RC-05 named AC8.5 list, with remedy `directive install --repair`; setup adds the runtime-file lines; no doctor output contains `--allow-dirty-no-stage` or names `directive update` / `upgrade` for an ignore line.",
+          "On an upgraded fixture whose Taskfile includes the runtime Taskfile, doctor reports no Gates-surface include warning, and no doctor output or snippet contains `.deft/core/Taskfile.yml`.",
+          "For each failure class (installed != pin, runtime missing, pin invalid, lockfile disagrees, GENERATION missing, readiness missing) doctor prints exactly one next command matching the message table; no runtime doctor remedy contains `npm i -g @deftai/directive, then`.",
+          "For a stale node_modules, `directive doctor` (launcher) and the runtime doctor (via `task doctor`) print the same next command (#5967 AC 3).",
+          "`directive doctor --json` and `directive doctor --full --json` write exactly one JSON document to stdout in every state (healthy, unhealthy, runtime missing, pin != installed), including install_sync and the product findings; exit codes unchanged.",
+          "Human doctor output never shows `directive doctor: in sync` or `OK` as the overall verdict when any section reports an error.",
+          "When no host hook configs or skill pointers exist, doctor shows 'not present', not 'ok'; the default hook probe shows 'not probed'.",
+          "A dangling link under `node_modules/.pnpm/` gives a warning, not an error; a dangling Directive package link still fails.",
+          "All new git probes are read-only and run with `GIT_OPTIONAL_LOCKS=0`; `git status` is unchanged after `directive doctor`.",
+          "one changelog fragment changelog.d/6617-doctor-read-only-and-honest.md"
+        ],
+        "acceptance_criteria_justification": "Fifteen items: P3-U2 ACs 1-6 (items 1, 2, 3, 5, 7, 15) with #6618 ACs 1-4 folded into items 5-7 and 15; O-29/#6622 ACs 1-2 as item 4; P4-U3c ACs 1-5 as items 8-10; P5-U1b ACs 1-7 as items 11-14 (AC5 folded into item 7, AC7 into item 1)."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/doctor-state.ts",
+          "packages/core/src/doctor/index.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/taskfile.ts",
+          "packages/core/src/doctor/constants.ts",
+          "packages/core/src/doctor/flags.ts",
+          "packages/core/src/doctor/openclaw-skills.ts",
+          "packages/core/src/doctor/openclaw-soft-rebind.ts",
+          "packages/core/src/doctor/openclaw-l2-adapter.ts",
+          "packages/core/src/session/orientation-compression.ts",
+          "packages/core/src/session/orientation-state.ts",
+          "packages/core/src/lifecycle-visible/evaluate.ts",
+          "packages/core/src/lifecycle-visible/index.ts",
+          "packages/core/src/install-health/in-sync.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/runtime/src/doctor.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/core/src/doctor/doctor-state-write.test.ts",
+          "packages/core/src/doctor/doctor-state.test.ts",
+          "packages/core/src/doctor/main-branches.test.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/doctor/coverage-final.test.ts",
+          "packages/core/src/doctor/coverage-boost.test.ts",
+          "packages/core/src/doctor/branches.test.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/constants.test.ts",
+          "packages/core/src/doctor/index.test.ts",
+          "packages/core/src/doctor/openclaw-skills.test.ts",
+          "packages/core/src/doctor/openclaw-soft-rebind.test.ts",
+          "packages/core/src/doctor/openclaw-soft-rebind-branches.test.ts",
+          "packages/core/src/doctor/openclaw-l2-adapter.test.ts",
+          "packages/core/src/doctor/doctor-read-only.test.ts",
+          "packages/core/src/triage/cache-path.test.ts",
+          "packages/core/src/session/orientation-compression.test.ts",
+          "packages/core/src/session/session-start-orientation.test.ts",
+          "packages/core/src/lifecycle-visible/evaluate.test.ts",
+          "packages/core/src/install-health/in-sync.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/runtime/src/doctor-diagnose-hidden-files.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "packages/runtime/src/contract-entry-doctor-compose.test.ts",
+          "packages/runtime/src/doctor.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/cli/src/doctor-bookend.test.ts",
+          "changelog.d/6617-doctor-read-only-and-honest.md"
+        ],
+        "module_boundary": "Doctor (core doctor checks, flags and state, runtime install-sync diagnosis and contract entry, launcher doctor --json path), session-start doctor throttle, the lifecycle-visible probe exports, install-health in-sync guidance, and runtime setup's .gitignore list (RC-05). No uninstall, upgrade-flow or hook-entry changes.",
+        "cohesion_exemption": "main.ts (2558 lines), checks.ts (2280 lines) and bookends.ts (1737 lines) already exceed the review trigger. This story removes code from main.ts and edits targeted checks; splitting those files is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6458882984,
+        "origin": "deftai/directive#6617",
+        "id": "github.issue.6458882984"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/doctor packages/core/src/session packages/core/src/lifecycle-visible packages/core/src/install-health packages/core/src/triage/cache-path.test.ts packages/runtime/src/doctor-diagnose packages/runtime/src/doctor packages/runtime/src/contract-entry packages/runtime/src/setup.test.ts packages/cli/src"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (60), in order (#6333)",
+      "sentences": [
+        "doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1)",
+        "Problem `directive doctor` is meant to only look, never change anything.",
+        "In fact it writes a small state file into the project every time it runs a full check.",
+        "In a customer project that file is not ignored.",
+        "After running doctor, `git status` shows a new file, and `git add -A` commits it.",
+        "Two customer reports show this (#6006, #5999).",
+        "Evidence (origin/master `def527f5e`): - The write: `packages/core/src/doctor/main.ts:1172-1179` calls `persist(...)` (`seams.writeState ??",
+        "writeState`) after every full run.",
+        "`writeState` (`packages/core/src/doctor/doctor-state.ts:59`) writes `xbrief/.triage-cache/doctor-state.json`.",
+        "The launcher path reaches it: `directive doctor` → `runDoctor` (`packages/cli/src/bookends.ts:1662`, whose comment at `:1660` says \"Never writes\") → runtime contract `doctor` → `cmdDoctor` → the write.",
+        "Why it writes: a rate limit (#1315), with two readers.",
+        "`cmdDoctor` without `--full` (`main.ts:716` onward) skips only when a live `.deft/core` exists (`:720`, #4723 / #4886).",
+        "An OVPR project has no `.deft/core`, so on an OVPR project doctor writes the file and never uses it. 2.",
+        "Session start: `runDoctorOrientationSection` (`packages/core/src/session/orientation-compression.ts:210`) reads it with `decideThrottle` (`:231`).",
+        "This is the only live use on OVPR projects.",
+        "Session start already keeps its own record in `.deft/orientation-state.json` (`OrientationState.doctor`, `packages/core/src/session/orientation-state.ts:32`).",
+        "Why trees get dirty: OVPR setup adds only two ignore lines (`packages/runtime/src/setup.ts:166-168`), as AC8.5 says.",
+        "`xbrief/.triage-cache/doctor-state.json` is only in the legacy baseline (`packages/core/src/init-deposit/gitignore.ts:122`), which OVPR setup never writes.",
+        "What the design says - AC12.1: \"Doctor writes no files and runs no installs in any state.",
+        "… Snapshot the project, relevant Git configuration and isolated global location before/after diagnostic tests.\" Writing to a user cache instead would also fail this.",
+        "AC8.8 / AC9.10: plain doctor never triggers setup; every doctor child suppresses installation writes.",
+        "LLM-CONTEXT §3 verb matrix and locked rule 5: doctor is read-only.",
+        "AC8.5: only the `node_modules` and readiness-marker ignore lines are added.",
+        "D-001 (Rule 1): doctor stops writing `doctor-state.json`.",
+        "O-28 (RC-05, default OK): session start keeps its timestamp in `.deft/orientation-state.json`.",
+        "Whether that file is ignored is RC-05.",
+        "Expected 1.",
+        "Remove the `persist(...)` call in `main.ts`.",
+        "Remove the throttle-skip branch in `cmdDoctor` (it only fires on `.deft/core` projects, which the launcher already turns away with \"Run `directive upgrade`\").",
+        "Keep `--full` as an accepted flag with no effect, because the launcher forwards it.",
+        "Move the time window into session start.",
+        "`runDoctorOrientationSection` decides skip from `readOrientationState(root)?.doctor` (the time doctor last actually ran, and its exit code), with the same `decideThrottle` windows.",
+        "A skipped section carries the previous `doctor` record forward unchanged; a new `ts` is stamped only when doctor actually ran.",
+        "With `--read-only`, session start writes nothing.",
+        "One-time compatibility: if `xbrief/.triage-cache/doctor-state.json` exists and there is no `orientation-state.doctor`, session start may read it once.",
+        "Doctor never deletes it (AC12.1).",
+        "Uninstall lists it as a known leftover (hand to the #5999 lane).",
+        "Remove `writeState` from `doctor-state.ts` and its export from `doctor/index.ts`.",
+        "Update the tests that call it (`doctor-state-write.test.ts`, `doctor-state.test.ts`, `main-branches.test.ts`, `coverage-final.test.ts`, `triage/cache-path.test.ts`).",
+        "Add an AC12.1 test: run `cmdDoctor` and the contract `doctor` entry on a fixture; snapshot every project file and `.git/config` before and after; assert no change.",
+        "Run git probes with `GIT_OPTIONAL_LOCKS=0`.",
+        "Must not do: don't move the state file to a user cache or temp directory; don't add `xbrief/.triage-cache/` or any other line to the consumer `.gitignore` to hide the symptom (\"fix the write, not `.gitignore`\"); don't add any `--fix` or auto-repair.",
+        "Acceptance criteria 1.",
+        "Running `directive doctor` and `directive doctor --full` on an OVPR fixture leaves every project file, `.git/config` and `.git/index` byte-identical.",
+        "Doctor never creates `xbrief/.triage-cache/doctor-state.json`.",
+        "Session start still skips the doctor run when doctor ran less than 24 h (clean) or 4 h (failing) ago, using `.deft/orientation-state.json`.",
+        "A skipped run does not extend the window.",
+        "All new git probes are read-only and run with `GIT_OPTIONAL_LOCKS=0`.",
+        "Verification: `pnpm vitest run packages/core/src/doctor packages/core/src/session`; on a scratch OVPR clone, `git status --porcelain` is identical before and after `directive doctor --full`; `task check` on the PR.",
+        "Related - #6006, #5999: the `doctor-state.json` part is fixed here; the rest of each ticket stays open.",
+        "Comment on both when this merges.",
+        "#4673 (closed): the 22 h throttle surprise, same mechanism.",
+        "#6618: the hidden-file warning and the #6300 advice fix (same unit, second PR).",
+        "#6622: removes doctor's `--fix` write paths, which this ticket leaves alone.",
+        "Plan placement - Unit P3-U2, Part A (P3-U2a), story id `ovpr-p3-u2`.",
+        "Phase 3, wave 3.1.",
+        "Size M for the whole unit.",
+        "Depends on: nothing.",
+        "Can ship before Part B.",
+        "Owner polfer."
+      ],
+      "admitted_source_sentences": [
+        "Problem `directive doctor` is meant to only look, never change anything.",
+        "In fact it writes a small state file into the project every time it runs a full check.",
+        "In a customer project that file is not ignored.",
+        "After running doctor, `git status` shows a new file, and `git add -A` commits it.",
+        "Two customer reports show this (#6006, #5999).",
+        "Evidence (origin/master `def527f5e`): - The write: `packages/core/src/doctor/main.ts:1172-1179` calls `persist(...)` (`seams.writeState ??",
+        "writeState`) after every full run.",
+        "`writeState` (`packages/core/src/doctor/doctor-state.ts:59`) writes `xbrief/.triage-cache/doctor-state.json`.",
+        "The launcher path reaches it: `directive doctor` → `runDoctor` (`packages/cli/src/bookends.ts:1662`, whose comment at `:1660` says \"Never writes\") → runtime contract `doctor` → `cmdDoctor` → the write.",
+        "Why it writes: a rate limit (#1315), with two readers.",
+        "`cmdDoctor` without `--full` (`main.ts:716` onward) skips only when a live `.deft/core` exists (`:720`, #4723 / #4886).",
+        "An OVPR project has no `.deft/core`, so on an OVPR project doctor writes the file and never uses it. 2.",
+        "Session start: `runDoctorOrientationSection` (`packages/core/src/session/orientation-compression.ts:210`) reads it with `decideThrottle` (`:231`).",
+        "This is the only live use on OVPR projects.",
+        "Session start already keeps its own record in `.deft/orientation-state.json` (`OrientationState.doctor`, `packages/core/src/session/orientation-state.ts:32`).",
+        "Why trees get dirty: OVPR setup adds only two ignore lines (`packages/runtime/src/setup.ts:166-168`), as AC8.5 says.",
+        "`xbrief/.triage-cache/doctor-state.json` is only in the legacy baseline (`packages/core/src/init-deposit/gitignore.ts:122`), which OVPR setup never writes.",
+        "What the design says - AC12.1: \"Doctor writes no files and runs no installs in any state.",
+        "… Snapshot the project, relevant Git configuration and isolated global location before/after diagnostic tests.\" Writing to a user cache instead would also fail this.",
+        "AC8.8 / AC9.10: plain doctor never triggers setup; every doctor child suppresses installation writes.",
+        "LLM-CONTEXT §3 verb matrix and locked rule 5: doctor is read-only.",
+        "AC8.5: only the `node_modules` and readiness-marker ignore lines are added.",
+        "D-001 (Rule 1): doctor stops writing `doctor-state.json`.",
+        "O-28 (RC-05, default OK): session start keeps its timestamp in `.deft/orientation-state.json`.",
+        "Whether that file is ignored is RC-05.",
+        "Expected 1.",
+        "Remove the `persist(...)` call in `main.ts`.",
+        "Remove the throttle-skip branch in `cmdDoctor` (it only fires on `.deft/core` projects, which the launcher already turns away with \"Run `directive upgrade`\").",
+        "Keep `--full` as an accepted flag with no effect, because the launcher forwards it.",
+        "Move the time window into session start.",
+        "`runDoctorOrientationSection` decides skip from `readOrientationState(root)?.doctor` (the time doctor last actually ran, and its exit code), with the same `decideThrottle` windows.",
+        "A skipped section carries the previous `doctor` record forward unchanged; a new `ts` is stamped only when doctor actually ran.",
+        "With `--read-only`, session start writes nothing.",
+        "One-time compatibility: if `xbrief/.triage-cache/doctor-state.json` exists and there is no `orientation-state.doctor`, session start may read it once.",
+        "Doctor never deletes it (AC12.1).",
+        "Uninstall lists it as a known leftover (hand to the #5999 lane).",
+        "Remove `writeState` from `doctor-state.ts` and its export from `doctor/index.ts`.",
+        "Update the tests that call it (`doctor-state-write.test.ts`, `doctor-state.test.ts`, `main-branches.test.ts`, `coverage-final.test.ts`, `triage/cache-path.test.ts`).",
+        "Add an AC12.1 test: run `cmdDoctor` and the contract `doctor` entry on a fixture; snapshot every project file and `.git/config` before and after; assert no change.",
+        "Run git probes with `GIT_OPTIONAL_LOCKS=0`.",
+        "Must not do: don't move the state file to a user cache or temp directory; don't add `xbrief/.triage-cache/` or any other line to the consumer `.gitignore` to hide the symptom (\"fix the write, not `.gitignore`\"); don't add any `--fix` or auto-repair.",
+        "Acceptance criteria 1.",
+        "Running `directive doctor` and `directive doctor --full` on an OVPR fixture leaves every project file, `.git/config` and `.git/index` byte-identical.",
+        "Doctor never creates `xbrief/.triage-cache/doctor-state.json`.",
+        "Session start still skips the doctor run when doctor ran less than 24 h (clean) or 4 h (failing) ago, using `.deft/orientation-state.json`.",
+        "A skipped run does not extend the window.",
+        "All new git probes are read-only and run with `GIT_OPTIONAL_LOCKS=0`.",
+        "Verification: `pnpm vitest run packages/core/src/doctor packages/core/src/session`; on a scratch OVPR clone, `git status --porcelain` is identical before and after `directive doctor --full`; `task check` on the PR.",
+        "Related - #6006, #5999: the `doctor-state.json` part is fixed here; the rest of each ticket stays open.",
+        "Comment on both when this merges.",
+        "#4673 (closed): the 22 h throttle surprise, same mechanism.",
+        "#6618: the hidden-file warning and the #6300 advice fix (same unit, second PR).",
+        "#6622: removes doctor's `--fix` write paths, which this ticket leaves alone.",
+        "Plan placement - Unit P3-U2, Part A (P3-U2a), story id `ovpr-p3-u2`.",
+        "Phase 3, wave 3.1.",
+        "Size M for the whole unit.",
+        "Depends on: nothing.",
+        "Can ship before Part B.",
+        "Owner polfer."
+      ],
+      "admitted_source_digest": "f1c7183020b55957dbb8dada4f9fdd67f146bc073de18d7059a7551bc9f29c3a",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1)",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Problem `directive doctor` is meant to only look, never change anything.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "In fact it writes a small state file into the project every time it runs a full check.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "In a customer project that file is not ignored.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "After running doctor, `git status` shows a new file, and `git add -A` commits it.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "Two customer reports show this (#6006, #5999).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Evidence (origin/master `def527f5e`): - The write: `packages/core/src/doctor/main.ts:1172-1179` calls `persist(...)` (`seams.writeState ??",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "writeState`) after every full run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "`writeState` (`packages/core/src/doctor/doctor-state.ts:59`) writes `xbrief/.triage-cache/doctor-state.json`.",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "The launcher path reaches it: `directive doctor` → `runDoctor` (`packages/cli/src/bookends.ts:1662`, whose comment at `:1660` says \"Never writes\") → runtime contract `doctor` → `cmdDoctor` → the write.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Why it writes: a rate limit (#1315), with two readers.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`cmdDoctor` without `--full` (`main.ts:716` onward) skips only when a live `.deft/core` exists (`:720`, #4723 / #4886).",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "An OVPR project has no `.deft/core`, so on an OVPR project doctor writes the file and never uses it. 2.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 14,
+          "text": "Session start: `runDoctorOrientationSection` (`packages/core/src/session/orientation-compression.ts:210`) reads it with `decideThrottle` (`:231`).",
+          "artifact_path": "packages/core/src/session/orientation-compression.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "This is the only live use on OVPR projects.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Session start already keeps its own record in `.deft/orientation-state.json` (`OrientationState.doctor`, `packages/core/src/session/orientation-state.ts:32`).",
+          "artifact_path": "packages/core/src/session/orientation-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Why trees get dirty: OVPR setup adds only two ignore lines (`packages/runtime/src/setup.ts:166-168`), as AC8.5 says.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 18,
+          "text": "`xbrief/.triage-cache/doctor-state.json` is only in the legacy baseline (`packages/core/src/init-deposit/gitignore.ts:122`), which OVPR setup never writes.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 19,
+          "text": "What the design says - AC12.1: \"Doctor writes no files and runs no installs in any state.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "… Snapshot the project, relevant Git configuration and isolated global location before/after diagnostic tests.\" Writing to a user cache instead would also fail this.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "AC8.8 / AC9.10: plain doctor never triggers setup; every doctor child suppresses installation writes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "LLM-CONTEXT §3 verb matrix and locked rule 5: doctor is read-only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "AC8.5: only the `node_modules` and readiness-marker ignore lines are added.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "D-001 (Rule 1): doctor stops writing `doctor-state.json`.",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "O-28 (RC-05, default OK): session start keeps its timestamp in `.deft/orientation-state.json`.",
+          "artifact_path": "packages/core/src/session/orientation-compression.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Whether that file is ignored is RC-05.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Expected 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Remove the `persist(...)` call in `main.ts`.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "Remove the throttle-skip branch in `cmdDoctor` (it only fires on `.deft/core` projects, which the launcher already turns away with \"Run `directive upgrade`\").",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "Keep `--full` as an accepted flag with no effect, because the launcher forwards it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Move the time window into session start.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "`runDoctorOrientationSection` decides skip from `readOrientationState(root)?.doctor` (the time doctor last actually ran, and its exit code), with the same `decideThrottle` windows.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "A skipped section carries the previous `doctor` record forward unchanged; a new `ts` is stamped only when doctor actually ran.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "With `--read-only`, session start writes nothing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "One-time compatibility: if `xbrief/.triage-cache/doctor-state.json` exists and there is no `orientation-state.doctor`, session start may read it once.",
+          "artifact_path": "packages/core/src/session/orientation-compression.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Doctor never deletes it (AC12.1).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "Uninstall lists it as a known leftover (hand to the #5999 lane).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "Remove `writeState` from `doctor-state.ts` and its export from `doctor/index.ts`.",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "Update the tests that call it (`doctor-state-write.test.ts`, `doctor-state.test.ts`, `main-branches.test.ts`, `coverage-final.test.ts`, `triage/cache-path.test.ts`).",
+          "artifact_path": "packages/core/src/doctor/doctor-state-write.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Add an AC12.1 test: run `cmdDoctor` and the contract `doctor` entry on a fixture; snapshot every project file and `.git/config` before and after; assert no change.",
+          "artifact_path": "packages/core/src/doctor/doctor-read-only.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "Run git probes with `GIT_OPTIONAL_LOCKS=0`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Must not do: don't move the state file to a user cache or temp directory; don't add `xbrief/.triage-cache/` or any other line to the consumer `.gitignore` to hide the symptom (\"fix the write, not `.gitignore`\"); don't add any `--fix` or auto-repair.",
+          "artifact_path": "packages/core/src/doctor/checks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "Acceptance criteria 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "Running `directive doctor` and `directive doctor --full` on an OVPR fixture leaves every project file, `.git/config` and `.git/index` byte-identical.",
+          "artifact_path": "packages/core/src/doctor/doctor-read-only.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "Doctor never creates `xbrief/.triage-cache/doctor-state.json`.",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "Session start still skips the doctor run when doctor ran less than 24 h (clean) or 4 h (failing) ago, using `.deft/orientation-state.json`.",
+          "artifact_path": "packages/core/src/session/orientation-compression.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "A skipped run does not extend the window.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "All new git probes are read-only and run with `GIT_OPTIONAL_LOCKS=0`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 49,
+          "text": "Verification: `pnpm vitest run packages/core/src/doctor packages/core/src/session`; on a scratch OVPR clone, `git status --porcelain` is identical before and after `directive doctor --full`; `task check` on the PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 50,
+          "text": "Related - #6006, #5999: the `doctor-state.json` part is fixed here; the rest of each ticket stays open.",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 51,
+          "text": "Comment on both when this merges.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 52,
+          "text": "#4673 (closed): the 22 h throttle surprise, same mechanism.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 53,
+          "text": "#6618: the hidden-file warning and the #6300 advice fix (same unit, second PR).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 54,
+          "text": "#6622: removes doctor's `--fix` write paths, which this ticket leaves alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 55,
+          "text": "Plan placement - Unit P3-U2, Part A (P3-U2a), story id `ovpr-p3-u2`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 56,
+          "text": "Phase 3, wave 3.1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 57,
+          "text": "Size M for the whole unit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 58,
+          "text": "Depends on: nothing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 59,
+          "text": "Can ship before Part B.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 60,
+          "text": "Owner polfer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6458882984",
+    "updated": "2026-11-18T18:45:47Z"
+  }
+}
