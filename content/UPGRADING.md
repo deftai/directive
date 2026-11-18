@@ -28,6 +28,17 @@ Walkthrough history below keeps existing `UPGRADING.md#` anchors. Corporate or m
 
 ---
 
+## Git hooks and `core.hooksPath` (#4960)
+
+Git runs hooks from one folder only. Directive keeps its hooks in the committed `.githooks` folder and sets this repository's `core.hooksPath` to `.githooks`. That replaces Git's default `.git/hooks` folder and any global `core.hooksPath`, for this repository only.
+
+- **`directive install` and `directive install --repair`:** when your repository already uses other hooks (a global or local `core.hooksPath`, or hook files in `.git/hooks`), the plan says so before you approve. Approve to switch this repository to `.githooks`; the earlier hooks (for example `commit-msg`) then do not run here. Decline to change nothing. `--yes` prints the same plan. There is no second question.
+- **After a switch,** the output says which hooks no longer run. To keep them, copy them into `.githooks`, or use a hook manager such as [Husky](https://typicode.github.io/husky/) or [Lefthook](https://github.com/evilmartians/lefthook). Directive does not chain other hooks or install these tools.
+- **`directive upgrade` and automatic setup** never change another `core.hooksPath`. Directive's Git hooks then stay inactive, setup is not marked ready, and the output and `directive doctor` name the fix: `directive install --repair`.
+- Directive only writes this repository's Git config, never your global or system config. `directive uninstall` leaves a `core.hooksPath` that is not Directive's alone.
+
+---
+
 ## Dual policy block recovery (#3609)
 
 - **Applies when:** PROJECT-DEFINITION contains both legacy bare `plan.policy` and namespaced `plan["x-directive/policy"]`. The namespaced block wins reads, so the bare block is shadowed even when one or more values match.

@@ -68,6 +68,9 @@ export async function handleContractEntrypoint(argv: readonly string[]): Promise
       root,
       // Explicit pre-write operator force only (#5837); self-complete never forces.
       forceGitHooks: hasFlag(argv, "--force-githooks"),
+      // Launcher passes this only after the install/repair plan approval that
+      // disclosed the takeover (#4960); self-complete never does.
+      takeOverHooksPath: hasFlag(argv, "--take-over-hooks-path"),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.conflicts.length > 0) return 1;

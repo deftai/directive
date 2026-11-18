@@ -382,12 +382,17 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     expect(mode).toBeTruthy();
   });
 
-  it("does not overwrite a foreign core.hooksPath", () => {
+  it("does not overwrite a foreign core.hooksPath without the plan's approval (#4960)", () => {
     const root = tempRoot();
     execFileSync("git", ["-C", root, "init", "-q"]);
     execFileSync("git", ["-C", root, "config", "core.hooksPath", "custom-hooks"]);
     const result = runSetup({ operation: "install", from: "none", root });
-    expect(result.conflicts.some((c) => c.includes("core.hooksPath"))).toBe(true);
+    // Inactive, not a conflict (D-017 / ledger Problem 20); readiness withheld.
+    expect(result.conflicts).toEqual([]);
+    expect(result.gitHooksInactive).toContain("core.hooksPath is 'custom-hooks'");
+    expect(
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${result.runtimeVersion}.json`)),
+    ).toBe(false);
     const current = execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], {
       encoding: "utf8",
     }).trim();

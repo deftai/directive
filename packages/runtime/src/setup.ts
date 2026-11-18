@@ -63,6 +63,13 @@ export interface SetupResult {
   readonly conflicts: string[];
   /** Tracked divergent managed hooks kept in place; non-failure, present only when non-empty (#5837). */
   readonly preserved?: string[];
+  /**
+   * Set when this run replaced another `core.hooksPath` with `.githooks` after the
+   * install/repair plan's approval (#4960, ledger Problem 20). Present only then.
+   */
+  readonly hooksPathTakenOver?: { readonly previous: string; readonly scope: string | null };
+  /** Why Git hooks are not active (no `.git`, another hooks folder); present only then. */
+  readonly gitHooksInactive?: string;
   readonly message: string;
 }
 
@@ -354,10 +361,22 @@ export function runSetup(options: {
   readonly root: string;
   /** Explicit pre-write operator force to replace tracked divergent managed hooks (#5837). */
   readonly forceGitHooks?: boolean;
+  /**
+   * The operator approved an install/repair plan that disclosed taking over another
+   * `core.hooksPath` (#4960). Automatic setup and upgrade never pass this.
+   */
+  readonly takeOverHooksPath?: boolean;
 }): SetupResult {
   const { operation, from, root } = options;
   let preserved: string[] = [];
-  const withPreserved = (): { preserved?: string[] } => (preserved.length > 0 ? { preserved } : {});
+  let hooksTakenOver: { previous: string; scope: string | null } | null = null;
+  const withPreserved = (): {
+    preserved?: string[];
+    hooksPathTakenOver?: { previous: string; scope: string | null };
+  } => ({
+    ...(preserved.length > 0 ? { preserved } : {}),
+    ...(hooksTakenOver !== null ? { hooksPathTakenOver: hooksTakenOver } : {}),
+  });
   const created: string[] = [];
   const modified: string[] = [];
   const removed: string[] = [];
@@ -450,7 +469,13 @@ export function runSetup(options: {
     created.push(...hooks.created);
     modified.push(...hooks.modified);
 
-    const githooks = ensureGitHooks(root, { forceTrackedReplace: options.forceGitHooks === true });
+    const githooks = ensureGitHooks(root, {
+      forceTrackedReplace: options.forceGitHooks === true,
+      takeOverHooksPath: options.takeOverHooksPath === true,
+    });
+    if (githooks.hooksPathTakenOver !== null) {
+      hooksTakenOver = githooks.hooksPathTakenOver;
+    }
     preserved = githooks.preserved;
     created.push(...githooks.created);
     modified.push(...githooks.modified);
@@ -555,6 +580,7 @@ export function runSetup(options: {
         removed,
         conflicts,
         ...withPreserved(),
+        gitHooksInactive: disclosure,
         message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX}); ${disclosure}`,
       };
     }

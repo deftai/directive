@@ -41,6 +41,57 @@ export const PM_WILL_RUN_LABEL = "Package manager will run:";
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
   "Incomplete install: this folder is not a git repository yet, so git hooks will not be installed. After you run git init, run directive install --repair so hooks get installed.";
 
+/**
+ * #4960 / ledger Problem 20 — Git hooks that Directive's `.githooks` would replace.
+ * `scope` is the Git config scope of `core.hooksPath` (`global`, `system`, `local`,
+ * `worktree`), or `default` when it is unset and Git's own hooks folder has hooks.
+ */
+export interface HooksTakeover {
+  readonly previous: string;
+  readonly scope: string | null;
+  /** Hook file names found in Git's default hooks folder (scope `default` only). */
+  readonly hooks: readonly string[];
+}
+
+function describeHooksSource(t: HooksTakeover): string {
+  switch (t.scope) {
+    case "default":
+      return `this repository's own hooks folder (${t.previous}: ${t.hooks.join(", ")})`;
+    case "global":
+      return `${t.previous} (set in your global Git config)`;
+    case "system":
+      return `${t.previous} (set in your system Git config)`;
+    case "local":
+    case "worktree":
+      return `${t.previous} (set in this repository's Git config)`;
+    default:
+      return `${t.previous} (set in your Git config)`;
+  }
+}
+
+/** Plan warning (same plan, same approval; no second prompt — Problem 20). */
+export function formatHooksTakeoverPlanWarning(t: HooksTakeover): string {
+  return (
+    `Git hooks: this repository now runs Git hooks from ${describeHooksSource(t)}. ` +
+    "Git runs hooks from one folder only. If you approve, this repository will use " +
+    "Directive's .githooks folder instead, so those earlier hooks (for example commit-msg, " +
+    "pre-commit or pre-push) will not run here unless you move them into .githooks or use " +
+    "a hook manager. To keep things as they are, decline."
+  );
+}
+
+/** Post-op statement after a takeover. */
+export function formatHooksTakeoverDone(t: HooksTakeover): string {
+  return (
+    "This repository now uses Directive's .githooks folder. Hooks from " +
+    `${describeHooksSource(t)} no longer run here.`
+  );
+}
+
+/** Optional one-line tip (Problem 20: link only; Directive never installs these). */
+export const HOOK_MANAGER_TIP_LINE =
+  "Tip: to run hooks from several tools together, use a hook manager such as Husky (https://typicode.github.io/husky/) or Lefthook (https://github.com/evilmartians/lefthook).";
+
 export function lockfileNameFor(pm: PackageManager): string {
   return pm === "pnpm" ? "pnpm-lock.yaml" : "package-lock.json";
 }
@@ -83,12 +134,16 @@ export interface CommonPlanFields {
 export interface FirstInstallPlanFields extends CommonPlanFields {
   readonly pmCommand: string;
   readonly willCreatePkg: boolean;
+  /** #4960: hooks this install would replace; null/absent when none. */
+  readonly hooksTakeover?: HooksTakeover | null;
 }
 
 export interface RepairPlanFields extends CommonPlanFields {
   readonly needsPmRestore: boolean;
   readonly pmCommand: string | null;
   readonly restoreReason: string | null;
+  /** #4960: hooks this repair would replace; null/absent when none. */
+  readonly hooksTakeover?: HooksTakeover | null;
 }
 
 export interface UpgradePlanFields extends CommonPlanFields {
@@ -214,6 +269,12 @@ function writeGitHooksDisclosure(io: PresentIo, inactive: boolean): void {
   writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
 }
 
+function writeHooksTakeoverWarning(io: PresentIo, t: HooksTakeover | null | undefined): void {
+  if (!t) return;
+  writeHumanParagraph(io, formatHooksTakeoverPlanWarning(t));
+  writeBlank(io);
+}
+
 function writeNodeWarning(io: PresentIo, warning: string | null): void {
   if (!warning) return;
   writeHumanParagraph(io, warning);
@@ -287,6 +348,7 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
   writeBlank(io);
   writeHumanParagraph(io, "Your other project files stay as they are.");
   writeBlank(io);
+  writeHooksTakeoverWarning(io, fields.hooksTakeover);
   writeDisclosures(io, fields);
   writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
 
@@ -310,10 +372,15 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
         "Git hooks: not installed until git init + directive install --repair (cannot set core.hooksPath=.githooks yet)",
       );
     }
+    if (fields.hooksTakeover) keyed.push(hooksTakeoverKeyedLine(fields.hooksTakeover));
     if (fields.nodeWarning) keyed.push(`node: ${fields.nodeWarning}`);
     writeKeyedBlock(io, keyed);
     writeBlank(io);
   }
+}
+
+function hooksTakeoverKeyedLine(t: HooksTakeover): string {
+  return `git hooks: take over core.hooksPath (was ${t.previous}; ${t.scope ?? "unknown"} scope) -> .githooks (local config)`;
 }
 
 /** §C9 Example B — repair plan (wave 4g). */
@@ -344,6 +411,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeHumanParagraph(io, "Your existing settings and other files stay as they are.");
   }
   writeBlank(io);
+  writeHooksTakeoverWarning(io, fields.hooksTakeover);
   writeDisclosures(io, fields);
   writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
 
@@ -368,6 +436,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
         "Git hooks: not installed until git init + directive install --repair (cannot set core.hooksPath=.githooks yet)",
       );
     }
+    if (fields.hooksTakeover) keyed.push(hooksTakeoverKeyedLine(fields.hooksTakeover));
     if (fields.nodeWarning) keyed.push(`node: ${fields.nodeWarning}`);
     writeKeyedBlock(io, keyed);
     writeBlank(io);
@@ -677,6 +746,10 @@ export interface SetupSummary {
   /** Unknowable / corrupt envelopes copied under xbrief/archive/ (F-017). */
   readonly archived?: readonly string[];
   readonly conflicts?: readonly string[];
+  /** Setup replaced another core.hooksPath with .githooks (#4960). */
+  readonly hooksPathTakenOver?: { readonly previous: string; readonly scope: string | null };
+  /** Why Git hooks are not active, when they are not. */
+  readonly gitHooksInactive?: string;
   readonly message?: string;
 }
 
@@ -719,9 +792,50 @@ export function presentPathSummary(
   }
 }
 
+/**
+ * Disclosure when Git hooks stay inactive because another hooks folder is set
+ * (#4960 / #5846); null otherwise. Names `directive install --repair`.
+ */
+export function foreignHooksInactiveFromSummary(
+  summary: SetupSummary | null | undefined,
+): string | null {
+  const text = summary?.gitHooksInactive ?? "";
+  return /core\.hooksPath is '/.test(text) ? text : null;
+}
+
+/** No-`.git` case only (F-010); the other-hooks-folder case has its own text. */
 function gitHooksInactiveFromSummary(summary: SetupSummary | null | undefined): boolean {
+  if (foreignHooksInactiveFromSummary(summary) !== null) return false;
   const msg = summary?.message ?? "";
   return /Git hooks inactive/i.test(msg);
+}
+
+/**
+ * Post-op after install/repair: the takeover statement plus the hook-manager tip
+ * (#4960, Problem 20), or the inactive disclosure when hooks are still not active.
+ */
+function writeHooksPostOp(
+  io: PresentIo,
+  summary: SetupSummary | null | undefined,
+  planned: HooksTakeover | null | undefined,
+): void {
+  const foreign = foreignHooksInactiveFromSummary(summary);
+  if (foreign !== null) {
+    writeBlank(io);
+    writeHumanParagraph(io, foreign);
+    return;
+  }
+  if (gitHooksInactiveFromSummary(summary)) return;
+  // The plan's view names default-folder hook files; the runtime's confirms a
+  // core.hooksPath replacement even if the plan saw none.
+  const fromRuntime = summary?.hooksPathTakenOver;
+  const taken: HooksTakeover | null =
+    planned ??
+    (fromRuntime ? { previous: fromRuntime.previous, scope: fromRuntime.scope, hooks: [] } : null);
+  if (taken === null) return;
+  writeBlank(io);
+  writeHumanParagraph(io, formatHooksTakeoverDone(taken));
+  writeHumanParagraph(io, HOOK_MANAGER_TIP_LINE);
 }
 
 /**
@@ -740,6 +854,8 @@ export function presentInstallSuccess(
     summary: SetupSummary | null;
     verbosity: Verbosity;
     pnpmWorkspaceChanged?: boolean;
+    /** #4960: takeover disclosed in the approved plan. */
+    hooksTakeover?: HooksTakeover | null;
   },
 ): void {
   const lock = lockfileNameFor(opts.pm);
@@ -755,13 +871,18 @@ export function presentInstallSuccess(
   if (hooksInactive) {
     writeHumanParagraph(io, `Directive ${opts.version} is installed in ${opts.projectRoot}.`);
     writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
+  } else if (foreignHooksInactiveFromSummary(opts.summary) !== null) {
+    writeHumanParagraph(io, `Directive ${opts.version} is installed in ${opts.projectRoot}.`);
   } else {
     writeHumanParagraph(io, `Directive ${opts.version} is ready in ${opts.projectRoot}.`);
   }
+  writeHooksPostOp(io, opts.summary, opts.hooksTakeover);
   writeBlank(io);
   io.writeOut("Next:\n");
   if (hooksInactive) {
     io.writeOut("  git init\n");
+    io.writeOut("  directive install --repair\n");
+  } else if (foreignHooksInactiveFromSummary(opts.summary) !== null) {
     io.writeOut("  directive install --repair\n");
   } else {
     io.writeOut("  directive --help\n");
@@ -794,9 +915,12 @@ export function presentRepairSuccess(
     verbosity: Verbosity;
     pm?: PackageManager;
     pnpmWorkspaceChanged?: boolean;
+    /** #4960: takeover disclosed in the approved plan. */
+    hooksTakeover?: HooksTakeover | null;
   },
 ): void {
   const hooksInactive = gitHooksInactiveFromSummary(opts.summary);
+  const foreignInactive = foreignHooksInactiveFromSummary(opts.summary);
   if (opts.restoredPackage) {
     io.writeOut(`✓ Restored the installed Directive ${opts.version} package\n`);
   } else {
@@ -814,10 +938,13 @@ export function presentRepairSuccess(
     io.writeOut("Next:\n");
     io.writeOut("  git init\n");
     io.writeOut("  directive install --repair\n");
+  } else if (foreignInactive !== null) {
+    writeHumanParagraph(io, `Directive ${opts.version} setup finished.`);
   } else {
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
   }
   writeHumanParagraph(io, "The project version has not changed.");
+  writeHooksPostOp(io, opts.summary, opts.hooksTakeover);
   const review = collectReviewPaths(opts.summary);
   if (opts.restoredPackage && opts.pm) {
     const lock = lockfileNameFor(opts.pm);
@@ -855,14 +982,30 @@ export function presentUpgradeSuccess(
     io.writeOut(`✓ Installed Directive ${opts.version}\n`);
   }
   io.writeOut(`✓ Completed project setup\n`);
-  io.writeOut(`✓ Verified the project-local installation\n`);
+  // #5846 / P20: upgrade never takes over another hooks folder; it names the fix.
+  const foreignInactive = foreignHooksInactiveFromSummary(opts.summary);
+  if (foreignInactive !== null) {
+    io.writeOut(`✓ Verified the project-local installation (git hooks not active)\n`);
+  } else {
+    io.writeOut(`✓ Verified the project-local installation\n`);
+  }
   writeBlank(io);
   if (opts.versionChange) {
     writeHumanParagraph(io, `This project now uses Directive ${opts.version}.`);
     writeHumanParagraph(io, "The global launcher was not changed.");
+  } else if (foreignInactive !== null) {
+    writeHumanParagraph(io, `Directive ${opts.version} setup finished.`);
+    writeHumanParagraph(io, "The project version has not changed.");
   } else {
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
     writeHumanParagraph(io, "The project version has not changed.");
+  }
+  if (foreignInactive !== null) {
+    writeBlank(io);
+    writeHumanParagraph(io, foreignInactive);
+    writeBlank(io);
+    io.writeOut("Next:\n");
+    io.writeOut("  directive install --repair\n");
   }
   writeBlank(io);
   io.writeOut("Review and commit:\n");
@@ -1095,6 +1238,15 @@ function collectReviewPaths(summary: SetupSummary | null | undefined): string[] 
   return out.slice(0, 16);
 }
 
+function parseHooksPathTakenOver(
+  raw: unknown,
+): { previous: string; scope: string | null } | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const rec = raw as Record<string, unknown>;
+  if (typeof rec.previous !== "string") return undefined;
+  return { previous: rec.previous, scope: typeof rec.scope === "string" ? rec.scope : null };
+}
+
 export function tryParseSetupSummary(stdout: string): SetupSummary | null {
   const trimmed = stdout.trim();
   if (!trimmed) return null;
@@ -1110,6 +1262,8 @@ export function tryParseSetupSummary(stdout: string): SetupSummary | null {
       migrated: Array.isArray(rec.migrated) ? (rec.migrated as string[]) : undefined,
       archived: Array.isArray(rec.archived) ? (rec.archived as string[]) : undefined,
       conflicts: Array.isArray(rec.conflicts) ? (rec.conflicts as string[]) : undefined,
+      hooksPathTakenOver: parseHooksPathTakenOver(rec.hooksPathTakenOver),
+      gitHooksInactive: typeof rec.gitHooksInactive === "string" ? rec.gitHooksInactive : undefined,
       message: typeof rec.message === "string" ? rec.message : undefined,
     };
   } catch {
