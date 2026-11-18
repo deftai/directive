@@ -1,0 +1,442 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6585",
+    "updated": "2026-11-18T18:55:17Z"
+  },
+  "plan": {
+    "title": "chore(ci): retire the no-op Go lane",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(ci): retire the no-op Go lane",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6585",
+      "Overview": "\n1. Jobs. In `.github/workflows/ci.yml`, delete the `go-primary`, `go-failover` and `go` jobs. In `capacity-watchdog` and `capacity-arm`, delete every Go variable, output, classify call and cancel call, and remove only the Go operand from each shared condition (the poll loop ends when the TypeScript and merge-gate primaries are not pending; cancel and notice lines cover the two remaining flags). Remove the Go rows and Go words from the header table and the watchdog comments. TypeScript and merge-gate behaviour is unchanged.\n2. Lane. In `.github/workflows/ci-lane.yml`, delete the Go steps, change the three `inputs.suite == 'ts' || inputs.suite == 'go'` conditions to `inputs.suite == 'ts'`, rename the step `Setup Node (ts + go)` to drop Go, and drop Go from the header comment and the `suite` input description. The `suite` input stays.\n3. Contract test. In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions, drop `go-primary` and `go` from the artifact-only skip test while keeping the merge-gate and Windows checks, and drop Go from the watchdog test title.\n4. Docs. In `content/scm/github.md`, drop Go from the Blacksmith runner line, the watchdog line and the required-check name list.\n\n## Acceptance Criteria\n\n- In `.github/workflows/ci.yml`, the `go-primary`, `go-failover` and `go` jobs and every Go output, operand, classify and cancel call in `capacity-watchdog` and `capacity-arm` are gone, and the TypeScript and merge-gate arms behave as before.\n- In `.github/workflows/ci-lane.yml`, the Go steps are gone and the setup steps run only for `suite: ts`.\n- In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, no assertion requires a Go job or the Go aggregator row, and the merge-gate and Windows artifact-only checks remain.\n- In `content/scm/github.md`, the CI runner, watchdog and required-check lines no longer name Go or `Go (test + build)`.\n\n\n",
+      "Constraint": "- Stating that nothing outside the four files reads the Go check name (comment 6987913661, finding 1); the merge-readiness classifier reads it and stays unchanged.\n- Removing the `suite` input from `ci-lane.yml` (comment 6987913661, answer 3); it saves nothing and touches both callers.",
+      "Labels": "chore, ci-cd, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Jobs. In `.github/workflows/ci.yml`, delete the `go-primary`, `go-failover` and `go` jobs. In `capacity-watchdog` and `capacity-arm`, delete every Go variable, output, classify call and cancel call, and remove only the Go operand from each shared condition (the poll loop ends when the TypeScript and merge-gate primaries are not pending; cancel and notice lines cover the two remaining flags). Remove the Go rows and Go words from the header table and the watchdog comments. TypeScript and merge-gate behaviour is unchanged.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Lane. In `.github/workflows/ci-lane.yml`, delete the Go steps, change the three `inputs.suite == 'ts' || inputs.suite == 'go'` conditions to `inputs.suite == 'ts'`, rename the step `Setup Node (ts + go)` to drop Go, and drop Go from the header comment and the `suite` input description. The `suite` input stays.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Contract test. In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions, drop `go-primary` and `go` from the artifact-only skip test while keeping the merge-gate and Windows checks, and drop Go from the watchdog test title.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Docs. In `content/scm/github.md`, drop Go from the Blacksmith runner line, the watchdog line and the required-check name list.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, the `go-primary`, `go-failover` and `go` jobs and every Go output, operand, classify and cancel call in `capacity-watchdog` and `capacity-arm` are gone, and the TypeScript and merge-gate arms behave as before.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "In `.github/workflows/ci-lane.yml`, the Go steps are gone and the setup steps run only for `suite: ts`.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, no assertion requires a Go job or the Go aggregator row, and the merge-gate and Windows artifact-only checks remain.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "In `content/scm/github.md`, the CI runner, watchdog and required-check lines no longer name Go or `Go (test + build)`.",
+        "status": "proposed",
+        "id": "clause.8"
+      }
+    ],
+    "tags": [
+      "chore",
+      "ci-cd",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6585",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6585: chore(ci): retire the no-op Go lane"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5490",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5490"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "suite: ts",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/ci-lane.yml",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "content/scm/github.md",
+          "changelog.d/6585-retire-go-lane.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "ci-workflow",
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        ],
+        "expected_outputs": [
+          "ci.yml has no go-primary, go-failover or go job and no Go operand in capacity-watchdog or capacity-arm",
+          "ci-lane.yml has no Go steps and the setup steps run only for suite ts",
+          "ci_lifecycle_lane.test.ts has no Go assertion and keeps the merge-gate and Windows checks",
+          "content/scm/github.md CI runner, watchdog and required-check lines do not name Go",
+          "one changelog fragment changelog.d/6585-retire-go-lane.md"
+        ],
+        "Traces": [
+          "#6585"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/ci-lane.yml",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "content/scm/github.md",
+          "changelog.d/6585-retire-go-lane.md"
+        ],
+        "module_boundary": "The change only deletes Go wiring from the two CI workflow files, drops the matching assertions from the existing contract test and the matching lines from the existing CI doc. No new module, job or check name.",
+        "cohesion_exemption": ".github/workflows/ci.yml (1088 lines) is the single CI workflow file. This story only deletes Go jobs and Go operands from it, so it shrinks; splitting the workflow is out of scope for a removal."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6585; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and the change removes a CI job family from the capacity watchdog, which other jobs and a contract test read.\n\nTarget-digest: sha256:d755029e32674e1e58e572922dfc59f744e2ec7ea48ab872a844dbc1cdc3ff99\ndispatch-sha: 88df345db8d4555f8bf197eaa64aeaf43a6519ed\ndest: .deft-scratch/worktrees/arc-6585 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; one small CI removal; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 88df345db8d4555f8bf197eaa64aeaf43a6519ed: + dest cwd-without-occupy\npain: P1\npain: P2\n\n## In plain English\nSince the Go installer was removed (#5490), the Go CI lane tests and builds nothing: its Go steps only print \"skipping\". It still checks out the repo, installs Node and pnpm dependencies, sets up Go and builds the TypeScript CLI first, on a paid runner, on every PR, queue and master push run. A watchdog also polls it and can start a second, GitHub-hosted copy of it.\n\nThe recommended fix is to delete the lane: its three jobs, its arm in the capacity watchdog, its steps in the reusable lane workflow, and the test assertions and doc lines that name it. `Go (test + build)` is not a required check, so nothing that reads branch protection loses a check.\n\nPain source: the issue has no `## Acceptance Criteria` heading. The two pains below are derived from its Problem and Wanted behavior sections.\n\n## Pains\n- P1 — The no-op Go lane (`go-primary`, `go-failover`, the `go` aggregator and the watchdog's Go arm) spends a runner and setup time on every non-artifact-only CI run to test nothing.\n- P2 — A contract test and the CI docs pin and describe the Go lane, so it cannot be removed without updating them, and the docs would otherwise keep naming a check that no longer exists.\n\n## Excluded (not pains, not in this arc)\n- `verify:go-freeze` in the merge gate, the merge gate's `Setup Go` step, and `go.mod` (the merge gate's `toolchain:check` still reads it).\n- The remaining Go files (`content/templates/embed.go`, `embed_test.go`) and the frozen Go jobs in `release.yml`.\n- Test fixtures in `packages/core/src/init-deposit/ci-watchdog.test.ts` that use the job name `Go (Blacksmith primary) / run` as sample input to the generic classifier and cancel scripts. They test the scripts, not `ci.yml`, so they can stay.\n- The stale \"only TypeScript is YES\" required-check row for the merge gate in the `ci.yml` header table and its test (live protection requires `Merge gate (task check)` too). That belongs to #6584 / #6586, not this removal.\n- Ownership check: no file here is in the installer/OVPR maintainer's area (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` §5); these are CI workflow, contract-test and doc files.\n\n## Constraints (not pains)\n- No new gate, check name, refusal or policy flag.\n- The required checks (`TypeScript (build + lint + test)`, `Merge gate (task check)`; live REST `branches/master/protection` read on 2026-11-18) and the TypeScript and merge-gate arms of the watchdog keep working unchanged.\n\n## Anchors at the dispatch SHA\n- `.github/workflows/ci.yml`: header table rows 55, 60, 63 and the comment 66-68; `go-primary` 144-151; watchdog comment 218 and 229; `capacity-watchdog` 221-327 (Go output 232, state and arm 248, 255-258, 267-269, 278-280, 288, 293-295, 300, 316-318, 325); `capacity-arm` 336-427 (Go output 343, 355, 361, 366, 377, 380, 388-390, 398-400, 409-410, 416, 421); `go-failover` 446-453; `go` aggregator 540-556.\n- `.github/workflows/ci-lane.yml`: header 1-2, `suite` input description 12; Node, corepack and install steps gate on `ts || go` (32-44); Go steps 72-108.\n- `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: 169-182 (header table rows, including the Go aggregator row), 184-199 (`go-primary` and `go` blocks in the artifact-only skip test).\n- `content/scm/github.md` 593-595: \"TypeScript and Go cost\", \"(TypeScript, Go, or merge-gate)\", and `Go (test + build)` listed among the required check names.\n- `git grep` at the dispatch SHA for `go-primary`, `go-failover`, `go_failover`, `Go (test + build)` and `go (blacksmith primary)` finds no other reader outside `CHANGELOG.md`, `SPECIFICATION.md` history and xBRIEF records.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1). In `.github/workflows/ci.yml`, delete `go-primary`, `go-failover` and the `go` aggregator, every Go variable, output, classify call and cancel call in `capacity-watchdog` and `capacity-arm`, and the Go rows and Go words in the header table and watchdog comments. The TypeScript and merge-gate arms are not changed.\n- R2 (P1). In `.github/workflows/ci-lane.yml`, delete the Go steps (72-108), change the three `ts || go` conditions to `ts`, and drop Go from the header comment and the `suite` input description.\n- R3 (P2). In `ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions (174, 178) and the `go-primary` / `go` blocks from the artifact-only skip test, keeping the merge-gate and Windows checks.\n- R4 (P2). In `content/scm/github.md` 593-595, drop Go from the runner, watchdog and required-check lines.\n\nQuestions for the critic:\n1. Does anything outside these four files read the Go jobs, outputs or check name (a script, a readiness check, a ruleset, a release step), so that removing them breaks it?\n2. Does removing the Go arm change how the watchdog's poll loop ends or how `capacity-arm` decides for TypeScript and the merge gate?\n3. Should the `suite` input on `ci-lane.yml` stay (with only `ts`) or go?\n\n",
+          "id": 6987846588,
+          "html_url": "https://github.com/deftai/directive/issues/6585#issuecomment-6987846588",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:32:16Z",
+          "updated_at": "2026-11-18T18:32:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6987849848\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 88df345db8d4555f8bf197eaa64aeaf43a6519ed\ndest: .deft-scratch/worktrees/arc-6585\nverification-path: pin-read git show 88df345db8d4555f8bf197eaa64aeaf43a6519ed: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6987846588\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6987849848,
+          "html_url": "https://github.com/deftai/directive/issues/6585#issuecomment-6987849848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:32:25Z",
+          "updated_at": "2026-11-18T18:32:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe Go lane spends runner time installing tools and building TypeScript, but its Go tests and builds only print “skipping.” Removing it and updating its watchdog wiring, contract assertions and documentation is sound. I found no blocking design defect.\n\nAnswers to Stop 1:\n\n1. **Other readers exist**, contrary to the inventory claim: merge-readiness code recognizes the Go check name. It does not require that check to exist unless supplied through required-check configuration, so this removal does not inherently break it. Live branch protection and rulesets remain parent-reported evidence; this offline review cannot independently verify them.\n2. **The watchdog may finish sooner**, because it will stop waiting for Go. TypeScript and merge-gate retain their existing classification and failover decisions when only the Go operands are removed from shared conditions.\n3. **Keeping `suite: ts` is reasonable for this change.** Both surviving callers already supply it. Removing it would also require removing suite conditions and updating both callers, without further reducing runner cost.\n\nAll code citations below refer to dispatch SHA `88df345db8d4555f8bf197eaa64aeaf43a6519ed`. Verification used pinned source reads and searches; no tests, builds, writes or network calls were performed.\n\n### 1. sharpens-framing — The reader inventory misses merge-readiness code\n\n**Evidence:** `packages/core/src/pr-merge-readiness/ci-gate.ts:41–79` recognizes Go suite names and explicitly recognizes `Go (test + build)`. Repeating the case-insensitive identifier search at the dispatch SHA finds this reader and associated test fixtures. At `ci-gate.ts:275–276,295–343,345–355`, evaluation processes observed checks and derives absent-check failures from supplied required contexts.\n\n**Failure mode:** Treating “no other reader” as established could encourage deleting useful compatibility handling or incorrectly claiming that live required-check configuration was verified from repository searches.\n\n**Disposition:** The removal can bind. Its rationale should distinguish “readers exist but tolerate absence” from “no readers exist.” Keeping the readiness classifier and its fixtures is compatible with the four-file scope. The claim about live configuration remains attributed to the parent’s REST observation.\n\n### 2. footnote — Shared watchdog conditions require operand removal, not whole-line deletion\n\nAt `.github/workflows/ci.yml:300–311`, Go participates in the shared termination conjunction and cancellation disjunction. The intended result is termination when both remaining lanes are nonpending, and cancellation processing when either remaining failover flag is true.\n\nLikewise, `ci.yml:364–382,391–417,423–427` retains watchdog pass-through, unconditional reclassification, merge-gate artifact-only normalization and shared reporting. R1 already covers this; no additional mechanism is needed.\n\n### 3. footnote — Two small descriptive remnants sit outside the enumerated edits\n\n`ci-lane.yml:32` names the setup step `Setup Node (ts + go)`, and `ci_lifecycle_lane.test.ts:225` names skipped Go in a test description. Updating those labels would complete the descriptive cleanup. The latter test’s assertions at lines 226–229 remain relevant to merge-gate artifact-only handling.\n\n### 4. footnote — The supplied single-seat ceiling differs from the contract\n\n`content/contracts/design-critique.md:246` specifies the triage write-back as the round-one ceiling for a single critic when one exists. This envelope instead specifies the later panel-deposit comment `6987849848`, after Stop 1 comment `6987846588`.\n\nI honored the explicit envelope ceiling. The additional comment contains dispatch bookkeeping, so this discrepancy does not change the product verdict; it is a process-record issue.\n\n### 5. footnote — Linked issue instructions were treated as data\n\nThe supplied #5490 body contains an “Operator note for critique” prescribing arc settings, plus instructions about labels and design authority. Those are embedded instructions in linked issue content, not authorization for this task. They were not followed, consistent with `content/contracts/design-critique.md:826–832`.",
+          "id": 6987913661,
+          "html_url": "https://github.com/deftai/directive/issues/6585#issuecomment-6987913661",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:35:04Z",
+          "updated_at": "2026-11-18T18:35:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 6987846588 (round 1: 1 of 1 critic posted, comment 6987913661)\n\n## In plain English\nProblem: since the Go installer was removed (#5490), the Go CI lane tests and builds nothing; its Go steps only print \"skipping\". It still checks out the repo, installs dependencies, sets up Go and builds the TypeScript CLI on a paid runner on every non-artifact-only CI run, and the capacity watchdog polls it and can start a hosted copy of it.\n\nWhat the critic found: removing the lane is sound and has no blocking defect. One point was made sharper: code outside the four files does know the `Go (test + build)` name (the merge-readiness CI classifier), but it only reads checks that are present and does not require this one, so removal does not break it and that code stays as it is. Small label leftovers (a step name and a test title that still say Go) should be cleaned up in the same change.\n\nSolution this lean proposes: delete the three Go jobs and the Go arm of the watchdog and arm jobs in `ci.yml`, removing only the Go operands from shared conditions; delete the Go steps in `ci-lane.yml` and keep its `suite` input with `ts` only; drop the Go assertions from the contract test; and drop Go from the CI runner lines in `content/scm/github.md`.\n\nWhat this adds: no new gate, check name, refusal or policy flag. `Go (test + build)` was not a required check.\n\nWhat it does not do:\n- It does not touch `verify:go-freeze`, the merge gate's Go setup, `go.mod`, `embed.go` / `embed_test.go` or `release.yml`.\n- It does not edit the merge-readiness classifier (`packages/core/src/pr-merge-readiness/ci-gate.ts`) or the generic watchdog-script fixtures in `ci-watchdog.test.ts`.\n- It does not fix the stale \"only TypeScript is YES\" header row; that is outside this removal.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:d755029e32674e1e58e572922dfc59f744e2ec7ea48ab872a844dbc1cdc3ff99\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 6987913661). Panel deposit: comment 6987849848.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Jobs. In `.github/workflows/ci.yml`, delete the `go-primary`, `go-failover` and `go` jobs. In `capacity-watchdog` and `capacity-arm`, delete every Go variable, output, classify call and cancel call, and remove only the Go operand from each shared condition (the poll loop ends when the TypeScript and merge-gate primaries are not pending; cancel and notice lines cover the two remaining flags). Remove the Go rows and Go words from the header table and the watchdog comments. TypeScript and merge-gate behaviour is unchanged.\n2. Lane. In `.github/workflows/ci-lane.yml`, delete the Go steps, change the three `inputs.suite == 'ts' || inputs.suite == 'go'` conditions to `inputs.suite == 'ts'`, rename the step `Setup Node (ts + go)` to drop Go, and drop Go from the header comment and the `suite` input description. The `suite` input stays.\n3. Contract test. In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions, drop `go-primary` and `go` from the artifact-only skip test while keeping the merge-gate and Windows checks, and drop Go from the watchdog test title.\n4. Docs. In `content/scm/github.md`, drop Go from the Blacksmith runner line, the watchdog line and the required-check name list.\n\n## Acceptance Criteria\n- In `.github/workflows/ci.yml`, the `go-primary`, `go-failover` and `go` jobs and every Go output, operand, classify and cancel call in `capacity-watchdog` and `capacity-arm` are gone, and the TypeScript and merge-gate arms behave as before.\n- In `.github/workflows/ci-lane.yml`, the Go steps are gone and the setup steps run only for `suite: ts`.\n- In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, no assertion requires a Go job or the Go aggregator row, and the merge-gate and Windows artifact-only checks remain.\n- In `content/scm/github.md`, the CI runner, watchdog and required-check lines no longer name Go or `Go (test + build)`.\n\n## Reject\n- Stating that nothing outside the four files reads the Go check name (comment 6987913661, finding 1); the merge-readiness classifier reads it and stays unchanged.\n- Removing the `suite` input from `ci-lane.yml` (comment 6987913661, answer 3); it saves nothing and touches both callers.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6987913661 | 1. The reader inventory misses merge-readiness code | sharpens-framing | accept-into-contract (lean names the classifier as a tolerant reader and leaves it unchanged) |\n\nFootnotes in the census, no take: comment 6987913661 findings 2, 3, 4 and 5 (2 and 3 are already reflected in items 1-3).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted finding and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6987929723,
+          "html_url": "https://github.com/deftai/directive/issues/6585#issuecomment-6987929723",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:35:40Z",
+          "updated_at": "2026-11-18T18:35:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:0287c68bd38e301d18296804897587d510caa70ad9aa6e9a942bbbb142951d92\n\n## In plain English\n\nBoth relief claims hold. Implementing the Bound remedy and Acceptance Criteria in comment 6987929723 removes the runner work that tests nothing and updates the tests and documentation that still require or describe it. No change to the mechanism or acceptance criteria is needed.\n\npain-P1: holds - Items 1–2 remove all three Go jobs, their watchdog and failover wiring, and the reusable workflow’s Go setup and no-op steps. Pinned evidence: `.github/workflows/ci.yml:144–151,221–427,446–453,540–556` and `.github/workflows/ci-lane.yml:32–44,72–108`. Removing only Go operands preserves the remaining lanes’ decision logic; the watchdog no longer waits for Go.\n\npain-P2: holds - Items 3–4 remove the Go-specific assertions and obsolete documentation while retaining the merge-gate and Windows checks. Pinned evidence: `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts:169–199,225–229` and `content/scm/github.md:592–595`.\n\nAll source evidence was independently read at dispatch SHA `88df345db8d4555f8bf197eaa64aeaf43a6519ed`. The readiness reader tolerates Go’s absence unless external required-context configuration demands it (`packages/core/src/pr-merge-readiness/ci-gate.ts:275–276,295–355`). Live protection remains parent-reported, not independently verified offline.\n\nNo new findings. The previously reported embedded instructions in linked issue #5490 were treated as data and not followed. No files were changed; no installs, builds, tests, network calls or posts were performed.",
+          "id": 6987976382,
+          "html_url": "https://github.com/deftai/directive/issues/6585#issuecomment-6987976382",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:37:36Z",
+          "updated_at": "2026-11-18T18:37:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6987929723. Dispatch SHA: 88df345db8d4555f8bf197eaa64aeaf43a6519ed. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. Both critic posts are from one family (Codex), so their agreement is not counted as extra confirmation. No tests were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The Go lane's test and build steps only echo \"skipping\", after Node, pnpm install, Go setup and a TypeScript build | verified | parent pin-read of `.github/workflows/ci-lane.yml` 32-44, 72-108; audit 6987976382 |\n| 2 | `go-primary`, `go-failover`, the `go` aggregator and the Go arm of `capacity-watchdog` / `capacity-arm` are the only Go wiring in `ci.yml` | verified | parent pin-read and `git grep` of `.github/workflows/ci.yml` 55-63, 144-151, 221-427, 446-453, 540-556; critic 6987913661; audit 6987976382 |\n| 3 | Removing only the Go operands leaves TypeScript and merge-gate watchdog and arm decisions unchanged | verified | parent pin-read of `ci.yml` 247-327, 358-427; critic 6987913661 finding 2 and answer 2 |\n| 4 | `Go (test + build)` is not a required check | verified | parent REST read of `branches/master/protection/required_status_checks` on 2026-11-18 (`TypeScript (build + lint + test)`, `Merge gate (task check)`); critics could not re-check offline |\n| 5 | The merge-readiness classifier knows the Go name but only reads checks that are present, so it tolerates removal | verified | critic 6987913661 finding 1; parent pin-read of `packages/core/src/pr-merge-readiness/ci-gate.ts` 41-80 |\n| 6 | The contract test and `content/scm/github.md` pin and describe the Go lane | verified | parent pin-read of `ci_lifecycle_lane.test.ts` 169-199, 225 and `content/scm/github.md` 593-595; audit 6987976382 |\n| 7 | The Bound remedy relieves P1 and P2 | verified as design coverage | audit 6987976382 on the bound lean (`pain-P1`, `pain-P2` hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 8 | The removal behaves as designed in CI | endorsed, not verified | nothing was executed; the implementer's PR CI run shows it |\n\n",
+          "id": 6987991432,
+          "html_url": "https://github.com/deftai/directive/issues/6585#issuecomment-6987991432",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:38:14Z",
+          "updated_at": "2026-11-18T18:38:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: since the Go installer was removed (#5490), the Go CI lane tests and builds nothing; its Go steps only print \"skipping\". It still sets up a paid runner, installs dependencies, sets up Go and builds the TypeScript CLI on every non-artifact-only CI run, and the capacity watchdog polls it and can start a hosted copy of it.\n\nAccepted solution: delete the three Go jobs and the Go arm of the watchdog and arm jobs in `ci.yml`, removing only the Go operand from shared conditions; delete the Go steps in `ci-lane.yml` and keep its `suite` input with `ts` only; drop the Go assertions from the CI contract test; and drop Go from the CI runner, watchdog and required-check lines in `content/scm/github.md`.\n\nLimits accepted: the merge-readiness classifier still knows the `Go (test + build)` name but only reads checks that are present, so it stays unchanged. The merge gate's Go setup, `verify:go-freeze`, `go.mod`, the remaining Go files and `release.yml` are untouched. The design adds no gate, check name or refusal; `Go (test + build)` was not a required check. It was checked by reading the source at the pinned commit; nothing was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6987929723.\nverified-claims table 6987991432\n\nConfirm conjunct: yolo standing (Stop 1 6987846588, `yolo-standing: on`). Round-1 critic: comment 6987913661, posted by the parent verbatim as disclosed on panel-deposit 6987849848; its one classified finding is accepted on the lean. Clean audit of the bound lean: comment 6987976382 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 6.\n\n",
+          "id": 6987997097,
+          "html_url": "https://github.com/deftai/directive/issues/6585#issuecomment-6987997097",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:38:29Z",
+          "updated_at": "2026-11-18T18:38:29Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nSince #5490 removed the Go installer, the Go suite's test and build steps only print \"Go installer removed (AC10.10 / #5490); skipping\" (`.github/workflows/ci-lane.yml:83-108`). The job still checks out, sets up Node, runs `pnpm install`, sets up Go and builds the TypeScript CLI first (`ci-lane.yml:32-44, 73-81`).\n\nIt runs on a Blacksmith 4-vCPU runner (`go-primary`), has a GitHub-hosted failover (`go-failover`) and an aggregator (`go`, check name `Go (test + build)`) in `.github/workflows/ci.yml`. It runs on every PR, merge-group and master push that is not artifact-only.\n\n## Evidence (2026-11-17)\n\nIn push run 44167008030 the Go primary took 43s and its aggregator 10s, to test nothing. `Go (test + build)` is not a required check: live branch protection requires only `TypeScript (build + lint + test)` and `Merge gate (task check)`.\n\n## Wanted behavior\n\nRemove, in one change:\n\n- the `go-primary`, `go-failover` and `go` jobs in `ci.yml`, the Go arm of the capacity watchdog and arm jobs (`go_failover`), and the Go rows in the `ci.yml` header table;\n- the Go steps in `ci-lane.yml`;\n- the assertions that pin those jobs in `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts` (around lines 178-197);\n- the Go lane and the `Go (test + build)` required-check mention in `content/scm/github.md:593-595`.\n\n## Out of scope\n\n- `verify:go-freeze` in the merge gate, and `go.mod`, which the merge gate's Go setup still reads for `toolchain:check`.\n- The remaining Go files (`content/templates/embed.go`, `embed_test.go`) and the frozen Go jobs in `release.yml`. Note for a follow-up: `embed_test.go` is a drift test that has run nowhere since #5490, because this lane only echoes.\n- #1979 (delete the Go installer source and build pipeline) was closed not-planned on 2026-10-22 as superseded by #5490; this issue does not reopen it.\n\n## Related\n\n#5490, #1979.\n\n## Source\n\nPrompted by https://vincent.build/openclaw-ci-cost-reduction/ (a skip is worth most before the runner starts). Actionable now; small.\n\n## Critic verdict (process-only, pre-issue)\n\nThis is a critic verdict, not an arc stamp. One independent critic reviewed this issue against the tree at `b905cfadf`. No blocking finding. Two sharpens-framing findings applied: the contract test and doc lines that pin the Go jobs are now in the wanted behavior, and the out-of-scope list names the Go files that actually remain. The critic found no script or readiness code that breaks when the jobs are removed.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6454553483,
+        "origin": "deftai/directive#6585",
+        "id": "github.issue.6454553483"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d755029e32674e1e58e572922dfc59f744e2ec7ea48ab872a844dbc1cdc3ff99"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6585,
+        "leanCommentId": 6987929723,
+        "harvestDigest": "0287c68bd38e301d18296804897587d510caa70ad9aa6e9a942bbbb142951d92",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (8), in list order (#6333)",
+      "sentences": [
+        "Jobs. In `.github/workflows/ci.yml`, delete the `go-primary`, `go-failover` and `go` jobs. In `capacity-watchdog` and `capacity-arm`, delete every Go variable, output, classify call and cancel call, and remove only the Go operand from each shared condition (the poll loop ends when the TypeScript and merge-gate primaries are not pending; cancel and notice lines cover the two remaining flags). Remove the Go rows and Go words from the header table and the watchdog comments. TypeScript and merge-gate behaviour is unchanged.",
+        "Lane. In `.github/workflows/ci-lane.yml`, delete the Go steps, change the three `inputs.suite == 'ts' || inputs.suite == 'go'` conditions to `inputs.suite == 'ts'`, rename the step `Setup Node (ts + go)` to drop Go, and drop Go from the header comment and the `suite` input description. The `suite` input stays.",
+        "Contract test. In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions, drop `go-primary` and `go` from the artifact-only skip test while keeping the merge-gate and Windows checks, and drop Go from the watchdog test title.",
+        "Docs. In `content/scm/github.md`, drop Go from the Blacksmith runner line, the watchdog line and the required-check name list.",
+        "In `.github/workflows/ci.yml`, the `go-primary`, `go-failover` and `go` jobs and every Go output, operand, classify and cancel call in `capacity-watchdog` and `capacity-arm` are gone, and the TypeScript and merge-gate arms behave as before.",
+        "In `.github/workflows/ci-lane.yml`, the Go steps are gone and the setup steps run only for `suite: ts`.",
+        "In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, no assertion requires a Go job or the Go aggregator row, and the merge-gate and Windows artifact-only checks remain.",
+        "In `content/scm/github.md`, the CI runner, watchdog and required-check lines no longer name Go or `Go (test + build)`."
+      ],
+      "admitted_source_sentences": [
+        "Jobs. In `.github/workflows/ci.yml`, delete the `go-primary`, `go-failover` and `go` jobs. In `capacity-watchdog` and `capacity-arm`, delete every Go variable, output, classify call and cancel call, and remove only the Go operand from each shared condition (the poll loop ends when the TypeScript and merge-gate primaries are not pending; cancel and notice lines cover the two remaining flags). Remove the Go rows and Go words from the header table and the watchdog comments. TypeScript and merge-gate behaviour is unchanged.",
+        "Lane. In `.github/workflows/ci-lane.yml`, delete the Go steps, change the three `inputs.suite == 'ts' || inputs.suite == 'go'` conditions to `inputs.suite == 'ts'`, rename the step `Setup Node (ts + go)` to drop Go, and drop Go from the header comment and the `suite` input description. The `suite` input stays.",
+        "Contract test. In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions, drop `go-primary` and `go` from the artifact-only skip test while keeping the merge-gate and Windows checks, and drop Go from the watchdog test title.",
+        "Docs. In `content/scm/github.md`, drop Go from the Blacksmith runner line, the watchdog line and the required-check name list.",
+        "In `.github/workflows/ci.yml`, the `go-primary`, `go-failover` and `go` jobs and every Go output, operand, classify and cancel call in `capacity-watchdog` and `capacity-arm` are gone, and the TypeScript and merge-gate arms behave as before.",
+        "In `.github/workflows/ci-lane.yml`, the Go steps are gone and the setup steps run only for `suite: ts`.",
+        "In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, no assertion requires a Go job or the Go aggregator row, and the merge-gate and Windows artifact-only checks remain.",
+        "In `content/scm/github.md`, the CI runner, watchdog and required-check lines no longer name Go or `Go (test + build)`."
+      ],
+      "admitted_source_digest": "46e7b0b11ba8fa4ee5ca8d6b00d6229a0f1c1184702da61d5716b823998bf7ed",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Jobs. In `.github/workflows/ci.yml`, delete the `go-primary`, `go-failover` and `go` jobs. In `capacity-watchdog` and `capacity-arm`, delete every Go variable, output, classify call and cancel call, and remove only the Go operand from each shared condition (the poll loop ends when the TypeScript and merge-gate primaries are not pending; cancel and notice lines cover the two remaining flags). Remove the Go rows and Go words from the header table and the watchdog comments. TypeScript and merge-gate behaviour is unchanged.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Lane. In `.github/workflows/ci-lane.yml`, delete the Go steps, change the three `inputs.suite == 'ts' || inputs.suite == 'go'` conditions to `inputs.suite == 'ts'`, rename the step `Setup Node (ts + go)` to drop Go, and drop Go from the header comment and the `suite` input description. The `suite` input stays.",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Contract test. In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions, drop `go-primary` and `go` from the artifact-only skip test while keeping the merge-gate and Windows checks, and drop Go from the watchdog test title.",
+          "artifact_path": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Docs. In `content/scm/github.md`, drop Go from the Blacksmith runner line, the watchdog line and the required-check name list.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "In `.github/workflows/ci.yml`, the `go-primary`, `go-failover` and `go` jobs and every Go output, operand, classify and cancel call in `capacity-watchdog` and `capacity-arm` are gone, and the TypeScript and merge-gate arms behave as before.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "In `.github/workflows/ci-lane.yml`, the Go steps are gone and the setup steps run only for `suite: ts`.",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, no assertion requires a Go job or the Go aggregator row, and the merge-gate and Windows artifact-only checks remain.",
+          "artifact_path": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "In `content/scm/github.md`, the CI runner, watchdog and required-check lines no longer name Go or `Go (test + build)`.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6454553483",
+    "updated": "2026-11-18T18:55:17Z"
+  }
+}

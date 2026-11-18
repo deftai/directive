@@ -1,0 +1,700 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6647",
+    "updated": "2026-11-18T18:23:02Z"
+  },
+  "plan": {
+    "title": "enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows",
+    "status": "running",
+    "narratives": {
+      "Description": "Four small CLI frictions each cost a retry: deft verify:* refuses a lone double dash, a refused occupancy:release and session:start print only part of the command to run, and xbrief:preflight fails on a Git Bash absolute path. This story fixes the four with the accepted thin remedy and adds no gate, verb or stored file; the bare-release default is #6679 and the finalize sh item belongs to the installer maintainer.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6647",
+      "UserStory": "As a Directive operator or agent on Windows, I want the verify, release, preflight and session start commands to accept the arguments I naturally type and to print the whole command to run again, so that each of these frictions no longer costs a retry.",
+      "ImplementationPlan": "1. In `packages/runtime/src/dispatch.ts` add one helper that drops a single leading lone `--` for verify verbs before `handlerArgv` is built, with a vitest case in `packages/runtime/src/dispatch-verify-double-dash.test.ts`. 2. In `packages/core/src/session/occupancy.ts` extend the release refusal and `formatOccupancyMintRefusal` with one re-run command builder, and pass the invoked verb and argv from `packages/runtime/src/session-start.ts` and `session-ready.ts` through the core session options; test in `packages/core/src/session/occupancy-rerun-command.test.ts`. 3. In `packages/runtime/src/vbrief-preflight.ts` normalise the path once in `run` before any reader, and extend `vbrief-preflight.test.ts`. 4. Run the vitest files serially plus tsc, biome and the verify gates as evidence.",
+      "Traces": "#6647",
+      "Overview": "\n1. `verify:*` double dash. In `packages/runtime/src/dispatch.ts` `dispatch`, one helper drops `rest[0]` when it is exactly `--` and the invoked verb or its canonical name is a `verify:` / `verify-` verb, before `handlerArgv` is built. Later `--` tokens and other verbs are untouched. Per-verb parsers are not edited.\n2. Release recovery message. When `occupancy:release` is refused, the message (`releaseOccupancy`, `packages/core/src/session/occupancy.ts`) prints the exact `deft occupancy:release --session-id=<id>` command with the caller's resolved id filled in, or a marked template (`<your-session-id>`) when the caller presented none. The identity chain is unchanged: no new identity source, and the lease file's `session_id` is never filled in. The bare-release default outside the hook path is #6679.\n3. Preflight path. In `packages/runtime/src/vbrief-preflight.ts` `run`, before any reader: on win32 map a `/<letter>/...` path to `<letter>:/...`. When the result is absolute and the current directory is the project root that contains it, convert it to a repo-relative path. Otherwise pass the native absolute path unchanged. Ownership check, `evaluate`, work-claim scan and advisory reads all receive the same normalised path. No new refusal.\n4. Re-run command. The refuse-mint message (`formatOccupancyMintRefusal`, `packages/core/src/session/occupancy.ts`) prints one full command: the invoked verb (`session:start` or `session:ready`) with the caller's own arguments, minus any `--session-id`, each argument quoted for the detected shell, plus `--session-id=<id>` when an id is suggested. When no id is known, the line is marked as a template (`<host-published-id>`) and says so. The runtime passes the invoked verb and arguments to the message builder.\n\n## Acceptance Criteria\n\n- In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every `verify:*` verb, so `deft verify:<name> -- <args>` and `task verify:<name> -- <args>` reach the verb with the same arguments.\n- In `packages/core/src/session/occupancy.ts`, the `occupancy:release` refusal prints the exact command with the caller's id filled in.\n- In `packages/runtime/src/vbrief-preflight.ts`, an absolute path (including the Git Bash `/<drive>/...` form on Windows) is accepted at the CLI entry, converted to a repo-relative path when the current directory is the project root and otherwise passed on as a native absolute path to every reader.\n- In `packages/core/src/session/occupancy.ts`, when `session:start` or `session:ready` cannot resolve a session id, the refusal prints the full re-run command with the caller's own arguments quoted and the suggested `--session-id` filled in, or a marked template when no id is known.\n\n\n",
+      "Constraint": "- Matching the print-only companion against the applying-host record as proof of caller identity (comment 6987280321, finding 1).\n- Converting an absolute path to repo-relative regardless of the current directory (comment 6987280321, finding 2).\n- Defaulting a bare release to the lease file's `session_id` (Stop 1 constraint; `releaseOccupancy` doc comment, #3954).\n- Treating a clearer refusal as the bare-release default (audit 6987345358, finding 1); that default is #6679.",
+      "Labels": "enhancement, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "`verify:*` double dash. In `packages/runtime/src/dispatch.ts` `dispatch`, one helper drops `rest[0]` when it is exactly `--` and the invoked verb or its canonical name is a `verify:` / `verify-` verb, before `handlerArgv` is built. Later `--` tokens and other verbs are untouched. Per-verb parsers are not edited.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Release recovery message. When `occupancy:release` is refused, the message (`releaseOccupancy`, `packages/core/src/session/occupancy.ts`) prints the exact `deft occupancy:release --session-id=<id>` command with the caller's resolved id filled in, or a marked template (`<your-session-id>`) when the caller presented none. The identity chain is unchanged: no new identity source, and the lease file's `session_id` is never filled in. The bare-release default outside the hook path is #6679.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Preflight path. In `packages/runtime/src/vbrief-preflight.ts` `run`, before any reader: on win32 map a `/<letter>/...` path to `<letter>:/...`. When the result is absolute and the current directory is the project root that contains it, convert it to a repo-relative path. Otherwise pass the native absolute path unchanged. Ownership check, `evaluate`, work-claim scan and advisory reads all receive the same normalised path. No new refusal.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Re-run command. The refuse-mint message (`formatOccupancyMintRefusal`, `packages/core/src/session/occupancy.ts`) prints one full command: the invoked verb (`session:start` or `session:ready`) with the caller's own arguments, minus any `--session-id`, each argument quoted for the detected shell, plus `--session-id=<id>` when an id is suggested. When no id is known, the line is marked as a template (`<host-published-id>`) and says so. The runtime passes the invoked verb and arguments to the message builder.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every `verify:*` verb, so `deft verify:<name> -- <args>` and `task verify:<name> -- <args>` reach the verb with the same arguments.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When `deft verify:<name> -- <args>` runs, the verb receives exactly the arguments that `task verify:<name> -- <args>` passes to the verb, and a later `--` or a non-verify verb is left unchanged."
+        }
+      },
+      {
+        "title": "In `packages/core/src/session/occupancy.ts`, the `occupancy:release` refusal prints the exact command with the caller's id filled in.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "A refused `occupancy:release` prints one command line `deft occupancy:release --session-id=<caller id>`, or the marked template `<your-session-id>` when the caller presented no id, and never prints the lease file's session id as the caller's."
+        }
+      },
+      {
+        "title": "In `packages/runtime/src/vbrief-preflight.ts`, an absolute path (including the Git Bash `/<drive>/...` form on Windows) is accepted at the CLI entry, converted to a repo-relative path when the current directory is the project root and otherwise passed on as a native absolute path to every reader.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "`xbrief:preflight` given a native absolute path or a Git Bash `/c/...` path inside the project exits 0 for a ready brief, and every reader receives the same repo-relative path from the project root or the same native absolute path from elsewhere."
+        }
+      },
+      {
+        "title": "In `packages/core/src/session/occupancy.ts`, when `session:start` or `session:ready` cannot resolve a session id, the refusal prints the full re-run command with the caller's own arguments quoted and the suggested `--session-id` filled in, or a marked template when no id is known.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When `session:start` or `session:ready` is refused, it prints one quoted command with the caller's own arguments and `--session-id=<suggested id>`, or the marked template `<host-published-id>` with a line saying no id is known."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6647",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6647: enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft verify:<name> -- <args>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "task verify:<name> -- <args>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/vbrief-preflight.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "packages/runtime/src/session-start.ts",
+          "packages/runtime/src/session-ready.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-ready.ts",
+          "packages/runtime/src/dispatch-verify-double-dash.test.ts",
+          "packages/core/src/session/occupancy-rerun-command.test.ts",
+          "changelog.d/6647-cli-friction.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "session-occupancy-cli",
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/dispatch-verify-double-dash.test.ts packages/runtime/src/vbrief-preflight.test.ts packages/core/src/session/occupancy-rerun-command.test.ts"
+        ],
+        "expected_outputs": [
+          "deft verify:<name> -- <args> reaches the verb with the same arguments as task verify:<name> -- <args>",
+          "the occupancy:release refusal and the session:start / session:ready refuse-mint message print one full command with the caller's id or a marked template",
+          "xbrief:preflight accepts a native or Git Bash absolute path",
+          "one changelog fragment changelog.d/6647-cli-friction.md"
+        ],
+        "Traces": [
+          "#6647"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/vbrief-preflight.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "packages/runtime/src/session-start.ts",
+          "packages/runtime/src/session-ready.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-ready.ts",
+          "packages/runtime/src/dispatch-verify-double-dash.test.ts",
+          "packages/core/src/session/occupancy-rerun-command.test.ts",
+          "changelog.d/6647-cli-friction.md"
+        ],
+        "module_boundary": "dispatch.ts keeps owning verb argv shaping; one small helper drops the leading lone double dash for verify verbs. occupancy.ts keeps owning the release remediation and refuse-mint messages and gains one re-run command builder. The runtime session-start and session-ready entries pass the invoked verb and argv to core as one optional field. vbrief-preflight.ts normalises the path once before any reader. No new module, gate, verb or stored file; new tests go in new files beside the existing ones.",
+        "cohesion_exemption": "packages/core/src/session/occupancy.ts (4061 lines), packages/core/src/session/session-start.ts (3297 lines) and packages/runtime/src/dispatch.ts (3635 lines) are the existing homes of occupancy messages, the session-start options and verb argv shaping. The story adds one helper or one optional field in each; splitting those files is out of scope for a friction fix."
+      },
+      "issueCommentThread": [
+        {
+          "body": "Triage (design-critique: not warranted, because each item is a thin argument, default or message fix with one obvious shape; none adds or removes a gate or raises a policy question):\n\n- **`deft verify:*` rejects `--`.** Some parsers already skip a lone `--` (`xbrief/create.ts`, `xbrief/verify.ts`, `xbrief/adopt-stored-plan-id.ts`); the `verify:*` parsers do not. Fix: skip a lone `--` in one shared argv helper used by every verb, so `deft` and `task` take the same arguments.\n- **`occupancy:release` needs `--session-id`.** Fix: when the flag is absent, default to the caller's own identity (`DEFT_SESSION_ID`, then the host-published applying-host id), the same source the hook rewrite already injects for bare lifecycle commands. Never default to the live occupant: a bare release must not free another session's lease. Refuse only when no caller identity resolves, and print the exact command.\n- **`xbrief:preflight` refuses an absolute path.** The evaluator itself reads `dirname`/`basename` and accepts absolute paths, so the refusal comes from an entry-side check. Fix: normalize the argument to a repo-relative path once at the CLI entry (reject only a path outside the project root). Needs a repro to name the exact refusing line.\n- **`session:start` needs the host session id.** Thin part: on the first failure, print the full re-run command with the resolved `--session-id=host:...` filled in, so one retry always works. Auto-detection from the applying-host record is the same default as the release item. If the cause is that the host hook did not run or publish the id for that invocation, that is hook invocation (polfer's area): symptoms only, no design here.\n- **finalize's acceptance test needs `sh` on Windows.** Symptoms only (likely polfer's area). The named suites do not spawn `sh` themselves: the literal-acceptance runner uses `cmd.exe` on win32 and `swarm/subprocess.ts` runs with `shell: false`. The `finalize-realgit-4714` suite runs real `git commit`/`push` in temp repos, so the `sh` need most likely comes from a git hook or launcher shim reached through git config. That is the git-hook or launcher path, so it goes to polfer with a repro (exact command, error text and `git config --show-origin --get core.hooksPath`).\n\nOne small build can cover items 1 to 4. Item 5 needs a repro and polfer's call.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\r\n\n",
+          "id": 6970363599,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6970363599",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:50:56Z",
+          "updated_at": "2026-11-18T05:50:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Original issue text, moved from the body so ingest only admits the criteria:\n\n## Summary\n\nSmall CLI and flag inconsistencies cost a retry each time and trip workers. None is large; together they are daily friction.\n\n## Evidence\n\nSeen while working #6588, #6599, #6601 and #6602:\n- `deft verify:*` rejects `--`, while `task verify:*` requires it.\n- `occupancy:release` needs an explicit `--session-id` even when the session is the current one.\n- `xbrief:preflight` refuses an absolute path.\n- `session:start` needs the host session id and only prints it on the first failure (`--session-id=host:claude:v1:...`), then must be re-run.\n- finalize's acceptance test needs `sh` on PATH on Windows and fails otherwise.\n\n## Expected\n\n- `deft verify:*` and `task verify:*` take the same arguments, with or without `--`.\n- `occupancy:release` defaults to the current session.\n- `xbrief:preflight` accepts absolute paths.\n- `session:start` detects the host session id, or prints the full re-run command.\n- The finalize acceptance test finds a shell on Windows or says how to fix PATH.\n\n## Workaround used today\n\nRetry with the printed flag, relative paths, an explicit `--session-id`, and Git Bash on PATH.\n\nRefs #6588, #6599, #6601, #6602\n\n",
+          "id": 6986777181,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6986777181",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T17:49:12Z",
+          "updated_at": "2026-11-18T17:49:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6647; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and item 2 decides which identity a bare `occupancy:release` acts under, which is an authority question, not only a message. This supersedes the earlier triage record on this thread (comment 6970363599), whose per-item fixes are the starting point below.\n\nTarget-digest: sha256:1fb15ed202f1ccd2f7f835647affbafbfeb8708b11773096bd4f7eb7b59e60d3\ndispatch-sha: 41fcd4b57753ee1e00322ea2bc2ae964b550b4a4\ndest: .deft-scratch/worktrees/arc-6647 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; four small, independent CLI fixes; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 41fcd4b57753ee1e00322ea2bc2ae964b550b4a4: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\npain: P4\n\n## In plain English\nFour small CLI frictions each cost a retry. `deft verify:*` refuses a lone `--`, which `task verify:*` users type by habit. A bare `occupancy:release` cannot tell who is calling on a host that does not put its session id in the environment, so it refuses. `xbrief:preflight` refused an absolute path for workers. And when `session:start` cannot work out the session id, it prints only the flag to add, not the command to run again.\n\nThe recommended fix is one small change per item: drop a lone leading `--` once in the shared verb dispatcher for `verify:*` verbs; let a bare release fall back to the worktree's applying-host record only when this process can show it is that same session; normalise an absolute path at the preflight entry; and print the full `session:start` command with the id filled in. No new gate, refusal, grant or verb.\n\nPain source: the four pains are the issue's `## Acceptance Criteria` items as written.\n\n## Pains\n- P1 — `deft verify:*` drops a lone `--` in one shared argv helper, so `deft` and `task` take the same arguments.\n- P2 — `deft occupancy:release` without `--session-id` defaults to the caller's own identity (`DEFT_SESSION_ID`, then the applying-host id) and never to the live occupant.\n- P3 — `deft xbrief:preflight` accepts an absolute path by converting it to a repo-relative path at the CLI entry.\n- P4 — `deft session:start` prints the full re-run command with the resolved `--session-id` filled in when the id is missing.\n\n## Excluded (not pains, not in this arc)\n- Original item 5 (the finalize acceptance test needs `sh` on PATH on Windows; comment 6986777181). The triage traced it to a git hook or launcher shim reached through git config. That is git-hook and launcher territory, owned by the installer/OVPR maintainer (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` §5). Symptoms only; no design here.\n- Making the host hook publish or refresh its session id (the applying-host record, SessionStart deposit). That is hook invocation, owned by the same maintainer. This arc only reads what is already published.\n- Making `session:start` adopt a printed id by itself. #4066 and #4431 deliberately keep the print companion out of the claim path; this arc does not reopen that.\n\n## Constraints (not pains)\n- No new gate, refusal, grant template, policy flag or verb.\n- A bare release must never free a lease the caller does not own (#3954 item 4, `releaseOccupancy` doc comment).\n- Behaviour that works today keeps working (for example an absolute path into a linked worktree, which the parent ran successfully).\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/dispatch.ts` 3520-3632 `dispatch`: 3531 `const [verb, ...rest] = argv`; 3595-3616 build `handlerArgv` from `rest`; 3624 `invokeHandler`. Every runtime verb passes through here. Per-verb parsers reject `--`: for example `packages/runtime/src/verify-story-ready.ts` 96. Parent repro on the 0.129.14 pin: `deft verify:story-ready -- --vbrief-path <p>` and `deft verify:orphan-active -- --help` both exit 2 with `unrecognized argument: --`. Some parsers already skip it (`xbrief/create.ts` 162, `xbrief/verify.ts` 105, `packages/runtime/src/vbrief-preflight.ts` 96, `docs/docs-impact.ts` 537).\n- `packages/runtime/src/occupancy-release.ts` 87-106 passes `--session-id` (or nothing) to `releaseOccupancy`. `packages/core/src/session/occupancy.ts` 1654-1678 `resolvePresentedIdentity`: explicit, then `DEFT_SESSION_ID`, then `ambientHostSessionOwner` (host-env providers only, `session/host-session-owner.ts` 191-198), else empty. 2558-2612 `releaseOccupancy`: empty or foreign caller on a live lease is denied. 552-597 `readApplyingHost` reads the worktree applying-host record (`provider`, `rawSessionId`, `applyingHostSessionId`, freshness). `host-session-owner.ts` 223-229 and 250: `CLAUDE_CODE_SESSION_ID` is a print-only companion, not an identity source, because child sessions inherit it. `packages/core/src/hooks/dispatcher.ts` 4321-4366: the hook rewrite already uses the applying-host id for bare lifecycle commands it can see; a CLI call the hook does not rewrite (compound, Task, other shells) gets nothing.\n- `packages/runtime/src/vbrief-preflight.ts` 153-170 `run` passes the path straight to `evaluate`; `packages/core/src/preflight/evaluate.ts` 165-176 `statSync(path)` and 209-210 read `dirname`/`basename`. Parent repro on the 0.129.14 pin: `C:\\...` and `C:/...` absolute paths pass, in the primary and into a linked worktree; a Git Bash form `/c/Repos/...` passed without MSYS conversion (from PowerShell) fails with `vBRIEF not found`. The worker refusal in the issue evidence was not reproduced beyond that.\n- `packages/core/src/session/occupancy.ts` 1581-1599 `formatOccupancyMintRefusal` prints `Re-run with --session-id=<id>` (flag only); 1772-1785 the refuse-mint branch; callers `packages/core/src/session/session-start.ts` 1803-1819 and 2418-2431, `packages/core/src/session/session-ready.ts` 207-222.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1). One helper in `packages/runtime/src/dispatch.ts`, used in `dispatch` before `handlerArgv` is built: when the invoked verb or its canonical name is a `verify:*` / `verify-*` verb and `rest[0]` is exactly `--`, drop that one token. Later `--` tokens are untouched. Per-verb parsers are not edited.\n- R2 (P2). In `resolvePresentedIdentity`'s release use (or a release-only wrapper in `occupancy.ts`), after explicit, `DEFT_SESSION_ID` and the host-env owner, add one more source: the worktree applying-host record, only when it reads `ok` and this process's own host id for that provider (host-env variable or print companion) equals the record's `rawSessionId`. Otherwise the caller stays empty and today's refusal stands, with the exact `occupancy:release --session-id=<id>` command printed. The lease file's `session_id` is never a source.\n- R3 (P3). In `packages/runtime/src/vbrief-preflight.ts` `run`, before `evaluate`: on win32 map a `/<letter>/...` path to `<letter>:/...`; then, when the path is absolute and inside the current project root, convert it to a repo-relative path. A path outside the project root is passed on unchanged, as today. No new refusal.\n- R4 (P4). The refuse-mint message prints the full command: `deft session:start` (or `session:ready`) plus the caller's own flags minus any `--session-id`, plus `--session-id=<suggested id>`, or `--session-id=<host-published-id>` when no id is known. The runtime passes the invoked verb and flags to the core message builder.\n\nQuestions for the critic:\n1. R1: is the dispatcher the right shared place, and is \"leading `--` on `verify:*` verbs only\" the right scope, or should it apply to every verb?\n2. R2: is the print-companion match enough to show the caller is the applying host, so a bare release can never free another session's lease? Is there a smaller safe source?\n3. R3: given the parent could not reproduce a refusal for `C:\\` or `C:/` paths, is the drive-letter mapping plus repo-relative conversion the right reading of P3?\n4. R4: is passing the invoked flags into the message the smallest way to print a full, runnable command?\n\n",
+          "id": 6987201830,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987201830",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:06:45Z",
+          "updated_at": "2026-11-18T18:06:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6987207321\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 41fcd4b57753ee1e00322ea2bc2ae964b550b4a4\ndest: .deft-scratch/worktrees/arc-6647\nverification-path: pin-read git show 41fcd4b57753ee1e00322ea2bc2ae964b550b4a4: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6987201830\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6987207321,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987207321",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:06:59Z",
+          "updated_at": "2026-11-18T18:07:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThese four CLI inconsistencies cause avoidable retries. The dispatcher fix is appropriately small, but the proposed release fallback is unsafe: a child can inherit its parent’s printed session identity, match the shared record, and release the parent’s lease. The path conversion can also break working absolute paths when called from a repository subdirectory.\n\nMy answers to the four questions:\n\n1. The dispatcher is the right shared location. Removing one leading `--` for verification verbs is a reasonable scope; extending it to every verb needs separate justification.\n2. A print-companion match does not establish caller identity. The existing explicit, `DEFT_SESSION_ID`, and unambiguous host-environment sources are the smaller supported chain. Without another trusted identity source, the existing refusal remains necessary.\n3. Native absolute paths already reach filesystem operations unchanged. Supporting Git Bash drive notation is a distinct compatibility change; converting working absolute paths to repository-relative paths is unnecessary and risks changing their meaning.\n4. Original arguments are useful for reconstructing a retry, but a runnable command also needs shell-appropriate quoting. A command containing an unresolved identity placeholder is guidance, not a runnable retry.\n\nEvidence below comes from source reads pinned to `41fcd4b57753ee1e00322ea2bc2ae964b550b4a4`. No tests or runtime reproductions were performed.\n\n## 1. blocks-the-design — An inherited print companion can authorize release of the parent’s lease\n\n**Evidence:** `packages/core/src/session/host-session-owner.ts:215–228` explicitly excludes print companions from occupancy identity because `CLAUDE_CODE_SESSION_ID` is inherited by child sessions. `packages/core/src/session/occupancy.ts:552–595` validates the applying-host record’s structure and freshness, not the calling process. At `occupancy.ts:2572–2599`, release uses the presented identity and admits a live lease when that identity equals its owner.\n\n**Failure mode:** Parent A owns the lease and has a fresh applying-host record. Child B inherits A’s print companion, has no explicit or accepted ambient identity, and invokes bare release without hook rewriting. R2’s equality check succeeds against A’s record. Release consequently treats B as A.\n\nThe strongest argument for R2 is that two matching values seem stronger than one. Here they are correlated copies of the parent’s identity; freshness does not make them independent proof. The existing hook path instead supplies a resolved hook identity to admission (`packages/core/src/hooks/dispatcher.ts:4321–4326`).\n\n**Disposition consequence:** R2 cannot bind as written. Excluding print companions preserves the existing supported identity chain. A different verdict requires an independently trusted caller identity, not another comparison against shared state. Ambiguous ambient-host resolution must also remain unresolved rather than selecting whichever provider matches the record.\n\n## 2. blocks-the-design — Repository-relative conversion can redirect preflight\n\n**Evidence:** `packages/runtime/src/vbrief-preflight.ts:166–186` passes the same path to ownership checking, evaluation, work-claim scanning, and advisory reads. Its ownership check explicitly supports cross-directory callers. `packages/core/src/preflight/evaluate.ts:165–185` directly calls `statSync` and `readFileSync` on the supplied path.\n\n**Failure mode:** From `C:/repo/packages/core`, a caller supplies `C:/repo/xbrief/active/story.xbrief.json`. Converting that to repository-relative `xbrief/active/story.xbrief.json` makes the existing filesystem calls resolve it beneath `C:/repo/packages/core`, producing a false missing-file refusal—or inspecting a different file if that nested path exists.\n\n**Disposition consequence:** R3 cannot bind with repository-relative conversion alone. Keeping native absolute paths intact is the smaller remedy. Git Bash drive mapping can be considered separately, with the resulting absolute path passed consistently to every consumer. The reported native-absolute-path failure remains unsubstantiated; this review does not reproduce the parent’s runtime observations.\n\n## 3. sharpens-framing — “Full command” needs argument preservation and an explicit unresolved state\n\n**Evidence:** `packages/core/src/session/occupancy.ts:1581–1593` currently distinguishes a known suggested identity from an unresolved placeholder and sanitizes the suggested identity through `commandSessionId`.\n\n**Failure mode:** Reconstructing a command by joining argument strings loses boundaries for paths containing spaces and can activate shell metacharacters. When the suggested identity is unknown, printing `<host-published-id>` cannot satisfy the promise that one copy-paste retry works.\n\n**Disposition consequence:** R4 is reasonable with a narrower claim: a known identity yields a command whose arguments survive parsing in the identified shell; an unknown identity yields a clearly marked template. Passing raw flags into core is an implementation choice, not itself the remedy.\n\n## 4. footnote — Thread instructions remained review data\n\nThe snapshot contains instruction-shaped constraints and recommendations, including “No new gate, refusal, grant template, policy flag or verb” and “Per-verb parsers are not edited.” I treated these as proposed design constraints to evaluate, not authority to execute commands or change files. The critique is complete; this comment is the handback for parent disposition.",
+          "id": 6987280321,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987280321",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:09:56Z",
+          "updated_at": "2026-11-18T18:09:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 6987201830 (round 1: 1 of 1 critic posted, comment 6987280321)\n\n## In plain English\nProblem: four small CLI frictions each cost a retry. `deft verify:*` refuses a lone `--` that `task verify:*` users type by habit. A bare `occupancy:release` refuses when the calling process presents no session id. `xbrief:preflight` refused an absolute path for workers (the parent could reproduce this only for the Git Bash `/c/...` form). And `session:start` prints only the flag to add when it cannot work out the session id, not the command to run again.\n\nWhat the critic found: the dispatcher is the right shared place for the `--` fix. Two parts of the first draft did not hold. Matching the printed session id against the worktree's applying-host record does not prove the caller is that session, because a child process inherits the same printed id; so a bare release could free the parent's lease. And converting every absolute path to a repo-relative one breaks a call made from a subdirectory. One point was made sharper: a \"full command\" must keep argument boundaries (quoting) and must say clearly when the id is unknown.\n\nSolution this lean proposes: drop one leading `--` for `verify:*` verbs in the dispatcher. Keep release on the caller's own identity chain (flag, then `DEFT_SESSION_ID`, then the host-env owner); the applying-host id stays a default only where the hook rewrite has proved the caller is that host; a refused bare release prints the exact command to run. Preflight maps the Git Bash drive form, converts to repo-relative only when the current directory is the project root, and otherwise passes the native absolute path to every reader. A refused `session:start` prints the whole command, quoted, with the id filled in, or a marked template when no id is known.\n\nWhat this adds: no new gate, refusal, grant, verb or stored file.\n\nWhat it does not do:\n- It does not read the lease file's `session_id` as a default, and it does not use the print-only companion as an identity.\n- It does not make `session:start` adopt a printed id by itself (#4066 / #4431).\n- It does not touch host hook publishing, git hooks or the finalize `sh` item (original item 5); those belong to the installer/OVPR maintainer.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:1fb15ed202f1ccd2f7f835647affbafbfeb8708b11773096bd4f7eb7b59e60d3\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 6987280321). Panel deposit: comment 6987207321.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. `verify:*` double dash. In `packages/runtime/src/dispatch.ts` `dispatch`, one helper drops `rest[0]` when it is exactly `--` and the invoked verb or its canonical name is a `verify:` / `verify-` verb, before `handlerArgv` is built. Later `--` tokens and other verbs are untouched. Per-verb parsers are not edited.\n2. Release identity. `occupancy:release` without `--session-id` keeps the caller's own chain in `resolvePresentedIdentity` (`packages/core/src/session/occupancy.ts`): explicit, then `DEFT_SESSION_ID`, then the unambiguous host-env owner. The applying-host id is the default only on the hook rewrite path (`hooks/dispatcher.ts` 4321-4366), where the hook has verified the caller is that host; the CLI never reads the applying-host record, the print-only companion or the lease file's `session_id` as an identity. When release is refused for an empty caller, the message prints the exact `deft occupancy:release --session-id=<id>` command, with the applying-host id named as the recorded host when the record is fresh, for the operator to run only if it is theirs.\n3. Preflight path. In `packages/runtime/src/vbrief-preflight.ts` `run`, before any reader: on win32 map a `/<letter>/...` path to `<letter>:/...`. When the result is absolute and the current directory is the project root that contains it, convert it to a repo-relative path. Otherwise pass the native absolute path unchanged. Ownership check, `evaluate`, work-claim scan and advisory reads all receive the same normalised path. No new refusal.\n4. Re-run command. The refuse-mint message (`formatOccupancyMintRefusal`, `packages/core/src/session/occupancy.ts`) prints one full command: the invoked verb (`session:start` or `session:ready`) with the caller's own arguments, minus any `--session-id`, each argument quoted for the detected shell, plus `--session-id=<id>` when an id is suggested. When no id is known, the line is marked as a template (`<host-published-id>`) and says so. The runtime passes the invoked verb and arguments to the message builder.\n\n## Acceptance Criteria\n- In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every `verify:*` verb, so `deft verify:<name> -- <args>` and `task verify:<name> -- <args>` reach the verb with the same arguments.\n- In `packages/core/src/session/occupancy.ts`, a bare `occupancy:release` acts only as the caller's own identity (flag, then `DEFT_SESSION_ID`, then the host-env owner, with the applying-host id used only on the hook rewrite path), never as the lease file's `session_id`, and its refusal prints the exact `occupancy:release --session-id=<id>` command.\n- In `packages/runtime/src/vbrief-preflight.ts`, an absolute path (including the Git Bash `/<drive>/...` form on Windows) is accepted at the CLI entry, converted to a repo-relative path when the current directory is the project root and otherwise passed on as a native absolute path to every reader.\n- In `packages/core/src/session/occupancy.ts`, when `session:start` or `session:ready` cannot resolve a session id, the refusal prints the full re-run command with the caller's own arguments quoted and the suggested `--session-id` filled in, or a marked template when no id is known.\n\n## Reject\n- Matching the print-only companion against the applying-host record as proof of caller identity (comment 6987280321, finding 1).\n- Converting an absolute path to repo-relative regardless of the current directory (comment 6987280321, finding 2).\n- Defaulting a bare release to the lease file's `session_id` (Stop 1 constraint; `releaseOccupancy` doc comment, #3954).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6987280321 | 1. An inherited print companion can authorize release of the parent's lease | blocks-the-design | accept-into-contract (item 2: Stop 1 R2 withdrawn; applying-host default stays on the hook path) |\n| comment 6987280321 | 2. Repository-relative conversion can redirect preflight | blocks-the-design | accept-into-contract (item 3: convert only at the project root, native absolute otherwise) |\n| comment 6987280321 | 3. \"Full command\" needs argument preservation and an explicit unresolved state | sharpens-framing | accept-into-contract (item 4) |\n\nFootnotes in the census, no take: comment 6987280321 finding 4.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The four `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6987299651,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987299651",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:10:44Z",
+          "updated_at": "2026-11-18T18:10:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:c09b0ea8098945edc81b6f74e07088858bdbcb4e71aca01ffe5c33c326406576\n\n## In plain English\n\nThe argument, path and retry-message remedies cover their stated frictions. The release remedy preserves the necessary safety boundary, but leaves the reported failure in place: a caller without an accepted environment identity, outside the hook rewrite path, still needs an explicit session id. A better refusal message helps recovery; it does not provide the promised bare-release default. The lean therefore cannot claim all four pains are relieved.\n\npain-P1: holds - Removing one leading separator before dispatcher argument construction covers the stated Task-style invocation, including verification aliases.\n\npain-P2: does not hold - The remedy preserves the existing identity chain and existing hook rewrite. The missing-identity CLI caller described at Stop 1 still receives a refusal and must retry explicitly.\n\npain-P3: holds - Drive-form normalization before every reader addresses the identified Windows compatibility case. Restricting relative conversion to calls at the containing project root preserves path meaning for subdirectory and cross-worktree callers.\n\npain-P4: holds - The remedy replaces flag-only guidance with the invoked command and preserved, shell-quoted arguments. Its explicit template state honestly covers cases where no identity is available.\n\n## 1. blocks-the-design — P2’s missing-identity release still requires the same retry\n\n**Evidence at `41fcd4b57753ee1e00322ea2bc2ae964b550b4a4`:**\n\n- `packages/runtime/src/occupancy-release.ts:97–102` passes the supplied session id and process environment to release.\n- `packages/core/src/session/occupancy.ts:1654–1676` already implements explicit id, `DEFT_SESSION_ID`, unambiguous host-environment owner, then empty identity.\n- `occupancy.ts:2572–2609` denies release of a live lease when that caller does not match its owner.\n- `packages/core/src/hooks/dispatcher.ts:4308–4326,4359–4364` already requires resolved hook identity and applies lifecycle admission before selecting the effective owner.\n\n**Concrete failure:** The legitimate owner invokes bare release through a CLI path without hook rewriting. Neither `DEFT_SESSION_ID` nor an accepted host-environment identity is present. Even with a fresh applying-host record, Bound remedy 2 deliberately leaves the caller empty. Release still refuses; the operator must supply the printed id.\n\nThe strongest case for the lean is valid: preserving this refusal prevents unsafe identity adoption, and printing a recovery command improves usability. But existing hook behavior plus clearer recovery does not relieve Stop 1’s promised applying-host fallback outside that path.\n\nThis is not a reopening of the accepted inherited-identity finding. It is a coverage consequence of withdrawing that mechanism: the replacement acceptance criterion permits the original failing scenario.\n\n**Disposition consequence:** The all-four-pains relief claim cannot bind. The smallest safe passing revision is an operator-confirmed split: retain the release diagnostic improvement, explicitly scope its acceptance criterion to recovery rather than automatic identity resolution, and defer the unmet bare-release fallback to a new issue. Record that issue only after creation and carry the appropriate deferred pain citation. Without that split, full P2 relief requires an independently trusted caller-identity mechanism; neither the shared record nor an inherited print companion supplies it.\n\n## 2. footnote — Verification and instruction boundary\n\nThese verdicts assess the proposed behavior against pinned source reads; no tests or runtime reproductions were performed. Supporting reads included `dispatch.ts:3553–3624`, `vbrief-preflight.ts:153–186`, `preflight/evaluate.ts:165–210`, and `occupancy.ts:1581–1599`.\n\nThe snapshot contains instruction-shaped text, including “Per-verb parsers are not edited” and “No new gate, refusal, grant template, policy flag or verb.” These were evaluated as proposed design constraints, not followed as execution instructions.",
+          "id": 6987345358,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987345358",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:12:37Z",
+          "updated_at": "2026-11-18T18:12:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6987345358 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6987299651\n\n## In plain English\nThe audit held three of the four pains as relieved: the `verify:*` double dash, the preflight path and the full `session:start` re-run command. It refused the second pain, and the parent agrees. After round 1 withdrew the applying-host fallback (a child process can carry its parent's printed id, so that match does not prove who is calling), a bare `occupancy:release` from a CLI path the hook does not rewrite still refuses when no `DEFT_SESSION_ID` or host-env owner is present. A clearer refusal message is recovery, not the bare-release default the pain asks for. No trusted caller identity exists on that path today, so this arc cannot relieve that part by a recut.\n\nThe Bound remedy on 6987299651 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:1fb15ed202f1ccd2f7f835647affbafbfeb8708b11773096bd4f7eb7b59e60d3\n\nrelieves: P1\ndoes-not-relieve: P2\nrelieves: P3\nrelieves: P4\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6987345358 | 1. P2's missing-identity release still requires the same retry | blocks-the-design | accept-into-contract (P2 needs a split: keep the release recovery message here, move the bare-release default to a new issue) |\n\nFootnotes in the census, no take: comment 6987345358 finding 2.\n\nAudit verdicts recorded: `pain-P1` holds; `pain-P2` does not hold; `pain-P3` holds; `pain-P4` holds.\n\n",
+          "id": 6987351255,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987351255",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:12:51Z",
+          "updated_at": "2026-11-18T18:12:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6987351255 (does-not-relieve `P2` on a Recut map)\nopen-question: Does the operator confirm splitting P2, so that this arc keeps the release recovery message (exact `occupancy:release --session-id=<id>` command on refusal) and a new issue carries the bare-release default for CLI paths the hook does not rewrite, which needs a trusted caller identity that does not exist today?\n\n## In plain English\nThree of four items are ready as audited: the `verify:*` double dash, the preflight path and the full `session:start` re-run command. The release item is not. Making a bare release work outside the hook path needs a way for the CLI to prove which session is calling; the applying-host record cannot prove it, because a child process carries its parent's printed id. Recommended way forward: split. This arc keeps the safe part (a refused release prints the exact command to run) with `operator-deferred: P2` naming a new issue for the bare-release default, then one recut and one audit. Other ways: halt and leave the issue as it is, or close the release item as works-as-designed. The split needs a live operator confirm; this run had none, so it stops here. Critic posts used so far: 2.\n\n",
+          "id": 6987355669,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987355669",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:13:02Z",
+          "updated_at": "2026-11-18T18:13:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because pain audit 6987345358 found P2 cannot be relieved without an operator-confirmed split (yolo standing does not confirm a split), and no operator turn is available in this run.\n\nRetraction map: comment 6987351255. Handoff with the open question and the recommended split: comment 6987355669. No lean on this thread is bound. Resume is an operator verb.\n\n",
+          "id": 6987358932,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987358932",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:13:10Z",
+          "updated_at": "2026-11-18T18:13:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-18) after the halt in comment 6987358932. The operator chose the split recommended in Handoff 6987355669, in his words: \"Split (Recommended)\".\n- This arc binds the `verify:*` double dash (P1), the preflight path (P3) and the full `session:start` re-run command (P4), as the audit held them, plus the release recovery message.\n- The bare-release default outside the hook rewrite path leaves this arc. It is filed as #6679. P2 is cited `operator-deferred` to #6679, because its default half stays unmet here.\n\nNo cap raise. Critic posts used: 2 of 6; the next audit is the third. The arc continues under Stop 1 6987201830.\n\n",
+          "id": 6987408649,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987408649",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:15:12Z",
+          "updated_at": "2026-11-18T18:15:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6987201830, after pain audit 6987345358 and the operator split in comment 6987408649 (round 1: 1 of 1 critic posted, comment 6987280321)\n\n## In plain English\nProblem: four small CLI frictions each cost a retry. `deft verify:*` refuses a lone `--` that `task verify:*` users type by habit. A bare `occupancy:release` refuses when the calling process presents no session id. `xbrief:preflight` refused an absolute path for workers (the parent could reproduce this only for the Git Bash `/c/...` form). And `session:start` prints only the flag to add when it cannot work out the session id, not the command to run again.\n\nWhat the critics found: the dispatcher is the right shared place for the `--` fix. Two parts of the first draft did not hold. Matching the printed session id against the worktree's applying-host record does not prove the caller is that session, because a child process inherits the same printed id; so a bare release could free the parent's lease. And converting every absolute path to a repo-relative one breaks a call made from a subdirectory. One point was made sharper: a \"full command\" must keep argument boundaries (quoting) and must say clearly when the id is unknown. The pain audit then held the double dash, path and re-run items and showed that a better release message does not give a bare-release default; the operator split that default out.\n\nSolution this lean proposes: drop one leading `--` for `verify:*` verbs in the dispatcher. A refused `occupancy:release` prints the exact command to run, with the caller's id filled in; the bare-release default outside the hook path is split to #6679 by the operator, because no trusted caller identity exists there today. Preflight maps the Git Bash drive form, converts to repo-relative only when the current directory is the project root, and otherwise passes the native absolute path to every reader. A refused `session:start` prints the whole command, quoted, with the id filled in, or a marked template when no id is known.\n\nWhat this adds: no new gate, refusal, grant, verb or stored file.\n\nWhat it does not do:\n- It does not add a bare-release default outside the hook path (split to #6679), does not read the lease file's `session_id`, and does not use the print-only companion as an identity.\n- It does not make `session:start` adopt a printed id by itself (#4066 / #4431).\n- It does not touch host hook publishing, git hooks or the finalize `sh` item (original item 5); those belong to the installer/OVPR maintainer.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:1fb15ed202f1ccd2f7f835647affbafbfeb8708b11773096bd4f7eb7b59e60d3\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 6987299651 (its release item claimed `P2` relieved; audit 6987345358 refused that, and retraction map 6987351255 withdrew it). Sibling count: 1 (comment 6987280321). Panel deposit: comment 6987207321.\n\nrelieves: P1\noperator-deferred: P2 #6679\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. `verify:*` double dash. In `packages/runtime/src/dispatch.ts` `dispatch`, one helper drops `rest[0]` when it is exactly `--` and the invoked verb or its canonical name is a `verify:` / `verify-` verb, before `handlerArgv` is built. Later `--` tokens and other verbs are untouched. Per-verb parsers are not edited.\n2. Release recovery message. When `occupancy:release` is refused, the message (`releaseOccupancy`, `packages/core/src/session/occupancy.ts`) prints the exact `deft occupancy:release --session-id=<id>` command with the caller's resolved id filled in, or a marked template (`<your-session-id>`) when the caller presented none. The identity chain is unchanged: no new identity source, and the lease file's `session_id` is never filled in. The bare-release default outside the hook path is #6679.\n3. Preflight path. In `packages/runtime/src/vbrief-preflight.ts` `run`, before any reader: on win32 map a `/<letter>/...` path to `<letter>:/...`. When the result is absolute and the current directory is the project root that contains it, convert it to a repo-relative path. Otherwise pass the native absolute path unchanged. Ownership check, `evaluate`, work-claim scan and advisory reads all receive the same normalised path. No new refusal.\n4. Re-run command. The refuse-mint message (`formatOccupancyMintRefusal`, `packages/core/src/session/occupancy.ts`) prints one full command: the invoked verb (`session:start` or `session:ready`) with the caller's own arguments, minus any `--session-id`, each argument quoted for the detected shell, plus `--session-id=<id>` when an id is suggested. When no id is known, the line is marked as a template (`<host-published-id>`) and says so. The runtime passes the invoked verb and arguments to the message builder.\n\n## Acceptance Criteria\n- In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every `verify:*` verb, so `deft verify:<name> -- <args>` and `task verify:<name> -- <args>` reach the verb with the same arguments.\n- In `packages/core/src/session/occupancy.ts`, the `occupancy:release` refusal prints the exact command with the caller's id filled in.\n- In `packages/runtime/src/vbrief-preflight.ts`, an absolute path (including the Git Bash `/<drive>/...` form on Windows) is accepted at the CLI entry, converted to a repo-relative path when the current directory is the project root and otherwise passed on as a native absolute path to every reader.\n- In `packages/core/src/session/occupancy.ts`, when `session:start` or `session:ready` cannot resolve a session id, the refusal prints the full re-run command with the caller's own arguments quoted and the suggested `--session-id` filled in, or a marked template when no id is known.\n\n## Reject\n- Matching the print-only companion against the applying-host record as proof of caller identity (comment 6987280321, finding 1).\n- Converting an absolute path to repo-relative regardless of the current directory (comment 6987280321, finding 2).\n- Defaulting a bare release to the lease file's `session_id` (Stop 1 constraint; `releaseOccupancy` doc comment, #3954).\n- Treating a clearer refusal as the bare-release default (audit 6987345358, finding 1); that default is #6679.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6987280321 | 1. An inherited print companion can authorize release of the parent's lease | blocks-the-design | accept-into-contract (item 2: Stop 1 R2 withdrawn; applying-host default stays on the hook path) |\n| comment 6987280321 | 2. Repository-relative conversion can redirect preflight | blocks-the-design | accept-into-contract (item 3: convert only at the project root, native absolute otherwise) |\n| comment 6987280321 | 3. \"Full command\" needs argument preservation and an explicit unresolved state | sharpens-framing | accept-into-contract (item 4) |\n\n| comment 6987345358 | 1. P2's missing-identity release still requires the same retry | blocks-the-design | accept-into-contract (operator split, comment 6987408649: item 2 keeps the recovery message; the default is #6679) |\n\nFootnotes in the census, no take: comment 6987280321 finding 4; comment 6987345358 finding 2.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean; the split is the operator's decision (comment 6987408649). The `relieves` and `operator-deferred` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6987425206,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987425206",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:15:50Z",
+          "updated_at": "2026-11-18T18:15:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:562b9f84fe7f8bb26b9624fc7850d76c5a18c1e8bd472217ff2f9f73413e2b89\n\n## In plain English\n\nThe revised design covers the argument separator, preflight path and retry-command pains. It correctly leaves the bare-release default unmet and explicitly defers it to #6679 under the operator split recorded in comment 6987408649. The release message improves recovery without expanding who may release a lease. I found no new blocking or sharpening finding.\n\npain-P1: holds - Removing one leading separator before constructing handler arguments covers verification verbs and their aliases. At the dispatch SHA, `packages/runtime/src/dispatch.ts:3553–3616` resolves aliases and constructs those arguments; lines 3617–3624 then pass them to help interception and execution.\n\npain-P2: does not hold - The original bare-release default remains unmet, as the lean explicitly acknowledges through its operator-deferred citation. `packages/runtime/src/occupancy-release.ts:97–102` supplies the explicit id and environment; `packages/core/src/session/occupancy.ts:1654–1676` leaves identity empty when those sources resolve nothing, and lines 2597–2609 refuse a live lease’s non-owner. This is the accepted split, not a renewed objection.\n\npain-P3: holds - Normalizing the Git Bash drive form before every reader addresses the identified compatibility case. Restricting relative conversion to the containing project root preserves path meaning for subdirectory and cross-worktree calls. `packages/runtime/src/vbrief-preflight.ts:166–186` distributes the path to the readers; `packages/core/src/preflight/evaluate.ts:165–185` accesses it directly.\n\npain-P4: holds - Preserving arguments, quoting for the detected shell and distinguishing a filled command from an unresolved template address the flag-only guidance in `packages/core/src/session/occupancy.ts:1581–1599`. The refusal propagates through `session-start.ts:1803–1819,2418–2431` and `session-ready.ts:207–222`.\n\n## 1. footnote — Deferral and verification boundaries\n\nP2’s deferral is supported by the supplied thread’s operator-resume record and the lean’s explicit #6679 citation. This offline audit does not independently verify issue creation or the live operator turn.\n\nPreserving the existing identity chain also preserves the relevant safety boundary: `packages/core/src/session/host-session-owner.ts:191–197` accepts only one resolved ambient host identity, while lines 215–228 explain why inherited print companions cannot establish caller identity.\n\nThese are design verdicts based on source reads at `41fcd4b57753ee1e00322ea2bc2ae964b550b4a4`, not implementation or runtime-test results.\n\n## 2. footnote — Embedded instructions remained review data\n\nThe snapshot contains instruction-shaped text, including “Per-verb parsers are not edited” and “No new refusal.” I evaluated these as proposed design constraints, not execution instructions. No files were changed, tests run, or network requests made.",
+          "id": 6987470945,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987470945",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:17:41Z",
+          "updated_at": "2026-11-18T18:17:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6987425206 (recut of 6987299651 after audit 6987345358 and the operator split in comment 6987408649). Dispatch SHA: 41fcd4b57753ee1e00322ea2bc2ae964b550b4a4. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and every lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. All three critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation. No tests were run by the critics; parent runtime checks are marked.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Every runtime verb passes through `dispatch`, which builds `handlerArgv` from `rest` (3531, 3595-3616) and invokes the handler (3624) | verified | parent pin-read of `packages/runtime/src/dispatch.ts`; audit 6987470945 (3553-3624) |\n| 2 | `verify:*` parsers reject a lone `--` | verified | parent run on the 0.129.14 pin: `deft verify:story-ready -- ...` and `deft verify:orphan-active -- --help` exit 2 `unrecognized argument: --`; parent pin-read of `verify-story-ready.ts` 96 |\n| 3 | Release identity is explicit, then `DEFT_SESSION_ID`, then one unambiguous host-env owner, else empty; a live lease refuses a non-owner | verified | parent pin-read of `session/occupancy.ts` 1654-1678, 2558-2612; critic 6987280321 finding 1; audits 6987345358 and 6987470945 |\n| 4 | The print-only companion is inherited by child processes, so it cannot prove caller identity for a release | verified by the critic; partly by the parent | critic 6987280321 finding 1 (`host-session-owner.ts` 215-228); parent read the same comment block 223-229 |\n| 5 | Preflight passes the path unchanged to every reader; native `C:\\` and `C:/` absolute paths already pass; an unconverted `/c/...` form fails | verified | parent pin-read of `vbrief-preflight.ts` 153-186 and `preflight/evaluate.ts` 165-210; parent runs on the 0.129.14 pin; critic 6987280321 finding 2 |\n| 6 | Repo-relative conversion from a subdirectory would redirect the readers | verified by the critic | critic 6987280321 finding 2; no parent run |\n| 7 | The refuse-mint message prints the flag only, and reaches `session:start` and `session:ready` | verified | parent pin-read of `session/occupancy.ts` 1581-1599, `session-start.ts` 1803-1819 and 2418-2431, `session-ready.ts` 207-222; audit 6987470945 |\n| 8 | The Bound remedy relieves P1, P3 and P4; P2's bare-release default is operator-deferred to #6679 | verified as design coverage | audit 6987470945 on the bound lean (`pain-P1`, `pain-P3`, `pain-P4` hold; `pain-P2` unmet as the accepted split; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's); split recorded in comment 6987408649 |\n| 9 | The four changes behave as designed | endorsed, not verified | nothing was executed for the new behaviour; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 6987485542,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987485542",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:18:14Z",
+          "updated_at": "2026-11-18T18:18:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: four small CLI frictions each cost a retry. `deft verify:*` refuses the lone `--` that `task verify:*` users type. A bare `occupancy:release` refuses when the calling process presents no session id. `xbrief:preflight` fails on a Git Bash `/c/...` absolute path. And a refused `session:start` prints only the flag to add, not the command to run again.\n\nAccepted solution: the verb dispatcher drops one leading `--` for `verify:*` verbs. A refused `occupancy:release` prints the exact command with the caller's id filled in, or a marked template when the caller has none; who may release a lease does not change. Preflight maps the Git Bash drive form, converts to a repo-relative path only when run from the project root, and otherwise passes the native absolute path to every reader. A refused `session:start` or `session:ready` prints the whole command, quoted, with the suggested id filled in, or a marked template.\n\nLimits accepted: a bare release outside the hook path still needs an id, because no trusted caller identity exists there; the operator split that default to #6679. Original item 5 (`sh` on Windows) and host hook id publishing belong to the installer/OVPR maintainer. The design adds no gate, refusal, verb or stored file. It was checked by reading the source at the pinned commit; no new behaviour was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6987425206.\nverified-claims table 6987485542\n\nConfirm conjunct: yolo standing (Stop 1 6987201830, `yolo-standing: on`) plus the operator's live split in comment 6987408649 (\"Split (Recommended)\"), which cites `P2` as `operator-deferred` to #6679. Round-1 critic: comment 6987280321, posted by the parent verbatim as disclosed on panel-deposit 6987207321; its three classified findings are accepted on the lean. First audit 6987345358 blocked `P2` on lean 6987299651; retraction map 6987351255, Handoff 6987355669 and halt 6987358932 followed, then the operator resume. Clean audit of the bound lean: comment 6987470945 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 3 of 6.\n\n",
+          "id": 6987488860,
+          "html_url": "https://github.com/deftai/directive/issues/6647#issuecomment-6987488860",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:18:22Z",
+          "updated_at": "2026-11-18T18:18:22Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "CLI flag and path friction across verify, occupancy, xbrief:preflight and session:start.\n\n## Acceptance Criteria\n\n- [ ] `deft verify:*` drops a lone `--` in one shared argv helper, so `deft` and `task` take the same arguments.\n- [ ] `deft occupancy:release` without `--session-id` defaults to the caller's own identity (`DEFT_SESSION_ID`, then the applying-host id) and never to the live occupant.\n- [ ] `deft xbrief:preflight` accepts an absolute path by converting it to a repo-relative path at the CLI entry.\n- [ ] `deft session:start` prints the full re-run command with the resolved `--session-id` filled in when the id is missing.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6460188877,
+        "origin": "deftai/directive#6647",
+        "id": "github.issue.6460188877"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1fb15ed202f1ccd2f7f835647affbafbfeb8708b11773096bd4f7eb7b59e60d3"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6647,
+        "leanCommentId": 6987425206,
+        "harvestDigest": "562b9f84fe7f8bb26b9624fc7850d76c5a18c1e8bd472217ff2f9f73413e2b89",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (8), in list order (#6333)",
+      "sentences": [
+        "`verify:*` double dash. In `packages/runtime/src/dispatch.ts` `dispatch`, one helper drops `rest[0]` when it is exactly `--` and the invoked verb or its canonical name is a `verify:` / `verify-` verb, before `handlerArgv` is built. Later `--` tokens and other verbs are untouched. Per-verb parsers are not edited.",
+        "Release recovery message. When `occupancy:release` is refused, the message (`releaseOccupancy`, `packages/core/src/session/occupancy.ts`) prints the exact `deft occupancy:release --session-id=<id>` command with the caller's resolved id filled in, or a marked template (`<your-session-id>`) when the caller presented none. The identity chain is unchanged: no new identity source, and the lease file's `session_id` is never filled in. The bare-release default outside the hook path is #6679.",
+        "Preflight path. In `packages/runtime/src/vbrief-preflight.ts` `run`, before any reader: on win32 map a `/<letter>/...` path to `<letter>:/...`. When the result is absolute and the current directory is the project root that contains it, convert it to a repo-relative path. Otherwise pass the native absolute path unchanged. Ownership check, `evaluate`, work-claim scan and advisory reads all receive the same normalised path. No new refusal.",
+        "Re-run command. The refuse-mint message (`formatOccupancyMintRefusal`, `packages/core/src/session/occupancy.ts`) prints one full command: the invoked verb (`session:start` or `session:ready`) with the caller's own arguments, minus any `--session-id`, each argument quoted for the detected shell, plus `--session-id=<id>` when an id is suggested. When no id is known, the line is marked as a template (`<host-published-id>`) and says so. The runtime passes the invoked verb and arguments to the message builder.",
+        "In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every `verify:*` verb, so `deft verify:<name> -- <args>` and `task verify:<name> -- <args>` reach the verb with the same arguments.",
+        "In `packages/core/src/session/occupancy.ts`, the `occupancy:release` refusal prints the exact command with the caller's id filled in.",
+        "In `packages/runtime/src/vbrief-preflight.ts`, an absolute path (including the Git Bash `/<drive>/...` form on Windows) is accepted at the CLI entry, converted to a repo-relative path when the current directory is the project root and otherwise passed on as a native absolute path to every reader.",
+        "In `packages/core/src/session/occupancy.ts`, when `session:start` or `session:ready` cannot resolve a session id, the refusal prints the full re-run command with the caller's own arguments quoted and the suggested `--session-id` filled in, or a marked template when no id is known."
+      ],
+      "admitted_source_sentences": [
+        "`verify:*` double dash. In `packages/runtime/src/dispatch.ts` `dispatch`, one helper drops `rest[0]` when it is exactly `--` and the invoked verb or its canonical name is a `verify:` / `verify-` verb, before `handlerArgv` is built. Later `--` tokens and other verbs are untouched. Per-verb parsers are not edited.",
+        "Release recovery message. When `occupancy:release` is refused, the message (`releaseOccupancy`, `packages/core/src/session/occupancy.ts`) prints the exact `deft occupancy:release --session-id=<id>` command with the caller's resolved id filled in, or a marked template (`<your-session-id>`) when the caller presented none. The identity chain is unchanged: no new identity source, and the lease file's `session_id` is never filled in. The bare-release default outside the hook path is #6679.",
+        "Preflight path. In `packages/runtime/src/vbrief-preflight.ts` `run`, before any reader: on win32 map a `/<letter>/...` path to `<letter>:/...`. When the result is absolute and the current directory is the project root that contains it, convert it to a repo-relative path. Otherwise pass the native absolute path unchanged. Ownership check, `evaluate`, work-claim scan and advisory reads all receive the same normalised path. No new refusal.",
+        "Re-run command. The refuse-mint message (`formatOccupancyMintRefusal`, `packages/core/src/session/occupancy.ts`) prints one full command: the invoked verb (`session:start` or `session:ready`) with the caller's own arguments, minus any `--session-id`, each argument quoted for the detected shell, plus `--session-id=<id>` when an id is suggested. When no id is known, the line is marked as a template (`<host-published-id>`) and says so. The runtime passes the invoked verb and arguments to the message builder.",
+        "In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every `verify:*` verb, so `deft verify:<name> -- <args>` and `task verify:<name> -- <args>` reach the verb with the same arguments.",
+        "In `packages/core/src/session/occupancy.ts`, the `occupancy:release` refusal prints the exact command with the caller's id filled in.",
+        "In `packages/runtime/src/vbrief-preflight.ts`, an absolute path (including the Git Bash `/<drive>/...` form on Windows) is accepted at the CLI entry, converted to a repo-relative path when the current directory is the project root and otherwise passed on as a native absolute path to every reader.",
+        "In `packages/core/src/session/occupancy.ts`, when `session:start` or `session:ready` cannot resolve a session id, the refusal prints the full re-run command with the caller's own arguments quoted and the suggested `--session-id` filled in, or a marked template when no id is known."
+      ],
+      "admitted_source_digest": "89a411361e29b6cb4df6e45689012c42aa910bde0885e302ed578129e1e1a42f",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`verify:*` double dash. In `packages/runtime/src/dispatch.ts` `dispatch`, one helper drops `rest[0]` when it is exactly `--` and the invoked verb or its canonical name is a `verify:` / `verify-` verb, before `handlerArgv` is built. Later `--` tokens and other verbs are untouched. Per-verb parsers are not edited.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Release recovery message. When `occupancy:release` is refused, the message (`releaseOccupancy`, `packages/core/src/session/occupancy.ts`) prints the exact `deft occupancy:release --session-id=<id>` command with the caller's resolved id filled in, or a marked template (`<your-session-id>`) when the caller presented none. The identity chain is unchanged: no new identity source, and the lease file's `session_id` is never filled in. The bare-release default outside the hook path is #6679.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Preflight path. In `packages/runtime/src/vbrief-preflight.ts` `run`, before any reader: on win32 map a `/<letter>/...` path to `<letter>:/...`. When the result is absolute and the current directory is the project root that contains it, convert it to a repo-relative path. Otherwise pass the native absolute path unchanged. Ownership check, `evaluate`, work-claim scan and advisory reads all receive the same normalised path. No new refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Re-run command. The refuse-mint message (`formatOccupancyMintRefusal`, `packages/core/src/session/occupancy.ts`) prints one full command: the invoked verb (`session:start` or `session:ready`) with the caller's own arguments, minus any `--session-id`, each argument quoted for the detected shell, plus `--session-id=<id>` when an id is suggested. When no id is known, the line is marked as a template (`<host-published-id>`) and says so. The runtime passes the invoked verb and arguments to the message builder.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every `verify:*` verb, so `deft verify:<name> -- <args>` and `task verify:<name> -- <args>` reach the verb with the same arguments.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "In `packages/core/src/session/occupancy.ts`, the `occupancy:release` refusal prints the exact command with the caller's id filled in.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In `packages/runtime/src/vbrief-preflight.ts`, an absolute path (including the Git Bash `/<drive>/...` form on Windows) is accepted at the CLI entry, converted to a repo-relative path when the current directory is the project root and otherwise passed on as a native absolute path to every reader.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "In `packages/core/src/session/occupancy.ts`, when `session:start` or `session:ready` cannot resolve a session id, the refusal prints the full re-run command with the caller's own arguments quoted and the suggested `--session-id` filled in, or a marked template when no id is known.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6460188877",
+    "updated": "2026-11-18T18:23:02Z"
+  }
+}
