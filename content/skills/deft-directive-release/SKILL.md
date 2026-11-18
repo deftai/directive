@@ -408,24 +408,23 @@ Race-condition mitigation: `download_count` is double-read with a 5s sleep betwe
 
 
 
-8. ! **Update the maintainer's local checkout (#5953 Prefer-A Bound 6430511888).** Required for every release; **required especially for maintainer (non-`latest`) cuts** where npm `latest` will not advance the checkout by accident. Anchor on the **tip-pin-equals-released** observable (tip `package.json` / lockfile pin equals released `<version>`), not a phantom pin-PR step.
+8. ! **Update the maintainer's local checkout (#5953 / #6613).** Required for every release; **required especially for maintainer (non-`latest`) cuts** where npm `latest` will not advance the checkout by accident.
+
+First open and merge the pin-bump PR: the `package.json` pin, the `minimumReleaseAgeExclude` row in `pnpm-workspace.yaml`, the lockfile, and one CHANGELOG line (#6358). Then run:
 
 ```
 task release:local-update -- <version> --checkout <maintainer-primary-occupancy-root>
 ```
 
-The task fails closed and never resets, force-pushes, commits, or runs `npm i -g`:
-1. Require `--checkout <path>` naming the maintainer primary occupancy root; refuse ambient release-worktree-only success (running only in the release worktree without naming the primary).
-2. Refuse when the target checkout holds a live foreign occupancy lease before any write.
-3. On the checkout default branch: dirty-tree refuse; `git pull --ff-only` (never reset).
-4. When `pnpm-workspace.yaml` carries `minimumReleaseAgeExclude`, assert it already includes `@deftai/directive-runtime@<version>`; then `pnpm install --frozen-lockfile`.
-5. Assert tip-pin-equals-released: installed `node_modules/@deftai/directive-runtime` version equals `<version>` and matches the `package.json` pin.
-6. Require the version-matched agent-hook deposit already merged on tip (inspect against the post-install payload via the checkout runtime). Keep Phase 7 local closeout **incomplete** until that deposit evidence exists; print deposit-merge recovery paths.
-7. Re-resolve the upgrade binary from the checkout post-install tree and run `directive upgrade --target-version <version> --yes` (never registry-latest). `release:local-update` is inline Taskfile `cmds:` without `engine:invoke` or `deps: [ts:build]`.
-8. After upgrade, any tracked-file diff keeps closeout non-zero/incomplete with deposit-merge recovery paths for expected managed deposit files (`.grok/hooks/`, `.cursor/hooks.json`, `.claude/settings.json`, `.codex/` managed paths, and related deposit files).
-9. Run `deft verify:hooks-installed --project-root <checkout> --scope=all` from the checkout post-install runtime (⊗ bare `task verify:hooks-installed`) and re-assert installed runtime equals `<version>`.
+The task never resets, force-pushes, commits, or runs `npm i -g`. It does four things:
+1. Checkout checks: `--checkout <path>` must name the maintainer primary occupancy root (not the release worktree alone), and the checkout must not hold a live foreign occupancy lease.
+2. Pull: on the default branch, `git pull --ff-only` (never reset).
+3. Install: `pnpm install --frozen-lockfile`.
+4. Confirm installed = pin: the installed `node_modules/@deftai/directive-runtime` version equals `<version>` and the `package.json` pin.
 
-Report the local-update result (version now installed, hooks status) beside the existing global CLI drift report in Skill Completion.
+It does not check hook files. Hook files refresh on the next hook run (AC8.6). A post-release `directive upgrade` that changes hook files is normal. Commit it in an ordinary PR when you choose. It is not part of the release.
+
+Report the local-update result (checkout path, installed version) beside the existing global CLI drift report in Skill Completion.
 
 ⊗ Skip the post-publish verification. The closing-keyword false-positive (Layer 1 / Layer 2 / Layer 3) and the incremental-renderer-drift (#641, #614) are exactly the kind of issues that surface only AFTER a release is public.
 
@@ -467,7 +466,7 @@ Where `<one-line guidance>` is one of:
 - "release v<version> rolled back -- the underlying defect needs a hot-fix in the next CHANGELOG entry"
 - "release deferred -- resume by running `task release:publish -- <version>` (GitHub only; npm already shipped at tag push) or `task release:rollback -- <version>` (GitHub unwind only; npm is forward-recovery) when ready"
 
-! On the Publish/live path, Skill Completion MUST also print the Phase 7 local-update result beside the global CLI drift report: checkout path, installed runtime version, hooks status (`verify:hooks-installed --scope=all`), and whether closeout is complete or incomplete (deposit-merge recovery). ⊗ Claim Phase 7 local closeout complete while `release:local-update` exited non-zero or was skipped on a maintainer non-latest cut (#5953).
+! On the Publish/live path, Skill Completion MUST also print the Phase 7 local-update result beside the global CLI drift report: checkout path and installed runtime version. When the global launcher is behind `<version>`, print the exact command `npm i -g @deftai/directive@<version>` for the operator to run (#6358); the pipeline never runs it. ⊗ Claim Phase 7 local update complete while `release:local-update` exited non-zero or was skipped on a maintainer non-latest cut (#5953).
 
 ⊗ Exit silently without confirming completion or providing next-step guidance.
 
@@ -475,7 +474,8 @@ Where `<one-line guidance>` is one of:
 
 - ⊗ End the release with the maintainer's checkout still on the previous pin (#5953) — run `task release:local-update -- <version> --checkout <primary>` after tip-pin-equals-released
 - ⊗ Run `release:local-update` without `--checkout` naming the maintainer primary occupancy root, or claim success from the release worktree alone while primary stays stale (#5953)
-- ⊗ Soft/warn-only checkout lag; non-fatal green on post-upgrade tracked diffs; auto-commit of upgrade deposit inside release; `directive upgrade` without `--target-version` (registry latest); bare `task verify:hooks-installed` without `--project-root` / `--scope=all`; local-update via pin-exclusive `engine:invoke` on the N-1 runtime (#5953 Prefer-A Bound 6430511888)
+- ⊗ Soft/warn-only checkout lag; local-update via pin-exclusive `engine:invoke` on the N-1 runtime (#5953)
+- ⊗ Require refreshed hook files on the default branch, or a clean tree after `directive upgrade`, before the release can finish (#5947 / #6613) -- a pin-only bump is complete (AC14.10)
 - ⊗ Foreground-block the operator chat on Phase 1 long prep (`reconcile:issues`, cache refresh) or Phase 3 `release:e2e` when background / subagent dispatch is available (#1880 Gap D / #2692) — the interactive channel must stay free for version confirmation, `--summary`, and the Phase 2 dry-run gate
 - ⊗ Proceed to `task release` on orientation-dirty `cache_fresh` or check-class stale-by-drift, or treat skip-drift ritual green / ritual-stale as that bar (#4399) — fetch-all first
 
