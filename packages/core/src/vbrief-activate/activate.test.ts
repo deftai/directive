@@ -526,3 +526,100 @@ describe("activate projection containment (#3147 / #2447 parity)", () => {
     expect(payload.plan.id).toBe("github.issue.9");
   });
 });
+
+describe("activate small-change lane gate (#6264)", () => {
+  const laneRoots: string[] = [];
+  afterEach(() => {
+    for (const root of laneRoots.splice(0)) rmSync(root, { recursive: true, force: true });
+  });
+
+  function laneFixture(folder: "pending" | "active"): { root: string; rel: string } {
+    const root = mkdtempSync(join(tmpdir(), "deft-activate-lane-"));
+    laneRoots.push(root);
+    const src = writeVbrief(root, folder, {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "fix x",
+          status: folder === "pending" ? "pending" : "running",
+          items: [],
+          acceptance: {
+            commands: [{ command: "npx vitest run packages/core/src/x.test.ts" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          metadata: {
+            "x-directive/smallChangeLane": {
+              schema: "deft.small-change-lane.v1",
+              state: "admitted",
+              admitBase: "admitbase0",
+            },
+          },
+        },
+      },
+    });
+    return { root, rel: join("xbrief", folder, basename(src)) };
+  }
+
+  function lane(root: string, lines: number) {
+    return {
+      depth: "rapid" as const,
+      bound: { maxProductionFiles: 1, maxChangedLines: 5 },
+      runGit: (args: readonly string[]) => {
+        const joined = args.join(" ");
+        if (joined.startsWith("rev-parse --show-toplevel")) {
+          return { status: 0, stdout: `${root}\n` };
+        }
+        if (joined.startsWith("rev-parse --verify")) return { status: 0, stdout: "parent0\n" };
+        if (joined.startsWith("ls-files")) return { status: 0, stdout: "" };
+        if (joined.startsWith("diff --numstat")) {
+          return { status: 0, stdout: `${lines}\t0\tpackages/core/src/x.ts\0` };
+        }
+        if (joined.includes("diff -U0")) {
+          return {
+            status: 0,
+            stdout: "diff --git a/packages/core/src/x.ts b/packages/core/src/x.ts\n+const x = 1;\n",
+          };
+        }
+        return { status: 1, stdout: "" };
+      },
+    };
+  }
+
+  function inProjectRoot<T>(root: string, fn: () => T): T {
+    const prev = process.cwd();
+    process.chdir(root);
+    try {
+      return fn();
+    } finally {
+      process.chdir(prev);
+    }
+  }
+
+  it("activates a thin lane brief from a relative path while the lane admits it", () => {
+    const { root, rel } = laneFixture("pending");
+    const result = inProjectRoot(root, () =>
+      activate(rel, { now: FIXED_NOW, smallChangeLane: lane(root, 3) }),
+    );
+    expect(result.exitCode, result.message).toBe(0);
+    expect(result.message).toContain("waived");
+    expect(existsSync(join(root, "xbrief", "active", FIXTURE_NAME))).toBe(true);
+  });
+
+  it("refuses with the lane message and records the crossing through a relative path", () => {
+    for (const folder of ["pending", "active"] as const) {
+      const { root, rel } = laneFixture(folder);
+      const result = inProjectRoot(root, () =>
+        activate(rel, { now: FIXED_NOW, smallChangeLane: lane(root, 50) }),
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.message).toContain("xbrief:activate refused (#6204)");
+      expect(result.message).toContain("recorded on the brief as crossed");
+      const onDisk = JSON.parse(readFileSync(join(root, rel), "utf8")) as {
+        plan: { status: string; metadata: Record<string, { state: string }> };
+      };
+      expect(onDisk.plan.metadata["x-directive/smallChangeLane"]?.state).toBe("crossed");
+      expect(onDisk.plan.status).toBe(folder === "pending" ? "pending" : "running");
+    }
+  });
+});
