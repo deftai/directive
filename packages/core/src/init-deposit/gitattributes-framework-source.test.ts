@@ -1,7 +1,8 @@
 /**
- * #6337: the consumer `.gitattributes` block is never written in a checkout of
- * the framework source repository (linked worktrees and dogfood deposits
- * included); consumer projects get the block as before.
+ * D-029 / #6256: the framework source repository gets the same managed
+ * `.gitattributes` block as any project (no framework-source skip). Once the
+ * block is committed, later setup runs leave the file unchanged. The marker
+ * test stays: the pack-migrate verbs use it (#6337).
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -18,7 +19,7 @@ import {
 
 const TRACKED_ATTRS = "* text=auto\n*.png binary\n";
 
-describe("ensureGitattributes in a framework source checkout (#6337)", () => {
+describe("ensureGitattributes in a framework source checkout (#6256 / D-029)", () => {
   const created: string[] = [];
   afterEach(() => {
     for (const dir of created.splice(0)) {
@@ -88,57 +89,51 @@ describe("ensureGitattributes in a framework source checkout (#6337)", () => {
     expect(isFrameworkSourceCheckoutAt(dirMain)).toBe(false);
   });
 
-  it("linked worktree: the neutralization deposit leaves .gitattributes unchanged", async () => {
+  it("linked worktree: the managed block is written once; once committed, a rerun changes nothing (D-029)", async () => {
     const worktree = linkedWorktree();
-    const { io, lines } = captureIo();
-    // Compare with the checked-out bytes (core.autocrlf may rewrite line ends).
-    const before = readFileSync(join(worktree, ".gitattributes"), "utf8");
-
-    await depositNeutralization(worktree, io);
-
-    expect(readFileSync(join(worktree, ".gitattributes"), "utf8")).toBe(before);
-    expect(git(worktree, ["status", "--porcelain", "--", ".gitattributes"])).toBe("");
-    expect(lines.join("")).toContain("framework source checkout");
-  });
-
-  it("checkout with a dogfood .deft/core directory: .gitattributes unchanged", () => {
-    const root = freshRoot("deft-6337-dogfood-");
-    frameworkSource(root);
-    mkdirSync(join(root, ".deft", "core"), { recursive: true });
     const { io } = captureIo();
 
-    expect(ensureGitattributes(root, io)).toBe(false);
-    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toBe(TRACKED_ATTRS);
+    // No framework-source skip: this repository is set up like any project.
+    await depositNeutralization(worktree, io);
+    // A Windows core.autocrlf checkout gives CRLF; the writer keeps the file's line ends.
+    const attrs = readFileSync(join(worktree, ".gitattributes"), "utf8").replace(/\r\n/g, "\n");
+    expect(attrs.startsWith(TRACKED_ATTRS)).toBe(true);
+    expect(attrs).not.toContain(".deft/core");
+    for (const line of DESIRED_GITATTRIBUTES_LINES) expect(attrs).toContain(line);
+
+    // The one-time commit of the managed block: later runs leave the file clean.
+    git(worktree, ["add", ".gitattributes"]);
+    git(worktree, ["-c", "commit.gpgsign=false", "commit", "-q", "-m", "managed block"]);
+    expect(ensureGitattributes(worktree, io)).toBe(false);
+    expect(git(worktree, ["status", "--porcelain", "--", ".gitattributes"])).toBe("");
   });
 
-  it("checkout with a legacy deft/ directory: .gitattributes unchanged", () => {
-    const root = freshRoot("deft-6337-legacy-");
+  it("checkout with a dogfood .deft/core directory: retired lines are removed like anywhere else", () => {
+    const root = freshRoot("deft-6337-dogfood-");
     frameworkSource(root);
-    mkdirSync(join(root, "deft"), { recursive: true });
+    write(
+      root,
+      ".gitattributes",
+      `${TRACKED_ATTRS}.deft/core/** text=auto eol=lf\n.deft/core/** linguist-vendored=true\n`,
+    );
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
 
-    expect(ensureGitattributes(root, captureIo().io)).toBe(false);
-    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toBe(TRACKED_ATTRS);
+    expect(ensureGitattributes(root, captureIo().io)).toBe(true);
+    const attrs = readFileSync(join(root, ".gitattributes"), "utf8");
+    expect(attrs.startsWith(TRACKED_ATTRS)).toBe(true);
+    expect(attrs).not.toContain(".deft/core");
   });
 
-  it("consumer project: the block is written as today", () => {
+  it("consumer project: the managed block is written without .deft/core lines", () => {
     const root = freshRoot("deft-6337-consumer-");
     write(root, ".gitattributes", TRACKED_ATTRS);
 
     expect(ensureGitattributes(root, captureIo().io)).toBe(true);
     const attrs = readFileSync(join(root, ".gitattributes"), "utf8");
     expect(attrs.startsWith(TRACKED_ATTRS)).toBe(true);
+    expect(attrs).not.toContain(".deft/core");
     for (const line of DESIRED_GITATTRIBUTES_LINES) {
       expect(attrs).toContain(line);
     }
-  });
-
-  it("consumer project with main.md but no framework markers: the block is written", () => {
-    const root = freshRoot("deft-6337-consumer-main-");
-    write(root, "main.md", "# consumer readme\n");
-
-    expect(ensureGitattributes(root, captureIo().io)).toBe(true);
-    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toContain(
-      DESIRED_GITATTRIBUTES_LINES[0],
-    );
   });
 });

@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6613,
+  "issue": 6616,
   "surfaces": [
-    "Taskfile.yml",
+    "packages/core/src/class-checks/evaluate.ts",
+    "packages/core/src/class-checks/evaluate.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6613: the Taskfile `release:local-update` task becomes pull, install, confirm installed = pin. It drops the dirty-tree refusal, the AgeExclude check, the committed hook-file checks (#6127 / #6184), the `directive upgrade` call, the post-upgrade diff failure and the final `verify:hooks-installed`. These checks contradict the #5947 decision (a pin-only bump is complete, AC14.10). No other task, verifier or threshold changes. Disclosure only; not #3164 authorization. Refs #6613."
+  "note": "Disclosure for #6616 (polfer decision D-026): verify:class-checks class 4 now counts Directive's own wiring files (.githooks/**, .cursor/hooks.json, .cursor/hooks/**) only by committed changes (merge base to HEAD), when classifyDirectiveOwnedChange says the uncommitted change is Directive's own. Automatic setup rewrites these files in CI; those rewrites no longer fail story PRs. The report names each file it did not count. DEFAULT_PROTECTED_GLOBS and the rule for every other path are unchanged. Deliberate, reviewed gate change (#3156); disclosure only. Refs #6616."
 }
