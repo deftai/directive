@@ -1086,3 +1086,76 @@ jobs:
             Pop-Location
             pnpm --dir $contentPackage run postpack
           }
+
+  ovpr-fixture:
+    # No-agent lifecycle fixture (#6614): packs the launcher and runtime,
+    # installs them into throwaway projects and runs each host's registered
+    # hook command as the host would (sh -c, JSON on stdin). No agent, no LLM.
+    # Advisory through Phase 4 (D-020): NOT in merge-gate's needs. A reviewed
+    # ci.yml PR adds it at the Phase 4 exit. No repository setting changes.
+    name: OVPR lifecycle fixture (no agent)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript workspace
+        run: pnpm run build
+
+      - name: Lifecycle fixture steps 1-6
+        run: |
+          set -o pipefail
+          started=$(date +%s)
+          status=0
+          node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js | tee fixture-report.txt || status=$?
+          {
+            echo "### OVPR lifecycle fixture"
+            echo '```'
+            cat fixture-report.txt
+            echo '```'
+            echo "Job step duration: $(( $(date +%s) - started ))s"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+  ovpr-fixture-windows:
+    # Windows leg of the lifecycle fixture (#6621, D-020): step 4 only. AC9.1
+    # says the hook form is the same on every OS, so the committed .mjs outer
+    # must block under Node on Windows too. Advisory: NOT in merge-gate's needs.
+    name: OVPR lifecycle fixture (Windows, step 4)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript workspace
+        run: pnpm run build
+
+      - name: Lifecycle fixture step 4 (missing packages)
+        run: node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js --step 4
