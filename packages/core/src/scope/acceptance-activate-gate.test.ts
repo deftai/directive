@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { buildIssueVbrief } from "../intake/issue-ingest.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import {
   collectAcceptanceShapedNarrativeKeys,
   evaluateAcceptanceActivateGate,
+  evaluateAdmittedSourceActivateGate,
   prepareActiveIngressAcceptance,
 } from "./acceptance-activate-gate.js";
 import { ACTIVE_ACCEPTANCE_ORACLES } from "./lifecycle-write.js";
@@ -129,5 +131,45 @@ describe("active ingress acceptance (#4768 Prefer-A)", () => {
     expect(readAcceptanceClauses(plan.acceptance)).toEqual([]);
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/command-present \/ clause-text-empty/);
+  });
+});
+
+describe("admitted-source activate gate (#6609 item 7)", () => {
+  const BODY = "## Acceptance Criteria\n- One holds.\n- Two holds.\n";
+  const pinned = (): Record<string, unknown> => {
+    const [vbrief] = buildIssueVbrief(
+      { number: 6609, title: "t", body: BODY, labels: [] },
+      "proposed",
+      "https://github.com/o/r",
+    );
+    return structuredClone(vbrief.plan as Record<string, unknown>);
+  };
+  const seams = {
+    briefOnMergeBase: false,
+    admittedSourceMergeBase: null,
+    fetchAdmittedSourceText: () => ({ ok: true as const, text: BODY }),
+  };
+
+  it("passes an unchanged ingested brief", () => {
+    const gate = evaluateAdmittedSourceActivateGate(pinned(), {
+      projectRoot: "/tmp/proj",
+      briefPath: "/tmp/proj/xbrief/pending/a.xbrief.json",
+      seams,
+    });
+    expect(gate).toEqual({ ok: true, message: "" });
+  });
+
+  it("fails clauses deleted from the acceptance block with the verify:ac message", () => {
+    const plan = pinned();
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    acceptance.clauses = (acceptance.clauses as unknown[]).slice(0, 1);
+    acceptance.sentences = (acceptance.sentences as string[]).slice(0, 1);
+    const gate = evaluateAdmittedSourceActivateGate(plan, {
+      projectRoot: "/tmp/proj",
+      briefPath: "/tmp/proj/xbrief/pending/a.xbrief.json",
+      seams,
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toContain("verify:ac admitted-source identity (#5055)");
   });
 });

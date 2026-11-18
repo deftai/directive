@@ -7,6 +7,7 @@
 
 import { createHash } from "node:crypto";
 import { scan } from "../cache/scanner.js";
+import { admittedSourceUnitsFromBody } from "../intake/admitted-source-units.js";
 import {
   attachLiteralAcceptanceCommands,
   evaluateStampAcceptanceSafety,
@@ -33,6 +34,13 @@ import {
 export const ADMITTED_SOURCE_SENTENCES_KEY = "admitted_source_sentences" as const;
 /** sha256 of the canonical admitted-source sentence join (#5055). */
 export const ADMITTED_SOURCE_DIGEST_KEY = "admitted_source_digest" as const;
+/**
+ * Extractor version stored with a new body-route pin (#6609). `2` re-reads the
+ * live body with `admittedSourceUnitsFromBody`; a pin with no version keeps the
+ * legacy extractor unchanged.
+ */
+export const ADMITTED_SOURCE_EXTRACTOR_KEY = "admitted_source_extractor" as const;
+export const ADMITTED_SOURCE_EXTRACTOR_V2 = 2 as const;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -418,6 +426,27 @@ export function extractAdmittedSourceSentencesFromText(text: string): string[] {
   return out;
 }
 
+/** Read the extractor version stored with a pin: `2`, or null for a pin with none (#6609). */
+export function readAdmittedSourceExtractor(acceptance: unknown): 2 | null {
+  const rec = asRecord(acceptance);
+  return rec !== null && rec[ADMITTED_SOURCE_EXTRACTOR_KEY] === ADMITTED_SOURCE_EXTRACTOR_V2
+    ? ADMITTED_SOURCE_EXTRACTOR_V2
+    : null;
+}
+
+/**
+ * Extract live admitted-source text with the version stored on the pin (#6609).
+ * Version 2 uses the unit selector; no version uses the legacy extractor.
+ */
+export function extractAdmittedSourceIdentitiesWithVersion(
+  text: string,
+  extractor: 2 | null,
+): string[] {
+  return extractor === ADMITTED_SOURCE_EXTRACTOR_V2
+    ? admittedSourceUnitsFromBody(text)
+    : extractAdmittedSourceSentencesFromText(text);
+}
+
 /**
  * Admitted-source sentences for the first-ingest pin (#5055 Bound).
  * Body-normative: Overview is the issue-body copy. Spec-path: Overview is the
@@ -599,6 +628,10 @@ export function stampAcceptanceFromLiteralCapture(
     serializable[ADMITTED_SOURCE_SENTENCES_KEY] = keptAdmitted;
     if (keptDigest !== undefined) {
       serializable[ADMITTED_SOURCE_DIGEST_KEY] = keptDigest;
+    }
+    // #6609: the version belongs to the pin it was written with.
+    if (previous !== null && Object.hasOwn(previous, ADMITTED_SOURCE_EXTRACTOR_KEY)) {
+      serializable[ADMITTED_SOURCE_EXTRACTOR_KEY] = previous[ADMITTED_SOURCE_EXTRACTOR_KEY];
     }
   } else if (previous === null) {
     // Same selector as live compare: Overview (issue body or Spec-path harvest).

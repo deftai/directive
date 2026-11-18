@@ -336,8 +336,9 @@ function listReviews(
   return { ok: false, detail: `more than ${String(REVIEW_PAGE_CAP)} review pages` };
 }
 
-function hasWritePermission(
-  reader: ForgeApprovalReader,
+/** Does `login` hold admin, maintain or write on `repo`? Reused by the #6609 criteria-only record. */
+export function hasWritePermission(
+  reader: Pick<ForgeApprovalReader, "getJson">,
   repo: string,
   login: string,
 ): ForgeReadResult<boolean> {
