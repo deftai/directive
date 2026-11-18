@@ -2977,6 +2977,27 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expectPlant(`${nested}\nxargs touch <<EOF\n${kill}\nEOF`);
   });
 
+  it("judges a real xargs heredoc next to a quoted `<<EOF` marker", () => {
+    expectPlant(`echo "see <<EOF example"\nxargs touch <<EOF\n${kill}\nEOF`);
+    expectPlant(`echo 'a <<EOF b' && xargs touch <<EOF\n${opt}\nEOF`);
+    expectPlant(`echo "multi\nline <<EOF"\nxargs touch <<EOF\n${kill}\nEOF`);
+    expect(
+      inactiveShellTargetsProtectedStore(
+        `echo "see <<EOF example"\nxargs touch <<EOF\n${authz}\nEOF`,
+      ),
+    ).toBe(true);
+    expectNoPlant(`echo "see <<EOF example"\nxargs grep touch <<EOF\n${kill}\nEOF`);
+  });
+
+  it("scans deeply nested cmd launchers in linear time and fails closed past the cap", () => {
+    const started = Date.now();
+    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(60)}type ${kill}`)).toBe(true);
+    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(200)}echo x > ${kill}`)).toBe(true);
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(3)}type ${kill}`)).toBe(false);
+    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(3)}echo x > ${kill}`)).toBe(true);
+  });
+
   it("checks the program after a wrapper option that takes a value", () => {
     for (const command of [
       `echo ${kill} | xargs env -u FOO touch`,

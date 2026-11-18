@@ -4137,7 +4137,10 @@ function cmdLauncherPayloads(command: string): string[] {
     }
     if (payload.length > 0) out.push(payload);
   };
-  for (let i = 0; i < command.length; i++) {
+  // The first real launcher's payload is the rest of the line, so it already holds every
+  // later launcher; stop there and let the caller recurse once per nesting level (linear,
+  // not one check per nested suffix).
+  for (let i = 0; i < command.length && out.length === 0; i++) {
     const c = command[i] as string;
     if (c === "\\" && quote !== "'" && i + 1 < command.length) {
       i++;
@@ -4391,27 +4394,61 @@ function heredocFeedsXargsWriter(
   command: string,
   stageMentions: (stage: string) => boolean,
 ): boolean {
-  const lines = command.split(/\r?\n/);
-  for (let li = 0; li < lines.length; li++) {
-    const line = lines[li] as string;
-    const m = /<<-?\s*(?:\\|["'])?([A-Za-z_][A-Za-z0-9_]*)["']?/.exec(line);
-    if (m === null || line[(m.index as number) + 2] === "<") continue;
-    const prefix = line.slice(0, m.index);
-    const runsXargs = splitUnquotedPipeChains(prefix).some((chain) =>
-      chain.some(stageRunsXargsWriter),
-    );
-    const delimiter = m[1] as string;
-    const body: string[] = [];
-    let bi = li + 1;
-    for (; bi < lines.length; bi++) {
-      const bl = lines[bi] as string;
-      if (bl.trim() === delimiter) break;
-      body.push(bl);
+  // One pass with quote state: only an unquoted `<<DELIM` opens a heredoc, so a quoted
+  // `"see <<EOF"` neither opens one nor swallows a real heredoc that follows. Each body
+  // belongs to its opener (its lines are not commands), so an example `xargs touch <<EOF`
+  // printed inside another heredoc is not scanned.
+  const len = command.length;
+  let quote: "'" | '"' | null = null;
+  let lineStart = 0;
+  let pending: { prefix: string; delimiter: string }[] = [];
+  let i = 0;
+  while (i < len) {
+    const c = command[i] as string;
+    if (c === "\n") {
+      i++;
+      for (const open of pending) {
+        const body: string[] = [];
+        while (i < len) {
+          let end = command.indexOf("\n", i);
+          if (end < 0) end = len;
+          const bl = command.slice(i, end);
+          i = Math.min(end + 1, len);
+          if (bl.trim() === open.delimiter) break;
+          body.push(bl);
+        }
+        const runsXargs = splitUnquotedPipeChains(open.prefix).some((chain) =>
+          chain.some(stageRunsXargsWriter),
+        );
+        if (runsXargs && stageMentions(body.join("\n"))) return true;
+      }
+      pending = [];
+      lineStart = i;
+      continue;
     }
-    if (runsXargs && stageMentions(body.join("\n"))) return true;
-    // The body belongs to this heredoc: its lines are not commands of their own, so an
-    // example `xargs touch <<EOF` printed inside another heredoc is not scanned.
-    li = bi;
+    if (c === "\\" && quote !== "'" && i + 1 < len) {
+      i += 2;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      if (quote === null) quote = c;
+      else if (quote === c) quote = null;
+      i++;
+      continue;
+    }
+    if (quote === null && c === "<" && command[i + 1] === "<") {
+      if (command[i + 2] === "<") {
+        i += 3;
+        continue;
+      }
+      const m = /^<<-?\s*(?:\\|["'])?([A-Za-z_][A-Za-z0-9_]*)["']?/.exec(command.slice(i, i + 200));
+      if (m !== null) {
+        pending.push({ prefix: command.slice(lineStart, i), delimiter: m[1] as string });
+        i += m[0].length;
+        continue;
+      }
+    }
+    i++;
   }
   return false;
 }
@@ -4421,7 +4458,14 @@ function stageMentionsSettingsStore(stage: string): boolean {
   return words.some((w) => pathishIsSettingsStoreDir(pathishToken(unwrapQuotedPayload(w))));
 }
 
-function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
+/** Deepest `cmd /c` nesting that is scanned; past it the command fails closed. */
+const MAX_CMD_LAUNCHER_DEPTH = 8;
+
+function hasKillSwitchShellWriteInner(
+  command: string,
+  tokens: readonly string[],
+  depth = 0,
+): boolean {
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Quote-stripped form so `'.deft'-directive-disable`-class splits still match (#3213).
   const stripped = lower.replace(/['"]/g, "");
@@ -4448,7 +4492,9 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
 
   // `cmd /c "<payload>"`: the quoted payload is a command line of its own (#6681).
   for (const payload of cmdLauncherPayloads(command)) {
-    if (hasKillSwitchShellWriteInner(payload, shellTokens(payload))) return true;
+    // The command names a kill-switch file and nests launchers past the cap: fail closed.
+    if (depth >= MAX_CMD_LAUNCHER_DEPTH) return true;
+    if (hasKillSwitchShellWriteInner(payload, shellTokens(payload), depth + 1)) return true;
   }
 
   // `echo <name> | xargs touch`: the name reaches the writer through the pipe (#6681).
