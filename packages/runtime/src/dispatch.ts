@@ -18,6 +18,7 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { engineInfo, userConfig } from "@deftai/directive-core";
 import { interceptHelp } from "@deftai/directive-core/dist/triage/help/index.js";
 import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/doctor";
@@ -743,7 +744,7 @@ function resolveDeftRoot(): string {
   if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
     return resolve(process.env.DEFT_ROOT);
   }
-  return resolve(import.meta.dirname, "..", "..", "..");
+  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 }
 
 function parseCodeStructureArgs(argv: readonly string[]): {
