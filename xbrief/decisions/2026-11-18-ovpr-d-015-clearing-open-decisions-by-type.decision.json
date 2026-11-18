@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-015-clearing-open-decisions-by-type",
+  "decision": "D-015 (option B): The 42 open O-items are cleared by type before launch: 17 confirmations and housekeeping items bulk-accepted from one table (O-08, O-14, O-15, O-20, O-24, O-25, O-35, O-37, O-29, O-39 to O-46); 12 real product choices one at a time (O-05, O-06, O-09 to O-13, O-18, O-19, O-22, O-26c, O-48); 13 RC-tied items decided with the RC texts (O-07, O-16, O-17, O-21, O-27, O-28, O-30 to O-34, O-36, O-38).",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-015)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Ask every item one at a time",
+      "whyNot": null
+    },
+    {
+      "option": "Defer items to their phases",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "A launch that runs without mid-run decision stops.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:27Z",
+  "revisitTrigger": "New open items appear during the work",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "process"
+  ]
+}

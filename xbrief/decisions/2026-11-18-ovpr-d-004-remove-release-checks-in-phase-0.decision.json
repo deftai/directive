@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-004-remove-release-checks-in-phase-0",
+  "decision": "D-004: Split P3-U1. P3-U1a (Phase 0): remove release check A (#6127), check B (#6184), the release-skill rule that treats a post-upgrade diff as failure, and the code #6184 added; the release finish step becomes pull, install, confirm the pin (P3-U1 Fix steps 1-3). P3-U1b (Phase 3): fixture steps 1-3 and the #5952 text (Fix steps 5-6; Dependabot npm dropped by D-028). This is the only change to the fixed phase order.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-16, was O-02 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-004)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep all of P3-U1 in Phase 3",
+      "whyNot": "The first release shipping P1-U1's hook change would trip checks A and B"
+    }
+  ],
+  "whyWinner": "Removal was already decided (D-001, Rule 1); doing it first stops the checks blocking Phase 1 releases.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:24Z",
+  "revisitTrigger": "P3-U1a cannot land before Phase 1 releases",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "release"
+  ],
+  "relatedIssues": [
+    6127,
+    6184,
+    6613,
+    5952
+  ]
+}

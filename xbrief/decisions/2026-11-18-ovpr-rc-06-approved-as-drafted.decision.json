@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-rc-06-approved-as-drafted",
+  "decision": "RC-06 approved by polfer as drafted (D-030), text in drafts/RC-06.md of the OVPR planning folder (directive-ovpr-planning-202611): One recovery table: project install for a missing or mismatched runtime, repair for wiring, upgrade for data, launcher only if missing (about 30 requirements lines plus architecture, primer, README); newest-tag-only v26MMDD. Gates: P4-U2; then P4-U3a/b/c/d, P5-U2b, P5-U5. Lands as its own docs-only PR with exactly the approved text, merged by polfer before the gated unit merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-030)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the current requirements text",
+      "whyNot": "Rejected by polfer's approval of the draft (D-030)"
+    }
+  ],
+  "whyWinner": "polfer approved the drafted text (D-030); see drafts/RC-06.md and drafts/RC-INDEX.md.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:33Z",
+  "revisitTrigger": "The RC-06 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-06"
+  ],
+  "relatedIssues": [
+    6619,
+    5798,
+    6328
+  ]
+}

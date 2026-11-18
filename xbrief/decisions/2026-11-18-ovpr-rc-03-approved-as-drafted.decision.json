@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-rc-03-approved-as-drafted",
+  "decision": "RC-03 approved by polfer as drafted (D-030), text in drafts/RC-03.md of the OVPR planning folder (directive-ovpr-planning-202611): Upgrade lists Git-reported edits under .deft/core before deleting it; no prompt, no refusal (AC10.6). Gates: the #6002 part of P2-U6. Lands as its own docs-only PR with exactly the approved text, merged by polfer before the gated unit merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-030)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the current requirements text",
+      "whyNot": "Rejected by polfer's approval of the draft (D-030)"
+    }
+  ],
+  "whyWinner": "polfer approved the drafted text (D-030); see drafts/RC-03.md and drafts/RC-INDEX.md.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:32Z",
+  "revisitTrigger": "The RC-03 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-03"
+  ],
+  "relatedIssues": [
+    6002
+  ]
+}

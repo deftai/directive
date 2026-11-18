@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-029-no-gitattributes-special-case",
+  "decision": "D-029 (option A; was O-48): No special case for this repo's .gitattributes. P2-U5a first stops writing the retired .deft/core/** lines, then removes #6479's framework-source writer skip (isFrameworkSourceCheckoutAt in scaffold.ts). Once this repo's pin is on that release, the clean managed block is committed here once; after that the writer finds it present and writes nothing. #6256 closes then. Keep #6479's other change (pack renders read the invoking checkout). Tell Scott before P2-U5a dispatches. polfer's current uncommitted .gitattributes change (old block with retired lines) is not committed. #6525 is a separate coordination item.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-029; requirements section D3, DOGFOOD rule)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "B: keep the skip",
+      "whyNot": "This repo would never run the customer path"
+    },
+    {
+      "option": "A2: treat * text=auto eol=lf as covering the block",
+      "whyNot": "Changes customer behaviour, less vetted"
+    }
+  ],
+  "whyWinner": "The DOGFOOD rule: this repo runs the customer path.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:31Z",
+  "revisitTrigger": "The clean block causes churn in this repo",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "dogfood"
+  ],
+  "relatedIssues": [
+    6479,
+    6337,
+    6256,
+    6525
+  ]
+}
