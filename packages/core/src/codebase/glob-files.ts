@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, globSync, type Stats, statSync } from "node:fs";
+import { existsSync, type Stats, statSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { globSyncCompat } from "../fs/glob-sync.js";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 
 /**
@@ -91,7 +92,7 @@ export function expandModuleGlobs(
   for (const globValue of globs) {
     let matches: string[];
     try {
-      matches = globSync(globValue, { cwd: projectRoot });
+      matches = globSyncCompat(globValue, { cwd: projectRoot });
     } catch {
       matches = [];
     }

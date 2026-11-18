@@ -1086,3 +1086,53 @@ jobs:
             Pop-Location
             pnpm --dir $contentPackage run postpack
           }
+
+  node20-load:
+    # AC15.1 / AC16 (#5873): Node 20 is allowed, best effort. This job loads
+    # the staged runtime under Node 20 and fails if a module will not link
+    # (for example a Node-22-only builtin import such as `fs.globSync`).
+    # Non-blocking: `continue-on-error`, and no merge gate needs it.
+    name: Node 20 runtime load (best effort)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and stage the runtime
+        run: |
+          set -eu
+          pnpm exec tsc -b packages/runtime
+          node packages/runtime/scripts/stage-bundle.mjs "$RUNNER_TEMP/node20-runtime"
+          ( cd "$RUNNER_TEMP/node20-runtime" && npm install --omit=dev --ignore-scripts )
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 20
+
+      - name: Load the staged runtime under Node 20
+        run: |
+          set -u
+          node --version
+          STAGE="$RUNNER_TEMP/node20-runtime"
+          fail=0
+          node "$STAGE/dist/bin.js" --version > out-bin.txt 2>&1 || fail=1
+          cat out-bin.txt
+          printf '' | node "$STAGE/dist/hook-bin.js" --host claude --event tool.before \
+            --project-root "$GITHUB_WORKSPACE" > out-hook.txt 2>&1 || fail=1
+          cat out-hook.txt
+          if grep -E "SyntaxError|ERR_MODULE_NOT_FOUND|does not provide an export" out-bin.txt out-hook.txt; then
+            fail=1
+          fi
+          exit "$fail"

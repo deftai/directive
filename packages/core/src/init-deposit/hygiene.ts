@@ -96,7 +96,14 @@ function multiHostSkillDiscoveryManagedMatchers(): InstallerManagedMatcher[] {
   return matchers;
 }
 
-/** Single source of truth for installer-managed paths (#1440 / #1576). */
+/**
+ * Single source of truth for installer-managed paths (#1440 / #1576).
+ *
+ * Pre-OVPR deft-core-guard allowlist (path-only; retires with #5835). For
+ * "is this change Directive's own?" use `listDirectiveOwnedPaths` /
+ * `classifyDirectiveOwnedChange` in `install-health/owned-paths.ts` (#6615).
+ * Do not merge the two lists here.
+ */
 export function installerManagedMatchers(): InstallerManagedMatcher[] {
   return [
     { exact: "AGENTS.md" },

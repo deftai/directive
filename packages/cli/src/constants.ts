@@ -33,6 +33,26 @@ export const NODE_EOL_NOTE =
 
 export const RECOVERY_GUIDANCE = "npm i -g @deftai/directive, then directive install --repair";
 
+/**
+ * Old-style project whose own pre-split copy is not installed (RC-12,
+ * §A5.6 / §A6.7 / AC10.2). With the copy installed, the launcher hands the
+ * command to it instead.
+ */
+export const PRE_OVPR_LAYOUT_MESSAGE =
+  "This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update.";
+
+/** Commands an old-style project never hands to its own copy (§A6.7). */
+export const OLD_STYLE_LAUNCHER_COMMANDS: ReadonlySet<string> = new Set(["upgrade", "uninstall"]);
+
+/**
+ * `deft-hook` when the runtime pin package is not installed (AC9.12 step 2).
+ * Same text as core `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE`; the launcher
+ * cannot import core (AC3.1).
+ */
+export const HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE =
+  "Directive hooks: missing node_modules/@deftai/directive-runtime. " +
+  "Run npm install or pnpm install (or yarn) in this project.";
+
 /** Env vars passed when spawning the runtime (AC4.2). */
 export const ENV_PROJECT_ROOT = "DIRECTIVE_PROJECT_ROOT";
 export const ENV_LAUNCHER_VERSION = "DIRECTIVE_LAUNCHER_VERSION";

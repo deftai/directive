@@ -1,0 +1,326 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6562",
+    "updated": "2026-11-18T18:45:15Z"
+  },
+  "plan": {
+    "title": "bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-A (story id ovpr-g-worktree-core), unit P2-U12, issue #6562, decision D-010; partly addresses #6465 ('Two more regressions', item 1). `reconstituteLinkedWorktreeDeposit` copies a full retired `.deft/core` into linked worktrees of consumer projects on every mutating `session:start` / `session:ready`, with no runtime-pin check (436 untracked files in deftai/evolution). Remove the path: session start and session ready stop calling it, swarm worktree prep without a runtime pin fails closed with the Rule 3 project-install message, the reconstitution functions are deleted from gitignore.ts, and doctor's `manifest-agreement` loses its reconstitution branch. One PR.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6562",
+      "Overview": "## Summary\n\nIn a runtime-pinned (OVPR) consumer project, every mutating `session:start` and `session:ready` in a linked worktree copies a full `.deft/core` into that worktree. `.deft/core` is the retired vendored layout. The session output does not mention it.\n\n## Evidence\n\nConsumer report in #6465 (comment \"Two more regressions\", item 1): deftai/evolution worktree after `directive upgrade --yes` to 0.129.11. Each mutating `session:start` wrote 436 untracked files under `.deft/core`, again after deletion.\n\nCause (code reading, origin/master `d645489e6`):\n- `reconstituteLinkedWorktreeDeposit` (`packages/core/src/init-deposit/gitignore.ts:965`, from #4443 / #5390, before OVPR) is called from `session/session-start.ts:2315` and `session/session-ready.ts:273` with no runtime-pin check.\n- It copies from a resolvable `@deftai/directive-content` package, else from the primary checkout's `.deft/core`. Evolution had both: the primary was still on the old layout, and the app depends on `@deftai/directive@0.126.2`.\n- `swarm/worktree-pm-install.ts:381-395` already runs the PM install when pinned and reconstitutes only when there is no pin.\n\n## Expected\n\nNo code path writes `.deft/core` in a consumer project. A worktree without the runtime gets the project-install message (AC9.12), not a copy of retired content.\n\n## Ownership\n\nOVPR / installer (deposit, pin-absent behaviour). Plan unit P2-U12. Decision D-010 (polfer, 2026-11-17).\n\n## Refs\n\n#6465, #4443, #5390, #6001 (same `manifest-agreement` check in doctor).\n\n",
+      "Labels": "bug, area:installer",
+      "UserStory": "As a developer working in a linked worktree of a runtime-pinned project, I want session start to write nothing under `.deft/core`, so that my worktree has no hundreds of untracked retired files and a worktree with no runtime gets the project-install message instead.",
+      "StoryId": "ovpr-g-worktree-core (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U12-stop-worktree-deft-core-reconstitution.md (read in full). groups.md G-A: one PR (the spec's PR 1 and PR 2 together). Decision D-010.",
+      "ImplementationPlan": "1. packages/core/src/session/session-start.ts, session-ready.ts, session-start-occupancy-barrier-worker.ts: remove the reconstitution step, its option seam and `linkedDepositDeny`. Session start writes nothing under `.deft/core`.\n2. packages/core/src/swarm/worktree-pm-install.ts: keep the pinned branch (PM install). Replace the not-pinned branch with a fail-closed result `code: \"pin-missing\"` whose message is the existing Rule 3 project-install constant from install-health (no new wording; the message table is G-G).\n3. packages/core/src/init-deposit/gitignore.ts: delete `reconstituteLinkedWorktreeDeposit`, `resolveWorktreePayloadSource`, `copyWorktreePayloadSync`, `ensureWorktreeVersionManifest`, `WORKTREE_RECONSTITUTE_FETCHED_BY` and their types. Keep `looksLikePayload` / `resolvePayloadSourceVersion` only if something else still uses them.\n4. packages/core/src/doctor/checks.ts: remove the `eligibleReconstitute` branch from `manifest-agreement`, consistent with what P2-U2 (#6001) settled for leftover `.deft-version`.\n5. Tests: delete or rewrite reconstitution tests (gitignore.test.ts, session-start.test.ts, session-ready.test.ts, worktree-pm-install.test.ts, resolution/cold-clone-reconstitution.test.ts, doctor/checks.test.ts) and fix incidental references (greenfield-pin-clone.harness.test.ts, hook-runtime-travel.test.ts, refresh.test.ts, resolution/plan.test.ts, dest-contention-it-timeout tests, runtime cli-router/router.test.ts). New behaviour tests: linked worktree of a pinned project with a primary `.deft/core` and a resolvable `@deftai/directive-content` -> mutating session:start writes nothing under `.deft/core`; swarm worktree prep with no pin -> `pin-missing`, project-install text, no files written. No grep-only guard tests (groups.md).\n6. Changelog fragment changelog.d/6562-no-worktree-deft-core.md.",
+      "Constraint": "- Don't delete or clean up an existing `.deft/core` in a worktree or primary checkout (removal belongs to `directive upgrade`).\n- Don't add any new deposit, copy or symlink of runtime content outside `node_modules`.\n- Don't change the framework-source (dogfood) behaviour.\n- Don't change the Rule 3 wording; reuse the existing install-health constant.\n- No guard-only 'prevent it coming back' tests; prove the behaviour with real tests.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: P2-U2 (#6001 / github.issue.6082665123, same `manifest-agreement` code in doctor/checks.ts). Blocks: none. Decision D-010.",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #6562. Partly addresses #6465 (item 1 of 'Two more regressions'). Refs #4443, #5390, #6001."
+    },
+    "items": [
+      {
+        "title": "No code path in packages/ writes `.deft/core` in a consumer project: the linked-worktree reconstitution functions are deleted and nothing calls a `.deft/core` copy routine.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given the changed tree, when packages/core/src/init-deposit/gitignore.ts and its former callers are read, then `reconstituteLinkedWorktreeDeposit`, `resolveWorktreePayloadSource`, `copyWorktreePayloadSync` and `ensureWorktreeVersionManifest` no longer exist and session start, session ready, the occupancy barrier worker and swarm worktree prep call no `.deft/core` copy routine."
+        }
+      },
+      {
+        "title": "`session:start` and `session:ready` in a linked worktree leave `git status` unchanged with respect to `.deft/core`.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a linked worktree of a runtime-pinned project whose primary checkout still has `.deft/core` and where `@deftai/directive-content` is resolvable, when a mutating `session:start` or `session:ready` runs in the worktree, then no file is written under `.deft/core` in that worktree."
+        }
+      },
+      {
+        "title": "Swarm worktree prep without a runtime pin fails closed with `pin-missing` and the Rule 3 project-install message, and writes no files.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a linked worktree with no runtime pin, when swarm worktree prep runs, then it returns `code: \"pin-missing\"` with the existing Rule 3 project-install text and writes no files."
+        }
+      },
+      {
+        "title": "Doctor's `manifest-agreement` check has no reconstitution branch.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/doctor/checks.ts, when the `manifest-agreement` check runs in a linked worktree with no `.deft/core`, then it reports from the runtime pin only and never suggests or evaluates reconstituting `.deft/core`."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6562",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6562: bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6465",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6465"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/session packages/core/src/swarm/worktree-pm-install.test.ts packages/core/src/init-deposit packages/core/src/doctor/checks.test.ts packages/core/src/resolution"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (16), in order (#6333)",
+      "sentences": [
+        "bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects",
+        "Summary In a runtime-pinned (OVPR) consumer project, every mutating `session:start` and `session:ready` in a linked worktree copies a full `.deft/core` into that worktree.",
+        "`.deft/core` is the retired vendored layout.",
+        "The session output does not mention it.",
+        "Evidence Consumer report in #6465 (comment \"Two more regressions\", item 1): deftai/evolution worktree after `directive upgrade --yes` to 0.129.11.",
+        "Each mutating `session:start` wrote 436 untracked files under `.deft/core`, again after deletion.",
+        "Cause (code reading, origin/master `d645489e6`): - `reconstituteLinkedWorktreeDeposit` (`packages/core/src/init-deposit/gitignore.ts:965`, from #4443 / #5390, before OVPR) is called from `session/session-start.ts:2315` and `session/session-ready.ts:273` with no runtime-pin check.",
+        "It copies from a resolvable `@deftai/directive-content` package, else from the primary checkout's `.deft/core`.",
+        "Evolution had both: the primary was still on the old layout, and the app depends on `@deftai/directive@0.126.2`.",
+        "`swarm/worktree-pm-install.ts:381-395` already runs the PM install when pinned and reconstitutes only when there is no pin.",
+        "Expected No code path writes `.deft/core` in a consumer project.",
+        "A worktree without the runtime gets the project-install message (AC9.12), not a copy of retired content.",
+        "Ownership OVPR / installer (deposit, pin-absent behaviour).",
+        "Plan unit P2-U12.",
+        "Decision D-010 (polfer, 2026-11-17).",
+        "Refs #6465, #4443, #5390, #6001 (same `manifest-agreement` check in doctor)."
+      ],
+      "admitted_source_sentences": [
+        "Summary In a runtime-pinned (OVPR) consumer project, every mutating `session:start` and `session:ready` in a linked worktree copies a full `.deft/core` into that worktree.",
+        "`.deft/core` is the retired vendored layout.",
+        "The session output does not mention it.",
+        "Evidence Consumer report in #6465 (comment \"Two more regressions\", item 1): deftai/evolution worktree after `directive upgrade --yes` to 0.129.11.",
+        "Each mutating `session:start` wrote 436 untracked files under `.deft/core`, again after deletion.",
+        "Cause (code reading, origin/master `d645489e6`): - `reconstituteLinkedWorktreeDeposit` (`packages/core/src/init-deposit/gitignore.ts:965`, from #4443 / #5390, before OVPR) is called from `session/session-start.ts:2315` and `session/session-ready.ts:273` with no runtime-pin check.",
+        "It copies from a resolvable `@deftai/directive-content` package, else from the primary checkout's `.deft/core`.",
+        "Evolution had both: the primary was still on the old layout, and the app depends on `@deftai/directive@0.126.2`.",
+        "`swarm/worktree-pm-install.ts:381-395` already runs the PM install when pinned and reconstitutes only when there is no pin.",
+        "Expected No code path writes `.deft/core` in a consumer project.",
+        "A worktree without the runtime gets the project-install message (AC9.12), not a copy of retired content.",
+        "Ownership OVPR / installer (deposit, pin-absent behaviour).",
+        "Plan unit P2-U12.",
+        "Decision D-010 (polfer, 2026-11-17).",
+        "Refs #6465, #4443, #5390, #6001 (same `manifest-agreement` check in doctor)."
+      ],
+      "admitted_source_digest": "9e2914359979fb37e0b49cfc61abbcdc3fe0f72838ca421ef6d70ec6fb8f1724",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary In a runtime-pinned (OVPR) consumer project, every mutating `session:start` and `session:ready` in a linked worktree copies a full `.deft/core` into that worktree.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "`.deft/core` is the retired vendored layout.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The session output does not mention it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Evidence Consumer report in #6465 (comment \"Two more regressions\", item 1): deftai/evolution worktree after `directive upgrade --yes` to 0.129.11.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Each mutating `session:start` wrote 436 untracked files under `.deft/core`, again after deletion.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "Cause (code reading, origin/master `d645489e6`): - `reconstituteLinkedWorktreeDeposit` (`packages/core/src/init-deposit/gitignore.ts:965`, from #4443 / #5390, before OVPR) is called from `session/session-start.ts:2315` and `session/session-ready.ts:273` with no runtime-pin check.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 8,
+          "text": "It copies from a resolvable `@deftai/directive-content` package, else from the primary checkout's `.deft/core`.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Evolution had both: the primary was still on the old layout, and the app depends on `@deftai/directive@0.126.2`.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "`swarm/worktree-pm-install.ts:381-395` already runs the PM install when pinned and reconstitutes only when there is no pin.",
+          "artifact_path": "packages/core/src/swarm/worktree-pm-install.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Expected No code path writes `.deft/core` in a consumer project.",
+          "artifact_path": "packages/core/src/swarm/worktree-pm-install.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "A worktree without the runtime gets the project-install message (AC9.12), not a copy of retired content.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Ownership OVPR / installer (deposit, pin-absent behaviour).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Plan unit P2-U12.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Decision D-010 (polfer, 2026-11-17).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Refs #6465, #4443, #5390, #6001 (same `manifest-agreement` check in doctor).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-ready.ts",
+          "packages/core/src/session/session-start-occupancy-barrier-worker.ts",
+          "packages/core/src/swarm/worktree-pm-install.ts",
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/session/session-start.test.ts",
+          "packages/core/src/session/session-ready.test.ts",
+          "packages/core/src/session/session-start-occupancy-barrier-worker.test.ts",
+          "packages/core/src/swarm/worktree-pm-install.test.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "packages/core/src/resolution/cold-clone-reconstitution.test.ts",
+          "packages/core/src/resolution/plan.test.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/init-deposit/greenfield-pin-clone.harness.test.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/vitest-runner/dest-contention-it-timeout.test.ts",
+          "packages/core/src/vitest-runner/dest-contention-it-timeout.helper.test.ts",
+          "packages/runtime/src/cli-router/router.test.ts",
+          "changelog.d/6562-no-worktree-deft-core.md"
+        ],
+        "module_boundary": "Session start/ready and the occupancy barrier worker (remove one step), swarm worktree prep (not-pinned branch fails closed), the reconstitution functions in init-deposit/gitignore.ts (deleted) and the `manifest-agreement` doctor check. No new write paths.",
+        "cohesion_exemption": "session-start.ts (3297 lines), doctor/checks.ts (2280 lines) and init-deposit/gitignore.ts (1098 lines) already exceed the review trigger. This change removes code from them (one step, one branch, the reconstitution functions); splitting them is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6451305849,
+        "origin": "deftai/directive#6562",
+        "id": "github.issue.6451305849"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-ready.ts",
+          "packages/core/src/session/session-start-occupancy-barrier-worker.ts",
+          "packages/core/src/swarm/worktree-pm-install.ts",
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/session/session-start.test.ts",
+          "packages/core/src/session/session-ready.test.ts",
+          "packages/core/src/session/session-start-occupancy-barrier-worker.test.ts",
+          "packages/core/src/swarm/worktree-pm-install.test.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "packages/core/src/resolution/cold-clone-reconstitution.test.ts",
+          "packages/core/src/resolution/plan.test.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/init-deposit/greenfield-pin-clone.harness.test.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/vitest-runner/dest-contention-it-timeout.test.ts",
+          "packages/core/src/vitest-runner/dest-contention-it-timeout.helper.test.ts",
+          "packages/runtime/src/cli-router/router.test.ts",
+          "changelog.d/6562-no-worktree-deft-core.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6082665123"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session packages/core/src/swarm/worktree-pm-install.test.ts packages/core/src/init-deposit packages/core/src/doctor/checks.test.ts packages/core/src/resolution"
+        ],
+        "Traces": [
+          "#6562",
+          "#6465"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-setup",
+        "expected_outputs": [
+          "No code path in packages/ writes `.deft/core` in a consumer project: the linked-worktree reconstitution functions are deleted and nothing calls a `.deft/core` copy routine.",
+          "`session:start` and `session:ready` in a linked worktree leave `git status` unchanged with respect to `.deft/core`.",
+          "Swarm worktree prep without a runtime pin fails closed with `pin-missing` and the Rule 3 project-install message, and writes no files.",
+          "Doctor's `manifest-agreement` check has no reconstitution branch.",
+          "one changelog fragment changelog.d/6562-no-worktree-deft-core.md"
+        ],
+        "acceptance_criteria_justification": "Four items: unit spec P2-U12 acceptance criteria 1 to 4, one each (criterion 1 proven by behaviour, not a grep-only guard, per groups.md)."
+      }
+    },
+    "id": "github.issue.6451305849",
+    "updated": "2026-11-18T18:45:15Z"
+  }
+}

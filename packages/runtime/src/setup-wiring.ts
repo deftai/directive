@@ -43,6 +43,7 @@ import {
 import {
   MANAGED_SECTION_CLOSE,
   MANAGED_SECTION_OPEN_PREFIX,
+  MINIMAL_TASKFILE,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { applyAgentsRefresh } from "@deftai/directive-core/dist/platform/agents-md.js";
 import {
@@ -1362,15 +1363,6 @@ export function ensureGitHooks(
   }
   return { created, modified, conflicts, preserved, hooksPathActive, inactiveDisclosure };
 }
-
-const MINIMAL_TASKFILE = `version: '3'
-
-# Installed by Directive setup (Wave 2c). Framework tasks under deft:.
-includes:
-  deft:
-    ${RUNTIME_TASKFILE_INCLUDE}
-    optional: true
-`;
 
 const DEFT_INCLUDE_BLOCK =
   `  deft:\n` + `    taskfile: ./${RUNTIME_PREFIX}Taskfile.yml\n` + `    optional: true\n`;
