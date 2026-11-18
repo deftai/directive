@@ -89,7 +89,11 @@
         "file_scope": [
           "packages/core/src/xbrief-migrate/migrate-project.ts",
           "packages/core/src/xbrief-migrate/migrate-project.test.ts",
-          "changelog.d/6571-upgrade-removes-vbrief.md"
+          "changelog.d/6571-upgrade-removes-vbrief.md",
+          "packages/runtime/src/migrate.ts",
+          "packages/runtime/src/migrate.test.ts",
+          "changelog.d/6571-binary-safe-and-marked-repos.md",
+          "changelog.d/6571-binary-safe-vbrief-move.md"
         ],
         "readiness": "ready",
         "depends_on": [],
