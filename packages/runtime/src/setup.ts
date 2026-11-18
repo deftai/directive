@@ -14,6 +14,10 @@ import {
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
+  hostHookOuterRelPath,
+  hostHookOuterSha8,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import {
   defaultTrackedNames,
   isTrackedDeletePath,
   stageFrameworkPaths,
@@ -304,6 +308,21 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
         path: rel,
         kind: "whole-file",
         fingerprint: fingerprintContent(body),
+      });
+    }
+  }
+  // AC11.10 / #6615: the committed host `.mjs` outers setup wrote (current sha8).
+  // Fingerprint LF-normalized text: setup keeps a CRLF checkout of the same
+  // outer, so the record must not change with core.autocrlf (AC13.2).
+  const outerSha8 = hostHookOuterSha8();
+  for (const host of ["claude", "codex", "cursor", "grok"] as const) {
+    const rel = hostHookOuterRelPath(host, outerSha8);
+    const body = readText(join(projectRoot, rel));
+    if (body !== null) {
+      artifacts.push({
+        path: rel,
+        kind: "whole-file",
+        fingerprint: fingerprintContent(body.replace(/\r\n/g, "\n")),
       });
     }
   }
