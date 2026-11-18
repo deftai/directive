@@ -4076,45 +4076,91 @@ function tokenPlantsKillSwitch(token: string): boolean {
  * (a mention such as `git commit -m "x > name"` stays allowed), so a `cmd` launcher
  * payload is unwrapped and scanned as a command of its own. Rest of line, as cmd reads it.
  */
-const CMD_LAUNCHER_PAYLOAD_RE =
-  /(?:^|[\s;&|(])(?:"(?:[^"]*[\\/])?cmd(?:\.exe)?"|(?:[^\s"';&|()]*[\\/])?cmd(?:\.exe)?)\s+(?:\/[a-z]\S*\s+)*?\/[ckr](?=\s|["'])\s*([\s\S]*)$/gim;
-
-/** True when `index` sits inside an open quote (escape-aware), so it is data, not a command. */
-function indexIsInsideQuote(text: string, index: number): boolean {
-  let quote: "'" | '"' | null = null;
-  for (let i = 0; i < index; i++) {
-    const c = text[i] as string;
-    if (c === "\\" && quote !== "'" && i + 1 < text.length) {
-      i++;
-      continue;
-    }
-    if (c === "'" || c === '"') {
-      if (quote === null) quote = c;
-      else if (quote === c) quote = null;
-    }
-  }
-  return quote !== null;
+function isCmdLauncherSpace(c: string | undefined): boolean {
+  return c === " " || c === "\t" || c === "\n" || c === "\r";
 }
 
+/**
+ * If a `cmd` launcher word starts at `start` (quoted or bare, any path prefix), return
+ * the rest of the line after its `/c` | `/k` | `/r` switch. Linear scan, no regex
+ * backtracking; other switches (`/d`, `/s`, `/v:on`) are skipped.
+ */
+function cmdLauncherPayloadAt(text: string, start: number): string | null {
+  let i = start;
+  const quote = text[i] === '"' || text[i] === "'" ? (text[i] as string) : null;
+  let word = "";
+  if (quote !== null) {
+    i++;
+    while (i < text.length && text[i] !== quote) word += text[i++];
+    if (i >= text.length) return null;
+    i++;
+  } else {
+    while (
+      i < text.length &&
+      !isCmdLauncherSpace(text[i]) &&
+      !";&|()\"'".includes(text[i] as string)
+    ) {
+      word += text[i++];
+    }
+  }
+  const base = (word.split(/[\\/]/).pop() as string).toLowerCase();
+  if (base !== "cmd" && base !== "cmd.exe") return null;
+  for (;;) {
+    while (i < text.length && isCmdLauncherSpace(text[i])) i++;
+    if (text[i] !== "/" || i + 1 >= text.length) return null;
+    const letter = (text[i + 1] as string).toLowerCase();
+    if (letter === "c" || letter === "k" || letter === "r") return text.slice(i + 2);
+    i += 2;
+    while (i < text.length && !isCmdLauncherSpace(text[i]) && text[i] !== '"' && text[i] !== "'") {
+      i++;
+    }
+  }
+}
+
+/**
+ * Payloads of every `cmd` launcher in command position. A launcher named inside a quoted
+ * argument (`git commit -m '... cmd /c ...'`) is data, and it never hides a real launcher
+ * later in the line: each candidate is judged on its own.
+ */
 function cmdLauncherPayloads(command: string): string[] {
   const out: string[] = [];
-  for (const match of command.matchAll(CMD_LAUNCHER_PAYLOAD_RE)) {
-    // A launcher named inside a quoted argument (`git commit -m '... cmd /c ...'`) is data.
-    if (
-      indexIsInsideQuote(
-        command,
-        (match.index as number) + (match[0].length - match[0].trimStart().length),
-      )
-    ) {
-      continue;
-    }
-    let payload = (match[1] as string).trim();
+  let quote: "'" | '"' | null = null;
+  let atWordStart = true;
+  const tryAt = (index: number): void => {
+    const raw = cmdLauncherPayloadAt(command, index);
+    if (raw === null) return;
+    let payload = raw.trim();
     const q = payload[0];
     if (q === '"' || q === "'") {
       payload = payload.slice(1);
       if (payload.endsWith(q)) payload = payload.slice(0, -1);
     }
     if (payload.length > 0) out.push(payload);
+  };
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i] as string;
+    if (c === "\\" && quote !== "'" && i + 1 < command.length) {
+      i++;
+      atWordStart = false;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      if (quote === null) {
+        if (atWordStart) tryAt(i);
+        quote = c;
+      } else if (quote === c) {
+        quote = null;
+      }
+      atWordStart = false;
+      continue;
+    }
+    if (quote !== null) continue;
+    if (isCmdLauncherSpace(c) || c === ";" || c === "&" || c === "|" || c === "(") {
+      atWordStart = true;
+      continue;
+    }
+    if (atWordStart) tryAt(i);
+    atWordStart = false;
   }
   return out;
 }
@@ -4245,13 +4291,9 @@ const XARGS_RUNS_ARGS = new Set([
 function stageRunsXargsWriter(stage: string): boolean {
   const words = zipShellWords(stage) ?? stage.split(/\s+/).filter((w) => w.length > 0);
   let i = 0;
-  const skipWrapperArgs = (): void => {
-    while (i < words.length) {
-      const w = words[i] as string;
-      if (isEnvAssign(w) || w.startsWith("-")) i++;
-      else break;
-    }
-  };
+  // A wrapper option may take a separate value (`env -u FOO`, `nice -n 5`); the value
+  // cannot be told from the program, so any option after a wrapper fails closed.
+  let lenient = false;
   // Leading wrappers / assignments, then the command word.
   while (i < words.length) {
     const w = words[i] as string;
@@ -4263,7 +4305,7 @@ function stageRunsXargsWriter(stage: string): boolean {
     if (bare === "xargs") break;
     if (XARGS_WRAPPERS.has(bare) || XARGS_RUNS_ARGS.has(bare) || /^\d+$/.test(w)) {
       i++;
-      skipWrapperArgs();
+      if (i < words.length && (words[i] as string).startsWith("-")) lenient = true;
       continue;
     }
     // `sh -c 'xargs touch'`: look into the payload.
@@ -4278,6 +4320,10 @@ function stageRunsXargsWriter(stage: string): boolean {
           }
         }
       }
+    }
+    if (lenient) {
+      i++;
+      continue;
     }
     return false;
   }
@@ -4297,7 +4343,10 @@ function stageRunsXargsWriter(stage: string): boolean {
     const bare = writeBinName(w);
     if (XARGS_WRAPPERS.has(bare)) {
       i++;
-      skipWrapperArgs();
+      // `env -u FOO touch`: an option here may carry a value, so check the rest of the line.
+      if (i < words.length && (words[i] as string).startsWith("-")) {
+        return words.slice(i).some(wordIsXargsWriter);
+      }
       continue;
     }
     break;

@@ -2956,6 +2956,31 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     }
   });
 
+  it("still finds a real launcher after a quoted example in the same line", () => {
+    for (const command of [
+      `git commit -m 'document cmd /c "echo x > ${kill}"'; cmd /c "echo x > ${kill}"`,
+      `echo 'cmd /c "x"' && cmd.exe /c "type nul > ${opt}"`,
+      `echo "cmd /c y" | cmd /c "echo x > ${kill}"`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("checks the program after a wrapper option that takes a value", () => {
+    for (const command of [
+      `echo ${kill} | xargs env -u FOO touch`,
+      `echo ${kill} | xargs env -C /tmp touch`,
+      `echo ${kill} | xargs nice -n 5 touch`,
+      `echo ${kill} | xargs timeout 5 touch`,
+      `echo ${kill} | env -u FOO xargs touch`,
+      `echo ${kill} | nice -n 5 xargs touch`,
+    ]) {
+      expectPlant(command);
+    }
+    expectStoreWrite(`echo ${authz} | xargs env -u FOO touch`);
+    expectNoPlant(`echo ${kill} | xargs env -u FOO cat`);
+  });
+
   it("still denies the forms that were denied before #6580", () => {
     for (const command of [
       `powershell -c "New-Item ${kill}"`,
