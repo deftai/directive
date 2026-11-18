@@ -22,7 +22,22 @@ function gitInit(repo: string): void {
   execFileSync("git", ["config", "user.email", "t@test.local"], { cwd: repo, encoding: "utf8" });
   execFileSync("git", ["config", "user.name", "T"], { cwd: repo, encoding: "utf8" });
   writeFileSync(join(repo, "f.txt"), "x\n", "utf8");
-  execFileSync("git", ["add", "-A"], { cwd: repo, encoding: "utf8" });
+  // Runtime-pinned project with its runtime already in place, so worktree prep
+  // skips the package install (#6562: an unpinned worktree fails closed).
+  writeFileSync(
+    join(repo, "package.json"),
+    JSON.stringify({ name: "sw", devDependencies: { "@deftai/directive-runtime": "1.0.0" } }),
+    "utf8",
+  );
+  const runtime = join(repo, "node_modules", "@deftai", "directive-runtime");
+  mkdirSync(join(runtime, "dist"), { recursive: true });
+  writeFileSync(
+    join(runtime, "package.json"),
+    JSON.stringify({ name: "@deftai/directive-runtime", version: "1.0.0" }),
+    "utf8",
+  );
+  writeFileSync(join(runtime, "dist", "hook-bin.js"), "export {};\n", "utf8");
+  execFileSync("git", ["add", "-A", "-f"], { cwd: repo, encoding: "utf8" });
   execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, encoding: "utf8" });
 }
 
@@ -482,6 +497,7 @@ describe("swarm worktrees", () => {
     const wt = join(repo, "wt-reuse");
     addDetachedWorktree(repo, wt, sha);
     writeFileSync(join(wt, "package.json"), JSON.stringify({ name: "wt-reuse" }), "utf8");
+    rmSync(join(wt, "node_modules"), { recursive: true, force: true });
     const result = resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", false, {
       repoRoot: repo,
       pmRunner: () => ({ status: 1, stdout: "", stderr: "reuse install boom" }),
@@ -493,7 +509,7 @@ describe("swarm worktrees", () => {
     rmSync(repo, { recursive: true, force: true });
   });
 
-  it("provisions .deft/core from the primary payload and does not copy occupancy.json (#4443)", () => {
+  it("never copies the primary .deft/core into a new worktree (#6562)", () => {
     const repo = mkdtempSync(join(tmpdir(), "sw-wt-dep-"));
     gitInit(repo);
     mkdirSync(join(repo, ".deft", "core"), { recursive: true });
@@ -504,15 +520,13 @@ describe("swarm worktrees", () => {
       "utf8",
     );
     writeFileSync(join(repo, ".deft", "occupancy.json"), '{"sessionId":"primary"}\n', "utf8");
-    writeFileSync(join(repo, ".deft", "ritual-state.json"), '{"ready":true}\n', "utf8");
     const wt = join(repo, "wt-dep");
     const dep = resolveWorktreeMap([{ story_id: "s-dep", worktree_path: wt }], "master", true, {
       repoRoot: repo,
     });
     expect(dep.ok).toBe(true);
-    expect(existsSync(join(wt, ".deft", "core", "main.md"))).toBe(true);
+    expect(existsSync(join(wt, ".deft", "core"))).toBe(false);
     expect(existsSync(join(wt, ".deft", "occupancy.json"))).toBe(false);
-    expect(existsSync(join(wt, ".deft", "ritual-state.json"))).toBe(false);
     rmSync(repo, { recursive: true, force: true });
   });
 });
