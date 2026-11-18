@@ -1453,6 +1453,89 @@ describe("runXbriefMigration finishes the vbrief move (#6571 / D-012)", () => {
     expect(text).toContain("archived 1 file(s) that differ from xbrief/");
   });
 
+  it("removes a file left by a write that throws after creating it, and keeps vbrief/", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-partial-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    const realWrite = containedWriteMod.containedWrite;
+    let calls = 0;
+    vi.spyOn(containedWriteMod, "containedWrite").mockImplementation((input) => {
+      calls += 1;
+      if (calls === 2) {
+        // Create the target, then fail as a mid-write I/O error would.
+        writeFileSync(String(input.target), "partial", "utf8");
+        throw Object.assign(new Error("EIO: input/output error"), { code: "EIO" });
+      }
+      return realWrite(input);
+    });
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("config");
+    vi.restoreAllMocks();
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "notes.md"))).toBe(false);
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "only-legacy.xbrief.json")),
+    ).toBe(false);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "notes.md"))).toBe(true);
+    // A retry is not confused by leftovers: everything moves cleanly.
+    const retry = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(retry.kind).toBe("migrated");
+    if (retry.kind === "migrated") expect(retry.archivedPaths).toEqual([]);
+  });
+
+  itSymlink("refuses a marked vbrief/ that holds only symlinks instead of deleting it", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-link-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    gitQuiet(project, ["init", "-q"]);
+    markLegacyRoot(project);
+    const outside = mkdtempSync(join(tmpdir(), "xbrief-finish-link-target-"));
+    temps.push(outside);
+    writeFileSync(join(outside, "real.vbrief.json"), legacyStoryWithTitle("Linked"), "utf8");
+    symlinkSync(
+      join(outside, "real.vbrief.json"),
+      join(project, LEGACY_ARTIFACT_DIR, "linked.vbrief.json"),
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("config");
+    if (outcome.kind === "config") expect(outcome.message).toMatch(/symlink/);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
+      true,
+    );
+    expect(readFileSync(join(outside, "real.vbrief.json"), "utf8")).toBe(
+      legacyStoryWithTitle("Linked"),
+    );
+  });
+
+  it("a tracked marked vbrief/ does not block the leftover-envelope strip; both land", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-strip-"));
+    temps.push(base);
+    const project = scaffoldDualEnvelopeXbriefOnly(base, { track: true });
+    markLegacyRoot(project);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "old.vbrief.json"),
+      legacyStoryWithTitle("Old"),
+      "utf8",
+    );
+    writeFileSync(join(project, ".gitignore"), ".deft/xbrief-migrate-backup-*/\n", "utf8");
+    gitQuiet(project, ["add", "-A"]);
+    const spec = join(project, MIGRATED_ARTIFACT_DIR, "specification.xbrief.json");
+    expect(JSON.parse(readFileSync(spec, "utf8"))).toHaveProperty("vBRIEFInfo");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.residualMessage).toMatch(/Stripped 1 redundant/);
+      expect(outcome.migratedPaths).toEqual(["xbrief/active/old.xbrief.json"]);
+    }
+    expect(JSON.parse(readFileSync(spec, "utf8"))).not.toHaveProperty("vBRIEFInfo");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+    gitQuiet(project, ["add", "-A"]);
+    expect(evaluateXbriefDrift(project).findings).toEqual([]);
+  });
+
   it("end to end: the upgrade-style run on a dual-populated repo passes verify:xbrief-drift --staged", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-finish-e2e-"));
     temps.push(base);

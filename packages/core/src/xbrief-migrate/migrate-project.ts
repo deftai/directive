@@ -628,6 +628,26 @@ function rollbackStripWrites(
   };
 }
 
+interface StripDriftOptions {
+  /**
+   * The caller deletes `vbrief/` in the same operation (#6571 finish-move), so
+   * tracked `vbrief/` paths are not counted against the strip. Every other
+   * finding still blocks.
+   */
+  readonly legacyDirScheduledForRemoval?: boolean;
+}
+
+function isScheduledLegacyRemoval(
+  finding: { readonly kind: string; readonly path: string },
+  options: StripDriftOptions,
+): boolean {
+  return (
+    options.legacyDirScheduledForRemoval === true &&
+    finding.kind === "legacy-lifecycle-dir" &&
+    (finding.path === LEGACY_ARTIFACT_DIR || finding.path.startsWith(`${LEGACY_ARTIFACT_DIR}/`))
+  );
+}
+
 /**
  * Write planned leftover-envelope strips via contained temp+rename only after
  * every body is planned. Record the current file before replacing it. Restore
@@ -636,6 +656,7 @@ function rollbackStripWrites(
 function applyRedundantLegacyEnvelopeStrips(
   projectRoot: string,
   pending: ReadonlyArray<StripRewrite>,
+  options: StripDriftOptions = {},
 ): { ok: true; files: number } | { ok: false; error: string } {
   const pre = evaluateXbriefDrift(projectRoot, { quiet: true });
   if (pre.code === 2) {
@@ -643,7 +664,9 @@ function applyRedundantLegacyEnvelopeStrips(
   }
   const plannedRels = new Set(pending.map((entry) => stripRewriteRel(projectRoot, entry.path)));
   const leftover = pre.findings.filter(
-    (finding) => !(finding.kind === "legacy-envelope-key" && plannedRels.has(finding.path)),
+    (finding) =>
+      !(finding.kind === "legacy-envelope-key" && plannedRels.has(finding.path)) &&
+      !isScheduledLegacyRemoval(finding, options),
   );
   if (leftover.length > 0) {
     return {
@@ -673,7 +696,10 @@ function applyRedundantLegacyEnvelopeStrips(
   }
 
   const post = evaluateXbriefDrift(projectRoot, { quiet: true });
-  if (post.code !== 0) {
+  const postLeftover = post.findings.filter(
+    (finding) => !isScheduledLegacyRemoval(finding, options),
+  );
+  if (post.code === 2 || postLeftover.length > 0) {
     const restoreFailures = restoreStripOriginals(projectRoot, written);
     return {
       ok: false,
@@ -1004,15 +1030,27 @@ function finishLegacyMove(
   const readme = join(migratedDir, ARCHIVE_REL_DIR, ARCHIVE_README_FILENAME);
   const readmeExisted = existsSync(readme);
 
-  const written: string[] = [];
+  // Every path this run creates, recorded before the write starts, so a write
+  // that throws after creating its file is rolled back too. A path that already
+  // existed is never recorded (create mode refuses it without writing).
+  const created: string[] = [];
+  const createFile = (target: string, write: () => void): void => {
+    if (existsSync(target)) {
+      write();
+      return;
+    }
+    created.push(target);
+    write();
+  };
   const migratedPaths: string[] = [];
   const archivedPaths: string[] = [];
   const collisionArchivedPaths: string[] = [];
   try {
     for (const entry of plan.writes) {
       const target = join(migratedDir, entry.targetRel);
-      containedWrite({ root, target, data: entry.data, mode: "create" });
-      written.push(target);
+      createFile(target, () => {
+        containedWrite({ root, target, data: entry.data, mode: "create" });
+      });
       const shown = `${MIGRATED_ARTIFACT_DIR}/${entry.targetRel}`;
       if (entry.kind === "migrated") {
         migratedPaths.push(shown);
@@ -1022,13 +1060,14 @@ function finishLegacyMove(
       }
     }
     if (archivedPaths.length > 0 && !readmeExisted) {
-      ensureArchiveReadme(projectRoot, migratedDir);
-      written.push(readme);
+      createFile(readme, () => {
+        ensureArchiveReadme(projectRoot, migratedDir);
+      });
     }
   } catch (err) {
-    for (const target of written) {
+    for (const target of created) {
       try {
-        containedRemove({ root, target });
+        if (existsSync(target)) containedRemove({ root, target });
       } catch {
         /* best-effort rollback; the backup still holds both trees */
       }
@@ -1080,11 +1119,23 @@ function runFinishLegacyMove(
       };
     }
   }
+  // Refuse a symlinked or escaping vbrief/ before any write or removal, including
+  // the marker-only shortcut below (collectFiles does not list links).
+  try {
+    assertMigrationSourceSafe(projectRoot, legacyDir);
+  } catch (err) {
+    return { kind: "config", message: err instanceof Error ? err.message : String(err) };
+  }
   let residualMessage: string | undefined;
   let residualFiles = 0;
   if (options.residual) {
-    // Clean-tree check ran above; the residual pass must not re-refuse.
-    const residual = rewriteResidualXbriefEnvelopes(projectRoot, { ...args, force: true });
+    // Clean-tree check ran above; the residual pass must not re-refuse. Tracked
+    // vbrief/ paths do not block it: this operation deletes vbrief/.
+    const residual = rewriteResidualXbriefEnvelopes(
+      projectRoot,
+      { ...args, force: true },
+      { legacyDirScheduledForRemoval: true },
+    );
     if (residual !== null) {
       if (residual.kind !== "rewritten") return residual;
       residualMessage = residual.message;
@@ -1171,6 +1222,7 @@ function runAgentsRefresh(
 function rewriteResidualXbriefEnvelopes(
   projectRoot: string,
   args: XbriefMigrationArgs,
+  stripOptions: StripDriftOptions = {},
 ): XbriefMigrationOutcome | null {
   const plan = planHybridEnvelopeRewrites(projectRoot);
   if (!plan.ok) {
@@ -1199,7 +1251,7 @@ function rewriteResidualXbriefEnvelopes(
   }
   let stripFiles = 0;
   if (strip.pending.length > 0) {
-    const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending);
+    const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending, stripOptions);
     if (!applied.ok) {
       return { kind: "config", message: applied.error };
     }
