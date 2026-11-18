@@ -31,6 +31,7 @@ import { runTransition } from "../scope/transition.js";
 import { applyWorktreeOccupancy, readOccupancy } from "../session/occupancy.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
+  derivedLifecycleRelsFromSweep,
   evaluateFinalizeClassMergeCarveOut,
   FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
   finalizeClaimRef,
@@ -796,6 +797,88 @@ describe("finalizeCohort", () => {
       result.result.errors.some((e) => e.includes("xbrief/.audit/authority-events.jsonl")),
     ).toBe(true);
     rmSync(project, { recursive: true, force: true });
+  });
+
+  it("admits the story's own active-to-completed rename from a temporary-checkout sweep (#6601 / #4714 R7)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6601-twin-"));
+    const storyPath = writeActiveStory(project, "story-t", 2225);
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-t",
+      repo: "deftai/directive",
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-t.xbrief.json"],
+        statusShort:
+          "R  xbrief/active/story-t.xbrief.json -> xbrief/completed/story-t.xbrief.json\n",
+      }),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.exitCode).toBe(0);
+    expect(committed).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("still refuses an unrelated xBRIEF path beside the story rename in a temporary-checkout sweep (#6601 / #4714 R7)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6601-unrelated-"));
+    const storyPath = writeActiveStory(project, "story-v", 2225);
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-v",
+      repo: "deftai/directive",
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-v.xbrief.json"],
+        statusShort:
+          "R  xbrief/active/story-v.xbrief.json -> xbrief/completed/story-v.xbrief.json\n" +
+          "D  xbrief/active/other-story.xbrief.json\n",
+      }),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(committed).toBe(false);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("xbrief/active/other-story.xbrief.json") && e.includes("R7"),
+      ),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("resolves a relative sweep record path against the sweep root, not the cwd (#6601)", () => {
+    const root = mkdtempSync(join(tmpdir(), "sw-finalize-6601-rels-"));
+    const record = (kind: "story" | "epic", path: string) => ({
+      kind,
+      path,
+      action: "complete",
+      ok: true,
+      detail: "",
+    });
+    const rels = derivedLifecycleRelsFromSweep(root, [], {
+      project_root: root,
+      dry_run: false,
+      stories: [record("story", "xbrief/active/child.xbrief.json")],
+      parents: [record("epic", "xbrief/active/epic.xbrief.json")],
+      errors: [],
+      ok: true,
+    });
+    expect(rels).toContain("xbrief/completed/child.xbrief.json");
+    expect(rels).toContain("xbrief/completed/epic.xbrief.json");
+    expect(rels).toContain("xbrief/active/epic.xbrief.json");
+    expect(rels.some((rel) => !rel.startsWith("xbrief/"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
   });
 
   it("opens the sweep PR against the configured base branch (--base)", () => {

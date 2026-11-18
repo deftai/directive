@@ -1189,7 +1189,7 @@ export function finalizeBranchSetupError(
  * Paths completeCohort may rewrite beside the selected stories: epic parents,
  * twin completions, and registry companions (#4714 R7).
  */
-function derivedLifecycleRelsFromSweep(
+export function derivedLifecycleRelsFromSweep(
   projectRoot: string,
   storyPaths: readonly string[],
   sweep: SweepResult | null,
@@ -1232,9 +1232,12 @@ function derivedLifecycleRelsFromSweep(
       if (!rec.ok || rec.path.trim().length === 0) {
         continue;
       }
-      addPath(rec.path);
+      // completeStory records a path relative to the sweep root (#6601): resolve it
+      // there, never against the process cwd.
+      const recPath = resolve(projectRoot, rec.path);
+      addPath(recPath);
       // Transition records keep the pre-move path; admit the terminal twin too.
-      const rel = posixProjectRel(projectRoot, rec.path);
+      const rel = posixProjectRel(projectRoot, recPath);
       if (rel.includes("/active/") || rel.includes("/pending/")) {
         const completed = rel
           .replace("/active/", "/completed/")
@@ -2650,8 +2653,10 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     const closeRoot = originCloseRoot(lifecycle?.checkout ?? null, projectRoot);
 
     if (!dryRun && !noCommit && !skipSweep && errors.length === 0) {
-      const derivedRels = derivedLifecycleRelsFromSweep(sweepRoot, storyPaths, sweep);
-      const commitResult = commitLifecycleMoves(sweepRoot, storyPaths, runGit, derivedRels);
+      // #6601: the sweep ran in sweepRoot, so R7 compares sweepRoot-side story paths.
+      // storyPaths (implement-worktree paths) collapse to bare file names there.
+      const derivedRels = derivedLifecycleRelsFromSweep(sweepRoot, sweepStories, sweep);
+      const commitResult = commitLifecycleMoves(sweepRoot, sweepStories, runGit, derivedRels);
       if (!commitResult.ok) {
         errors.push(commitResult.error ?? "commit failed");
       } else {
