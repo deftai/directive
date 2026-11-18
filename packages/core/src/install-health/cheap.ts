@@ -12,7 +12,7 @@
  */
 
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   ENTRY_GUARD_MESSAGES,
   formatEntryGuardMessage,
@@ -114,15 +114,51 @@ export function checkCheapInSync(projectRoot: string, seams: FsSeams = {}): Chea
  * #6313 install admit).
  */
 
-const EXEMPT_VERBS: ReadonlySet<string> = new Set(["doctor", "hook:dispatch", "help"]);
-const EXEMPT_FLAGS: ReadonlySet<string> = new Set(["--version", "-V", "--help", "-h"]);
+const EXEMPT_VERBS: ReadonlySet<string> = new Set([
+  "doctor",
+  "hook:dispatch",
+  "help",
+  "version",
+  "--version",
+  "-V",
+  "--help",
+  "-h",
+]);
+const HELP_FLAGS: ReadonlySet<string> = new Set(["--help", "-h"]);
 
-/** True when `argv` runs a command the identity check leaves alone. */
+/**
+ * The project a runtime command acts on, for the pin check: an explicit
+ * `--project-root <path>` (or `=path`) wins, resolved against `cwd`; else
+ * `fallback` (`DIRECTIVE_PROJECT_ROOT` or the working directory).
+ */
+export function runtimeCommandProjectRoot(
+  argv: readonly string[],
+  fallback: string,
+  cwd: string = process.cwd(),
+): string {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] ?? "";
+    const value =
+      arg === "--project-root"
+        ? argv[i + 1]
+        : arg.startsWith("--project-root=")
+          ? arg.slice("--project-root=".length)
+          : undefined;
+    if (value !== undefined && value.length > 0) return resolve(cwd, value);
+  }
+  return fallback;
+}
+
+/**
+ * True when `argv` runs a command the identity check leaves alone. Only the
+ * first token decides, as in the router (`route-argv.ts`), plus a bare
+ * `<verb> --help`; a flag value elsewhere (`--note --version`) never exempts.
+ */
 export function isIdentityExempt(argv: readonly string[]): boolean {
-  if (argv.length === 0) return true;
-  if (argv.some((arg) => EXEMPT_FLAGS.has(arg))) return true;
-  const verb = argv.find((arg) => !arg.startsWith("-"));
-  return verb !== undefined && EXEMPT_VERBS.has(verb);
+  const first = argv[0];
+  if (first === undefined) return true;
+  if (EXEMPT_VERBS.has(first)) return true;
+  return argv.length === 2 && HELP_FLAGS.has(argv[1] ?? "");
 }
 
 /**

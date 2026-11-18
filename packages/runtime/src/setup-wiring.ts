@@ -1123,7 +1123,7 @@ function shDoubleQuoted(text: string): string {
  */
 const GITHOOK_RUNTIME_MISSING_LINE = shDoubleQuoted(
   ENTRY_GUARD_MESSAGES["runtime-missing"],
-).replace("{install}", "$_directive_install");
+).replace("{install}", () => "$_directive_install");
 
 // Taskfile F1 disable-first + project-PM pin miss live in tasks/engine.yml +
 // tasks/engine-invoke.cjs (#5994) — disable-active runs BEFORE pin-bin / is-buildable-source;

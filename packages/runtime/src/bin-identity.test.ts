@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   isIdentityExempt,
+  runtimeCommandProjectRoot,
   runtimeIdentityRefusal,
 } from "@deftai/directive-core/dist/install-health/cheap.js";
 import { afterEach, describe, expect, it } from "vitest";
@@ -94,6 +95,25 @@ describe("runtime pin check (AC2.6)", () => {
     expect(isIdentityExempt([])).toBe(true);
     expect(isIdentityExempt(["verify:encoding", "--staged"])).toBe(false);
     expect(isIdentityExempt(["pre-pr:run", "--push-admit"])).toBe(false);
+    // A flag value elsewhere never exempts (only the first token, as the router).
+    expect(isIdentityExempt(["policy:allow-direct-commits", "--note", "--version"])).toBe(false);
+    expect(isIdentityExempt(["verify:encoding", "--staged", "--help"])).toBe(false);
+  });
+
+  it("checks the project named by --project-root, not the working directory", () => {
+    const root = project("1.2.4", "1.2.3", "pnpm-lock.yaml");
+    const sub = join(root, "src");
+    mkdirSync(sub);
+    const result = spawnSync(process.execPath, [BIN, "verify:encoding", "--project-root", root], {
+      cwd: sub,
+      encoding: "utf8",
+      env: { ...process.env, DIRECTIVE_PROJECT_ROOT: "", DEFT_DOCTOR_HOOK_DIAGNOSTIC: "1" },
+      timeout: 60_000,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr.trim()).toBe(MISMATCH);
+    expect(runtimeCommandProjectRoot([`--project-root=${root}`], sub, sub)).toBe(root);
+    expect(runtimeCommandProjectRoot(["verify:branch"], sub, sub)).toBe(sub);
   });
 
   it("doctor still runs on a mismatch (AC5)", () => {

@@ -118,7 +118,7 @@ tasks:
             node "{{.TASKFILE_DIR}}/engine-invoke.cjs" global directive
           else
             echo "deft: neither OVPR bin.js under {{.DEFT_ROOT}} nor a global deft command is available." >&2
-            node "{{.TASKFILE_DIR}}/engine-invoke.cjs" runtime-missing-message "{{.USER_WORKING_DIR}}"
+            node "{{.TASKFILE_DIR}}/engine-invoke.cjs" runtime-missing-message "{{.USER_WORKING_DIR}}" "{{.DEFT_ROOT}}"
             exit 2
           fi
         fi

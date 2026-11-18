@@ -43,11 +43,27 @@ function projectInstallCommand(root) {
 
 /** The `runtime-missing` row for the project at root. */
 function runtimeMissingMessage(root) {
-  return RUNTIME_MISSING_ROW.replace("{install}", projectInstallCommand(root));
+  return RUNTIME_MISSING_ROW.replace("{install}", () => projectInstallCommand(root));
+}
+
+/** The `launcher-missing` row (shared table): no runtime package and no launcher. */
+const LAUNCHER_MISSING_ROW = "Install the Directive launcher: `npm i -g @deftai/directive`.";
+
+/**
+ * Consumer branch with no usable bin and no global launcher. When the include
+ * points into the project's runtime package, the runtime is what is missing
+ * (project install); otherwise (an older content-only deposit) it is the
+ * launcher.
+ */
+function consumerMissingMessage(projectRoot, deftRoot) {
+  const normalized = String(deftRoot || "").replace(/\\/g, "/");
+  return normalized.includes("node_modules/@deftai/directive-runtime")
+    ? runtimeMissingMessage(projectRoot)
+    : LAUNCHER_MISSING_ROW;
 }
 
 /** Root-independent form (no lockfile read). */
-const PIN_INSTALL_REMEDIATION = RUNTIME_MISSING_ROW.replace("{install}", ANY_PROJECT_INSTALL);
+const PIN_INSTALL_REMEDIATION = RUNTIME_MISSING_ROW.replace("{install}", () => ANY_PROJECT_INSTALL);
 /** Tip dogfood secondary when project install is not enough (#5805). */
 const PIN_MATERIALIZE_REMEDIATION = "task materialize:runtime";
 const PIN_BIN_REL = path.join("node_modules", "@deftai", "directive-runtime", "dist", "bin.js");
@@ -447,7 +463,13 @@ if (require.main === module) {
     process.exit(isBuildableSource(process.argv[3] || "") ? 0 : 1);
   }
   if (mode === "runtime-missing-message") {
-    console.error(runtimeMissingMessage(process.argv[3] || ""));
+    // argv: <projectRoot> [<DEFT_ROOT>]; without DEFT_ROOT, the runtime row.
+    const deftRoot = process.argv[4];
+    console.error(
+      deftRoot === undefined
+        ? runtimeMissingMessage(process.argv[3] || "")
+        : consumerMissingMessage(process.argv[3] || "", deftRoot),
+    );
     process.exit(0);
   }
   if (mode === "disable-active") {
@@ -492,6 +514,8 @@ module.exports = {
   PIN_MATERIALIZE_REMEDIATION,
   projectInstallCommand,
   runtimeMissingMessage,
+  consumerMissingMessage,
+  LAUNCHER_MISSING_ROW,
   isDirectiveDisableActive,
   DISABLE_FLAG,
 };

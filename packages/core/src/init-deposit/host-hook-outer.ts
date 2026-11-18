@@ -214,7 +214,7 @@ if (isRegularFile(killPath) && gitTrackListing(root, FLAG) === "untracked") {
 
 const pin = join(root, PIN_REL);
 if (!existsSync(pin)) {
-  blockToolCall(host, event, GUIDANCE.replace("{install}", installCommand(root)));
+  blockToolCall(host, event, GUIDANCE.replace("{install}", () => installCommand(root)));
 }
 
 const child = spawnSync(process.execPath, [pin, ...argv], {

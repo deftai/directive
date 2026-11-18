@@ -61,6 +61,16 @@ describe("entry-guard table parity (core ↔ launcher copy)", () => {
     }
   });
 
+  it("inserts values literally, with no `$&`-style replacement patterns", () => {
+    const values = { pin: "$&", installed: "$'", spec: "$$1" };
+    for (const format of [core.formatEntryGuardMessage, cli.formatEntryGuardMessage]) {
+      expect(format("pin-mismatch", values)).toContain(
+        "@deftai/directive-runtime $' is not the pinned $&.",
+      );
+      expect(format("pin-invalid", values)).toContain("(found `$$1`)");
+    }
+  });
+
   it("keeps the launcher's old-project and disabled texts equal to the table and core", () => {
     expect(PRE_OVPR_LAYOUT_MESSAGE).toBe(core.ENTRY_GUARD_MESSAGES["legacy-layout"]);
     expect(DISABLE_ONE_LINE).toBe(DEFT_DIRECTIVE_DISABLE_ONE_LINE);

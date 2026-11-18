@@ -649,6 +649,21 @@ describe("framework pin exclusive invoke (#5805)", () => {
     assert.match(r.stderr, /`pnpm install --frozen-lockfile`/);
   });
 
+  it("runtime-missing-message names the launcher when the include is not the runtime package", () => {
+    const { LAUNCHER_MISSING_ROW, runtimeMissingMessage } = require("./engine-invoke.cjs");
+    const root = pinTempRoot();
+    const script = join(__dirname, "engine-invoke.cjs");
+    const msg = (deftRoot) =>
+      spawnSync(process.execPath, [script, "runtime-missing-message", root, deftRoot], {
+        encoding: "utf8",
+      }).stderr.trim();
+    assert.equal(msg(join(root, ".deft", "core")), LAUNCHER_MISSING_ROW);
+    assert.equal(
+      msg(join(root, "node_modules", "@deftai", "directive-runtime")),
+      runtimeMissingMessage(root),
+    );
+  });
+
   it("disable-active / pin-bin quiet-skip when untracked disable flag present (#5994)", () => {
     const root = pinTempRoot();
     const script = join(__dirname, "engine-invoke.cjs");

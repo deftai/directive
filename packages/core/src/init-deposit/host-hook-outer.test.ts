@@ -329,8 +329,8 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // changes belong to their own issues. #6201 changed the bytes on purpose
     // (block the tool call when the hook cannot decide): a598056e -> 8edf26e9.
     // #6620 changed them on purpose (shared message table, install named by
-    // lockfile): 8edf26e9 -> 15712a10.
-    expect(hostHookOuterSha8()).toBe("15712a10");
+    // lockfile): 8edf26e9 -> 8149fb11.
+    expect(hostHookOuterSha8()).toBe("8149fb11");
   });
 });
 

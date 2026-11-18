@@ -74,14 +74,16 @@ export function formatEntryGuardMessage(
   situation: EntrySituation,
   values: EntryGuardMessageValues = {},
 ): string {
+  // Function replacers: values are inserted literally (no `$&`-style patterns).
+  const install = values.install ?? "`npm install` (or `pnpm install --frozen-lockfile`)";
+  const pin = values.pin ?? "?";
+  const installed = values.installed ?? "?";
+  const spec = values.spec ?? "";
   return ENTRY_GUARD_MESSAGES[situation]
-    .replaceAll(
-      "{install}",
-      values.install ?? "`npm install` (or `pnpm install --frozen-lockfile`)",
-    )
-    .replaceAll("{pin}", values.pin ?? "?")
-    .replaceAll("{installed}", values.installed ?? "?")
-    .replaceAll("{spec}", values.spec ?? "");
+    .replaceAll("{install}", () => install)
+    .replaceAll("{pin}", () => pin)
+    .replaceAll("{installed}", () => installed)
+    .replaceAll("{spec}", () => spec);
 }
 
 /** What stops a command that would start the pinned runtime, and its message. */
