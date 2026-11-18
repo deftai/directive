@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6301",
-    "updated": "2026-11-18T15:05:21Z"
+    "updated": "2026-11-18T18:01:32Z"
   },
   "plan": {
     "title": "fix(scope): strict acceptance axes should skip text inside backticks and code fences",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(scope): strict acceptance axes should skip text inside backticks and code fences",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6301",
@@ -16,57 +16,111 @@
     "items": [
       {
         "title": "Keep matching deploy, smoke, and UAT inside code spans and fenced blocks in inferRequiredStrictAxes. Ship no strip, no filter, and no new code-span or fence scanner. Issue AC1 to AC4 and AC7 as written are withdrawn.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Add tests beside acceptance-evidence.ts that each of these code-span claims keeps its axis: \"`npm run deploy` succeeds\" (deploy), \"`vercel deploy --prod` succeeds\" (deploy), \"`Deploy to staging` and confirm the site serves the new build\" (deploy), \"the `deploy` job ran against staging and the site serves the new build\" (deploy), \"`pnpm smoke` passes on staging\" (smoke), \"`playwright test --grep smoke` passes against staging\" (smoke), \"requires `smoke` evidence; the lint job is green\" (smoke), \"record `uat` evidence from the staging walkthrough; update the workflow\" (uat).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Add tests that a fenced block whose body is \"npm run deploy -- --env staging\" or \"flyctl deploy --app api-staging\" keeps deploy, with and without a blockquote prefix on each fence line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Add tests that an unclosed delimiter keeps the axis of later text: an unclosed fence followed by \"smoke test passes\" returns smoke; \"Escape the ` character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run `x` again\" returns deploy; an unclosed fence in Description and a Test field \"Smoke tests pass on staging\" returns smoke.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Add a test that wrapping a prose claim in backticks changes neither the inferred axes nor the listStrictAxisRequirements row: \"Deploy to staging and run the smoke test\" and \"`Deploy to staging` and `run the smoke test`\" return the same axes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Keep observed_behavior matching on the same raw text as other axes, and keep the existing backtick fixture for it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Write every fixture as the literal clause text, with no backslash escapes inside code spans.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "Add a comment on inferRequiredStrictAxes that code formatting is not a name signal, and that the way to clear a name-only axis is to reword the clause or declare x-directive/requires.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       },
       {
         "title": "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
       }
     ],
     "tags": [
@@ -731,7 +785,34 @@
         "harvestDigest": "39146a1e613d265982150440a536c928a8f5d377edbbe358add350e4534683c6",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6667,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ef26c721a115fed851b7188722dcb270f44e6d0e",
+        "prNumber": 6667,
+        "prBase": "master",
+        "mergeCommit": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "41fcd4b57753ee1e00322ea2bc2ae964b550b4a4",
+        "verifiedAt": "2026-11-18T18:01:32Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:N2Y4YjdkMjUtOWQ5My00OGU2LTgzMTMtZWI0NjFkNzA4ZjYw",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T18:01:32Z",
+      "completedSessionId": "host:claude:v1:N2Y4YjdkMjUtOWQ5My00OGU2LTgzMTMtZWI0NjFkNzA4ZjYw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T18:01:32Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -829,6 +910,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6376468589",
-    "updated": "2026-11-18T15:05:21Z"
+    "updated": "2026-11-18T18:01:32Z"
   }
 }
