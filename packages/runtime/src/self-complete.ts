@@ -25,22 +25,23 @@ import { runSetup, type SetupResult } from "./setup.js";
  */
 export const DEFT_DOCTOR_HOOK_DIAGNOSTIC = DOCTOR_DIAGNOSTIC_ENV;
 
-/** Process once-guard for preserved-hook stderr lines (#5885). */
-const emittedPreservedLines = new Set<string>();
+/** Process once-guard for git-hook update stderr lines (#5885 / D-023). */
+const emittedGitHookLines = new Set<string>();
 
-/** Test-only: clear the process once-guard for preserved disclosure. */
-export function resetSelfCompletePreservedDisclosureForTests(): void {
-  emittedPreservedLines.clear();
+/** Test-only: clear the process once-guard for git-hook update lines. */
+export function resetSelfCompleteGitHookDisclosureForTests(): void {
+  emittedGitHookLines.clear();
 }
 
-function disclosePreservedHooks(
-  preserved: readonly string[] | undefined,
+/** Automatic setup needs no approval, so it names each git hook it replaced (D-023). */
+function discloseGitHookUpdates(
+  lines: readonly string[] | undefined,
   writeErr: (text: string) => void,
 ): void {
-  if (preserved === undefined || preserved.length === 0) return;
-  for (const line of preserved) {
-    if (emittedPreservedLines.has(line)) continue;
-    emittedPreservedLines.add(line);
+  if (lines === undefined || lines.length === 0) return;
+  for (const line of lines) {
+    if (emittedGitHookLines.has(line)) continue;
+    emittedGitHookLines.add(line);
     writeErr(`${line}\n`);
   }
 }
@@ -164,6 +165,6 @@ export function maybeSelfCompleteSetup(
     from: version,
     root: projectRoot,
   });
-  disclosePreservedHooks(setup.preserved, writeErr);
+  discloseGitHookUpdates(setup.gitHookUpdates, writeErr);
   return { ran: true, skipReason: null, setup };
 }
