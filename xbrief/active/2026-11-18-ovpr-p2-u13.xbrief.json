@@ -1,0 +1,336 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6571",
+    "updated": "2026-11-18T03:05:14Z"
+  },
+  "plan": {
+    "title": "bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6571",
+      "Overview": "## Summary\n\nWhen `vbrief/` and `xbrief/` both have content (for example after an earlier partial migration), `directive upgrade` keeps `vbrief/` and writes `vbrief/DEPRECATED.md` instead of finishing the move. The pre-commit gate `verify:xbrief-drift --staged` then rejects that new marker, so the upgrade commit fails. A repo that was marked earlier stays marked on every later upgrade.\n\n## Evidence\n\n- Consumer report: #6465, comment \"Two more regressions\", item 2 (deftai/evolution, 0.129.11).\n- Migration (`packages/core/src/xbrief-migrate/migrate-project.ts`, origin/master `d645489e6`): the normal case converts into `xbrief/`, archives unconvertible files to `xbrief/archive/`, and deletes `vbrief/` (`:730-775`). The dual-populated case keeps `vbrief/` and writes the marker (`:978-989`, #2270). The already-marked case leaves it (`:942-955`).\n- Gate: `drift-gate.ts:304` flags any added/modified path under `vbrief/`. Deletions are not checked (`encoding/git.ts:37`, `--diff-filter=ACMR`).\n- Correction to the report: the allowlist default did not change. `allowList: null` and `BUILTIN_ALLOW_LIST` are identical in v0.126.2 and origin/master.\n\n## Expected\n\nAfter `directive upgrade`, `vbrief/` is gone in every case. Leftover files are migrated into `xbrief/` when the destination is free, skipped when already identical, and copied raw to `xbrief/archive/` when they differ. Existing `xbrief/` files are never overwritten. The drift gate is unchanged. `--keep-legacy` on a direct `deft migrate:xbrief` stays as an explicit opt-in.\n\n## Ordering\n\nMust merge before plan unit P2-U1 (#5808 / #5976), which restores `verify:xbrief-drift` in the pre-commit template.\n\n## Ownership\n\nOVPR / installer (upgrade is the only path that migrates project data, AC7.8). Plan unit P2-U13. Decision D-012 (polfer, 2026-11-17).\n\n## Refs\n\n#6465, #2270, #5808, #5976.\n\n",
+      "Labels": "bug, area:installer",
+      "StoryId": "ovpr-p2-u13 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U13-upgrade-finishes-vbrief-move.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "Follow the unit spec's Fix section. Spec: 1–2 production files; migrate-project.ts is the expected one.",
+      "Constraint": "- Never overwrite an existing `xbrief/` file with legacy content.\n- Never drop a legacy file that differs from what's in `xbrief/`: it goes to `xbrief/archive/`.\n- Don't add a `vbrief/` exemption to the drift gate; no change to `drift-gate.ts`.\n- Don't change repair or automatic setup: they never migrate (AC6.8).\n- Don't edit the pre-commit template here (P2-U1 owns it).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: P2-U1 (must merge before P2-U1). Decision D-012 (supersedes D-011).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #6571. Partly addresses #6465 (item 2 of its 'Two more regressions' comment)."
+    },
+    "items": [
+      {
+        "title": "After `directive upgrade`, no `vbrief/` folder remains, in the normal, dual-populated and already-marked cases.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "After `directive upgrade`, no `vbrief/` folder remains, in the normal, dual-populated and already-marked cases."
+        }
+      },
+      {
+        "title": "No existing `xbrief/` content is overwritten; every legacy file is migrated, already present, or in `xbrief/archive/`.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "No existing `xbrief/` content is overwritten; every legacy file is migrated, already present, or in `xbrief/archive/`."
+        }
+      },
+      {
+        "title": "The upgrade commit passes `verify:xbrief-drift --staged` with no `--allow-list`.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "The upgrade commit passes `verify:xbrief-drift --staged` with no `--allow-list`."
+        }
+      },
+      {
+        "title": "The drift gate is unchanged.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "The drift gate is unchanged."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6571",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6571: bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6465",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6465"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "directive upgrade",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "verify:xbrief-drift --staged",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.test.ts",
+          "changelog.d/6571-upgrade-removes-vbrief.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm vitest run packages/core/src/xbrief-migrate"
+        ],
+        "Traces": [
+          "#6571",
+          "#6465"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.test.ts",
+          "changelog.d/6571-upgrade-removes-vbrief.md"
+        ],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6452158147,
+        "origin": "deftai/directive#6571",
+        "id": "github.issue.6452158147"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (22), in order (#6333)",
+      "sentences": [
+        "bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate",
+        "Summary When `vbrief/` and `xbrief/` both have content (for example after an earlier partial migration), `directive upgrade` keeps `vbrief/` and writes `vbrief/DEPRECATED.md` instead of finishing the move.",
+        "The pre-commit gate `verify:xbrief-drift --staged` then rejects that new marker, so the upgrade commit fails.",
+        "A repo that was marked earlier stays marked on every later upgrade.",
+        "Evidence - Consumer report: #6465, comment \"Two more regressions\", item 2 (deftai/evolution, 0.129.11).",
+        "Migration (`packages/core/src/xbrief-migrate/migrate-project.ts`, origin/master `d645489e6`): the normal case converts into `xbrief/`, archives unconvertible files to `xbrief/archive/`, and deletes `vbrief/` (`:730-775`).",
+        "The dual-populated case keeps `vbrief/` and writes the marker (`:978-989`, #2270).",
+        "The already-marked case leaves it (`:942-955`).",
+        "Gate: `drift-gate.ts:304` flags any added/modified path under `vbrief/`.",
+        "Deletions are not checked (`encoding/git.ts:37`, `--diff-filter=ACMR`).",
+        "Correction to the report: the allowlist default did not change.",
+        "`allowList: null` and `BUILTIN_ALLOW_LIST` are identical in v0.126.2 and origin/master.",
+        "Expected After `directive upgrade`, `vbrief/` is gone in every case.",
+        "Leftover files are migrated into `xbrief/` when the destination is free, skipped when already identical, and copied raw to `xbrief/archive/` when they differ.",
+        "Existing `xbrief/` files are never overwritten.",
+        "The drift gate is unchanged.",
+        "`--keep-legacy` on a direct `deft migrate:xbrief` stays as an explicit opt-in.",
+        "Ordering Must merge before plan unit P2-U1 (#5808 / #5976), which restores `verify:xbrief-drift` in the pre-commit template.",
+        "Ownership OVPR / installer (upgrade is the only path that migrates project data, AC7.8).",
+        "Plan unit P2-U13.",
+        "Decision D-012 (polfer, 2026-11-17).",
+        "Refs #6465, #2270, #5808, #5976."
+      ],
+      "admitted_source_sentences": [
+        "Summary When `vbrief/` and `xbrief/` both have content (for example after an earlier partial migration), `directive upgrade` keeps `vbrief/` and writes `vbrief/DEPRECATED.md` instead of finishing the move.",
+        "The pre-commit gate `verify:xbrief-drift --staged` then rejects that new marker, so the upgrade commit fails.",
+        "A repo that was marked earlier stays marked on every later upgrade.",
+        "Evidence - Consumer report: #6465, comment \"Two more regressions\", item 2 (deftai/evolution, 0.129.11).",
+        "Migration (`packages/core/src/xbrief-migrate/migrate-project.ts`, origin/master `d645489e6`): the normal case converts into `xbrief/`, archives unconvertible files to `xbrief/archive/`, and deletes `vbrief/` (`:730-775`).",
+        "The dual-populated case keeps `vbrief/` and writes the marker (`:978-989`, #2270).",
+        "The already-marked case leaves it (`:942-955`).",
+        "Gate: `drift-gate.ts:304` flags any added/modified path under `vbrief/`.",
+        "Deletions are not checked (`encoding/git.ts:37`, `--diff-filter=ACMR`).",
+        "Correction to the report: the allowlist default did not change.",
+        "`allowList: null` and `BUILTIN_ALLOW_LIST` are identical in v0.126.2 and origin/master.",
+        "Expected After `directive upgrade`, `vbrief/` is gone in every case.",
+        "Leftover files are migrated into `xbrief/` when the destination is free, skipped when already identical, and copied raw to `xbrief/archive/` when they differ.",
+        "Existing `xbrief/` files are never overwritten.",
+        "The drift gate is unchanged.",
+        "`--keep-legacy` on a direct `deft migrate:xbrief` stays as an explicit opt-in.",
+        "Ordering Must merge before plan unit P2-U1 (#5808 / #5976), which restores `verify:xbrief-drift` in the pre-commit template.",
+        "Ownership OVPR / installer (upgrade is the only path that migrates project data, AC7.8).",
+        "Plan unit P2-U13.",
+        "Decision D-012 (polfer, 2026-11-17).",
+        "Refs #6465, #2270, #5808, #5976."
+      ],
+      "admitted_source_digest": "56c166d331c937ffa32a84f5ff4fb700f698e6ab2f0c04adc71ff1bbfd1b267f",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary When `vbrief/` and `xbrief/` both have content (for example after an earlier partial migration), `directive upgrade` keeps `vbrief/` and writes `vbrief/DEPRECATED.md` instead of finishing the move.",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The pre-commit gate `verify:xbrief-drift --staged` then rejects that new marker, so the upgrade commit fails.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A repo that was marked earlier stays marked on every later upgrade.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Evidence - Consumer report: #6465, comment \"Two more regressions\", item 2 (deftai/evolution, 0.129.11).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Migration (`packages/core/src/xbrief-migrate/migrate-project.ts`, origin/master `d645489e6`): the normal case converts into `xbrief/`, archives unconvertible files to `xbrief/archive/`, and deletes `vbrief/` (`:730-775`).",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The dual-populated case keeps `vbrief/` and writes the marker (`:978-989`, #2270).",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The already-marked case leaves it (`:942-955`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Gate: `drift-gate.ts:304` flags any added/modified path under `vbrief/`.",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Deletions are not checked (`encoding/git.ts:37`, `--diff-filter=ACMR`).",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Correction to the report: the allowlist default did not change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`allowList: null` and `BUILTIN_ALLOW_LIST` are identical in v0.126.2 and origin/master.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Expected After `directive upgrade`, `vbrief/` is gone in every case.",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Leftover files are migrated into `xbrief/` when the destination is free, skipped when already identical, and copied raw to `xbrief/archive/` when they differ.",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Existing `xbrief/` files are never overwritten.",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The drift gate is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "`--keep-legacy` on a direct `deft migrate:xbrief` stays as an explicit opt-in.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Ordering Must merge before plan unit P2-U1 (#5808 / #5976), which restores `verify:xbrief-drift` in the pre-commit template.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Ownership OVPR / installer (upgrade is the only path that migrates project data, AC7.8).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Plan unit P2-U13.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Decision D-012 (polfer, 2026-11-17).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Refs #6465, #2270, #5808, #5976.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "id": "github.issue.6452158147",
+    "updated": "2026-11-18T03:05:14Z"
+  }
+}
