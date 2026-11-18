@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6457863322",
+  "xbriefRelPath": "xbrief/active/2026-11-18-6602-bughooks-write-fence-reads-the-merge-base-project-definition.xbrief.json",
+  "approvedAt": "2026-11-18T04:05:52Z",
+  "constraints": [
+    {
+      "value": "300",
+      "unit": "characters",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-18T04:05:52Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "1d3a2c17185461593d822e6f1aff310627e46f702f459df24a817202c825a7d1"
+}
