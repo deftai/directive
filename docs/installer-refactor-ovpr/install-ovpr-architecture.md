@@ -1,6 +1,6 @@
 # Install OVPR — Architecture (active)
 
-**Document revision:** **v261118** (2026-11-18) — one recovery table; project install for a missing or mismatched runtime; launcher entry order for pre-OVPR layouts. **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text; each carries the tag of the revision that last changed it.
+**Document revision:** **v261118** (2026-11-18) — old projects run their own installed copy until upgraded; one recovery table; project install for a missing or mismatched runtime; launcher entry order for pre-OVPR layouts. **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text; each carries the tag of the revision that last changed it.
 
 Compact map of the One Version Per Repo installer. Normative detail lives in [install-ovpr-requirements.md](./install-ovpr-requirements.md).
 
@@ -64,7 +64,7 @@ Install / upgrade / uninstall use one bounded launcher plan and a single approva
 
 - **Latest legacy (L0):** exact pre-split `@deftai/directive` pin + copied `.deft/core` → `directive upgrade` converts in place (strip triad + lockfile purge, pin runtime, setup, migrate).
 - **Older shapes (Wave 3):** detect → removal-step strategies or honest unsupported; see requirements AC10 / AC14 and history file.
-- **(v261118) Launcher entry order:** disable flag → no runtime pin and a pre-OVPR layout → old-layout message; otherwise the AC9.12 order. The host `.mjs` outer exists only in OVPR repos and never checks for an old layout.
+- **(v261118) Launcher entry order:** disable flag → no runtime pin and an old-style project → run the project's own installed pre-split copy, or the old-layout message when none is installed (§A6.7); a runtime pin → the AC9.12 order (a bare `deft-hook` call there is out-of-date wiring: AC10.11). The host `.mjs` outer exists only in OVPR repos and never checks for an old layout.
 
 ## Self-hosting (`deftai/directive` itself)
 
