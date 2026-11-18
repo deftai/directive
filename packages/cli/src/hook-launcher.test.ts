@@ -1,7 +1,8 @@
 /**
- * Launcher `deft-hook` behaviour (#5960 / RC-01 / RC-02 / RC-07), run through
- * the PATH entry `bin/deft-hook` (on Windows, npm's generated `deft-hook.cmd`
- * runs this same file with node).
+ * Launcher `deft-hook` and `deft` behaviour in old-style and runtime-pinned
+ * projects (#5960 / RC-02 / RC-07 / RC-12), run through the real entries:
+ * `bin/deft-hook` (on Windows, npm's generated `deft-hook.cmd` runs this same
+ * file with node) and the bundled `dist/bin.js` for `deft`.
  * The bundle goes to a private temp package so it never races other tests
  * that rebuild `dist/bin.js`.
  */
@@ -29,7 +30,24 @@ const WRAPPER_FIXTURE = join(HERE, "fixtures", "pre-ovpr", "deft-pretooluse-wrap
 const IS_WIN = process.platform === "win32";
 
 let pkgDir = "";
+let globalBin = "";
 const roots: string[] = [];
+
+/** A script that records how it was run, then exits with $COPY_EXIT. */
+function recorderSource(tag: string): string {
+  return [
+    'const fs = require("node:fs");',
+    "let stdin = '';",
+    "try { stdin = fs.readFileSync(0, 'utf8'); } catch {}",
+    "fs.writeFileSync(process.env.MARKER_PATH + " +
+      JSON.stringify(`.${tag}`) +
+      ", JSON.stringify({",
+    "  argv: process.argv.slice(2), cwd: process.cwd(), stdin, env: process.env.HANDOFF_ENV || null,",
+    "}));",
+    `process.stdout.write(${JSON.stringify(`${tag} ran`)});`,
+    "process.exit(Number(process.env.COPY_EXIT || 0));",
+  ].join("\n");
+}
 
 beforeAll(async () => {
   pkgDir = mkdtempSync(join(tmpdir(), "deft-hook-pkg-"));
@@ -46,10 +64,20 @@ beforeAll(async () => {
     entryPoints: [join(CLI_ROOT, "src", "bin.ts")],
     outfile: join(pkgDir, "dist", "bin.js"),
   });
+  // A "global" old Directive on PATH that must never run.
+  globalBin = mkdtempSync(join(tmpdir(), "deft-global-old-"));
+  for (const name of ["deft", "deft-hook", "directive"]) {
+    const script = join(globalBin, `${name}.js`);
+    writeFileSync(script, recorderSource("global"));
+    writeFileSync(join(globalBin, name), `#!/bin/sh\nexec node "${script}" "$@"\n`);
+    chmodSync(join(globalBin, name), 0o755);
+    writeFileSync(join(globalBin, `${name}.cmd`), `@node "${script}" %*\r\n`);
+  }
 }, 60_000);
 
 afterAll(() => {
   if (pkgDir !== "") rmSync(pkgDir, { recursive: true, force: true });
+  if (globalBin !== "") rmSync(globalBin, { recursive: true, force: true });
 });
 
 afterEach(() => {
@@ -62,12 +90,27 @@ interface Run {
   readonly stderr: string;
 }
 
-/** Run the PATH entry the way npm's shim does: `node bin/deft-hook <args>`. */
-function runHook(cwd: string, args: string[], env: NodeJS.ProcessEnv = {}): Run {
-  const result = spawnSync(process.execPath, [join(pkgDir, "bin", "deft-hook"), ...args], {
+interface RunOptions {
+  readonly env?: NodeJS.ProcessEnv;
+  readonly input?: string;
+  /** `hook` runs `bin/deft-hook`; `deft` runs the bundled launcher entry. */
+  readonly entry?: "hook" | "deft";
+}
+
+function run(cwd: string, args: string[], options: RunOptions = {}): Run {
+  const file =
+    options.entry === "deft" ? join(pkgDir, "dist", "bin.js") : join(pkgDir, "bin", "deft-hook");
+  const result = spawnSync(process.execPath, [file, ...args], {
     cwd,
-    env: { ...process.env, DEFT_LAUNCHER_MODE: "", ...env },
+    env: {
+      ...process.env,
+      DEFT_LAUNCHER_MODE: "",
+      MARKER_PATH: join(cwd, "marker"),
+      PATH: `${globalBin}${delimiter}${process.env.PATH ?? ""}`,
+      ...options.env,
+    },
     encoding: "utf8",
+    input: options.input ?? "",
   });
   return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
 }
@@ -83,41 +126,59 @@ function fixture(files: Record<string, string>): string {
   return root;
 }
 
-const RUNTIME_DIR = "node_modules/@deftai/directive-runtime";
-const MARKER = "hook-bin-ran.txt";
+/** Records written under `<dir>/marker.<tag>`, or null. */
+function marker(dir: string, tag: string): Record<string, unknown> | null {
+  const path = join(dir, `marker.${tag}`);
+  return existsSync(path)
+    ? (JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>)
+    : null;
+}
 
-/** Installed runtime whose hook-bin records that it ran, prints allow, exits $HOOK_TEST_EXIT. */
-function runtimeFiles(): Record<string, string> {
+const RUNTIME_DIR = "node_modules/@deftai/directive-runtime";
+const COPY_DIR = "node_modules/@deftai/directive";
+
+function runtimeFiles(version = "0.129.14"): Record<string, string> {
   return {
     [`${RUNTIME_DIR}/package.json`]: JSON.stringify({
       name: "@deftai/directive-runtime",
-      version: "0.129.14",
+      version,
       directive: { contract: 1 },
     }),
-    [`${RUNTIME_DIR}/dist/hook-bin.js`]: [
-      'const { writeFileSync } = require("node:fs");',
-      `writeFileSync(${JSON.stringify(MARKER)}, process.argv.slice(2).join(" "));`,
-      'process.stdout.write(JSON.stringify({ decision: "allow" }));',
-      "process.exit(Number(process.env.HOOK_TEST_EXIT || 0));",
-    ].join("\n"),
+    [`${RUNTIME_DIR}/dist/hook-bin.js`]: recorderSource("runtime"),
   };
 }
 
-/** Old (pre-OVPR) repo that also happens to have a runtime folder: must not run it. */
-function oldRepo(): string {
+/** The project's own pre-split copy (its own bin map; depends on core). */
+function oldCopyFiles(version = "0.126.2"): Record<string, string> {
+  return {
+    [`${COPY_DIR}/package.json`]: JSON.stringify({
+      name: "@deftai/directive",
+      version,
+      bin: { deft: "dist/bin.js", directive: "dist/bin.js", "deft-hook": "dist/hook-bin.js" },
+      dependencies: { "@deftai/directive-core": `^${version}` },
+    }),
+    [`${COPY_DIR}/dist/bin.js`]: recorderSource("copy-bin"),
+    [`${COPY_DIR}/dist/hook-bin.js`]: recorderSource("copy-hook"),
+  };
+}
+
+/** Old-style project: exact pre-split pin + .deft/core; optional own copy. */
+function oldRepo(withCopy: boolean, extra: Record<string, string> = {}): string {
   return fixture({
     "package.json": JSON.stringify({ dependencies: { "@deftai/directive": "0.126.2" } }),
     ".deft/core/VERSION": "0.126.2\n",
     ...runtimeFiles(),
+    ...(withCopy ? oldCopyFiles() : {}),
+    ...extra,
   });
 }
 
-function newRepo(installed: boolean): string {
+function newRepo(installed: boolean, installedVersion = "0.129.14"): string {
   return fixture({
     "package.json": JSON.stringify({
       devDependencies: { "@deftai/directive-runtime": "0.129.14" },
     }),
-    ...(installed ? runtimeFiles() : {}),
+    ...(installed ? runtimeFiles(installedVersion) : {}),
   });
 }
 
@@ -125,97 +186,178 @@ function toolBefore(host: string): string[] {
   return ["--host", host, "--event", "tool.before"];
 }
 
-describe("deft-hook in a pre-OVPR repo (AC 1, 2)", () => {
-  it.each([
-    "claude",
-    "codex",
-  ])("%s: exit 2, old-repo message on stderr, nothing spawned", (host) => {
-    const root = oldRepo();
-    const run = runHook(root, toolBefore(host));
-    expect(run.status).toBe(2);
-    expect(run.stderr.trim()).toBe(PRE_OVPR_LAYOUT_MESSAGE);
-    expect(run.stdout).toBe("");
-    expect(existsSync(join(root, MARKER))).toBe(false);
+function nothingElseRan(dir: string): void {
+  expect(marker(dir, "global")).toBeNull();
+  expect(marker(dir, "runtime")).toBeNull();
+}
+
+describe("old-style project with its own pre-split copy installed (RC-12)", () => {
+  it("deft-hook hands the call to the copy's deft-hook bin: same args, stdin, env, cwd, exit", () => {
+    const root = oldRepo(true);
+    const sub = join(root, "src");
+    mkdirSync(sub);
+    const result = run(sub, toolBefore("claude"), {
+      env: { COPY_EXIT: "2", HANDOFF_ENV: "kept", MARKER_PATH: join(root, "marker") },
+      input: '{"tool_name":"Bash"}',
+    });
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe("copy-hook ran");
+    expect(marker(root, "copy-hook")).toEqual({
+      argv: toolBefore("claude"),
+      cwd: sub,
+      stdin: '{"tool_name":"Bash"}',
+      env: "kept",
+    });
+    nothingElseRan(root);
   });
 
-  it("cursor: one deny JSON on stdout, exit 0, nothing spawned", () => {
-    const root = oldRepo();
-    const run = runHook(root, toolBefore("cursor"));
-    expect(run.status).toBe(0);
-    expect(JSON.parse(run.stdout)).toEqual({
+  it("deft <command> hands every ordinary command to the copy's deft bin", () => {
+    const root = oldRepo(true);
+    const result = run(root, ["verify:branch", "--json"], {
+      entry: "deft",
+      env: { COPY_EXIT: "3" },
+    });
+    expect(result.status).toBe(3);
+    expect(marker(root, "copy-bin")?.argv).toEqual(["verify:branch", "--json"]);
+    nothingElseRan(root);
+  });
+
+  it("deft hook:dispatch hands the call to the copy as `deft hook:dispatch …`", () => {
+    const root = oldRepo(true);
+    const result = run(root, ["hook:dispatch", ...toolBefore("codex")], { entry: "deft" });
+    expect(result.status).toBe(0);
+    expect(marker(root, "copy-bin")?.argv).toEqual(["hook:dispatch", ...toolBefore("codex")]);
+    nothingElseRan(root);
+  });
+
+  it("upgrade, --version and --help stay with the launcher", () => {
+    const root = oldRepo(true);
+    expect(run(root, ["upgrade", "--help"], { entry: "deft" }).status).toBe(0);
+    expect(run(root, ["--version"], { entry: "deft" }).stdout).toMatch(/^launcher /);
+    expect(run(root, ["--help"], { entry: "deft" }).status).toBe(0);
+    expect(marker(root, "copy-bin")).toBeNull();
+    nothingElseRan(root);
+  });
+
+  it("a copy at another version than the exact pin is never run", () => {
+    const root = oldRepo(false, oldCopyFiles("0.125.0"));
+    const result = run(root, toolBefore("claude"));
+    expect(result.status).toBe(2);
+    expect(result.stderr.trim()).toBe(PRE_OVPR_LAYOUT_MESSAGE);
+    expect(marker(root, "copy-hook")).toBeNull();
+    nothingElseRan(root);
+  });
+});
+
+describe("old-style project with no copy installed (AC 1, 2)", () => {
+  it.each(["claude", "codex"])("%s: exit 2, message on stderr, nothing run", (host) => {
+    const root = oldRepo(false);
+    const result = run(root, toolBefore(host));
+    expect(result.status).toBe(2);
+    expect(result.stderr.trim()).toBe(PRE_OVPR_LAYOUT_MESSAGE);
+    expect(result.stdout).toBe("");
+    nothingElseRan(root);
+  });
+
+  it("cursor: one deny JSON on stdout, exit 0", () => {
+    const root = oldRepo(false);
+    const result = run(root, toolBefore("cursor"));
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({
       permission: "deny",
       user_message: PRE_OVPR_LAYOUT_MESSAGE,
       agent_message: PRE_OVPR_LAYOUT_MESSAGE,
     });
-    expect(existsSync(join(root, MARKER))).toBe(false);
+    nothingElseRan(root);
   });
 
-  it("grok: one deny JSON on stdout, exit 0, nothing spawned", () => {
-    const root = oldRepo();
-    const run = runHook(root, toolBefore("grok"));
-    expect(run.status).toBe(0);
-    expect(JSON.parse(run.stdout)).toEqual({ decision: "deny", reason: PRE_OVPR_LAYOUT_MESSAGE });
-    expect(existsSync(join(root, MARKER))).toBe(false);
+  it("grok: one deny JSON on stdout, exit 0", () => {
+    const root = oldRepo(false);
+    const result = run(root, toolBefore("grok"));
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({
+      decision: "deny",
+      reason: PRE_OVPR_LAYOUT_MESSAGE,
+    });
+    nothingElseRan(root);
   });
 
-  it("non-tool event: exit 1, message on stderr (no compaction/prompt block)", () => {
-    const root = oldRepo();
-    const run = runHook(root, ["--host", "claude", "--event", "session.start"]);
-    expect(run.status).toBe(1);
-    expect(run.stderr.trim()).toBe(PRE_OVPR_LAYOUT_MESSAGE);
-    expect(existsSync(join(root, MARKER))).toBe(false);
+  it("non-tool event: exit 1, message on stderr", () => {
+    const root = oldRepo(false);
+    const result = run(root, ["--host", "claude", "--event", "session.start"]);
+    expect(result.status).toBe(1);
+    expect(result.stderr.trim()).toBe(PRE_OVPR_LAYOUT_MESSAGE);
+    nothingElseRan(root);
+  });
+
+  it("deft <command>: exit 1 with the message; the global old CLI never runs", () => {
+    const root = oldRepo(false);
+    const result = run(root, ["verify:branch"], { entry: "deft" });
+    expect(result.status).toBe(1);
+    expect(result.stderr.trim()).toBe(PRE_OVPR_LAYOUT_MESSAGE);
+    nothingElseRan(root);
+  });
+
+  it("deft hook:dispatch blocks in the host's form", () => {
+    const root = oldRepo(false);
+    const result = run(root, ["hook:dispatch", ...toolBefore("claude")], { entry: "deft" });
+    expect(result.status).toBe(2);
+    expect(result.stderr.trim()).toBe(PRE_OVPR_LAYOUT_MESSAGE);
+    nothingElseRan(root);
   });
 });
 
-describe("deft-hook in a new-layout repo", () => {
+describe("runtime-pinned project (AC10.11)", () => {
   it.each([
     ["claude", 2],
     ["grok", 0],
   ] as const)("runtime missing (%s): blocks with project install text (AC 3)", (host, code) => {
-    const run = runHook(newRepo(false), toolBefore(host));
-    expect(run.status).toBe(code);
-    const out = `${run.stdout}${run.stderr}`;
+    const result = run(newRepo(false), toolBefore(host));
+    expect(result.status).toBe(code);
+    const out = `${result.stdout}${result.stderr}`;
     expect(out).toContain(HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
     expect(out).not.toContain("npm i -g @deftai/directive");
     expect(out).not.toContain("install --repair");
   });
 
+  it("runtime at another version than the pin: blocks with project install text", () => {
+    const root = newRepo(true, "0.129.13");
+    const result = run(root, toolBefore("claude"));
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(marker(root, "runtime")).toBeNull();
+  });
+
   it("runtime present, child exits 0: output passes through unchanged (AC 4)", () => {
     const root = newRepo(true);
-    const run = runHook(root, toolBefore("claude"));
-    expect(run.status).toBe(0);
-    expect(run.stdout).toBe(JSON.stringify({ decision: "allow" }));
-    expect(readFileSync(join(root, MARKER), "utf8")).toBe("--host claude --event tool.before");
+    const result = run(root, toolBefore("claude"));
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("runtime ran");
+    expect(marker(root, "runtime")?.argv).toEqual(toolBefore("claude"));
+    expect(marker(root, "global")).toBeNull();
   });
 
-  it.each([
-    "claude",
-    "codex",
-  ])("runtime present, child exits 1 on %s tool.before: exit 2", (host) => {
-    const run = runHook(newRepo(true), toolBefore(host), { HOOK_TEST_EXIT: "1" });
-    expect(run.status).toBe(2);
+  it.each(["claude", "codex"])("child exits 1 on %s tool.before: exit 2", (host) => {
+    expect(run(newRepo(true), toolBefore(host), { env: { COPY_EXIT: "1" } }).status).toBe(2);
   });
 
-  it("runtime present, child exits 1 on cursor: status passes through", () => {
-    const run = runHook(newRepo(true), toolBefore("cursor"), { HOOK_TEST_EXIT: "1" });
-    expect(run.status).toBe(1);
+  it("child exits 1 on cursor: status passes through", () => {
+    expect(run(newRepo(true), toolBefore("cursor"), { env: { COPY_EXIT: "1" } }).status).toBe(1);
   });
 
-  it("runtime present, child exits 1 on a non-tool event: status passes through", () => {
-    const run = runHook(newRepo(true), ["--host", "claude", "--event", "session.start"], {
-      HOOK_TEST_EXIT: "1",
-    });
-    expect(run.status).toBe(1);
+  it("child exits 1 on a non-tool event: status passes through", () => {
+    const args = ["--host", "claude", "--event", "session.start"];
+    expect(run(newRepo(true), args, { env: { COPY_EXIT: "1" } }).status).toBe(1);
   });
 });
 
 describe("old v0.126.2 Grok wrapper with the new deft-hook on PATH", () => {
-  it.skipIf(IS_WIN)("passes the old-repo deny through to Grok", () => {
-    const root = oldRepo();
+  it.skipIf(IS_WIN)("passes the old-project deny through to Grok", () => {
+    const root = oldRepo(false);
     const wrapper = join(root, ".grok", "hooks", "deft-pretooluse-wrapper.sh");
     mkdirSync(dirname(wrapper), { recursive: true });
     copyFileSync(WRAPPER_FIXTURE, wrapper);
-    const run = spawnSync("sh", [wrapper], {
+    const result = spawnSync("sh", [wrapper], {
       cwd: root,
       encoding: "utf8",
       env: {
@@ -224,8 +366,11 @@ describe("old v0.126.2 Grok wrapper with the new deft-hook on PATH", () => {
         PATH: `${join(pkgDir, "bin")}${delimiter}${process.env.PATH ?? ""}`,
       },
     });
-    expect(run.status).toBe(0);
-    expect(JSON.parse(run.stdout)).toEqual({ decision: "deny", reason: PRE_OVPR_LAYOUT_MESSAGE });
-    expect(existsSync(join(root, MARKER))).toBe(false);
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({
+      decision: "deny",
+      reason: PRE_OVPR_LAYOUT_MESSAGE,
+    });
+    nothingElseRan(root);
   });
 });

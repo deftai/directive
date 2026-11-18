@@ -33,15 +33,16 @@ export const NODE_EOL_NOTE =
 
 export const RECOVERY_GUIDANCE = "npm i -g @deftai/directive, then directive install --repair";
 
-/** Last launcher version that still shipped the pre-OVPR (pre-split) CLI. */
-export const LAST_PRE_OVPR_LAUNCHER_VERSION = "0.126.2";
-
 /**
- * Old-repo message (RC-01, §A6.7 / AC10.2). Shown when a repo with no
- * runtime pin is recognised as pre-OVPR (`recognisePreOvprLayout`).
+ * Old-style project whose own pre-split copy is not installed (RC-12,
+ * §A5.6 / §A6.7 / AC10.2). With the copy installed, the launcher hands the
+ * command to it instead.
  */
 export const PRE_OVPR_LAYOUT_MESSAGE =
-  "This repo uses pre-OVPR Directive. Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`.";
+  "This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update.";
+
+/** Commands an old-style project never hands to its own copy (§A6.7). */
+export const OLD_STYLE_LAUNCHER_COMMANDS: ReadonlySet<string> = new Set(["upgrade", "uninstall"]);
 
 /**
  * `deft-hook` when the runtime pin package is not installed (AC9.12 step 2).

@@ -11,7 +11,13 @@ export {
   formatShapeRecoveryMessage,
   isL2RefusalDecision,
 } from "./messages.js";
-export { type PreOvprEvidence, recognisePreOvprLayout } from "./pre-ovpr.js";
+export {
+  findProjectLocalCopy,
+  type PreOvprProject,
+  type ProjectLocalCopy,
+  type RecogniseOptions,
+  recognisePreOvprLayout,
+} from "./pre-ovpr.js";
 export {
   DECISION_BY_SHAPE_ID,
   decisionForShapeId,

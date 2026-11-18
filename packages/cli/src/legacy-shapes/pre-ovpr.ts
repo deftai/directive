@@ -1,20 +1,19 @@
 /**
- * Message-only pre-OVPR layout recogniser (§A6.7 / AC10.2, RC-01 / RC-07).
+ * Old-style (pre-OVPR) project recognition and the project's own installed
+ * pre-split copy (§A6.7 / AC10.2, RC-12 / D-031).
  *
- * Wider than AC10.1 detection on purpose: it only chooses the old-repo
- * message (for `deft-hook` now; later the launcher gate and doctor). It never
- * feeds `readPin().oldStyle`, `upgrade` admission or `install` refusal
- * (AC10.1 / AC10.7). Reads only; writes nothing. A nested `package.json` is
- * evidence only, never the project or the pin (AC1.7).
+ * An old-style project's root `package.json` depends on `@deftai/directive`
+ * and not on `@deftai/directive-runtime`. Recognition uses how the launcher
+ * was called and fixed top-level evidence only; it never searches sub-folders.
+ * It never feeds `readPin().oldStyle`, `upgrade` admission or `install`
+ * refusal. Reads only; writes nothing.
  */
-import { type Dirent, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "../constants.js";
-import { resolveInstallShape } from "./detect.js";
 
-export interface PreOvprEvidence {
-  readonly evidence: readonly string[];
-}
+/** Only pre-split `@deftai/directive` releases depend on the core package. */
+const PRE_SPLIT_MARKER_DEPENDENCY = "@deftai/directive-core";
 
 /** Host configs where pre-OVPR Directive registered a bare `deft-hook`. */
 const OLD_HOST_CONFIGS = [
@@ -26,11 +25,27 @@ const OLD_HOST_CONFIGS = [
 const OLD_GROK_WRAPPER = ".grok/hooks/deft-pretooluse-wrapper.sh";
 const OLD_GIT_HOOK_HELPER = ".githooks/_deft-run.sh";
 
-/** Bounds for the nested package.json walk (signal b). */
-export const PRE_OVPR_WALK_MAX_DEPTH = 3;
-export const PRE_OVPR_WALK_MAX_FILES = 200;
-
 const BARE_HOOK_COMMAND = /^\s*(deft-hook|deft\s+hook:dispatch)(\s|$)/;
+
+/** The project's own installed pre-split `@deftai/directive`. */
+export interface ProjectLocalCopy {
+  /** Real path of `<root>/node_modules/@deftai/directive`. */
+  readonly packageDir: string;
+  readonly version: string;
+  /** Bin name → real path of its file, from the copy's own `bin` map. */
+  readonly bins: Readonly<Record<string, string>>;
+}
+
+export interface PreOvprProject {
+  readonly evidence: readonly string[];
+  /** The project's own pre-split copy, or null when it is not installed. */
+  readonly localCopy: ProjectLocalCopy | null;
+}
+
+export interface RecogniseOptions {
+  /** The launcher was called as `deft-hook` or `deft hook:dispatch`. */
+  readonly hookCall?: boolean;
+}
 
 function isDir(path: string): boolean {
   try {
@@ -48,9 +63,11 @@ function isFile(path: string): boolean {
   }
 }
 
-function readJson(path: string): unknown {
+function readObject(path: string): Record<string, unknown> | null {
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parsed as Record<string, unknown>;
   } catch {
     return null;
   }
@@ -60,15 +77,15 @@ function relPath(root: string, rel: string): string {
   return join(root, ...rel.split("/"));
 }
 
-/** Dependency names in any form (exact, range, tag) — same blocks as pin.ts. */
-function dependencyNames(pkg: unknown): Set<string> {
-  const out = new Set<string>();
-  if (pkg === null || typeof pkg !== "object" || Array.isArray(pkg)) return out;
+/** Dependency specs in any form (exact, range, tag) — same blocks as pin.ts. */
+function dependencySpecs(pkg: Record<string, unknown> | null): Map<string, string> {
+  const out = new Map<string, string>();
+  if (pkg === null) return out;
   for (const key of ["dependencies", "devDependencies", "optionalDependencies"]) {
-    const block = (pkg as Record<string, unknown>)[key];
+    const block = pkg[key];
     if (block === null || typeof block !== "object" || Array.isArray(block)) continue;
     for (const [name, spec] of Object.entries(block as Record<string, unknown>)) {
-      if (typeof spec === "string") out.add(name);
+      if (typeof spec === "string") out.set(name, spec.trim());
     }
   }
   return out;
@@ -83,76 +100,100 @@ function hasBareHookCommand(value: unknown): boolean {
   return false;
 }
 
-/**
- * Nested `package.json` (depth ≤ 3 below root; skips `node_modules`, `.git`
- * and other dot-dirs; stops after 200 files) that lists `@deftai/directive`
- * in any form. Returns its root-relative path, or null.
- */
-function findNestedLauncherDependency(root: string): string | null {
-  let filesSeen = 0;
-  const queue: { abs: string; rel: string; depth: number }[] = [{ abs: root, rel: "", depth: 0 }];
-  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    let entries: Dirent[];
-    try {
-      entries = readdirSync(next.abs, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      const rel = next.rel === "" ? entry.name : `${next.rel}/${entry.name}`;
-      if (entry.isDirectory()) {
-        if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
-        if (next.depth < PRE_OVPR_WALK_MAX_DEPTH) {
-          queue.push({ abs: join(next.abs, entry.name), rel, depth: next.depth + 1 });
-        }
-        continue;
-      }
-      filesSeen += 1;
-      if (filesSeen > PRE_OVPR_WALK_MAX_FILES) return null;
-      if (next.depth === 0 || entry.name !== "package.json") continue;
-      const names = dependencyNames(readJson(join(next.abs, entry.name)));
-      if (names.has(LAUNCHER_PACKAGE_NAME)) return rel;
-    }
+function realpathOrNull(path: string): string | null {
+  try {
+    return realpathSync(path);
+  } catch {
+    return null;
   }
-  return null;
+}
+
+function isInside(parent: string, child: string): boolean {
+  const rel = relative(parent, child);
+  return rel.length > 0 && rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+}
+
+/** An exact spec (`1.2.3` or `=1.2.3`) as a version string, else null. */
+function exactVersion(spec: string): string | null {
+  const bare = spec.startsWith("=") ? spec.slice(1) : spec;
+  return /^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$/.test(bare) ? bare : null;
+}
+
+/** `<root>/node_modules/@deftai/directive`, only when it stays inside the project. */
+function readInstalledLauncherPackage(
+  root: string,
+): { readonly packageDir: string; readonly pkg: Record<string, unknown> } | null {
+  const realRoot = realpathOrNull(root);
+  const packageDir = realpathOrNull(
+    join(root, "node_modules", ...LAUNCHER_PACKAGE_NAME.split("/")),
+  );
+  if (realRoot === null || packageDir === null || !isInside(realRoot, packageDir)) return null;
+  const pkg = readObject(join(packageDir, "package.json"));
+  if (pkg === null || pkg.name !== LAUNCHER_PACKAGE_NAME) return null;
+  return { packageDir, pkg };
+}
+
+function isPreSplit(pkg: Record<string, unknown>): boolean {
+  return dependencySpecs(pkg).has(PRE_SPLIT_MARKER_DEPENDENCY);
 }
 
 /**
- * Recognise a pre-OVPR Directive layout, for the old-repo message only.
- * Null when the root `package.json` lists `@deftai/directive-runtime` in any
- * form: that repo is OVPR, and leftovers there are hygiene.
+ * The project's own installed pre-split copy, read only from
+ * `<root>/node_modules/@deftai/directive`. Never a global copy, a copy outside
+ * the project (a link that leaves it), or a version other than the exact pin.
  */
-export function recognisePreOvprLayout(root: string): PreOvprEvidence | null {
-  const rootDeps = dependencyNames(readJson(join(root, "package.json")));
-  if (rootDeps.has(RUNTIME_PACKAGE_NAME)) return null;
-  const rootListsLauncher = rootDeps.has(LAUNCHER_PACKAGE_NAME);
-  const evidence: string[] = [];
-
-  // (a) A historical install shape the launcher already knows (reused).
-  const shape = resolveInstallShape(root);
-  if (shape !== null && shape.shapeId !== "ovpr-runtime-pin") {
-    evidence.push(`install shape ${shape.shapeId}`);
-  }
-
-  // (b) A .deft/core folder (any contents) + an @deftai/directive dependency.
-  if (isDir(join(root, ".deft", "core"))) {
-    const where = rootListsLauncher ? "package.json" : findNestedLauncherDependency(root);
-    if (where !== null) evidence.push(`.deft/core + ${where}#${LAUNCHER_PACKAGE_NAME}`);
-  }
-
-  // (c) The old git-hook helper.
-  if (isFile(relPath(root, OLD_GIT_HOOK_HELPER))) evidence.push(OLD_GIT_HOOK_HELPER);
-
-  // (d) Fresh clone: root dependency + an old host hook registration.
-  if (rootListsLauncher) {
-    for (const rel of OLD_HOST_CONFIGS) {
-      const path = relPath(root, rel);
-      if (isFile(path) && hasBareHookCommand(readJson(path))) {
-        evidence.push(`${rel} (bare deft-hook command)`);
-      }
+export function findProjectLocalCopy(root: string, spec: string | null): ProjectLocalCopy | null {
+  const installed = readInstalledLauncherPackage(root);
+  if (installed === null || !isPreSplit(installed.pkg)) return null;
+  const { packageDir, pkg } = installed;
+  const version = typeof pkg.version === "string" ? pkg.version : null;
+  if (version === null) return null;
+  const pinned = spec === null ? null : exactVersion(spec);
+  if (pinned !== null && pinned !== version) return null;
+  const bins: Record<string, string> = {};
+  const binMap = pkg.bin;
+  if (binMap !== null && typeof binMap === "object" && !Array.isArray(binMap)) {
+    for (const [name, rel] of Object.entries(binMap as Record<string, unknown>)) {
+      if (typeof rel !== "string") continue;
+      const file = realpathOrNull(join(packageDir, rel));
+      if (file !== null && isInside(packageDir, file) && isFile(file)) bins[name] = file;
     }
-    if (isFile(relPath(root, OLD_GROK_WRAPPER))) evidence.push(OLD_GROK_WRAPPER);
   }
+  return { packageDir, version, bins };
+}
 
-  return evidence.length > 0 ? { evidence } : null;
+/**
+ * Recognise an old-style project: the root `package.json` depends on
+ * `@deftai/directive` and not on `@deftai/directive-runtime` (§A6.7). Null
+ * when it lists the runtime (AC10.11), does not list `@deftai/directive`, or
+ * the project's installed `@deftai/directive` is the new (post-split)
+ * launcher, which is a launcher-only dependency (AC14.51), not an old copy.
+ */
+export function recognisePreOvprLayout(
+  root: string,
+  options: RecogniseOptions = {},
+): PreOvprProject | null {
+  const rootDeps = dependencySpecs(readObject(join(root, "package.json")));
+  if (rootDeps.has(RUNTIME_PACKAGE_NAME)) return null;
+  const spec = rootDeps.get(LAUNCHER_PACKAGE_NAME);
+  if (spec === undefined) return null;
+  const installed = readInstalledLauncherPackage(root);
+  if (installed !== null && !isPreSplit(installed.pkg)) return null;
+
+  const localCopy = findProjectLocalCopy(root, spec);
+  const evidence: string[] = [`package.json#${LAUNCHER_PACKAGE_NAME} ${spec}`];
+  if (localCopy !== null)
+    evidence.push(`node_modules/${LAUNCHER_PACKAGE_NAME} ${localCopy.version}`);
+  if (options.hookCall === true) evidence.push("bare deft-hook call");
+  if (isDir(join(root, ".deft", "core"))) evidence.push(".deft/core");
+  if (isFile(relPath(root, OLD_GIT_HOOK_HELPER))) evidence.push(OLD_GIT_HOOK_HELPER);
+  for (const rel of OLD_HOST_CONFIGS) {
+    const path = relPath(root, rel);
+    if (isFile(path) && hasBareHookCommand(readObject(path))) {
+      evidence.push(`${rel} (bare deft-hook command)`);
+    }
+  }
+  if (isFile(relPath(root, OLD_GROK_WRAPPER))) evidence.push(OLD_GROK_WRAPPER);
+
+  return { evidence, localCopy };
 }
