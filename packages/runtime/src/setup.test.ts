@@ -389,4 +389,45 @@ describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
     expect(existsSync(join(root, "deft"))).toBe(false);
     expect(existsSync(join(root, ".deft", "core"))).toBe(false);
   });
+
+  it("records every .mjs outer setup wrote as whole-file (#6615 AC1)", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      ownership: Array<{ path: string; kind: string }>;
+    };
+    const outers = gen.ownership.filter((o) => /deft-hook-[a-f0-9]{8}\.mjs$/.test(o.path));
+    expect(outers.map((o) => o.path.replace(/deft-hook-[a-f0-9]{8}/, "X")).sort()).toEqual([
+      ".claude/X.mjs",
+      ".codex/X.mjs",
+      ".cursor/hooks/X.mjs",
+      ".grok/hooks/X.mjs",
+    ]);
+    expect(outers.every((o) => o.kind === "whole-file")).toBe(true);
+    for (const o of outers) expect(existsSync(join(root, o.path))).toBe(true);
+  });
+
+  it("a second setup with no change leaves GENERATION.json byte-identical (#6615 AC7 / AC13.2)", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const first = readFileSync(join(root, ".deft", "GENERATION.json"), "utf8");
+    runSetup({ operation: "repair", from: "none", root });
+    expect(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")).toBe(first);
+  });
+
+  it("a CRLF checkout of the .mjs outers does not change GENERATION.json", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const first = readFileSync(join(root, ".deft", "GENERATION.json"), "utf8");
+    const gen = JSON.parse(first) as { ownership: Array<{ path: string }> };
+    for (const o of gen.ownership.filter((e) => e.path.endsWith(".mjs"))) {
+      const abs = join(root, o.path);
+      writeFileSync(abs, readFileSync(abs, "utf8").replace(/\r?\n/g, "\r\n"));
+    }
+    runSetup({ operation: "repair", from: "none", root });
+    expect(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")).toBe(first);
+  });
 });

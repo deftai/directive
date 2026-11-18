@@ -1,2 +1,3 @@
 section: Added
 - One read-only API for what Directive owns in a project: `listDirectiveOwnedPaths` (the committed `.deft/GENERATION.json` record joined with the known Directive path classes) and `classifyDirectiveOwnedChange` (is one file's change made only of Directive's own material?). Pure reads; record entries outside the known classes are ignored and reported. For the commit gate (P4-U1) and doctor. Refs #6615.
+- `directive install` now records the host `deft-hook-<sha8>.mjs` files in `.deft/GENERATION.json`, and `directive uninstall` (runtime and launcher fallback) now removes their hook registrations and then the files. Before, both stayed behind and pointed at a removed runtime. Refs #6007, #5999.

@@ -68,12 +68,20 @@ const SKILL_HOST_ROOTS = [
   ".github/skills",
 ] as const;
 
+/** Mirrors core `CONSUMER_SKILL_DISCOVERY_INVENTORY` dirs (drift test in uninstall-bookend.test.ts). */
 const SKILL_DIRS = [
   "deft",
   "deft-directive-setup",
   "deft-directive-build",
+  "deft-directive-review-cycle",
+  "deft-directive-refinement",
   "deft-directive-swarm",
+  "deft-directive-interview",
+  "deft-directive-portfolio-priority",
+  "deft-directive-pre-pr",
   "deft-directive-sync",
+  "deft-directive-tutorial",
+  "deft-directive-feedback",
 ] as const;
 
 const GITHOOK_RELS = [
@@ -89,6 +97,34 @@ const HOST_HOOK_RELS = [
   ".codex/hooks.json",
   ".grok/hooks/deft.json",
 ] as const;
+
+/**
+ * Host dirs for the v261027 committed `deft-hook-<sha8>.mjs` outers (AC9.1).
+ * Mirrors core `HOST_HOOK_OUTER_DIRS`; the launcher cannot import core (AC3.1).
+ */
+export const HOST_HOOK_OUTER_DIRS = [".claude", ".codex", ".cursor/hooks", ".grok/hooks"] as const;
+
+const HOST_HOOK_OUTER_FILE_RE = /^deft-hook-[a-f0-9]{8}\.mjs$/;
+
+/** Mirrors core `isHostHookOuterCommand` (AC3.1: no core import). */
+const HOST_HOOK_OUTER_COMMAND_RE = /(?:^|[\s/])deft-hook-[a-f0-9]{8}\.mjs(?:\s|$)/;
+
+/** Committed `.mjs` outers on disk (any sha8) in the four host dirs. */
+function listHostHookOuters(projectRoot: string): string[] {
+  const out: string[] = [];
+  for (const dir of HOST_HOOK_OUTER_DIRS) {
+    let names: string[] = [];
+    try {
+      names = readdirSync(join(projectRoot, dir));
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (HOST_HOOK_OUTER_FILE_RE.test(name)) out.push(`${dir}/${name}`);
+    }
+  }
+  return out;
+}
 
 function readText(path: string): string | null {
   try {
@@ -332,6 +368,11 @@ export function discoverKnownArtifacts(projectRoot: string): DiscoveredArtifact[
     }
   }
 
+  // v261027 host `.mjs` outers; removed after registrations (AC11.4 ordering).
+  for (const rel of listHostHookOuters(projectRoot)) {
+    push({ path: rel, kind: "whole-file", source: "known-map" });
+  }
+
   for (const rel of skillPointerRels()) {
     const body = readText(join(projectRoot, rel));
     if (body !== null && isOurSkillPointer(body)) {
@@ -448,6 +489,7 @@ function isManagedHookCommand(command: string): boolean {
   return (
     command.includes("directive-runtime/dist/hook-bin.js") ||
     command.includes(".deft/core/") ||
+    HOST_HOOK_OUTER_COMMAND_RE.test(command) ||
     /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
     command.includes("deft hook:dispatch")
   );
@@ -847,5 +889,10 @@ export function verifyUninstallComplete(projectRoot: string): {
     leftovers.push(`package.json#${LAUNCHER_PACKAGE_NAME}`);
   }
   for (const rel of listWiringReady(projectRoot)) leftovers.push(rel);
+  for (const rel of listHostHookOuters(projectRoot)) leftovers.push(rel);
+  for (const rel of HOST_HOOK_RELS) {
+    const body = readText(join(projectRoot, rel));
+    if (body !== null && /deft-hook-[a-f0-9]{8}\.mjs/.test(body)) leftovers.push(`${rel}#hooks`);
+  }
   return { complete: leftovers.length === 0, leftovers };
 }

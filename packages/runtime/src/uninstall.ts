@@ -7,14 +7,20 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { isHostHookOuterCommand } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
+  type DirectiveOwnedPath,
+  HOST_HOOK_OUTER_DIRS,
   inspectOwnershipRecord,
+  listDirectiveOwnedPaths,
   MANAGED_SECTION_CLOSE,
   MANAGED_SECTION_OPEN_PREFIX,
   type OwnedArtifact,
+  SKILL_POINTER_HOST_ROOTS,
+  stripTaskfileDeftInclude,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { pruneEmptyAncestors, removeSoleAuthorHusks } from "./removal-steps/steps.js";
-import { HOOK_BIN_COMMAND, RUNTIME_PREFIX, SKILL_POINTER_INVENTORY } from "./setup-wiring.js";
+import { HOOK_BIN_COMMAND, RUNTIME_PREFIX } from "./setup-wiring.js";
 
 export interface UninstallResult {
   readonly contract: 1;
@@ -28,26 +34,62 @@ export interface UninstallResult {
   readonly message: string;
 }
 
-const SKILL_HOST_ROOTS = [
-  ".agents/skills",
-  ".claude/skills",
-  ".cursor/skills",
-  ".codex/skills",
-  ".github/skills",
-] as const;
+/**
+ * Fallback lists (record may be missing or partial), built from the shared
+ * ownership API so uninstall and the commit gate read one list (#6615).
+ */
+interface FallbackLists {
+  readonly skillPointers: readonly string[];
+  readonly gitHooks: readonly string[];
+  readonly hostHookConfigs: readonly string[];
+  readonly outerPatterns: readonly DirectiveOwnedPath[];
+}
 
-const GITHOOK_RELS = [
-  ".githooks/pre-commit",
-  ".githooks/pre-push",
-  ".githooks/_directive-run.sh",
-] as const;
+function fallbackLists(root: string): FallbackLists {
+  const owned = listDirectiveOwnedPaths(root);
+  const wholeFiles = owned.filter((p) => p.kind === "whole-file" && p.pattern === undefined);
+  const skillRoots = SKILL_POINTER_HOST_ROOTS.map((r) => `${r}/`);
+  return {
+    skillPointers: [
+      ...new Set(
+        wholeFiles
+          .map((p) => p.path)
+          .filter((p) => p.endsWith("/SKILL.md") && skillRoots.some((r) => p.startsWith(r))),
+      ),
+    ],
+    gitHooks: [...new Set(wholeFiles.map((p) => p.path).filter((p) => p.startsWith(".githooks/")))],
+    hostHookConfigs: [
+      ...new Set(
+        owned
+          .filter((p) => p.kind === "structured-entry" && p.path !== "Taskfile.yml")
+          .map((p) => p.path),
+      ),
+    ],
+    outerPatterns: owned.filter(
+      (p) =>
+        p.pattern !== undefined &&
+        HOST_HOOK_OUTER_DIRS.some((dir) => p.path.startsWith(`${dir}/deft-hook-`)),
+    ),
+  };
+}
 
-const HOST_HOOK_RELS = [
-  ".claude/settings.json",
-  ".cursor/hooks.json",
-  ".codex/hooks.json",
-  ".grok/hooks/deft.json",
-] as const;
+/** Committed `deft-hook-<sha8>.mjs` outers on disk (any sha8, four host dirs). */
+function listHostHookOuters(root: string, patterns: readonly DirectiveOwnedPath[]): string[] {
+  const out: string[] = [];
+  for (const dir of HOST_HOOK_OUTER_DIRS) {
+    let names: string[] = [];
+    try {
+      names = readdirSync(join(root, dir));
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      const rel = `${dir}/${name}`;
+      if (patterns.some((p) => p.pattern?.test(rel))) out.push(rel);
+    }
+  }
+  return out;
+}
 
 function readText(path: string): string | null {
   try {
@@ -78,6 +120,7 @@ function isManagedHookCommand(command: string): boolean {
     command.includes(HOOK_BIN_COMMAND) ||
     command.includes("directive-runtime/dist/hook-bin.js") ||
     command.includes(".deft/core/") ||
+    isHostHookOuterCommand(command) ||
     /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
     command.includes("deft hook:dispatch")
   );
@@ -132,15 +175,6 @@ function removeManagedSection(body: string): { next: string; removed: boolean } 
   return { next, removed: true };
 }
 
-function stripTaskfileDeftInclude(body: string): { next: string; removed: boolean } {
-  const blockRe = /(^|\n)([ \t]*)deft:\s*(?:#.*)?\n(?:\2[ \t]+[^\n]*\n)*/;
-  if (blockRe.test(body)) {
-    const next = body.replace(blockRe, "$1");
-    return { next: next.replace(/\n{3,}/g, "\n\n"), removed: next !== body };
-  }
-  return { next: body, removed: false };
-}
-
 function safeRemove(root: string, rel: string, removed: string[]): void {
   try {
     const result = containedRemove({
@@ -176,6 +210,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
   const preserved: string[] = [];
 
   const ownership = ownershipFromDisk(root);
+  const fallback = fallbackLists(root);
 
   // AC11.4: structured hook entries before whole-file targets.
   const ordered = [...ownership].sort((a, b) => {
@@ -237,10 +272,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
     }
 
     // whole-file — but never delete shared host/Taskfile wholesale if present as such.
-    if (
-      art.path === "Taskfile.yml" ||
-      HOST_HOOK_RELS.includes(art.path as (typeof HOST_HOOK_RELS)[number])
-    ) {
+    if (art.path === "Taskfile.yml" || fallback.hostHookConfigs.includes(art.path)) {
       if (art.path === "Taskfile.yml") {
         const body = readText(join(root, art.path));
         if (body !== null) {
@@ -270,21 +302,18 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
   }
 
   // Known wholly-owned generated artifacts (may be absent from ownership record).
-  for (const host of SKILL_HOST_ROOTS) {
-    for (const entry of SKILL_POINTER_INVENTORY) {
-      const rel = `${host}/${entry.dir}/SKILL.md`;
-      const body = readText(join(root, rel));
-      if (body === null) continue;
-      if (
-        body.includes(RUNTIME_PREFIX) ||
-        body.includes("npm i -g @deftai/directive") ||
-        body.includes(".deft/core/")
-      ) {
-        safeRemove(root, rel, removed);
-      }
+  for (const rel of fallback.skillPointers) {
+    const body = readText(join(root, rel));
+    if (body === null) continue;
+    if (
+      body.includes(RUNTIME_PREFIX) ||
+      body.includes("npm i -g @deftai/directive") ||
+      body.includes(".deft/core/")
+    ) {
+      safeRemove(root, rel, removed);
     }
   }
-  for (const rel of GITHOOK_RELS) {
+  for (const rel of fallback.gitHooks) {
     const body = readText(join(root, rel));
     if (body === null) continue;
     if (
@@ -352,7 +381,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
   }
 
   // Host hooks / Taskfile via known map.
-  for (const rel of HOST_HOOK_RELS) {
+  for (const rel of fallback.hostHookConfigs) {
     const abs = join(root, rel);
     if (!existsSync(abs)) continue;
     if (modified.some((m) => m.startsWith(`${rel}#`))) continue;
@@ -365,6 +394,10 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
       writeFileSync(abs, next);
       modified.push(`${rel}#hooks`);
     }
+  }
+  // AC11.4: the `.mjs` outers go only after every registration above is stripped.
+  for (const rel of listHostHookOuters(root, fallback.outerPatterns)) {
+    safeRemove(root, rel, removed);
   }
   const taskBody = readText(join(root, "Taskfile.yml"));
   if (taskBody !== null && !modified.some((m) => m.startsWith("Taskfile.yml#"))) {
