@@ -181,6 +181,12 @@ export function formatStaleIngestReadyDiagnostic(
       "Exact-byte Target-digest mismatch on the live REST issue body. " +
         "This does not assert body drift, and a corrected digest alone does not complete the arc.",
     );
+    lines.push(
+      "Remedies: (1) restore the issue body to the arced text; " +
+        "(2) record an operator drop after ingest with the acceptance-disposition grant " +
+        "(--disposition not_applicable); " +
+        "(3) post a later lean for an addition or rewording.",
+    );
     const newlineNote = trailingNewlineNote(
       input.digestAdmission,
       input.liveIssueBody,

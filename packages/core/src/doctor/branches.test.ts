@@ -153,7 +153,7 @@ describe("agents-md", () => {
 describe("taskfile", () => {
   it("detects include block", () => {
     const yaml =
-      "version: '3'\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\n";
+      "version: '3'\nincludes:\n  deft:\n    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml\n    optional: true\n";
     expect(includesBlockHasDeftTaskfile(yaml)).toBe(true);
     expect(formatMissingIncludeSnippet()).toContain("deft:");
   });
@@ -167,7 +167,8 @@ describe("taskfile", () => {
     expect(missing).toContain(GATES_SURFACE_DEFT_REMEDIATION);
     expect(missing).toContain("deft pr:watch");
     expect(missing).toContain("task deft:");
-    expect(missing).toContain("taskfile: ./.deft/core/Taskfile.yml");
+    expect(missing).toContain("taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml");
+    expect(missing).not.toContain(".deft/core");
     expect(missing).not.toMatch(/only for optional `task deft:X` convenience/i);
 
     const noInclude = formatGatesSurfaceDualRemediation("missing-include");

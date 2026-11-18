@@ -59,7 +59,6 @@ describe("runOpenClawSoftRebindCheck branches (#3185)", () => {
     const s = sink();
     runOpenClawSoftRebindCheck(s, (f) => findings.push(f), {
       projectRoot: state,
-      fixMode: false,
       jsonMode: true,
       allAgents: true,
       seams: {
@@ -83,7 +82,6 @@ describe("runOpenClawSoftRebindCheck branches (#3185)", () => {
     const findings: Finding[] = [];
     runOpenClawSoftRebindCheck(sink(), (f) => findings.push(f), {
       projectRoot: state,
-      fixMode: false,
       jsonMode: true,
       allAgents: false,
       seams: {
@@ -105,7 +103,6 @@ describe("runOpenClawSoftRebindCheck branches (#3185)", () => {
     const s = sink();
     runOpenClawSoftRebindCheck(s, (f) => findings.push(f), {
       projectRoot: state,
-      fixMode: false,
       jsonMode: false,
       allAgents: false,
       seams: {

@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { writeState } from "../doctor/doctor-state.js";
+import { statePath } from "../doctor/doctor-state.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { append } from "../intake/candidates-log.js";
 import { resolveEvalDir } from "../layout/resolve.js";
@@ -189,26 +189,9 @@ describe("triage cache-path (#1703)", () => {
     expect(readFileSync(join(targetDir, "doctor-state.json"), "utf8")).toContain("canonical");
   });
 
-  it("writeState persists under .triage-cache on migrated xbrief trees, not legacy .eval", () => {
+  it("legacy doctor-state.json resolves under .triage-cache on migrated xbrief trees (read-only, #6617)", () => {
     seedXbrief();
-    const legacyDir = resolveEvalDir(root);
-    mkdirSync(legacyDir, { recursive: true });
-    writeFileSync(join(legacyDir, "doctor-state.json"), '{"legacy":true}\n', "utf8");
-
-    const path = writeState(root, {
-      exitCode: 0,
-      findingCount: 0,
-      errorCount: 0,
-      now: new Date("2026-07-06T00:00:00Z"),
-    });
-
-    expect(path).not.toBeNull();
-    if (path === null) {
-      throw new Error("expected writeState to return a path");
-    }
-    expect(path).toBe(join(root, "xbrief", TRIAGE_CACHE_DIR_NAME, "doctor-state.json"));
-    expect(existsSync(path)).toBe(true);
-    expect(existsSync(join(legacyDir, "doctor-state.json"))).toBe(false);
+    expect(statePath(root)).toBe(join(root, "xbrief", TRIAGE_CACHE_DIR_NAME, "doctor-state.json"));
   });
 
   it("intake candidates-log append defaults to .triage-cache, not legacy .eval", () => {

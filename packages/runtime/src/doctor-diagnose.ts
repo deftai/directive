@@ -4,21 +4,221 @@
  * Covers AC12.3 surfaces via install-health + data-status. Never writes.
  * Hook probes must set DEFT_DOCTOR_HOOK_DIAGNOSTIC (AC9.10).
  */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { isHostHookOuterCommand } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
+import {
+  hostHookOuterRelPath,
+  hostHookOuterSha8,
+  isHostHookOuterCommand,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import {
+  ENTRY_GUARD_MESSAGES,
+  formatEntryGuardMessage,
+  pinInvalidValues,
+  projectInstallCommand,
+} from "@deftai/directive-core/dist/install-health/constants.js";
 import {
   checkFullInSync,
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   type FullInSyncResult,
-  INSTALLATION_RECOVERY_GUIDANCE,
   type PredicateResult,
   RUNTIME_PACKAGE_PATH_PREFIX,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import { listDirectiveOwnedPaths } from "@deftai/directive-core/dist/install-health/owned-paths.js";
+import { readRuntimePin } from "@deftai/directive-core/dist/install-health/readers.js";
+import {
+  checkIgnoreVerboseStdout,
+  displayIgnoreSource,
+  indexFlagKind,
+  parseCheckIgnoreVerboseLine,
+  parseLsFilesVerboseRecord,
+} from "@deftai/directive-core/dist/lifecycle-visible/evaluate.js";
+import { envGitRunner, type GitRunner } from "@deftai/directive-core/dist/session/git.js";
 import { type DataStatusValue, readProjectDataStatus } from "./data-status.js";
 import { describeHooksPathScope, type HooksPathState, readHooksPathState } from "./setup-wiring.js";
 
 export { DEFT_DOCTOR_HOOK_DIAGNOSTIC };
+
+// ---------------------------------------------------------------------------
+// Hidden Directive files (#6618 / #6163)
+//
+// Warning: a Directive file that must be committed is hidden from git by
+// `.git/info/exclude`, a global excludes file (`core.excludesFile`) or a
+// `.gitignore` (found with `git check-ignore -v --no-index`, so a tracked
+// `.cursor/hooks.json` under a blanket `.cursor/` rule still reports the next
+// new `.mjs` outer), or by a skip-worktree / assume-unchanged index flag.
+// Read-only (AC12.1): git probes only, with `GIT_OPTIONAL_LOCKS=0`. Readiness
+// markers and `node_modules/` are meant to be ignored (AC8.5) and never checked.
+// ---------------------------------------------------------------------------
+
+export type HiddenDirectiveFileKind = "ignored" | "skip-worktree" | "assume-unchanged";
+
+export interface HiddenDirectiveFile {
+  readonly path: string;
+  readonly kind: HiddenDirectiveFileKind;
+  /** Display source: `.git/info/exclude`, `.gitignore`, `global excludes file (<path>)`, or `git index`. */
+  readonly source: string;
+  readonly line: number | null;
+  readonly pattern: string | null;
+}
+
+/** Host hook config → the host whose `.mjs` outer it registers (AC9.1). */
+const HOST_CONFIGS = [
+  { config: ".claude/settings.json", host: "claude" },
+  { config: ".cursor/hooks.json", host: "cursor" },
+  { config: ".codex/hooks.json", host: "codex" },
+  { config: ".grok/hooks/deft.json", host: "grok" },
+] as const;
+
+/** Read-only git runner: no optional index refresh (AC12.1). */
+export function readOnlyGitRunner(): GitRunner {
+  return envGitRunner({ GIT_OPTIONAL_LOCKS: "0" });
+}
+
+function isFilePath(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function listDir(path: string): string[] {
+  try {
+    return readdirSync(path);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Concrete project-relative paths Directive needs committed: owned files
+ * that exist, every existing `.mjs` outer, and the current `.mjs` outer for
+ * each host that has a hook config (it may be hidden before it is created).
+ */
+export function directiveFilesToCheck(projectRoot: string): string[] {
+  const out = new Set<string>();
+  for (const entry of listDirectiveOwnedPaths(projectRoot)) {
+    if (!entry.mustCommit) continue;
+    if (entry.kind === "retired" || entry.kind === "retained") continue;
+    if (entry.pattern !== undefined) {
+      const slash = entry.path.lastIndexOf("/");
+      const dir = slash >= 0 ? entry.path.slice(0, slash) : "";
+      for (const name of listDir(join(projectRoot, dir))) {
+        const rel = dir ? `${dir}/${name}` : name;
+        if (entry.pattern.test(rel) && isFilePath(join(projectRoot, rel))) out.add(rel);
+      }
+      continue;
+    }
+    if (isFilePath(join(projectRoot, entry.path))) out.add(entry.path);
+  }
+  const sha8 = hostHookOuterSha8();
+  for (const { config, host } of HOST_CONFIGS) {
+    if (existsSync(join(projectRoot, config))) {
+      out.add(hostHookOuterRelPath(host, sha8));
+    }
+  }
+  return [...out].filter((rel) => !rel.startsWith("node_modules/")).sort();
+}
+
+function displayHiddenSource(source: string, projectRoot: string): string {
+  const shown = displayIgnoreSource(source, projectRoot);
+  if (shown === ".git/info/exclude") return shown;
+  if (isAbsolute(shown) || shown.startsWith("..")) return `global excludes file (${shown})`;
+  return shown;
+}
+
+function findIgnoredDirectiveFiles(
+  projectRoot: string,
+  paths: readonly string[],
+  runGit: GitRunner,
+): HiddenDirectiveFile[] {
+  const stdout = checkIgnoreVerboseStdout(projectRoot, runGit, paths);
+  const out: HiddenDirectiveFile[] = [];
+  const seen = new Set<string>();
+  for (const raw of stdout.split(/\r?\n/)) {
+    if (raw.length === 0) continue;
+    const parsed = parseCheckIgnoreVerboseLine(raw);
+    if (parsed === null) continue;
+    // A negation (`!rule`) un-ignores the file; it is not a hide.
+    if (parsed.pattern.startsWith("!") || parsed.pattern.trim().length === 0) continue;
+    if (seen.has(parsed.path)) continue;
+    seen.add(parsed.path);
+    out.push({
+      path: parsed.path,
+      kind: "ignored",
+      source: displayHiddenSource(parsed.source, projectRoot),
+      line: parsed.line,
+      pattern: parsed.pattern,
+    });
+  }
+  return out;
+}
+
+/** Tracked paths among `paths`, and those hidden by an index flag. */
+function readIndexState(
+  projectRoot: string,
+  paths: readonly string[],
+  runGit: GitRunner,
+): { tracked: Set<string>; flagged: HiddenDirectiveFile[] } {
+  const tracked = new Set<string>();
+  const flagged: HiddenDirectiveFile[] = [];
+  const { code, stdout } = runGit(projectRoot, ["ls-files", "-v", "--", ...paths]);
+  if (code !== 0) return { tracked, flagged };
+  for (const record of stdout.split(/\r?\n/)) {
+    if (record.length === 0) continue;
+    const parsed = parseLsFilesVerboseRecord(record);
+    if (parsed === null) continue;
+    tracked.add(parsed.path);
+    const kind = indexFlagKind(parsed.tag);
+    if (kind === null) continue;
+    flagged.push({ path: parsed.path, kind, source: "git index", line: null, pattern: null });
+  }
+  return { tracked, flagged };
+}
+
+/**
+ * Directive files hidden from git, or null when the project is not a git
+ * checkout (or git cannot be run): the check is then skipped, not failed.
+ */
+export function findHiddenDirectiveFiles(
+  projectRoot: string,
+  runGit: GitRunner = readOnlyGitRunner(),
+): HiddenDirectiveFile[] | null {
+  if (!existsSync(join(projectRoot, ".git"))) return null;
+  const paths = directiveFilesToCheck(projectRoot);
+  if (paths.length === 0) return [];
+  try {
+    const { tracked, flagged } = readIndexState(projectRoot, paths, runGit);
+    // A tracked file stays committable under a matching ignore rule, so only
+    // untracked files (including the next `.mjs` outer, not yet created) can
+    // be hidden by one (#6163).
+    const ignored = findIgnoredDirectiveFiles(projectRoot, paths, runGit).filter(
+      (f) => !tracked.has(f.path),
+    );
+    return [...ignored, ...flagged];
+  } catch {
+    return null;
+  }
+}
+
+/** One warning line per hidden file (#6618 wording). */
+export function formatHiddenDirectiveFileWarning(file: HiddenDirectiveFile): string {
+  if (file.kind === "ignored") {
+    return (
+      `Directive file ${file.path} is hidden from git by ${file.source}:${file.line} ` +
+      `('${file.pattern}'). Directive's own files must stay committable. Remove or narrow that rule.`
+    );
+  }
+  const clear =
+    file.kind === "skip-worktree"
+      ? `git update-index --no-skip-worktree -- ${file.path}`
+      : `git update-index --no-assume-unchanged -- ${file.path}`;
+  return (
+    `Directive file ${file.path} is hidden from git by the ${file.kind} flag in the git index. ` +
+    `Directive's own files must stay committable. Clear it with \`${clear}\`.`
+  );
+}
 
 /**
  * F-010 / C7 — no-.git partial install: primary recovery is git init then repair,
@@ -51,6 +251,12 @@ export function formatForeignHooksPathReadinessDetail(state: HooksPathState): st
 export const WIRING_RECOVERY_GUIDANCE =
   "inspect Taskfile.yml / Directive wiring targets (or probe); for owned wiring damage: directive install --repair";
 
+/**
+ * Wiring damaged while the pinned runtime is installed (AC9.7 / AC14.14): the
+ * shared message table's `wiring-damaged` row.
+ */
+export const WIRING_DAMAGED_RECOVERY_GUIDANCE = ENTRY_GUARD_MESSAGES["wiring-damaged"];
+
 /** Patterns that must never appear as doctor remedies (AC12.5–12.7 / AC9.11). */
 export const FORBIDDEN_DOCTOR_REMEDY_PATTERNS: readonly RegExp[] = [
   /\balign-pin\b/i,
@@ -70,11 +276,18 @@ export const FORBIDDEN_DOCTOR_REMEDY_PATTERNS: readonly RegExp[] = [
 export interface DoctorSurface {
   readonly ok: boolean;
   readonly detail: string | null;
+  /**
+   * Display state when there was nothing to check (#5967 / #6003: absent is
+   * not ok). Display only: `ok` and the exit code are unchanged.
+   */
+  readonly display?: "not present";
 }
 
 export interface DoctorHookProbeResult {
   readonly ok: boolean;
   readonly detail: string;
+  /** Default structural probe: no hook was actually run. Display only. */
+  readonly display?: "not probed";
 }
 
 export interface DoctorDiagnosisInfo {
@@ -117,6 +330,11 @@ export interface DoctorDiagnosis {
     readonly schemaCurrency: DoctorSurface;
   };
   readonly hookProbe: DoctorHookProbeResult | null;
+  /**
+   * Directive files hidden from git by an ignore rule or index flag (#6618).
+   * Warnings only (exit-exempt). Null when the check was skipped (no git).
+   */
+  readonly hiddenFiles: readonly HiddenDirectiveFile[] | null;
   readonly info: DoctorDiagnosisInfo;
   readonly exitCode: 0 | 1;
 }
@@ -132,6 +350,8 @@ export interface DoctorDiagnosisOptions {
     readonly projectRoot: string;
     readonly env: NodeJS.ProcessEnv;
   }) => DoctorHookProbeResult;
+  /** Injected hidden-file probe (tests); default runs read-only git probes. */
+  readonly findHiddenFiles?: (projectRoot: string) => readonly HiddenDirectiveFile[] | null;
 }
 
 function surfaceFromPred(p: PredicateResult): DoctorSurface {
@@ -236,10 +456,12 @@ function inspectHookAndSkillForm(projectRoot: string): {
     hookCommandForm: {
       ok: hookOk || !sawHook,
       detail: hookOk ? (sawHook ? null : hookDetail) : hookDetail,
+      ...(sawHook ? {} : { display: "not present" as const }),
     },
     skillPointers: {
       ok: skillOk || !sawSkill,
       detail: skillOk ? (sawSkill ? null : skillDetail) : skillDetail,
+      ...(sawSkill ? {} : { display: "not present" as const }),
     },
   };
 }
@@ -251,6 +473,7 @@ function defaultHookProbe(projectRoot: string): DoctorHookProbeResult {
   return {
     ok: true,
     detail: `diagnostic env ${DEFT_DOCTOR_HOOK_DIAGNOSTIC}=1 (no live spawn in default probe)`,
+    display: "not probed",
   };
 }
 
@@ -358,17 +581,38 @@ function chooseRemedy(
   }
 
   const p = sync.predicates;
-  // Install-class faults only — do NOT fold wiring-only into AC9.7 via !inSync (#5798).
-  const pinInstallBroken =
-    sync.failClosed || !p.pin.ok || !p.installed.ok || !p.lockfile.ok || !p.generation.ok;
-  // Missing readiness (with .git) stays install/repair guidance (acceptance / F-010 peer).
-  const readinessBroken = !p.readiness.ok;
-  const wiringBroken = !p.wiring.ok;
+  // AC9.7 (v261118): one next command per failure class; never global + repair,
+  // and never repair and upgrade together for an install-class red (AC12.7).
   const schemaBehind = dataStatus === "migration_needed" || dataStatus === "diagnosis_failed";
-
-  // AC12.7: AC9.7 global install + schema upgrade must not co-prescribe for install-class red.
-  if (pinInstallBroken || readinessBroken) {
-    return { remedy: INSTALLATION_RECOVERY_GUIDANCE, schemaRemedy: null };
+  const install = projectInstallCommand(projectRoot);
+  if (sync.failClosed) {
+    // Installed runtime is not the pinned version → the project install.
+    return {
+      remedy: formatEntryGuardMessage("pin-mismatch", {
+        install,
+        pin: sync.version ?? undefined,
+        installed: p.installed.version ?? undefined,
+      }),
+      schemaRemedy: null,
+    };
+  }
+  if (!p.pin.ok) {
+    // Range, tag or unreadable pin: the user rectifies package.json (D-042).
+    const spec = readRuntimePin(projectRoot).rawSpec ?? "";
+    return {
+      remedy: formatEntryGuardMessage("pin-invalid", pinInvalidValues(projectRoot, spec)),
+      schemaRemedy: null,
+    };
+  }
+  if (!p.installed.ok) {
+    // Runtime missing → the project install.
+    return { remedy: formatEntryGuardMessage("runtime-missing", { install }), schemaRemedy: null };
+  }
+  const wiringBroken = !p.wiring.ok;
+  // Lockfile disagrees (AC14.14), GENERATION or readiness missing (with .git):
+  // wiring with the right runtime installed → repair.
+  if (!p.lockfile.ok || !p.generation.ok || !p.readiness.ok) {
+    return { remedy: WIRING_DAMAGED_RECOVERY_GUIDANCE, schemaRemedy: null };
   }
 
   // Wiring-only (good pin/install/readiness): failure-shaped map — Taskfile/probe, not npm i -g.
@@ -408,6 +652,9 @@ export function runDoctorDiagnosis(
     hookProbe = probe({ projectRoot, env });
   }
 
+  const hiddenFiles = (
+    options.findHiddenFiles ?? ((root: string) => findHiddenDirectiveFiles(root))
+  )(projectRoot);
   const gitPrecondition = isNoGitReadinessGap(sync, projectRoot);
   const { remedy, schemaRemedy } = chooseRemedy(sync, dataStatus, projectRoot);
   const healthy =
@@ -440,6 +687,7 @@ export function runDoctorDiagnosis(
       schemaCurrency: schemaSurface(dataStatus),
     },
     hookProbe,
+    hiddenFiles,
     info: {
       launcherPresent: options.launcherPresent ?? null,
       newerReleaseAvailable: options.newerReleaseAvailable ?? null,
@@ -450,24 +698,57 @@ export function runDoctorDiagnosis(
   };
 }
 
-function line(ok: boolean, name: string, detail: string | null): string {
-  const mark = ok ? "ok" : "FAIL";
+function line(ok: boolean, name: string, detail: string | null, display?: string): string {
+  const mark = display ?? (ok ? "ok" : "FAIL");
   return detail ? `  ${name}: ${mark} — ${detail}` : `  ${name}: ${mark}`;
 }
 
-/** Human-readable doctor report (AC12.3 / AC12.5 / F-010 / wave 4g). */
+/** True when the install-sync section names the project install as the next command. */
+function needsProjectInstall(diag: DoctorDiagnosis): boolean {
+  return diag.failClosed || (diag.surfaces.pin.ok && !diag.surfaces.installed.ok);
+}
+
+/** Final overall line after the install-sync and product sections (#5967 / #6003). */
+export const DOCTOR_OVERALL_OK = "directive doctor: OK";
+export const DOCTOR_OVERALL_PROBLEMS = "directive doctor: problems found (see above)";
+
+/** Overall verdict from the worse of the install-sync and product exit codes. */
+export function formatDoctorOverallLine(installSyncExit: number, productExit: number): string {
+  return installSyncExit === 0 && productExit === 0 ? DOCTOR_OVERALL_OK : DOCTOR_OVERALL_PROBLEMS;
+}
+
+/** Machine form of the install-sync section for `doctor --json` (#6004). */
+export function doctorDiagnosisJson(diag: DoctorDiagnosis): Record<string, unknown> {
+  return {
+    in_sync: diag.inSync,
+    exit_code: diag.exitCode,
+    version: diag.version,
+    fail_closed: diag.failClosed,
+    data_status: diag.dataStatus,
+    remedy: diag.remedy,
+    schema_remedy: diag.schemaRemedy,
+    incomplete_install: diag.incompleteInstall,
+    surfaces: diag.surfaces,
+    hook_probe: diag.hookProbe,
+    hidden_files: diag.hiddenFiles,
+    warnings: (diag.hiddenFiles ?? []).map(formatHiddenDirectiveFileWarning),
+    info: diag.info,
+  };
+}
+
+/**
+ * Human-readable install-sync section (AC12.3 / AC12.5 / F-010). The overall
+ * verdict is a separate final line (formatDoctorOverallLine), so this header
+ * never claims the whole doctor run is fine (#5967 / #6003).
+ */
 export function formatDoctorReport(diag: DoctorDiagnosis): string {
   const lines: string[] = [];
-  // Header tracks overall health (exitCode), not install-health inSync alone —
-  // skill/hook form failures must not still print "in sync" (AC12.3 / POST-CONV-DOC).
-  // F-010: no-git readiness withhold is an incomplete install / precondition, not a
-  // generic "not in sync" that reads like a broken pin.
   if (diag.exitCode === 0) {
-    lines.push("directive doctor: in sync");
+    lines.push("Install sync: in sync");
     lines.push("");
     lines.push("This project's Directive version and wiring look consistent.");
   } else if (diag.incompleteInstall === "git-precondition") {
-    lines.push("directive doctor: incomplete install (git precondition)");
+    lines.push("Install sync: incomplete install (git precondition)");
     lines.push("");
     lines.push("This folder is not a git repository yet, so git hooks were not installed.");
     lines.push("");
@@ -475,17 +756,12 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
     lines.push("  git init");
     lines.push("  directive install --repair");
   } else {
-    lines.push("directive doctor: not in sync");
+    lines.push("Install sync: not in sync");
     lines.push("");
-    if (!diag.surfaces.installed.ok || !diag.surfaces.pin.ok) {
-      const ver = diag.version ?? "the pinned version";
-      lines.push(
-        `The project asks for Directive ${ver}, but that package is missing or the wrong version is installed.`,
-      );
+    if (needsProjectInstall(diag) && diag.remedy) {
+      // The shared table row names the problem and the one project install.
+      lines.push(`Next: ${diag.remedy}`);
       lines.push("");
-      lines.push("Next:");
-      lines.push("  npm i -g @deftai/directive");
-      lines.push("  directive install --repair");
     }
   }
 
@@ -501,10 +777,16 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
       diag.surfaces.hookCommandForm.ok,
       "hook command form",
       diag.surfaces.hookCommandForm.detail,
+      diag.surfaces.hookCommandForm.display,
     ),
   );
   lines.push(
-    line(diag.surfaces.skillPointers.ok, "skill pointers", diag.surfaces.skillPointers.detail),
+    line(
+      diag.surfaces.skillPointers.ok,
+      "skill pointers",
+      diag.surfaces.skillPointers.detail,
+      diag.surfaces.skillPointers.display,
+    ),
   );
   lines.push(
     line(
@@ -514,7 +796,12 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
     ),
   );
   if (diag.hookProbe) {
-    lines.push(line(diag.hookProbe.ok, "hook probe", diag.hookProbe.detail));
+    lines.push(
+      line(diag.hookProbe.ok, "hook probe", diag.hookProbe.detail, diag.hookProbe.display),
+    );
+  }
+  for (const hidden of diag.hiddenFiles ?? []) {
+    lines.push(`  warning: ${formatHiddenDirectiveFileWarning(hidden)}`);
   }
   if (diag.info.launcherPresent !== null) {
     lines.push(`  launcher present: ${diag.info.launcherPresent ? "yes" : "no"} (information)`);
@@ -533,15 +820,9 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   if (diag.schemaRemedy) {
     lines.push(`Next: ${diag.schemaRemedy}`);
   }
-  if (diag.remedy && diag.incompleteInstall !== "git-precondition") {
-    // Avoid duplicating the plain Next: block when we already printed recovery.
-    if (diag.exitCode !== 0 && diag.surfaces.installed.ok && diag.surfaces.pin.ok) {
-      lines.push(`Recovery: ${diag.remedy}`);
-    } else if (diag.exitCode !== 0 && (!diag.surfaces.installed.ok || !diag.surfaces.pin.ok)) {
-      // Plain Next: block already covers AC9.7.
-    } else {
-      lines.push(`Recovery: ${diag.remedy}`);
-    }
+  // The project-install Next: block above already names the remedy.
+  if (diag.remedy && diag.incompleteInstall !== "git-precondition" && !needsProjectInstall(diag)) {
+    lines.push(`Recovery: ${diag.remedy}`);
   }
   return `${lines.join("\n")}\n`;
 }

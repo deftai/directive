@@ -368,7 +368,8 @@
           "tasks/materialize.cjs",
           "tasks/materialize.yml",
           "tasks/materialize.test.cjs",
-          "changelog.d/6005-launcher-output-and-release-fixes.md"
+          "changelog.d/6005-launcher-output-and-release-fixes.md",
+          ".deft/intent-constraint/github.issue.6082666530.json"
         ],
         "readiness": "ready",
         "depends_on": [
@@ -412,6 +413,15 @@
       }
     },
     "id": "github.issue.6082666530",
-    "updated": "2026-11-18T18:45:29Z"
+    "updated": "2026-11-18T18:45:29Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "3",
+          "unit": "numeric-const",
+          "rejectionScope": "operation"
+        }
+      ]
+    }
   }
 }

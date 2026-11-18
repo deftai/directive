@@ -1,11 +1,11 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { MIGRATE_COMPLETION_NUDGE } from "../init-deposit/migrate.js";
 import { agentsRefreshPlan } from "./agents-md.js";
 import * as checks from "./checks.js";
-import { decideThrottle, readState, writeState } from "./doctor-state.js";
+
 import { formatAllowedFlagsHint, formatUnknownFlagsError, parseDoctorFlags } from "./flags.js";
 import { cmdDoctor } from "./main.js";
 import { extractManagedSection, readManifestAt } from "./manifest.js";
@@ -47,160 +47,6 @@ describe("main human-mode branches", () => {
       expect(lines.join("")).toContain("System check completed with");
     } finally {
       process.stdout.write = orig;
-    }
-  });
-
-  it("clean throttle skip human line", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-doc-skip-"));
-    mkdirSync(join(root, ".deft", "core"), { recursive: true });
-    const lines: string[] = [];
-    const orig = process.stdout.write.bind(process.stdout);
-    process.stdout.write = ((chunk: string | Uint8Array) => {
-      lines.push(String(chunk));
-      return true;
-    }) as typeof process.stdout.write;
-    try {
-      expect(
-        cmdDoctor(["--project-root", root], {
-          whichFn: () => "/bin/x",
-          readState: () => ({
-            lastRunAt: new Date(),
-            lastExitCode: 0,
-            lastFindingCount: 0,
-            lastErrorCount: 0,
-            lastHasDeftCore: true,
-          }),
-          now: () => new Date(),
-          engineProbe: () => ({ reachable: false, version: null }),
-        }),
-      ).toBe(0);
-      expect(lines.join("")).toContain("[doctor] ran");
-    } finally {
-      process.stdout.write = orig;
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-  it("throttle skip fails when deposit hygiene failed (#4812)", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-doc-hygiene-"));
-    mkdirSync(join(root, ".deft", "core"), { recursive: true });
-    const lines: string[] = [];
-    const orig = process.stdout.write.bind(process.stdout);
-    process.stdout.write = ((chunk: string | Uint8Array) => {
-      lines.push(String(chunk));
-      return true;
-    }) as typeof process.stdout.write;
-    try {
-      expect(
-        cmdDoctor(["--project-root", root], {
-          whichFn: () => "/bin/x",
-          readState: () => ({
-            lastRunAt: new Date(),
-            lastExitCode: 0,
-            lastFindingCount: 0,
-            lastErrorCount: 0,
-            lastHasDeftCore: true,
-          }),
-          now: () => new Date(),
-          engineProbe: () => ({ reachable: false, version: null }),
-          depositHygiene: {
-            failed: true,
-            absent: ["VERSION.bak.2026-09-20T03-51-10Z"],
-            line: "Deposit hygiene: fail",
-          },
-        }),
-      ).toBe(1);
-      const output = lines.join("");
-      expect(output).toContain("deposit hygiene");
-      expect(output).not.toContain("System check passed!");
-    } finally {
-      process.stdout.write = orig;
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-  it("throttle skip json ok follows deposit hygiene (#4812)", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-doc-hygiene-json-"));
-    mkdirSync(join(root, ".deft", "core"), { recursive: true });
-    const lines: string[] = [];
-    const orig = process.stdout.write.bind(process.stdout);
-    process.stdout.write = ((chunk: string | Uint8Array) => {
-      lines.push(String(chunk));
-      return true;
-    }) as typeof process.stdout.write;
-    try {
-      expect(
-        cmdDoctor(["--json", "--project-root", root], {
-          whichFn: () => "/bin/x",
-          readState: () => ({
-            lastRunAt: new Date(),
-            lastExitCode: 0,
-            lastFindingCount: 0,
-            lastErrorCount: 0,
-            lastHasDeftCore: true,
-          }),
-          now: () => new Date(),
-          engineProbe: () => ({ reachable: false, version: null }),
-          depositHygiene: {
-            failed: true,
-            absent: ["VERSION.bak.2026-09-20T03-51-10Z"],
-            line: "Deposit hygiene: fail",
-          },
-        }),
-      ).toBe(1);
-      const payload = JSON.parse(lines.join("").trim()) as {
-        ok: boolean;
-        deposit_hygiene: { ok: boolean; absent: string[] };
-      };
-      expect(payload.ok).toBe(false);
-      expect(payload.deposit_hygiene.ok).toBe(false);
-      expect(payload.deposit_hygiene.absent).toContain("VERSION.bak.2026-09-20T03-51-10Z");
-    } finally {
-      process.stdout.write = orig;
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-  it("labels throttle-skipped registry warnings as configuration advisories", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
-    mkdirSync(join(root, ".deft", "core"), { recursive: true });
-    const lines: string[] = [];
-    const orig = process.stdout.write.bind(process.stdout);
-    process.stdout.write = ((chunk: string | Uint8Array) => {
-      lines.push(String(chunk));
-      return true;
-    }) as typeof process.stdout.write;
-    try {
-      expect(
-        cmdDoctor(["--project-root", root], {
-          readState: () => ({
-            lastRunAt: new Date(),
-            lastExitCode: 0,
-            lastFindingCount: 0,
-            lastErrorCount: 0,
-            lastHasDeftCore: true,
-          }),
-          now: () => new Date(),
-          runNpmConfigGet: (key) =>
-            key === "@deftai:registry"
-              ? { ok: true, value: "undefined" }
-              : { ok: true, value: "https://npm.internal.example.com/" },
-        }),
-      ).toBe(0);
-      const output = lines.join("");
-      expect(output).toContain("local configuration / layout note(s)");
-      expect(output).toContain("(throttle-skipped full probe)");
-      expect(output).not.toContain("npm-migration note(s)");
-      const advisoryLines = output
-        .split("\n")
-        .filter((line) => line.includes("Signpost advisory:"));
-      expect(advisoryLines.length).toBeGreaterThan(0);
-      for (const line of advisoryLines) {
-        expect(line).toContain("(throttle-skipped full probe)");
-      }
-    } finally {
-      process.stdout.write = orig;
-      rmSync(root, { recursive: true, force: true });
     }
   });
 });
@@ -260,7 +106,7 @@ describe("full-probe signpost advisory (#4755)", () => {
 });
 
 describe("taskfile interactive fix", () => {
-  it("writes Taskfile on fix approval", () => {
+  it("never writes the Taskfile, even with --fix and approval (AC12.1, #6622)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
     const writes: string[] = [];
     try {
@@ -273,7 +119,8 @@ describe("taskfile interactive fix", () => {
           writeText: (p, c) => writes.push(`${p}:${c.length}`),
         }),
       ).toBe(0);
-      expect(writes.length).toBe(1);
+      expect(writes.length).toBe(0);
+      expect(existsSync(join(root, "Taskfile.yml"))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -342,7 +189,9 @@ describe("taskfile interactive fix", () => {
       expect(tfFinding?.message).not.toMatch(/optional Taskfile include unavailable/i);
       expect(tfFinding?.suggestion ?? "").toContain("deft pr:watch");
       expect(tfFinding?.suggestion ?? "").toContain("task deft:");
-      expect(tfFinding?.suggestion ?? "").toContain("taskfile: ./.deft/core/Taskfile.yml");
+      expect(tfFinding?.suggestion ?? "").toContain(
+        "taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml",
+      );
       expect(payload.summary.warnings).toBeGreaterThan(0);
     } finally {
       process.stdout.write = orig;
@@ -582,33 +431,6 @@ describe("install integrity and agents paths", () => {
     }
   });
 
-  it("taskfile write failure surfaces error", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
-    const lines: string[] = [];
-    const orig = process.stdout.write.bind(process.stdout);
-    process.stdout.write = ((chunk: string | Uint8Array) => {
-      lines.push(String(chunk));
-      return true;
-    }) as typeof process.stdout.write;
-    try {
-      writeConsumerRoot(root);
-      expect(
-        cmdDoctor(["--full", "--fix", "--project-root", root], {
-          whichFn: () => "/bin/x",
-          isTty: () => true,
-          readYn: () => true,
-          writeText: () => {
-            throw new Error("disk full");
-          },
-        }),
-      ).toBe(0);
-      expect(lines.join("")).toContain("Failed to write");
-    } finally {
-      process.stdout.write = orig;
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
   it("missing-include prints snippet in human mode", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
     const lines: string[] = [];
@@ -684,7 +506,7 @@ describe("helpers branch sweep", () => {
     try {
       writeFileSync(
         join(root, "Taskfile.yml"),
-        "includes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\n",
+        "includes:\n  deft:\n    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml\n    optional: true\n",
         "utf8",
       );
       expect(classifyTaskfileInclude(root)).toBe("ok");
@@ -786,18 +608,6 @@ describe("helpers branch sweep", () => {
   it("readTextSafe delegates to reader", () => {
     expect(readTextSafe("/x", () => null)).toBeNull();
     expect(readTextSafe("/x", () => "ok")).toBe("ok");
-  });
-
-  it("doctor-state read/write roundtrip", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-state-"));
-    try {
-      writeState(root, { exitCode: 1, findingCount: 2, errorCount: 1 });
-      const state = readState(root);
-      expect(state?.lastExitCode).toBe(1);
-      expect(decideThrottle(null).skip).toBe(false);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
   });
 
   it("output json mode suppresses all", () => {

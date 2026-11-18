@@ -105,10 +105,20 @@ export interface DirectiveOwnedPathsInspection {
 
 export type DirectiveOwnedChange = "directive-only" | "mixed" | "not-owned";
 
-/** `.gitignore` lines setup adds (AC8.5). Setup and this API share this one copy. */
+/**
+ * `.gitignore` lines setup adds (AC8.5, v261118): the package folder, the
+ * readiness markers, and the named per-checkout runtime files (one holds the
+ * pre-PR signing secret). Setup, doctor and this API share this one copy.
+ * Adding a path here is a requirements change (AC8.5).
+ */
 export const DIRECTIVE_GITIGNORE_LINES = [
   "node_modules/",
   ".deft/directive/wiring-ready.*.json",
+  ".deft/pre-pr-execution-private/",
+  ".deft/plan-sequence.json.generation",
+  ".deft/plan-sequence.json.lock",
+  ".deft/plan-sequence.json.lock.claim-*",
+  ".deft/orientation-state.json",
 ] as const;
 
 /** `Taskfile.yml` that setup writes when the project has none. */

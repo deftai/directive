@@ -276,7 +276,8 @@
           "packages/core/src/xbrief-migrate/clause-ids.ts",
           "packages/runtime/src/init-cli/help.ts",
           "packages/runtime/src/install-upgrade.ts",
-          "changelog.d/5869-docs-recovery-and-readme.md"
+          "changelog.d/5869-docs-recovery-and-readme.md",
+          "docs/RULE-MAP.md"
         ],
         "readiness": "ready",
         "depends_on": [
