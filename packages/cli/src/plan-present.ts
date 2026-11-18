@@ -72,7 +72,7 @@ function describeHooksSource(t: HooksTakeover): string {
 /** Plan warning (same plan, same approval; no second prompt — Problem 20). */
 export function formatHooksTakeoverPlanWarning(t: HooksTakeover): string {
   return (
-    `Git hooks: this repository now runs Git hooks from ${describeHooksSource(t)}. ` +
+    `Git hooks: this repository currently runs Git hooks from ${describeHooksSource(t)}. ` +
     "Git runs hooks from one folder only. If you approve, this repository will use " +
     "Directive's .githooks folder instead, so those earlier hooks (for example commit-msg, " +
     "pre-commit or pre-push) will not run here unless you move them into .githooks or use " +
@@ -380,7 +380,7 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
 }
 
 function hooksTakeoverKeyedLine(t: HooksTakeover): string {
-  return `git hooks: take over core.hooksPath (was ${t.previous}; ${t.scope ?? "unknown"} scope) -> .githooks (local config)`;
+  return `git hooks: set core.hooksPath=.githooks in repository config (replaces ${t.previous}; ${t.scope ?? "unknown"} scope)`;
 }
 
 /** §C9 Example B — repair plan (wave 4g). */
