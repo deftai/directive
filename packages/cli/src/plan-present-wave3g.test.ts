@@ -290,8 +290,9 @@ describe("uninstall report at default verbosity (#6007 / AC11.11)", () => {
     const text = c.out();
     expect(text).toMatch(/partially finished/);
     expect(text).toContain(
-      "Kept core.hooksPath=.githooks: 4 other worktrees still use Directive hooks (/w/a, /w/b, /w/c and 1 more). Git hooks in this worktree stay off while it is set. To turn them back on, run: git config --unset core.hooksPath (this also turns off Directive hooks in those other worktrees).",
+      "Kept the shared Git hooks setting because 4 other worktrees still use Directive (/w/a, /w/b, /w/c and 1 more). Nothing else to do.",
     );
+    expect(text).not.toContain("git config --unset core.hooksPath");
     expect(text).toContain(
       "Kept (Directive data that uninstall does not delete): .deft/occupancy.json, .deft-cache/.",
     );

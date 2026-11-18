@@ -1032,13 +1032,15 @@ function writeHooksPathOutcome(io: PresentIo, outcome: UninstallHooksPathOutcome
     case "preserved-sibling": {
       const siblings = outcome.siblings ?? [];
       const n = siblings.length;
+      // D-045: say what was kept and why; no unset advice (it would also
+      // turn off Directive hooks in the other worktrees).
       const who =
         n > 0
-          ? `${n} other worktree${n === 1 ? " still uses" : "s still use"} Directive hooks (${formatShortList(siblings, 3)})`
-          : "another worktree still uses Directive hooks";
+          ? `${n} other worktree${n === 1 ? " still uses" : "s still use"} Directive (${formatShortList(siblings, 3)})`
+          : "another worktree still uses Directive";
       writeHumanParagraph(
         io,
-        `Kept core.hooksPath=.githooks: ${who}. Git hooks in this worktree stay off while it is set. To turn them back on, run: git config --unset core.hooksPath (this also turns off Directive hooks in those other worktrees).`,
+        `Kept the shared Git hooks setting because ${who}. Nothing else to do.`,
       );
       return;
     }

@@ -838,9 +838,9 @@ describe("uninstall says what it kept (#6007 / D-025)", () => {
     ).toBe(".githooks");
     const text = io.out();
     expect(text).toMatch(
-      /Kept core\.hooksPath=\.githooks: 1 other worktree still uses Directive hooks \(.*wt1\)\./,
+      /Kept the shared Git hooks setting because 1 other worktree still uses Directive \(.*wt1\)\. Nothing else to do\./,
     );
-    expect(text).toContain("git config --unset core.hooksPath");
+    expect(text).not.toContain("git config --unset core.hooksPath");
     // Plan names the worktree; report gives the count and folder.
     expect(text).toMatch(/^ {2}\.deft-scratch\/worktrees\/wt1$/m);
     expect(text).toMatch(/Don't delete \.deft-scratch\//);
