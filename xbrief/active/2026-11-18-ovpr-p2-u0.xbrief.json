@@ -152,7 +152,8 @@
           "packages/runtime/src/uninstall.test.ts",
           "packages/cli/src/uninstall-bookend.test.ts",
           "packages/runtime/src/setup.test.ts",
-          "changelog.d/6615-ownership-record-api.md"
+          "changelog.d/6615-ownership-record-api.md",
+          "changelog.d/6615-uninstall-hook-files.md"
         ],
         "readiness": "ready",
         "depends_on": [],
