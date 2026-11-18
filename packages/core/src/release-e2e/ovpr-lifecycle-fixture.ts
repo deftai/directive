@@ -212,6 +212,32 @@ export interface HookRun {
   stderr: string;
 }
 
+/**
+ * The POSIX shell a host runs hook commands with. On Windows hosts use Git's
+ * shell; when `sh` is not on PATH, take the `sh.exe` that ships with Git.
+ */
+export function hookShell(platform = process.platform): string {
+  if (platform !== "win32") return "sh";
+  const where = (name: string): string[] => {
+    const r = spawnSync("where", [name], { encoding: "utf8" });
+    return r.status === 0
+      ? (r.stdout ?? "")
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter(Boolean)
+      : [];
+  };
+  if (where("sh").length > 0) return "sh";
+  for (const git of where("git")) {
+    const gitRoot = dirname(dirname(git));
+    // Git for Windows has bin\\sh.exe; MinGit has only usr\\bin\\sh.exe.
+    for (const sh of [join(gitRoot, "bin", "sh.exe"), join(gitRoot, "usr", "bin", "sh.exe")]) {
+      if (existsSync(sh)) return sh;
+    }
+  }
+  return "sh";
+}
+
 export type HookRunResult = { ok: true; run: HookRun } | { ok: false; reason: string };
 
 /**
@@ -228,7 +254,7 @@ export function runRegisteredHook(
   const toolName = typeof payload.tool_name === "string" ? payload.tool_name : "";
   const lookup = registeredHookCommand(fixtureDir, host, event, toolName);
   if (!lookup.ok) return lookup;
-  const result = spawnSync("sh", ["-c", lookup.command], {
+  const result = spawnSync(hookShell(), ["-c", lookup.command], {
     cwd: fixtureDir,
     env,
     input: JSON.stringify(payload),

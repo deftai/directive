@@ -16,6 +16,7 @@ import {
   formatStepLine,
   globalBinDir,
   HOST_CONFIG_PATHS,
+  hookShell,
   OLD_LAYOUT_FIXTURES,
   OLD_PROJECT_TEXT,
   PROJECT_INSTALL_TEXT,
@@ -348,6 +349,12 @@ describe("cleanFixtureEnv", () => {
 });
 
 describe("platform helpers (Windows leg, #6621)", () => {
+  it("runs hooks with sh, falling back to Git's sh.exe on Windows", () => {
+    expect(hookShell("linux")).toBe("sh");
+    expect(hookShell("darwin")).toBe("sh");
+    if (process.platform === "win32") expect(hookShell()).toMatch(/sh(?:\.exe)?$/i);
+  });
+
   it("finds npm's global bins where npm puts them", () => {
     expect(globalBinDir("/p", "linux")).toBe(join("/p", "bin"));
     expect(globalBinDir("C:/p", "win32")).toBe("C:/p");
