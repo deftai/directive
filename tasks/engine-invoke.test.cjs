@@ -615,7 +615,53 @@ describe("framework pin exclusive invoke (#5805)", () => {
     const r = spawnSync(process.execPath, [script, "pin-bin", root], { encoding: "utf8" });
     assert.equal(r.status, 2);
     assert.match(r.stderr, /missing checkout pin/);
-    assert.match(r.stderr, /npm install or pnpm install/);
+    assert.match(
+      r.stderr,
+      /Run `npm install` \(or `pnpm install --frozen-lockfile`\) in a terminal in this project\./,
+    );
+    assert.doesNotMatch(r.stderr, /yarn|npm i -g/);
+  });
+
+  it("pin-bin CLI names the install for the project's lockfile (#6620)", () => {
+    const script = join(__dirname, "engine-invoke.cjs");
+    for (const [lockfile, command] of [
+      ["pnpm-lock.yaml", "`pnpm install --frozen-lockfile`"],
+      ["package-lock.json", "`npm install`"],
+    ]) {
+      const root = pinTempRoot();
+      writeFileSync(join(root, lockfile), "");
+      const r = spawnSync(process.execPath, [script, "pin-bin", root], { encoding: "utf8" });
+      assert.equal(r.status, 2);
+      assert.ok(r.stderr.includes(`Run ${command} in a terminal in this project.`), r.stderr);
+    }
+  });
+
+  it("runtime-missing-message prints the shared row for the project", () => {
+    const { runtimeMissingMessage } = require("./engine-invoke.cjs");
+    const root = pinTempRoot();
+    writeFileSync(join(root, "pnpm-lock.yaml"), "");
+    const script = join(__dirname, "engine-invoke.cjs");
+    const r = spawnSync(process.execPath, [script, "runtime-missing-message", root], {
+      encoding: "utf8",
+    });
+    assert.equal(r.status, 0);
+    assert.equal(r.stderr.trim(), runtimeMissingMessage(root));
+    assert.match(r.stderr, /`pnpm install --frozen-lockfile`/);
+  });
+
+  it("runtime-missing-message names the launcher when the include is not the runtime package", () => {
+    const { LAUNCHER_MISSING_ROW, runtimeMissingMessage } = require("./engine-invoke.cjs");
+    const root = pinTempRoot();
+    const script = join(__dirname, "engine-invoke.cjs");
+    const msg = (deftRoot) =>
+      spawnSync(process.execPath, [script, "runtime-missing-message", root, deftRoot], {
+        encoding: "utf8",
+      }).stderr.trim();
+    assert.equal(msg(join(root, ".deft", "core")), LAUNCHER_MISSING_ROW);
+    assert.equal(
+      msg(join(root, "node_modules", "@deftai", "directive-runtime")),
+      runtimeMissingMessage(root),
+    );
   });
 
   it("disable-active / pin-bin quiet-skip when untracked disable flag present (#5994)", () => {

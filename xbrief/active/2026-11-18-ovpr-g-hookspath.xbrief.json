@@ -288,7 +288,7 @@
         "The run ended without trying a release and re-claim as `cursor`.",
         "Upgrade stripped the #5804 pre-push arm. After `directive upgrade --yes`, `.githooks/pre-push` lost three lines, the refuse-to-downgrade marker and the enrolled bound pre-PR arm: The agent restored the file with `git checkout`.",
         "The same diff was already in the working tree when the session started, which suggests an earlier self-repair or setup pass in that environment had made the same downgrade (hypothesis).",
-        "Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
+        "Out of scope (Part B, not in this story; Problem 20 and D-043: no chaining) - Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
         "Or provide an explicit, documented opt-in that lets setup complete and write `wiring-ready` without disabling the host's checks.",
         "Doctor and recovery prose that name this case, instead of looping on \"run directive upgrade\".",
         "On Cursor Cloud Agents, the shell lifecycle and the edit-tool hook resolve to one occupancy identity, or there's a documented `--session-id` that the edit-tool hook can also present when `conversation_id` is absent.",
@@ -332,7 +332,7 @@
         "The run ended without trying a release and re-claim as `cursor`.",
         "Upgrade stripped the #5804 pre-push arm. After `directive upgrade --yes`, `.githooks/pre-push` lost three lines, the refuse-to-downgrade marker and the enrolled bound pre-PR arm: The agent restored the file with `git checkout`.",
         "The same diff was already in the working tree when the session started, which suggests an earlier self-repair or setup pass in that environment had made the same downgrade (hypothesis).",
-        "Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
+        "Out of scope (Part B, not in this story; Problem 20 and D-043: no chaining) - Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
         "Or provide an explicit, documented opt-in that lets setup complete and write `wiring-ready` without disabling the host's checks.",
         "Doctor and recovery prose that name this case, instead of looping on \"run directive upgrade\".",
         "On Cursor Cloud Agents, the shell lifecycle and the edit-tool hook resolve to one occupancy identity, or there's a documented `--session-id` that the edit-tool hook can also present when `conversation_id` is absent.",
@@ -543,7 +543,7 @@
         },
         {
           "id": 27,
-          "text": "Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
+          "text": "Out of scope (Part B, not in this story; Problem 20 and D-043: no chaining) - Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
           "artifact_path": "packages/runtime/src/setup-wiring.ts",
           "ambiguous": false,
           "provenance": "statement"

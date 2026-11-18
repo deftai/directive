@@ -2,10 +2,11 @@
  * AC14.25 worktree PM install unit tests.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE } from "../init-deposit/host-hook-outer.js";
 import {
   detectWorktreePm,
   installWorktreePackages,
@@ -234,19 +235,9 @@ describe("prepareLinkedWorktree (#6100)", () => {
       }),
     );
     let pmCalls = 0;
-    let depositCalls = 0;
     const r = prepareLinkedWorktree(wt, {
       repoRoot: repo,
       presenterSessionId: "stranger-me",
-      reconstitute: () => {
-        depositCalls += 1;
-        return {
-          status: "skipped",
-          source: null,
-          dest: join(wt, ".deft", "core"),
-          message: "test",
-        };
-      },
       runner: () => {
         pmCalls += 1;
         return { status: 0, stdout: "ok", stderr: "" };
@@ -255,7 +246,68 @@ describe("prepareLinkedWorktree (#6100)", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("live-stranger-lease");
     expect(pmCalls).toBe(0);
-    expect(depositCalls).toBe(0);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("fails closed with the project-install message when the worktree has no runtime pin (#6562)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "prep-nopin-"));
+    execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: repo, encoding: "utf8" });
+    writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "prep-nopin" }));
+    // Old-layout leftover in the primary: the removed code copied this into the worktree.
+    mkdirSync(join(repo, ".deft", "core"), { recursive: true });
+    writeFileSync(join(repo, ".deft", "core", "main.md"), "# leftover\n");
+    writeFileSync(join(repo, ".deft", "core", "VERSION"), "tag: v0.126.2\n");
+    execFileSync("git", ["add", "package.json"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, encoding: "utf8" });
+    const wt = join(repo, "wt");
+    execFileSync("git", ["worktree", "add", "--detach", "-q", wt], { cwd: repo, encoding: "utf8" });
+    const before = readdirSync(wt).sort();
+    let pmCalls = 0;
+    const r = prepareLinkedWorktree(wt, {
+      repoRoot: repo,
+      presenterSessionId: "owner",
+      runner: () => {
+        pmCalls += 1;
+        return { status: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("pin-missing");
+      expect(r.message).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    }
+    expect(pmCalls).toBe(0);
+    expect(existsSync(join(wt, ".deft", "core"))).toBe(false);
+    expect(readdirSync(wt).sort()).toEqual(before);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("a leftover installed runtime does not stand in for a missing pin (#6562)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "prep-leftover-"));
+    execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: repo, encoding: "utf8" });
+    writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "prep-leftover" }));
+    execFileSync("git", ["add", "package.json"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, encoding: "utf8" });
+    const wt = join(repo, "wt");
+    execFileSync("git", ["worktree", "add", "--detach", "-q", wt], { cwd: repo, encoding: "utf8" });
+    // The pin was dropped from package.json but the installed runtime is still there.
+    const runtimePkg = join(wt, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(join(runtimePkg, "dist"), { recursive: true });
+    writeFileSync(
+      join(runtimePkg, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "1.0.0" }),
+    );
+    writeFileSync(join(runtimePkg, "dist", "hook-bin.js"), "export {};\n");
+    const r = prepareLinkedWorktree(wt, { repoRoot: repo, presenterSessionId: "owner" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("pin-missing");
+      expect(r.message).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    }
     rmSync(repo, { recursive: true, force: true });
   });
   it("does not skip install when outer pin exists but installed runtime mismatches request", () => {

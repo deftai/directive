@@ -123,6 +123,7 @@ export function run(argv: readonly string[] = process.argv.slice(2)): number {
   const result = runSessionReady(projectRoot, {
     repo: args.repo,
     sessionId: args.sessionId ?? undefined,
+    invocation: { verb: "session:ready", args: [...argv] },
     sessionStartOptions: {
       allowOptionalNetwork: args.withNetwork ? true : undefined,
       writeHistory: false,

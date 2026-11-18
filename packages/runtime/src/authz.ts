@@ -14,7 +14,7 @@
  *   deft authz:grant -- --template delivery-identity-attest --target <owner>/<repo>#<pr>@<merge_commit_sha> \\
  *       --plan-ref <scopeId> [--confirm]
  *   deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> \\
- *       --deferred-to <issue> --reason <text> [--confirm]
+ *       [--disposition deferred|not_applicable|waived] [--deferred-to <issue>] --reason <text> [--confirm]
  *   deft authz:grant -- --template gate-override --target <refuseCode> --plan-ref <attemptId> \\
  *       --base-sha <sha> --head-sha <sha> --tree-hash <hash> [--confirm]
  *   deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> [--repo owner/name] [--confirm]
@@ -63,6 +63,7 @@ import {
 } from "@deftai/directive-core/plan-sequence";
 import {
   ACCEPTANCE_DISPOSITION_TEMPLATE_NAME,
+  ACCEPTANCE_DISPOSITION_VALUE_PREFIX,
   DELIVERY_IDENTITY_ATTEST_TEMPLATE_NAME,
   isAcceptanceDispositionTemplateName,
   isDeliveryIdentityAttestTemplateName,
@@ -128,6 +129,8 @@ interface Parsed {
   deferredTo: string | null;
   /** acceptance-disposition reason (#6318). */
   reason: string | null;
+  /** acceptance-disposition value: deferred (default), not_applicable, waived (#6644). */
+  disposition: string | null;
   /** plan-sequence-approval: the plan's generation (#6205). */
   generation: number | null;
   /** plan-sequence-approval insert: entry index (#6205). */
@@ -188,6 +191,7 @@ function parseArgv(argv: string[]): Parsed {
     confirm: false,
     deferredTo: null,
     reason: null,
+    disposition: null,
     generation: null,
     position: null,
     title: null,
@@ -345,6 +349,10 @@ function parseArgv(argv: string[]): Parsed {
       base.deferredTo = args[++i] ?? null;
       continue;
     }
+    if (a === "--disposition") {
+      base.disposition = args[++i] ?? null;
+      continue;
+    }
     if (a === "--reason") {
       base.reason = args[++i] ?? null;
       continue;
@@ -386,7 +394,8 @@ function helpText(): string {
     "  deft authz:grant -- --template delivery-identity-attest \\",
     "      --target <owner>/<repo>#<pr>@<merge_commit_sha> --plan-ref <scopeId> [--confirm]",
     "  deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> \\",
-    "      --story-ids <itemIds> --deferred-to <issue> --reason <text> [--confirm]",
+    "      --story-ids <itemIds> [--disposition deferred|not_applicable|waived] \\",
+    "      [--deferred-to <issue>] --reason <text> [--confirm]",
     "  deft authz:grant -- --template plan-sequence-approval --target <insert:<kind>:<id>|replace|clear> \\",
     "      --plan-ref <sequence_id> --generation <n> [--position <n>] [--issue-ids <n>] [--title <t>] [--repo owner/name] [--confirm]",
     "  deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> \\",
@@ -1060,13 +1069,15 @@ function writeDeliveryIdentityAttestShow(projectRoot: string): void {
 
 /** Mint an acceptance-disposition grant from parsed argv (#6318). */
 function grantAcceptanceDisposition(args: Parsed, gateConfirm: () => number | null): number {
+  const disposition = (args.disposition ?? "deferred").trim();
+  const needsDeferredTo = disposition === "deferred";
   const missing =
     args.planRef === null || args.planRef.trim().length === 0
       ? "--plan-ref <scopeId>"
       : args.storyIds.length === 0
         ? "--story-ids <itemIds>"
-        : args.deferredTo === null || args.deferredTo.trim().length === 0
-          ? "--deferred-to <issue>"
+        : needsDeferredTo && (args.deferredTo === null || args.deferredTo.trim().length === 0)
+          ? "--deferred-to <issue> (for --disposition deferred)"
           : args.reason === null || args.reason.trim().length === 0
             ? "--reason <text>"
             : null;
@@ -1080,7 +1091,8 @@ function grantAcceptanceDisposition(args: Parsed, gateConfirm: () => number | nu
     projectRoot: args.projectRoot,
     planRef: args.planRef as string,
     storyIds: args.storyIds,
-    deferredTo: args.deferredTo as string,
+    disposition,
+    ...(args.deferredTo === null ? {} : { deferredTo: args.deferredTo }),
     reason: args.reason as string,
     actor: args.actor,
     expiresAt: args.expiresAt,
@@ -1100,7 +1112,7 @@ function grantAcceptanceDisposition(args: Parsed, gateConfirm: () => number | nu
       `expires=${grant.semantics.expiresAt ?? "-"}\n`,
   );
   process.stdout.write(
-    "  scope:complete writes these items as deferred with this grant id, only while each " +
+    `  scope:complete writes these items as ${disposition} with this grant id, only while each ` +
       "covered text still matches; first use is recorded when the completed/ write succeeds.\n",
   );
   process.stdout.write(`  Store: ${minted.storeRoot} (main clone, .deft/authz/grants)\n`);
@@ -1172,8 +1184,12 @@ function writeAcceptanceDispositionShow(projectRoot: string): void {
         : g.semantics.usedAt !== null
           ? `used=${g.semantics.usedAt}`
           : `expires=${g.semantics.expiresAt ?? "-"}`;
+    const stored = g.scope.surfaces
+      .find((s) => s.startsWith(ACCEPTANCE_DISPOSITION_VALUE_PREFIX))
+      ?.slice(ACCEPTANCE_DISPOSITION_VALUE_PREFIX.length);
     process.stdout.write(
-      `  - ${g.id} plan=${g.scope.planRef ?? "-"} items=${g.scope.storyIds.join(",")} ${state}\n`,
+      `  - ${g.id} plan=${g.scope.planRef ?? "-"} disposition=${stored ?? "deferred"} ` +
+        `items=${g.scope.storyIds.join(",")} ${state}\n`,
     );
   }
 }

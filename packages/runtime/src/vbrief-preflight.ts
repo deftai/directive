@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
 import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
@@ -149,6 +149,34 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
+/**
+ * #6647: normalise the brief path once, before any reader. On win32 a Git Bash
+ * `/<letter>/...` path maps to `<letter>:/...`. An absolute path inside the project
+ * root, when the current directory IS that root (has `.git`), becomes repo-relative;
+ * otherwise the native absolute path is passed on unchanged. Never refuses.
+ */
+export function normalizePreflightPath(
+  rawPath: string,
+  cwd: string = process.cwd(),
+  platform: NodeJS.Platform = process.platform,
+): string {
+  let candidate = rawPath;
+  if (platform === "win32") {
+    const gitBash = /^\/([A-Za-z])(\/.*)?$/.exec(candidate);
+    if (gitBash !== null) {
+      candidate = `${(gitBash[1] as string).toUpperCase()}:${gitBash[2] ?? "/"}`;
+    }
+  }
+  if (!isAbsolute(candidate) || !existsSync(join(cwd, ".git"))) {
+    return candidate;
+  }
+  const rel = relative(resolve(cwd), resolve(candidate));
+  if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) {
+    return candidate;
+  }
+  return rel.split(sep).join("/");
+}
+
 /** Run the gate and return the process exit code (parse errors -> 2). */
 export function run(
   argv: string[],
@@ -163,7 +191,7 @@ export function run(
     process.stderr.write(`preflight_implementation: ${args.error}\n`);
     return 2;
   }
-  const vbriefPath = args.vbriefPath as string;
+  const vbriefPath = normalizePreflightPath(args.vbriefPath as string);
   // #1617: gate the brief's tree, not process.cwd() (cross-directory callers).
   const blocked = refuseIfWslOwnershipBlocked(dirname(resolve(vbriefPath)));
   if (blocked !== null) return blocked;

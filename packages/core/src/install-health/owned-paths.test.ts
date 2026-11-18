@@ -361,6 +361,24 @@ describe("classifyDirectiveOwnedChange (AC4)", () => {
     );
   });
 
+  it("managed lines: removing retired .deft/core lines and adding the hook-file line are Directive-only (#5961 / #6167)", () => {
+    const oldBlock =
+      "*.png binary\n# Deft framework: the vendored payload is packaged framework code, not\n# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n.deft/core/** text=auto eol=lf\n.deft/core/** linguist-vendored=true\n.githooks/** text=auto eol=lf\n";
+    const stripped =
+      "*.png binary\n# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths\n# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).\n.githooks/** text=auto eol=lf\n.claude/deft-hook-*.mjs text=auto eol=lf\n";
+    expect(classifyDirectiveOwnedChange(".gitattributes", oldBlock, stripped)).toBe(
+      "directive-only",
+    );
+    expect(
+      classifyDirectiveOwnedChange(
+        ".prettierignore",
+        "dist/\n\n# Deft framework: the vendored payload is outside the consumer Prettier gate (#2534).\n.deft/core/\n",
+        "dist/\n\n# Deft managed wiring: Directive's committed hook files are not formatted (AC13.3).\n**/deft-hook-*.mjs\n",
+      ),
+    ).toBe("directive-only");
+    expect(classifyDirectiveOwnedChange(".prettierignore", "dist/\n", "build/\n")).toBe("mixed");
+  });
+
   it("package.json: new from install, pin bump, extra user script", () => {
     const fresh = JSON.stringify(
       { private: true, devDependencies: { "@deftai/directive-runtime": "0.130.0" } },

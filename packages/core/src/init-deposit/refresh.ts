@@ -99,7 +99,7 @@ import {
 } from "../verify-env/agent-hook-readiness.js";
 import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate-project.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
-import { ensureInitGitignoreLines, type GitLsFiles, isDepositTrackedInGit } from "./gitignore.js";
+import { ensureInitGitignoreLines, type GitLsFiles } from "./gitignore.js";
 import {
   classifyDirtyEscapeLedger,
   depositStagePaths,
@@ -1430,14 +1430,8 @@ export async function runRefreshDeposit(
   // repair on every refresh, including the already-current no-op path.
   writeConsumerGitHooks(projectDir, payloadReadRoot, io, seams.gitHooks);
 
-  // #2148: the deft-core-guard CI workflow is only meaningful when the deposit
-  // is git-tracked (committed vendor layout). On an npm-managed (gitignored)
-  // deposit it creates untracked noise after every `directive update`. Probe
-  // git-tracked status once and share the result with the gitignore upkeep below.
-  const depositTracked = isDepositTrackedInGit(projectDir, seams.gitLsFiles);
-  const skipGuardWorkflow = depositTracked !== true;
-
-  await depositNeutralization(projectDir, io, { skipGuardWorkflow });
+  // The retired deft-core-guard workflow is no longer deposited (#5835).
+  await depositNeutralization(projectDir, io);
 
   // #2266: non-destructive `.gitignore` upkeep for framework-owned paths. This
   // NEVER un-tracks a committed deposit -- `ensureInitGitignoreLines` only writes

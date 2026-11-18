@@ -118,6 +118,8 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly resolvedCommandCount: number;
   readonly clauseOutcomes?: readonly ClauseWalkResult[];
   readonly clauseWalked?: boolean;
+  /** Clauses left out of the walk because a grant stamped them this run (#6644). */
+  readonly clauseGranted?: number;
   /** How the result was obtained (#3387). */
   readonly servedFrom?: AcServedFrom;
   /** Config-error cause when resolution is config (#3559). */
@@ -137,7 +139,21 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly sourcesChanged?: number;
 }
 
+/** A clause a grant stamped in this scope:complete run (#6644). */
+export interface GrantedClauseNote {
+  readonly id: number;
+  readonly disposition: string;
+  readonly reason: string;
+}
+
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
+  /**
+   * Clauses stamped from an acceptance-disposition grant in this run (#6644).
+   * Only scope:complete passes it, from applyAcceptanceDispositionGrants. The
+   * clause walk leaves them out of its counts; the sentence floor and the
+   * admitted-source identity check still read the brief as before.
+   */
+  readonly grantedClauses?: readonly GrantedClauseNote[];
   /**
    * When true, missing xBRIEF / no active scope is exit 0 (check composition).
    * Default false for standalone done-gate use. Multi-active path selection for
@@ -571,6 +587,8 @@ function persistVerifyAcSessionCache(
   plan: Record<string, unknown>,
 ): void {
   if (!result.ok || result.resolution !== "verified-pass") return;
+  // #6644: a walk with a granted set is a scope:complete result; verify:ac must not reuse it.
+  if ((options.grantedClauses?.length ?? 0) > 0) return;
   const sessionId = resolveVerifyAcSessionId(options.env, options.sessionId);
   const resolvedScope = resolveScopeIdForAcReuse(plan, options.bankScopeId, {
     oracleScopeKey: options.oracleScopeKey,
@@ -1276,19 +1294,38 @@ function applyClauseWalk(
     return result;
   }
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  // #6644: a clause stamped from a grant in this run is left out of the walk, so
+  // it is not walked, failed, unverified or verified. It stays in the brief.
+  const granted = (options.grantedClauses ?? []).filter((g) =>
+    clauses.some((clause) => clause.id === g.id),
+  );
+  const grantedIds = new Set(granted.map((g) => g.id));
   // #3835: the walk reads files, so it reads only what this brief declared.
-  const report = walkAcceptanceClauses(clauses, projectRoot, {
-    declaredScope: readDeclaredArtifactScope(plan),
-  });
+  const report = walkAcceptanceClauses(
+    clauses.filter((clause) => !grantedIds.has(clause.id)),
+    projectRoot,
+    { declaredScope: readDeclaredArtifactScope(plan) },
+  );
   // #6374 item 4: context note on verified rows whose file is unchanged since the
   // commit before this brief entered its folder. Display only: outcomes, counts,
   // the lead and the exit code below are all computed from `report`.
-  const message = options.quiet
+  const walkMessage = options.quiet
     ? result.message
     : formatClauseWalkMessage(
         annotateUnchangedSinceEntry(report, { projectRoot, xbriefPath: options.xbriefPath }),
         result.message,
       );
+  const message =
+    options.quiet || granted.length === 0
+      ? walkMessage
+      : [
+          `verify:ac clause walk (#6644): ${granted.length} granted (left out of the counts above)`,
+          ...granted.map(
+            (g) =>
+              `  [granted] clause ${g.id}: ${g.disposition} — ${g.reason.replace(/\s+/g, " ")}`,
+          ),
+          walkMessage,
+        ].join("\n");
   // #3497: a clause the static walk cannot decide is evidence of nothing. It blocks
   // only when nothing else verified the product; a green executable acceptance run
   // already is the product-first oracle. Failed clauses still block unconditionally.
@@ -1314,6 +1351,7 @@ function applyClauseWalk(
       : "fail",
     clauseOutcomes: report.clauses,
     clauseWalked: true,
+    ...(granted.length > 0 ? { clauseGranted: granted.length } : {}),
   };
 }
 

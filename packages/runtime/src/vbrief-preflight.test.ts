@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   ISSUELESS_CODE_BEARING_REMEDIATION,
   issuelessCodeBearingNote,
+  normalizePreflightPath,
   parseArgs,
   run,
   strictAxisAdvisoryForBrief,
@@ -429,5 +430,60 @@ describe("vbrief-preflight-parity helpers", () => {
     expect(bad).toContain("DIVERGENCE");
     expect(bad).toContain("exit mismatch");
     expect(bad).toContain("message mismatch");
+  });
+});
+
+describe("normalizePreflightPath (#6647)", () => {
+  function projectRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-preflight-norm-"));
+    temps.push(root);
+    mkdirSync(join(root, ".git"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    return root;
+  }
+
+  it("converts an absolute path inside the project to repo-relative from the root", () => {
+    const root = projectRoot();
+    const abs = join(root, "xbrief", "active", "s.xbrief.json");
+    expect(normalizePreflightPath(abs, root, "linux")).toBe("xbrief/active/s.xbrief.json");
+  });
+
+  it("keeps the native absolute path when the current directory is not the project root", () => {
+    const root = projectRoot();
+    const sub = join(root, "xbrief");
+    const abs = join(root, "xbrief", "active", "s.xbrief.json");
+    expect(normalizePreflightPath(abs, sub, "linux")).toBe(abs);
+  });
+
+  it("keeps the absolute path when it is outside the project root", () => {
+    const root = projectRoot();
+    const other = projectRoot();
+    const abs = join(other, "xbrief", "active", "s.xbrief.json");
+    expect(normalizePreflightPath(abs, root, "linux")).toBe(abs);
+  });
+
+  it("leaves a relative path unchanged", () => {
+    const root = projectRoot();
+    expect(normalizePreflightPath("xbrief/active/s.xbrief.json", root, "linux")).toBe(
+      "xbrief/active/s.xbrief.json",
+    );
+  });
+
+  it("maps the Git Bash /<drive>/ form on win32 and leaves it alone elsewhere", () => {
+    const bare = mkdtempSync(join(tmpdir(), "deft-cli-preflight-bare-"));
+    temps.push(bare);
+    expect(normalizePreflightPath("/c/Repos/x/s.json", bare, "win32")).toBe("C:/Repos/x/s.json");
+    expect(normalizePreflightPath("/c", bare, "win32")).toBe("C:/");
+    expect(normalizePreflightPath("/c/Repos/x/s.json", bare, "linux")).toBe("/c/Repos/x/s.json");
+  });
+
+  it("run accepts a native absolute path to a ready brief", () => {
+    const path = activeRunning();
+    const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      expect(run([path], () => [])).toBe(0);
+    } finally {
+      out.mockRestore();
+    }
   });
 });

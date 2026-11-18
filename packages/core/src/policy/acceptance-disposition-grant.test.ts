@@ -133,7 +133,7 @@ describe("acceptance-disposition template (#6318)", () => {
     expect(acceptanceDispositionCoverText(plan(), "clause.9")).toBeNull();
     expect(formatAcceptanceDispositionCommand(null, [], null)).toBe(
       `deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME} --plan-ref <scopeId> ` +
-        "--story-ids <itemIds> --deferred-to <issue> --reason <text> --confirm",
+        "--story-ids <itemIds> --disposition deferred --deferred-to <issue> --reason <text> --confirm",
     );
   });
 
