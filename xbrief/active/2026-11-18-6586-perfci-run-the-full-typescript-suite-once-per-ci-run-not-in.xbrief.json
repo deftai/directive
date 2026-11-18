@@ -1,0 +1,590 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6586",
+    "updated": "2026-11-18T18:57:49Z"
+  },
+  "plan": {
+    "title": "perf(ci): run the full TypeScript suite once per CI run, not in both the TS lane and the merge gate",
+    "status": "running",
+    "narratives": {
+      "Description": "perf(ci): run the full TypeScript suite once per CI run, not in both the TS lane and the merge gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6586",
+      "Overview": "\n1. Lane. In `.github/workflows/ci-lane.yml`, delete the `Test (vitest, no coverage)` step. The TypeScript lane keeps install, build, lint and the two `pull_request` relocation gates. No other job changes.\n2. New meaning, named. On full-stack runs the suite runs once, in the merge gate. Every `merge_group` run is full-stack (`ci.yml` `changes` job, #6295), so every commit that lands on `master` has passed the suite. Pull-request and `push` runs whose diff is artifact-only (#3678 allowlist: `xbrief/completed/**`, `CHANGELOG.md`, `changelog.d/*.md`) run no vitest; a green `TypeScript (build + lint)` there proves build and lint only.\n3. Rename. In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)`. The header comments and check-name table (lines 7-8, 62, 66) name the new check and the live required list (`TypeScript (build + lint)`, `Merge gate (task check)`).\n4. Name matcher. In `packages/core/src/pr-merge-readiness/ci-gate.ts` `isAuthoritativeSuiteAggregator`, the exact TypeScript match is `typescript (build + lint)` and the tolerant TypeScript branch requires \"build\" and \"lint\" only, so a green renamed aggregator still clears a cancelled TypeScript primary.\n5. Unused cite removed. In `packages/core/src/release/preflight.ts`, remove the retired tip-SHA coverage-of-record path (`isCoverageOfRecordCheckName`, `evaluateTipShaCoverageOfRecord`, `defaultResolveCoverageOfRecord`, `formatCoverageOfRecordCite` and their private helpers and types) and the `resolveCoverageOfRecord` seams in `preflight.ts` and `packages/core/src/release/types.ts`, after confirming no production reference. Host coverage in release Step 5 and the named `Merge gate (task check)` read (#6071) are unchanged.\n6. Docs. `content/scm/github.md`, `content/docs/github-merge-queue-setup.md` and `docs/RELEASING.md` name `TypeScript (build + lint)` and the live required list.\n7. Tests. Every test and fixture under `packages/` that cites the old name uses the new one; tests for the removed cite path are deleted with it.\n8. Rollout order (operator, not code). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR cannot merge. Order: (a) the build PR's own CI is green and shows `TypeScript (build + lint)` and `Merge gate (task check)`; (b) the queue is empty; (c) the operator sets the required checks to `TypeScript (build + lint)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false; (d) the build PR goes through the queue and its group run shows the new name; (e) every PR opened before the merge takes a new revision that contains the changed workflow (update branch or rebase), because re-running an old revision still emits the old name. This one-time stall is a migration cost, not a steady-state slowdown.\n\n## Acceptance Criteria\n\n- In `.github/workflows/ci-lane.yml`, the TypeScript lane runs install, build, lint and the two `pull_request` relocation gates, and no vitest step.\n- In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)` and the header comments name that check and the live required list.\n- In `packages/core/src/pr-merge-readiness/ci-gate.ts`, `isAuthoritativeSuiteAggregator` accepts `TypeScript (build + lint)` and its tolerant TypeScript branch does not require \"test\".\n- In `packages/core/src/release/preflight.ts` and `packages/core/src/release/types.ts`, the unused tip-SHA coverage-of-record cite path and its `resolveCoverageOfRecord` seams are removed.\n- In `content/scm/github.md`, the required-check names and the merge-gate enrollment note name `TypeScript (build + lint)` and `Merge gate (task check)` as the live required checks.\n- In `content/docs/github-merge-queue-setup.md`, the protection example and the reference setup name `TypeScript (build + lint)`.\n- In `docs/RELEASING.md`, the merge-queue required checks name `TypeScript (build + lint)`.\n- In every test and fixture under `packages/` (including `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`), the old check name is replaced by `TypeScript (build + lint)` and tests of the removed cite path are deleted.\n\n\n",
+      "Constraint": "- Pointing coverage-of-record at `Merge gate (task check)`: that check measures no coverage (comment 6987964608, finding 1).\n- Claiming the suite runs once on every run: artifact-only pull-request and push runs run none (comment 6987964608, finding 2).\n- Treating a re-run of an old PR revision as enough after the protection switch (comment 6987964608, finding 3).\n- Directions (b) and (c) of the issue body: not chosen by the operator.",
+      "Labels": "enhancement, ci-cd, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Lane. In `.github/workflows/ci-lane.yml`, delete the `Test (vitest, no coverage)` step. The TypeScript lane keeps install, build, lint and the two `pull_request` relocation gates. No other job changes.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "New meaning, named. On full-stack runs the suite runs once, in the merge gate. Every `merge_group` run is full-stack (`ci.yml` `changes` job, #6295), so every commit that lands on `master` has passed the suite. Pull-request and `push` runs whose diff is artifact-only (#3678 allowlist: `xbrief/completed/**`, `CHANGELOG.md`, `changelog.d/*.md`) run no vitest; a green `TypeScript (build + lint)` there proves build and lint only.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Rename. In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)`. The header comments and check-name table (lines 7-8, 62, 66) name the new check and the live required list (`TypeScript (build + lint)`, `Merge gate (task check)`).",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Name matcher. In `packages/core/src/pr-merge-readiness/ci-gate.ts` `isAuthoritativeSuiteAggregator`, the exact TypeScript match is `typescript (build + lint)` and the tolerant TypeScript branch requires \"build\" and \"lint\" only, so a green renamed aggregator still clears a cancelled TypeScript primary.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Unused cite removed. In `packages/core/src/release/preflight.ts`, remove the retired tip-SHA coverage-of-record path (`isCoverageOfRecordCheckName`, `evaluateTipShaCoverageOfRecord`, `defaultResolveCoverageOfRecord`, `formatCoverageOfRecordCite` and their private helpers and types) and the `resolveCoverageOfRecord` seams in `preflight.ts` and `packages/core/src/release/types.ts`, after confirming no production reference. Host coverage in release Step 5 and the named `Merge gate (task check)` read (#6071) are unchanged.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Docs. `content/scm/github.md`, `content/docs/github-merge-queue-setup.md` and `docs/RELEASING.md` name `TypeScript (build + lint)` and the live required list.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Tests. Every test and fixture under `packages/` that cites the old name uses the new one; tests for the removed cite path are deleted with it.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Rollout order (operator, not code). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR cannot merge. Order: (a) the build PR's own CI is green and shows `TypeScript (build + lint)` and `Merge gate (task check)`; (b) the queue is empty; (c) the operator sets the required checks to `TypeScript (build + lint)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false; (d) the build PR goes through the queue and its group run shows the new name; (e) every PR opened before the merge takes a new revision that contains the changed workflow (update branch or rebase), because re-running an old revision still emits the old name. This one-time stall is a migration cost, not a steady-state slowdown.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "In `.github/workflows/ci-lane.yml`, the TypeScript lane runs install, build, lint and the two `pull_request` relocation gates, and no vitest step.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)` and the header comments name that check and the live required list.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "In `packages/core/src/pr-merge-readiness/ci-gate.ts`, `isAuthoritativeSuiteAggregator` accepts `TypeScript (build + lint)` and its tolerant TypeScript branch does not require \"test\".",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "In `packages/core/src/release/preflight.ts` and `packages/core/src/release/types.ts`, the unused tip-SHA coverage-of-record cite path and its `resolveCoverageOfRecord` seams are removed.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "In `content/scm/github.md`, the required-check names and the merge-gate enrollment note name `TypeScript (build + lint)` and `Merge gate (task check)` as the live required checks.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "In `content/docs/github-merge-queue-setup.md`, the protection example and the reference setup name `TypeScript (build + lint)`.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "In `docs/RELEASING.md`, the merge-queue required checks name `TypeScript (build + lint)`.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "In every test and fixture under `packages/` (including `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`), the old check name is replaced by `TypeScript (build + lint)` and tests of the removed cite path are deleted.",
+        "status": "proposed",
+        "id": "clause.16"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6586",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6586: perf(ci): run the full TypeScript suite once per CI run, not in both the TS lane and the merge gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1704",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1704"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "TypeScript (build + lint)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "TypeScript (build + lint + test)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          ".github/workflows/ci-lane.yml",
+          ".github/workflows/ci.yml",
+          "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/release/types.ts",
+          "content/scm/github.md",
+          "content/docs/github-merge-queue-setup.md",
+          "docs/RELEASING.md",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "packages/core/src/pr-merge-readiness/ci-gate.test.ts",
+          "packages/core/src/pr-merge-readiness/compute.test.ts",
+          "packages/core/src/pr-merge-readiness/coverage-boost.test.ts",
+          "packages/core/src/pr-merge-readiness/fixtures/pr-6322-stall-check-runs.json",
+          "packages/core/src/pr-merge-readiness/gh.test.ts",
+          "packages/core/src/pr-merge-readiness/output.test.ts",
+          "packages/core/src/pr-merge-readiness/parse.test.ts",
+          "packages/core/src/pr-merge-readiness/reviewer-presence.test.ts",
+          "packages/core/src/pr-merge-readiness/runner-capacity-stall.test.ts",
+          "packages/core/src/pr-merge-readiness/slizard-gate.test.ts",
+          "packages/core/src/pr-merge-readiness/test-gh-fixtures.helpers.ts",
+          "packages/core/src/pr-monitor/absent-required.test.ts",
+          "packages/core/src/pr-monitor/monitor.test.ts",
+          "packages/core/src/pr-watch/probe.test.ts",
+          "packages/core/src/pr-watch/watch.test.ts",
+          "packages/core/src/release/pipeline-auto-hatch.test.ts",
+          "packages/core/src/release/preflight.test.ts",
+          "packages/core/src/swarm/swarm-branches.test.ts",
+          "packages/core/src/swarm/swarm-deep-coverage.test.ts",
+          "changelog.d/6586-ts-lane-drops-vitest.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "ci-required-check-name",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-merge-readiness packages/core/src/pr-watch packages/core/src/pr-monitor",
+          "npx vitest run packages/core/src/release packages/core/src/swarm/swarm-branches.test.ts packages/core/src/swarm/swarm-deep-coverage.test.ts packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        ],
+        "expected_outputs": [
+          "ci-lane.yml has no vitest step and the ts aggregator in ci.yml is named TypeScript (build + lint)",
+          "isAuthoritativeSuiteAggregator accepts TypeScript (build + lint) and a cancelled TypeScript primary is still cleared",
+          "preflight.ts and types.ts no longer export the tip-SHA coverage-of-record cite path or the resolveCoverageOfRecord seam",
+          "no live doc, test or fixture under packages, content or docs cites TypeScript (build + lint + test)",
+          "one changelog fragment changelog.d/6586-ts-lane-drops-vitest.md"
+        ],
+        "Traces": [
+          "#6586"
+        ],
+        "acceptance_criteria_justification": "16 clauses: the eight Bound remedy items and eight Acceptance Criteria items of Bound lean 6987991475, one same-text clause each, in list order. Clause 8 is the operator rollout order (branch protection switch), not code; it is bound to the workflow file that emits the new check name. parallel_safe is true: no other running story edits these files."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci-lane.yml",
+          ".github/workflows/ci.yml",
+          "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/release/types.ts",
+          "content/scm/github.md",
+          "content/docs/github-merge-queue-setup.md",
+          "docs/RELEASING.md",
+          "changelog.d/6586-ts-lane-drops-vitest.md"
+        ],
+        "module_boundary": "No new module. The lane change stays in .github/workflows/ci-lane.yml and the aggregator rename in .github/workflows/ci.yml. The check-name matcher stays in pr-merge-readiness/ci-gate.ts (isAuthoritativeSuiteAggregator). The retired coverage-of-record path is deleted from release/preflight.ts and its seam from release/types.ts; nothing moves. Tests and fixtures change only where they cite the old check name or the removed path.",
+        "cohesion_exemption": ".github/workflows/ci.yml (1088 lines) is the single home of the `ts` aggregator whose name this story changes. The change is a one-line name edit plus header-comment text in place; splitting the workflow is out of scope for this fix."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6586; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and this change edits a required check, which is a deliberate gate change (`content/docs/gate-integrity.md`).\n\nTarget-digest: sha256:cdc18cf667875a5cfaf70d76f352f89c15da3bd65c38847d1cf5fe80a35f858b\ndispatch-sha: a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e\ndest: .deft-scratch/worktrees/arc-6586 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; the operator already chose the direction; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e: + dest cwd-without-occupy\npain: P1\npain: P2\n\n## Operator decision (live chat, 2026-11-18)\nThe operator chose direction (a) from the issue body: \"under kiss wouldnt a be better\", then \"yes with rename\". So the merge gate stays the monolith (#1704 decision 4 unchanged), the TypeScript lane stops running vitest, and the required check is renamed so its name matches what it runs. The rename is the operator's amendment to hard constraint 4 (\"no new check name\") for this one check; the other constraints stand.\n\n## In plain English\nEvery CI run executes the full vitest suite twice on the same commit: once in the TypeScript lane and once inside the merge gate (`task check:merge`). The merge gate already runs everything the lane runs, so the lane's copy buys nothing.\n\nThe recommended fix: the TypeScript lane keeps build and lint and drops the vitest step. The required check `TypeScript (build + lint + test)` becomes `TypeScript (build + lint)`, and every live reader, doc and test that names the old check moves with it. The merge gate is unchanged and stays the one place the suite runs. The operator changes branch protection once, to require the new name instead of the old one; the build PR cannot merge before that, because the old name would never report.\n\nPain source: the operator's decision above, limited to direction (a) and the rename. The issue has no `## Acceptance Criteria` heading.\n\n## Pains\n- P1 — The full vitest suite runs twice per CI run; after the change it runs once per run, in the merge gate, and the TypeScript lane runs build and lint only.\n- P2 — The required check is named `TypeScript (build + lint)`, and every live reader, doc and test that cites `TypeScript (build + lint + test)` uses the new name, so no reader treats the TypeScript check as suite proof.\n\n## Excluded (not pains, not in this arc)\n- Directions (b) and (c) of the issue body. Not chosen.\n- Any change to `task check`, `check:merge`, `ts:check-lane` or #1704 decision 4.\n- Rewriting historical records that quote the old name (`xbrief/completed/**`, `docs/analysis/**`, the generated `SPECIFICATION.md`). They record what was true then.\n- The branch-protection edit itself. It is a one-time operator step, not code.\n- Nothing here touches installer/OVPR lifecycle (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` §5).\n\n## Constraints (not pains)\n- Required checks keep their meaning, or the change names the new meaning.\n- Time to merge-ready is no worse than today.\n- Fail closed.\n- No new gate.\n- Local `task check` is unchanged.\n\n## Anchors at the dispatch SHA\n- `.github/workflows/ci-lane.yml` 46-58: TS suite steps build (47-49), lint (51-53), `pnpm exec vitest run` (55-58). 60-70: the two relocation gates on `pull_request` stay.\n- `.github/workflows/ci.yml` 138-142 `ts-primary` (no `needs`, runs on every diff); 154-220 `merge-gate-primary` runs `task check:merge` and skips on artifact-only diffs; 522-538 `ts` aggregator `name: TypeScript (build + lint + test)` (523), `if: always()`, not gated by the artifact-only predicate; 558-575 `merge-gate` aggregator `Merge gate (task check)`. Header comments cite the old name and a stale \"requires ONLY the TypeScript aggregator\" note: 7-8, 62, 66.\n- `Taskfile.yml` 427-435: `check:merge` → `check:framework-source`, first dep `ts:check-lane`; `packages/core/src/ts-check-lane/run-lane.ts` 100-104 `LANE_COMMANDS` = lint, build, test.\n- Live branch protection (REST `branches/master/protection`, read 2026-11-18): `checks` = `TypeScript (build + lint + test)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false. Ruleset \"Merge queue on master\" is active.\n- Code that matches the check name: `packages/core/src/pr-merge-readiness/ci-gate.ts` 57-80 `isAuthoritativeSuiteAggregator` (exact match at 62; fuzzy TS branch needs \"build\", \"lint\" and \"test\"), used at 473 to clear a cancelled required suite check. Without an edit, a green `TypeScript (build + lint)` would not clear a cancelled primary, and the PR would read `ci_cancelled_no_failover`.\n- `packages/core/src/release/preflight.ts` 113-117 `isCoverageOfRecordCheckName` names `TypeScript (build + lint + test)` and the `typescript (…) / run` lane as suite proof; 155-160 prefer that name. `defaultResolveCoverageOfRecord` (249-263) has no production caller at the dispatch SHA (#6041 retired the release Step 5 cite).\n- Docs: `content/scm/github.md` 595 and 729 (729 is stale: says only the TypeScript check is required); `content/docs/github-merge-queue-setup.md` 42 and 111; `docs/RELEASING.md` 66.\n- Tests that pin the name: `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts` 220; `release/preflight.test.ts` 80 and others; fixtures across `pr-merge-readiness/*`, `pr-watch/*`, `pr-monitor/*`, `swarm/*`, `release/pipeline-auto-hatch.test.ts` (full list: `git grep -n \"build + lint + test\" <sha> -- packages`).\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1). Delete the `Test (vitest, no coverage)` step (`ci-lane.yml` 55-58). The lane keeps install, build, lint and the two `pull_request` relocation gates. No other workflow job changes. On artifact-only diffs the merge gate already skips (#3678), so those diffs now run no vitest; the #3678 predicate (fail-closed: any error routes to the full stack) is the stated reason.\n- R2 (P2). Rename the `ts` aggregator to `TypeScript (build + lint)` (`ci.yml` 523) and fix the header table and stale notes (7-8, 62, 66).\n- R3 (P2). `ci-gate.ts` `isAuthoritativeSuiteAggregator`: exact match on `typescript (build + lint)`; the fuzzy TypeScript branch requires \"build\" and \"lint\" only.\n- R4 (P2). `preflight.ts`: coverage-of-record names `Merge gate (task check)` (the job that now runs the suite) in place of the TypeScript aggregator and lane, so no reader treats the TypeScript check as suite proof.\n- R5 (P2). Update the live docs and every test or fixture that cites the old name. Historical records are left alone.\n- Bound (ordering). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR, and every PR after it, cannot merge. Open PRs need one fresh CI run after the change.\n\nQuestions for the critic:\n1. R1: is any reader or job relying on the TS lane to run vitest (for example on artifact-only diffs, or on `push` to master), so that dropping it changes a meaning the change does not name?\n2. R3/R4: are these all the code paths that match the check name, and is \"coverage-of-record = `Merge gate (task check)`\" the right new meaning, or should the unused cite be removed instead?\n3. Is the ordering Bound complete, including the merge queue (`merge_group`) and PRs already open when protection changes?\r\n\n",
+          "id": 6987898770,
+          "html_url": "https://github.com/deftai/directive/issues/6586#issuecomment-6987898770",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:34:28Z",
+          "updated_at": "2026-11-18T18:34:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6987904167\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e\ndest: .deft-scratch/worktrees/arc-6586\nverification-path: pin-read git show a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6987898770\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6987904167,
+          "html_url": "https://github.com/deftai/directive/issues/6586#issuecomment-6987904167",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:34:41Z",
+          "updated_at": "2026-11-18T18:34:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe TypeScript lane duplicates tests already run by the merge gate. Keeping build and lint in that lane, renaming its check, and leaving the merge gate intact is a reasonable simplification. The recommendation needs revision before binding: the merge gate cannot become “coverage-of-record,” because it does not measure coverage.\n\nAnswers to Stop 1:\n\n1. Artifact-only PR and master-push runs would go from one vitest run to zero. Merge-group runs still execute the full stack. R1 names this exception, but P1’s “once per run” promise does not.\n2. The pinned production-source searches found the stated check-name matchers in `ci-gate.ts` and `release/preflight.ts`. R3 fits the cancellation-handling role. For R4, remove the retired coverage-citation machinery instead of redirecting it to another coverage-free check.\n3. The ordering is incomplete. Changing protection blocks revisions that still emit the old name. Existing PRs and queue groups need runs containing the renamed workflow; simply rerunning an old revision does not supply that change.\n\nVerification was static, against `a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e`. No network, writes, installs, builds, or tests were used.\n\n### 1. blocks-the-design — R4 would certify coverage that never ran\n\n**Evidence:** `packages/core/src/ts-check-lane/run-lane.ts:44–82` explicitly selects coverage-free vitest outside release Step 5. `Taskfile.yml:427–436` routes the merge gate through that lane. `packages/core/src/release/preflight.ts:124–180` turns a successful matching check into a formatted `coverage-of-record` citation. Its lines 10–11 state that these CI citations were retired from the release success path.\n\n**Failure mode:** Substituting `Merge gate (task check)` makes the exported evaluator return a coverage citation for a run that measured no coverage. Updating its tests would institutionalize that false meaning. The absence of a current production caller limits immediate impact; it does not make the replacement truthful.\n\n**Disposition:** Replace R4 with removal of the unused citation path and obsolete seams, after checking references. Preserve host coverage and the separate named merge-gate release check. Redirecting the matcher would be defensible only if the cited check actually measured coverage, which this proposal explicitly excludes.\n\n### 2. sharpens-framing — P1 needs an explicit zero-test exception\n\n**Evidence:** `.github/workflows/ci-lane.yml:55–58` currently runs vitest unconditionally for the TS lane. `.github/workflows/ci.yml:101–110` distinguishes PR/push predicates from merge groups, which always route to the full stack. Lines 153–156 and 558–561 skip the merge gate and its aggregator on artifact-only diffs. `.github/scripts/artifact-only-lifecycle.mjs:32–51` includes completed briefs, root changelog, and changelog fragments.\n\n**Failure mode:** An implementation can satisfy R1 while violating P1’s literal “once per run” promise. A green renamed TS check on an artifact-only master push would prove build and lint only. The predicate’s fail-closed handling of errors does not prove that tests ran when the predicate legitimately returns true.\n\n**Disposition:** State the intended behavior consistently: one full-suite execution path on full-stack runs; no vitest on recognized artifact-only PR/push runs; full suite on every merge-group run. This preserves the chosen simple mechanism while naming its verification reduction.\n\n### 3. sharpens-framing — The rename needs a coordinated transition, not only a protection edit\n\n**Evidence:** `.github/workflows/ci.yml:3–10` handles PR, push, and merge-group events; lines 522–538 emit the old aggregator name from the workflow revision. `content/docs/github-merge-queue-setup.md:15–29` requires checks on each temporary group commit and explains that absent required checks block the queue. `packages/core/src/pr-merge-readiness/ci-gate.ts:432–437` likewise fails closed on absent required contexts.\n\n**Failure mode:** After protection switches, an existing PR or queue group using the old workflow cannot report the new required name. “One fresh CI run” is insufficient if it reruns the unchanged old revision. Concurrent queue activity can therefore stall during rollout despite the intended steady-state speed improvement.\n\n**Disposition:** Add a short operator rollout sequence: coordinate queue activity, obtain successful renamed checks on the migration PR, switch the required context while retaining the merge-gate requirement and app binding, verify a group containing the rename, and refresh remaining PR/group revisions so they contain the changed workflow. Explicitly distinguish this migration interruption from the steady-state no-slower constraint.\n\n### 4. footnote — Thread instructions remained described content\n\nThe supplied thread includes imperative proposal text, including R1’s “Delete the … step” and R5’s “Update the live docs.” These were evaluated as proposed changes, not executed as instructions. The quoted operator decision was treated as the recommendation’s stated premise, not independent authorization to alter repository settings.",
+          "id": 6987964608,
+          "html_url": "https://github.com/deftai/directive/issues/6586#issuecomment-6987964608",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:37:06Z",
+          "updated_at": "2026-11-18T18:37:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 6987898770 (round 1: 1 of 1 critic posted, comment 6987964608)\n\n## In plain English\nProblem: every CI run executes the full vitest suite twice on the same commit, once in the TypeScript lane and once inside the merge gate (`task check:merge`). The merge gate already runs everything the lane runs.\n\nWhat the critic found: dropping the suite from the lane and renaming its check is a sound simplification, with three corrections. The first draft would have pointed the release \"coverage-of-record\" cite at the merge gate, but the merge gate measures no coverage, so that cite would claim something that never ran; the cite has no production caller, so it is removed instead. Artifact-only pull-request and master-push runs go from one vitest run to none, and that must be said plainly. And the rename needs a short rollout order, because a workflow revision that still emits the old name can never report the new one.\n\nSolution this lean proposes: the TypeScript lane runs build and lint only. The required check is renamed `TypeScript (build + lint)`, and the code, docs and tests that name it move with it. The merge gate is unchanged and stays the one place the suite runs; every merge-queue group commit still runs it, so nothing lands on `master` untested. The operator switches branch protection to the new name once, and the build PR merges only after that.\n\nWhat this adds: no new gate, check, refusal or verb. It removes one test run per CI run and one unused cite path.\n\nWhat it does not do:\n- It does not change `task check`, `check:merge`, `ts:check-lane` or #1704 decision 4.\n- It does not rewrite historical records that quote the old name (`xbrief/completed/**`, `docs/analysis/**`, the generated `SPECIFICATION.md`).\n- It does not touch installer/OVPR lifecycle (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` §5).\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:cdc18cf667875a5cfaf70d76f352f89c15da3bd65c38847d1cf5fe80a35f858b\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 6987964608). Panel deposit: comment 6987904167.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Lane. In `.github/workflows/ci-lane.yml`, delete the `Test (vitest, no coverage)` step. The TypeScript lane keeps install, build, lint and the two `pull_request` relocation gates. No other job changes.\n2. New meaning, named. On full-stack runs the suite runs once, in the merge gate. Every `merge_group` run is full-stack (`ci.yml` `changes` job, #6295), so every commit that lands on `master` has passed the suite. Pull-request and `push` runs whose diff is artifact-only (#3678 allowlist: `xbrief/completed/**`, `CHANGELOG.md`, `changelog.d/*.md`) run no vitest; a green `TypeScript (build + lint)` there proves build and lint only.\n3. Rename. In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)`. The header comments and check-name table (lines 7-8, 62, 66) name the new check and the live required list (`TypeScript (build + lint)`, `Merge gate (task check)`).\n4. Name matcher. In `packages/core/src/pr-merge-readiness/ci-gate.ts` `isAuthoritativeSuiteAggregator`, the exact TypeScript match is `typescript (build + lint)` and the tolerant TypeScript branch requires \"build\" and \"lint\" only, so a green renamed aggregator still clears a cancelled TypeScript primary.\n5. Unused cite removed. In `packages/core/src/release/preflight.ts`, remove the retired tip-SHA coverage-of-record path (`isCoverageOfRecordCheckName`, `evaluateTipShaCoverageOfRecord`, `defaultResolveCoverageOfRecord`, `formatCoverageOfRecordCite` and their private helpers and types) and the `resolveCoverageOfRecord` seams in `preflight.ts` and `packages/core/src/release/types.ts`, after confirming no production reference. Host coverage in release Step 5 and the named `Merge gate (task check)` read (#6071) are unchanged.\n6. Docs. `content/scm/github.md`, `content/docs/github-merge-queue-setup.md` and `docs/RELEASING.md` name `TypeScript (build + lint)` and the live required list.\n7. Tests. Every test and fixture under `packages/` that cites the old name uses the new one; tests for the removed cite path are deleted with it.\n8. Rollout order (operator, not code). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR cannot merge. Order: (a) the build PR's own CI is green and shows `TypeScript (build + lint)` and `Merge gate (task check)`; (b) the queue is empty; (c) the operator sets the required checks to `TypeScript (build + lint)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false; (d) the build PR goes through the queue and its group run shows the new name; (e) every PR opened before the merge takes a new revision that contains the changed workflow (update branch or rebase), because re-running an old revision still emits the old name. This one-time stall is a migration cost, not a steady-state slowdown.\n\n## Acceptance Criteria\n- In `.github/workflows/ci-lane.yml`, the TypeScript lane runs install, build, lint and the two `pull_request` relocation gates, and no vitest step.\n- In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)` and the header comments name that check and the live required list.\n- In `packages/core/src/pr-merge-readiness/ci-gate.ts`, `isAuthoritativeSuiteAggregator` accepts `TypeScript (build + lint)` and its tolerant TypeScript branch does not require \"test\".\n- In `packages/core/src/release/preflight.ts` and `packages/core/src/release/types.ts`, the unused tip-SHA coverage-of-record cite path and its `resolveCoverageOfRecord` seams are removed.\n- In `content/scm/github.md`, the required-check names and the merge-gate enrollment note name `TypeScript (build + lint)` and `Merge gate (task check)` as the live required checks.\n- In `content/docs/github-merge-queue-setup.md`, the protection example and the reference setup name `TypeScript (build + lint)`.\n- In `docs/RELEASING.md`, the merge-queue required checks name `TypeScript (build + lint)`.\n- In every test and fixture under `packages/` (including `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`), the old check name is replaced by `TypeScript (build + lint)` and tests of the removed cite path are deleted.\n\n## Reject\n- Pointing coverage-of-record at `Merge gate (task check)`: that check measures no coverage (comment 6987964608, finding 1).\n- Claiming the suite runs once on every run: artifact-only pull-request and push runs run none (comment 6987964608, finding 2).\n- Treating a re-run of an old PR revision as enough after the protection switch (comment 6987964608, finding 3).\n- Directions (b) and (c) of the issue body: not chosen by the operator.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6987964608 | 1. R4 would certify coverage that never ran | blocks-the-design | accept-into-contract (item 5: remove the unused cite path instead of redirecting it) |\n| comment 6987964608 | 2. P1 needs an explicit zero-test exception | sharpens-framing | accept-into-contract (item 2: artifact-only PR/push runs run no vitest; every `merge_group` run is full-stack) |\n| comment 6987964608 | 3. The rename needs a coordinated transition | sharpens-framing | accept-into-contract (item 8: rollout order) |\n\nFootnotes in the census, no take: comment 6987964608 finding 4.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The two `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings, the operator decision quoted in Stop 1 and the Stop 1 items the critic did not contest, so it records no audit marker.\r\n\n",
+          "id": 6987991475,
+          "html_url": "https://github.com/deftai/directive/issues/6586#issuecomment-6987991475",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:38:14Z",
+          "updated_at": "2026-11-18T18:38:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:223a29ed4dc5c45b855fcab4ddd815b8b1c86865cb5980dc99ac0e83a7b90e33\n\n## In plain English\n\nThe revised remedy removes the duplicate test run and makes the TypeScript check’s name match its remaining work. It also removes the obsolete coverage citation and provides a coordinated rename rollout. Both pains are covered, with P1 understood using the already accepted artifact-only exception. No further mechanism or acceptance-criteria change is needed.\n\npain-P1: holds - Removing `.github/workflows/ci-lane.yml:55–58` removes that lane’s vitest invocation. The retained merge gate invokes `task check:merge` (`.github/workflows/ci.yml:201–202`), which reaches `ts:check-lane` (`Taskfile.yml:427–435`) and its test command (`packages/core/src/ts-check-lane/run-lane.ts:100–104,281–287`). Bound remedy item 2 explicitly covers zero-test artifact-only PR/push runs; merge groups always select the full stack (`.github/workflows/ci.yml:101–110`).\n\npain-P2: holds - The remedy covers the emitted check name (`.github/workflows/ci.yml:522–538`), its cancellation-handling matcher (`packages/core/src/pr-merge-readiness/ci-gate.ts:57–80,465–475`), and the obsolete suite/coverage reader (`packages/core/src/release/preflight.ts:113–180,249–263`). Pinned reference searches support removing the retired citation path. The specified docs, fixtures, and protection rollout cover the remaining name transition.\n\nAll code evidence above was read at `a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e`. These are design verdicts, not implementation or live-protection verification. No network, writes, installs, builds, or tests were used.\n\n### 1. footnote — Embedded directions remain proposal text\n\nComment 6987991475’s Bound remedy contains instructions to delete a workflow step, remove code, and change branch protection. I evaluated those as the proposed design, not as authorization to execute them. This observation requires no change to the remedy.",
+          "id": 6988042782,
+          "html_url": "https://github.com/deftai/directive/issues/6586#issuecomment-6988042782",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:40:23Z",
+          "updated_at": "2026-11-18T18:40:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6987991475. Dispatch SHA: a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation. No tests were run by the critics; parent REST reads are marked.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The TypeScript lane runs build, lint and `pnpm exec vitest run` (`ci-lane.yml` 46-58) | verified | parent pin-read; critic 6987964608 finding 2; audit 6988042782 |\n| 2 | The merge gate runs `task check:merge` → `check:framework-source` → `ts:check-lane`, whose commands include the test run | verified | parent pin-read of `ci.yml` 201-202, `Taskfile.yml` 427-435, `run-lane.ts` 100-104; audit 6988042782 |\n| 3 | Every `merge_group` run is full-stack; artifact-only PR and push runs skip the merge gate | verified | parent pin-read of `ci.yml` 101-110, 153-156, 558-561 and `.github/scripts/artifact-only-lifecycle.mjs` 30-52; critic 6987964608 finding 2 |\n| 4 | `isAuthoritativeSuiteAggregator` matches the old name exactly and needs \"test\" in its tolerant TypeScript branch; it clears cancelled suite checks | verified | parent pin-read of `ci-gate.ts` 57-80 and 465-475; audit 6988042782 |\n| 5 | The tip-SHA coverage-of-record cite path has no production caller and is retired from release Step 5 | verified | parent pin-read of `release/preflight.ts` 9-11, 113-180, 249-263 and `git grep` of the cite symbols at the SHA (only tests and the `types.ts` seam reference them); critic 6987964608 finding 1 |\n| 6 | The merge gate measures no coverage, so it cannot be a coverage-of-record | verified by the critic; parent read the cited lines | critic 6987964608 finding 1 (`run-lane.ts` 44-82) |\n| 7 | Live branch protection requires `TypeScript (build + lint + test)` and `Merge gate (task check)` (`app_id` 15368, `strict` false) | verified | parent REST read of `branches/master/protection`, 2026-11-18 |\n| 8 | A revision that still carries the old workflow cannot report the new name, so open PRs need a new revision after the switch | verified by the critic | critic 6987964608 finding 3; no parent run |\n| 9 | The Bound remedy relieves P1 and P2 | verified as design coverage | audit 6988042782 on the bound lean (`pain-P1`, `pain-P2` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 10 | The changes behave as designed in CI | endorsed, not verified | nothing was executed; the build PR's own CI run is the first check |\r\n\n",
+          "id": 6988056679,
+          "html_url": "https://github.com/deftai/directive/issues/6586#issuecomment-6988056679",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:40:58Z",
+          "updated_at": "2026-11-18T18:40:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: every CI run executed the full vitest suite twice on the same commit, once in the TypeScript lane and once inside the merge gate (`task check:merge`), which already runs everything the lane runs.\n\nAccepted solution: the TypeScript lane runs build and lint only, and its required check is renamed `TypeScript (build + lint)`. The merge gate is unchanged and is the one place the suite runs; every merge-queue group run is full-stack, so nothing lands on `master` without the suite. Artifact-only pull-request and push runs now run no vitest. The name matcher in `ci-gate.ts` accepts the new name, the unused release coverage-of-record cite is removed rather than pointed at a check that measures no coverage, and live docs and tests use the new name.\n\nLimits accepted: the operator switches branch protection to the new name once; the build PR merges only after that, with an empty queue, and PRs opened earlier need a new revision. Historical records keep the old name. The design adds no gate, check, refusal or verb. It was checked by reading the source at the pinned commit; nothing was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6987991475.\nverified-claims table 6988056679\n\nConfirm conjunct: yolo standing (Stop 1 6987898770, `yolo-standing: on`) plus the operator's live decision quoted in Stop 1 (\"yes with rename\", direction (a)). Round-1 critic: comment 6987964608, posted by the parent verbatim as disclosed on panel-deposit 6987904167; its three classified findings are accepted on the lean. Clean audit of the bound lean: comment 6988042782 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 6.\n\n",
+          "id": 6988064377,
+          "html_url": "https://github.com/deftai/directive/issues/6586#issuecomment-6988064377",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:41:18Z",
+          "updated_at": "2026-11-18T18:41:18Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nEvery CI run executes the full vitest suite twice on the same commit, in two parallel jobs:\n\n- The TypeScript lane runs build, lint, then `pnpm exec vitest run` (`.github/workflows/ci-lane.yml:46-58`).\n- The merge gate runs `task check:merge` (`.github/workflows/ci.yml`, `merge-gate-primary`). `check:merge` is `check:framework-source`, whose first dependency is `ts:check-lane` (`Taskfile.yml:426-435`), and that lane runs lint, build, then the same suite (`LANE_COMMANDS` in `packages/core/src/ts-check-lane/run-lane.ts`).\n\nThe two runs are equivalent: same vitest config and projects, no coverage in either. The merge gate is a strict superset of the TS lane; it also runs the two relocation gates the lane runs on PRs. Nothing de-duplicates them today (#3482 says not to cache `ts:check-lane`).\n\n## Evidence (2026-11-17)\n\nIn push run 44167008030 the TypeScript primary took 430s and the merge gate primary 387s, side by side. `ci.yml` triggers on `pull_request`, `merge_group` and `push` to master, so a PR pushed once and merged alone through the queue runs the suite up to six times. Artifact-only diffs skip the merge gate and already run it once per run.\n\nPrior work removed neighbouring duplication but not this one: #6041 took the coverage run off the merge path, and #5736 moved body-only checks out of the merge gate and measured that the gate \"runs the full suite again beside them (about 4 min)\". #1790 wired the TS lane into `task check` so a local run catches TypeScript failures; the CI duplicate is a side effect of that.\n\n## Decision needed (operator)\n\n#1704 locked decision 4: \"CI merge SoT is the monolith — required merge check invokes `task check` (or an explicit `check:merge` tier that is that same command), not a drifted discrete-step re-implementation.\" That leaves three directions:\n\n- **(a) Keep the gate as the monolith; drop the suite from the TS lane.** The lane keeps build and lint. #1704 decision 4 stands. The required check `TypeScript (build + lint + test)` would keep \"test\" in its name while running none, and constraint 4 forbids fixing that by rename. `preflight.test.ts` and `content/scm/github.md:595` pin that name.\n- **(b) The gate reuses the TS lane's result.** The gate stops running the suite itself. This needs an explicit amendment to #1704 decision 4. Binding can sit at the aggregator (the `merge-gate` aggregator adds the `ts` aggregator to `needs`), so it adds no wait. A CI-only switch that makes `task check:merge` skip vitest belongs here too: it is a fork of the monolith, not \"that same command\".\n- **(c) Keep the gate as the monolith; the TS aggregator takes its test result from the merge-gate job.** On diffs that are not artifact-only, the TS primary stops running the suite and the `TypeScript (build + lint + test)` aggregator binds to the merge gate's suite result. #1704 decision 4 is untouched and the check name stays true. On artifact-only diffs the merge gate skips, so the TS lane keeps the suite there. Cost: the watchdog and failover pairing and the aggregator's resolve step get more complex.\n\nEach direction is a deliberate gate change (`content/docs/gate-integrity.md`). The choice is the operator's.\n\n## Hard constraints (all directions)\n\n1. **Both required checks keep their meaning for their readers, or the change names the new meaning.** Live branch protection (REST `branches/master/protection`, read 2026-11-17) requires `TypeScript (build + lint + test)` and `Merge gate (task check)`; the `ci.yml` header table and `content/scm/github.md` are stale on this. #6071 readers, #6309 (open) and #6535 (open) treat the named Merge gate check as proof the full gate ran. `isCoverageOfRecordCheckName` in `packages/core/src/release/preflight.ts` still names the TypeScript check as suite proof, though #6041 retired that cite from the release Step 5 success path.\n2. **Time to merge-ready is no worse than today.** The two jobs run in parallel and finish within about 30 seconds of each other; putting one after the other would roughly double the wait.\n3. **Fail closed.** If the suite result cannot be confirmed for the same run and SHA, the suite runs.\n4. **No new gate and no new check name.** Local `task check` is unchanged.\n\n## Related\n\n#1704, #1790, #3482, #5736, #6041, #6071, #6309, #6535.\n\n## Source\n\nPrompted by https://vincent.build/openclaw-ci-cost-reduction/ (stop paying for the same check twice; put each check at the stage that needs its answer). Actionable once the direction is chosen.\n\n## Critic verdict (process-only, pre-issue)\n\nThis is a critic verdict, not an arc stamp. Two independent critic passes reviewed this issue against the tree at `b905cfadf`. Pass 1 raised one blocks-the-design finding: the draft left the mechanism open in a way that let an implementer reverse #1704 locked decision 4 without an operator decision. Disposition: recut; the decision is quoted and the directions are put to the operator. Its three sharpens-framing findings are applied: the two runs stated as equivalent, the TypeScript check's reader named, and a no-slower constraint added. Pass 2 on the recut raised no blocking finding; its sharpens-framing findings are applied: direction (c) added, and the check-name consequence of (a) stated. Retained uncertainty: whether merge-group builds always map one-to-one to PRs was not verified, so \"six times\" is an upper bound.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6454555211,
+        "origin": "deftai/directive#6586",
+        "id": "github.issue.6454555211"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "cdc18cf667875a5cfaf70d76f352f89c15da3bd65c38847d1cf5fe80a35f858b"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6586,
+        "leanCommentId": 6987991475,
+        "harvestDigest": "223a29ed4dc5c45b855fcab4ddd815b8b1c86865cb5980dc99ac0e83a7b90e33",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "Lane. In `.github/workflows/ci-lane.yml`, delete the `Test (vitest, no coverage)` step. The TypeScript lane keeps install, build, lint and the two `pull_request` relocation gates. No other job changes.",
+        "New meaning, named. On full-stack runs the suite runs once, in the merge gate. Every `merge_group` run is full-stack (`ci.yml` `changes` job, #6295), so every commit that lands on `master` has passed the suite. Pull-request and `push` runs whose diff is artifact-only (#3678 allowlist: `xbrief/completed/**`, `CHANGELOG.md`, `changelog.d/*.md`) run no vitest; a green `TypeScript (build + lint)` there proves build and lint only.",
+        "Rename. In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)`. The header comments and check-name table (lines 7-8, 62, 66) name the new check and the live required list (`TypeScript (build + lint)`, `Merge gate (task check)`).",
+        "Name matcher. In `packages/core/src/pr-merge-readiness/ci-gate.ts` `isAuthoritativeSuiteAggregator`, the exact TypeScript match is `typescript (build + lint)` and the tolerant TypeScript branch requires \"build\" and \"lint\" only, so a green renamed aggregator still clears a cancelled TypeScript primary.",
+        "Unused cite removed. In `packages/core/src/release/preflight.ts`, remove the retired tip-SHA coverage-of-record path (`isCoverageOfRecordCheckName`, `evaluateTipShaCoverageOfRecord`, `defaultResolveCoverageOfRecord`, `formatCoverageOfRecordCite` and their private helpers and types) and the `resolveCoverageOfRecord` seams in `preflight.ts` and `packages/core/src/release/types.ts`, after confirming no production reference. Host coverage in release Step 5 and the named `Merge gate (task check)` read (#6071) are unchanged.",
+        "Docs. `content/scm/github.md`, `content/docs/github-merge-queue-setup.md` and `docs/RELEASING.md` name `TypeScript (build + lint)` and the live required list.",
+        "Tests. Every test and fixture under `packages/` that cites the old name uses the new one; tests for the removed cite path are deleted with it.",
+        "Rollout order (operator, not code). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR cannot merge. Order: (a) the build PR's own CI is green and shows `TypeScript (build + lint)` and `Merge gate (task check)`; (b) the queue is empty; (c) the operator sets the required checks to `TypeScript (build + lint)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false; (d) the build PR goes through the queue and its group run shows the new name; (e) every PR opened before the merge takes a new revision that contains the changed workflow (update branch or rebase), because re-running an old revision still emits the old name. This one-time stall is a migration cost, not a steady-state slowdown.",
+        "In `.github/workflows/ci-lane.yml`, the TypeScript lane runs install, build, lint and the two `pull_request` relocation gates, and no vitest step.",
+        "In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)` and the header comments name that check and the live required list.",
+        "In `packages/core/src/pr-merge-readiness/ci-gate.ts`, `isAuthoritativeSuiteAggregator` accepts `TypeScript (build + lint)` and its tolerant TypeScript branch does not require \"test\".",
+        "In `packages/core/src/release/preflight.ts` and `packages/core/src/release/types.ts`, the unused tip-SHA coverage-of-record cite path and its `resolveCoverageOfRecord` seams are removed.",
+        "In `content/scm/github.md`, the required-check names and the merge-gate enrollment note name `TypeScript (build + lint)` and `Merge gate (task check)` as the live required checks.",
+        "In `content/docs/github-merge-queue-setup.md`, the protection example and the reference setup name `TypeScript (build + lint)`.",
+        "In `docs/RELEASING.md`, the merge-queue required checks name `TypeScript (build + lint)`.",
+        "In every test and fixture under `packages/` (including `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`), the old check name is replaced by `TypeScript (build + lint)` and tests of the removed cite path are deleted."
+      ],
+      "admitted_source_sentences": [
+        "Lane. In `.github/workflows/ci-lane.yml`, delete the `Test (vitest, no coverage)` step. The TypeScript lane keeps install, build, lint and the two `pull_request` relocation gates. No other job changes.",
+        "New meaning, named. On full-stack runs the suite runs once, in the merge gate. Every `merge_group` run is full-stack (`ci.yml` `changes` job, #6295), so every commit that lands on `master` has passed the suite. Pull-request and `push` runs whose diff is artifact-only (#3678 allowlist: `xbrief/completed/**`, `CHANGELOG.md`, `changelog.d/*.md`) run no vitest; a green `TypeScript (build + lint)` there proves build and lint only.",
+        "Rename. In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)`. The header comments and check-name table (lines 7-8, 62, 66) name the new check and the live required list (`TypeScript (build + lint)`, `Merge gate (task check)`).",
+        "Name matcher. In `packages/core/src/pr-merge-readiness/ci-gate.ts` `isAuthoritativeSuiteAggregator`, the exact TypeScript match is `typescript (build + lint)` and the tolerant TypeScript branch requires \"build\" and \"lint\" only, so a green renamed aggregator still clears a cancelled TypeScript primary.",
+        "Unused cite removed. In `packages/core/src/release/preflight.ts`, remove the retired tip-SHA coverage-of-record path (`isCoverageOfRecordCheckName`, `evaluateTipShaCoverageOfRecord`, `defaultResolveCoverageOfRecord`, `formatCoverageOfRecordCite` and their private helpers and types) and the `resolveCoverageOfRecord` seams in `preflight.ts` and `packages/core/src/release/types.ts`, after confirming no production reference. Host coverage in release Step 5 and the named `Merge gate (task check)` read (#6071) are unchanged.",
+        "Docs. `content/scm/github.md`, `content/docs/github-merge-queue-setup.md` and `docs/RELEASING.md` name `TypeScript (build + lint)` and the live required list.",
+        "Tests. Every test and fixture under `packages/` that cites the old name uses the new one; tests for the removed cite path are deleted with it.",
+        "Rollout order (operator, not code). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR cannot merge. Order: (a) the build PR's own CI is green and shows `TypeScript (build + lint)` and `Merge gate (task check)`; (b) the queue is empty; (c) the operator sets the required checks to `TypeScript (build + lint)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false; (d) the build PR goes through the queue and its group run shows the new name; (e) every PR opened before the merge takes a new revision that contains the changed workflow (update branch or rebase), because re-running an old revision still emits the old name. This one-time stall is a migration cost, not a steady-state slowdown.",
+        "In `.github/workflows/ci-lane.yml`, the TypeScript lane runs install, build, lint and the two `pull_request` relocation gates, and no vitest step.",
+        "In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)` and the header comments name that check and the live required list.",
+        "In `packages/core/src/pr-merge-readiness/ci-gate.ts`, `isAuthoritativeSuiteAggregator` accepts `TypeScript (build + lint)` and its tolerant TypeScript branch does not require \"test\".",
+        "In `packages/core/src/release/preflight.ts` and `packages/core/src/release/types.ts`, the unused tip-SHA coverage-of-record cite path and its `resolveCoverageOfRecord` seams are removed.",
+        "In `content/scm/github.md`, the required-check names and the merge-gate enrollment note name `TypeScript (build + lint)` and `Merge gate (task check)` as the live required checks.",
+        "In `content/docs/github-merge-queue-setup.md`, the protection example and the reference setup name `TypeScript (build + lint)`.",
+        "In `docs/RELEASING.md`, the merge-queue required checks name `TypeScript (build + lint)`.",
+        "In every test and fixture under `packages/` (including `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`), the old check name is replaced by `TypeScript (build + lint)` and tests of the removed cite path are deleted."
+      ],
+      "admitted_source_digest": "9e16f53ca0ac060057c39c53092fdc766e3c5ec5f88d48a7a6fe1cf06319516d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Lane. In `.github/workflows/ci-lane.yml`, delete the `Test (vitest, no coverage)` step. The TypeScript lane keeps install, build, lint and the two `pull_request` relocation gates. No other job changes.",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "New meaning, named. On full-stack runs the suite runs once, in the merge gate. Every `merge_group` run is full-stack (`ci.yml` `changes` job, #6295), so every commit that lands on `master` has passed the suite. Pull-request and `push` runs whose diff is artifact-only (#3678 allowlist: `xbrief/completed/**`, `CHANGELOG.md`, `changelog.d/*.md`) run no vitest; a green `TypeScript (build + lint)` there proves build and lint only.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Rename. In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)`. The header comments and check-name table (lines 7-8, 62, 66) name the new check and the live required list (`TypeScript (build + lint)`, `Merge gate (task check)`).",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Name matcher. In `packages/core/src/pr-merge-readiness/ci-gate.ts` `isAuthoritativeSuiteAggregator`, the exact TypeScript match is `typescript (build + lint)` and the tolerant TypeScript branch requires \"build\" and \"lint\" only, so a green renamed aggregator still clears a cancelled TypeScript primary.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Unused cite removed. In `packages/core/src/release/preflight.ts`, remove the retired tip-SHA coverage-of-record path (`isCoverageOfRecordCheckName`, `evaluateTipShaCoverageOfRecord`, `defaultResolveCoverageOfRecord`, `formatCoverageOfRecordCite` and their private helpers and types) and the `resolveCoverageOfRecord` seams in `preflight.ts` and `packages/core/src/release/types.ts`, after confirming no production reference. Host coverage in release Step 5 and the named `Merge gate (task check)` read (#6071) are unchanged.",
+          "artifact_path": "packages/core/src/release/preflight.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Docs. `content/scm/github.md`, `content/docs/github-merge-queue-setup.md` and `docs/RELEASING.md` name `TypeScript (build + lint)` and the live required list.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests. Every test and fixture under `packages/` that cites the old name uses the new one; tests for the removed cite path are deleted with it.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Rollout order (operator, not code). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR cannot merge. Order: (a) the build PR's own CI is green and shows `TypeScript (build + lint)` and `Merge gate (task check)`; (b) the queue is empty; (c) the operator sets the required checks to `TypeScript (build + lint)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false; (d) the build PR goes through the queue and its group run shows the new name; (e) every PR opened before the merge takes a new revision that contains the changed workflow (update branch or rebase), because re-running an old revision still emits the old name. This one-time stall is a migration cost, not a steady-state slowdown.",
+          "artifact_path": "content/docs/github-merge-queue-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "In `.github/workflows/ci-lane.yml`, the TypeScript lane runs install, build, lint and the two `pull_request` relocation gates, and no vitest step.",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)` and the header comments name that check and the live required list.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "In `packages/core/src/pr-merge-readiness/ci-gate.ts`, `isAuthoritativeSuiteAggregator` accepts `TypeScript (build + lint)` and its tolerant TypeScript branch does not require \"test\".",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "In `packages/core/src/release/preflight.ts` and `packages/core/src/release/types.ts`, the unused tip-SHA coverage-of-record cite path and its `resolveCoverageOfRecord` seams are removed.",
+          "artifact_path": "packages/core/src/release/preflight.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "In `content/scm/github.md`, the required-check names and the merge-gate enrollment note name `TypeScript (build + lint)` and `Merge gate (task check)` as the live required checks.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "In `content/docs/github-merge-queue-setup.md`, the protection example and the reference setup name `TypeScript (build + lint)`.",
+          "artifact_path": "content/docs/github-merge-queue-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "In `docs/RELEASING.md`, the merge-queue required checks name `TypeScript (build + lint)`.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "In every test and fixture under `packages/` (including `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`), the old check name is replaced by `TypeScript (build + lint)` and tests of the removed cite path are deleted.",
+          "artifact_path": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6454555211",
+    "updated": "2026-11-18T18:57:49Z"
+  }
+}
