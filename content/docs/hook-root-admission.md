@@ -261,9 +261,10 @@ cannot know which index the commit will use.
 
 **Commit signals (#6362).** These are refused the same way, for the whole call, whatever visible
 commit comes before or after them: a commit after `cd <path> &` (a lone `&` ends the command, so
-the `cd` is not joined by `&&`); a commit inside a `( … )` subshell, also when the group spans several commands (a group
-that closes first does not move a later commit, so `(cd /r/wt) && git commit` is still judged at
-the hook root); a `git commit` in a literal `sh -c` / `bash -c` string or in `eval`; a commit
+the `cd` is not joined by `&&`); a commit inside a `( … )` subshell, also when the group spans
+several commands (a group that closes first does not move a later commit, so
+`(cd /r/wt) && git commit` is still judged at the hook root); a `git commit` in a literal
+`sh -c` / `bash -c` string or in `eval`; a commit
 behind a wrapper (`env`, `command`, `exec`, `nohup`, `time`, `timeout`, `xargs`, `nice`, `sudo`,
 `doas`, `stdbuf`, `ionice`); a command word or git subcommand that holds a variable
 (`$GIT commit`, `git $SUB`); and a `-c` or `eval` string that holds a variable or substitution.
