@@ -4193,6 +4193,24 @@ describe("ingested briefs are launch-ready (#6333)", () => {
         const record = readSpecPathSourceRecord(readPlan(path));
         expect(record?.leanCommentId).toBe(LEAN);
         expect(record?.kind).toBeUndefined();
+        // The live read uses the same arc reader: the record comment is not a
+        // lean, so the unchanged lean brief still verifies.
+        const verdict = verify(root, readPlan(path), thread, "Body prose.");
+        expect(verdict.cause).toBeUndefined();
+        expect(verdict.ok).toBe(true);
+      });
+    });
+
+    it("a criteria-only record added after ingest does not break a lean brief's live read", () => {
+      withRoot((root, xbriefDir) => {
+        const lean = leanBody();
+        const thread = arc(lean);
+        const [result, path] = ingest(root, xbriefDir, issue(6425, "Body prose.", thread));
+        expect(result).toBe("created");
+        const later = [...thread, { id: 8100000009, body: recordBody("Body prose.") }];
+        const verdict = verify(root, readPlan(path), later, "Body prose.");
+        expect(verdict.cause).toBeUndefined();
+        expect(verdict.ok).toBe(true);
       });
     });
   });

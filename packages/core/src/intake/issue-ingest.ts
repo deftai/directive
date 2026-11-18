@@ -71,7 +71,7 @@ import {
 } from "../xbrief-migrate/constants.js";
 import {
   type CriteriaOnlyCandidate,
-  hasCriteriaOnlyRecordShape,
+  commentsForArcRead,
   selectAdmittedSourceUnits,
   selectCriteriaOnlyRecord,
 } from "./admitted-source-units.js";
@@ -2738,7 +2738,7 @@ export function ingestOne(
     // the arc reader would take for a successor lean and block ingest as an
     // arc "in flight". It is not a lean, so the arc is read without it; the
     // posture below still sees it (not-warranted, `skipped-recorded`).
-    const comments = threadComments.filter((comment) => !hasCriteriaOnlyRecordShape(comment.body));
+    const comments = commentsForArcRead(threadComments);
     const labels = issueLabelNames(enriched);
     const issueBody = typeof enriched.body === "string" ? enriched.body : "";
     // #6333 item 8: a slice line selects the slice route before any arc on

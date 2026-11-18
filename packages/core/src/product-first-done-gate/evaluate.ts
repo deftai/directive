@@ -2306,19 +2306,6 @@ export function evaluateAdmittedSourceAtActivation(
     readonly fetchSpecPathLiveIdentities?: EvaluateVerifyAcOptions["fetchSpecPathLiveIdentities"];
   },
 ): AdmittedSourceActivationResult {
-  // Only a brief that carries a stored sentence list or an admitted-source pin
-  // (an ingested brief) is checked. A hand-authored brief has neither; its
-  // sentence list is derived from narratives at completion, as before.
-  const stored = asPlanRecord(plan.acceptance);
-  if (
-    stored === null ||
-    (readAdmittedSourceSentences(stored) === null &&
-      readAdmittedSourceDigest(stored) === null &&
-      !Array.isArray(stored.sentences) &&
-      !planHasSpecPathRefusedBody(plan))
-  ) {
-    return { ok: true, message: "" };
-  }
   const projectRoot = resolve(options.projectRoot);
   const base: EvaluateVerifyAcOptions = {
     projectRoot,
@@ -2332,6 +2319,22 @@ export function evaluateAdmittedSourceAtActivation(
       : {}),
   };
   const pin = resolveAdmittedSourceGitPin(plan, base, projectRoot);
+  // Only an ingested brief is checked: one that carries a stored sentence list
+  // or an admitted-source pin, or whose pin was saved in git (a deleted working
+  // block must not skip the check, so the git pin is looked up first). A
+  // hand-authored brief has none; its sentence list is derived from narratives
+  // at completion, as before.
+  const stored = asPlanRecord(plan.acceptance);
+  const carriesAdmittedSource =
+    (stored !== null &&
+      (readAdmittedSourceSentences(stored) !== null ||
+        readAdmittedSourceDigest(stored) !== null ||
+        Array.isArray(stored.sentences))) ||
+    planHasSpecPathRefusedBody(plan) ||
+    (pin !== undefined && pin !== null && pin.sentences.length > 0);
+  if (!carriesAdmittedSource) {
+    return { ok: true, message: "" };
+  }
   const briefOnMergeBase =
     options.briefOnMergeBase ?? resolveBriefOnMergeBase(plan, base, projectRoot, pin ?? null);
   // Arm the live fetch when a pin or digest exists or the brief is Spec-path,
@@ -2339,7 +2342,8 @@ export function evaluateAdmittedSourceAtActivation(
   const armed =
     readAdmittedSourceSentences(plan.acceptance) !== null ||
     readAdmittedSourceDigest(plan.acceptance) !== null ||
-    planHasSpecPathRefusedBody(plan);
+    planHasSpecPathRefusedBody(plan) ||
+    (pin !== undefined && pin !== null && pin.sentences.length > 0);
   const fetchText =
     options.fetchAdmittedSourceText ??
     (armed ? () => fetchPlanAdmittedSourceText(plan) : undefined);

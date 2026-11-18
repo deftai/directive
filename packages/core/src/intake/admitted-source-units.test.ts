@@ -55,6 +55,26 @@ describe("selectAdmittedSourceUnits - list route", () => {
     expect(picked.units).toEqual(["one two", "nested", "three"]);
   });
 
+  it("keeps an unindented continuation line as part of its item (no text is dropped)", () => {
+    const body = [
+      "## Acceptance Criteria",
+      "- The first criterion starts here",
+      "and wraps with no indent.",
+      "- The second criterion is short.",
+      "",
+      "Refs #6599",
+    ].join("\n");
+    expect(admittedSourceUnitsFromBody(body)).toEqual([
+      "The first criterion starts here and wraps with no indent.",
+      "The second criterion is short.",
+    ]);
+  });
+
+  it("stops a continuation at a reference line or the generated footer", () => {
+    const body = ["## Acceptance Criteria", "- Only criterion", "Refs #1", FOOTER].join("\n");
+    expect(admittedSourceUnitsFromBody(body)).toEqual(["Only criterion"]);
+  });
+
   it("ignores a fenced example heading and uses the real list after it", () => {
     const body = [
       "Example:",

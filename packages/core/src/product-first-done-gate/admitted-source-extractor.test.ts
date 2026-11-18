@@ -185,7 +185,26 @@ describe("admitted-source check at activation (#6609 item 7)", () => {
       expect(fetched).toBe(0);
     }));
 
-  it("is a no-op for a brief with no acceptance block", () =>
+  it("fails closed when the working acceptance block was deleted but a git pin remains", () =>
+    withRoot((root) => {
+      const acceptance = acceptanceOf(freshPlan());
+      const plan = freshPlan();
+      plan.acceptance = undefined;
+      const result = evaluateAdmittedSourceAtActivation(plan, {
+        projectRoot: root,
+        fetchAdmittedSourceText: live(BODY),
+        briefOnMergeBase: true,
+        admittedSourceMergeBase: {
+          sentences: acceptance.admitted_source_sentences as string[],
+          digest: acceptance.admitted_source_digest as string,
+          source: "merge-base",
+        },
+      });
+      expect(result.ok).toBe(false);
+      expect(result.cause).toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
+    }));
+
+  it("is a no-op for a brief with no acceptance block and no saved pin", () =>
     withRoot((root) => {
       expect(evaluateAdmittedSourceAtActivation({ title: "t" }, { projectRoot: root })).toEqual({
         ok: true,

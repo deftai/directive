@@ -40,19 +40,13 @@ function collapse(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function indentOf(whitespace: string): number {
-  let width = 0;
-  for (const ch of whitespace) {
-    width += ch === "\t" ? 4 : 1;
-  }
-  return width;
-}
-
 /**
  * List items of a section as units: the item line without its bullet and
- * checkbox marker, plus each following line indented under it that is not
- * itself a list item, heading or blank line, joined with single spaces.
- * Repeated units are kept once.
+ * checkbox marker, plus each following line that continues it, joined with
+ * single spaces. A continuation line is any directly following line that is not
+ * a list item, heading, blank line, reference line or the generated footer; it
+ * need not be indented (a CommonMark lazy continuation), so wrapped text is
+ * never dropped. Repeated units are kept once.
  */
 function listUnits(sectionText: string): {
   units: string[];
@@ -70,7 +64,6 @@ function listUnits(sectionText: string): {
     if (item === null) {
       continue;
     }
-    const baseIndent = indentOf(item[1] ?? "");
     let first = (item[2] ?? "").trim();
     let status: "proposed" | "completed" = "proposed";
     const checkbox = CHECKBOX_RE.exec(first);
@@ -81,11 +74,13 @@ function listUnits(sectionText: string): {
     const parts: string[] = [first];
     while (index < lines.length) {
       const next = lines[index] ?? "";
-      if (next.trim().length === 0 || LIST_ITEM_RE.test(next) || HEADING_RE.test(next)) {
-        break;
-      }
-      const lead = /^[ \t]*/.exec(next)?.[0] ?? "";
-      if (indentOf(lead) <= baseIndent) {
+      if (
+        next.trim().length === 0 ||
+        LIST_ITEM_RE.test(next) ||
+        HEADING_RE.test(next) ||
+        REF_LINE_RE.test(next) ||
+        FOOTER_LINE_RE.test(next)
+      ) {
         break;
       }
       parts.push(next.trim());
@@ -195,6 +190,19 @@ export function hasCriteriaOnlyRecordShape(commentBody: string): boolean {
     hasOperativeTargetDigestLine(commentBody) &&
     criteriaListUnits(commentBody).length > 0
   );
+}
+
+/**
+ * The comments the completed-arc reader sees. A criteria-only record carries a
+ * Target-digest line, which the arc reader would take for a successor lean (an
+ * arc "in flight"), so it is left out. Ingest and the live read of a recorded
+ * brief both use this one reader, so an unchanged brief resolves the same way
+ * at ingest, at activation and in `verify:ac`.
+ */
+export function commentsForArcRead<T extends { readonly body: string }>(
+  comments: readonly T[],
+): T[] {
+  return comments.filter((comment) => !hasCriteriaOnlyRecordShape(comment.body));
 }
 
 export interface CriteriaOnlyCandidate {

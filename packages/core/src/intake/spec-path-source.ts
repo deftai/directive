@@ -16,7 +16,11 @@ import {
 } from "../design-critique/completed-arc-record.js";
 import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { type CompletedProcess, call } from "../scm/call.js";
-import { criteriaListUnits, mayWriteCriteriaOnlyRecord } from "./admitted-source-units.js";
+import {
+  commentsForArcRead,
+  criteriaListUnits,
+  mayWriteCriteriaOnlyRecord,
+} from "./admitted-source-units.js";
 import {
   type CheckboxItem,
   extractBoundRemedyHarvest,
@@ -261,8 +265,10 @@ export function resolveSpecPathLiveIdentities(input: {
   readonly record: SpecPathSourceRecord;
 }): SpecPathLiveIdentities {
   const { record } = input;
+  // The same arc reader as ingest (#6609): a later criteria-only record comment
+  // is not a successor lean, so it must not break an unchanged brief.
   const verdict = evaluateCompletedArcRecord({
-    comments: input.comments,
+    comments: commentsForArcRead(input.comments),
     issueNumber: record.issue,
   });
   if (verdict.status !== "complete") {
