@@ -127,6 +127,15 @@ export type StoryWriteFenceView = {
   /** Typed deliveryBranch when that candidate was the selected base (#6011). */
   readonly typedDeliveryBranch?: string;
   /**
+   * Resolved merge-base commit the fence was read at (#6221). Set only on
+   * loads from the merge base; the shared extra-path admission needs it.
+   */
+  readonly mergeBaseSha?: string;
+  /** plan.id of the merge-base brief, for the merge-base mint lookup (#6221). */
+  readonly planId?: string;
+  /** Repo-relative brief path, for the basename-keyed mint of a brief with no plan.id (#6221). */
+  readonly briefRel?: string;
+  /**
    * One-PR mint result (#6361). Set only when the brief is absent from the
    * merge base and the merge-base `onePrScopeProof` level is not off.
    * `admitted: true` means `fileScope` is the working-tree brief's scope,
@@ -756,12 +765,16 @@ export function loadStoryWriteFenceFromMergeBase(
   const loadKey = `${root}\0${resolved.baseRef}\0${resolved.sha}\0${rel}\0${resolved.typedDeliveryBranch ?? ""}`;
   const withBase = (fence: StoryWriteFenceView): StoryWriteFenceView =>
     attachFenceBase(fence, resolved.baseRef, resolved.typedDeliveryBranch);
+  // #6221: the shared extra-path admission reads the merge-base mint and
+  // inventory at this commit; only admitted fences carry it.
+  const withSha = (fence: StoryWriteFenceView): StoryWriteFenceView =>
+    fence.fileScope.length > 0 ? { ...fence, mergeBaseSha: resolved.sha } : fence;
 
   const cached = memoGet(fenceLoadMemo, loadKey);
   if (cached !== undefined) {
     return cached.kind === "fence"
       ? cached.fence
-      : withBase(loadOnePrMintFence(root, rel, resolved.sha, cached.basePolicy));
+      : withSha(withBase(loadOnePrMintFence(root, rel, resolved.sha, cached.basePolicy)));
   }
 
   const raw = readMergeBaseBriefRaw(root, resolved.sha, rel);
@@ -772,14 +785,23 @@ export function loadStoryWriteFenceFromMergeBase(
     if (basePolicy.kind !== "error") {
       memoSet(fenceLoadMemo, loadKey, { kind: "absent", basePolicy });
     }
-    return withBase(loadOnePrMintFence(root, rel, resolved.sha, basePolicy));
+    return withSha(withBase(loadOnePrMintFence(root, rel, resolved.sha, basePolicy)));
   }
   const loaded = loadStoryWriteFenceFromBaseRaw(raw.text, `merge-base:${rel}`);
   if (isStoryWriteFenceUnreadable(loaded)) return withBase(loaded);
-  const fence = withBase({
-    fileScope: [...loaded.fileScope],
-    denyPaths: [...loaded.denyPaths],
-  });
+  let basePlanId: string | null = null;
+  try {
+    basePlanId = extractPlanId(JSON.parse(raw.text) as unknown);
+  } catch {
+    basePlanId = null;
+  }
+  const fence = withSha(
+    withBase({
+      fileScope: [...loaded.fileScope],
+      denyPaths: [...loaded.denyPaths],
+      ...(basePlanId !== null ? { planId: basePlanId } : { briefRel: rel }),
+    }),
+  );
   memoSet(fenceLoadMemo, loadKey, { kind: "fence", fence });
   return fence;
 }

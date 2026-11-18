@@ -96,7 +96,8 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
   it("passes when changed production files stay inside the base brief fence", () => {
     root = initRepo();
     const planId = "story-1";
-    const scope = ["packages/core/src/foo.ts"];
+    // A new test is declared: an undeclared test add is refused (#6221).
+    const scope = ["packages/core/src/foo.ts", "packages/core/src/foo.test.ts"];
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
@@ -440,12 +441,20 @@ describe("evaluateScopeProvenance one-PR mint level (#6273)", () => {
     expect(result.message).toMatch(/edits onePrScopeProof or requireHumanMerge/);
   });
 
-  it("admits a brief widened past its merge-base mint", () => {
+  it("admits a brief widened past its merge-base mint for membership", () => {
     root = mintRepo({ basePolicy: MINT_ON, baseScope: ["packages/core/src/feature.ts"] });
     landOnePr(root);
     const result = evaluateScopeProvenance(root, { baseRef: "base" });
-    expect(result.exitCode, result.message).toBe(0);
     expect(result.mintLevelAdmits?.[0]?.fileScope).toContain("packages/core/src/feature.test.ts");
+    // Membership admits the widened brief, but the Path-independent check stays
+    // on the merge-base brief (#4956): a new test it does not name is an add
+    // the extra-path rule does not admit (#6221). That refusal is new, so it
+    // warns for one release (#6281) and lists the declared line.
+    expect(result.exitCode).toBe(0);
+    expect(result.findings).toEqual([]);
+    const report = (result.extraPathReport ?? []).join("\n");
+    expect(report).toContain("deft gate extra-path-not-admitted");
+    expect(report).toContain("packages/core/src/feature.test.ts");
   });
 
   it("reads the level at the merge base, not the base branch tip", () => {
