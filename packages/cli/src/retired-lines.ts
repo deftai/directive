@@ -9,9 +9,9 @@
  * byte-identical and the files are never deleted.
  *
  * Node builtins only: the launcher cannot import core (AC3.1). The tables
- * mirror core `init-deposit/scaffold.ts` and `init-deposit/prettierignore.ts`;
- * `retired-lines.test.ts` fails when core writes a line this
- * table does not know.
+ * mirror core `init-deposit/scaffold.ts` (managed block) and
+ * `init-deposit/retired-copy-model-lines.ts` (retired lines and the AC13.3
+ * `.prettierignore` line); `retired-lines.test.ts` fails when the copies drift.
  */
 
 import { readFileSync } from "node:fs";
@@ -23,7 +23,7 @@ const CORE_GLOB = ".deft/core/**";
 /** Header of the block setup writes today (AC11.10: reuse the existing marker). */
 export const MANAGED_WIRING_MARKER = "# Deft managed wiring:";
 
-/** Retired copied-content attribute lines (core `CORE_GITATTRIBUTES_LINES` + legacy). */
+/** Core `RETIRED_COPY_MODEL_GITATTRIBUTES_LINES`. */
 const RETIRED_GITATTRIBUTES_LINES = [
   `${CORE_GLOB} text=auto eol=lf`,
   `${CORE_GLOB} linguist-generated=true`,
@@ -45,9 +45,12 @@ const MANAGED_WIRING_GITATTRIBUTES_LINES = [
   ".githooks/** text=auto eol=lf",
   ".grok/hooks/** text=auto eol=lf",
   "AGENTS.md text=auto eol=lf",
+  ".claude/deft-hook-*.mjs text=auto eol=lf",
+  ".codex/deft-hook-*.mjs text=auto eol=lf",
+  ".cursor/hooks/deft-hook-*.mjs text=auto eol=lf",
 ] as const;
 
-/** Every comment line core `gitattributesDepositComment` can write. */
+/** Every comment line core `gitattributesDepositComment` writes or wrote. */
 const GITATTRIBUTES_COMMENT_LINES = [
   "# Deft framework: the vendored payload is packaged framework code, not",
   "# consumer source. text=auto + eol=lf normalizes text only; binaries keep",
@@ -57,11 +60,17 @@ const GITATTRIBUTES_COMMENT_LINES = [
   "# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).",
 ] as const;
 
-/** `.prettierignore` lines: the retired `.deft/core/` entry and the AC13.3 hook-file line. */
+/**
+ * `.prettierignore` lines: core `RETIRED_PRETTIERIGNORE_LINES` and header,
+ * and the AC13.3 hook-file line with its header.
+ */
 const PRETTIERIGNORE_LINES = [
   ".deft/core/",
+  ".deft/core",
+  ".deft/core/**",
   "# Deft framework: the vendored payload is outside the consumer Prettier gate (#2534).",
   "**/deft-hook-*.mjs",
+  "# Deft managed wiring: Directive's committed hook files are not formatted (AC13.3).",
 ] as const;
 
 export type DirectiveLineFile = ".gitattributes" | ".prettierignore";

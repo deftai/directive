@@ -11,6 +11,15 @@ import {
   PRETTIERIGNORE_DEFT_CORE_LINE,
 } from "@deftai/directive-core/dist/init-deposit/prettierignore.js";
 import {
+  addPrettierIgnoreHookLine,
+  isRetiredGitattributesCommentLine,
+  PRETTIERIGNORE_HOOK_FILES_LINE,
+  PRETTIERIGNORE_MANAGED_HEADER,
+  RETIRED_COPY_MODEL_GITATTRIBUTES_LINES,
+  RETIRED_PRETTIERIGNORE_HEADER,
+  RETIRED_PRETTIERIGNORE_LINES,
+} from "@deftai/directive-core/dist/init-deposit/retired-copy-model-lines.js";
+import {
   DESIRED_GITATTRIBUTES_LINES,
   ensureCodeqlPathsIgnore,
   ensureGitattributes,
@@ -185,24 +194,41 @@ describe("Directive-written lines in shared files (#6007)", () => {
   it("knows every line core writes today (launcher copy vs core)", () => {
     const coreGitattributes = new Set<string>([
       ...DESIRED_GITATTRIBUTES_LINES,
+      ...MANAGED_WIRING_GITATTRIBUTES_LINES,
+      ...RETIRED_COPY_MODEL_GITATTRIBUTES_LINES,
       LEGACY_CORE_TEXT_EOL_LF,
     ]);
-    for (const sample of [
-      DESIRED_GITATTRIBUTES_LINES,
-      DESIRED_GITATTRIBUTES_LINES.filter((l) => l.includes("text=auto eol=lf")),
-      MANAGED_WIRING_GITATTRIBUTES_LINES,
-      [],
-    ]) {
-      for (const line of gitattributesDepositComment(sample).split("\n")) {
-        if (line.trim()) coreGitattributes.add(line.trim());
-      }
+    for (const line of gitattributesDepositComment().split("\n")) {
+      if (line.trim()) coreGitattributes.add(line.trim());
     }
     for (const line of coreGitattributes) {
       expect(DIRECTIVE_WRITTEN_LINES[".gitattributes"].has(line), line).toBe(true);
     }
-    expect(DIRECTIVE_WRITTEN_LINES[".prettierignore"].has(PRETTIERIGNORE_DEFT_CORE_LINE)).toBe(
-      true,
-    );
+    // Retired comment lines core recognises by prefix: every launcher comment is one of them or the managed header.
+    for (const line of DIRECTIVE_WRITTEN_LINES[".gitattributes"]) {
+      if (!line.startsWith("#")) continue;
+      expect(isRetiredGitattributesCommentLine(line) || coreGitattributes.has(line), line).toBe(
+        true,
+      );
+    }
+    for (const line of [
+      PRETTIERIGNORE_DEFT_CORE_LINE,
+      ...RETIRED_PRETTIERIGNORE_LINES,
+      RETIRED_PRETTIERIGNORE_HEADER,
+      PRETTIERIGNORE_HOOK_FILES_LINE,
+      PRETTIERIGNORE_MANAGED_HEADER,
+    ]) {
+      expect(DIRECTIVE_WRITTEN_LINES[".prettierignore"].has(line), line).toBe(true);
+    }
+  });
+
+  it("setup's AC13.3 .prettierignore line comes back out byte-identical", () => {
+    const user = "dist/\n# keep\ncoverage/\n";
+    const withHook = addPrettierIgnoreHookLine(user);
+    expect(withHook).not.toBeNull();
+    expect(
+      stripDirectiveLines(withHook as string, DIRECTIVE_WRITTEN_LINES[".prettierignore"]).next,
+    ).toBe(user);
   });
 
   it("each strip is a Directive-only change by the core ownership API", () => {
