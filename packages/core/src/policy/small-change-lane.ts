@@ -15,8 +15,10 @@
  * The measurement is git, never the provisional dial estimators
  * (`estimateProvisionalCeremonyInputs`, task-size hints). Those are not proof.
  *
- * The gates that can refuse (xbrief:preflight, verify:ac, scope:complete) call
- * `evaluateSmallChangeLaneGate`, so the bound is rechecked at each one.
+ * The gates that can refuse (scope:promote, scope:activate, xbrief:activate,
+ * xbrief:preflight, verify:ac, scope:complete) call `evaluateSmallChangeLaneGate`,
+ * so the bound is rechecked at each one. The two activation writers reach it
+ * through `scope/lane-ingress-gate.ts` (#6264).
  *
  * Lane exit: once the bound is crossed, every retry on that scope refuses until
  * the brief is converted to the full shape (`escalateThinBriefToFullShape`).
@@ -801,6 +803,7 @@ export function isFullBriefShape(plan: unknown): boolean {
 export type SmallChangeLaneGateName =
   | "scope:promote"
   | "scope:activate"
+  | "xbrief:activate"
   | "xbrief:preflight"
   | "verify:ac"
   | "scope:complete";

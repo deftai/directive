@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6264",
-    "updated": "2026-11-18T00:30:08Z"
+    "updated": "2026-11-18T01:41:04Z"
   },
   "plan": {
     "title": "bug(xbrief): xbrief:activate refuses a small-change lane brief that scope:activate admits",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "scope:activate and xbrief:activate both move a brief into active/, but only scope:activate runs the #6204 small-change lane gate. xbrief:activate refuses a thin lane brief that scope:activate admits (the #4768 ingress refusal has no lane waiver there), and it admits crossed or incompletely escalated lane briefs that scope:activate refuses. This story puts the lane verdict and the ingress verdict behind one shared helper that both verbs call, so the same brief gets the same exit code and the same lane-state write from either verb, from pending/ and from active/. Other differences between the two writers (D7 filename, zero-clause derivation, clause file_scope bind, #3334 acceptance-activate gate) stay out of scope.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6264",
@@ -20,34 +20,58 @@
     "items": [
       {
         "title": "Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given the new shared lane-ingress helper, when xbrief:activate or scope:activate evaluates a brief, then both verbs call that one helper, and it returns the lane verdict and the ingress verdict together."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/activate-lane-parity.test.ts",
+          "recorded_at": "2026-11-18T01:37:44Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a brief whose lane gate applies and refuses, when xbrief:activate runs from pending/ or from active/, then it refuses with the lane message before any activation move or ingress restamp, and the lane gate's crossing record is kept."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/activate-lane-parity.test.ts",
+          "recorded_at": "2026-11-18T01:37:44Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "When laneAdmitsThin holds, waive the #4768 ingress refusal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a brief for which laneAdmitsThin holds, when xbrief:activate or scope:activate runs, then the #4768 ingress refusal is waived."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/lane-ingress-gate.test.ts",
+          "recorded_at": "2026-11-18T01:37:44Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given the parity matrix rows admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief, when each row runs from pending/ and from active/ through xbrief:activate and through scope:activate, then both verbs give the same exit code and the same lane-state write."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/activate-lane-parity.test.ts",
+          "recorded_at": "2026-11-18T01:37:44Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       }
     ],
@@ -99,28 +123,28 @@
         {
           "id": 1,
           "text": "Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/activate-lane-parity.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/activate-lane-parity.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "When laneAdmitsThin holds, waive the #4768 ingress refusal.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/lane-ingress-gate.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/activate-lane-parity.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
@@ -376,9 +400,17 @@
           "#6264"
         ],
         "acceptance_criteria_justification": "Four clauses: the four Bound remedy items of the accepted lean (comment 6958923894, synthesis 6959061785), one same-text clause each as the harvest admitted them. 'Before any write' in clause 2 is read per pain-audit 6959029054: before an activation move or ingress restamp, keeping the lane gate's crossing record. parallel_safe is true: no running brief declares these files. The lean's Leftover-pain (D7 filename, zero-clause derivation, clause file_scope bind, #3334 acceptance-activate gate) stays outside this story; the swarm-parent false-cross belongs on #6204."
+      },
+      "completedAt": "2026-11-18T01:41:04Z",
+      "completedSessionId": "host:claude:v1:MzA3N2VmMWUtZGFkMC00ZDEyLWI5YTQtNWE4NjY1MTJiNjQ3",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T01:41:04Z",
+        "completionDisposition": "lands-with-product"
       }
     },
     "id": "github.issue.6365937289",
-    "updated": "2026-11-18T00:30:08Z"
+    "updated": "2026-11-18T01:41:04Z"
   }
 }

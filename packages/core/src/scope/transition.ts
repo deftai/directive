@@ -25,7 +25,6 @@ import {
   maybeEmitAcceptanceStampFromChange,
 } from "../intake/clause-derivation.js";
 import { evaluateIssuePlanIdAdmission, planIdIdentityLockPath } from "../intake/issue-ingest.js";
-import { checkCommandBackedAcceptance } from "../intake/thin-brief.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
@@ -54,7 +53,6 @@ import { recordDeliveryIdentityAttestUse } from "../policy/delivery-identity-att
 import {
   evaluateSmallChangeLaneGate,
   type SmallChangeLaneGateOverrides,
-  type SmallChangeLaneGateResult,
 } from "../policy/small-change-lane.js";
 import { resolveSpecGuard } from "../policy/spec-guard.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
@@ -72,10 +70,7 @@ import {
   snapshotSpecDriftLedger,
   spentGrantIdsSinceSnapshot,
 } from "../verify-source/spec-drift.js";
-import {
-  evaluateAcceptanceActivateGate,
-  prepareActiveIngressAcceptance,
-} from "./acceptance-activate-gate.js";
+import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
   evaluateAcceptanceEvidenceGate,
@@ -134,6 +129,7 @@ import {
   listBranchChangedPaths,
   resolveBranchMergeBase,
 } from "./lands-with-product.js";
+import { evaluateLaneIngressGate, type LaneIngressGateResult } from "./lane-ingress-gate.js";
 import { LANDS_WITH_PRODUCT, stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
@@ -642,28 +638,26 @@ export function runTransition(
     });
   }
 
-  // #6204: recheck a small-change lane brief before every promote / activate
-  // path (clauses or not, already-active included), so a crossed or oversized
-  // scope cannot go active without the lane exit. No lane marker → no-op.
-  let laneTransition: SmallChangeLaneGateResult | null = null;
+  // #6204 / #6264: recheck a small-change lane brief before every promote /
+  // activate path (clauses or not, already-active included), so a crossed or
+  // oversized scope cannot go active without the lane exit. No lane marker →
+  // no-op. The lane and #4768 ingress verdicts come from the helper that
+  // xbrief:activate also calls; ingress runs only where the brief stays put.
+  let laneIngress: LaneIngressGateResult | null = null;
   if (act === "activate" || act === "promote") {
-    laneTransition = evaluateSmallChangeLaneGate(planObj, {
-      ...options.smallChangeLane,
+    laneIngress = evaluateLaneIngressGate(planObj, {
       projectRoot,
       gate: act === "promote" ? "scope:promote" : "scope:activate",
       briefPath: resolvedPath,
+      ingress: activateAlreadyActive
+        ? currentStatus === targetStatus
+        : targetFolder !== null && targetFolder === currentFolder,
+      smallChangeLane: options.smallChangeLane,
     });
-    if (laneTransition.applies && !laneTransition.ok) {
-      return { ok: false, message: laneTransition.message };
+    if (laneIngress.refusedBy === "lane") {
+      return { ok: false, message: laneIngress.message };
     }
   }
-  // A lane brief carries stated commands and no clauses by design: while the
-  // lane admits it, the clause refusals (#4768) do not apply to it.
-  const laneAdmitsThin = (): boolean =>
-    laneTransition?.applies === true &&
-    laneTransition.ok &&
-    laneTransition.verdict?.kind === "admitted" &&
-    checkCommandBackedAcceptance(planObj.acceptance).ok;
 
   if (activateAlreadyActive) {
     if (currentStatus !== targetStatus) {
@@ -675,30 +669,29 @@ export function runTransition(
           "`task scope:unblock`) instead of `task scope:activate`.",
       };
     }
-    const ingress = prepareActiveIngressAcceptance(planObj, { projectRoot });
-    if (!ingress.ok && !laneAdmitsThin()) {
-      return { ok: false, message: ingress.message };
+    if (laneIngress !== null && !laneIngress.ok) {
+      return { ok: false, message: laneIngress.message };
     }
-    if (ingress.applied) {
+    if (laneIngress?.applied === true) {
       const written = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
       if (!written.ok) {
         return { ok: false, message: written.message };
       }
     }
+    const ingressNotice = laneIngress?.message ?? "";
     const notice =
-      ingress.message.length > 0
-        ? `No-op: ${basename} is already in active/ (status: ${currentStatus}). ${ingress.message}`
+      ingressNotice.length > 0
+        ? `No-op: ${basename} is already in active/ (status: ${currentStatus}). ${ingressNotice}`
         : `No-op: ${basename} is already in active/ (status: ${currentStatus})`;
     return { ok: true, message: notice };
   }
 
   if (targetFolder !== null && targetFolder === currentFolder) {
-    if (act === "activate" || act === "promote") {
-      const ingress = prepareActiveIngressAcceptance(planObj, { projectRoot });
-      if (!ingress.ok && !laneAdmitsThin()) {
-        return { ok: false, message: ingress.message };
+    if (laneIngress !== null) {
+      if (!laneIngress.ok) {
+        return { ok: false, message: laneIngress.message };
       }
-      if (ingress.applied) {
+      if (laneIngress.applied) {
         const written = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
         if (!written.ok) {
           return { ok: false, message: written.message };
@@ -742,7 +735,7 @@ export function runTransition(
     // clause count covers a quality-strip that returns clauses but restores
     // a clauseless acceptance.
     const zeroClauseRefusal = zeroClauseDerivationRefusal(derivation, planObj.acceptance);
-    if (zeroClauseRefusal !== null && !laneAdmitsThin()) {
+    if (zeroClauseRefusal !== null && laneIngress?.laneAdmitsThin !== true) {
       return { ok: false, message: zeroClauseRefusal };
     }
     if (derivation.notice.length > 0) {
