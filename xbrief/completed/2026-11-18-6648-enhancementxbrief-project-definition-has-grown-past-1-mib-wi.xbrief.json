@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6648",
-    "updated": "2026-11-18T17:55:59Z"
+    "updated": "2026-11-18T21:30:08Z"
   },
   "plan": {
     "title": "enhancement(xbrief): PROJECT-DEFINITION has grown past 1 MiB with no bound or pruning path",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "xbrief/PROJECT-DEFINITION.xbrief.json is about 1.09 MB because plan.items holds one row for every scope, and most rows are finished scopes that already have their own brief files. This story keeps plan.items to open scopes only (proposed, pending, active), keeps the row set current on lifecycle moves, bounds the narrative staleness flags to one line per narrative, and re-renders the file once so it drops under 1 MiB.",
       "UserStory": "As a maintainer, I want the project definition to list open scopes only, so that its size stays flat as stories complete and no reader hits a buffer limit by surprise.",
@@ -20,183 +20,303 @@
     "items": [
       {
         "title": "Open-only projection. `renderProjectDefinition` builds `plan.items` from the `proposed`, `pending` and `active` folders only, named by one constant next to `PROJECT_LIFECYCLE_FOLDERS`. Completed and cancelled briefs are not copied into the file. Render still scans `completed/` to compute staleness flags (item 4); it does not store those rows.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "A render over briefs in all five lifecycle folders writes plan.items for proposed, pending and active only; completed and cancelled briefs still feed the staleness flags."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Project-definition sync on a move into `completed/` or `cancelled/` (complete, fail, cancel). The PROJECT-DEFINITION sync removes every row whose `metadata.source_path` resolves to the old or new brief path, or whose `id` equals the brief's filename stem (the row id render writes; not the dateless remainder that `scopeIdsForFilename` also returns). It never matches by title.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Completing or cancelling a scope removes only the row matched by source_path or filename stem; same-title rows and dateless-remainder ids are left alone."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Project-definition sync on a move into `proposed/`, `pending/` or `active/` (restore, promote, activate, and any other move whose target folder is open). When a row matches by the rule in item 2, it is patched as today (status, `source_path`, `lifecycle_folder`). When no row matches, one row is inserted, built by the same row builder that render uses. It matches as in item 2 and never by title.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "A move into an open folder patches the matched row or inserts one row equal to the row render builds; no title match."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Bounded staleness flags. `flagStaleNarratives` emits at most one line per narrative: the narrative name, the count of matching unacknowledged completed scopes and the shared words. Today's summary line stays. The flag list stays an array of strings. The acknowledgement id list and `parseStalenessReview` are unchanged.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "staleness_flags holds at most one line per narrative plus today's summary line, and the acknowledgement id list behaves as before."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Specification untouched. `syncRegistryArtifactAfterScopeMove` keeps its current behaviour (patch, with today's matcher) for the specification registry. Items 2 and 3 apply only on the PROJECT-DEFINITION sync path.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "The specification registry sync still patches rows with today's matcher and never removes or inserts rows."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "First shrink. The implementing PR runs `project:render` once and commits the smaller file. No migration verb.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "The product PR contains one project:render result for xbrief/PROJECT-DEFINITION.xbrief.json and no new verb."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Size visible. `doctor` prints one information line: the PROJECT-DEFINITION size in bytes, the 64 MiB reader capture limit (`SUBPROCESS_MAX_BUFFER`) and the 1 MiB target. Above 1 MiB the line says the file is over the target and that `project:render` drops completed and cancelled registry rows. The line is printed through the info output, on the full probe and on the throttled return alike, and never changes the doctor exit code or warning count.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Not built in this story: doctor output belongs to the installer lifecycle owner (LLM-CONTEXT section 5). Gets a disposition at completion."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs. The xBRIEF layout docs state that `plan.items` lists open scopes only, that finished briefs live in their folders, the 1 MiB target and the 64 MiB limit, and that the greenfield export's implementation plan therefore lists open scopes only.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "docs/FILES.md states the open-only rule, the folders that hold finished briefs, the 1 MiB target, the 64 MiB limit and the greenfield export consequence."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given briefs in all five lifecycle folders, when `project:render` runs, then `plan.items` holds exactly the briefs in `proposed/`, `pending/` and `active/`.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "A render test builds all five folders and asserts plan.items equals the open briefs."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an active scope with a PD row, when `scope:complete` moves it to `completed/`, then its row is removed and no other row is changed.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "A sync test completes one scope and asserts its row is gone and the other rows are byte-equal."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given two PD rows with the same title and different files, when one of those scopes is completed or cancelled, then only the row for the moved file is removed.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "A sync test with two same-title rows asserts only the moved file's row is removed, for complete and for cancel."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a scope with no PD row in `cancelled/`, when `restore` moves it to `proposed/`, then PD has one row for it, equal to the row render would build.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "A sync test restores a cancelled scope and asserts one inserted row deep-equal to the render row."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a PD row for a proposed scope, when it is promoted to `pending/`, then that row is patched with the new status, `source_path` and `lifecycle_folder`, and no row is added.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "A sync test promotes a proposed scope and asserts the row count is unchanged and the row carries the new status, source_path and lifecycle_folder."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a lifecycle move, then `specification.xbrief.json` changes exactly as it does today.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "A test runs the specification registry sync on a move and asserts it patches the matched row as before, with no removal and no insertion."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given 50 unacknowledged completed scopes whose titles share words with one narrative, when render runs, then `staleness_flags` holds at most one line for that narrative.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "A render test with 50 completed briefs asserts one flag line for the shared narrative."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an existing `staleness_review` id list, when render runs, then scopes in that list are not flagged.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "A render test with an acknowledged id list asserts those scopes add no flag."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a PROJECT-DEFINITION over 1 MiB, when `doctor` runs, then it prints the size line naming the target, the 64 MiB limit and `project:render`, and its exit code and warning count are the same as without the line.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Not built in this story: doctor output belongs to the installer lifecycle owner (LLM-CONTEXT section 5). Gets a disposition at completion."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a doctor run that takes the throttled return, then the size line is still printed.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Not built in this story: doctor output belongs to the installer lifecycle owner (LLM-CONTEXT section 5). Gets a disposition at completion."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a PD row whose id is the dateless remainder of a moved brief's filename and that has a different `source_path`, when that brief is completed, then that row is not removed.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "A sync test with a dateless-remainder id and a different source_path asserts the row stays after the brief completes."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "After the first-shrink render on this repo, `xbrief/PROJECT-DEFINITION.xbrief.json` is under 1 MiB and `validateProjectDefinition` reports no new errors.",
-        "status": "running",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "After the one render, the file is under 1048576 bytes and the project-definition validator reports no new errors."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2474b8636423421e924f94a17d460f016854a031",
+          "recorded_at": "2026-11-18T21:24:40Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -509,8 +629,39 @@
         "leanCommentId": 6970594438,
         "harvestDigest": "7f16f564575672689067af60c145b7e5b9b627b027e117fc5a53558e167ec358",
         "slice": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "9c2c5cc2dce4b71fa9ff713e4107e1a794803d9e",
+        "prNumber": 6689,
+        "prBase": "master",
+        "mergeCommit": "2474b8636423421e924f94a17d460f016854a031",
+        "deliveryBranch": "master",
+        "deliveryCommit": "77f2f05b50245bb4e70257447b62be2e41e3d415",
+        "verifiedAt": "2026-11-18T21:30:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6676,
+          6694
+        ]
+      },
+      "completedAt": "2026-11-18T21:30:08Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T21:30:08Z"
       }
     },
-    "id": "github.issue.6460189342"
+    "id": "github.issue.6460189342",
+    "updated": "2026-11-18T21:30:08Z"
   }
 }
