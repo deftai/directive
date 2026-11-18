@@ -12,6 +12,7 @@ import {
 
 const posix = { platform: "linux" as const };
 const win = { platform: "win32" as const };
+const GROUPED = "the commit runs inside a `( … )` subshell group";
 
 function words(command: string): string[][] {
   return tokenizeShellCommand(command).map((segment) => segment.words.map((w) => w.value));
@@ -645,7 +646,12 @@ describe("commit signals outside the named shapes are unresolvable (#6362 clause
     ["sh -c '$CMD'", /in a `sh -c` string, the command word "\$CMD"/],
     ["eval 'git commit -m x'", /`eval` runs a git commit/],
     ["eval git commit -m x", /`eval` runs a git commit/],
-    ['eval "$X"', /`eval` argument holds a variable/],
+    ['eval "$X"', /`eval` holds a variable/],
+    ["command -p bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
+    ["env -i bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
+    ["env -S 'git commit -m x'", /`env -S` string runs a git commit/],
+    ["env --split-string 'cd /x && git commit -m y'", /`env -S` string runs a git commit/],
+    ['env -S "$X"', /`env -S` string holds a variable/],
     ["env git commit -m x", /behind the `env` wrapper/],
     ["env -C /x git commit -m x", /behind the `env` wrapper/],
     ["command git commit -m x", /behind the `command` wrapper/],
@@ -701,7 +707,7 @@ describe("commit signals outside the named shapes are unresolvable (#6362 clause
     ).toMatchObject({
       kind: "unresolvable",
       reason:
-        "in a `bash -c` string, in a `sh -c` string, the commit runs behind the `env` wrapper",
+        "in a `bash -c` string, in a `sh -c` string, the commit runs behind the `timeout` wrapper",
     });
   });
 
@@ -753,6 +759,26 @@ describe("controls that stay as they were (#6362 clause 4)", () => {
     );
   });
 
+  it("keeps heredoc body parentheses outside a substitution from opening or closing groups", () => {
+    for (const command of [
+      "cat <<EOF\n(note\nEOF\ngit commit -m x",
+      "cat <<EOF\nlist 1) a\nEOF\ngit commit -m x",
+      "cat <<EOF\n$(\ngit commit -am msg\n)\nEOF",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toEqual({ kind: "hook-root" });
+    }
+    for (const command of [
+      "(cat <<EOF\n)\nEOF\ngit commit -m x\n)",
+      "(cd /x && cat <<EOF\n$(\ngit commit -am y\n)\nEOF\n)",
+      "cat <<EOF\n$(\n(cd /x && git commit -m y)\n)\nEOF",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toMatchObject({
+        kind: "unresolvable",
+        reason: GROUPED,
+      });
+    }
+  });
+
   it("reads no signal from unquoted heredoc body text", () => {
     const body = 'cat > /tmp/b.md <<EOF\n`task check` passes\n$PATH\neval "$X"\nEOF';
     expect(resolveCommitTarget(body, posix)).toBeNull();
@@ -770,6 +796,9 @@ describe("controls that stay as they were (#6362 clause 4)", () => {
       "eval 'echo hi'",
       "eval",
       "env FOO=1 npm test",
+      "env echo git commit",
+      "nice -n 5 echo git commit -m x",
+      "env -S 'npm test'",
       "timeout 60 npm test",
       "nohup node server.js &",
       "command -v git",

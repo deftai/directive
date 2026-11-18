@@ -264,12 +264,13 @@ commit comes before or after them: a commit after `cd <path> &` (a lone `&` ends
 the `cd` is not joined by `&&`); a commit inside a `( … )` subshell, also when the group spans
 several commands (a group that closes first does not move a later commit, so
 `(cd /r/wt) && git commit` is still judged at the hook root); a `git commit` in a literal
-`sh -c` / `bash -c` string or in `eval`; a commit
-behind a wrapper (`env`, `command`, `exec`, `nohup`, `time`, `timeout`, `xargs`, `nice`, `sudo`,
-`doas`, `stdbuf`, `ionice`); a command word or git subcommand that holds a variable
-(`$GIT commit`, `git $SUB`); and a `-c` or `eval` string that holds a variable or substitution.
-The last two are refused even when they never commit, because the gate cannot read them. An
-unquoted heredoc body raises no signal; only the commits it shows are read.
+`sh -c` / `bash -c` string, `env -S` string or `eval`; a commit behind a wrapper (`env`,
+`command`, `exec`, `nohup`, `time`, `timeout`, `xargs`, `nice`, `sudo`, `doas`, `stdbuf`,
+`ionice`; only the wrapped command is read, not its arguments); a command word or git subcommand
+that holds a variable (`$GIT commit`, `git $SUB`); and a `-c`, `env -S` or `eval` string that
+holds a variable or substitution. The last two are refused even when they never commit, because
+the gate cannot read them. An unquoted heredoc body raises no signal, and its parentheses open or
+close a group only inside a `$( … )`; only the commits it shows are read.
 
 **Limits, named and not closed here.** A plain commit is still judged at the hook project root,
 wherever the shell actually is; workers name their worktree in every git command (#6291). A
