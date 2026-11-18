@@ -2977,6 +2977,40 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expectPlant(`${nested}\nxargs touch <<EOF\n${kill}\nEOF`);
   });
 
+  it("judges every launcher in the line, even after unmatched or mixed quotes", () => {
+    for (const command of [
+      `cmd /c 'echo ok'; cmd /c "echo x > ${kill}"`,
+      `cmd /c 'echo ok'; cmd.exe /c "type nul > ${opt}"`,
+      `cmd /c "echo ok" && cmd /c 'echo x > ${kill}'`,
+      // Unbalanced quote: the parser cannot tell data from commands, so it fails closed.
+      `echo 'unbalanced; cmd /c "echo x > ${kill}"`,
+      `echo "unbalanced; cmd /c 'echo x > ${opt}'`,
+    ]) {
+      expectPlant(command);
+    }
+    expectNoPlant(`cmd /c 'echo ok'; cmd /c "type ${kill}"`);
+    expectNoPlant(`ls ${kill} 'x`);
+  });
+
+  it("ignores quotes inside shell comments", () => {
+    for (const command of [
+      `# don't skip this\nxargs touch <<EOF\n${kill}\nEOF`,
+      `# it's fine\necho ${kill} | xargs touch`,
+      `# "unbalanced\ncmd /c "echo x > ${kill}"`,
+      `echo hi # don't\nxargs touch <<EOF\n${opt}\nEOF`,
+    ]) {
+      expectPlant(command);
+    }
+    expectStoreWrite(`# don't skip this\nxargs touch <<EOF\n${authz}\nEOF`);
+    expectNoPlant(`# don't\nxargs grep touch <<EOF\n${kill}\nEOF`);
+    expectNoPlant(`echo a#b '${kill}'`);
+  });
+
+  it("treats an unterminated xargs heredoc as fed by its remaining lines", () => {
+    expectPlant(`xargs touch <<EOF\n${kill}`);
+    expectNoPlant(`xargs grep touch <<EOF\n${kill}`);
+  });
+
   it("judges a real xargs heredoc next to a quoted `<<EOF` marker", () => {
     expectPlant(`echo "see <<EOF example"\nxargs touch <<EOF\n${kill}\nEOF`);
     expectPlant(`echo 'a <<EOF b' && xargs touch <<EOF\n${opt}\nEOF`);

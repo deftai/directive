@@ -4123,6 +4123,43 @@ function cmdLauncherPayloadAt(text: string, start: number): string | null {
  * later in the line: each candidate is judged on its own.
  */
 function cmdLauncherPayloads(command: string): string[] {
+  const out = scanCmdLauncherPayloads(command, true);
+  // Unbalanced quotes: the parser cannot tell what is data, so also scan with every quote
+  // treated as literal (a superset). A line that names the kill-switch file fails closed.
+  if (!shellQuotesBalanced(command)) out.push(...scanCmdLauncherPayloads(command, false));
+  return out;
+}
+
+/** An unquoted `#` at a word start is a shell comment to end of line. */
+function isShellCommentStart(text: string, i: number): boolean {
+  if (text[i] !== "#") return false;
+  if (i === 0) return true;
+  const prev = text[i - 1] as string;
+  return isCmdLauncherSpace(prev) || prev === ";" || prev === "&" || prev === "|" || prev === "(";
+}
+
+/** True when quotes pair up at end of input (comments and escapes aware). */
+function shellQuotesBalanced(text: string): boolean {
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i] as string;
+    if (quote === null && isShellCommentStart(text, i)) {
+      while (i < text.length && text[i] !== "\n") i++;
+      continue;
+    }
+    if (c === "\\" && quote !== "'" && i + 1 < text.length) {
+      i++;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      if (quote === null) quote = c;
+      else if (quote === c) quote = null;
+    }
+  }
+  return quote === null;
+}
+
+function scanCmdLauncherPayloads(command: string, trackQuotes: boolean): string[] {
   const out: string[] = [];
   let quote: "'" | '"' | null = null;
   let atWordStart = true;
@@ -4137,18 +4174,24 @@ function cmdLauncherPayloads(command: string): string[] {
     }
     if (payload.length > 0) out.push(payload);
   };
-  // The first real launcher's payload is the rest of the line, so it already holds every
-  // later launcher; stop there and let the caller recurse once per nesting level (linear,
-  // not one check per nested suffix).
-  for (let i = 0; i < command.length && out.length === 0; i++) {
+  // Every real launcher in the line is collected (the caller dedupes payloads, so nested
+  // suffixes are judged once each).
+  for (let i = 0; i < command.length; i++) {
     const c = command[i] as string;
+    if (quote === null && isShellCommentStart(command, i)) {
+      while (i < command.length && command[i] !== "\n") i++;
+      atWordStart = true;
+      continue;
+    }
     if (c === "\\" && quote !== "'" && i + 1 < command.length) {
       i++;
       atWordStart = false;
       continue;
     }
     if (c === "'" || c === '"') {
-      if (quote === null) {
+      if (!trackQuotes) {
+        if (atWordStart) tryAt(i);
+      } else if (quote === null) {
         if (atWordStart) tryAt(i);
         quote = c;
       } else if (quote === c) {
@@ -4169,7 +4212,7 @@ function cmdLauncherPayloads(command: string): string[] {
 }
 
 /** Pipelines: stages joined by a bare `|`; `||`, `;`, `&`, `&&`, newlines end the chain. */
-function splitUnquotedPipeChains(text: string): string[][] {
+function splitUnquotedPipeChains(text: string, trackQuotes = true): string[][] {
   const chains: string[][] = [];
   let stages: string[] = [];
   let cur = "";
@@ -4183,14 +4226,22 @@ function splitUnquotedPipeChains(text: string): string[][] {
   };
   for (let i = 0; i < text.length; i++) {
     const c = text[i] as string;
+    // A shell comment runs to end of line; its quotes do not count.
+    if (quote === null && isShellCommentStart(text, i)) {
+      while (i < text.length && text[i] !== "\n") i++;
+      i--;
+      continue;
+    }
     if (c === "\\" && quote !== "'" && i + 1 < text.length) {
       cur += c + (text[i + 1] as string);
       i++;
       continue;
     }
     if (c === "'" || c === '"') {
-      if (quote === null) quote = c;
-      else if (quote === c) quote = null;
+      if (trackQuotes) {
+        if (quote === null) quote = c;
+        else if (quote === c) quote = null;
+      }
       cur += c;
       continue;
     }
@@ -4380,10 +4431,15 @@ function pipelineFeedsXargsWriter(
   stageMentions: (stage: string) => boolean,
 ): boolean {
   const text = shellWithoutHereDocBodies(command);
-  for (const chain of splitUnquotedPipeChains(text)) {
-    for (let k = 1; k < chain.length; k++) {
-      if (!stageRunsXargsWriter(chain[k] as string)) continue;
-      if (chain.slice(0, k).some(stageMentions)) return true;
+  // Unbalanced quotes: the parser cannot tell data from commands, so also split with every
+  // quote treated as literal (a superset) rather than let a stray quote hide a pipeline.
+  const trackModes = shellQuotesBalanced(text) ? [true] : [true, false];
+  for (const trackQuotes of trackModes) {
+    for (const chain of splitUnquotedPipeChains(text, trackQuotes)) {
+      for (let k = 1; k < chain.length; k++) {
+        if (!stageRunsXargsWriter(chain[k] as string)) continue;
+        if (chain.slice(0, k).some(stageMentions)) return true;
+      }
     }
   }
   return heredocFeedsXargsWriter(command, stageMentions);
@@ -4393,6 +4449,7 @@ function pipelineFeedsXargsWriter(
 function heredocFeedsXargsWriter(
   command: string,
   stageMentions: (stage: string) => boolean,
+  trackQuotes = true,
 ): boolean {
   // One pass with quote state: only an unquoted `<<DELIM` opens a heredoc, so a quoted
   // `"see <<EOF"` neither opens one nor swallows a real heredoc that follows. Each body
@@ -4426,13 +4483,20 @@ function heredocFeedsXargsWriter(
       lineStart = i;
       continue;
     }
+    // A shell comment runs to end of line; its quotes do not count.
+    if (quote === null && isShellCommentStart(command, i)) {
+      while (i < len && command[i] !== "\n") i++;
+      continue;
+    }
     if (c === "\\" && quote !== "'" && i + 1 < len) {
       i += 2;
       continue;
     }
     if (c === "'" || c === '"') {
-      if (quote === null) quote = c;
-      else if (quote === c) quote = null;
+      if (trackQuotes) {
+        if (quote === null) quote = c;
+        else if (quote === c) quote = null;
+      }
       i++;
       continue;
     }
@@ -4450,6 +4514,8 @@ function heredocFeedsXargsWriter(
     }
     i++;
   }
+  // Quotes left open at end of input: fail closed by scanning again with every quote literal.
+  if (trackQuotes && quote !== null) return heredocFeedsXargsWriter(command, stageMentions, false);
   return false;
 }
 
@@ -4459,20 +4525,23 @@ function stageMentionsSettingsStore(stage: string): boolean {
 }
 
 /**
- * `cmd /c "<payload>"`: the first launcher's payload is the rest of the line, so it holds
- * every nested launcher. Walk the payload chain in a loop, one pass per level (linear in
- * the nesting, no recursion depth to cap) (#6681).
+ * `cmd /c "<payload>"`: each launcher's payload is the rest of the line from that launcher.
+ * Judge every distinct payload once, with a worklist (no recursion depth to cap) (#6681).
  */
 function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
-  let current = command;
-  let currentTokens = tokens;
-  for (;;) {
-    if (killSwitchShellWriteInLine(current, currentTokens)) return true;
-    const next = cmdLauncherPayloads(current)[0];
-    if (next === undefined) return false;
-    current = next;
-    currentTokens = shellTokens(next);
+  // Worklist over distinct payload strings: every launcher in a line is judged, and a
+  // nested suffix is judged once however many launchers contain it.
+  const seen = new Set<string>([command]);
+  const work: { text: string; tokens: readonly string[] }[] = [{ text: command, tokens }];
+  for (let w = work.pop(); w !== undefined; w = work.pop()) {
+    if (killSwitchShellWriteInLine(w.text, w.tokens)) return true;
+    for (const payload of cmdLauncherPayloads(w.text)) {
+      if (seen.has(payload)) continue;
+      seen.add(payload);
+      work.push({ text: payload, tokens: shellTokens(payload) });
+    }
   }
+  return false;
 }
 
 function killSwitchShellWriteInLine(command: string, tokens: readonly string[]): boolean {
