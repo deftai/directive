@@ -279,7 +279,10 @@
           "changelog.d/5869-docs-recovery-and-readme.md"
         ],
         "readiness": "ready",
-        "depends_on": [],
+        "depends_on": [
+          "github.issue.6458882984",
+          "github.issue.6458883594"
+        ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/doctor packages/core/src/content-contracts packages/core/src/init-deposit/refresh.test.ts"
         ],
