@@ -21,6 +21,7 @@ import {
 import { seedMinimalProjectDefinition } from "@deftai/directive-core/dist/init-deposit/init-deposit.js";
 import {
   buildOwnershipRecord,
+  DIRECTIVE_GITIGNORE_LINES,
   fingerprintContent,
   type OwnedArtifact,
   ownershipRecordsEqual,
@@ -165,7 +166,7 @@ function invalidateReadinessMarkers(
 /** Ensure .gitignore has node_modules and wiring-ready ignore entries (AC8.5). */
 function ensureGitignore(projectRoot: string): { created: boolean; modified: boolean } {
   const rel = ".gitignore";
-  const needed = ["node_modules/", ".deft/directive/wiring-ready.*.json"];
+  const needed: readonly string[] = DIRECTIVE_GITIGNORE_LINES;
   const existing = readText(join(projectRoot, rel));
   if (existing === null) {
     writeContained(projectRoot, rel, `${needed.join("\n")}\n`);

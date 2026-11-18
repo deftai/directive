@@ -24,6 +24,29 @@ export {
 } from "./constants.js";
 export { checkFullInSync } from "./in-sync.js";
 export type {
+  DirectiveOwnedChange,
+  DirectiveOwnedPath,
+  DirectiveOwnedPathsInspection,
+  DirectiveOwnershipKind,
+  IgnoredOwnershipRecordEntry,
+} from "./owned-paths.js";
+export {
+  classifyDirectiveOwnedChange,
+  DATA_SCHEMA_MARKER_REL,
+  DIRECTIVE_GITHOOK_RELS,
+  DIRECTIVE_GITIGNORE_LINES,
+  directiveOwnedPathMatches,
+  HOST_HOOK_CONFIG_RELS,
+  HOST_HOOK_OUTER_DIRS,
+  hostHookOuterPathPattern,
+  inspectDirectiveOwnedPaths,
+  isDirectiveHookCommand,
+  listDirectiveOwnedPaths,
+  MINIMAL_TASKFILE,
+  SKILL_POINTER_HOST_ROOTS,
+  stripTaskfileDeftInclude,
+} from "./owned-paths.js";
+export type {
   OwnedArtifact,
   OwnershipInspection,
   OwnershipKind,

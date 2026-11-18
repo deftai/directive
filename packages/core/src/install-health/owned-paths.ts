@@ -1,0 +1,669 @@
+/**
+ * Read-only API for what Directive owns in a project (#6615 / AC11.10).
+ *
+ * One answer to "which changes are Directive's own", for uninstall, doctor,
+ * the commit gate and the `.gitattributes` cleanup:
+ *
+ * - {@link listDirectiveOwnedPaths}: the committed ownership record
+ *   (`.deft/GENERATION.json`) joined with the known Directive path classes.
+ * - {@link classifyDirectiveOwnedChange}: is one file's change made only of
+ *   Directive-owned material?
+ *
+ * Both are pure reads: no file writes, no `git` calls (AC12.1, so doctor can
+ * call them). The record is bounded cleanup information, never authority for
+ * arbitrary paths (AC11.10): a record entry outside the known path classes is
+ * ignored and reported by {@link inspectDirectiveOwnedPaths}.
+ *
+ * `managed-lines`, `dependency-entry` and `retired` exist only in this API,
+ * from code knowledge. They are never written to GENERATION.json: the record
+ * parser rejects unknown kinds, so an older runtime would lose the whole record.
+ * This is not a generic installer registry (AC8.10 / §A6.1).
+ *
+ * Consumers: the commit gate (P4-U1), uninstall-class checks (P2-U14), doctor.
+ * Keep the exported names and result values stable.
+ */
+
+import {
+  GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+  isGrokWrapperCommand,
+} from "../init-deposit/agent-hooks.js";
+import {
+  isDirectiveDependencyKey,
+  isUpgradePinPathContentAllowed,
+  PACKAGE_JSON_DEP_FIELDS,
+} from "../init-deposit/hygiene.js";
+import { PRETTIERIGNORE_DEFT_CORE_LINE } from "../init-deposit/prettierignore.js";
+import {
+  DESIRED_GITATTRIBUTES_LINES,
+  gitattributesDepositComment,
+  LEGACY_CORE_TEXT_EOL_LF,
+  MANAGED_WIRING_GITATTRIBUTES_LINES,
+} from "../init-deposit/scaffold.js";
+import { CONSUMER_SKILL_DISCOVERY_INVENTORY } from "../init-deposit/skill-discovery-deposit.js";
+import { slashCommandManagedExactPaths } from "../init-deposit/slash-deposit.js";
+import { renderConsumerHeader } from "../platform/agents-consumer-header.js";
+import { GENERATION_REL, READINESS_DIR_REL, RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
+import {
+  inspectOwnershipRecord,
+  MANAGED_SECTION_CLOSE,
+  MANAGED_SECTION_OPEN_PREFIX,
+  type OwnershipKind,
+} from "./ownership.js";
+
+/**
+ * How Directive owns a path. `whole-file`, `marked-section`,
+ * `structured-entry` and `retained` match the GENERATION.json kinds;
+ * `managed-lines`, `dependency-entry` and `retired` exist only in this API.
+ */
+export type DirectiveOwnershipKind =
+  /** Wholly owned: `.mjs` outers, `.githooks/*`, skill pointers, slash wrappers, GENERATION.json, data-schema.json, readiness markers. */
+  | "whole-file"
+  /** Directive marked section in a shared file: `AGENTS.md`. */
+  | "marked-section"
+  /** Directive entries in a shared structured file: host hook configs, `Taskfile.yml` `includes.deft`. */
+  | "structured-entry"
+  /** Directive lines in a shared line file: `.gitignore`, `.gitattributes`, `.prettierignore`. */
+  | "managed-lines"
+  /** Directive dependency entry: `package.json` and the lockfiles. */
+  | "dependency-entry"
+  /** Old Directive file that may only be deleted. */
+  | "retired"
+  /** Settings/data that survive uninstall; never "owned" for commit purposes. */
+  | "retained";
+
+export interface DirectiveOwnedPath {
+  /**
+   * Project-relative POSIX path. When {@link pattern} is set, this is a
+   * display template (for example `.claude/deft-hook-<sha8>.mjs`); match with
+   * the pattern instead.
+   */
+  readonly path: string;
+  /** Set for path families: `deft-hook-<sha8>.mjs` outers and readiness markers. */
+  readonly pattern?: RegExp;
+  readonly kind: DirectiveOwnershipKind;
+  /** False only for per-clone readiness markers. */
+  readonly mustCommit: boolean;
+  /** `record` = listed in GENERATION.json (and inside a known class); `known` = runtime code knowledge. */
+  readonly source: "record" | "known";
+}
+
+/** A GENERATION.json entry the API did not trust, with the reason. */
+export interface IgnoredOwnershipRecordEntry {
+  readonly path: string;
+  readonly kind: OwnershipKind;
+  readonly reason: "outside-known-classes" | "kind-mismatch";
+}
+
+export interface DirectiveOwnedPathsInspection {
+  readonly paths: readonly DirectiveOwnedPath[];
+  /** Ownership record state; an unreadable record contributes no entries. */
+  readonly record: "valid" | "absent" | "unreadable";
+  /** Record entries ignored because they fall outside the known classes (AC11.10). */
+  readonly ignoredRecordEntries: readonly IgnoredOwnershipRecordEntry[];
+}
+
+export type DirectiveOwnedChange = "directive-only" | "mixed" | "not-owned";
+
+/** `.gitignore` lines setup adds (AC8.5). Setup and this API share this one copy. */
+export const DIRECTIVE_GITIGNORE_LINES = [
+  "node_modules/",
+  ".deft/directive/wiring-ready.*.json",
+] as const;
+
+/** `Taskfile.yml` that setup writes when the project has none. */
+export const MINIMAL_TASKFILE = `version: '3'
+
+# Installed by Directive setup (Wave 2c). Framework tasks under deft:.
+includes:
+  deft:
+    taskfile: ./${RUNTIME_PACKAGE_PATH_PREFIX}Taskfile.yml
+    optional: true
+`;
+
+/** Comment setup writes above an `includes:` key it appends to an existing Taskfile. */
+const TASKFILE_APPENDED_INCLUDES_COMMENT = "# Added by Directive setup (Wave 2c)";
+
+/** Host hook config files that hold Directive hook registrations. */
+export const HOST_HOOK_CONFIG_RELS = [
+  ".claude/settings.json",
+  ".cursor/hooks.json",
+  ".codex/hooks.json",
+  ".grok/hooks/deft.json",
+] as const;
+
+/** Host directories that hold the committed `deft-hook-<sha8>.mjs` outers (AC9.1). */
+export const HOST_HOOK_OUTER_DIRS = [".claude", ".codex", ".cursor/hooks", ".grok/hooks"] as const;
+
+/** Wholly owned git hook files setup writes. */
+export const DIRECTIVE_GITHOOK_RELS = [
+  ".githooks/pre-commit",
+  ".githooks/pre-push",
+  ".githooks/_directive-run.sh",
+] as const;
+
+/** Host roots that hold thin skill pointers (`<root>/<skill>/SKILL.md`). */
+export const SKILL_POINTER_HOST_ROOTS = [
+  ".agents/skills",
+  ".claude/skills",
+  ".cursor/skills",
+  ".codex/skills",
+  ".github/skills",
+] as const;
+
+export const DATA_SCHEMA_MARKER_REL = ".deft/directive/data-schema.json";
+
+const DEPENDENCY_ENTRY_RELS = [
+  "package.json",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+] as const;
+
+const MANAGED_LINE_RELS = [".gitignore", ".gitattributes", ".prettierignore"] as const;
+type ManagedLineRel = (typeof MANAGED_LINE_RELS)[number];
+
+/** Old Directive files: a change to one is Directive-only only when it deletes it. */
+const RETIRED_RELS = [
+  GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+  ".githooks/_deft-run.sh",
+  ".deft-version",
+  "vbrief/.deft-version",
+  "xbrief/.deft-version",
+] as const;
+
+const RETAINED_RELS = ["xbrief", ".deft/settings.json"] as const;
+
+const OUTER_FILE_RE = "deft-hook-[a-f0-9]{8}\\.mjs";
+
+function escapeRe(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Pattern for one host's committed `.mjs` outer (any sha8). */
+export function hostHookOuterPathPattern(dir: string): RegExp {
+  return new RegExp(`^${escapeRe(dir)}/${OUTER_FILE_RE}$`);
+}
+
+const READINESS_PATTERN = new RegExp(
+  `^${escapeRe(READINESS_DIR_REL)}/wiring-ready\\.[^/]+\\.json$`,
+);
+
+const SKILL_POINTER_PATTERN = new RegExp(
+  `^(?:${SKILL_POINTER_HOST_ROOTS.map(escapeRe).join("|")})/deft(?:-[a-z0-9-]+)?/SKILL\\.md$`,
+);
+
+const OUTER_COMMAND_RE = new RegExp(
+  `^node\\s+(?:\\./)?(?:${HOST_HOOK_OUTER_DIRS.map(escapeRe).join("|")})/${OUTER_FILE_RE}(?:\\s|$)`,
+);
+
+const HOOK_BIN_COMMAND_RE = new RegExp(
+  `^node\\s+(?:\\./)?${escapeRe(RUNTIME_PACKAGE_PATH_PREFIX)}dist/hook-bin\\.js(?:\\s|$)`,
+);
+
+function known(
+  path: string,
+  kind: DirectiveOwnershipKind,
+  extra: { pattern?: RegExp; mustCommit?: boolean } = {},
+): DirectiveOwnedPath {
+  return {
+    path,
+    kind,
+    mustCommit: extra.mustCommit ?? true,
+    source: "known",
+    ...(extra.pattern !== undefined ? { pattern: extra.pattern } : {}),
+  };
+}
+
+let knownCache: readonly DirectiveOwnedPath[] | null = null;
+
+/** The runtime's known Directive path classes (static code knowledge). */
+function knownDirectivePaths(): readonly DirectiveOwnedPath[] {
+  if (knownCache !== null) return knownCache;
+  const out: DirectiveOwnedPath[] = [];
+  for (const dir of HOST_HOOK_OUTER_DIRS) {
+    out.push(
+      known(`${dir}/deft-hook-<sha8>.mjs`, "whole-file", {
+        pattern: hostHookOuterPathPattern(dir),
+      }),
+    );
+  }
+  for (const rel of DIRECTIVE_GITHOOK_RELS) out.push(known(rel, "whole-file"));
+  out.push(known(GENERATION_REL, "whole-file"));
+  out.push(known(DATA_SCHEMA_MARKER_REL, "whole-file"));
+  for (const root of SKILL_POINTER_HOST_ROOTS) {
+    for (const skill of CONSUMER_SKILL_DISCOVERY_INVENTORY) {
+      out.push(known(`${root}/${skill.dir}/SKILL.md`, "whole-file"));
+    }
+  }
+  for (const rel of slashCommandManagedExactPaths()) out.push(known(rel, "whole-file"));
+  out.push(
+    known(`${READINESS_DIR_REL}/wiring-ready.<version>.json`, "whole-file", {
+      pattern: READINESS_PATTERN,
+      mustCommit: false,
+    }),
+  );
+  out.push(known("AGENTS.md", "marked-section"));
+  for (const rel of HOST_HOOK_CONFIG_RELS) out.push(known(rel, "structured-entry"));
+  out.push(known("Taskfile.yml", "structured-entry"));
+  for (const rel of MANAGED_LINE_RELS) out.push(known(rel, "managed-lines"));
+  for (const rel of DEPENDENCY_ENTRY_RELS) out.push(known(rel, "dependency-entry"));
+  for (const rel of RETIRED_RELS) out.push(known(rel, "retired"));
+  for (const rel of RETAINED_RELS) out.push(known(rel, "retained"));
+  knownCache = out;
+  return out;
+}
+
+/** Project-relative POSIX form (backslashes to `/`, no leading `./`). */
+function toPosixRel(relPath: string): string {
+  return relPath
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/^(?:\.\/)+/, "");
+}
+
+/** True when `relPath` is the entry's path, or matches its pattern. */
+export function directiveOwnedPathMatches(entry: DirectiveOwnedPath, relPath: string): boolean {
+  const rel = toPosixRel(relPath);
+  return entry.pattern !== undefined ? entry.pattern.test(rel) : entry.path === rel;
+}
+
+/**
+ * The known Directive class for one path, or null. Skill pointers also match
+ * by shape (`<host root>/deft…/SKILL.md`) so a newer runtime's pointer set
+ * stays inside the class.
+ */
+function knownClassFor(relPath: string): DirectiveOwnedPath | null {
+  const rel = toPosixRel(relPath);
+  for (const entry of knownDirectivePaths()) {
+    if (directiveOwnedPathMatches(entry, rel)) return entry;
+  }
+  if (SKILL_POINTER_PATTERN.test(rel)) return known(rel, "whole-file");
+  return null;
+}
+
+/**
+ * Read-only. Committed record ∪ the runtime's known Directive path classes,
+ * with the record entries the API ignored (AC11.10). No writes.
+ */
+export function inspectDirectiveOwnedPaths(projectRoot: string): DirectiveOwnedPathsInspection {
+  const inspection = inspectOwnershipRecord(projectRoot);
+  const fromRecord: DirectiveOwnedPath[] = [];
+  const ignored: IgnoredOwnershipRecordEntry[] = [];
+  if (inspection.kind === "valid") {
+    for (const art of inspection.record.ownership) {
+      const cls = knownClassFor(art.path);
+      if (cls === null) {
+        ignored.push({ path: art.path, kind: art.kind, reason: "outside-known-classes" });
+        continue;
+      }
+      if (cls.kind !== art.kind) {
+        ignored.push({ path: art.path, kind: art.kind, reason: "kind-mismatch" });
+        continue;
+      }
+      if (fromRecord.some((p) => p.path === art.path)) continue;
+      fromRecord.push({
+        path: art.path,
+        kind: art.kind,
+        mustCommit: cls.mustCommit,
+        source: "record",
+      });
+    }
+  }
+  const recordPaths = new Set(fromRecord.map((p) => p.path));
+  const knownPaths = knownDirectivePaths().filter(
+    (p) => p.pattern !== undefined || !recordPaths.has(p.path),
+  );
+  return {
+    paths: [...fromRecord, ...knownPaths],
+    record: inspection.kind,
+    ignoredRecordEntries: ignored,
+  };
+}
+
+/** Read-only. Committed record ∪ the runtime's known Directive path classes. */
+export function listDirectiveOwnedPaths(projectRoot: string): readonly DirectiveOwnedPath[] {
+  return inspectDirectiveOwnedPaths(projectRoot).paths;
+}
+
+// ---------------------------------------------------------------------------
+// classifyDirectiveOwnedChange
+// ---------------------------------------------------------------------------
+
+function normalizeEol(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
+/**
+ * True when a registered host hook command is one Directive writes or wrote:
+ * the `.mjs` outer in a host directory, pin `hook-bin.js`, bare `deft-hook`,
+ * `deft hook:dispatch`, or the retired Grok `.sh` wrapper. Anchored at the
+ * start of the command, so a user command that only mentions these does not
+ * count.
+ */
+export function isDirectiveHookCommand(command: string): boolean {
+  const cmd = command.trim();
+  return (
+    OUTER_COMMAND_RE.test(cmd) ||
+    HOOK_BIN_COMMAND_RE.test(cmd) ||
+    /^deft-hook(?:\s|$)/.test(cmd) ||
+    /^deft\s+hook:dispatch(?:\s|$)/.test(cmd) ||
+    isGrokWrapperCommand(cmd)
+  );
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isDirectiveHookEntry(entry: unknown): boolean {
+  return (
+    isPlainObject(entry) &&
+    typeof entry.command === "string" &&
+    isDirectiveHookCommand(entry.command)
+  );
+}
+
+/**
+ * Remove Directive hook entries from a host hook config. Nested `hooks[]`
+ * groups lose only their Directive commands; a group left with no hooks is
+ * dropped. Empty event arrays, an empty `hooks` map and a lone Cursor
+ * `version` key are dropped too.
+ */
+function stripDirectiveHooks(cfg: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...cfg };
+  if (isPlainObject(cfg.hooks)) {
+    const nextHooks: Record<string, unknown> = {};
+    for (const [event, value] of Object.entries(cfg.hooks)) {
+      if (!Array.isArray(value)) {
+        nextHooks[event] = value;
+        continue;
+      }
+      const kept: unknown[] = [];
+      for (const entry of value) {
+        if (isDirectiveHookEntry(entry)) continue;
+        if (isPlainObject(entry) && Array.isArray(entry.hooks)) {
+          const nested = entry.hooks.filter((h) => !isDirectiveHookEntry(h));
+          if (nested.length === 0 && entry.hooks.length > 0) continue;
+          kept.push({ ...entry, hooks: nested });
+          continue;
+        }
+        kept.push(entry);
+      }
+      if (kept.length > 0) nextHooks[event] = kept;
+    }
+    if (Object.keys(nextHooks).length > 0) out.hooks = nextHooks;
+    else delete out.hooks;
+  }
+  if (out.hooks === undefined && Object.keys(out).length === 1 && "version" in out) {
+    delete out.version;
+  }
+  return out;
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((v, i) => deepEqual(v, b[i]));
+  }
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const ak = Object.keys(a).sort();
+    const bk = Object.keys(b).sort();
+    if (ak.length !== bk.length || ak.some((k, i) => k !== bk[i])) return false;
+    return ak.every((k) => deepEqual(a[k], b[k]));
+  }
+  return false;
+}
+
+/** Parse a JSON object; a `null` side is an absent file (`{}`); invalid → undefined. */
+function parseJsonObjectOrEmpty(text: string | null): Record<string, unknown> | undefined {
+  if (text === null) return {};
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return isPlainObject(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function classifyHostHookConfig(before: string | null, after: string | null): DirectiveOwnedChange {
+  const b = parseJsonObjectOrEmpty(before);
+  const a = parseJsonObjectOrEmpty(after);
+  if (b === undefined || a === undefined) return "mixed";
+  return deepEqual(stripDirectiveHooks(b), stripDirectiveHooks(a)) ? "directive-only" : "mixed";
+}
+
+/** Remove the Directive marked section (open prefix … close marker). */
+function stripManagedSection(body: string): string {
+  const start = body.indexOf(MANAGED_SECTION_OPEN_PREFIX);
+  if (start < 0) return body;
+  const openEnd = body.indexOf("-->", start);
+  if (openEnd < 0) return body;
+  const end = body.indexOf(MANAGED_SECTION_CLOSE, openEnd);
+  if (end < 0) return body;
+  return body.slice(0, start) + body.slice(end + MANAGED_SECTION_CLOSE.length);
+}
+
+function collapseBlankRuns(text: string): string {
+  return normalizeEol(text)
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Unmanaged header setup writes into a new AGENTS.md (template, or the built-in fallback). */
+function agentsScaffoldHeaders(): string[] {
+  const headers: string[] = [];
+  const readers = [
+    () => renderConsumerHeader(),
+    () => renderConsumerHeader({ readTemplate: () => null }),
+  ];
+  for (const read of readers) {
+    try {
+      headers.push(collapseBlankRuns(read()));
+    } catch {
+      /* template unreadable: use the other form */
+    }
+  }
+  return headers;
+}
+
+function isAgentsScaffoldRemainder(remainder: string): boolean {
+  const rest = collapseBlankRuns(remainder);
+  return rest === "" || agentsScaffoldHeaders().includes(rest);
+}
+
+function classifyAgentsMd(before: string | null, after: string | null): DirectiveOwnedChange {
+  if (before === null || after === null) {
+    const present = (before ?? after) as string;
+    return isAgentsScaffoldRemainder(stripManagedSection(normalizeEol(present)))
+      ? "directive-only"
+      : "mixed";
+  }
+  const b = collapseBlankRuns(stripManagedSection(normalizeEol(before)));
+  const a = collapseBlankRuns(stripManagedSection(normalizeEol(after)));
+  return a === b ? "directive-only" : "mixed";
+}
+
+/**
+ * Remove the `deft:` include block (the uninstall rule). Exported so the
+ * runtime uninstaller and this API share one copy.
+ */
+export function stripTaskfileDeftInclude(body: string): { next: string; removed: boolean } {
+  const blockRe = /(^|\n)([ \t]*)deft:\s*(?:#.*)?\n(?:\2[ \t]+[^\n]*\n)*/;
+  if (blockRe.test(body)) {
+    const next = body.replace(blockRe, "$1");
+    return { next: next.replace(/\n{3,}/g, "\n\n"), removed: next !== body };
+  }
+  return { next: body, removed: false };
+}
+
+/** Taskfile text without Directive material: the `deft:` block and a setup-appended empty `includes:`. */
+function taskfileWithoutDirective(body: string): string {
+  let next = stripTaskfileDeftInclude(normalizeEol(body)).next;
+  const appended = `\n${TASKFILE_APPENDED_INCLUDES_COMMENT}\nincludes:\n`;
+  if (next.endsWith(appended)) next = next.slice(0, next.length - appended.length + 1);
+  return collapseBlankRuns(next);
+}
+
+function classifyTaskfile(before: string | null, after: string | null): DirectiveOwnedChange {
+  if (before === null || after === null) {
+    const present = normalizeEol((before ?? after) as string);
+    if (present === MINIMAL_TASKFILE) return "directive-only";
+    return taskfileWithoutDirective(present) === "" ? "directive-only" : "mixed";
+  }
+  return taskfileWithoutDirective(before) === taskfileWithoutDirective(after)
+    ? "directive-only"
+    : "mixed";
+}
+
+let gitattributesCommentLines: ReadonlySet<string> | null = null;
+
+/** Every comment line `ensureGitattributes` can write above its additions. */
+function gitattributesDepositCommentLines(): ReadonlySet<string> {
+  if (gitattributesCommentLines !== null) return gitattributesCommentLines;
+  const lines = new Set<string>();
+  const samples: ReadonlyArray<readonly string[]> = [
+    DESIRED_GITATTRIBUTES_LINES,
+    DESIRED_GITATTRIBUTES_LINES.filter((l) => l.includes("text=auto eol=lf")),
+    MANAGED_WIRING_GITATTRIBUTES_LINES,
+    [],
+  ];
+  for (const sample of samples) {
+    for (const line of gitattributesDepositComment(sample).split("\n")) {
+      if (line.trim()) lines.add(line.trim());
+    }
+  }
+  gitattributesCommentLines = lines;
+  return lines;
+}
+
+/** Directive lines (and deposit comments) per managed-lines file. */
+function directiveLinesFor(rel: ManagedLineRel): ReadonlySet<string> {
+  switch (rel) {
+    case ".gitignore":
+      return new Set<string>(DIRECTIVE_GITIGNORE_LINES);
+    case ".gitattributes":
+      return new Set<string>([
+        ...DESIRED_GITATTRIBUTES_LINES,
+        LEGACY_CORE_TEXT_EOL_LF,
+        ...gitattributesDepositCommentLines(),
+      ]);
+    case ".prettierignore":
+      return new Set<string>([
+        PRETTIERIGNORE_DEFT_CORE_LINE,
+        "# Deft framework: the vendored payload is outside the consumer Prettier gate (#2534).",
+      ]);
+  }
+}
+
+/** Sorted non-blank lines that are not Directive's (a multiset as a sorted list). */
+function userLines(text: string | null, directive: ReadonlySet<string>): string[] {
+  if (text === null) return [];
+  return normalizeEol(text)
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !directive.has(l))
+    .sort();
+}
+
+function classifyManagedLines(
+  rel: ManagedLineRel,
+  before: string | null,
+  after: string | null,
+): DirectiveOwnedChange {
+  const directive = directiveLinesFor(rel);
+  const b = userLines(before, directive);
+  const a = userLines(after, directive);
+  return b.length === a.length && b.every((l, i) => l === a[i]) ? "directive-only" : "mixed";
+}
+
+/** package.json without Directive dependency keys or the dependency maps they leave empty. */
+function packageJsonWithoutDirective(pkg: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(pkg)) {
+    if ((PACKAGE_JSON_DEP_FIELDS as readonly string[]).includes(key) && isPlainObject(value)) {
+      const kept = Object.fromEntries(
+        Object.entries(value).filter(([dep]) => !isDirectiveDependencyKey(dep)),
+      );
+      if (Object.keys(kept).length > 0) out[key] = kept;
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+/** Empty, or exactly the `{ "private": true }` the launcher creates (AC6.12). */
+function isPackageJsonScaffold(pkg: Record<string, unknown>): boolean {
+  const rest = packageJsonWithoutDirective(pkg);
+  const keys = Object.keys(rest);
+  return keys.length === 0 || (keys.length === 1 && rest.private === true);
+}
+
+function classifyPackageJson(before: string | null, after: string | null): DirectiveOwnedChange {
+  const b = parseJsonObjectOrEmpty(before);
+  const a = parseJsonObjectOrEmpty(after);
+  if (b === undefined || a === undefined) return "mixed";
+  if (before === null || after === null) {
+    return isPackageJsonScaffold(before === null ? a : b) ? "directive-only" : "mixed";
+  }
+  if (isUpgradePinPathContentAllowed("package.json", before, after)) return "directive-only";
+  return deepEqual(packageJsonWithoutDirective(b), packageJsonWithoutDirective(a))
+    ? "directive-only"
+    : "mixed";
+}
+
+function classifyLockfile(
+  rel: "package-lock.json" | "pnpm-lock.yaml" | "yarn.lock",
+  before: string | null,
+  after: string | null,
+): DirectiveOwnedChange {
+  const empty = rel === "package-lock.json" ? "{}" : "";
+  return isUpgradePinPathContentAllowed(rel, before ?? empty, after ?? empty)
+    ? "directive-only"
+    : "mixed";
+}
+
+/**
+ * Read-only. Is this one file's change made only of Directive-owned material?
+ *
+ * - `directive-only`: every difference is Directive's own.
+ * - `mixed`: a Directive path (or one holding Directive material) whose change
+ *   also holds something else, or is not a change Directive makes.
+ * - `not-owned`: not a Directive path. Retained data (`xbrief/`,
+ *   `.deft/settings.json`) is never owned for commit purposes.
+ *
+ * Whole Directive files pass on path alone (v1). `before` is the HEAD blob, or
+ * null for a new file; `after` is the staged blob, or null for a deletion.
+ */
+export function classifyDirectiveOwnedChange(
+  relPath: string,
+  before: string | null,
+  after: string | null,
+): DirectiveOwnedChange {
+  const rel = toPosixRel(relPath);
+  const cls = knownClassFor(rel);
+  if (cls === null || cls.kind === "retained") return "not-owned";
+  switch (cls.kind) {
+    case "whole-file":
+      return "directive-only";
+    case "retired":
+      return after === null ? "directive-only" : "mixed";
+    case "marked-section":
+      return classifyAgentsMd(before, after);
+    case "structured-entry":
+      return rel === "Taskfile.yml"
+        ? classifyTaskfile(before, after)
+        : classifyHostHookConfig(before, after);
+    case "managed-lines":
+      return classifyManagedLines(rel as ManagedLineRel, before, after);
+    case "dependency-entry":
+      return rel === "package.json"
+        ? classifyPackageJson(before, after)
+        : classifyLockfile(
+            rel as "package-lock.json" | "pnpm-lock.yaml" | "yarn.lock",
+            before,
+            after,
+          );
+  }
+}
