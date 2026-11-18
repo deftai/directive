@@ -200,22 +200,43 @@ describe("ensureGitHooks with another core.hooksPath (#4960 / #5846)", () => {
     expect(git(root, "config", "--local", "--get-all", "core.hooksPath")).toBe(".githooks");
   });
 
-  it("value from an included config still wins: names the file, not a bare repair", () => {
+  it("value from a later included config: takeover still wins, include file untouched", () => {
     const root = repo();
     const included = join(temp("hookspath-include-"), "extra.gitconfig");
     writeFileSync(included, "[core]\n\thooksPath = included-hooks\n");
-    // Include sits after the key we write, so it keeps winning.
+    // Include sits after [core], so a plain write there would not win.
     const configPath = join(root, ".git", "config");
     writeFileSync(
       configPath,
       `${readFileSync(configPath, "utf8")}[include]\n\tpath = ${included.replace(/\\/g, "/")}\n`,
     );
     const result = ensureGitHooks(root, { takeOverHooksPath: true });
-    expect(result.hooksPathActive).toBe(false);
-    expect(result.hooksPathTakenOver).toBeNull();
-    expect(result.inactiveDisclosure).toContain("still 'included-hooks'");
-    expect(result.inactiveDisclosure).toContain("extra.gitconfig");
-    expect(result.inactiveDisclosure).toContain("Remove that setting");
+    expect(result.hooksPathActive).toBe(true);
+    expect(result.hooksPathTakenOver).toEqual({ previous: "included-hooks", scope: "local" });
+    expect(git(root, "config", "--get", "core.hooksPath")).toBe(".githooks");
+    expect(readFileSync(included, "utf8")).toBe("[core]\n\thooksPath = included-hooks\n");
+  });
+
+  it("value from the Git command line still wins: names it, not a bare repair", () => {
+    const keys = ["GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"];
+    const saved = keys.map((k) => process.env[k]);
+    const root = repo();
+    process.env.GIT_CONFIG_COUNT = "1";
+    process.env.GIT_CONFIG_KEY_0 = "core.hooksPath";
+    process.env.GIT_CONFIG_VALUE_0 = "cmd-hooks";
+    try {
+      const result = ensureGitHooks(root, { takeOverHooksPath: true });
+      expect(result.hooksPathActive).toBe(false);
+      expect(result.hooksPathTakenOver).toBeNull();
+      expect(result.inactiveDisclosure).toContain("still 'cmd-hooks'");
+      expect(result.inactiveDisclosure).toContain("Remove that setting");
+    } finally {
+      keys.forEach((k, i) => {
+        const v = saved[i];
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      });
+    }
   });
 
   it("unset hooksPath: activates as before and reports no takeover", () => {
