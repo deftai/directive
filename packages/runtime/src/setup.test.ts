@@ -6,13 +6,14 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readProjectDataStatus } from "./data-status.js";
 import { inventoryEntry } from "./installer-output-inventory.js";
@@ -483,5 +484,156 @@ describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
     expect(result.conflicts).toEqual([]);
     expect(existsSync(join(root, "deft"))).toBe(false);
     expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+  });
+});
+
+// #5961 / AC8.10: setup removes the retired `.deft/core` lines Directive wrote
+// into shared files, lists them as modified, and writes no `.deft/core` text.
+// #6167 / AC13.3: an existing `.prettierignore` gets the hook-file line.
+
+const CODEQL_REL = ".github/codeql/codeql-config.yml";
+const OLD_CODEQL =
+  "# Deft framework: exclude the vendored payload from CodeQL analysis (#1430).\n" +
+  "# .deft/core/** is packaged framework code, not consumer source.\n" +
+  'name: "CodeQL config (deft)"\n' +
+  "paths-ignore:\n" +
+  "  - 'vendor/**'\n" +
+  "  - '.deft/core/**'\n";
+const OLD_ATTRS =
+  "*.png binary\n\n" +
+  "# Deft framework: the vendored payload is packaged framework code, not\n" +
+  "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+  "# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n" +
+  ".deft/core/** text=auto eol=lf\n" +
+  ".deft/core/** linguist-generated=true\n" +
+  ".deft/core/** linguist-vendored=true\n";
+
+function writeRel(root: string, rel: string, body: string): void {
+  const abs = join(root, rel);
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, body, "utf8");
+}
+
+function readRel(root: string, rel: string): string {
+  return readFileSync(join(root, rel), "utf8");
+}
+
+function git(root: string, args: readonly string[]): string {
+  return execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
+}
+
+function committedProject(): string {
+  const root = tempRoot();
+  git(root, ["init", "-q"]);
+  git(root, ["config", "user.email", "t@t.dev"]);
+  git(root, ["config", "user.name", "t"]);
+  return root;
+}
+
+function commitAll(root: string): void {
+  git(root, ["add", "-A"]);
+  git(root, ["-c", "commit.gpgsign=false", "commit", "-q", "-m", "old layout"]);
+}
+
+/** Every file under root except .git, project-relative. */
+function allFiles(root: string, dir = root): string[] {
+  const out: string[] = [];
+  for (const ent of readdirSync(dir, { withFileTypes: true })) {
+    if (ent.name === ".git") continue;
+    const abs = join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...allFiles(root, abs));
+    else out.push(relative(root, abs));
+  }
+  return out;
+}
+
+function seedOldFiles(root: string): void {
+  writeRel(root, ".gitattributes", OLD_ATTRS);
+  writeRel(
+    root,
+    ".prettierignore",
+    "dist/\n\n# Deft framework: the vendored payload is outside the consumer Prettier gate (#2534).\n.deft/core/\n",
+  );
+  writeRel(
+    root,
+    "greptile.json",
+    '{\n  "ignorePatterns": "dist/**\\n.deft/core/**",\n  "x": 1\n}\n',
+  );
+  writeRel(root, CODEQL_REL, OLD_CODEQL);
+}
+
+const SHARED_FILES = [".gitattributes", ".prettierignore", "greptile.json", CODEQL_REL];
+
+describe("setup and retired .deft/core lines (#5961)", { timeout: 60_000 }, () => {
+  it("install on an empty project writes no .deft/core text anywhere", () => {
+    const root = committedProject();
+    runSetup({ operation: "install", from: "none", root });
+    for (const rel of allFiles(root)) {
+      expect(readRel(root, rel), rel).not.toContain(".deft/core");
+    }
+  });
+
+  it("repair removes exactly the retired lines, reports them, and a second run changes nothing", () => {
+    const root = committedProject();
+    seedOldFiles(root);
+    commitAll(root);
+
+    const first = runSetup({ operation: "repair", from: "0.0.0", root });
+
+    for (const rel of SHARED_FILES) {
+      expect(first.modified).toContain(rel);
+      expect(readRel(root, rel), rel).not.toContain(".deft/core");
+    }
+    expect(readRel(root, ".gitattributes").startsWith("*.png binary\n")).toBe(true);
+    expect(readRel(root, ".prettierignore")).toBe(
+      "dist/\n\n# Deft managed wiring: Directive's committed hook files are not formatted (AC13.3).\n**/deft-hook-*.mjs\n",
+    );
+    expect(readRel(root, "greptile.json")).toBe('{\n  "ignorePatterns": "dist/**",\n  "x": 1\n}\n');
+    expect(readRel(root, CODEQL_REL)).toBe(
+      "name: \"CodeQL config (deft)\"\npaths-ignore:\n  - 'vendor/**'\n",
+    );
+
+    const snapshot = Object.fromEntries(SHARED_FILES.map((rel) => [rel, readRel(root, rel)]));
+    const second = runSetup({ operation: "repair", from: "0.0.0", root });
+    for (const [rel, body] of Object.entries(snapshot)) {
+      expect(readRel(root, rel), rel).toBe(body);
+      expect(second.modified).not.toContain(rel);
+    }
+  });
+
+  it("upgrade leaves a shared file with unstaged customer edits unstaged", () => {
+    const root = committedProject();
+    seedOldFiles(root);
+    commitAll(root);
+    writeRel(
+      root,
+      "greptile.json",
+      '{\n  "ignorePatterns": "dist/**\\n.deft/core/**",\n  "x": 2\n}\n',
+    );
+
+    const result = runSetup({ operation: "upgrade", from: "0.0.0", root });
+
+    expect(result.modified).toContain("greptile.json");
+    expect(git(root, ["diff", "--cached", "--name-only", "--", "greptile.json"])).toBe("");
+    expect(git(root, ["diff", "--cached", "--name-only", "--", CODEQL_REL]).trim()).toBe(
+      CODEQL_REL,
+    );
+  });
+
+  it("no .prettierignore: setup does not create one (AC13.3)", () => {
+    const root = committedProject();
+    runSetup({ operation: "install", from: "none", root });
+    expect(allFiles(root)).not.toContain(".prettierignore");
+  });
+
+  it("the inventory lists the managed LF block and the retired Prettier line", () => {
+    expect(inventoryEntry("gitattributes-managed-wiring-lf")?.disposition).toBe("retained");
+    expect(inventoryEntry("gitattributes-managed-wiring-lf")?.setupActivator).toBe(
+      "ensureManagedPathGitattributes",
+    );
+    expect(inventoryEntry("prettierignore-core-exclusion")?.disposition).toBe(
+      "na-retired-copy-model",
+    );
+    expect(inventoryEntry("prettierignore-hook-files")?.disposition).toBe("conditional");
   });
 });

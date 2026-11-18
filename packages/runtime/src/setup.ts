@@ -20,6 +20,11 @@ import {
 } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import { seedMinimalProjectDefinition } from "@deftai/directive-core/dist/init-deposit/init-deposit.js";
 import {
+  ensurePrettierIgnoreHookLine,
+  RETIRED_COPY_MODEL_LINE_FILES,
+  removeRetiredCopyModelLines,
+} from "@deftai/directive-core/dist/init-deposit/retired-copy-model-lines.js";
+import {
   buildOwnershipRecord,
   DIRECTIVE_GITIGNORE_LINES,
   fingerprintContent,
@@ -44,6 +49,7 @@ import {
   ensureTaskfileInclude,
   listSkillPointerPaths,
   listVerifiedManagedSlashCommandPaths,
+  pathHasUnstagedChanges,
   RUNTIME_PREFIX,
 } from "./setup-wiring.js";
 
@@ -190,6 +196,27 @@ function ensureGitignore(projectRoot: string): { created: boolean; modified: boo
   const suffix = existing.endsWith("\n") ? "" : "\n";
   writeContained(projectRoot, rel, `${existing}${suffix}${missing.join("\n")}\n`);
   return { created: false, modified: true };
+}
+
+/**
+ * Shared ignore/config files: remove the retired `.deft/core` lines from
+ * `.prettierignore`, `greptile.json` and the CodeQL config (AC8.10 / #5961),
+ * and add the hook-file line to an existing `.prettierignore` (AC13.3).
+ * `keepUnstaged` lists changed files that already had unstaged edits, so
+ * install/upgrade staging leaves the customer's own work alone.
+ */
+function refreshSharedLineFiles(projectRoot: string): {
+  modified: string[];
+  keepUnstaged: string[];
+} {
+  const dirty = RETIRED_COPY_MODEL_LINE_FILES.filter(
+    (rel) => existsSync(join(projectRoot, rel)) && pathHasUnstagedChanges(projectRoot, rel),
+  );
+  const modified = removeRetiredCopyModelLines(projectRoot);
+  if (ensurePrettierIgnoreHookLine(projectRoot) && !modified.includes(".prettierignore")) {
+    modified.push(".prettierignore");
+  }
+  return { modified, keepUnstaged: dirty.filter((rel) => modified.includes(rel)) };
 }
 
 function writeReadiness(
@@ -426,6 +453,9 @@ export function runSetup(options: {
 
     track(created, modified, ".gitignore", ensureGitignore(root));
 
+    const sharedLines = refreshSharedLineFiles(root);
+    modified.push(...sharedLines.modified);
+
     const agents = ensureAgentsManagedSection(root);
     track(created, modified, "AGENTS.md", agents);
     if (agents.conflict) {
@@ -512,7 +542,11 @@ export function runSetup(options: {
     // Still no auto-commit. Repair does not stage (seeds are install-only; upgrade stages
     // existing PD/lifecycle with refreshed wiring).
     if (conflicts.length === 0 && (operation === "install" || operation === "upgrade")) {
-      stageSetupManagedPaths(root, [...created, ...modified, ...removed]);
+      const keepUnstaged = new Set(sharedLines.keepUnstaged);
+      stageSetupManagedPaths(
+        root,
+        [...created, ...modified, ...removed].filter((rel) => !keepUnstaged.has(rel)),
+      );
     }
 
     if (conflicts.length > 0) {

@@ -14,7 +14,6 @@ import {
   agentsRefreshPlanWithInstalledTemplate,
   readAgentsTemplateFromContentTree,
 } from "../doctor/agents-md.js";
-import { isFrameworkSourceCheckoutAt } from "../doctor/paths.js";
 import {
   containedChmod,
   containedDestExec,
@@ -31,6 +30,10 @@ import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 import { CORE_GUARD_PIN_CONTENT_PYTHON } from "./core-guard-pin-content.js";
 import { assertInstallerAllowlistHonors1430, installerManagedGuardErePatterns } from "./hygiene.js";
+import {
+  isRetiredGitattributesLine,
+  RETIRED_COPY_MODEL_GITATTRIBUTES_LINES,
+} from "./retired-copy-model-lines.js";
 import { writeAgentsSkillsFromInventory } from "./skill-discovery-deposit.js";
 import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 
@@ -86,16 +89,10 @@ const VENDORED_TS_PACKAGES_REL = ".deft/core/packages";
 
 const VENDORED_TS_TEST_RE = /\.(test|spec)\.(c|m)?[jt]sx?$/i;
 
-/** Desired core attribute lines (#5245). `text=auto` keeps binary PNG bytes intact. */
-const CORE_GITATTRIBUTES_LINES = [
-  `${CORE_GLOB} text=auto eol=lf`,
-  `${CORE_GLOB} linguist-generated=true`,
-  `${CORE_GLOB} linguist-vendored=true`,
-];
-
 /**
- * Narrow LF pins for OVPR managed wiring paths (#5995).
- * Not a repo-wide `*` rewrite — only Directive-deposited host/command/hook/skill surfaces.
+ * Narrow LF pins for OVPR managed wiring paths (#5995). Not a repo-wide `*`
+ * rewrite: only Directive-deposited host/command/hook/skill surfaces. The
+ * hook-file lines are hash-free, so a new outer hash needs no edit (#6167).
  */
 export const MANAGED_WIRING_GITATTRIBUTES_LINES = [
   ".claude/commands/** text=auto eol=lf",
@@ -110,51 +107,32 @@ export const MANAGED_WIRING_GITATTRIBUTES_LINES = [
   ".githooks/** text=auto eol=lf",
   ".grok/hooks/** text=auto eol=lf",
   "AGENTS.md text=auto eol=lf",
+  ".claude/deft-hook-*.mjs text=auto eol=lf",
+  ".codex/deft-hook-*.mjs text=auto eol=lf",
+  ".cursor/hooks/deft-hook-*.mjs text=auto eol=lf",
 ] as const;
 
-/** All attribute lines ensureGitattributes deposits (core markers + #5995 managed wiring). */
-export const DESIRED_GITATTRIBUTES_LINES = [
-  ...CORE_GITATTRIBUTES_LINES,
-  ...MANAGED_WIRING_GITATTRIBUTES_LINES,
-] as const;
+/**
+ * Every attribute line ensureGitattributes deposits. The retired `.deft/core`
+ * lines are no longer written; setup strips them (#5961 / AC8.10).
+ */
+export const DESIRED_GITATTRIBUTES_LINES: readonly string[] = MANAGED_WIRING_GITATTRIBUTES_LINES;
 
 /** Exact legacy forced-text line removed on refresh (#5245 / #1430). */
 export const LEGACY_CORE_TEXT_EOL_LF = `${CORE_GLOB} text eol=lf` as const;
 
-/** Comment for the lines being appended in this write (#5463 / #5995). */
-export function gitattributesDepositComment(additions: readonly string[]): string {
-  const hasGenerated = additions.some((line) => line.includes("linguist-generated"));
-  const hasVendored = additions.some((line) => line.includes("linguist-vendored"));
-  if (hasGenerated && hasVendored) {
-    return (
-      "# Deft framework: the vendored payload is packaged framework code, not\n" +
-      "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
-      "# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n"
-    );
-  }
-  const hasCoreLine = additions.some((line) =>
-    (CORE_GITATTRIBUTES_LINES as readonly string[]).includes(line),
-  );
-  if (hasCoreLine) {
-    return (
-      "# Deft framework: the vendored payload is packaged framework code, not\n" +
-      "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
-      "# byte identity (#5245).\n"
-    );
-  }
-  const hasManagedWiring = additions.some((line) =>
-    (MANAGED_WIRING_GITATTRIBUTES_LINES as readonly string[]).includes(line),
-  );
-  if (hasManagedWiring) {
-    return (
-      "# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths\n" +
-      "# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).\n"
-    );
-  }
+/** Retired copied-layout attribute lines, still recognised so setup can remove them. */
+export const RETIRED_GITATTRIBUTES_LINES: readonly string[] =
+  RETIRED_COPY_MODEL_GITATTRIBUTES_LINES;
+
+/** Marker that starts the managed `.gitattributes` block (#5995). */
+export const MANAGED_WIRING_GITATTRIBUTES_MARKER = "# Deft managed wiring:";
+
+/** Header above the managed `.gitattributes` lines (#5463 / #5995). */
+export function gitattributesDepositComment(): string {
   return (
-    "# Deft framework: the vendored payload is packaged framework code, not\n" +
-    "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
-    "# byte identity (#5245).\n"
+    `${MANAGED_WIRING_GITATTRIBUTES_MARKER} pin Directive-deposited host/command/hook/skill paths\n` +
+    "# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).\n"
   );
 }
 
@@ -943,48 +921,62 @@ function coreGuardWorkflowContent(): string {
   );
 }
 
+/**
+ * Keep the managed `.gitattributes` block current (#5995): add missing managed
+ * LF lines, and remove the retired `.deft/core` lines and their comments
+ * (#5961 / AC8.10). Every other line stays as it is. Idempotent (AC8.2).
+ */
 export function ensureGitattributes(projectDir: string, io: InitDepositIo): boolean {
-  // The framework source repository (linked worktrees and dogfood deposits
-  // included) is not a consumer: never write the consumer block there (#6337).
-  if (isFrameworkSourceCheckoutAt(projectDir)) {
-    io.printf(".gitattributes: framework source checkout — consumer block not written.\n");
-    return false;
-  }
   const path = projectionTarget(projectDir, ".gitattributes");
   const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
-  const lines = existing.length > 0 ? existing.split("\n") : [];
-  // Targeted removal of legacy forced-text, independent of additions short-circuit (#5245).
-  const withoutLegacy = lines.filter((line) => line.trim() !== LEGACY_CORE_TEXT_EOL_LF);
-  const removedLegacy = withoutLegacy.length !== lines.length;
-  // Drop only the final empty Split artifact from a trailing newline; keep
+  const eol = existing.includes("\r\n") ? "\r\n" : "\n";
+  const lines = existing.length > 0 ? existing.replace(/\r\n/g, "\n").split("\n") : [];
+  // Drop only the final empty split artifact from a trailing newline; keep
   // consumer blank lines above it (#5463 Greptile P2).
-  if (withoutLegacy.length > 0 && withoutLegacy[withoutLegacy.length - 1] === "") {
-    withoutLegacy.pop();
-  }
-  const present = new Set(
-    withoutLegacy.map((line) => line.trim()).filter((line) => line.length > 0),
-  );
+  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  const kept = lines.filter((line) => !isRetiredGitattributesLine(line));
+  const removed = lines
+    .map((line) => line.trim())
+    .filter((line) => RETIRED_GITATTRIBUTES_LINES.includes(line));
+  const removedRetired = kept.length !== lines.length;
+
+  const managed = new Set<string>(MANAGED_WIRING_GITATTRIBUTES_LINES);
+  const present = new Set(kept.map((line) => line.trim()).filter((line) => line.length > 0));
   const additions = DESIRED_GITATTRIBUTES_LINES.filter((line) => !present.has(line));
-  if (additions.length === 0 && !removedLegacy) {
-    io.printf(`.gitattributes already marks ${CORE_GLOB} and managed wiring paths — skipping.\n`);
+  const header = gitattributesDepositComment().trimEnd().split("\n");
+  const hasHeader = kept.some((line) =>
+    line.trim().startsWith(MANAGED_WIRING_GITATTRIBUTES_MARKER),
+  );
+  const firstManaged = kept.findIndex((line) => managed.has(line.trim()));
+  const headerInserted = !hasHeader && firstManaged >= 0;
+  if (headerInserted) kept.splice(firstManaged, 0, ...header);
+
+  if (additions.length === 0 && !removedRetired && !headerInserted) {
+    io.printf(".gitattributes already marks the managed wiring paths — skipping.\n");
     return false;
   }
-  let body = withoutLegacy.join("\n");
-  if (body.length > 0) body += "\n";
   if (additions.length > 0) {
-    if (body && !body.endsWith("\n\n")) body += "\n";
-    body += gitattributesDepositComment(additions);
-    for (const add of additions) {
-      body += `${add}\n`;
+    let lastManaged = -1;
+    kept.forEach((line, i) => {
+      if (managed.has(line.trim())) lastManaged = i;
+    });
+    if (lastManaged >= 0) {
+      kept.splice(lastManaged + 1, 0, ...additions);
+    } else {
+      if (kept.length > 0 && (kept[kept.length - 1] ?? "").trim() !== "") kept.push("");
+      kept.push(...header, ...additions);
     }
-  } else if (removedLegacy && body && !body.endsWith("\n")) {
-    body += "\n";
   }
+  while (removedRetired && kept.length > 0 && (kept[kept.length - 1] ?? "").trim() === "") {
+    kept.pop();
+  }
+  const body = kept.length > 0 ? `${kept.join(eol)}${eol}` : "";
   containedProjectWrite(projectDir, path, body);
   const parts: string[] = [];
-  if (removedLegacy) parts.push(`removed ${LEGACY_CORE_TEXT_EOL_LF}`);
+  if (removed.length > 0) parts.push(`removed ${removed.join(", ")}`);
   if (additions.length > 0) parts.push(`added ${additions.join(", ")}`);
-  io.printf(`.gitattributes updated with Deft markers: ${parts.join("; ")}\n`);
+  if (parts.length === 0) parts.push("added the managed wiring header");
+  io.printf(`.gitattributes updated: ${parts.join("; ")}\n`);
   return true;
 }
 

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
@@ -196,11 +197,9 @@ describe("init-deposit scaffold", () => {
     await depositNeutralization(project, io);
 
     const attrsNeutral = readFileSync(join(project, ".gitattributes"), "utf8");
-    expect(attrsNeutral).toContain(".deft/core/** text=auto eol=lf");
+    // #5961: the shared constants no longer carry the retired .deft/core lines.
+    expect(attrsNeutral).not.toContain(".deft/core");
     expect(attrsNeutral).toContain(".claude/commands/** text=auto eol=lf");
-    expect(readFileSync(join(project, ".gitattributes"), "utf8")).not.toContain(
-      ".deft/core/** text eol=lf",
-    );
     expect(readFileSync(join(project, "greptile.json"), "utf8")).toContain(".deft/core/**");
     expect(readFileSync(join(project, ".github/codeql/codeql-config.yml"), "utf8")).toContain(
       "paths-ignore",
@@ -424,61 +423,116 @@ describe("init-deposit scaffold", () => {
     ).toContain("tag: 'v0.53.0'");
   });
 
-  it("repairs old .gitattributes entries with text=auto and removes legacy text eol=lf (#5245)", () => {
-    const project = freshRoot("scaffold-gitattributes-lf-");
+  /** The 19-line block setup appended before #5961 (core comment + core lines + managed lines). */
+  const OLD_BLOCK = [
+    "# Deft framework: the vendored payload is packaged framework code, not",
+    "# consumer source. text=auto + eol=lf normalizes text only; binaries keep",
+    "# byte identity. Mark generated + vendored (#1430, #2118, #5245).",
+    ".deft/core/** text=auto eol=lf",
+    ".deft/core/** linguist-generated=true",
+    ".deft/core/** linguist-vendored=true",
+    ".claude/commands/** text=auto eol=lf",
+    ".cursor/commands/** text=auto eol=lf",
+    ".grok/commands/** text=auto eol=lf",
+    ".codex/prompts/** text=auto eol=lf",
+    ".agents/skills/** text=auto eol=lf",
+    ".claude/skills/** text=auto eol=lf",
+    ".cursor/skills/** text=auto eol=lf",
+    ".codex/skills/** text=auto eol=lf",
+    ".github/skills/** text=auto eol=lf",
+    ".githooks/** text=auto eol=lf",
+    ".grok/hooks/** text=auto eol=lf",
+    "AGENTS.md text=auto eol=lf",
+  ];
+
+  it("fresh write has the managed header and lines and no .deft/core (#5961)", () => {
+    const project = freshRoot("scaffold-gitattributes-fresh-");
     const { io } = captureIo();
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect(attrs).toBe(
+      `${gitattributesDepositComment()}${MANAGED_WIRING_GITATTRIBUTES_LINES.join("\n")}\n`,
+    );
+    expect(attrs).not.toContain(".deft/core");
+    expect(ensureGitattributes(project, io)).toBe(false);
+  });
+
+  it("strips the old block to the managed header and lines, keeping customer lines (#5961)", () => {
+    const project = freshRoot("scaffold-gitattributes-strip-");
+    const { io, lines } = captureIo();
+    const customer = "* text=auto\n*.png binary\n";
     writeFileSync(
       join(project, ".gitattributes"),
-      ".deft/core/** text eol=lf\n.deft/core/** linguist-generated=true\n.deft/core/** linguist-vendored=true\n# consumer fixture\n*.md text\n",
+      `${customer}\n${OLD_BLOCK.join("\n")}\n`,
       "utf8",
     );
 
     expect(ensureGitattributes(project, io)).toBe(true);
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
-    expect(attrs).toContain(".deft/core/** text=auto eol=lf");
-    expect((attrs.match(/\.deft\/core\/\*\* text eol=lf/g) ?? []).length).toBe(0);
-    expect(attrs).toContain(".claude/commands/** text=auto eol=lf");
-    expect((attrs.match(/\.deft\/core\/\*\* text=auto eol=lf/g) ?? []).length).toBe(1);
-    expect(attrs.match(/linguist-generated=true/g) ?? []).toHaveLength(1);
-    expect(attrs.match(/linguist-vendored=true/g) ?? []).toHaveLength(1);
-    expect(attrs).toContain("*.md text");
+    expect(attrs).toBe(
+      `${customer}\n${gitattributesDepositComment()}${MANAGED_WIRING_GITATTRIBUTES_LINES.join("\n")}\n`,
+    );
+    expect(lines.join("")).toContain("removed .deft/core/** text=auto eol=lf");
+    // Second run is a no-op (AC8.2).
+    expect(ensureGitattributes(project, io)).toBe(false);
+    expect(readFileSync(join(project, ".gitattributes"), "utf8")).toBe(attrs);
   });
 
-  it("removes legacy text eol=lf even when desired lines already present (#5245)", () => {
-    const project = freshRoot("scaffold-gitattributes-legacy-only-");
-    const { io, lines } = captureIo();
+  it("removes the legacy forced-text line and older comment forms (#5245 / #5961)", () => {
+    const project = freshRoot("scaffold-gitattributes-legacy-");
+    const { io } = captureIo();
     writeFileSync(
       join(project, ".gitattributes"),
       [
+        "# consumer fixture",
+        "*.md text",
+        "# Deft framework: the vendored payload is packaged framework code, not",
+        "# consumer source. text=auto + eol=lf normalizes text only; binaries keep",
+        "# byte identity (#5245).",
         ".deft/core/** text eol=lf",
-        ".deft/core/** text=auto eol=lf",
         ".deft/core/** linguist-generated=true",
-        ".deft/core/** linguist-vendored=true",
         "",
       ].join("\n"),
       "utf8",
     );
     expect(ensureGitattributes(project, io)).toBe(true);
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
-    expect((attrs.match(/\.deft\/core\/\*\* text eol=lf/g) ?? []).length).toBe(0);
-    expect((attrs.match(/\.deft\/core\/\*\* text=auto eol=lf/g) ?? []).length).toBe(1);
-    expect(attrs).toContain(".claude/commands/** text=auto eol=lf");
-    expect(lines.join("")).not.toMatch(/skipping/);
+    expect(attrs.startsWith("# consumer fixture\n*.md text\n")).toBe(true);
+    expect(attrs).not.toContain(".deft/core");
+    expect(attrs).not.toContain("Deft framework");
+    expect(attrs).not.toContain("byte identity");
   });
 
-  it("comment claims generated+vendored only when those lines are in the same write (#5463)", () => {
-    const project = freshRoot("scaffold-gitattributes-comment-");
+  it("adds missing managed lines inside the existing managed block (#6167)", () => {
+    const project = freshRoot("scaffold-gitattributes-extend-");
     const { io } = captureIo();
+    const older = MANAGED_WIRING_GITATTRIBUTES_LINES.filter((l) => !l.includes("deft-hook-"));
     writeFileSync(
       join(project, ".gitattributes"),
-      ".deft/core/** linguist-generated=true\n.deft/core/** linguist-vendored=true\n",
+      `${gitattributesDepositComment()}${older.join("\n")}\n\n# customer tail\n*.go diff=golang\n`,
       "utf8",
     );
     expect(ensureGitattributes(project, io)).toBe(true);
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
-    expect(attrs).toContain(".deft/core/** text=auto eol=lf");
-    expect(attrs).not.toContain("Mark generated + vendored");
-    expect(attrs).toContain("# byte identity (#5245).");
+    expect(attrs.endsWith("\n\n# customer tail\n*.go diff=golang\n")).toBe(true);
+    for (const host of [".claude/", ".codex/", ".cursor/hooks/"]) {
+      expect(attrs).toContain(`${host}deft-hook-*.mjs text=auto eol=lf`);
+    }
+    expect(attrs.match(/# Deft managed wiring:/g) ?? []).toHaveLength(1);
+  });
+
+  it("keeps CRLF line endings when the file uses them", () => {
+    const project = freshRoot("scaffold-gitattributes-crlf-");
+    const { io } = captureIo();
+    writeFileSync(
+      join(project, ".gitattributes"),
+      "*.md text\r\n.deft/core/** text eol=lf\r\n",
+      "utf8",
+    );
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect(attrs.startsWith("*.md text\r\n")).toBe(true);
+    expect(attrs.replace(/\r\n/g, "")).not.toContain("\n");
   });
 
   it("preserves consumer trailing blank lines when augmenting (#5463)", () => {
@@ -491,48 +545,23 @@ describe("init-deposit scaffold", () => {
     expect(attrs.startsWith(pre)).toBe(true);
   });
 
-  it("deposits narrow managed wiring LF pins (#5995)", () => {
-    const project = freshRoot("scaffold-gitattributes-managed-");
+  it("an LF rule covers every host hook outer for any hash (#6167)", () => {
+    const project = freshRoot("scaffold-gitattributes-check-attr-");
     const { io } = captureIo();
-    // Pre-seed core markers so this write is managed-wiring-only (comment path).
-    writeFileSync(
-      join(project, ".gitattributes"),
-      [
-        ".deft/core/** text=auto eol=lf",
-        ".deft/core/** linguist-generated=true",
-        ".deft/core/** linguist-vendored=true",
-        "",
-      ].join("\n"),
-      "utf8",
-    );
-    expect(ensureGitattributes(project, io)).toBe(true);
-    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
-    for (const line of MANAGED_WIRING_GITATTRIBUTES_LINES) {
-      expect(attrs).toContain(line);
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    ensureGitattributes(project, io);
+    for (const rel of [
+      ".claude/deft-hook-0a1b2c3d.mjs",
+      ".codex/deft-hook-12345678.mjs",
+      ".cursor/hooks/deft-hook-deadbeef.mjs",
+      ".grok/hooks/deft-hook-cafef00d.mjs",
+    ]) {
+      const out = execFileSync("git", ["check-attr", "eol", "--", rel], {
+        cwd: project,
+        encoding: "utf8",
+      });
+      expect(out.trim()).toBe(`${rel}: eol: lf`);
     }
-    expect(attrs).toContain("#5995");
-    // Idempotent: second call skips.
-    expect(ensureGitattributes(project, io)).toBe(false);
-  });
-
-  it("full greenfield write claims generated+vendored with linguist markers (#5463)", () => {
-    const project = freshRoot("scaffold-gitattributes-full-");
-    const { io } = captureIo();
-    expect(ensureGitattributes(project, io)).toBe(true);
-    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
-    expect(attrs).toContain("Mark generated + vendored");
-    expect(attrs).toContain("linguist-generated=true");
-    expect(attrs).toContain("linguist-vendored=true");
-    expect(gitattributesDepositComment([".deft/core/** text=auto eol=lf"])).not.toContain(
-      "Mark generated + vendored",
-    );
-    expect(
-      gitattributesDepositComment([
-        ".deft/core/** text=auto eol=lf",
-        ".deft/core/** linguist-generated=true",
-        ".deft/core/** linguist-vendored=true",
-      ]),
-    ).toContain("Mark generated + vendored");
   });
 
   it("prunes framework self-tests and vendored TS test files", async () => {
