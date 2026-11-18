@@ -1647,7 +1647,32 @@ function evaluateWithRunner(
       }
     }
 
+    // Allowance budget (#6221): the merge-base brief's concrete production count,
+    // the same count the write fence and the Path-independent check use. A read
+    // or parse failure leaves it unset here; the path fence below reports it.
+    let membershipAllowanceScope: readonly string[] | undefined;
+    if (modified) {
+      const allowanceRead = resolveMergeBaseBriefRead(
+        rel,
+        continuity,
+        readAtBase,
+        headLifecycleRels,
+      ).read;
+      if (allowanceRead.kind === "text") {
+        try {
+          membershipAllowanceScope = normalizeFileScope(
+            extractFileScope(JSON.parse(allowanceRead.text) as unknown),
+          );
+        } catch {
+          membershipAllowanceScope = undefined;
+        }
+      }
+    }
+
     const membershipInput = {
+      ...(membershipAllowanceScope !== undefined
+        ? { allowanceScope: membershipAllowanceScope }
+        : {}),
       xbriefRelPath: rel,
       planId: planId ?? rel,
       xbriefModifiedInChangeSet: modified,

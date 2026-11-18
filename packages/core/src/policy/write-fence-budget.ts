@@ -112,7 +112,8 @@ export interface ResolveStoryWriteAllowInput {
 }
 
 function normalizeRel(raw: string): string {
-  return raw.replace(/\\/g, "/").replace(/^\.\//, "").trim();
+  // No trim: a POSIX name may end in whitespace and is a different path from the trimmed one.
+  return raw.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
 /** Every git call here passes `-z`, so NUL is the only separator (a name may hold a newline). */

@@ -4,6 +4,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadRefusalDeclarations } from "../refusal-declarations/table.js";
+import {
+  evaluateApprovedScopeMembership,
+  evaluateProductionScopeFence,
+} from "../scope-provenance/base-fence.js";
 import { buildApprovedScopeRecord } from "../scope-provenance/digest.js";
 import type { StoryWriteFenceView } from "./write-fence.js";
 import { resolveStoryWriteAllow, type WriteFenceGit } from "./write-fence-budget.js";
@@ -283,6 +287,72 @@ describe("resolveStoryWriteAllow (#6221)", () => {
     const other = run("xbrief/active/other.xbrief.json");
     expect(other.kind).toBe("scope");
     if (other.kind === "scope") expect(other.assessment).not.toBeNull();
+  });
+
+  it("keeps a target ending in whitespace distinct from the trimmed declared path", () => {
+    const fake: WriteFenceGit = () => ({ code: 1, stdout: "" });
+    const d = resolveStoryWriteAllow({
+      projectRoot: ".",
+      fence: fence("abc", ["packages/core/src/a.ts"]),
+      targets: ["packages/core/src/a.ts "],
+      git: (root, args) => (args[0] === "cat-file" ? fake(root, args) : { code: 0, stdout: "" }),
+    });
+    expect(d.kind).toBe("scope");
+    if (d.kind !== "scope") return;
+    // Not the declared a.ts: it is an extra and spends the allowance.
+    expect(d.assessment).not.toBeNull();
+    expect(d.assessment?.spent).toEqual(["packages/core/src/a.ts "]);
+  });
+
+  it("write fence, membership and the Path-independent check grant one budget under a mint (#6221)", () => {
+    const brief = [1, 2, 3, 4, 5].map((n) => `packages/core/src/p${String(n)}.ts`);
+    const tests = ["tests/t1.test.ts", "tests/t2.test.ts", "tests/t3.test.ts"];
+    const mintScope = ["packages/core/src/**"];
+    const record = `${JSON.stringify(
+      buildApprovedScopeRecord({
+        xbriefRelPath: "xbrief/active/story-1.xbrief.json",
+        payload: { plan: { id: "story-1", metadata: { swarm: { file_scope: mintScope } } } },
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
+      }),
+    )}\n`;
+    const base: Record<string, string> = {
+      ".deft/approved-scope/story-1.json": record,
+      ...Object.fromEntries(tests.map((t) => [t, "old\n"])),
+    };
+    const { root, sha } = repo(base);
+    for (const t of tests) write(root, t, "new\n");
+    const write3 = resolveStoryWriteAllow({
+      projectRoot: root,
+      fence: fence(sha, brief),
+      targets: tests,
+    });
+    // Five concrete production paths in the brief: allowance 5, three modifies fit.
+    expect(write3.kind).toBe("scope");
+    if (write3.kind === "scope") expect(write3.assessment?.allowance).toBe(5);
+    const changeKind = () => "modify" as const;
+    const pathIndependent = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story-1.xbrief.json",
+      planId: "story-1",
+      baseFileScope: brief,
+      mintFileScope: mintScope,
+      changedFiles: tests,
+      changeKind,
+    });
+    expect(pathIndependent).toBeNull();
+    const membershipInput = {
+      xbriefRelPath: "xbrief/active/story-1.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: mintScope,
+      allowlistAuthority: "mint" as const,
+      changedFiles: ["xbrief/active/story-1.xbrief.json", ...tests],
+      changeKind,
+    };
+    // Without the merge-base brief the mint alone counts zero concrete paths (allowance 2).
+    expect(evaluateApprovedScopeMembership(membershipInput)).not.toBeNull();
+    expect(
+      evaluateApprovedScopeMembership({ ...membershipInput, allowanceScope: brief }),
+    ).toBeNull();
   });
 
   it("rejects a same-leaf mint in a different directory, as the PR check does", () => {

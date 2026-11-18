@@ -324,6 +324,12 @@ export interface ApprovedScopeMembershipInput {
   readonly emptyAllowlistAuthoritative?: boolean;
   /** Change kind of a path against the base (#6221); absent means unknown. */
   readonly changeKind?: (relPath: string) => ExtraPathChangeKind | null;
+  /**
+   * Merge-base brief file_scope whose concrete production count sets the
+   * allowance, so membership grants the same budget as the write fence and
+   * the Path-independent check. Absent or empty: the declared allowlist counts.
+   */
+  readonly allowanceScope?: readonly string[];
   /** Receives the shared assessment for the success report (#6221 P4). */
   readonly onAssessment?: (assessment: ExtraPathAssessment) => void;
 }
@@ -491,7 +497,12 @@ export function evaluateApprovedScopeMembership(
   // a path on the base spend one allowance; other-class paths must match.
   const assessment = assessExtraPaths({
     allowlist: [...ownAllow, ...peerAllow],
-    allowanceScope: ownAllow,
+    // Same budget as the write fence and the Path-independent check: the
+    // merge-base brief's concrete production count, not the mint's (#6221).
+    allowanceScope:
+      input.allowanceScope !== undefined && input.allowanceScope.length > 0
+        ? normalizeFileScope(input.allowanceScope)
+        : ownAllow,
     authority: authority === "mint" ? "mint" : "concrete",
     changedPaths: input.changedFiles,
     ...(input.changeKind !== undefined ? { changeKind: input.changeKind } : {}),
