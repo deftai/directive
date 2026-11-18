@@ -23,6 +23,7 @@ const {
   isCheckoutOwnedDir,
   movePath,
   materialize,
+  buildTipTarball,
   extractTarball,
   tarCommand,
   resolveSwapTarget,
@@ -112,6 +113,17 @@ describe("materialize isolation (#5805 P4)", () => {
     assert.equal(existsSync(join(root, LOCK_REL)), false);
     const lock = acquireLock(root);
     releaseLock(lock);
+  });
+
+  it("a failed tip build removes its temporary stage and pack folders", () => {
+    const root = tempRoot();
+    const scripts = join(root, "packages", "runtime", "scripts");
+    mkdirSync(scripts, { recursive: true });
+    writeFileSync(join(scripts, "stage-bundle.mjs"), "process.stderr.write('stage broke'); process.exit(1);\n");
+    writeFileSync(join(scripts, "pack-staged-runtime.mjs"), "process.exit(0);\n");
+    const tmpBase = tempRoot();
+    assert.throws(() => buildTipTarball(root, tmpBase), /stage-bundle\.mjs failed \(exit 1\): stage broke/);
+    assert.deepEqual(require("node:fs").readdirSync(tmpBase), []);
   });
 });
 

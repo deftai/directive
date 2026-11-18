@@ -1114,8 +1114,9 @@ function commonFolder(paths: readonly string[]): string {
 }
 
 /**
- * Complete "Review and commit" list (AC5.16 / #6006): every created, modified, migrated
- * and archived path, with the headline files first. A top-level folder with more than a
+ * Complete "Review and commit" list (AC5.16 / #6006): every created, modified, removed,
+ * migrated and archived path, with the headline files first. Removed paths are listed
+ * too, so the deletions (for example an old `.deft/core`) get committed with the rest. A top-level folder with more than a
  * few changed files prints as one line (`.agents/skills/ (12 files)`), so nothing is
  * hidden and skill folders stay short. `skip` holds paths the caller already printed.
  */
@@ -1130,6 +1131,7 @@ export function collectReviewPaths(
     for (const raw of [
       ...summary.created,
       ...summary.modified,
+      ...(summary.removed ?? []),
       ...(summary.migrated ?? []),
       ...(summary.archived ?? []),
     ]) {
