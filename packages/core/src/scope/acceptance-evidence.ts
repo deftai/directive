@@ -404,6 +404,10 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
  * no declaration hides a text-inferred axis.
  */
 export function inferHiddenStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
+  // No string declaration: the as-written axes are the text axes, so none hide.
+  if (!readExplicitAcceptanceRequirementFields(item).some((raw) => typeof raw === "string")) {
+    return [];
+  }
   const written = inferRequiredStrictAxes(item);
   return inferTextStrictAxes(item).filter((axis) => !written.includes(axis));
 }

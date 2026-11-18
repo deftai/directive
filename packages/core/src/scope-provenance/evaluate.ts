@@ -45,6 +45,10 @@
  *
  * Intent-pin checks (#3385) remain for existing base-committed records.
  *
+ * Declaration hides an axis (#6591): for a modified brief whose fence-resolved
+ * merge-base copy is active, one warn line per item whose changed declaration
+ * newly hides a strict axis (declaration-hides-axis.ts). No finding.
+ *
  * Three-state exit: 0 clean / 1 fence violation / 2 config.
  */
 
@@ -1933,16 +1937,17 @@ function evaluateWithRunner(
     }
 
     // #6591: a declaration changed after activation that hides a strict axis.
-    // Own pre-move read (evaluateLegacyIntent stays on the head path); warn
-    // line on the extra-path channel, never a finding or an exit-code change.
+    // Compares with the path fence's resolveMergeBaseBriefRead copy (pre-move
+    // for completed/ and cancelled/); evaluateLegacyIntent keeps its head-path
+    // read. Warn line on the extra-path channel, never a finding or an exit-code
+    // change.
     if (modified) {
-      const hides = resolveMergeBaseBriefRead(rel, continuity, readAtBase, headLifecycleRels);
       extraPathReport.push(
         ...declarationHidesAxisLines({
           headRel: rel,
           headPayload: payload,
-          baseRel: hides.baseRel,
-          baseRead: hides.read,
+          baseRel: fenceBaseRel,
+          baseRead: baseBriefRead,
         }),
       );
     }

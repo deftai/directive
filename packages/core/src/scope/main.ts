@@ -9,7 +9,7 @@ import { releaseWorkClaimForBrief } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { interceptHelp } from "../triage/help/index.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
-import { strictAxisAdvisoryLines } from "./acceptance-evidence.js";
+import { type StrictAxisAdvisoryVerb, strictAxisAdvisoryLines } from "./acceptance-evidence.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
 import { BIND_CLAUSE_ACTION, bindClauseOnBrief } from "./bind-clause.js";
@@ -97,7 +97,10 @@ export interface UndoArgs {
  * or malformed brief yields no lines. Never changes an exit code. The verb
  * picks the last line (#6591).
  */
-function briefStrictAxisAdvisory(path: string, verb: "scope:promote" | "scope:activate"): string[] {
+function briefStrictAxisAdvisory(
+  path: string,
+  verb: Exclude<StrictAxisAdvisoryVerb, "xbrief:preflight">,
+): string[] {
   try {
     return strictAxisAdvisoryLines(JSON.parse(readFileSync(path, "utf8")) as unknown, verb);
   } catch {
