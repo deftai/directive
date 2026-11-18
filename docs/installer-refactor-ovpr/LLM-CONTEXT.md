@@ -29,7 +29,7 @@ Those re-litigations burn context, spawn duplicate mega-specs (class: #5956), an
 
 | Rank | Artifact | Role |
 | --- | --- | --- |
-| 1 | [`install-ovpr-requirements.md`](./install-ovpr-requirements.md) (rev **v261027**) | **Normative product SoT** for install/upgrade/uninstall/repair/doctor/hook-deposit/entry guards |
+| 1 | [`install-ovpr-requirements.md`](./install-ovpr-requirements.md) (revs **v261118**, **v261027**) | **Normative product SoT** for install/upgrade/uninstall/repair/doctor/hook-deposit/entry guards |
 | 2 | [`install-ovpr-architecture.md`](./install-ovpr-architecture.md) (same rev tags) | Compact shape (packages, verbs, host-hook outer map) |
 | 3 | [`install-ovpr-human-test-plan.md`](./install-ovpr-human-test-plan.md) | HT cases; does not waive ACs |
 | 4 | [`LLM-CONTEXT.md`](./LLM-CONTEXT.md) (this file) | AI harness primer / ownership boundary / anti-rathole — **not ACs** |
