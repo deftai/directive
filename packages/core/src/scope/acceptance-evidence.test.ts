@@ -48,6 +48,7 @@ import {
   readNamespacedAcceptanceFields,
   restoreGrantedDispositionOriginals,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
+  type StrictAcceptanceAxis,
   stampDeclaredMergeEvidence,
   stampDeclaredTestEvidence,
   stampMatchAnyFileEvidence,
@@ -305,6 +306,86 @@ describe("strict axes match prose, not identifiers (#6270)", () => {
       items: [withEvidence({ title: "Smoke/UAT must pass", status: "pending" })],
     });
     expect(slashList.ok).toBe(false);
+  });
+});
+
+describe("strict axes keep matching inside code spans and fences (#6301)", () => {
+  const axes = (title: string) => inferRequiredStrictAxes({ title });
+  const FENCE = "```";
+  const lines = (...rows: string[]): string => rows.join("\n");
+
+  it("clause 2: a code-span claim keeps its axis", () => {
+    const claims: ReadonlyArray<readonly [string, StrictAcceptanceAxis]> = [
+      ["`npm run deploy` succeeds", "deploy"],
+      ["`vercel deploy --prod` succeeds", "deploy"],
+      ["`Deploy to staging` and confirm the site serves the new build", "deploy"],
+      ["the `deploy` job ran against staging and the site serves the new build", "deploy"],
+      ["`pnpm smoke` passes on staging", "smoke"],
+      ["`playwright test --grep smoke` passes against staging", "smoke"],
+      ["requires `smoke` evidence; the lint job is green", "smoke"],
+      ["record `uat` evidence from the staging walkthrough; update the workflow", "uat"],
+    ];
+    for (const [clause, axis] of claims) {
+      expect(axes(clause), clause).toEqual([axis]);
+    }
+  });
+
+  it("clause 3: a fenced deploy command keeps deploy, with and without a blockquote prefix", () => {
+    for (const body of ["npm run deploy -- --env staging", "flyctl deploy --app api-staging"]) {
+      for (const prefix of ["", "> "]) {
+        const block = lines(prefix + FENCE, prefix + body, prefix + FENCE);
+        expect(axes(block), block).toEqual(["deploy"]);
+      }
+    }
+  });
+
+  it("clause 4: an unclosed delimiter keeps the axis of later text", () => {
+    for (const opener of [FENCE, "~~~"]) {
+      expect(axes(lines(opener, "echo example", "smoke test passes"))).toEqual(["smoke"]);
+    }
+    expect(axes("Escape the ` character in titles; smoke tests pass on staging.")).toEqual([
+      "smoke",
+    ]);
+    expect(
+      inferRequiredStrictAxes({
+        title: "Fix the ` escaping bug",
+        narrative: { Acceptance: "Deploy to prod; then run `x` again" },
+      }),
+    ).toEqual(["deploy"]);
+    expect(
+      inferRequiredStrictAxes({
+        title: "Document the example",
+        narrative: {
+          Description: lines("Example:", FENCE, "ok"),
+          Test: "Smoke tests pass on staging",
+        },
+      }),
+    ).toEqual(["smoke"]);
+  });
+
+  it("clause 5: wrapping a prose claim in backticks changes neither the axes nor the listing", () => {
+    const prose = "Deploy to staging and run the smoke test";
+    const wrapped = "`Deploy to staging` and `run the smoke test`";
+    expect(axes(prose)).toEqual(["smoke", "deploy"]);
+    expect(axes(wrapped)).toEqual(axes(prose));
+    const row = (title: string) =>
+      listStrictAxisRequirements({ items: [{ id: "clause.1", title, status: "pending" }] });
+    expect(row(prose)).toEqual([
+      { path: "plan.items[0]", id: "clause.1", axes: ["smoke", "deploy"] },
+    ]);
+    expect(row(wrapped)).toEqual(row(prose));
+    // The gate still refuses test evidence, so backticks are not a silent waiver.
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ title: wrapped, status: "pending" })],
+    });
+    expect(gate.ok).toBe(false);
+  });
+
+  it("clause 6: observed_behavior matches on the same raw text, fences included", () => {
+    expect(axes(lines(FENCE, "check observed_behavior after deploy", FENCE))).toEqual([
+      "observed_behavior",
+      "deploy",
+    ]);
   });
 });
 

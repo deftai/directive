@@ -362,6 +362,13 @@ export function isAcceptanceDispositionKind(value: unknown): value is Acceptance
  * Merge-only declaration short-circuits free-text to [] (#5105). When merge AND a
  * strict axis are both declared (e.g. requires=merge + acceptanceAxis=smoke), keep
  * the strict axis — do not hide it behind the merge short-circuit (Greptile P1).
+ *
+ * Code formatting is not a name signal (#6301). Deploy, smoke and UAT also match
+ * inside code spans and fenced blocks, because the same formatting holds real
+ * claims ("`npm run deploy` succeeds") as well as names ("the `deploy` job").
+ * No strip or filter runs on code. To clear an axis that a clause only names,
+ * reword the clause or declare x-directive/requires on the item (merge, or the
+ * one axis the clause does need).
  */
 export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
   let sawMerge = false;
