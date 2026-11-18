@@ -27,7 +27,7 @@ import {
   isHumanApprovalStamp,
   normalizeFileScope,
 } from "../scope-provenance/digest.js";
-import { parseApprovedScopeRecordRaw } from "../scope-provenance/evaluate.js";
+import { basenameMintPathOk, parseApprovedScopeRecordRaw } from "../scope-provenance/evaluate.js";
 import {
   assessExtraPaths,
   classifyExtraPath,
@@ -98,9 +98,10 @@ function normalizeRel(raw: string): string {
   return raw.replace(/\\/g, "/").replace(/^\.\//, "").trim();
 }
 
+/** Every git call here passes `-z`, so NUL is the only separator (a name may hold a newline). */
 function linesOf(stdout: string): string[] {
   return stdout
-    .split(/\0|\r?\n/)
+    .split("\0")
     .map((line) => normalizeRel(line))
     .filter((line) => line.length > 0);
 }
@@ -156,16 +157,10 @@ function resolveAuthority(
       reason: `merge-base mint at ${rel} is invalid for ${planId}; fail closed (#6221 / #5192)`,
     };
   }
-  // A basename-keyed mint counts only for this brief or its same-name lifecycle move.
-  if (!hasPlanId) {
-    const mintLeaf = String(parsed.xbriefRelPath ?? "")
-      .replace(/\\/g, "/")
-      .split("/")
-      .pop();
-    const briefLeaf = (fence.briefRel ?? "").split("/").pop();
-    if (mintLeaf !== briefLeaf) {
-      return { kind: "ok", authority: "concrete", allowlist: brief };
-    }
+  // A basename-keyed mint counts only for this brief's own path or its
+  // lifecycle move: the same rule the PR check applies (basenameMintPathOk).
+  if (!hasPlanId && !basenameMintPathOk(String(parsed.xbriefRelPath ?? ""), fence.briefRel ?? "")) {
+    return { kind: "ok", authority: "concrete", allowlist: brief };
   }
   return {
     kind: "ok",

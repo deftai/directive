@@ -249,7 +249,7 @@ describe("resolveStoryWriteAllow (#6221)", () => {
           humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
         }),
       )}\n`;
-    const run = (xbriefRelPath: string) => {
+    const run = (xbriefRelPath: string, briefRel = "xbrief/active/story.xbrief.json") => {
       const { root, sha } = repo({
         ...BASE,
         ".deft/approved-scope/story.json": mint(xbriefRelPath),
@@ -260,7 +260,7 @@ describe("resolveStoryWriteAllow (#6221)", () => {
           fileScope: ["packages/core/src/a.ts", "packages/core/src/sub/**"],
           denyPaths: [],
           mergeBaseSha: sha,
-          briefRel: "xbrief/active/story.xbrief.json",
+          briefRel,
         },
         targets: ["packages/core/src/sub/k.ts"],
       });
@@ -270,6 +270,55 @@ describe("resolveStoryWriteAllow (#6221)", () => {
     const other = run("xbrief/active/other.xbrief.json");
     expect(other.kind).toBe("scope");
     if (other.kind === "scope") expect(other.assessment).not.toBeNull();
+  });
+
+  it("rejects a same-leaf mint in a different directory, as the PR check does", () => {
+    const mint = `${JSON.stringify(
+      buildApprovedScopeRecord({
+        xbriefRelPath: "elsewhere/story.xbrief.json",
+        payload: {
+          plan: { id: "story", metadata: { swarm: { file_scope: ["packages/core/src/**"] } } },
+        },
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
+      }),
+    )}\n`;
+    const { root, sha } = repo({ ...BASE, ".deft/approved-scope/story.json": mint });
+    const d = resolveStoryWriteAllow({
+      projectRoot: root,
+      fence: {
+        fileScope: ["packages/core/src/a.ts", "packages/core/src/sub/**"],
+        denyPaths: [],
+        mergeBaseSha: sha,
+        briefRel: "xbrief/active/story.xbrief.json",
+      },
+      targets: ["packages/core/src/sub/k.ts"],
+    });
+    expect(d.kind).toBe("scope");
+    if (d.kind === "scope") expect(d.assessment).not.toBeNull();
+  });
+
+  it("honors a pre-move mint path when the brief moved to completed (lifecycle move)", () => {
+    const mint = `${JSON.stringify(
+      buildApprovedScopeRecord({
+        xbriefRelPath: "xbrief/active/story.xbrief.json",
+        payload: {
+          plan: { id: "story", metadata: { swarm: { file_scope: ["packages/core/src/**"] } } },
+        },
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
+      }),
+    )}\n`;
+    const { root, sha } = repo({ ...BASE, ".deft/approved-scope/story.json": mint });
+    const d = resolveStoryWriteAllow({
+      projectRoot: root,
+      fence: {
+        fileScope: ["packages/core/src/a.ts", "packages/core/src/sub/**"],
+        denyPaths: [],
+        mergeBaseSha: sha,
+        briefRel: "xbrief/completed/story.xbrief.json",
+      },
+      targets: ["packages/core/src/sub/k.ts"],
+    });
+    expect(d).toMatchObject({ kind: "scope", assessment: null });
   });
 
   it("uses the merge-base mint with globs, intersected with the brief", () => {

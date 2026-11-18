@@ -1,0 +1,2 @@
+section: Changed
+- Hooks: a repository can name its merge-gate check in `plan.policy.mergeGateContext`. When GitHub's copy of that name at the delivery-branch head matches and the branch lists the check as required, five local refusals warn instead of refuse (stale ritual, not-ready scope without a binding refusal, missing positive `file_scope` allow, commit staged paths outside `file_scope`, direct write outside the story `file_scope`); a later check can still refuse. Everything else, and any repository without the live signal, refuses as before (#6535, #5920).

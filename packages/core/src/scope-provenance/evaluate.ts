@@ -653,6 +653,19 @@ function listHeadLifecycleRels(input: {
 }
 
 /**
+ * Whether a basename-keyed mint's `xbriefRelPath` may govern the head brief:
+ * the exact same path, or the same leaf in another lifecycle folder (a
+ * lifecycle move keeps the leaf; the mint may still name the pre-move folder).
+ * One rule for the PR check and the write fence (#6221 / #5192).
+ */
+export function basenameMintPathOk(mintRel: string, headPath: string): boolean {
+  const mintN = normalizeRepoRelPath(mintRel);
+  const headN = normalizeRepoRelPath(headPath);
+  if (mintN === headN) return true;
+  return sameBasenameLifecyclePaths(headN).includes(mintN);
+}
+
+/**
  * Parse + lightly validate an approved-scope JSON blob (base-ref `git show` or disk).
  * Returns null when schema fields required for authorization are missing/malformed.
  */
@@ -1427,15 +1440,6 @@ function evaluateWithRunner(
         return { kind: "invalid", detail: `mint planId mismatch at ${approvalRel}` };
       }
       return { kind: "mint", fileScope: normalizeFileScope(parsed.fileScope) };
-    };
-
-    const basenameMintPathOk = (mintRel: string, headPath: string): boolean => {
-      const mintN = normalizeRepoRelPath(mintRel);
-      const headN = normalizeRepoRelPath(headPath);
-      if (mintN === headN) return true;
-      // Lifecycle moves keep the leaf name; mint xbriefRelPath may still be the
-      // pre-move folder (active/pending) while head is completed/cancelled.
-      return sameBasenameLifecyclePaths(headN).includes(mintN);
     };
 
     const lookupBasenameMint = (headPath: string): MintLookup => {

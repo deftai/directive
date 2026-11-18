@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6275",
-    "updated": "2026-11-17T15:59:00Z"
+    "updated": "2026-11-17T21:31:38Z"
   },
   "plan": {
     "title": "feat(escalation): notify the operator when a worker stops on an operator-only step",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "When a worker stops on a step only the operator can do, such as a mint or a hook deny that needs a human grant, nothing tells the operator, and stops sat 17 to 26 minutes before anyone noticed them on a consumer project. The escalation queue exists, but nothing records these stops automatically and nothing delivers them. This story records each operator-only stop with the exact command and, when the operator turns it on, sends one desktop notification that lists every waiting step.",
       "UserStory": "As an operator running agents, I want a desktop notification with the exact command when a worker stops on a step only I can do, so that stops do not sit unnoticed.",
@@ -19,34 +19,62 @@
     "items": [
       {
         "title": "Add one core helper that records an operator-only stop through `fileEscalation`, and only when `operatorNotify` is not `off` (with the notifier off it writes nothing): mints as `approval` with `dangerous: true`, other steps as `cmd_approval`, the exact command and worktree path in the body. It dedupes on (code, target, session) by exclusive-create of a key file, swallows its own errors, and never changes a verdict. relieves: P2",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/escalation/operator-stop.ts with operatorNotify set to os, when an operator-only stop is recorded, then it files one escalation whose body holds the exact command and worktree path (approval with dangerous true for a mint, cmd_approval otherwise), a repeated identical stop records once, a write error is swallowed, and with operatorNotify off it writes no file."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4bd2d4e5e1bf5d7be0f4ec7f234b4717ea0e6621",
+          "recorded_at": "2026-11-17T21:31:38Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Call it from the PreToolUse deny for operator-remedy codes (the `authz-grant-*` codes, which also cover a push without a grant), beside `recordAuthzAudit`, and from `refuseNonInteractiveMint` on the agent-marker branch only, with its four callers passing argv and project root. `deft escalation:file` accepts a repeated `--command` for the code-less stops (fenced CHANGELOG line, `hotfix` label, operator disposition), and the preamble names that call as the residual path. relieves: P1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and packages/runtime/src/human-presence-mint.ts with the notifier on, when an authz-grant hook deny or an agent-marker mint refusal occurs, then the escalation records the full command built from the caller's argv and project root, the hook verdict is unchanged, a human TTY mint typo records nothing, and deft escalation:file accepts a repeated --command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4bd2d4e5e1bf5d7be0f4ec7f234b4717ea0e6621",
+          "recorded_at": "2026-11-17T21:31:38Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "When `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal `operatorNotify` wins), a detached child with a timeout and no inherited stdin takes a notify lock under `.deft/escalations/` with the owner-token and liveness rules of `packages/core/src/plan-sequence/mutation-lock.ts` (no takeover while the owner is alive or unknown, release only by the holding token), collects every open, un-notified escalation for the project root, writes `.deft/escalations/.notified/<id>` for each, sends one OS notification listing them, rescans until none is left, and releases. A child that finds the lock held by a live owner waits on that acquisition loop until release, then takes the lock and sends whatever is still un-notified (nothing, if the holder already sent it). The payload is passed as data only (on Windows through a file or stdin, never a `-Command` string), every command is labelled agent-proposed, control characters are stripped, mint lines are shown one per line, and non-mint commands join into one script. relieves: P3",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/escalation/operator-notify.ts with the channel os, when two or more stops are waiting, including when two notifier children start together and when a stop is filed after the holder's last rescan, then exactly one OS notification lists each un-notified stop once with mint lines one per line, a stalled owner keeps the lock, and an old owner cannot release a newer lock."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4bd2d4e5e1bf5d7be0f4ec7f234b4717ea0e6621",
+          "recorded_at": "2026-11-17T21:31:38Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Fixtures: an agent-marker mint refusal records one `approval` escalation and fires the notifier once with the full command; two stops on disk produce one notification listing both, including when two notifier children start together; a stalled owner keeps the lock, a second reaper does not take it, an old owner cannot release a newer lock, and a stop filed after the holder's last rescan and before its release still appears in a notification; a repeated identical deny records once; notifier `off` writes no escalation, key or notify file and leaves output byte-identical; a URL-shaped value for the channel is refused; a human TTY mint typo records nothing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/escalation/operator-notify.test.ts, when it runs, then it passes and covers the mint refusal, the hook deny, the two-child and late-arrival batches, the stalled owner, acquisition-budget exhaustion, notifier off writing nothing, and a URL-shaped channel value being refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4bd2d4e5e1bf5d7be0f4ec7f234b4717ea0e6621",
+          "recorded_at": "2026-11-17T21:31:38Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1066,9 +1094,37 @@
         "leanCommentId": 6858214390,
         "harvestDigest": "84d6bc3660777d60565a88f6af4de339cd4cade1d6843da8c69334d0d90a255f",
         "slice": null
+      },
+      "productPullRequest": 6579,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "7be5cb859209818a2076d1a1de4a3eb3db93ca53",
+        "prNumber": 6579,
+        "prBase": "master",
+        "mergeCommit": "4bd2d4e5e1bf5d7be0f4ec7f234b4717ea0e6621",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4bd2d4e5e1bf5d7be0f4ec7f234b4717ea0e6621",
+        "verifiedAt": "2026-11-17T21:31:38Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6573
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T21:31:38Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T21:31:38Z"
       }
     },
     "id": "github.issue.6373752701",
-    "updated": "2026-11-17T15:59:00Z"
+    "updated": "2026-11-17T21:31:38Z"
   }
 }

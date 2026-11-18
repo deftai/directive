@@ -638,6 +638,13 @@
           "minimum": 5,
           "description": "Minutes to wait between GitHub I/O re-probes after a forge outage drop-back (#3422). Default: 30. USER.md Personal wins over this project field. null is unset (same as omit)."
         },
+        "mergeGateContext": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Name of the one required status check that runs this repository's full merge gate (#6535). Local hook sites warn instead of refuse only when GitHub's copy of this file at the delivery-branch head names the same check and the branch's live required status checks list it. Absent, empty or null means every local hook site refuses as today."
+        },
         "projectInvariants": {
           "type": "array",
           "description": "Authored project-level must-not-break contracts (#3425). Empty or omitted is a no-op. Each entry names an id, statement, and contract surface (paths and/or module ids).",
