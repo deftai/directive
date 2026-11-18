@@ -5,8 +5,8 @@
  * An old-style project's root `package.json` depends on `@deftai/directive`
  * and not on `@deftai/directive-runtime`. Recognition uses how the launcher
  * was called and fixed top-level evidence only; it never searches sub-folders.
- * It never feeds `readPin().oldStyle`, `upgrade` admission or `install`
- * refusal. Reads only; writes nothing.
+ * It never changes `readPin().oldStyle` or what `upgrade` converts (AC10.7,
+ * AC10.8). Reads only; writes nothing.
  */
 import { readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, sep } from "node:path";
