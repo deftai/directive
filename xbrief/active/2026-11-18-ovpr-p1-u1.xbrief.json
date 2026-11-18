@@ -1,0 +1,349 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6201",
+    "updated": "2026-11-18T03:02:47Z"
+  },
+  "plan": {
+    "title": "P1-U1: hosts block a tool call when the Directive hook cannot decide (ovpr-p1-u1)",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan unit P1-U1 (story id ovpr-p1-u1), spec units/P1-U1-hosts-block-on-hook-failure.md. When the committed hook outer cannot reach a decision (pin missing, spawn error, signal, non-zero child exit, stdout capture failure), it blocks the tool call on every host: Claude/Codex exit 2, Cursor one deny JSON, Grok one deny JSON. On Grok the outer also turns a malformed or doubled child answer into one deny (#6166). Only the pre-tool event changes; other events keep today's exit codes (D-018).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6201",
+      "Overview": "Acceptance criteria (spec P1-U1):\n1. On `tool.before`, every failure path (missing pin, spawn error, signal, null status, non-zero child exit, stdout capture failure) ends with: Claude/Codex exit 2 with the reason on stderr; Cursor exit 0 with exactly one deny JSON; Grok exit 0 with exactly one deny JSON.\n2. On Grok, stdout never carries two decisions and never carries malformed output; whitespace-only success stays an empty allow.\n3. On non-Grok hosts, a successful hook-bin run (exit 0) produces byte-identical stdout to today.\n4. Non-tool events keep today's exit codes (no new compaction or prompt blocks).\n5. The missing-pin text appears only when the pin file is missing. It names the project `npm install` / `pnpm install` and never `npm i -g` or `install --repair`.\n6. The disable flag still quiet-allows before any pin check (#6122 tests unchanged and green).\n7. `FAIL_CLOSED_HOOK_HOSTS` lists all four hosts; no \"silent gate loss\" warning for Claude/Codex.",
+      "Labels": "bug",
+      "StoryId": "ovpr-p1-u1 (OVPR fix plan, Phase 1, Rule 3).",
+      "ImplementationPlan": "All in hostHookOuterSource() (packages/core/src/init-deposit/host-hook-outer.ts) unless stated.\n1. Parse --event next to --host.\n2. Add one small function blockToolCall(host, event, reason) used on every failure path. tool.before: claude/codex stderr + exit 2; cursor stdout {permission:deny,user_message,agent_message} exit 0; grok stdout {decision:deny,reason} exit 0; unknown/missing host stderr + exit 2. Other events unchanged (stderr + exit 1; Grok deny JSON exit 0).\n3. Keep HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE for the missing-pin path only; add HOST_HOOK_NONDECISION_REASON for spawn error, signal/null status, non-zero exit, capture failure and Grok malformed output (interim wording; P4-U3a replaces it).\n4. Capture child stdout for every host (spawnSync with stdio [inherit, pipe, inherit], maxBuffer 16 MiB). Error/null/non-zero -> discard stdout and block. Exit 0 on Grok -> the evaluateGrokPretooluseWrapperOutcome rule inline (Node built-ins only). Exit 0 on other hosts -> write captured stdout unchanged.\n5. hook-runtime-travel.ts: FAIL_CLOSED_HOOK_HOSTS = all four hosts; update its comment. Keep the gate-off writer code path.\n6. Docs, minimal: content/docs/hook-runtime-unavailable.md (host table) and content/docs/full-stop.md: Claude/Codex rows say 'blocks the tool call (exit 2)'. Leave the rest to #5869.\n7. Changelog fragment changelog.d/6201-hosts-block-on-hook-failure.md (never CHANGELOG.md).\nTests in host-hook-outer.test.ts and hook-runtime-travel.test.ts as the spec lists (per host, per event; whole-stdout parsing).",
+      "Constraint": "Must not do:\n- Do not change the registered command form, add a .sh wrapper, or register hook-bin.js directly (AC9.1).\n- Do not add timeouts or deadlines to the outer (#5920 / #5988 out of scope; rejected #5956).\n- Do not import anything into the outer beyond Node built-ins.\n- Do not apply the Grok parser to Claude/Codex/Cursor output.\n- Do not admit any command in the outer (no install admit here).\n- Do not touch dispatcher.ts or renderHostDecision.\n- Do not remove the #6184 Cursor co-travel code in this unit (P3-U1a removes it).\n- Do not follow the #6166 Bound limb 'Keep non-Grok hosts on existing inherit/output/exit behavior' (conflicts with AC9.4 / AC14.3 / req l.436). Comments on #6166 are input only (D-008).\n- No Claude onFailure setting (D-019).\n- OVPR change gate: do not edit docs/installer-refactor-ovpr/ or ship behaviour that departs from the written OVPR design; stop and hand back a change proposal if needed.",
+      "Dependencies": "None. Decisions: D-013 (no-runtime behaviour as written; message fixed later in P4-U3a/P4-U3d), D-018 (only the pre-tool event blocks), D-019 (no onFailure setting), D-004 (release checks removed first in P3-U1a). Shares host-hook-outer.ts and its test with ovpr-p3-u1a, which lands first. Blocks ovpr-p1-u3 (step 4) and P4-U3a.",
+      "Traces": "#6201 (primary). Also closes #6166. Partly addresses #6167 item 4.",
+      "DesignCritique": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "UserStory": "As a developer whose agent runs in a Directive project, I want the tool call blocked when the Directive hook cannot reach a decision, so that a missing install or a hook crash never quietly turns the checks off."
+    },
+    "items": [
+      {
+        "title": "On `tool.before`, every failure path (missing pin, spawn error, signal, null status, non-zero child exit, stdout capture failure) ends with: Claude/Codex exit 2 with the reason on stderr; Cursor exit 0 with exactly one deny JSON; Grok exit 0 with exactly one deny JSON.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given each failure path on tool.before, when the outer runs for each host, then Claude/Codex exit 2 with the reason on stderr, and Cursor and Grok exit 0 with stdout that parses to exactly one deny object."
+        }
+      },
+      {
+        "title": "On Grok, stdout never carries two decisions and never carries malformed output; whitespace-only success stays an empty allow.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a Grok child that exits 0 with whitespace, one valid decision, two decisions, trailing junk, [] or {\"foo\":1}, when the outer runs, then whitespace gives empty stdout, one valid decision passes unchanged, and every other case gives exactly one deny."
+        }
+      },
+      {
+        "title": "On non-Grok hosts, a successful hook-bin run (exit 0) produces byte-identical stdout to today.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a Claude, Codex or Cursor child that exits 0, when the outer runs, then its stdout is byte-identical to the child's stdout."
+        }
+      },
+      {
+        "title": "Non-tool events keep today's exit codes (no new compaction or prompt blocks).",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given session.start, session.compact or session.end on Claude/Codex/Cursor with a missing pin, when the outer runs, then it exits 1, never 2."
+        }
+      },
+      {
+        "title": "The missing-pin text appears only when the pin file is missing. It names the project `npm install` / `pnpm install` and never `npm i -g` or `install --repair`.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given a missing pin, then the reason is the missing-pin text naming the project install; given any other failure, then the reason is the non-decision text and never the missing-pin text."
+        }
+      },
+      {
+        "title": "The disable flag still quiet-allows before any pin check (#6122 tests unchanged and green).",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given the #6122 disable-flag conformance tests, when the suite runs, then they pass unchanged."
+        }
+      },
+      {
+        "title": "`FAIL_CLOSED_HOOK_HOSTS` lists all four hosts; no \"silent gate loss\" warning for Claude/Codex.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given hook-runtime-travel.ts, then FAIL_CLOSED_HOOK_HOSTS lists claude, codex, cursor and grok, and hook-runtime-travel.test.ts expects no silent gate loss warning for Claude/Codex."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6201",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6201: Host hook fails open (exit 1) when the pinned Directive hook is missing or crashes"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6166",
+        "type": "x-xbrief/closes",
+        "title": "Issue #6166"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6167",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6167"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (19), in order (#6333)",
+      "sentences": [
+        "Host hook fails open (exit 1) when the pinned Directive hook is missing or crashes",
+        "Summary When the outer host hook cannot run the pinned Directive hook (the pin is missing, fails to spawn, crashes or is killed, or exits nonzero), the outer hook prints guidance to stderr and exits `1` on every host except Grok.",
+        "On Claude Code, a PreToolUse exit code of `1` is a non-blocking error, so the tool call goes ahead with no Directive check.",
+        "A broken or missing pin therefore turns enforcement off on that host without the operator choosing to disable it.",
+        "Normal allow and deny decisions are not affected.",
+        "They are returned as JSON with exit `0` and pass through as intended.",
+        "Only the failure paths are affected.",
+        "Scope - Claude Code: confirmed from a code read.",
+        "Exit `1` does not block; only exit `2` or a JSON deny does.",
+        "Codex: reported as behaving the same way; not yet verified.",
+        "Cursor and other hosts: not yet assessed.",
+        "Grok: already fails closed (JSON deny, exit `0`).",
+        "Where it happens: `failClosedUnusablePin` in `packages/core/src/init-deposit/host-hook-outer.ts`.",
+        "Requested fix 1.",
+        "Make the unusable-pin path fail closed for each host, using that host's own blocking contract (for example exit `2` or a JSON deny on Claude Code, and the equivalent on Codex and Cursor).",
+        "A hook that cannot start or crashes should deny the tool call, not exit `1`.",
+        "Add a test for each supported host that covers a missing pin, a spawn error, a signal or kill, and a nonzero child exit, and asserts that the host would block.",
+        "Land both before the next release.",
+        "--- Filed by Grok Bot for @MScottAdams."
+      ],
+      "admitted_source_sentences": [
+        "Summary When the outer host hook cannot run the pinned Directive hook (the pin is missing, fails to spawn, crashes or is killed, or exits nonzero), the outer hook prints guidance to stderr and exits `1` on every host except Grok.",
+        "On Claude Code, a PreToolUse exit code of `1` is a non-blocking error, so the tool call goes ahead with no Directive check.",
+        "A broken or missing pin therefore turns enforcement off on that host without the operator choosing to disable it.",
+        "Normal allow and deny decisions are not affected.",
+        "They are returned as JSON with exit `0` and pass through as intended.",
+        "Only the failure paths are affected.",
+        "Scope - Claude Code: confirmed from a code read.",
+        "Exit `1` does not block; only exit `2` or a JSON deny does.",
+        "Codex: reported as behaving the same way; not yet verified.",
+        "Cursor and other hosts: not yet assessed.",
+        "Grok: already fails closed (JSON deny, exit `0`).",
+        "Where it happens: `failClosedUnusablePin` in `packages/core/src/init-deposit/host-hook-outer.ts`.",
+        "Requested fix 1.",
+        "Make the unusable-pin path fail closed for each host, using that host's own blocking contract (for example exit `2` or a JSON deny on Claude Code, and the equivalent on Codex and Cursor).",
+        "A hook that cannot start or crashes should deny the tool call, not exit `1`.",
+        "Add a test for each supported host that covers a missing pin, a spawn error, a signal or kill, and a nonzero child exit, and asserts that the host would block.",
+        "Land both before the next release.",
+        "--- Filed by Grok Bot for @MScottAdams."
+      ],
+      "admitted_source_digest": "e2ade7811dfabee4684b1f167cc2c2e734e07698dc611f2732815b32a86036c2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Host hook fails open (exit 1) when the pinned Directive hook is missing or crashes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary When the outer host hook cannot run the pinned Directive hook (the pin is missing, fails to spawn, crashes or is killed, or exits nonzero), the outer hook prints guidance to stderr and exits `1` on every host except Grok.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "On Claude Code, a PreToolUse exit code of `1` is a non-blocking error, so the tool call goes ahead with no Directive check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A broken or missing pin therefore turns enforcement off on that host without the operator choosing to disable it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Normal allow and deny decisions are not affected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "They are returned as JSON with exit `0` and pass through as intended.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Only the failure paths are affected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Scope - Claude Code: confirmed from a code read.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Exit `1` does not block; only exit `2` or a JSON deny does.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Codex: reported as behaving the same way; not yet verified.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Cursor and other hosts: not yet assessed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Grok: already fails closed (JSON deny, exit `0`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Where it happens: `failClosedUnusablePin` in `packages/core/src/init-deposit/host-hook-outer.ts`.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 14,
+          "text": "Requested fix 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Make the unusable-pin path fail closed for each host, using that host's own blocking contract (for example exit `2` or a JSON deny on Claude Code, and the equivalent on Codex and Cursor).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "A hook that cannot start or crashes should deny the tool call, not exit `1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Add a test for each supported host that covers a missing pin, a spawn error, a signal or kill, and a nonzero child exit, and asserts that the host would block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Land both before the next release.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "--- Filed by Grok Bot for @MScottAdams.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/docs/full-stop.md",
+          "changelog.d/6201-hosts-block-on-hook-failure.md"
+        ],
+        "module_boundary": "The committed hook outer template hostHookOuterSource() in packages/core/src/init-deposit/host-hook-outer.ts, the FAIL_CLOSED_HOOK_HOSTS list in hook-runtime-travel.ts, and the host rows of two docs pages."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6333598818,
+        "origin": "deftai/directive#6201",
+        "id": "github.issue.6333598818"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/docs/full-stop.md",
+          "changelog.d/6201-hosts-block-on-hook-failure.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "size": "small",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/hook-runtime-travel.test.ts"
+        ],
+        "Traces": [
+          "#6201",
+          "#6166"
+        ],
+        "acceptance_criteria_justification": "Seven items: the seven acceptance criteria of unit spec P1-U1, one each.",
+        "parallel_safe": true,
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "hook-outer",
+        "expected_outputs": [
+          "On `tool.before`, every failure path (missing pin, spawn error, signal, null status, non-zero child exit, stdout capture failure) ends with: Claude/Codex exit 2 with the reason on stderr; Cursor exit 0 with exactly one deny JSON; Grok exit 0 with exactly one deny JSON.",
+          "On Grok, stdout never carries two decisions and never carries malformed output; whitespace-only success stays an empty allow.",
+          "On non-Grok hosts, a successful hook-bin run (exit 0) produces byte-identical stdout to today.",
+          "Non-tool events keep today's exit codes (no new compaction or prompt blocks).",
+          "The missing-pin text appears only when the pin file is missing. It names the project `npm install` / `pnpm install` and never `npm i -g` or `install --repair`.",
+          "The disable flag still quiet-allows before any pin check (#6122 tests unchanged and green).",
+          "`FAIL_CLOSED_HOOK_HOSTS` lists all four hosts; no \"silent gate loss\" warning for Claude/Codex.",
+          "one changelog fragment changelog.d/6201-hosts-block-on-hook-failure.md"
+        ]
+      }
+    },
+    "id": "github.issue.6333598818",
+    "updated": "2026-11-18T03:02:47Z"
+  }
+}

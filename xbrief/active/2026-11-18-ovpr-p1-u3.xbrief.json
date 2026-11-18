@@ -1,0 +1,994 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6614",
+    "updated": "2026-11-18T03:02:52Z"
+  },
+  "plan": {
+    "title": "P1-U3: no-agent fixture test, steps 4 and 6 (missing packages, old layout) (ovpr-p1-u3)",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan unit P1-U3 (story id ovpr-p1-u3), spec units/P1-U3-no-agent-fixture-test.md. A CI test that installs the packed packages into a throwaway repo and runs the registered hook commands exactly as a host would, with no agent. This unit builds the harness and steps 4 (delete node_modules, every host blocks with project install text) and 6 (old-layout fixtures get the old-repo message). Steps 1, 2, 3 and 5 are registered as skip; P3-U1b and P4-U1 add them.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6614",
+      "Overview": "Acceptance criteria (spec P1-U3):\n1. The CLI runs with no agent and prints one line per step 1–6. Steps 1, 2, 3 and 5 report `skip`. Steps 4 and 6 report `pass` on a tip that includes P1-U1 and P1-U2.\n2. Step 4 fails if any host's `tool.before` does not block after `node_modules` is deleted, or if the text names `npm i -g` or `install --repair`.\n3. Step 4's sanity check fails if a hook blocks `echo hi` while the packages are installed.\n4. Step 6 fails if any old-layout fixture on any host is not blocked, or lacks the old-repo message. 6f fails if a new-layout repo gets the old-repo message.\n5. A later ticket adds a step by adding one `FixtureStep` object and its fixture builder. No other step changes.\n6. The CI job finishes within its 12-minute timeout and reports its duration.",
+      "Labels": "ci-cd, area:installer, test",
+      "StoryId": "ovpr-p1-u3 (OVPR fix plan, Phase 1, wave 1.2).",
+      "ImplementationPlan": "1. Harness packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts + ovpr-lifecycle-fixture-cli.ts: ordered named steps (1-bump, 2-install, 3-refresh, 4-missing-packages, 5-upgrade-commit, 6-old-layout) over one shared context; each step builds its own fixture dir and can run alone (--step N); 1/2/3/5 skip ('added by P3-U1b' / 'added by P4-U1'); one line per step, non-zero exit on any fail. Lift the shared pack/install helpers from the greenfield harness into release-e2e/packed-consumer.ts; greenfield behaviour unchanged.\n2. runRegisteredHook(fixtureDir, host, event, payload): read the deposited host config, take the command for the event, run it via sh -c in the fixture dir with the JSON payload on stdin.\n3. expectBlocked(host, result, textMatchers): the P1-U1 block table.\n4. Step 4 (missing packages) and step 6 (old layout, fixtures 6a-6f, static files only, v0.126.2 Grok wrapper bytes from the tag under packages/core/src/release-e2e/fixtures/pre-ovpr/).\n5. CI: job ovpr-fixture in .github/workflows/ci.yml (D-020; not a new workflow file), artifact-only changes gating like the other ci.yml jobs, timeout-minutes 12, NOT in merge-gate's needs (advisory through Phase 4). Record the measured duration in the PR.\n6. Unit test ovpr-lifecycle-fixture.test.ts (fast, no packing).\n7. Changelog fragment changelog.d/6614-ovpr-lifecycle-fixture.md (never CHANGELOG.md).",
+      "Constraint": "Must not do:\n- No agent, no LLM, no network beyond this repo's own pnpm install. Step 6 must not download any old Directive version.\n- Do not run old Directive code: the old Grok wrapper is a host-config stand-in that only calls the new deft-hook.\n- Do not change the greenfield smoke's behaviour; only move shared helpers.\n- Do not assert exact message wording beyond the key phrases (P4-U3a will reword).\n- Do not add the job to merge-gate's needs before the Phase 4 exit (D-020). Never change repository settings (D-007).\n- OVPR change gate: do not edit docs/installer-refactor-ovpr/ or ship behaviour that departs from the written OVPR design; stop and hand back a change proposal if needed.",
+      "Dependencies": "Depends on ovpr-p1-u1 (step 4 asserts its block forms) and ovpr-p1-u2 (step 6 asserts its message). Blocks P3-U1b (steps 1-3) and P4-U1 (step 5). Windows leg is #6621 (separate).",
+      "Traces": "#6614 (primary). Guards #6201 and #5960.",
+      "DesignCritique": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "UserStory": "As a Directive maintainer, I want a CI test that installs the packed packages into a throwaway repo and runs the registered hook commands with no agent, so that CI fails when a hook stops blocking after node_modules is deleted or in an old-layout repo."
+    },
+    "items": [
+      {
+        "title": "The CLI runs with no agent and prints one line per step 1–6. Steps 1, 2, 3 and 5 report `skip`. Steps 4 and 6 report `pass` on a tip that includes P1-U1 and P1-U2.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a build on a tip with P1-U1 and P1-U2, when node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js runs, then it prints six step lines, 1/2/3/5 skip and 4/6 pass."
+        }
+      },
+      {
+        "title": "Step 4 fails if any host's `tool.before` does not block after `node_modules` is deleted, or if the text names `npm i -g` or `install --repair`.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given node_modules deleted, when tool.before runs on each host, then step 4 passes only if every host blocks with npm install or pnpm install text and none names npm i -g or install --repair."
+        }
+      },
+      {
+        "title": "Step 4's sanity check fails if a hook blocks `echo hi` while the packages are installed.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given an installed fixture, when tool.before runs echo hi on each host, then no host blocks, or step 4 fails."
+        }
+      },
+      {
+        "title": "Step 6 fails if any old-layout fixture on any host is not blocked, or lacks the old-repo message. 6f fails if a new-layout repo gets the old-repo message.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given fixtures 6a-6e, when tool.before runs on each host, then each blocks with text containing pre-OVPR, directive upgrade and npm i -g @deftai/directive@0.126.2; given 6f, then the old-repo message does not appear."
+        }
+      },
+      {
+        "title": "A later ticket adds a step by adding one `FixtureStep` object and its fixture builder. No other step changes.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given the harness, then each step is one FixtureStep object in an ordered registry with its own fixture builder, and the unit test checks the registry order and ids."
+        }
+      },
+      {
+        "title": "The CI job finishes within its 12-minute timeout and reports its duration.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given the ovpr-fixture job in .github/workflows/ci.yml on the PR, then it finishes within timeout-minutes 12 and the PR records its duration."
+        }
+      }
+    ],
+    "tags": [
+      "ci-cd",
+      "area:installer",
+      "test"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6614",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6614: test(ovpr): no-agent fixture test for the pin lifecycle (bump, install, refresh, missing packages, upgrade commit, old layout)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6201",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6201"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5960",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5960"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "directive upgrade",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        },
+        {
+          "command": "--step 4",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L26"
+        },
+        {
+          "command": "echo hi",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        },
+        {
+          "command": "npm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        },
+        {
+          "command": "pnpm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        },
+        {
+          "command": "npm i -g",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        },
+        {
+          "command": "install --repair",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        },
+        {
+          "command": "pnpm install --frozen-lockfile",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L41"
+        },
+        {
+          "command": "pnpm run build",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L41"
+        },
+        {
+          "command": "node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L41"
+        },
+        {
+          "command": "timeout-minutes: 12",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L41"
+        },
+        {
+          "command": "pnpm run build && node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L55"
+        },
+        {
+          "command": "--step 6",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L55"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture-cli.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts",
+          "packages/core/src/release-e2e/packed-consumer.ts",
+          "packages/core/src/release-e2e/greenfield-python-free-smoke.ts",
+          ".github/workflows/ci.yml",
+          "packages/core/src/release-e2e/fixtures/pre-ovpr/**",
+          "changelog.d/6614-ovpr-lifecycle-fixture.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6333598818",
+          "github.issue.6060535800"
+        ],
+        "size": "medium",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts packages/core/src/release-e2e/greenfield-python-free-smoke.test.ts"
+        ],
+        "Traces": [
+          "#6614"
+        ],
+        "acceptance_criteria_justification": "Six items: the six acceptance criteria of unit spec P1-U3 and #6614, one each. CI job goes in ci.yml per D-020 (the spec's Update banner), not a new workflow file.",
+        "parallel_safe": true,
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "ovpr-fixture",
+        "expected_outputs": [
+          "The CLI runs with no agent and prints one line per step 1–6. Steps 1, 2, 3 and 5 report `skip`. Steps 4 and 6 report `pass` on a tip that includes P1-U1 and P1-U2.",
+          "Step 4 fails if any host's `tool.before` does not block after `node_modules` is deleted, or if the text names `npm i -g` or `install --repair`.",
+          "Step 4's sanity check fails if a hook blocks `echo hi` while the packages are installed.",
+          "Step 6 fails if any old-layout fixture on any host is not blocked, or lacks the old-repo message. 6f fails if a new-layout repo gets the old-repo message.",
+          "A later ticket adds a step by adding one `FixtureStep` object and its fixture builder. No other step changes.",
+          "The CI job finishes within its 12-minute timeout and reports its duration.",
+          "one changelog fragment changelog.d/6614-ovpr-lifecycle-fixture.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture-cli.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts",
+          "packages/core/src/release-e2e/packed-consumer.ts",
+          "packages/core/src/release-e2e/greenfield-python-free-smoke.ts",
+          ".github/workflows/ci.yml",
+          "packages/core/src/release-e2e/fixtures/pre-ovpr/**",
+          "changelog.d/6614-ovpr-lifecycle-fixture.md"
+        ],
+        "module_boundary": "CI and test infrastructure under packages/core/src/release-e2e (new fixture harness, shared packed-consumer helpers lifted from the greenfield harness) and one advisory job in .github/workflows/ci.yml.",
+        "cohesion_exemption": "ci.yml (1088 lines) already exceeds the review trigger. This unit adds one advisory job to it (D-020: the job must live in ci.yml); splitting the workflow is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6458882361,
+        "origin": "deftai/directive#6614",
+        "id": "github.issue.6458882361"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (83), in order (#6333)",
+      "sentences": [
+        "test(ovpr): no-agent fixture test for the pin lifecycle (bump, install, refresh, missing packages, upgrade commit, old layout)",
+        "Problem Directive's install and hook behaviour is proven mostly by unit tests that call functions in-process.",
+        "Nothing in CI installs the packed packages into a throwaway repo, runs the registered hook commands the way an AI host does, and checks the result.",
+        "So two failures shipped unnoticed: hooks fail open when `node_modules` is missing (#6201), and old-layout repos lose checking (#5960).",
+        "The fix needs a test that runs with no agent, so it also proves the design works in a plain CI or Dependabot flow.",
+        "Evidence (origin/master `def527f5e`): - #6170 added one in-process unit test, `packages/runtime/src/self-complete.test.ts:285` (\"AC14.10 / HT-17\").",
+        "It calls `runSetup` and `maybeSelfCompleteSetup` directly.",
+        "No packing, no real install, no hook command.",
+        "It is the logic oracle for later steps 1–3, not a harness to extend.",
+        "A packed-consumer harness already exists: `packages/core/src/release-e2e/greenfield-python-free-smoke.ts:238` (`rehearseGreenfieldPythonFreeSmoke`).",
+        "It uses `alignNpmPackageVersions` and `packOvprTarballs` (`npm-ops.ts:102`, `:166`), installs the packed tarballs globally (`:336-338`), installs the exact runtime pin into a temp consumer (`:379`), and runs `install --repair --yes` (`:446`).",
+        "Its workflow, `.github/workflows/greenfield-python-free-smoke.yml`, hosts no required check.",
+        "Today the `.mjs` outer's missing-pin path exits 1 on every host except Grok (`packages/core/src/init-deposit/host-hook-outer.ts:324-333`).",
+        "Exit 1 does not block on Claude or Codex (#6201).",
+        "What the design says - AC14.3, AC9.12, AC9.4: a missing pin fails closed, with project install guidance.",
+        "§A9 / AC10.2: an old layout gets a \"run `directive upgrade`\" message.",
+        "Old code never runs.",
+        "AC14.10: a pin-only bump plus the PM install; the first eligible hook completes wiring (steps 1–3, added later).",
+        "Decision `xbrief/decisions/2026-11-10-close-5947-5948-…decision.json`: pin-only bumps are legal.",
+        "D-013: when no runtime is installed, the hook fails closed and a person runs the project install.",
+        "D-018: a missing package blocks only before a tool runs.",
+        "Step 4 tests `tool.before` only.",
+        "D-020: the job lives in `.github/workflows/ci.yml`.",
+        "It is advisory through Phase 4.",
+        "At the Phase 4 exit, a reviewed `ci.yml` PR adds it to the `merge-gate` job (`Merge gate (task check)`, `ci.yml:558-559`).",
+        "No repository setting changes (D-007).",
+        "The Windows leg (AC15.1) is #6621.",
+        "Expected 1.",
+        "Harness `packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts` and `ovpr-lifecycle-fixture-cli.ts`, built as an ordered list of named steps (`1-bump`, `2-install`, `3-refresh`, `4-missing-packages`, `5-upgrade-commit`, `6-old-layout`) over one shared context, so a later ticket adds a step without touching the others.",
+        "Setup once: align versions, pack, and `npm install -g` the packed launcher and runtime into a temp prefix.",
+        "Lift the shared helpers out of the greenfield harness into `release-e2e/packed-consumer.ts`.",
+        "Greenfield's behaviour does not change.",
+        "Each step builds its own fixture directory, so a step can run alone (`--step 4`).",
+        "Steps 1, 2, 3 and 5 are registered as `skip` (\"added by P3-U1b\" / \"added by P4-U1\").",
+        "The runner prints one line per step and exits non-zero on any `fail`.",
+        "Hook runner `runRegisteredHook(fixtureDir, host, event, payload)`.",
+        "It reads the host config Directive deposited (`.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.grok/hooks/deft.json`), takes the command for that event, and runs it through `sh -c` in the fixture directory with the JSON payload on stdin.",
+        "The step fails if a host config or its `tool.before` entry is missing.",
+        "Block helper `expectBlocked(host, result, textMatchers)`: Claude and Codex exit 2 with matching stderr; Cursor exits 0 with exactly one object with `permission: \"deny\"` (exit 2 is also accepted); Grok exits 0 with exactly one object with `decision: \"deny\"`.",
+        "Same table as P1-U1 (#6201).",
+        "Step 4, missing packages. Make an installed fixture.",
+        "Sanity check first: on each host, `tool.before` for `echo hi` does not block.",
+        "Then delete `node_modules` and run `tool.before` on each host.",
+        "Expect a block whose text contains `npm install` or `pnpm install`, and does not contain `npm i -g` or `install --repair`.",
+        "Step 6, old layout. No install and no network.",
+        "Static fixtures only; no 0.126 package is downloaded: - 6a exact `\"@deftai/directive\": \"0.126.2\"` + `.deft/core/VERSION`; - 6b `\"^0.126.2\"` + `.deft/core/VERSION`; - 6c no root dependency, nested `tools/deft-cli/package.json` `\"^0.126.1\"`, root `.deft/core/package.json` with `deftConsumerDeposit: true`; - 6d `\"^0.126.2\"`, no `.deft/core`, `.githooks/_deft-run.sh` present (fresh-clone shape); - 6e like 6b, but the Claude config registers `deft hook:dispatch --host claude --event tool.before`.",
+        "Fixtures 6a–6d carry the four v0.126.2 host configs.",
+        "The Grok wrapper bytes come from tag v0.126.2 (not master) and are stored under `packages/core/src/release-e2e/fixtures/pre-ovpr/`.",
+        "Expect a block on every host, with text containing `pre-OVPR`, `directive upgrade` and `npm i -g @deftai/directive@0.126.2`.",
+        "6f negative control: a new-layout installed fixture whose Claude config still has a bare `deft-hook` entry does not get the old-repo message.",
+        "CI. Job `ovpr-fixture` in `.github/workflows/ci.yml` (D-020; not a new workflow file).",
+        "Same artifact-only `changes` gating as the other `ci.yml` jobs, `ubuntu-latest`, pnpm and `.nvmrc` Node, `pnpm install --frozen-lockfile`, `pnpm run build`, then `node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js`.",
+        "`timeout-minutes: 12`.",
+        "Not in `merge-gate`'s `needs` yet.",
+        "Record the measured duration in the PR (target under 5 minutes; unverified until the first run).",
+        "Unit test `ovpr-lifecycle-fixture.test.ts`: step order and ids, `skip` for 1/2/3/5, the `expectBlocked` table against canned results, config parsing per host.",
+        "Fast, no packing.",
+        "Must not do: no agent, no LLM, no network beyond this repo's own `pnpm install`; never run old Directive code; don't change the greenfield smoke's behaviour; don't assert exact wording beyond the key phrases (P4-U3a will reword); don't add the job to the Merge gate result before the Phase 4 exit (D-020).",
+        "Acceptance criteria 1.",
+        "The CLI runs with no agent and prints one line per step 1–6.",
+        "Steps 1, 2, 3 and 5 report `skip`.",
+        "Steps 4 and 6 report `pass` on a tip that includes P1-U1 and P1-U2.",
+        "Step 4 fails if any host's `tool.before` does not block after `node_modules` is deleted, or if the text names `npm i -g` or `install --repair`.",
+        "Step 4's sanity check fails if a hook blocks `echo hi` while the packages are installed.",
+        "Step 6 fails if any old-layout fixture on any host is not blocked, or lacks the old-repo message.",
+        "6f fails if a new-layout repo gets the old-repo message.",
+        "A later ticket adds a step by adding one `FixtureStep` object and its fixture builder.",
+        "No other step changes.",
+        "The CI job finishes within its 12-minute timeout and reports its duration.",
+        "Verification: `pnpm run build && node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js` (also `--step 4`, `--step 6`).",
+        "Run it once against a build from before P1-U1 and P1-U2, and record in the PR that steps 4 and 6 fail there.",
+        "Related - #6201 (P1-U1) and #5960 (P1-U2): this test guards both.",
+        "Comment on each when it merges.",
+        "#6170, #5947, #5948: the AC14.10 proof this test grows into.",
+        "#6613: adds steps 1–3.",
+        "#5771 (P4-U1): adds step 5.",
+        "#6621: the `windows-latest` leg.",
+        "Plan placement - Unit P1-U3, story id `ovpr-p1-u3`.",
+        "Phase 1, wave 1.2.",
+        "Size M.",
+        "Depends on P1-U1 (step 4 asserts its block forms) and P1-U2 (step 6 asserts its message).",
+        "Blocks P3-U1b (steps 1–3) and P4-U1 (step 5).",
+        "This ticket stays open until steps 1–3 and 5 land, or it closes on merge and later units reference it (polfer's choice)."
+      ],
+      "admitted_source_sentences": [
+        "Problem Directive's install and hook behaviour is proven mostly by unit tests that call functions in-process.",
+        "Nothing in CI installs the packed packages into a throwaway repo, runs the registered hook commands the way an AI host does, and checks the result.",
+        "So two failures shipped unnoticed: hooks fail open when `node_modules` is missing (#6201), and old-layout repos lose checking (#5960).",
+        "The fix needs a test that runs with no agent, so it also proves the design works in a plain CI or Dependabot flow.",
+        "Evidence (origin/master `def527f5e`): - #6170 added one in-process unit test, `packages/runtime/src/self-complete.test.ts:285` (\"AC14.10 / HT-17\").",
+        "It calls `runSetup` and `maybeSelfCompleteSetup` directly.",
+        "No packing, no real install, no hook command.",
+        "It is the logic oracle for later steps 1–3, not a harness to extend.",
+        "A packed-consumer harness already exists: `packages/core/src/release-e2e/greenfield-python-free-smoke.ts:238` (`rehearseGreenfieldPythonFreeSmoke`).",
+        "It uses `alignNpmPackageVersions` and `packOvprTarballs` (`npm-ops.ts:102`, `:166`), installs the packed tarballs globally (`:336-338`), installs the exact runtime pin into a temp consumer (`:379`), and runs `install --repair --yes` (`:446`).",
+        "Its workflow, `.github/workflows/greenfield-python-free-smoke.yml`, hosts no required check.",
+        "Today the `.mjs` outer's missing-pin path exits 1 on every host except Grok (`packages/core/src/init-deposit/host-hook-outer.ts:324-333`).",
+        "Exit 1 does not block on Claude or Codex (#6201).",
+        "What the design says - AC14.3, AC9.12, AC9.4: a missing pin fails closed, with project install guidance.",
+        "§A9 / AC10.2: an old layout gets a \"run `directive upgrade`\" message.",
+        "Old code never runs.",
+        "AC14.10: a pin-only bump plus the PM install; the first eligible hook completes wiring (steps 1–3, added later).",
+        "Decision `xbrief/decisions/2026-11-10-close-5947-5948-…decision.json`: pin-only bumps are legal.",
+        "D-013: when no runtime is installed, the hook fails closed and a person runs the project install.",
+        "D-018: a missing package blocks only before a tool runs.",
+        "Step 4 tests `tool.before` only.",
+        "D-020: the job lives in `.github/workflows/ci.yml`.",
+        "It is advisory through Phase 4.",
+        "At the Phase 4 exit, a reviewed `ci.yml` PR adds it to the `merge-gate` job (`Merge gate (task check)`, `ci.yml:558-559`).",
+        "No repository setting changes (D-007).",
+        "The Windows leg (AC15.1) is #6621.",
+        "Expected 1.",
+        "Harness `packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts` and `ovpr-lifecycle-fixture-cli.ts`, built as an ordered list of named steps (`1-bump`, `2-install`, `3-refresh`, `4-missing-packages`, `5-upgrade-commit`, `6-old-layout`) over one shared context, so a later ticket adds a step without touching the others.",
+        "Setup once: align versions, pack, and `npm install -g` the packed launcher and runtime into a temp prefix.",
+        "Lift the shared helpers out of the greenfield harness into `release-e2e/packed-consumer.ts`.",
+        "Greenfield's behaviour does not change.",
+        "Each step builds its own fixture directory, so a step can run alone (`--step 4`).",
+        "Steps 1, 2, 3 and 5 are registered as `skip` (\"added by P3-U1b\" / \"added by P4-U1\").",
+        "The runner prints one line per step and exits non-zero on any `fail`.",
+        "Hook runner `runRegisteredHook(fixtureDir, host, event, payload)`.",
+        "It reads the host config Directive deposited (`.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.grok/hooks/deft.json`), takes the command for that event, and runs it through `sh -c` in the fixture directory with the JSON payload on stdin.",
+        "The step fails if a host config or its `tool.before` entry is missing.",
+        "Block helper `expectBlocked(host, result, textMatchers)`: Claude and Codex exit 2 with matching stderr; Cursor exits 0 with exactly one object with `permission: \"deny\"` (exit 2 is also accepted); Grok exits 0 with exactly one object with `decision: \"deny\"`.",
+        "Same table as P1-U1 (#6201).",
+        "Step 4, missing packages. Make an installed fixture.",
+        "Sanity check first: on each host, `tool.before` for `echo hi` does not block.",
+        "Then delete `node_modules` and run `tool.before` on each host.",
+        "Expect a block whose text contains `npm install` or `pnpm install`, and does not contain `npm i -g` or `install --repair`.",
+        "Step 6, old layout. No install and no network.",
+        "Static fixtures only; no 0.126 package is downloaded: - 6a exact `\"@deftai/directive\": \"0.126.2\"` + `.deft/core/VERSION`; - 6b `\"^0.126.2\"` + `.deft/core/VERSION`; - 6c no root dependency, nested `tools/deft-cli/package.json` `\"^0.126.1\"`, root `.deft/core/package.json` with `deftConsumerDeposit: true`; - 6d `\"^0.126.2\"`, no `.deft/core`, `.githooks/_deft-run.sh` present (fresh-clone shape); - 6e like 6b, but the Claude config registers `deft hook:dispatch --host claude --event tool.before`.",
+        "Fixtures 6a–6d carry the four v0.126.2 host configs.",
+        "The Grok wrapper bytes come from tag v0.126.2 (not master) and are stored under `packages/core/src/release-e2e/fixtures/pre-ovpr/`.",
+        "Expect a block on every host, with text containing `pre-OVPR`, `directive upgrade` and `npm i -g @deftai/directive@0.126.2`.",
+        "6f negative control: a new-layout installed fixture whose Claude config still has a bare `deft-hook` entry does not get the old-repo message.",
+        "CI. Job `ovpr-fixture` in `.github/workflows/ci.yml` (D-020; not a new workflow file).",
+        "Same artifact-only `changes` gating as the other `ci.yml` jobs, `ubuntu-latest`, pnpm and `.nvmrc` Node, `pnpm install --frozen-lockfile`, `pnpm run build`, then `node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js`.",
+        "`timeout-minutes: 12`.",
+        "Not in `merge-gate`'s `needs` yet.",
+        "Record the measured duration in the PR (target under 5 minutes; unverified until the first run).",
+        "Unit test `ovpr-lifecycle-fixture.test.ts`: step order and ids, `skip` for 1/2/3/5, the `expectBlocked` table against canned results, config parsing per host.",
+        "Fast, no packing.",
+        "Must not do: no agent, no LLM, no network beyond this repo's own `pnpm install`; never run old Directive code; don't change the greenfield smoke's behaviour; don't assert exact wording beyond the key phrases (P4-U3a will reword); don't add the job to the Merge gate result before the Phase 4 exit (D-020).",
+        "Acceptance criteria 1.",
+        "The CLI runs with no agent and prints one line per step 1–6.",
+        "Steps 1, 2, 3 and 5 report `skip`.",
+        "Steps 4 and 6 report `pass` on a tip that includes P1-U1 and P1-U2.",
+        "Step 4 fails if any host's `tool.before` does not block after `node_modules` is deleted, or if the text names `npm i -g` or `install --repair`.",
+        "Step 4's sanity check fails if a hook blocks `echo hi` while the packages are installed.",
+        "Step 6 fails if any old-layout fixture on any host is not blocked, or lacks the old-repo message.",
+        "6f fails if a new-layout repo gets the old-repo message.",
+        "A later ticket adds a step by adding one `FixtureStep` object and its fixture builder.",
+        "No other step changes.",
+        "The CI job finishes within its 12-minute timeout and reports its duration.",
+        "Verification: `pnpm run build && node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js` (also `--step 4`, `--step 6`).",
+        "Run it once against a build from before P1-U1 and P1-U2, and record in the PR that steps 4 and 6 fail there.",
+        "Related - #6201 (P1-U1) and #5960 (P1-U2): this test guards both.",
+        "Comment on each when it merges.",
+        "#6170, #5947, #5948: the AC14.10 proof this test grows into.",
+        "#6613: adds steps 1–3.",
+        "#5771 (P4-U1): adds step 5.",
+        "#6621: the `windows-latest` leg.",
+        "Plan placement - Unit P1-U3, story id `ovpr-p1-u3`.",
+        "Phase 1, wave 1.2.",
+        "Size M.",
+        "Depends on P1-U1 (step 4 asserts its block forms) and P1-U2 (step 6 asserts its message).",
+        "Blocks P3-U1b (steps 1–3) and P4-U1 (step 5).",
+        "This ticket stays open until steps 1–3 and 5 land, or it closes on merge and later units reference it (polfer's choice)."
+      ],
+      "admitted_source_digest": "63d7e9181cfc203cdb59fb3e644d6fade3ec69f9d24d55c10756fbb930d779a9",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "test(ovpr): no-agent fixture test for the pin lifecycle (bump, install, refresh, missing packages, upgrade commit, old layout)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Problem Directive's install and hook behaviour is proven mostly by unit tests that call functions in-process.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Nothing in CI installs the packed packages into a throwaway repo, runs the registered hook commands the way an AI host does, and checks the result.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "So two failures shipped unnoticed: hooks fail open when `node_modules` is missing (#6201), and old-layout repos lose checking (#5960).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The fix needs a test that runs with no agent, so it also proves the design works in a plain CI or Dependabot flow.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Evidence (origin/master `def527f5e`): - #6170 added one in-process unit test, `packages/runtime/src/self-complete.test.ts:285` (\"AC14.10 / HT-17\").",
+          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "It calls `runSetup` and `maybeSelfCompleteSetup` directly.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "No packing, no real install, no hook command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "It is the logic oracle for later steps 1–3, not a harness to extend.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "A packed-consumer harness already exists: `packages/core/src/release-e2e/greenfield-python-free-smoke.ts:238` (`rehearseGreenfieldPythonFreeSmoke`).",
+          "artifact_path": "packages/core/src/release-e2e/greenfield-python-free-smoke.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 11,
+          "text": "It uses `alignNpmPackageVersions` and `packOvprTarballs` (`npm-ops.ts:102`, `:166`), installs the packed tarballs globally (`:336-338`), installs the exact runtime pin into a temp consumer (`:379`), and runs `install --repair --yes` (`:446`).",
+          "artifact_path": "packages/core/src/release-e2e/packed-consumer.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 12,
+          "text": "Its workflow, `.github/workflows/greenfield-python-free-smoke.yml`, hosts no required check.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 13,
+          "text": "Today the `.mjs` outer's missing-pin path exits 1 on every host except Grok (`packages/core/src/init-deposit/host-hook-outer.ts:324-333`).",
+          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 14,
+          "text": "Exit 1 does not block on Claude or Codex (#6201).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "What the design says - AC14.3, AC9.12, AC9.4: a missing pin fails closed, with project install guidance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "§A9 / AC10.2: an old layout gets a \"run `directive upgrade`\" message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Old code never runs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "AC14.10: a pin-only bump plus the PM install; the first eligible hook completes wiring (steps 1–3, added later).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Decision `xbrief/decisions/2026-11-10-close-5947-5948-…decision.json`: pin-only bumps are legal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "D-013: when no runtime is installed, the hook fails closed and a person runs the project install.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "D-018: a missing package blocks only before a tool runs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Step 4 tests `tool.before` only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "D-020: the job lives in `.github/workflows/ci.yml`.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "It is advisory through Phase 4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "At the Phase 4 exit, a reviewed `ci.yml` PR adds it to the `merge-gate` job (`Merge gate (task check)`, `ci.yml:558-559`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "No repository setting changes (D-007).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "The Windows leg (AC15.1) is #6621.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Expected 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "Harness `packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts` and `ovpr-lifecycle-fixture-cli.ts`, built as an ordered list of named steps (`1-bump`, `2-install`, `3-refresh`, `4-missing-packages`, `5-upgrade-commit`, `6-old-layout`) over one shared context, so a later ticket adds a step without touching the others.",
+          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "Setup once: align versions, pack, and `npm install -g` the packed launcher and runtime into a temp prefix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Lift the shared helpers out of the greenfield harness into `release-e2e/packed-consumer.ts`.",
+          "artifact_path": "packages/core/src/release-e2e/packed-consumer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "Greenfield's behaviour does not change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "Each step builds its own fixture directory, so a step can run alone (`--step 4`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "Steps 1, 2, 3 and 5 are registered as `skip` (\"added by P3-U1b\" / \"added by P4-U1\").",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "The runner prints one line per step and exits non-zero on any `fail`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Hook runner `runRegisteredHook(fixtureDir, host, event, payload)`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "It reads the host config Directive deposited (`.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.grok/hooks/deft.json`), takes the command for that event, and runs it through `sh -c` in the fixture directory with the JSON payload on stdin.",
+          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "The step fails if a host config or its `tool.before` entry is missing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "Block helper `expectBlocked(host, result, textMatchers)`: Claude and Codex exit 2 with matching stderr; Cursor exits 0 with exactly one object with `permission: \"deny\"` (exit 2 is also accepted); Grok exits 0 with exactly one object with `decision: \"deny\"`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Same table as P1-U1 (#6201).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "Step 4, missing packages. Make an installed fixture.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Sanity check first: on each host, `tool.before` for `echo hi` does not block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "Then delete `node_modules` and run `tool.before` on each host.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "Expect a block whose text contains `npm install` or `pnpm install`, and does not contain `npm i -g` or `install --repair`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "Step 6, old layout. No install and no network.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "Static fixtures only; no 0.126 package is downloaded: - 6a exact `\"@deftai/directive\": \"0.126.2\"` + `.deft/core/VERSION`; - 6b `\"^0.126.2\"` + `.deft/core/VERSION`; - 6c no root dependency, nested `tools/deft-cli/package.json` `\"^0.126.1\"`, root `.deft/core/package.json` with `deftConsumerDeposit: true`; - 6d `\"^0.126.2\"`, no `.deft/core`, `.githooks/_deft-run.sh` present (fresh-clone shape); - 6e like 6b, but the Claude config registers `deft hook:dispatch --host claude --event tool.before`.",
+          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "Fixtures 6a–6d carry the four v0.126.2 host configs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "The Grok wrapper bytes come from tag v0.126.2 (not master) and are stored under `packages/core/src/release-e2e/fixtures/pre-ovpr/`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 49,
+          "text": "Expect a block on every host, with text containing `pre-OVPR`, `directive upgrade` and `npm i -g @deftai/directive@0.126.2`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 50,
+          "text": "6f negative control: a new-layout installed fixture whose Claude config still has a bare `deft-hook` entry does not get the old-repo message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 51,
+          "text": "CI. Job `ovpr-fixture` in `.github/workflows/ci.yml` (D-020; not a new workflow file).",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 52,
+          "text": "Same artifact-only `changes` gating as the other `ci.yml` jobs, `ubuntu-latest`, pnpm and `.nvmrc` Node, `pnpm install --frozen-lockfile`, `pnpm run build`, then `node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js`.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 53,
+          "text": "`timeout-minutes: 12`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 54,
+          "text": "Not in `merge-gate`'s `needs` yet.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 55,
+          "text": "Record the measured duration in the PR (target under 5 minutes; unverified until the first run).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 56,
+          "text": "Unit test `ovpr-lifecycle-fixture.test.ts`: step order and ids, `skip` for 1/2/3/5, the `expectBlocked` table against canned results, config parsing per host.",
+          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 57,
+          "text": "Fast, no packing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 58,
+          "text": "Must not do: no agent, no LLM, no network beyond this repo's own `pnpm install`; never run old Directive code; don't change the greenfield smoke's behaviour; don't assert exact wording beyond the key phrases (P4-U3a will reword); don't add the job to the Merge gate result before the Phase 4 exit (D-020).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 59,
+          "text": "Acceptance criteria 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 60,
+          "text": "The CLI runs with no agent and prints one line per step 1–6.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 61,
+          "text": "Steps 1, 2, 3 and 5 report `skip`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 62,
+          "text": "Steps 4 and 6 report `pass` on a tip that includes P1-U1 and P1-U2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 63,
+          "text": "Step 4 fails if any host's `tool.before` does not block after `node_modules` is deleted, or if the text names `npm i -g` or `install --repair`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 64,
+          "text": "Step 4's sanity check fails if a hook blocks `echo hi` while the packages are installed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 65,
+          "text": "Step 6 fails if any old-layout fixture on any host is not blocked, or lacks the old-repo message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 66,
+          "text": "6f fails if a new-layout repo gets the old-repo message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 67,
+          "text": "A later ticket adds a step by adding one `FixtureStep` object and its fixture builder.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 68,
+          "text": "No other step changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 69,
+          "text": "The CI job finishes within its 12-minute timeout and reports its duration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 70,
+          "text": "Verification: `pnpm run build && node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js` (also `--step 4`, `--step 6`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 71,
+          "text": "Run it once against a build from before P1-U1 and P1-U2, and record in the PR that steps 4 and 6 fail there.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 72,
+          "text": "Related - #6201 (P1-U1) and #5960 (P1-U2): this test guards both.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 73,
+          "text": "Comment on each when it merges.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 74,
+          "text": "#6170, #5947, #5948: the AC14.10 proof this test grows into.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 75,
+          "text": "#6613: adds steps 1–3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 76,
+          "text": "#5771 (P4-U1): adds step 5.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 77,
+          "text": "#6621: the `windows-latest` leg.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 78,
+          "text": "Plan placement - Unit P1-U3, story id `ovpr-p1-u3`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 79,
+          "text": "Phase 1, wave 1.2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 80,
+          "text": "Size M.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 81,
+          "text": "Depends on P1-U1 (step 4 asserts its block forms) and P1-U2 (step 6 asserts its message).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 82,
+          "text": "Blocks P3-U1b (steps 1–3) and P4-U1 (step 5).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 83,
+          "text": "This ticket stays open until steps 1–3 and 5 land, or it closes on merge and later units reference it (polfer's choice).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6458882361",
+    "updated": "2026-11-18T03:02:52Z"
+  }
+}
