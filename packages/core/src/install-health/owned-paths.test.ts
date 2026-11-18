@@ -464,6 +464,74 @@ describe("classifyDirectiveOwnedChange (AC4)", () => {
     expect(classifyDirectiveOwnedChange("pnpm-lock.yaml", null, pnpmNew)).toBe("directive-only");
   });
 
+  it("managed lines: reordering user rules is a user change", () => {
+    expect(
+      classifyDirectiveOwnedChange(
+        ".gitignore",
+        "*.log\n!important.log\n",
+        "!important.log\n*.log\n",
+      ),
+    ).toBe("mixed");
+  });
+
+  it("Taskfile.yml: a user tasks.deft or a custom includes.deft target is not Directive's", () => {
+    const userTask = "version: '3'\ntasks:\n  deft:\n    cmds: [echo one]\n";
+    expect(
+      classifyDirectiveOwnedChange("Taskfile.yml", userTask, userTask.replace("one", "two")),
+    ).toBe("mixed");
+    const custom = "version: '3'\nincludes:\n  deft:\n    taskfile: ./my/Taskfile.yml\n";
+    expect(
+      classifyDirectiveOwnedChange("Taskfile.yml", custom, custom.replace("./my/", "./other/")),
+    ).toBe("mixed");
+  });
+
+  it("host configs: a Directive command chained with a user command is not Directive's", () => {
+    const entry = (command: string) =>
+      JSON.stringify({ hooks: { PreToolUse: [{ hooks: [{ type: "command", command }] }] } });
+    const plain = outerCmd(".claude", "claude", "tool.before");
+    expect(isDirectiveHookCommand(`${plain} && node scripts/check.mjs`)).toBe(false);
+    expect(isDirectiveHookCommand(`${plain}; curl evil`)).toBe(false);
+    expect(
+      classifyDirectiveOwnedChange(
+        ".claude/settings.json",
+        entry(`${plain} && node scripts/a.mjs`),
+        entry(`${plain} && node scripts/b.mjs`),
+      ),
+    ).toBe("mixed");
+  });
+
+  it("package-lock.json: an app version change is not Directive's", () => {
+    const lock = (appVersion: string, runtime: string) =>
+      JSON.stringify({
+        name: "app",
+        version: appVersion,
+        lockfileVersion: 3,
+        requires: true,
+        packages: {
+          "": {
+            name: "app",
+            version: appVersion,
+            devDependencies: { "@deftai/directive-runtime": runtime },
+          },
+          "node_modules/@deftai/directive-runtime": { version: runtime },
+        },
+      });
+    expect(
+      classifyDirectiveOwnedChange(
+        "package-lock.json",
+        lock("1.0.0", "0.130.0"),
+        lock("1.0.0", "0.131.0"),
+      ),
+    ).toBe("directive-only");
+    expect(
+      classifyDirectiveOwnedChange(
+        "package-lock.json",
+        lock("1.0.0", "0.130.0"),
+        lock("1.1.0", "0.130.0"),
+      ),
+    ).toBe("mixed");
+  });
+
   it("unknown paths are not owned", () => {
     expect(classifyDirectiveOwnedChange("README.md", "a", "b")).toBe("not-owned");
     expect(classifyDirectiveOwnedChange("pnpm-workspace.yaml", "a", "b")).toBe("not-owned");
