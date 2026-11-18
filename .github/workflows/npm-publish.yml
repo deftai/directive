@@ -297,12 +297,15 @@ jobs:
       # Post-publish runner: built at the peeled tag SHA in this job so the
       # downstream fixture never checkouts source_sha + pnpm install (CodeQL
       # actions/cache-poisoning/poisonable-step under workflow_dispatch).
+      # One self-contained esbuild bundle (#5603): packages/core/dist alone
+      # cannot load there (@deftai/directive-types and npm deps are not on disk).
+      - name: Bundle post-publish runner (#5603)
+        run: node packages/core/scripts/bundle-post-publish-runner.mjs --out post-publish-runner/npm-ops.mjs
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: post-publish-runner-${{ steps.identity.outputs.version }}
-          path: |
-            packages/core/package.json
-            packages/core/dist
+          path: post-publish-runner/npm-ops.mjs
           if-no-files-found: error
           retention-days: 7
 
@@ -450,13 +453,12 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: post-publish-runner-${{ needs.prepare.outputs.version }}
-          # upload-artifact strips the shared packages/core prefix, so the
-          # archive is package.json + dist/; restore that root here.
-          path: packages/core
+          # The artifact is the single bundled runner (#5603); no node_modules needed.
+          path: post-publish-runner
 
       - name: Post-publish two-pass fixture (#4271)
         shell: bash
         run: |
           set -euo pipefail
-          test -f packages/core/dist/release-e2e/npm-ops.js
-          node ./packages/core/dist/release-e2e/npm-ops.js --post-publish-two-pass "${VERSION}"
+          test -f post-publish-runner/npm-ops.mjs
+          node ./post-publish-runner/npm-ops.mjs --post-publish-two-pass "${VERSION}"
