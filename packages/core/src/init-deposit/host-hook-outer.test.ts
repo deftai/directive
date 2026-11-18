@@ -318,10 +318,11 @@ describe("host-hook-outer eligibility conformance (#6122)", () => {
 });
 
 describe("host-hook-outer bytes stay put (#6613)", () => {
-  it("removing the #6184 release helpers leaves the deposited outer sha8 unchanged", () => {
-    // Value on master before #6613. The outer `.mjs` bytes must not churn
-    // consumer hook paths; outer-byte changes belong to their own issues.
-    expect(hostHookOuterSha8()).toBe("a598056e");
+  it("pins the deposited outer sha8 so byte changes are deliberate", () => {
+    // The outer `.mjs` bytes must not churn consumer hook paths; outer-byte
+    // changes belong to their own issues. #6201 changed the bytes on purpose
+    // (block the tool call when the hook cannot decide): a598056e -> 8edf26e9.
+    expect(hostHookOuterSha8()).toBe("8edf26e9");
   });
 });
 
