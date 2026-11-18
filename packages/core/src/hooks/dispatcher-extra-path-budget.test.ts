@@ -13,6 +13,7 @@ import {
 } from "../session/index.js";
 import { evaluateProspectiveScopeCover } from "./dispatcher.js";
 import { decideHook, type HookPolicySeams } from "./index.js";
+import type { MergeGateSignal } from "./merge-gate-signal.js";
 
 /**
  * #6221: the story write fence uses the shared extra-path rule through the
@@ -207,6 +208,78 @@ describe("story write fence: shared extra-path rule (#6221)", () => {
       }),
     });
     expect(decision).toMatchObject({ verdict: "deny" });
+  });
+
+  describe("under a live merge gate (#6535 site e)", () => {
+    class AnyRoot extends Map<string, MergeGateSignal> {
+      constructor(private readonly live: boolean) {
+        super();
+      }
+      override get(): MergeGateSignal {
+        const live = this.live;
+        return {
+          evaluate: () => ({
+            live,
+            check: live ? "Merge gate (task check)" : null,
+            branch: live ? "master" : null,
+          }),
+        };
+      }
+    }
+    const gate = (live: boolean): Partial<HookPolicySeams> => ({
+      mergeGateSignals: new AnyRoot(live),
+    });
+
+    it("warns instead of refusing an undeclared doc and a new undeclared test", () => {
+      const root = storyRepo();
+      expect(writeTo(root, "docs/notes.md", gate(false))).toMatchObject({ verdict: "deny" });
+      const doc = writeTo(root, "docs/notes.md", gate(true));
+      expect(doc).toMatchObject({ verdict: "allow" });
+      expect(doc.message).toContain("Warning:");
+      expect(doc.message).toContain("extra-path-not-admitted");
+      const test = writeTo(root, "tests/new.test.ts", gate(true));
+      expect(test).toMatchObject({ verdict: "allow" });
+      expect(test.message).toContain("extra-path-not-admitted");
+    });
+
+    it("warns instead of refusing a source path past the allowance", () => {
+      const root = storyRepo();
+      write(root, "src/b.ts", "b\n");
+      write(root, "tests/old.test.ts", "changed\n");
+      expect(writeTo(root, "src/c.ts", gate(false))).toMatchObject({ verdict: "deny" });
+      const live = writeTo(root, "src/c.ts", gate(true));
+      expect(live).toMatchObject({ verdict: "allow" });
+      expect(live.message).toContain("extra-paths-over-budget");
+    });
+
+    it("still refuses a story deny path, and an unreadable approval record", () => {
+      const root = storyRepo();
+      const denied = writeTo(root, "docs/notes.md", {
+        ...gate(true),
+        loadStoryWriteFence: () => ({
+          fileScope: ["src/a.ts"],
+          denyPaths: ["docs/notes.md"],
+          mergeBaseSha: "x",
+        }),
+        resolveStoryWriteAllow: () => ({
+          kind: "refuse",
+          reason: "extra-path-not-admitted: probe",
+          storyAllow: [],
+          scopeOnly: true,
+        }),
+      });
+      expect(denied).toMatchObject({ verdict: "deny" });
+      const hard = writeTo(root, "docs/notes.md", {
+        ...gate(true),
+        resolveStoryWriteAllow: () => ({
+          kind: "refuse",
+          reason: "merge-base mint read failed; fail closed (#6221)",
+          storyAllow: [],
+        }),
+      });
+      expect(hard).toMatchObject({ verdict: "deny" });
+      expect(hard.message).toContain("merge-base mint read failed");
+    });
   });
 
   it("passes every target of the operation to the shared decision and uses its refusal", () => {

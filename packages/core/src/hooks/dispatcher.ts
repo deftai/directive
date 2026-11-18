@@ -1718,20 +1718,29 @@ function runtimeAuthorityForDirectWrite(
     fence: storyFence,
     targets: relTargets,
   });
+  // #6535 site (e): a purely story-scope refusal (path not admitted, allowance
+  // spent) warns under a live merge gate and the write continues. A read failure
+  // or invalid approval record stays a hard deny, and project allow/deny paths
+  // and story deny paths still apply below.
+  let warnedStoryAllow: readonly string[] | null = null;
   if (storyAllow.kind === "refuse") {
-    return deny(
-      input,
-      "runtime-policy-deny-path",
-      toolName,
-      `Directive denied this direct write: ${storyAllow.reason}${fenceRootNote}`,
-      scopePath,
-    );
+    const refusal = `Directive denied this direct write: ${storyAllow.reason}${fenceRootNote}`;
+    if (storyAllow.scopeOnly === true && warner?.warn(refusal) === true) {
+      warnedStoryAllow = [
+        ...storyAllow.storyAllow,
+        ...relTargets.filter((t): t is string => t !== null),
+      ];
+    } else {
+      return deny(input, "runtime-policy-deny-path", toolName, refusal, scopePath);
+    }
   }
   // An empty story allow would switch the story layer off; keep today's fence
   // then (only reachable when no target is inside the tree).
+  const effectiveAllow =
+    warnedStoryAllow ?? (storyAllow.kind === "scope" ? storyAllow.storyAllow : []);
   const effectiveFence =
-    storyAllow.kind === "scope" && storyAllow.storyAllow.length > 0
-      ? resolveWriteFence(basePolicy, storyAllow.storyAllow, {
+    effectiveAllow.length > 0
+      ? resolveWriteFence(basePolicy, effectiveAllow, {
           storyDenyPaths: storyFence.denyPaths,
         })
       : fence;

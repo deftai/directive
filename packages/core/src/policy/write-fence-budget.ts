@@ -71,7 +71,17 @@ export type StoryWriteAllowDecision =
       readonly assessment: ExtraPathAssessment | null;
     }
   /** Refuse; `storyAllow` is the allowlist without extras. */
-  | { readonly kind: "refuse"; readonly reason: string; readonly storyAllow: readonly string[] };
+  | {
+      readonly kind: "refuse";
+      readonly reason: string;
+      readonly storyAllow: readonly string[];
+      /**
+       * True only for a refusal that is purely a story-scope verdict (path not
+       * admitted, allowance spent). A read failure or invalid record stays hard,
+       * so a live merge gate (#6535) may warn on this one and never on the rest.
+       */
+      readonly scopeOnly?: true;
+    };
 
 export interface ResolveStoryWriteAllowInput {
   /** Root of the tree the write lands in. */
@@ -301,6 +311,7 @@ export function resolveStoryWriteAllow(
           `${EXTRA_PATH_NOT_ADMITTED_TOKEN}: ${detail} is outside the story file_scope and ` +
           `the extra-path budget does not admit it. ${extraPathRemedy(assessment)}`,
         storyAllow: [...storyAllow, ...spentTargets],
+        scopeOnly: true,
       };
     }
     const overBudget = assessment.spent.length > assessment.allowance;
@@ -316,6 +327,7 @@ export function resolveStoryWriteAllow(
           `(concreteBase=${String(assessment.concreteBaseCount)}): ${assessment.spent.join(", ")}. ` +
           extraPathRemedy(assessment),
         storyAllow: [...storyAllow, ...spentTargets.filter((t) => !overflow.has(t))],
+        scopeOnly: true,
       };
     }
     return {
