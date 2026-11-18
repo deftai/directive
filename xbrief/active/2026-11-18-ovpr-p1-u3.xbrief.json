@@ -17,7 +17,8 @@
       "Constraint": "Must not do:\n- No agent, no LLM, no network beyond this repo's own pnpm install. Step 6 must not download any old Directive version.\n- Do not run old Directive code: the old Grok wrapper is a host-config stand-in that only calls the new deft-hook.\n- Do not change the greenfield smoke's behaviour; only move shared helpers.\n- Do not assert exact message wording beyond the key phrases (P4-U3a will reword).\n- Do not add the job to merge-gate's needs before the Phase 4 exit (D-020). Never change repository settings (D-007).\n- OVPR change gate: do not edit docs/installer-refactor-ovpr/ or ship behaviour that departs from the written OVPR design; stop and hand back a change proposal if needed.",
       "Dependencies": "Depends on ovpr-p1-u1 (step 4 asserts its block forms) and ovpr-p1-u2 (step 6 asserts its message). Blocks P3-U1b (steps 1-3) and P4-U1 (step 5). Windows leg is #6621 (separate).",
       "Traces": "#6614 (primary). Guards #6201 and #5960.",
-      "DesignCritique": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)"
+      "DesignCritique": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "UserStory": "As a Directive maintainer, I want a CI test that installs the packed packages into a throwaway repo and runs the registered hook commands with no agent, so that CI fails when a hook stops blocking after node_modules is deleted or in an old-layout repo."
     },
     "items": [
       {
@@ -173,17 +174,30 @@
         ],
         "readiness": "ready",
         "depends_on": [
-          "ovpr-p1-u1",
-          "ovpr-p1-u2"
+          "github.issue.6333598818",
+          "github.issue.6060535800"
         ],
         "size": "medium",
         "verify_commands": [
-          "pnpm vitest run packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts packages/core/src/release-e2e/greenfield-python-free-smoke.test.ts"
+          "pnpm exec vitest run packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts packages/core/src/release-e2e/greenfield-python-free-smoke.test.ts"
         ],
         "Traces": [
           "#6614"
         ],
-        "acceptance_criteria_justification": "Six items: the six acceptance criteria of unit spec P1-U3 and #6614, one each. CI job goes in ci.yml per D-020 (the spec's Update banner), not a new workflow file."
+        "acceptance_criteria_justification": "Six items: the six acceptance criteria of unit spec P1-U3 and #6614, one each. CI job goes in ci.yml per D-020 (the spec's Update banner), not a new workflow file.",
+        "parallel_safe": true,
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "ovpr-fixture",
+        "expected_outputs": [
+          "The CLI runs with no agent and prints one line per step 1–6. Steps 1, 2, 3 and 5 report `skip`. Steps 4 and 6 report `pass` on a tip that includes P1-U1 and P1-U2.",
+          "Step 4 fails if any host's `tool.before` does not block after `node_modules` is deleted, or if the text names `npm i -g` or `install --repair`.",
+          "Step 4's sanity check fails if a hook blocks `echo hi` while the packages are installed.",
+          "Step 6 fails if any old-layout fixture on any host is not blocked, or lacks the old-repo message. 6f fails if a new-layout repo gets the old-repo message.",
+          "A later ticket adds a step by adding one `FixtureStep` object and its fixture builder. No other step changes.",
+          "The CI job finishes within its 12-minute timeout and reports its duration.",
+          "one changelog fragment changelog.d/6614-ovpr-lifecycle-fixture.md"
+        ]
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -425,7 +439,8 @@
           "text": "Evidence (origin/master `def527f5e`): - #6170 added one in-process unit test, `packages/runtime/src/self-complete.test.ts:285` (\"AC14.10 / HT-17\").",
           "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 7,
@@ -453,28 +468,32 @@
           "text": "A packed-consumer harness already exists: `packages/core/src/release-e2e/greenfield-python-free-smoke.ts:238` (`rehearseGreenfieldPythonFreeSmoke`).",
           "artifact_path": "packages/core/src/release-e2e/greenfield-python-free-smoke.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 11,
           "text": "It uses `alignNpmPackageVersions` and `packOvprTarballs` (`npm-ops.ts:102`, `:166`), installs the packed tarballs globally (`:336-338`), installs the exact runtime pin into a temp consumer (`:379`), and runs `install --repair --yes` (`:446`).",
           "artifact_path": "packages/core/src/release-e2e/packed-consumer.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 12,
           "text": "Its workflow, `.github/workflows/greenfield-python-free-smoke.yml`, hosts no required check.",
           "artifact_path": ".github/workflows/ci.yml",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 13,
           "text": "Today the `.mjs` outer's missing-pin path exits 1 on every host except Grok (`packages/core/src/init-deposit/host-hook-outer.ts:324-333`).",
           "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 14,
@@ -514,7 +533,7 @@
         {
           "id": 19,
           "text": "Decision `xbrief/decisions/2026-11-10-close-5947-5948-…decision.json`: pin-only bumps are legal.",
-          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -556,7 +575,7 @@
         {
           "id": 25,
           "text": "At the Phase 4 exit, a reviewed `ci.yml` PR adds it to the `merge-gate` job (`Merge gate (task check)`, `ci.yml:558-559`).",
-          "artifact_path": ".github/workflows/ci.yml",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -717,7 +736,7 @@
         {
           "id": 48,
           "text": "The Grok wrapper bytes come from tag v0.126.2 (not master) and are stored under `packages/core/src/release-e2e/fixtures/pre-ovpr/`.",
-          "artifact_path": "packages/core/src/release-e2e/fixtures/pre-ovpr",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -871,7 +890,7 @@
         {
           "id": 70,
           "text": "Verification: `pnpm run build && node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js` (also `--step 4`, `--step 6`).",
-          "artifact_path": "packages/core/src/release-e2e/ovpr-lifecycle-fixture-cli.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
