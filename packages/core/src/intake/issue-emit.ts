@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import {
   chmodSync,
-  globSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -13,6 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { containedWrite } from "../fs/contained-write.js";
+import { globSyncCompat } from "../fs/glob-sync.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -790,7 +790,7 @@ export function expandPatterns(patterns: string[], root: string | null = null): 
   const out: string[] = [];
   for (const pattern of patterns) {
     const candidate = root !== null && !isAbsolute(pattern) ? join(root, pattern) : pattern;
-    let matches = globSync(candidate).sort();
+    let matches = globSyncCompat(candidate).sort();
     if (matches.length === 0) {
       try {
         readFileSync(candidate);

@@ -1,0 +1,197 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6681",
+    "updated": "2026-11-18T18:29:24Z"
+  },
+  "plan": {
+    "title": "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
+    "status": "running",
+    "narratives": {
+      "Description": "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6681",
+      "Overview": "Kill-switch plant guard regressed in #6580.\n\n## Acceptance Criteria\n\n- [ ] A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.\n- [ ] A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.\n- [ ] The same pipeline shape aimed at the protected stores is refused.\n- [ ] Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests.\n\n",
+      "Labels": "bug, security"
+    },
+    "items": [
+      {
+        "title": "A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "The same pipeline shape aimed at the protected stores is refused.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests.",
+        "status": "proposed",
+        "id": "clause.10"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6681",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6681: security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (10), in order (#6333)",
+      "sentences": [
+        "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
+        "Kill-switch plant guard regressed in #6580.",
+        "Acceptance Criteria - [ ] A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.",
+        "[ ] A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.",
+        "[ ] The same pipeline shape aimed at the protected stores is refused.",
+        "[ ] Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests.",
+        "A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.",
+        "A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.",
+        "The same pipeline shape aimed at the protected stores is refused.",
+        "Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests."
+      ],
+      "admitted_source_sentences": [
+        "Kill-switch plant guard regressed in #6580.",
+        "Acceptance Criteria - [ ] A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.",
+        "[ ] A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.",
+        "[ ] The same pipeline shape aimed at the protected stores is refused.",
+        "[ ] Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests."
+      ],
+      "admitted_source_digest": "e00792d8ebb99aaadc1e9d725cdc1ed9d4692a4f7940e3cbb9ece86657e89c67",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Kill-switch plant guard regressed in #6580.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Acceptance Criteria - [ ] A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "[ ] A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "[ ] The same pipeline shape aimed at the protected stores is refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "[ ] Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The same pipeline shape aimed at the protected stores is refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "changelog.d/6681-killswitch-plant-guard-regression.md"
+        ],
+        "module_boundary": "packages/core/src/authz/classify.ts keeps owning the shell-op classification and the kill-switch plant scan; the change widens what that scan sees (quoted launcher payloads, xargs pipelines). No new module; new tests go in classify.test.ts and evaluate.test.ts.",
+        "cohesion_exemption": "packages/core/src/authz/classify.ts and its test files are the existing home of shell-op classification. The story adds a scoped scan inside the existing plant guard and test cases only; splitting those files is out of scope for a security hotfix."
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "changelog.d/6681-killswitch-plant-guard-regression.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "authz-classify",
+        "verify_commands": [
+          "npx vitest run packages/core/src/authz/classify.test.ts packages/core/src/authz/evaluate.test.ts"
+        ],
+        "expected_outputs": [
+          "quoted launcher payload and xargs pipeline forms naming the kill-switch file or protected stores are denied again",
+          "read-only mentions stay allowed",
+          "one changelog fragment changelog.d/6681-killswitch-plant-guard-regression.md"
+        ],
+        "Traces": [
+          "#6681"
+        ]
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6473935252,
+        "origin": "deftai/directive#6681",
+        "id": "github.issue.6473935252"
+      }
+    },
+    "id": "github.issue.6473935252",
+    "updated": "2026-11-18T18:29:24Z"
+  }
+}

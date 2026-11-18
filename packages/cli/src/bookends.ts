@@ -82,6 +82,7 @@ import {
   resolvePublishedContract,
   validateTargetVersionSpec,
 } from "./registry.js";
+import { type RegistryHintVerb, scopedRegistryHint } from "./registry-hint.js";
 import {
   applyLauncherCleanup,
   cleanupHooksPath,
@@ -142,6 +143,8 @@ export interface InstallDeps {
     version: string;
   }) => PmAddResult;
   readonly invokeSetup?: (argv: readonly string[]) => InvokeResult;
+  /** #6141 test seam: effective `@deftai:registry` read (production: `npm config get`). */
+  readonly readScopedRegistry?: (projectRoot: string, env: NodeJS.ProcessEnv) => string | null;
 }
 
 /**
@@ -363,15 +366,52 @@ function assertPlanStillValid(
   return EXIT_CODES.FAILURE;
 }
 
+/** #6141 context for the split `@deftai` registry hint on a registry miss. */
+interface RegistryHintContext {
+  readonly projectRoot: string;
+  readonly env: NodeJS.ProcessEnv;
+  readonly verb: RegistryHintVerb;
+  readonly deps: Pick<InstallDeps, "readScopedRegistry">;
+  readonly pm?: PackageManager;
+  readonly lockfileRecordsPin?: boolean;
+}
+
+function registryHintFor(blob: string, ctx: RegistryHintContext | undefined) {
+  if (ctx === undefined) return null;
+  return scopedRegistryHint(ctx.projectRoot, blob, {
+    verb: ctx.verb,
+    env: ctx.env,
+    pm: ctx.pm,
+    lockfileRecordsPin: ctx.lockfileRecordsPin,
+    readScopedRegistry: ctx.deps.readScopedRegistry,
+  });
+}
+
+/** Registry lookup (`npm view`) failure: message, plus the #6141 hint on a split-scope miss. */
+function reportRegistryLookupFailure(
+  io: BookendIo,
+  message: string,
+  ctx: RegistryHintContext,
+): number {
+  const hint = registryHintFor(message, ctx);
+  io.writeErr(`${hint === null ? message : hint.redact(message)}\n`);
+  if (hint !== null) io.writeErr(`${hint.hint}\n`);
+  return EXIT_CODES.FAILURE;
+}
+
 /** Map PM add/remove failure to exit code; interruption → 130 (AC5.15 / AC14.56). */
 function reportPmFailure(
   io: BookendIo,
   add: Extract<PmAddResult, { ok: false }>,
   runtimeVersion?: string,
+  hintCtx?: RegistryHintContext,
 ): number {
-  io.writeErr(`${add.message}\n`);
-  if (add.stderr) io.writeErr(`${add.stderr}\n`);
   const blob = `${add.message}\n${add.stderr ?? ""}`;
+  const registryHint = registryHintFor(blob, hintCtx);
+  const redact = registryHint === null ? (text: string) => text : registryHint.redact;
+  io.writeErr(`${redact(add.message)}\n`);
+  if (add.stderr) io.writeErr(`${redact(add.stderr)}\n`);
+  if (registryHint !== null) io.writeErr(`${registryHint.hint}\n`);
   if (isPnpmIgnoredBuildsFailure(blob)) {
     io.writeErr(`${formatPnpmIgnoredBuildsRecovery()}\n`);
   }
@@ -639,8 +679,12 @@ function runFirstInstall(
       return EXIT_CODES.FAILURE;
     }
     if (!resolved.ok) {
-      io.writeErr(`${resolved.message}\n`);
-      return EXIT_CODES.FAILURE;
+      return reportRegistryLookupFailure(io, resolved.message, {
+        projectRoot,
+        env,
+        verb: "install",
+        deps,
+      });
     }
     targetVersion = resolved.version;
   }
@@ -682,7 +726,7 @@ function runFirstInstall(
     deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
     runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
   if (!add.ok) {
-    return reportPmFailure(io, add, targetVersion);
+    return reportPmFailure(io, add, targetVersion, { projectRoot, env, verb: "install", deps });
   }
   const pnpmWorkspaceChanged = pnpmWorkspaceDigest(projectRoot) !== wsBefore;
 
@@ -802,7 +846,14 @@ function runRepair(
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: pinVersion }) ??
       runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: pinVersion, env });
     if (!add.ok) {
-      return reportPmFailure(io, add, pinVersion);
+      return reportPmFailure(io, add, pinVersion, {
+        projectRoot,
+        env,
+        verb: "repair",
+        deps,
+        pm: pmDetect.pm,
+        lockfileRecordsPin: lockOk,
+      });
     }
     pnpmWorkspaceChanged = pnpmWorkspaceDigest(projectRoot) !== wsBefore;
   }
@@ -1118,8 +1169,12 @@ export function runUpgrade(
       return EXIT_CODES.FAILURE;
     }
     if (!resolved.ok) {
-      io.writeErr(`${resolved.message}\n`);
-      return EXIT_CODES.FAILURE;
+      return reportRegistryLookupFailure(io, resolved.message, {
+        projectRoot,
+        env,
+        verb: "upgrade",
+        deps,
+      });
     }
     targetVersion = resolved.version;
   }
@@ -1148,8 +1203,12 @@ export function runUpgrade(
     ((version: string) => resolvePublishedContract(version, env, projectRoot));
   const published = contractResolver(targetVersion);
   if (!published.ok) {
-    io.writeErr(`${published.message}\n`);
-    return EXIT_CODES.FAILURE;
+    return reportRegistryLookupFailure(io, published.message, {
+      projectRoot,
+      env,
+      verb: "upgrade",
+      deps,
+    });
   }
   if (!isContractSupported(published.contract)) {
     io.writeErr(
@@ -1293,7 +1352,7 @@ export function runUpgrade(
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
       runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
     if (!add.ok) {
-      return reportPmFailure(io, add, targetVersion);
+      return reportPmFailure(io, add, targetVersion, { projectRoot, env, verb: "upgrade", deps });
     }
     const pnpmWorkspaceChanged = pnpmWorkspaceDigest(projectRoot) !== wsBefore;
 
