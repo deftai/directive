@@ -1,0 +1,2 @@
+section: Fixed
+- Hooks: when the Directive hook cannot decide (runtime package missing, the hook fails to start, crashes or exits non-zero), Claude Code and Codex now block the tool call with exit 2 instead of letting it run unchecked. Cursor gets one deny answer, and Grok always gets exactly one decision: doubled or malformed output becomes one deny. Other hook events keep their old exit codes (#6201, #6166).

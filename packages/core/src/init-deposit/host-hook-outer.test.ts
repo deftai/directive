@@ -5,6 +5,7 @@ import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+  HOST_HOOK_NONDECISION_REASON,
   hostHookOuterCommand,
   hostHookOuterFileName,
   hostHookOuterRelPath,
@@ -25,14 +26,16 @@ function gitInit(root: string): void {
   expect(r.status).toBe(0);
 }
 
-function writeDenyRuntime(root: string): void {
+/** Fake pin hook-bin.js with the given body (the fake-runtime harness). */
+function writeRuntime(root: string, body: string): void {
   mkdirSync(join(root, "node_modules", "@deftai", "directive-runtime", "dist"), {
     recursive: true,
   });
-  writeFileSync(
-    join(root, "node_modules/@deftai/directive-runtime/dist/hook-bin.js"),
-    'process.stderr.write("DENY_RUNTIME_REACHED\\n"); process.exit(2);\n',
-  );
+  writeFileSync(join(root, "node_modules/@deftai/directive-runtime/dist/hook-bin.js"), body);
+}
+
+function writeDenyRuntime(root: string): void {
+  writeRuntime(root, 'process.stderr.write("DENY_RUNTIME_REACHED\\n"); process.exit(2);\n');
 }
 
 function writeFakeGit(binDir: string, kind: "fail" | "tracked" | "untracked"): void {
@@ -62,41 +65,70 @@ function runOuter(
   root: string,
   host: Host,
   envExtra: NodeJS.ProcessEnv = {},
+  event = "tool.before",
+  nodeArgs: readonly string[] = [],
 ): ReturnType<typeof spawnSync> {
   const sha8 = hostHookOuterSha8();
   const abs = join(root, hostHookOuterRelPath(host, sha8));
   mkdirSync(join(abs, ".."), { recursive: true });
   writeFileSync(abs, hostHookOuterSource());
-  return spawnSync(process.execPath, [abs, "--host", host, "--event", "tool.before"], {
+  return spawnSync(process.execPath, [...nodeArgs, abs, "--host", host, "--event", event], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, ...envExtra },
+    maxBuffer: 64 * 1024 * 1024,
   });
 }
 
-function expectHostFailClosed(r: ReturnType<typeof spawnSync>, host: Host): void {
-  if (host === "grok") {
-    expect(r.status).toBe(0);
-    expect(r.stdout ?? "").toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
-    expect(r.stdout ?? "").toContain('"decision":"deny"');
+type ReasonKind = "missing-pin" | "nondecision";
+
+function expectReason(text: string, kind: ReasonKind): void {
+  if (kind === "missing-pin") {
+    expect(text).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(text).not.toContain(HOST_HOOK_NONDECISION_REASON);
+    expect(text).not.toContain("npm i -g");
+    expect(text).not.toContain("install --repair");
   } else {
-    expect(r.status).toBe(1);
-    expect(`${r.stderr ?? ""}${r.stdout ?? ""}`).toContain(
-      HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
-    );
+    expect(text).toContain(HOST_HOOK_NONDECISION_REASON);
+    expect(text).not.toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
   }
 }
 
+/**
+ * #6201 per-host block table for `tool.before`. Whole stdout is parsed, so a
+ * second decision or any stray text fails the assertion.
+ */
+function expectToolBlocked(r: ReturnType<typeof spawnSync>, host: Host, kind: ReasonKind): void {
+  const stdout = String(r.stdout ?? "");
+  const stderr = String(r.stderr ?? "");
+  if (host === "grok") {
+    expect(r.status).toBe(0);
+    const parsed = JSON.parse(stdout) as Record<string, unknown>;
+    expect(Object.keys(parsed).sort()).toEqual(["decision", "reason"]);
+    expect(parsed.decision).toBe("deny");
+    expectReason(String(parsed.reason), kind);
+  } else if (host === "cursor") {
+    expect(r.status).toBe(0);
+    const parsed = JSON.parse(stdout) as Record<string, unknown>;
+    expect(Object.keys(parsed).sort()).toEqual(["agent_message", "permission", "user_message"]);
+    expect(parsed.permission).toBe("deny");
+    expectReason(String(parsed.user_message), kind);
+    expect(parsed.agent_message).toBe(parsed.user_message);
+  } else {
+    expect(r.status).toBe(2);
+    expect(stdout).toBe("");
+    expectReason(stderr, kind);
+  }
+}
+
+/** Missing pin on tool.before (kept name for the #6122 conformance tests). */
+function expectHostFailClosed(r: ReturnType<typeof spawnSync>, host: Host): void {
+  expectToolBlocked(r, host, "missing-pin");
+}
+
+/** Pin present but exits 2: a non-decision, blocked on every host. */
 function expectHostDenyRuntime(r: ReturnType<typeof spawnSync>, host: Host): void {
-  // Pin exits 2 → outer failClosedUnusablePin (host-specific refusal).
-  expectHostFailClosed(r, host);
-  // Child stderr may be inherited before fail-closed rewrite; either the
-  // runtime token or the outer guidance proves enforcement path was taken.
-  const combined = `${r.stdout ?? ""}${r.stderr ?? ""}`;
-  expect(
-    combined.includes("DENY_RUNTIME_REACHED") ||
-      combined.includes(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE),
-  ).toBe(true);
+  expectToolBlocked(r, host, "nondecision");
 }
 
 describe("host-hook-outer (#5994)", () => {
@@ -146,19 +178,22 @@ describe("host-hook-outer (#5994)", () => {
     expect(source).toContain("node_modules/@deftai/directive-runtime/dist/hook-bin.js");
     expect(source).toContain(".deft-directive-disable");
     expect(source).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(source).toContain(HOST_HOOK_NONDECISION_REASON);
     expect(source).toContain("isRegularFile");
     expect(source).toContain("gitTrackListing");
     expect(source).not.toContain("error-unmatch");
   });
 
-  it("logs spawn failure diagnostic when child.error is set (SLizard P1)", () => {
+  it("uses Node built-ins only and one failure exit (AC9.1 / #6201)", () => {
     const source = hostHookOuterSource();
-    expect(source).toContain("failed to spawn pin hook-bin");
-    expect(source).toContain("child.error");
-    expect(source).toContain("failClosedUnusablePin");
+    const imports = [...source.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]);
+    expect(imports.length).toBeGreaterThan(0);
+    for (const spec of imports) expect(spec).toMatch(/^node:/);
+    expect(source).toContain("function blockToolCall(host, event, reason)");
     expect(source).toMatch(/if \(child\.error\)/);
     expect(source).toMatch(/if \(child\.status === null\)/);
-    expect(source).toContain("failClosedUnusablePin(");
+    expect(source).not.toContain('stdio: "inherit"');
+    expect(source).not.toContain("failClosedUnusablePin");
   });
 
   it("F1: unusable pin (non-zero child) emits Grok deny JSON", () => {
@@ -167,9 +202,7 @@ describe("host-hook-outer (#5994)", () => {
       writeFileSync(join(root, "package.json"), "{}\n");
       writeDenyRuntime(root);
       const r = runOuter(root, "grok");
-      expect(r.status).toBe(0);
-      expect(r.stdout).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
-      expect(r.stdout).toContain('"decision":"deny"');
+      expectToolBlocked(r, "grok", "nondecision");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -492,5 +525,218 @@ describe("tip-required Cursor deposit co-travel (#6163 Prefer-A Bound 6772886751
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("host-hook-outer blocks the tool call when it cannot decide (#6201 / #6166)", () => {
+  const ALLOW_THEN_EXIT_2 =
+    'process.stdout.write(JSON.stringify({ decision: "allow" }) + "\\n"); process.exit(2);\n';
+
+  function project(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    writeFileSync(join(root, "package.json"), "{}\n");
+    return root;
+  }
+
+  function withProject(prefix: string, fn: (root: string) => void): void {
+    const root = project(prefix);
+    try {
+      fn(root);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  it.each(HOSTS)("%s tool.before: missing pin blocks with the missing-pin text", (host) => {
+    withProject(`outer-6201-miss-${host}-`, (root) => {
+      expectToolBlocked(runOuter(root, host), host, "missing-pin");
+    });
+  });
+
+  it.each(HOSTS)("%s tool.before: spawn error blocks with the non-decision text", (host) => {
+    withProject(`outer-6201-spawn-${host}-`, (root) => {
+      writeRuntime(root, 'process.stdout.write("{}");\n');
+      // Point the outer's process.execPath at a file that does not exist so
+      // spawnSync sets child.error (ENOENT).
+      const preload = join(root, "preload.cjs");
+      writeFileSync(preload, `process.execPath = ${JSON.stringify(join(root, "no-such-node"))};\n`);
+      const r = runOuter(root, host, {}, "tool.before", ["--require", preload]);
+      expectToolBlocked(r, host, "nondecision");
+      const reason = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+      expect(reason).toContain("failed to run pin hook-bin");
+    });
+  });
+
+  it.skipIf(process.platform === "win32").each(HOSTS)(
+    "%s tool.before: child killed by a signal blocks",
+    (host) => {
+      withProject(`outer-6201-signal-${host}-`, (root) => {
+        writeRuntime(
+          root,
+          'process.stdout.write(JSON.stringify({ decision: "allow" })); process.kill(process.pid, "SIGKILL");\n',
+        );
+        const r = runOuter(root, host);
+        expectToolBlocked(r, host, "nondecision");
+        expect(`${r.stdout ?? ""}${r.stderr ?? ""}`).toContain("SIGKILL");
+      });
+    },
+  );
+
+  it.each(HOSTS)("%s tool.before: allow then exit 2 blocks and drops the allow", (host) => {
+    withProject(`outer-6201-allow2-${host}-`, (root) => {
+      writeRuntime(root, ALLOW_THEN_EXIT_2);
+      const r = runOuter(root, host);
+      expectToolBlocked(r, host, "nondecision");
+      expect(String(r.stdout ?? "")).not.toContain('"allow"');
+    });
+  });
+
+  it.each(HOSTS)("%s tool.before: exit 1 with no output blocks", (host) => {
+    withProject(`outer-6201-exit1-${host}-`, (root) => {
+      writeRuntime(root, "process.exit(1);\n");
+      expectToolBlocked(runOuter(root, host), host, "nondecision");
+    });
+  });
+
+  it.each(HOSTS)("%s tool.before: stdout over the capture limit blocks", (host) => {
+    withProject(`outer-6201-big-${host}-`, (root) => {
+      writeRuntime(
+        root,
+        'const s = "x".repeat(17 * 1024 * 1024); require("node:fs").writeSync(1, s); process.exit(0);\n',
+      );
+      const r = runOuter(root, host);
+      expectToolBlocked(r, host, "nondecision");
+    });
+  });
+
+  it("missing --host on tool.before blocks with exit 2", () => {
+    withProject("outer-6201-nohost-", (root) => {
+      const sha8 = hostHookOuterSha8();
+      const abs = join(root, hostHookOuterRelPath("claude", sha8));
+      mkdirSync(join(abs, ".."), { recursive: true });
+      writeFileSync(abs, hostHookOuterSource());
+      const r = spawnSync(process.execPath, [abs, "--event", "tool.before"], {
+        cwd: root,
+        encoding: "utf8",
+      });
+      expect(r.status).toBe(2);
+      expect(r.stdout).toBe("");
+      expectReason(r.stderr ?? "", "missing-pin");
+    });
+  });
+
+  it.each([
+    "session.start",
+    "session.compact",
+    "session.end",
+    "prompt.submit",
+  ])("non-tool event %s keeps exit 1 on Claude/Codex/Cursor (D-018)", (event) => {
+    withProject("outer-6201-event-", (root) => {
+      for (const host of ["claude", "codex", "cursor"] as const) {
+        const r = runOuter(root, host, {}, event);
+        expect(r.status).toBe(1);
+        expect(r.stdout).toBe("");
+        expectReason(r.stderr ?? "", "missing-pin");
+      }
+      const failed = runOuter(root, "claude", {}, event);
+      expect(failed.status).not.toBe(2);
+    });
+  });
+
+  it.each([
+    "session.start",
+    "session.compact",
+  ])("non-tool event %s on Grok stays one deny JSON on exit 0", (event) => {
+    withProject("outer-6201-grok-event-", (root) => {
+      const r = runOuter(root, "grok", {}, event);
+      expect(r.status).toBe(0);
+      expect(JSON.parse(String(r.stdout))).toEqual({
+        decision: "deny",
+        reason: HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+      });
+    });
+  });
+
+  it("non-tool event with a crashing pin exits 1 with the non-decision text", () => {
+    withProject("outer-6201-event-crash-", (root) => {
+      writeRuntime(root, "process.exit(1);\n");
+      for (const host of ["claude", "codex", "cursor"] as const) {
+        const r = runOuter(root, host, {}, "session.compact");
+        expect(r.status).toBe(1);
+        expect(r.stdout).toBe("");
+        expectReason(r.stderr ?? "", "nondecision");
+      }
+    });
+  });
+
+  describe("Grok exit 0 output check (#6166)", () => {
+    function grokWith(stdout: string): ReturnType<typeof spawnSync> {
+      const root = project("outer-6166-");
+      try {
+        writeRuntime(root, `process.stdout.write(${JSON.stringify(stdout)});\n`);
+        return runOuter(root, "grok");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    }
+
+    it.each(["", "   \n\t\n"])("whitespace-only %j stays an empty allow", (stdout) => {
+      const r = grokWith(stdout);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toBe("");
+    });
+
+    it.each([
+      '{"decision":"allow","reason":"x"}',
+      '{"decision":"deny","reason":"no"}\n',
+      '{"decision":"allow","hookSpecificOutput":{"additionalContext":"ctx"}}\n',
+    ])("one decision %j passes through unchanged", (stdout) => {
+      const r = grokWith(stdout);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toBe(stdout);
+    });
+
+    it.each([
+      '{"decision":"allow"}\n{"decision":"deny","reason":"x"}\n',
+      '{"decision":"allow"} trailing',
+      "[]",
+      '{"foo":1}',
+      '{"decision":"maybe"}',
+      "not json",
+    ])("malformed %j becomes one deny", (stdout) => {
+      expectToolBlocked(grokWith(stdout), "grok", "nondecision");
+    });
+  });
+
+  it.each([
+    "claude",
+    "codex",
+    "cursor",
+  ] as const)("%s exit 0: child stdout passes through byte for byte", (host) => {
+    withProject(`outer-6201-pass-${host}-`, (root) => {
+      const wire =
+        host === "cursor"
+          ? '{"permission":"allow"}\n'
+          : '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}\n';
+      // Odd bytes too: no parsing or re-encoding on these hosts.
+      const payload = `${wire}  trailing é\r\n`;
+      writeRuntime(root, `process.stdout.write(${JSON.stringify(payload)});\n`);
+      const r = runOuter(root, host);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toBe(payload);
+    });
+  });
+
+  it.each([
+    "claude",
+    "codex",
+    "cursor",
+  ] as const)("%s exit 0 with empty stdout stays empty", (host) => {
+    withProject(`outer-6201-empty-${host}-`, (root) => {
+      writeRuntime(root, "process.exit(0);\n");
+      const r = runOuter(root, host);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toBe("");
+    });
   });
 });

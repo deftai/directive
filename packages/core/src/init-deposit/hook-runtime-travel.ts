@@ -46,9 +46,11 @@ import { PIN_DEPENDENCY_NAME, type PinReadResult, readPin } from "../resolution/
  * package-relative hook-bin (#5656 Prefer-A Bound / AC9.1). Extending this list
  * alone is not a deny — the deposit writer must land the matching authority
  * (schema field or wrapper).
- * Claude/Codex remain fail-open with silent gate-loss naming below.
+ * Claude/Codex block too: the committed outer exits 2 on `tool.before` when
+ * the pin is missing or cannot decide (#6201 / AC9.4). The silent gate-loss
+ * path below is kept but no longer fires for any deposited host.
  */
-export const FAIL_CLOSED_HOOK_HOSTS: readonly HookHost[] = ["cursor", "grok"];
+export const FAIL_CLOSED_HOOK_HOSTS: readonly HookHost[] = ["claude", "codex", "cursor", "grok"];
 
 /** Durable operator-visible gate-off record for silent gate loss (#5656). */
 export const HOOK_GATE_OFF_REL_PATH = ".deft/hook-gate-off.json";
@@ -294,6 +296,7 @@ function buildWarning(
     lines.push(
       "  Fail-closed hosts then deny every mutation on an opaque exit 127, and no Directive",
       "  code runs to say why. There is no in-session recovery on a host without Node.",
+      "  Claude/Codex block with exit 2 from the committed outer (#6201);",
       "  Cursor uses schema failClosed; Grok uses a wrapper-mediated deny over",
       "  package-relative hook-bin (#5656 / AC9.1). Grok wrapper-never-starts remains a",
       "  host-contract residual.",
