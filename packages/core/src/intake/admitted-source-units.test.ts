@@ -70,6 +70,25 @@ describe("selectAdmittedSourceUnits - list route", () => {
     ]);
   });
 
+  it("stops a continuation at a block quote", () => {
+    const body = [
+      "## Acceptance Criteria",
+      "- Reject expired tokens.",
+      "> Historical behavior allowed them.",
+    ].join("\n");
+    expect(admittedSourceUnitsFromBody(body)).toEqual(["Reject expired tokens."]);
+  });
+
+  it("marks a repeated criterion completed when any occurrence is checked", () => {
+    const unchecked = ["## Acceptance Criteria", "- [ ] Same.", "- [x] Same."].join("\n");
+    expect(selectAdmittedSourceUnits(unchecked)).toMatchObject({
+      units: ["Same."],
+      statuses: ["completed"],
+    });
+    const reversed = ["## Acceptance Criteria", "- [x] Same.", "- [ ] Same."].join("\n");
+    expect(selectAdmittedSourceUnits(reversed).statuses).toEqual(["completed"]);
+  });
+
   it("stops a continuation at a reference line or the generated footer", () => {
     const body = ["## Acceptance Criteria", "- Only criterion", "Refs #1", FOOTER].join("\n");
     expect(admittedSourceUnitsFromBody(body)).toEqual(["Only criterion"]);

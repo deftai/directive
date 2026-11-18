@@ -44,9 +44,10 @@ function collapse(text: string): string {
  * List items of a section as units: the item line without its bullet and
  * checkbox marker, plus each following line that continues it, joined with
  * single spaces. A continuation line is any directly following line that is not
- * a list item, heading, blank line, reference line or the generated footer; it
- * need not be indented (a CommonMark lazy continuation), so wrapped text is
- * never dropped. Repeated units are kept once.
+ * a list item, heading, blank line, block quote, reference line or the generated
+ * footer; it need not be indented (a CommonMark lazy continuation), so wrapped
+ * text is never dropped. Repeated units are kept once, completed if any
+ * occurrence is checked.
  */
 function listUnits(sectionText: string): {
   units: string[];
@@ -54,7 +55,7 @@ function listUnits(sectionText: string): {
 } {
   const units: string[] = [];
   const statuses: ("proposed" | "completed")[] = [];
-  const seen = new Set<string>();
+  const seen = new Map<string, number>();
   const lines = sectionText.split(/\r?\n/);
   let index = 0;
   while (index < lines.length) {
@@ -79,7 +80,8 @@ function listUnits(sectionText: string): {
         LIST_ITEM_RE.test(next) ||
         HEADING_RE.test(next) ||
         REF_LINE_RE.test(next) ||
-        FOOTER_LINE_RE.test(next)
+        FOOTER_LINE_RE.test(next) ||
+        QUOTE_LINE_RE.test(next)
       ) {
         break;
       }
@@ -87,10 +89,18 @@ function listUnits(sectionText: string): {
       index += 1;
     }
     const unit = collapse(parts.join(" "));
-    if (unit.length === 0 || seen.has(unit)) {
+    if (unit.length === 0) {
       continue;
     }
-    seen.add(unit);
+    const seenAt = seen.get(unit);
+    if (seenAt !== undefined) {
+      // A repeated criterion is one unit; any checked occurrence marks it completed.
+      if (status === "completed") {
+        statuses[seenAt] = "completed";
+      }
+      continue;
+    }
+    seen.set(unit, units.length);
     units.push(unit);
     statuses.push(status);
   }
