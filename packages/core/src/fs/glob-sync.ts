@@ -44,10 +44,12 @@ export function globSyncCompat(pattern: string, options?: GlobSyncCompatOptions)
 
 // ---------------------------------------------------------------------------
 // Node 20 fallback: a port of the sync path of Node's lib/internal/fs/glob.js
-// (v24.19.0; Node.js is MIT-licensed). Only the options Directive uses are
+// (v24.22.1; Node.js is MIT-licensed). Only the options Directive uses are
 // kept: `cwd`. No `exclude`, no `withFileTypes`, symlinks not followed
 // (Node's default). Keep the logic in step with Node's; the parity test
-// compares the two on Node 22+.
+// compares the two on the CI Node version. Older 22/24 releases also step one
+// level into a symlinked directory under `**`; 24.22+ and 26 do not, and this
+// port follows the newer behaviour.
 // ---------------------------------------------------------------------------
 
 type PatternPart = string | typeof GLOBSTAR | RegExp;
@@ -303,12 +305,6 @@ class FallbackGlob {
       const subPatterns = new Set<number>();
       const nSymlinks = new Set<number>();
       for (const index of pattern.indexes) {
-        if (
-          this.#cache.seen(entryPath, pattern, index) ||
-          this.#cache.seen(entryPath, pattern, index + 1)
-        ) {
-          return;
-        }
         const current = pattern.at(index);
         const nextIndex = index + 1;
         const next = pattern.at(nextIndex);
@@ -331,11 +327,7 @@ class FallbackGlob {
           } else if (nextMatches && entryIsDirectory) {
             subPatterns.add(index + 2);
           }
-          if (
-            (nextMatches || first === ".") &&
-            (entryIsDirectory || entry.isSymbolicLink()) &&
-            !fromSymlink
-          ) {
+          if ((nextMatches || first === ".") && entryIsDirectory && !fromSymlink) {
             subPatterns.add(nextIndex);
           }
           if (entry.isSymbolicLink()) nSymlinks.add(index);
