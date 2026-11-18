@@ -960,7 +960,24 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
     kept.forEach((line, i) => {
       if (managed.has(line.trim())) lastManaged = i;
     });
-    if (lastManaged >= 0) {
+    // A later customer rule overrides an earlier pin for the same path, so new
+    // pins must not land above customer rules. When customer rules follow the
+    // managed block, move Directive's own block to the end (its lines only).
+    const customerRuleAfter = kept
+      .slice(lastManaged + 1)
+      .some((line) => line.trim().length > 0 && !line.trim().startsWith("#"));
+    if (lastManaged >= 0 && customerRuleAfter) {
+      const headerLines = new Set(header.map((line) => line.trim()));
+      const block = kept.filter((line) => managed.has(line.trim()));
+      const rest = kept.filter(
+        (line) => !managed.has(line.trim()) && !headerLines.has(line.trim()),
+      );
+      // Drop only the blank lines the moved block leaves at either end.
+      while (rest.length > 0 && (rest[0] ?? "").trim() === "") rest.shift();
+      while (rest.length > 0 && (rest[rest.length - 1] ?? "").trim() === "") rest.pop();
+      if (rest.length > 0) rest.push("");
+      kept.splice(0, kept.length, ...rest, ...header, ...block, ...additions);
+    } else if (lastManaged >= 0) {
       kept.splice(lastManaged + 1, 0, ...additions);
     } else {
       if (kept.length > 0 && (kept[kept.length - 1] ?? "").trim() !== "") kept.push("");

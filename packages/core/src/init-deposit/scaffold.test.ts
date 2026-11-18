@@ -503,22 +503,47 @@ describe("init-deposit scaffold", () => {
     expect(attrs).not.toContain("byte identity");
   });
 
-  it("adds missing managed lines inside the existing managed block (#6167)", () => {
+  it("adds missing managed lines inside the managed block when it ends the file (#6167)", () => {
     const project = freshRoot("scaffold-gitattributes-extend-");
     const { io } = captureIo();
     const older = MANAGED_WIRING_GITATTRIBUTES_LINES.filter((l) => !l.includes("deft-hook-"));
+    const customer = "# customer head\n*.go diff=golang\n\n";
     writeFileSync(
       join(project, ".gitattributes"),
-      `${gitattributesDepositComment()}${older.join("\n")}\n\n# customer tail\n*.go diff=golang\n`,
+      `${customer}${gitattributesDepositComment()}${older.join("\n")}\n`,
       "utf8",
     );
     expect(ensureGitattributes(project, io)).toBe(true);
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
-    expect(attrs.endsWith("\n\n# customer tail\n*.go diff=golang\n")).toBe(true);
-    for (const host of [".claude/", ".codex/", ".cursor/hooks/"]) {
-      expect(attrs).toContain(`${host}deft-hook-*.mjs text=auto eol=lf`);
-    }
+    expect(attrs).toBe(
+      `${customer}${gitattributesDepositComment()}${MANAGED_WIRING_GITATTRIBUTES_LINES.join("\n")}\n`,
+    );
     expect(attrs.match(/# Deft managed wiring:/g) ?? []).toHaveLength(1);
+  });
+
+  it("moves the managed block below later customer rules so new pins take effect (#6167)", () => {
+    const project = freshRoot("scaffold-gitattributes-tail-");
+    const { io } = captureIo();
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    const older = MANAGED_WIRING_GITATTRIBUTES_LINES.filter((l) => !l.includes("deft-hook-"));
+    writeFileSync(
+      join(project, ".gitattributes"),
+      `${gitattributesDepositComment()}${older.join("\n")}\n\n# customer tail\n* text=auto eol=crlf\n`,
+      "utf8",
+    );
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect(attrs).toBe(
+      `# customer tail\n* text=auto eol=crlf\n\n${gitattributesDepositComment()}${MANAGED_WIRING_GITATTRIBUTES_LINES.join("\n")}\n`,
+    );
+    for (const rel of [".claude/deft-hook-0a1b2c3d.mjs", ".cursor/hooks/deft-hook-deadbeef.mjs"]) {
+      const out = execFileSync("git", ["check-attr", "eol", "--", rel], {
+        cwd: project,
+        encoding: "utf8",
+      });
+      expect(out.trim()).toBe(`${rel}: eol: lf`);
+    }
+    expect(ensureGitattributes(project, io)).toBe(false);
   });
 
   it("keeps CRLF line endings when the file uses them", () => {

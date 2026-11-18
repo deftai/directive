@@ -5,6 +5,7 @@
  * seed placeholders and current data-schema marker (AC6.2). Never deposits
  * .deft/core (AC13.1). Repair does not migrate schema.
  */
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -205,12 +206,29 @@ function ensureGitignore(projectRoot: string): { created: boolean; modified: boo
  * `keepUnstaged` lists changed files that already had unstaged edits, so
  * install/upgrade staging leaves the customer's own work alone.
  */
+/** True when `rel` is inside a Git work tree but not tracked. */
+function pathIsUntracked(projectRoot: string, rel: string): boolean {
+  try {
+    const out = execFileSync(
+      "git",
+      ["-C", projectRoot, "status", "--porcelain", "--untracked-files=all", "--", rel],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    return out.split("\n").some((line) => line.startsWith("??"));
+  } catch {
+    return false;
+  }
+}
+
 function refreshSharedLineFiles(projectRoot: string): {
   modified: string[];
   keepUnstaged: string[];
 } {
+  // Untracked files count as the customer's own work too: `git diff` does not list them.
   const dirty = RETIRED_COPY_MODEL_LINE_FILES.filter(
-    (rel) => existsSync(join(projectRoot, rel)) && pathHasUnstagedChanges(projectRoot, rel),
+    (rel) =>
+      existsSync(join(projectRoot, rel)) &&
+      (pathHasUnstagedChanges(projectRoot, rel) || pathIsUntracked(projectRoot, rel)),
   );
   const modified = removeRetiredCopyModelLines(projectRoot);
   if (ensurePrettierIgnoreHookLine(projectRoot) && !modified.includes(".prettierignore")) {

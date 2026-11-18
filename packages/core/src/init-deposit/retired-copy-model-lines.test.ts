@@ -94,6 +94,18 @@ describe("stripRetiredGreptileIgnore (#5961)", () => {
     expect(stripRetiredGreptileIgnore('{"ignorePatterns": ["x"]}')).toBeNull();
     expect(stripRetiredGreptileIgnore('{"ignorePatterns": "dist/**"}')).toBeNull();
   });
+
+  it("removes the pattern when the JSON escapes its slashes", () => {
+    expect(
+      stripRetiredGreptileIgnore('{\n  "x": 1,\n  "ignorePatterns": "a\\n.deft\\/core\\/**"\n}\n'),
+    ).toBe('{\n  "x": 1,\n  "ignorePatterns": "a"\n}\n');
+  });
+
+  it("edits only the ignorePatterns value when another key holds the same text", () => {
+    expect(
+      stripRetiredGreptileIgnore('{"note": ".deft/core/**", "ignorePatterns": ".deft/core/**"}'),
+    ).toBe('{"note": ".deft/core/**", "ignorePatterns": ""}');
+  });
 });
 
 describe("stripRetiredCodeqlConfig (#5961)", () => {
@@ -106,6 +118,14 @@ describe("stripRetiredCodeqlConfig (#5961)", () => {
       'name: "mine"\npaths-ignore:\n  - "vendor/**"\n  - ".deft/core/**"\n  - .deft/core/**\nqueries:\n  - uses: security-extended\n';
     expect(stripRetiredCodeqlConfig(before)).toBe(
       'name: "mine"\npaths-ignore:\n  - "vendor/**"\nqueries:\n  - uses: security-extended\n',
+    );
+  });
+
+  it("keeps the list open across column-zero comments and unindented items", () => {
+    const before =
+      "paths-ignore:\n- '.deft/core/**'\n# customer note\n- 'vendor/**'\nqueries: []\n";
+    expect(stripRetiredCodeqlConfig(before)).toBe(
+      "paths-ignore:\n# customer note\n- 'vendor/**'\nqueries: []\n",
     );
   });
 

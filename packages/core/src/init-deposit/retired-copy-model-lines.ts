@@ -132,13 +132,31 @@ export function stripRetiredGreptileIgnore(text: string): string | null {
   const parts = patterns.split("\n");
   const kept = parts.filter((part) => part.trim() !== RETIRED_GREPTILE_PATTERN);
   if (kept.length === parts.length) return null;
-  // Replace the one JSON string literal in place so key order and formatting stay.
-  const oldLiteral = JSON.stringify(patterns);
-  const first = text.indexOf(oldLiteral);
-  if (first < 0 || text.indexOf(oldLiteral, first + 1) >= 0) return null;
-  return (
-    text.slice(0, first) + JSON.stringify(kept.join("\n")) + text.slice(first + oldLiteral.length)
-  );
+  // Replace the `ignorePatterns` value literal in place, as written in the
+  // source (any escaping), so key order and formatting stay.
+  const spans = ignorePatternsValueSpans(text).filter((span) => {
+    try {
+      return JSON.parse(text.slice(span.start, span.end)) === patterns;
+    } catch {
+      return false;
+    }
+  });
+  const span = spans.length === 1 ? spans[0] : undefined;
+  if (span === undefined) return null;
+  return text.slice(0, span.start) + JSON.stringify(kept.join("\n")) + text.slice(span.end);
+}
+
+/** Source spans of every string value written after an `"ignorePatterns":` key. */
+function ignorePatternsValueSpans(text: string): Array<{ start: number; end: number }> {
+  const spans: Array<{ start: number; end: number }> = [];
+  const key = /"ignorePatterns"\s*:\s*"/g;
+  for (let m = key.exec(text); m !== null; m = key.exec(text)) {
+    const start = m.index + m[0].length - 1;
+    let i = start + 1;
+    while (i < text.length && text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+    if (i < text.length) spans.push({ start, end: i + 1 });
+  }
+  return spans;
 }
 
 /**
@@ -162,13 +180,16 @@ export function stripRetiredCodeqlConfig(text: string): string | null {
     blockRemoved = 0;
   };
   for (const line of lines) {
-    const topLevel = line.length > 0 && line[0] !== " " && line[0] !== "\t";
+    const startsAtColumnZero = line.length > 0 && line[0] !== " " && line[0] !== "\t";
+    if (startsAtColumnZero && RETIRED_CODEQL_COMMENTS.includes(line.trimEnd())) {
+      changed = true;
+      continue;
+    }
+    // Comments and unindented `- item` lines stay inside the list; only a new
+    // key ends it.
+    const topLevel = startsAtColumnZero && !line.startsWith("#") && !line.startsWith("-");
     if (topLevel) {
       closeBlock();
-      if (RETIRED_CODEQL_COMMENTS.includes(line.trimEnd())) {
-        changed = true;
-        continue;
-      }
       if (line.trimEnd() === "paths-ignore:") blockStart = out.length;
       out.push(line);
       continue;

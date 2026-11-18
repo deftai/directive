@@ -620,6 +620,21 @@ describe("setup and retired .deft/core lines (#5961)", { timeout: 60_000 }, () =
     );
   });
 
+  it("upgrade does not stage an untracked .prettierignore it adds the hook line to", () => {
+    const root = committedProject();
+    writeRel(root, "README.md", "x\n");
+    commitAll(root);
+    writeRel(root, ".prettierignore", "dist/\n");
+
+    const result = runSetup({ operation: "upgrade", from: "0.0.0", root });
+
+    expect(result.modified).toContain(".prettierignore");
+    expect(readRel(root, ".prettierignore")).toContain("**/deft-hook-*.mjs");
+    expect(git(root, ["status", "--porcelain", "--", ".prettierignore"]).trim()).toBe(
+      "?? .prettierignore",
+    );
+  });
+
   it("no .prettierignore: setup does not create one (AC13.3)", () => {
     const root = committedProject();
     runSetup({ operation: "install", from: "none", root });
