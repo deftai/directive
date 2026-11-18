@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readProjectDataStatus } from "./data-status.js";
+import { inventoryEntry } from "./installer-output-inventory.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { runSetup, setupChangeCount } from "./setup.js";
 import { GIT_HOOKS_INACTIVE_NO_GIT } from "./setup-wiring.js";
@@ -353,9 +354,65 @@ describe("runSetup old-style conversion (Wave 2f / AC10.3 / AC10.6 / AC10.9)", (
     runSetup({ operation: "upgrade", from: "1.2.3", root });
     expect(existsSync(join(root, ".deft", "core", "VERSION"))).toBe(true);
   });
+
+  it("D-022 / #6001: old-style upgrade removes version-only markers and lists them", () => {
+    const root = tempRoot();
+    seedLegacyCore(root);
+    writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\n");
+    writeFileSync(join(root, ".deft-version"), "0.126.2\n");
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    writeFileSync(join(root, "vbrief", ".deft-version"), "custom: keep\n");
+    const result = runSetup({ operation: "upgrade", from: "old-style", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.removed).toEqual(
+      expect.arrayContaining(["xbrief/.deft-version", ".deft-version"]),
+    );
+    expect(result.removed).not.toContain("vbrief/.deft-version");
+    expect(existsSync(join(root, "xbrief", ".deft-version"))).toBe(false);
+    expect(existsSync(join(root, ".deft-version"))).toBe(false);
+    expect(readFileSync(join(root, "vbrief", ".deft-version"), "utf8")).toBe("custom: keep\n");
+    expect(readFileSync(join(root, "xbrief", "USER-NOTE.txt"), "utf8")).toBe("preserve-me\n");
+  });
+
+  it("D-022: install and repair never remove the markers", () => {
+    for (const operation of ["install", "repair"] as const) {
+      const root = tempRoot();
+      seedLegacyCore(root);
+      writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\n");
+      const result = runSetup({ operation, from: "old-style", root });
+      expect(result.removed).not.toContain("xbrief/.deft-version");
+      expect(existsSync(join(root, "xbrief", ".deft-version"))).toBe(true);
+    }
+  });
+
+  it("D-022: a non-conversion upgrade leaves the markers alone", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\n");
+    const result = runSetup({ operation: "upgrade", from: "1.2.3", root });
+    expect(result.removed).not.toContain("xbrief/.deft-version");
+    expect(existsSync(join(root, "xbrief", ".deft-version"))).toBe(true);
+  });
 });
 
 describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
+  it("D-022 / #6001: convert upgrade removes a version-only xbrief marker; inventory names it", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "ref: 'v0.40.0'\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".deft-version"), "v0.40.0\n");
+    writeFileSync(join(root, "xbrief", "keep.txt"), "user-data\n");
+    const result = runSetup({ operation: "upgrade", from: "vendored-core-go", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.removed).toContain("xbrief/.deft-version");
+    expect(existsSync(join(root, "xbrief", ".deft-version"))).toBe(false);
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("user-data\n");
+    const entry = inventoryEntry("bare-version-marker");
+    expect(entry?.disposition).toBe("na-retired-copy-model");
+    expect(entry?.justification).toContain("AC8.10");
+  });
+
   it("from vendored-core-go removes .deft/core and preserves xbrief", () => {
     const root = tempRoot();
     mkdirSync(join(root, ".deft", "core"), { recursive: true });

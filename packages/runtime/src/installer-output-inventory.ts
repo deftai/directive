@@ -139,6 +139,14 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
     justification: "AC8.10: greptile ignore of .deft/core solely served the copy model.",
   },
   {
+    id: "bare-version-marker",
+    legacyOutputs: ["xbrief/.deft-version", ".deft-version", "vbrief/.deft-version"],
+    ovprTarget: "N/A — the package.json runtime pin is the only version statement (AC1.6)",
+    disposition: "na-retired-copy-model",
+    justification:
+      "AC8.10 / AC1.6 / AC10.5: the bare version marker solely served the copy model; upgrade removes version-only markers (D-022, #6001).",
+  },
+  {
     id: "generation-ownership",
     legacyOutputs: [".deft/GENERATION.json ownership[]"],
     ovprTarget: ".deft/GENERATION.json ownership including wholly owned skill pointers (AC11.10)",
@@ -169,6 +177,7 @@ export function assertInventoryCompleteness(): void {
     "gitattributes-core-markers",
     "codeql-core-exclusion",
     "core-guard-workflow",
+    "bare-version-marker",
   ] as const) {
     if (!ids.has(required)) {
       throw new Error(`AC8.10 inventory missing required entry: ${required}`);
