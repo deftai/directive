@@ -98,6 +98,18 @@ describe("doctor hidden Directive files (#6618)", () => {
     expect(text).not.toMatch(/repair|upgrade|npm i -g/);
   });
 
+  it("skips files git already tracks, but still names the next new .mjs outer", () => {
+    const { root, home } = repo();
+    write(root, ".cursor/hooks.json");
+    writeFileSync(join(root, ".git", "info", "exclude"), ".cursor/\n");
+    // Force-added under the blanket rule: git still commits its edits.
+    git(root, home, ["add", "-f", ".cursor/hooks.json"]);
+    const found = hidden(root, home) ?? [];
+    expect(found.some((f) => f.path === ".cursor/hooks.json")).toBe(false);
+    const outer = `.cursor/hooks/deft-hook-${hostHookOuterSha8()}.mjs`;
+    expect(found.some((f) => f.path === outer && f.kind === "ignored")).toBe(true);
+  });
+
   it("names a global excludes file (core.excludesFile in a temporary HOME)", () => {
     const { root, home } = repo();
     // Forward slashes: git config treats `\` as an escape, so Windows paths need `/`.

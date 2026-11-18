@@ -154,23 +154,26 @@ function findIgnoredDirectiveFiles(
   return out;
 }
 
-function findIndexFlaggedDirectiveFiles(
+/** Tracked paths among `paths`, and those hidden by an index flag. */
+function readIndexState(
   projectRoot: string,
   paths: readonly string[],
   runGit: GitRunner,
-): HiddenDirectiveFile[] {
+): { tracked: Set<string>; flagged: HiddenDirectiveFile[] } {
+  const tracked = new Set<string>();
+  const flagged: HiddenDirectiveFile[] = [];
   const { code, stdout } = runGit(projectRoot, ["ls-files", "-v", "--", ...paths]);
-  if (code !== 0) return [];
-  const out: HiddenDirectiveFile[] = [];
+  if (code !== 0) return { tracked, flagged };
   for (const record of stdout.split(/\r?\n/)) {
     if (record.length === 0) continue;
     const parsed = parseLsFilesVerboseRecord(record);
     if (parsed === null) continue;
+    tracked.add(parsed.path);
     const kind = indexFlagKind(parsed.tag);
     if (kind === null) continue;
-    out.push({ path: parsed.path, kind, source: "git index", line: null, pattern: null });
+    flagged.push({ path: parsed.path, kind, source: "git index", line: null, pattern: null });
   }
-  return out;
+  return { tracked, flagged };
 }
 
 /**
@@ -185,10 +188,14 @@ export function findHiddenDirectiveFiles(
   const paths = directiveFilesToCheck(projectRoot);
   if (paths.length === 0) return [];
   try {
-    return [
-      ...findIgnoredDirectiveFiles(projectRoot, paths, runGit),
-      ...findIndexFlaggedDirectiveFiles(projectRoot, paths, runGit),
-    ];
+    const { tracked, flagged } = readIndexState(projectRoot, paths, runGit);
+    // A tracked file stays committable under a matching ignore rule, so only
+    // untracked files (including the next `.mjs` outer, not yet created) can
+    // be hidden by one (#6163).
+    const ignored = findIgnoredDirectiveFiles(projectRoot, paths, runGit).filter(
+      (f) => !tracked.has(f.path),
+    );
+    return [...ignored, ...flagged];
   } catch {
     return null;
   }
