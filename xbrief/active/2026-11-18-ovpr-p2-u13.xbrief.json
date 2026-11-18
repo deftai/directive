@@ -107,7 +107,8 @@
           "packages/core/src/xbrief-migrate/migrate-project.test.ts",
           "changelog.d/6571-upgrade-removes-vbrief.md"
         ],
-        "module_boundary": ""
+        "module_boundary": "packages/core/src/xbrief-migrate/migrate-project.ts only (the vbrief to xbrief move).",
+        "cohesion_exemption": "migrate-project.ts (1138 lines) and its test already exceed the review trigger. This fix changes the dual-populated and marked branches of the move only; splitting is out of scope."
       },
       "x-directive/plan-id": {
         "version": 1,

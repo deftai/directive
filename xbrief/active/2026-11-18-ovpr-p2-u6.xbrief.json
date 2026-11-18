@@ -153,7 +153,8 @@
           "packages/cli/src/bookends.ts",
           "changelog.d/6002-upgrade-lists-deft-core-edits.md"
         ],
-        "module_boundary": ""
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "dispatch.ts (3629 lines), Taskfile.yml (1504), content/UPGRADING.md (1128), plan-present.ts (1106) and bookends.ts (1751) already exceed the review trigger. This bug fix changes a few lines in each (one refusal message, two alias descs, doc wording, one listed-files block); splitting those files is out of scope."
       },
       "x-directive/plan-id": {
         "version": 1,

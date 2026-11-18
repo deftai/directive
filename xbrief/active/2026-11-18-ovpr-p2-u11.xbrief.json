@@ -206,7 +206,8 @@
           "packages/core/src/fs/no-static-globsync.test.ts",
           "changelog.d/5873-node-20-loads-again.md"
         ],
-        "module_boundary": ""
+        "module_boundary": "New Node-20-safe glob helper packages/core/src/fs/glob-sync.ts, used by the existing callers; no behaviour change beyond the import.",
+        "cohesion_exemption": "pnpm-lock.yaml, ci.yml and dispatch.ts already exceed the review trigger. This fix changes one dependency entry, one CI job and one import; splitting those files is out of scope."
       },
       "x-directive/plan-id": {
         "version": 1,

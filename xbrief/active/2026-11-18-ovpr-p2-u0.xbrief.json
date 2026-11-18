@@ -184,7 +184,8 @@
           "packages/runtime/src/setup.test.ts",
           "changelog.d/6615-ownership-record-api.md"
         ],
-        "module_boundary": ""
+        "module_boundary": "New read-only module packages/core/src/install-health/owned-paths.ts (exported from install-health/index.ts) owns the ownership API; setup.ts records the .mjs outers; runtime uninstall.ts and launcher uninstall-map.ts fix the .mjs matcher. No dispatcher.ts edits; no new GENERATION.json kind.",
+        "cohesion_exemption": "setup-wiring.ts (1411 lines) and hygiene.ts (2013 lines) already exceed the review trigger. This unit moves one constant out of setup-wiring.ts and edits one comment in hygiene.ts; splitting them is out of scope. The new API lives in its own module."
       },
       "x-directive/plan-id": {
         "version": 1,

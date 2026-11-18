@@ -370,7 +370,8 @@
           "packages/runtime/src/setup.test.ts",
           "changelog.d/5838-skill-pointers-restored-and-valid-yaml.md"
         ],
-        "module_boundary": ""
+        "module_boundary": "packages/runtime setup wiring (skill pointer list and pointer YAML) and its doctor check; no new module.",
+        "cohesion_exemption": "setup-wiring.ts (1411 lines) already exceeds the review trigger. This bug fix changes the skill-pointer list and pointer front matter only; splitting the file is out of scope."
       },
       "issueCommentThread": [
         {
