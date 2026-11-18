@@ -910,7 +910,7 @@ export function evaluateConsumerCheckContract(
       surface: "verify-taskfile",
       detail: "tasks/verify.yml missing while tasks/ directory or framework-source expected",
       remediation:
-        "Restore tasks/verify.yml with `directive install --repair`. See UPGRADING.md (#3145).",
+        "Restore tasks/verify.yml via `deft update` deposit repair. See UPGRADING.md (#3145).",
     });
   }
 
