@@ -17,7 +17,6 @@ import {
   runWithMutationLedger,
   snapshotMutationSummary,
 } from "../fs/mutation-ledger.js";
-import { detectBranchSync, formatBranchSyncExemptionMessage } from "../policy/branch-sync.js";
 import {
   assertInstallerAllowlistHonors1430,
   bareVersionMarkerRelativePaths,
@@ -26,7 +25,6 @@ import {
   classifyDirtyEscapeLedger,
   classifyMixedCoreAndApp,
   classifyMixedCoreAndAppContentAware,
-  classifyMixedCoreAndAppForPr,
   defaultTrackedNames,
   depositStagePaths,
   filterUntrackedIgnoredStagePaths,
@@ -35,7 +33,6 @@ import {
   frameworkStagePaths,
   GO_1430_DENYLIST_STATUS,
   type InstallerManagedMatcher,
-  installerManagedGuardEre,
   installerManagedMatchers,
   isCoreStagePath,
   isDepositGeneratedMetadata,
@@ -67,9 +64,7 @@ import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 describe("installer-managed allowlist (#1576)", () => {
   it("treats Taskfile.yml as installer-managed", () => {
     expect(isInstallerManagedPath("Taskfile.yml")).toBe(true);
-    expect(installerManagedGuardEre()).toContain("Taskfile\\.yml");
     expect(isInstallerManagedPath(".grok/hooks/deft-pretooluse-wrapper.sh")).toBe(true);
-    expect(installerManagedGuardEre()).toContain("deft-pretooluse-wrapper\\.sh");
   });
 
   it("allowlists and stages the project-scoped Codex hook deposit", () => {
@@ -80,7 +75,6 @@ describe("installer-managed allowlist (#1576)", () => {
       writeFileSync(join(root, ".codex", "hooks.json"), "{}\n", "utf8");
 
       expect(isInstallerManagedPath(".codex/hooks.json")).toBe(true);
-      expect(installerManagedGuardEre()).toContain("\\.codex/hooks\\.json");
       expect(frameworkStagePaths(root, join(root, ".deft", "core"))).toContain(".codex/hooks.json");
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -111,7 +105,6 @@ describe("installer-managed allowlist (#1576)", () => {
 describe(".prettierignore allowlist (#2629)", () => {
   it("treats installer-deposited .prettierignore as installer-managed", () => {
     expect(isInstallerManagedPath(".prettierignore")).toBe(true);
-    expect(installerManagedGuardEre()).toContain("\\.prettierignore$");
   });
 });
 
@@ -125,9 +118,6 @@ describe("exact Cursor adapter allowlist (#3393)", () => {
     for (const path of officialAdapterPaths) {
       expect(isInstallerManagedPath(path)).toBe(true);
     }
-    const ere = installerManagedGuardEre();
-    expect(ere).toContain("\\.cursor/hooks/deft-cursor-hook-adapter\\.mjs$");
-    expect(ere).toContain("\\.cursor/hooks/deft-cursor-hook-adapter\\.test\\.mjs$");
   });
 
   it("does not add a bare .cursor/hooks/ directory prefix matcher", () => {
@@ -181,15 +171,6 @@ describe("upgrade co-travel allowlist (#3127)", () => {
     }
   });
 
-  it("embeds pin + GENERATION in the deposited guard ERE", () => {
-    const ere = installerManagedGuardEre();
-    expect(ere).toContain("package\\.json");
-    expect(ere).toContain("package-lock\\.json");
-    expect(ere).toContain("pnpm-lock\\.yaml");
-    expect(ere).toContain("yarn\\.lock");
-    expect(ere).toContain("\\.deft/GENERATION\\.json");
-  });
-
   it("passes core + pin + GENERATION + already-allowed stubs (upgrade unit)", () => {
     const result = classifyMixedCoreAndApp([
       ".deft/core/VERSION",
@@ -238,46 +219,6 @@ describe("upgrade co-travel allowlist (#3127)", () => {
     ]);
     expect(result.wouldFail).toBe(true);
     expect(result.app).toContain("docs/playbooks/my-product.md");
-  });
-
-  it("loudly exempts a matching sync PR via the public detector (#3388)", () => {
-    const sync = detectBranchSync({
-      dest: "master",
-      source: "develop",
-      sourceTyped: true,
-      prBase: "master",
-      headSha: "already-on-develop",
-      projectRoot: "/tmp",
-      runGit: (_cwd, args) => {
-        if (args[0] === "fetch" || args[0] === "merge-base") {
-          return { code: 0, stdout: "", stderr: "" };
-        }
-        return { code: 1, stdout: "", stderr: "" };
-      },
-    });
-    const result = classifyMixedCoreAndAppForPr([".deft/core/VERSION", "src/app.ts"], sync);
-    expect(result.wouldFail).toBe(false);
-    expect(result.loudMessage).toBe(formatBranchSyncExemptionMessage("develop"));
-  });
-
-  it("still fails a feature PR that mixes core with app (#3388)", () => {
-    const notSync = detectBranchSync({
-      dest: "master",
-      source: "develop",
-      sourceTyped: true,
-      prBase: "master",
-      headSha: "feature-sha",
-      projectRoot: "/tmp",
-      runGit: (_cwd, args) => {
-        if (args[0] === "fetch") return { code: 0, stdout: "", stderr: "" };
-        if (args[0] === "merge-base") return { code: 1, stdout: "", stderr: "" };
-        return { code: 1, stdout: "", stderr: "" };
-      },
-    });
-    const result = classifyMixedCoreAndAppForPr([".deft/core/VERSION", "src/app.ts"], notSync);
-    expect(result.wouldFail).toBe(true);
-    expect(result.loudMessage).toBeNull();
-    expect(result.app).toEqual(["src/app.ts"]);
   });
 });
 
@@ -829,20 +770,11 @@ describe("xbrief/ allowlist parity (#2277)", () => {
     expect(isInstallerManagedPath("xbrief/migration/2026-07-03.md")).toBe(true);
   });
 
-  it("allowlists xbrief/.deft-version in the deposited guard ERE alternation", () => {
-    const ere = installerManagedGuardEre();
-    expect(ere).toContain("xbrief/\\.deft-version");
-    for (const sub of xbriefLifecycleDirs) {
-      expect(ere).toContain(`xbrief/${sub}/\\.gitkeep`);
-    }
-  });
-
   it("keeps the legacy vbrief/ allowlist entries for not-yet-migrated projects", () => {
     expect(isInstallerManagedPath("xbrief/.deft-version")).toBe(true);
     for (const sub of xbriefLifecycleDirs) {
       expect(isInstallerManagedPath(`xbrief/${sub}/.gitkeep`)).toBe(true);
     }
-    expect(installerManagedGuardEre()).toContain("xbrief/\\.deft-version");
   });
 });
 
@@ -856,13 +788,6 @@ describe("PROJECT-DEFINITION is not installer-managed (#3029 / #1430)", () => {
     for (const path of pdPaths) {
       expect(isInstallerManagedPath(path)).toBe(false);
     }
-  });
-
-  it("does not embed PROJECT-DEFINITION in the deposited guard ERE", () => {
-    const ere = installerManagedGuardEre();
-    expect(ere).not.toContain("PROJECT-DEFINITION");
-    // Scaffolding markers remain correctly allowlisted (#2277).
-    expect(ere).toContain("xbrief/\\.deft-version");
   });
 
   it("does not stage PROJECT-DEFINITION via frameworkStagePaths", () => {
@@ -898,7 +823,7 @@ describe("PROJECT-DEFINITION is not installer-managed (#3029 / #1430)", () => {
   });
 });
 
-describe("fail-closed consumer denylist for core-guard (#3030)", () => {
+describe("fail-closed consumer denylist for the installer allowlist (#3030)", () => {
   it("assertInstallerAllowlistHonors1430 passes for production matchers", () => {
     expect(() => assertInstallerAllowlistHonors1430()).not.toThrow();
     expect(() => assertInstallerAllowlistHonors1430(installerManagedMatchers())).not.toThrow();
@@ -908,12 +833,6 @@ describe("fail-closed consumer denylist for core-guard (#3030)", () => {
     for (const path of CONSUMER_GUARD_MUST_FIRE) {
       expect(isInstallerManagedPath(path)).toBe(false);
     }
-  });
-
-  it("guard ERE does not match denylist probe paths", () => {
-    const ere = installerManagedGuardEre();
-    expect(ere).not.toContain("PROJECT-DEFINITION");
-    expect(ere).not.toContain("example-scope");
   });
 
   it("assertInstallerAllowlistHonors1430 fails closed if PD matcher is re-added", () => {
@@ -2223,7 +2142,6 @@ describe("printDirtyEscapeCommitGuidance (#4158 / #5245)", () => {
 describe("root .deft-version allowlist + bareVersionMarkerTargets (#5245 P1)", () => {
   it("treats root .deft-version as installer-managed", () => {
     expect(isInstallerManagedPath(".deft-version")).toBe(true);
-    expect(installerManagedGuardEre()).toContain("^\\.deft-version$");
   });
 
   it("bareVersionMarkerTargets lists xbrief/root/vbrief independently of resolver", () => {

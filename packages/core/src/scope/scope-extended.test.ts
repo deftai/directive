@@ -165,7 +165,7 @@ describe("scope extended coverage", () => {
       plan: {
         title: "P",
         status: "running",
-        items: [{ id: "story", title: "Move me", status: "running", metadata: {} }],
+        items: [{ id: "2026-01-01-story", title: "Move me", status: "running", metadata: {} }],
         references: [],
       },
     });
@@ -182,7 +182,8 @@ describe("scope extended coverage", () => {
     const pd = JSON.parse(
       readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
     );
-    expect(pd.plan.items[0].status).toBe("completed");
+    // A completed scope's row leaves the open-only registry (#6648).
+    expect(pd.plan.items).toEqual([]);
   });
 
   it("covers vbrief-ref helpers", () => {

@@ -102,6 +102,13 @@ export const PROJECT_LIFECYCLE_FOLDERS = [
   "cancelled",
 ] as const;
 
+/**
+ * Lifecycle folders whose scopes are projected into PROJECT-DEFINITION `plan.items`
+ * (#6648). Finished scopes (completed/, cancelled/) live in their own brief files and
+ * are not copied into the registry.
+ */
+export const PROJECT_REGISTRY_FOLDERS = ["proposed", "pending", "active"] as const;
+
 export const SKELETON_NARRATIVES: Readonly<Record<string, string>> = {
   Overview: "",
   "tech stack": "",

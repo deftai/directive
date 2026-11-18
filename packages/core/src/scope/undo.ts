@@ -6,6 +6,7 @@ import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import { REVERSIBLE_ACTIONS, TERMINAL_ACTIONS } from "./constants.js";
+import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { formatBriefJson, utcNowIso } from "./vbrief-json.js";
 
 export interface UndoResult {
@@ -359,6 +360,26 @@ export function undoOne(
     return { ok: false, message: fsMsg, auditEntry: null };
   }
 
+  // Undo is a lifecycle move like any other: PROJECT-DEFINITION lists open scopes only,
+  // so a scope undone back into an open folder needs its row back (#6648). The move has
+  // landed and is logged below, so a failed sync is reported, not fatal.
+  let pdSyncWarning = "";
+  try {
+    const movedData = JSON.parse(readFileSync(destPath, "utf8")) as Record<string, unknown>;
+    const pdSyncError = syncProjectDefinitionAfterScopeMove(
+      movedData,
+      srcPath,
+      destPath,
+      vbriefRoot(projectRoot),
+      plan.newStatus,
+    );
+    if (pdSyncError !== null) {
+      pdSyncWarning = ` (PROJECT-DEFINITION sync failed: ${pdSyncError}; run project:render)`;
+    }
+  } catch (err: unknown) {
+    pdSyncWarning = ` (PROJECT-DEFINITION sync failed: ${String(err)}; run project:render)`;
+  }
+
   let destRelpath: string;
   try {
     destRelpath = relative(resolve(projectRoot), destPath).replace(/\\/g, "/");
@@ -382,7 +403,7 @@ export function undoOne(
     ok: true,
     message:
       `Undid ${action} (decision_id=${decisionId}): ${basename(destPath)} -> ` +
-      `vbrief/${plan.destFolder}/ (status: ${plan.newStatus})`,
+      `vbrief/${plan.destFolder}/ (status: ${plan.newStatus})${pdSyncWarning}`,
     auditEntry: undoEntry,
   };
 }
