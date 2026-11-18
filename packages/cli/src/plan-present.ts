@@ -927,7 +927,7 @@ export function foreignHooksInactiveFromSummary(
   summary: SetupSummary | null | undefined,
 ): string | null {
   const text = summary?.gitHooksInactive ?? "";
-  return /core\.hooksPath is (still )?'/.test(text) ? text : null;
+  return /core\.hooksPath is (still )?'|could not set core\.hooksPath/.test(text) ? text : null;
 }
 
 /** No-`.git` case only (F-010); the other-hooks-folder case has its own text. */

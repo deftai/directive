@@ -217,6 +217,20 @@ describe("ensureGitHooks with another core.hooksPath (#4960 / #5846)", () => {
     expect(readFileSync(included, "utf8")).toBe("[core]\n\thooksPath = included-hooks\n");
   });
 
+  it("repository config locked by another writer: no unlocked write, hooks stay inactive", () => {
+    const root = repo();
+    git(root, "config", "--local", "core.hooksPath", "custom-hooks");
+    const configPath = join(root, ".git", "config");
+    const before = readFileSync(configPath, "utf8");
+    writeFileSync(`${configPath}.lock`, "held by another writer\n");
+    const result = ensureGitHooks(root, { takeOverHooksPath: true });
+    expect(result.hooksPathActive).toBe(false);
+    expect(result.hooksPathTakenOver).toBeNull();
+    expect(result.inactiveDisclosure).toContain("locked or not writable");
+    expect(readFileSync(configPath, "utf8")).toBe(before);
+    expect(readFileSync(`${configPath}.lock`, "utf8")).toBe("held by another writer\n");
+  });
+
   it("value from the Git command line still wins: names it, not a bare repair", () => {
     const keys = ["GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"];
     const saved = keys.map((k) => process.env[k]);
