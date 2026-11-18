@@ -100,30 +100,45 @@ export interface WrittenLinesReport {
   readonly uncertainty: string[];
 }
 
-interface SplitText {
-  readonly lines: string[];
-  readonly eol: "\n" | "\r\n";
-  readonly finalNewline: boolean;
+/** One line and its own line ending (`\n`, `\r\n`, or none for an unterminated last line). */
+interface Line {
+  readonly text: string;
+  readonly end: string;
 }
 
-function splitText(body: string): SplitText {
-  const eol = body.includes("\r\n") ? "\r\n" : "\n";
-  const finalNewline = body.endsWith("\n");
-  const lines = body.split("\n").map((l) => l.replace(/\r$/, ""));
-  if (finalNewline) lines.pop();
-  return { lines, eol, finalNewline };
+function splitLines(body: string): Line[] {
+  const out: Line[] = [];
+  let i = 0;
+  while (i < body.length) {
+    const n = body.indexOf("\n", i);
+    if (n < 0) {
+      out.push({ text: body.slice(i), end: "" });
+      break;
+    }
+    const raw = body.slice(i, n);
+    out.push(
+      raw.endsWith("\r") ? { text: raw.slice(0, -1), end: "\r\n" } : { text: raw, end: "\n" },
+    );
+    i = n + 1;
+  }
+  return out;
 }
 
-function joinText(lines: readonly string[], eol: string, finalNewline: boolean): string {
-  if (lines.length === 0) return "";
-  return lines.join(eol) + (finalNewline ? eol : "");
+/** Join the kept lines, each with its own original ending (mixed LF/CRLF stays as it was). */
+function joinKept(lines: readonly Line[], drop: readonly boolean[]): string {
+  const kept = lines.filter((_, idx) => !drop[idx]);
+  if (kept.length === 0) return "";
+  const unterminated = (lines[lines.length - 1]?.end ?? "\n") === "";
+  return kept
+    .map((l, idx) => (unterminated && idx === kept.length - 1 ? l.text : l.text + l.end))
+    .join("");
 }
 
 /**
- * Drop the marked lines, plus the one blank line Directive put above a
- * removed block when nothing (or another blank line) follows the block.
+ * Lines to drop: the marked lines, plus the one blank line Directive put above
+ * a removed block when nothing (or another blank line) follows the block.
  */
-function dropMarked(lines: readonly string[], marked: readonly boolean[]): string[] {
+function dropMarked(lines: readonly string[], marked: readonly boolean[]): boolean[] {
   const drop = [...marked];
   let i = 0;
   while (i < lines.length) {
@@ -144,32 +159,35 @@ function dropMarked(lines: readonly string[], marked: readonly boolean[]): strin
       drop[before] = true;
     }
   }
-  return lines.filter((_, idx) => !drop[idx]);
+  return drop;
 }
 
 /**
  * Remove Directive's exact lines from a line file. A `# Deft managed wiring:`
- * header and the comment lines right under it go too when every line it
- * introduces (up to the next blank line) is Directive's. Other lines stay
- * byte-identical.
+ * header line goes too when every non-comment line it introduces (up to the
+ * next blank line) is Directive's. Comment lines Directive did not write stay,
+ * as do all other lines, each with its own line ending.
  */
 export function stripDirectiveLines(
   body: string,
   directive: ReadonlySet<string>,
 ): { next: string; removed: boolean } {
-  const { lines, eol, finalNewline } = splitText(body);
-  const marked = lines.map((l) => directive.has(l.trim()));
-  for (let i = 0; i < lines.length; i += 1) {
-    if (!(lines[i] ?? "").trim().startsWith(MANAGED_WIRING_MARKER)) continue;
-    let j = i + 1;
-    while (j < lines.length && (lines[j] ?? "").trim().startsWith("#")) j += 1;
-    let k = j;
-    while (k < lines.length && (lines[k] ?? "").trim() !== "" && marked[k]) k += 1;
-    if (k < lines.length && (lines[k] ?? "").trim() !== "") continue;
-    for (let m = i; m < j; m += 1) marked[m] = true;
+  const lines = splitLines(body);
+  const texts = lines.map((l) => l.text);
+  const marked = texts.map((t) => directive.has(t.trim()));
+  for (let i = 0; i < texts.length; i += 1) {
+    if (!(texts[i] ?? "").trim().startsWith(MANAGED_WIRING_MARKER)) continue;
+    let k = i + 1;
+    while (k < texts.length && (texts[k] ?? "").trim() !== "") {
+      const t = (texts[k] ?? "").trim();
+      if (!t.startsWith("#") && !marked[k]) break;
+      k += 1;
+    }
+    if (k < texts.length && (texts[k] ?? "").trim() !== "") continue;
+    marked[i] = true;
   }
   if (!marked.some(Boolean)) return { next: body, removed: false };
-  return { next: joinText(dropMarked(lines, marked), eol, finalNewline), removed: true };
+  return { next: joinKept(lines, dropMarked(texts, marked)), removed: true };
 }
 
 /** Remove `.deft/core/**` from a newline-separated Greptile `ignorePatterns` value. */
@@ -185,15 +203,17 @@ export function stripGreptilePatterns(patterns: string): { next: string; removed
  * config. Drops the `paths-ignore:` key too when Directive's item was its only one.
  */
 export function stripCodeqlConfig(body: string): { next: string; removed: boolean } {
-  const { lines, eol, finalNewline } = splitText(body);
-  const marked = lines.map((l) => CODEQL_COMMENT_LINES.has(l.trim()));
-  for (let i = 0; i < lines.length; i += 1) {
-    if ((lines[i] ?? "").trimEnd() !== "paths-ignore:") continue;
+  const lines = splitLines(body);
+  const texts = lines.map((l) => l.text);
+  const marked = texts.map((t) => CODEQL_COMMENT_LINES.has(t.trim()));
+  for (let i = 0; i < texts.length; i += 1) {
+    if ((texts[i] ?? "").trimEnd() !== "paths-ignore:") continue;
     let j = i + 1;
     let ours = 0;
     let others = 0;
-    while (j < lines.length) {
-      const line = lines[j] ?? "";
+    // The block ends at the next line that starts at column 0 (a new top-level key).
+    while (j < texts.length) {
+      const line = texts[j] ?? "";
       if (line.length > 0 && line[0] !== " " && line[0] !== "\t") break;
       if (CODEQL_RETIRED_ITEMS.has(line.trim())) {
         marked[j] = true;
@@ -206,13 +226,17 @@ export function stripCodeqlConfig(body: string): { next: string; removed: boolea
     if (ours > 0 && others === 0) marked[i] = true;
   }
   if (!marked.some(Boolean)) return { next: body, removed: false };
-  return { next: joinText(dropMarked(lines, marked), eol, finalNewline), removed: true };
+  return { next: joinKept(lines, dropMarked(texts, marked)), removed: true };
 }
+
+/** `"ignorePatterns": "<JSON string>"` with the string literal captured. */
+const IGNORE_PATTERNS_RE = /"ignorePatterns"\s*:\s*("(?:[^"\\]|\\.)*")/g;
 
 /**
  * Remove `.deft/core/**` from `greptile.json` `ignorePatterns`, editing only
- * that string value so every other key and line stays byte-identical.
- * `unsafe` when the file is not a JSON object or the value cannot be found once.
+ * that string value so every other key and line stays byte-identical. The
+ * value is found by its key, not by its text. `unsafe` when the file is not a
+ * JSON object or the key's string value cannot be found exactly once.
  */
 export function stripGreptileJson(raw: string): { next: string; removed: boolean } | "unsafe" {
   let parsed: unknown;
@@ -226,10 +250,19 @@ export function stripGreptileJson(raw: string): { next: string; removed: boolean
   if (typeof patterns !== "string") return { next: raw, removed: false };
   const stripped = stripGreptilePatterns(patterns);
   if (!stripped.removed) return { next: raw, removed: false };
-  const oldLiteral = JSON.stringify(patterns);
-  const at = raw.indexOf(oldLiteral);
-  if (at < 0 || raw.indexOf(oldLiteral, at + 1) >= 0) return "unsafe";
-  const next = raw.slice(0, at) + JSON.stringify(stripped.next) + raw.slice(at + oldLiteral.length);
+  const matches = [...raw.matchAll(IGNORE_PATTERNS_RE)];
+  if (matches.length !== 1) return "unsafe";
+  const match = matches[0] as RegExpMatchArray;
+  const literal = match[1] as string;
+  let value: unknown;
+  try {
+    value = JSON.parse(literal);
+  } catch {
+    return "unsafe";
+  }
+  if (value !== patterns) return "unsafe";
+  const at = (match.index ?? 0) + match[0].length - literal.length;
+  const next = raw.slice(0, at) + JSON.stringify(stripped.next) + raw.slice(at + literal.length);
   return { next, removed: true };
 }
 

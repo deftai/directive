@@ -128,9 +128,32 @@ describe("Directive-written lines in shared files (#6007)", () => {
     expect(stripCodeqlConfig(body).next).toBe(`paths-ignore:\n  - "dist/**"\n`);
   });
 
-  it("leaves greptile.json alone when its value cannot be found exactly once", () => {
-    // Same value twice: an in-place edit could hit the wrong key.
-    const raw = `{"a": ".deft/core/**", "ignorePatterns": ".deft/core/**"}\n`;
+  it("keeps each user line's own ending in a mixed LF/CRLF file", () => {
+    const body = "a.png binary\nb.txt text\r\n.githooks/** text=auto eol=lf\nc.sh text\n";
+    expect(stripDirectiveLines(body, DIRECTIVE_WRITTEN_LINES[".gitattributes"]).next).toBe(
+      "a.png binary\nb.txt text\r\nc.sh text\n",
+    );
+  });
+
+  it("keeps a user comment under the managed-wiring header", () => {
+    const body =
+      "# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths\n# my note\n.githooks/** text=auto eol=lf\n";
+    expect(stripDirectiveLines(body, DIRECTIVE_WRITTEN_LINES[".gitattributes"]).next).toBe(
+      "# my note\n",
+    );
+  });
+
+  it("edits ignorePatterns by its key, not another field with the same text", () => {
+    const raw = `{"ignorePatterns":".deft\\/core/**","comment":".deft/core/**"}\n`;
+    expect(stripGreptileJson(raw)).toEqual({
+      next: `{"ignorePatterns":"","comment":".deft/core/**"}\n`,
+      removed: true,
+    });
+  });
+
+  it("leaves greptile.json alone when the key cannot be found exactly once", () => {
+    // The key appears twice (once nested): an in-place edit could hit the wrong one.
+    const raw = `{"nested": {"ignorePatterns": "x"}, "ignorePatterns": ".deft/core/**"}\n`;
     expect(stripGreptileJson(raw)).toBe("unsafe");
     const root = tempRoot();
     writeFileSync(join(root, "greptile.json"), raw);

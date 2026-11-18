@@ -420,7 +420,9 @@ export function discoverUninstallFootprint(projectRoot: string): UninstallDiscov
     hasRuntimePin ||
     hasLegacyLauncherPin ||
     hasLegacyCore ||
-    existsSync(join(projectRoot, ".deft", "GENERATION.json"));
+    existsSync(join(projectRoot, ".deft", "GENERATION.json")) ||
+    // Lines left by an earlier partial uninstall still count, so a retry removes them.
+    filesWithDirectiveLines(projectRoot).length > 0;
   return {
     artifacts,
     ownershipInspection: inspection,

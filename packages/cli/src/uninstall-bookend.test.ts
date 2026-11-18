@@ -656,6 +656,29 @@ describe("uninstall keeps package.json until the package manager is done (#5999)
     expect(io.out()).toContain(".deft/directive/unknown.txt");
   });
 
+  it("a retry still removes Directive lines left by an earlier partial uninstall", () => {
+    const root = tempProject();
+    writeFileSync(join(root, ".gitattributes"), `*.png binary\n\n${MANAGED_GITATTRIBUTES}`);
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      {
+        pin: { kind: "none", version: null, raw: null },
+        installed: null,
+        pinMatchesInstalled: false,
+        contractSupported: true,
+        oldStyle: false,
+      },
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      { stdinIsTTY: false },
+    );
+    expect(code).toBe(0);
+    expect(io.out()).not.toMatch(/Nothing to uninstall/);
+    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toBe("*.png binary\n");
+  });
+
   it("launcher sole-author rule matches the runtime's", () => {
     const samples: Array<Record<string, unknown>> = [
       { private: true },
