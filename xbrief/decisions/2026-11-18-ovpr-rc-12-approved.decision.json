@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-rc-12-approved",
+  "decision": "RC-12 approved by polfer 2026-11-18 (D-031, D-032), text in drafts/RC-12.md of the OVPR planning folder (directive-ovpr-planning-202611), items 1-11 plus the revision record: old projects keep working until upgraded. The launcher hands calls to the project's own installed pre-split copy, or stops with the plain message \"This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update.\" New AC10.11 (bare deft-hook in a runtime-pinned project is out-of-date wiring); the AC12.5 0.126.2 exception is removed. Gates: P1-U2 (#6653) merge. Lands as its own docs-only PR (#6670), tag v261118, merged by polfer before the gated unit merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-031, D-032)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the current requirements text (RC-01 behaviour: old projects stop until upgraded)",
+      "whyNot": "Rejected by polfer (D-031)"
+    }
+  ],
+  "whyWinner": "polfer approved RC-12 with a plain-language message (D-031, D-032); see drafts/RC-12.md.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T17:26:09Z",
+  "revisitTrigger": "The RC-12 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-12"
+  ],
+  "relatedIssues": [
+    6653,
+    6670
+  ]
+}

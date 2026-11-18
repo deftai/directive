@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-031-old-projects-keep-working-until-upgraded",
+  "decision": "D-031: Old projects keep working until someone upgrades them (polfer, 2026-11-18, 'B confirmed'; decision 1 of 5, option B widened). When a project depends on a pre-split @deftai/directive (any npm-era version, 0.56-0.126) and that version is installed in the project's own node_modules, the new launcher hands every call to that project-local copy (deft-hook, deft incl. deft hook:dispatch, directive), except upgrade, uninstall, --version and --help. It never runs a global or different-version copy. With no project-local copy installed, it blocks with a clear message. Case 2 (project pins the runtime but hooks still call bare deft-hook): runtime installed at the pin -> hand to the runtime -> automatic setup rewrites the old entries (AC9.2, AC9.4); runtime missing or mismatched -> block with project-install guidance (AC9.12, RC-06). P1-U2 drops the nested folder walk; detection uses how the launcher was called plus top-level checks. Changes written requirements (§A6.7, AC10.2, §A5.3/§A5.6 rows, §A9 row, decision row 12, AC3.3, D4 rule 2) and PLAN Rule 3's 'old code is never run'; needs RC-12 before P1-U2 merges. AC10.8's required historical survey has no ticket; draft one for approval.",
+  "governingRule": {
+    "description": "polfer approval 2026-11-18 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-031; OVPR-CHANGE-GATE.md)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep RC-01 behaviour: old projects stop until upgraded",
+      "whyNot": "Installing the new global launcher would instantly break every old project on the machine; people adopt one project at a time"
+    }
+  ],
+  "whyWinner": "Installing the new global launcher must not instantly break every old project on the machine; people adopt one project at a time.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T17:25:59Z",
+  "revisitTrigger": "polfer withdraws D-031, or RC-12's docs PR changes the approved text",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-12"
+  ],
+  "relatedIssues": [
+    6653,
+    6670
+  ]
+}
