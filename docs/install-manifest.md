@@ -5,7 +5,7 @@
 
 ## Why the framework records its install provenance
 
-Every deft install (`deft update`, `task upgrade`, `oz-agent-upgrade`, the
+Every deft install (`deft update`, `directive upgrade`, `oz-agent-upgrade`, the
 webinstaller's `upgrade.sh` / `upgrade.ps1` rail, or the frozen Go bridge)
 needs to record **what
 the framework currently believes about itself on disk** so the upgrade
@@ -82,7 +82,7 @@ the bare `.deft-version` is reported by the framework doctor as a
 `manifest-agreement` check failure.
 
 Operators should NOT hand-edit `.deft-version` -- update the canonical
-manifest and re-run `task upgrade` to regenerate the derivative.
+manifest and re-run `directive upgrade` to regenerate the derivative.
 
 ## Writers
 
@@ -92,7 +92,7 @@ The following surfaces write the canonical manifest:
 | --------------------- | --------------------------------------------------- | ---------------------- |
 | `run install`         | Fresh install / reinstall in a project directory    | `run-install`          |
 | `run upgrade`         | Marker-bump alongside `.deft-version` regeneration  | `run-upgrade`          |
-| `task upgrade`        | Wraps `run upgrade`; same writer                    | `run-upgrade`          |
+| `task upgrade`        | Retired (#6022); run `directive upgrade`            | (none)                 |
 | `oz-agent-upgrade`    | Cloud agent install pipeline                        | `oz-agent-upgrade`     |
 | `webinstaller`        | `upgrade.sh` / `upgrade.ps1` rail (#992 PR2 successors) | `webinstaller`     |
 
@@ -107,7 +107,7 @@ the install.
 - `deft doctor` -- `manifest-agreement` reads the manifest, compares
   the `tag` field against the framework's resolved VERSION, and reports
   drift. Recovery uses one ladder: `deft agents:refresh` (AGENTS.md stale,
-  CLI running), `deft update` (`task upgrade` is the documented alias),
+  CLI running), `deft update` (`task upgrade` is retired; run `directive upgrade`, #6022),
   `npx @deftai/directive …` / `npm i -g @deftai/directive` (CLI not on PATH),
   then the frozen Go bridge for pre-canonical layouts. Three-state exit
   (0 clean / 1 drift / 2 config error).
@@ -117,17 +117,17 @@ the install.
 
 On drift between the manifest's `tag` and the bare `.deft-version`,
 **prefer the YAML manifest** -- it is the canonical source. The bare
-file is regenerated to match on the next `deft update` / `task upgrade`.
+file is regenerated to match on the next `deft update` / `directive upgrade`.
 
 ## Back-compat for v0.27.x consumers
 
 Projects upgrading from v0.27.x that have an existing
 `./.deft-version` file but no `<install>/VERSION` manifest see the
-following sequence on first `task upgrade`:
+following sequence on first `directive upgrade`:
 
 1. The upgrade gate detects the missing manifest and emits a one-line
    advisory pointing at `deft doctor`.
-2. `deft update` / `task upgrade` writes the canonical manifest at the install root
+2. `deft update` / `directive upgrade` writes the canonical manifest at the install root
    with the current framework VERSION as `tag`, the resolved git SHA
    as `sha`, `fetched_by: run-upgrade`, and `fetched_at` set to the
    UTC time of the write.
@@ -136,7 +136,7 @@ following sequence on first `task upgrade`:
    PASS on the next run.
 
 No manual operator action is required -- the transition is automatic on
-the first `task upgrade` invocation.
+the first `directive upgrade` invocation.
 
 ## References
 
