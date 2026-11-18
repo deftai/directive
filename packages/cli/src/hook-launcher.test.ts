@@ -362,7 +362,7 @@ describe("runtime-pinned project (AC10.11)", () => {
     );
   });
 
-  it("a range runtime pin: blocks with the fix-the-pin row, no install command", () => {
+  it("a range runtime pin: blocks with the fix-the-pin row (D-042)", () => {
     const root = fixture({
       "package.json": JSON.stringify({
         devDependencies: { "@deftai/directive-runtime": "^0.129.0" },
@@ -370,8 +370,9 @@ describe("runtime-pinned project (AC10.11)", () => {
     });
     const result = run(root, toolBefore("claude"));
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain("must pin @deftai/directive-runtime to one exact version");
-    expect(result.stderr).not.toMatch(/npm install|pnpm install/);
+    expect(result.stderr.trim()).toBe(
+      'deft-hook: package.json must name one exact Directive version, like `"@deftai/directive-runtime": "0.129.0"`. It currently says `^0.129.0`. Change it to an exact version, then run `npm install` (or `pnpm install`).',
+    );
   });
 
   describe("untracked disable flag comes first (AC9.12 step 1, #6620)", () => {

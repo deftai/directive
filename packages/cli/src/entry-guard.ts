@@ -38,7 +38,7 @@ export const ENTRY_GUARD_MESSAGES: Readonly<Record<EntrySituation, string>> = {
     "This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update.",
   "no-runtime-pin": "No Directive project here. Run `directive install`.",
   "pin-invalid":
-    "package.json must pin @deftai/directive-runtime to one exact version (found `{spec}`). Fix package.json; Directive doesn't guess a version.",
+    "package.json must name one exact Directive version{like}. It currently says `{spec}`. Change it to an exact version, then run {install}.",
   "runtime-missing":
     "Directive can't run: @deftai/directive-runtime is not installed in this project. Run {install} in a terminal in this project.",
   "pin-mismatch":
@@ -68,6 +68,8 @@ export interface EntryGuardMessageValues {
   readonly pin?: string;
   readonly installed?: string;
   readonly spec?: string;
+  /** `, like \`"@deftai/directive-runtime": "<version>"\`` or empty (pin-invalid, D-042). */
+  readonly like?: string;
 }
 
 export function formatEntryGuardMessage(
@@ -79,11 +81,30 @@ export function formatEntryGuardMessage(
   const pin = values.pin ?? "?";
   const installed = values.installed ?? "?";
   const spec = values.spec ?? "";
+  const like = values.like ?? "";
   return ENTRY_GUARD_MESSAGES[situation]
     .replaceAll("{install}", () => install)
     .replaceAll("{pin}", () => pin)
     .replaceAll("{installed}", () => installed)
-    .replaceAll("{spec}", () => spec);
+    .replaceAll("{spec}", () => spec)
+    .replaceAll("{like}", () => like);
+}
+
+/**
+ * Values for the `pin-invalid` row (D-042): the declared spec, an example
+ * exact pin built from the version the spec names (`^0.129.0` → `0.129.0`;
+ * left out when none can be read), and the install from the lockfile (with no
+ * lockfile: \`npm install\` (or \`pnpm install\`)).
+ */
+export function pinInvalidValues(projectRoot: string, spec: string): EntryGuardMessageValues {
+  const version = /\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/.exec(spec)?.[0];
+  const like = version === undefined ? "" : `, like \`"@deftai/directive-runtime": "${version}"\``;
+  const install =
+    existsSync(join(projectRoot, "pnpm-lock.yaml")) ||
+    existsSync(join(projectRoot, "package-lock.json"))
+      ? projectInstallCommand(projectRoot)
+      : "`npm install` (or `pnpm install`)";
+  return { spec, like, install };
 }
 
 /** What stops a command that would start the pinned runtime, and its message. */
@@ -109,7 +130,7 @@ export function classifyLauncherSituation(
   if (state.oldStyle) return pick("legacy-layout");
   if (state.pin.kind === "none") return pick("no-runtime-pin");
   if (state.pin.kind !== "exact" || state.pin.version === null) {
-    return pick("pin-invalid", { spec: state.pin.raw ?? "" });
+    return pick("pin-invalid", pinInvalidValues(projectRoot, state.pin.raw ?? ""));
   }
   const install = projectInstallCommand(projectRoot);
   if (state.installed === null) return pick("runtime-missing", { install });

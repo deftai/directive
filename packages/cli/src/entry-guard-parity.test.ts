@@ -67,13 +67,40 @@ describe("entry-guard table parity (core ↔ launcher copy)", () => {
       expect(format("pin-mismatch", values)).toContain(
         "@deftai/directive-runtime $' is not the pinned $&.",
       );
-      expect(format("pin-invalid", values)).toContain("(found `$$1`)");
+      expect(format("pin-invalid", values)).toContain("It currently says `$$1`.");
     }
   });
 
   it("keeps the launcher's old-project and disabled texts equal to the table and core", () => {
     expect(PRE_OVPR_LAYOUT_MESSAGE).toBe(core.ENTRY_GUARD_MESSAGES["legacy-layout"]);
     expect(DISABLE_ONE_LINE).toBe(DEFT_DIRECTIVE_DISABLE_ONE_LINE);
+  });
+});
+
+describe("pin-invalid row (D-042)", () => {
+  it.each([
+    [
+      [] as string[],
+      "^0.129.0",
+      'package.json must name one exact Directive version, like `"@deftai/directive-runtime": "0.129.0"`. It currently says `^0.129.0`. Change it to an exact version, then run `npm install` (or `pnpm install`).',
+    ],
+    [
+      ["pnpm-lock.yaml"],
+      "~1.2.3-rc.1",
+      'package.json must name one exact Directive version, like `"@deftai/directive-runtime": "1.2.3-rc.1"`. It currently says `~1.2.3-rc.1`. Change it to an exact version, then run `pnpm install --frozen-lockfile`.',
+    ],
+    [
+      ["package-lock.json"],
+      "latest",
+      "package.json must name one exact Directive version. It currently says `latest`. Change it to an exact version, then run `npm install`.",
+    ],
+  ])("lockfiles %j, spec %s", (lockfiles, spec, expected) => {
+    const root = project(lockfiles);
+    for (const m of [core, cli]) {
+      expect(m.formatEntryGuardMessage("pin-invalid", m.pinInvalidValues(root, spec))).toBe(
+        expected,
+      );
+    }
   });
 });
 

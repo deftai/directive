@@ -23,6 +23,7 @@ import {
   type EntrySituation,
   formatEntryGuardMessage,
   isDisableFlagActive,
+  pinInvalidValues,
   projectInstallCommand,
 } from "./entry-guard.js";
 import { type HookBlock, isToolBefore, parseHookTarget, renderHookBlock } from "./hook-block.js";
@@ -134,7 +135,11 @@ export function runHookLauncher(
   }
   if (pin.kind === "range" || pin.kind === "invalid") {
     return emit(
-      renderHookBlock(host, event, hookPinMessage("pin-invalid", { spec: pin.raw ?? "" })),
+      renderHookBlock(
+        host,
+        event,
+        hookPinMessage("pin-invalid", pinInvalidValues(discovered.root, pin.raw ?? "")),
+      ),
     );
   }
   if (installed === null || !existsSync(hookEntry)) {
