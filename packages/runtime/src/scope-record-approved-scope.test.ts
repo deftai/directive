@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AUTHZ_AGENT_SHELL_ENV_MARKERS } from "./human-presence-mint.js";
 import {
   isPathInsideRoot,
+  normalizeAddPath,
   parseArgs,
   resolveApprovalXbriefRelPath,
   run,
@@ -516,5 +517,183 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     ).toBe(2);
     expect(err.join("")).toMatch(/duplicate key/);
     expect(existsSync(join(root, ".deft/approved-scope"))).toBe(false);
+  });
+});
+
+describe("scope-record-approved-scope --add-path widen (#6643)", () => {
+  const BRIEF_REL = "xbrief/active/story.xbrief.json";
+  const tmpDirs: string[] = [];
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  function setup() {
+    const bound = mkdtempSync(join(tmpdir(), "widen-bound-"));
+    const checkout = mkdtempSync(join(tmpdir(), "widen-checkout-"));
+    tmpDirs.push(bound, checkout);
+    mkdirSync(join(bound, "xbrief", "active"), { recursive: true });
+    const payload = {
+      plan: {
+        id: "github.issue.42",
+        status: "running",
+        metadata: { swarm: { file_scope: ["src/a.ts"] } },
+      },
+    };
+    const text = `${JSON.stringify(payload, null, 2)}\n`;
+    writeFileSync(join(bound, BRIEF_REL), text, "utf8");
+    const gitCalls: string[][] = [];
+    const ghCalls: string[][] = [];
+    const seams = {
+      git: (cwd: string, args: string[]) => {
+        gitCalls.push([cwd === bound ? "bound" : "tmp", ...args]);
+        if (args[0] === "remote")
+          return { status: 0, stdout: "https://example.test/o/r.git\n", stderr: "" };
+        if (args[0] === "checkout" && args.includes("FETCH_HEAD")) {
+          mkdirSync(join(checkout, "xbrief", "active"), { recursive: true });
+          writeFileSync(join(checkout, BRIEF_REL), text, "utf8");
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      },
+      gh: (_cwd: string, args: string[]) => {
+        ghCalls.push(args);
+        return { status: 0, stdout: "https://example.test/o/r/pull/9\n", stderr: "" };
+      },
+      makeTempDir: () => checkout,
+      removeDir: (d: string) => rmSync(d, { recursive: true, force: true }),
+    };
+    return { bound, checkout, text, gitCalls, ghCalls, seams };
+  }
+
+  it("parses repeatable --add-path and rejects unsafe paths", () => {
+    const a = parseArgs([BRIEF_REL, "--actor", "scott", "--add-path", "a/b.ts", "--add-path=c.ts"]);
+    expect(a.addPaths).toEqual(["a/b.ts", "c.ts"]);
+    expect(parseArgs([BRIEF_REL, "--actor", "s"]).addPaths).toEqual([]);
+    expect(parseArgs([BRIEF_REL, "--actor", "s", "--add-path"]).error).toMatch(/--add-path/);
+    expect(normalizeAddPath("../x")).toBeNull();
+    expect(normalizeAddPath("/abs")).toBeNull();
+    expect(normalizeAddPath("a\\b.ts")).toBe("a/b.ts");
+  });
+
+  it("opens a brief-only PR from a temporary checkout and leaves the bound worktree alone", () => {
+    const { bound, checkout, text, gitCalls, ghCalls, seams } = setup();
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    const code = run(
+      [
+        BRIEF_REL,
+        "--project-root",
+        bound,
+        "--actor",
+        "scott",
+        "--confirm",
+        "--add-path",
+        "src/b.ts",
+        "--add-path",
+        "src/a.ts",
+      ],
+      operatorSeams(),
+      seams,
+    );
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("https://example.test/o/r/pull/9");
+    // Bound worktree: brief unchanged, no approval artifacts, no occupancy / binding.
+    expect(readFileSync(join(bound, BRIEF_REL), "utf8")).toBe(text);
+    expect(existsSync(join(bound, ".deft"))).toBe(false);
+    // Commit holds only the brief, the record and the preimage.
+    const add = gitCalls.find((c) => c[1] === "add");
+    expect(add?.slice(-3)).toEqual([
+      BRIEF_REL,
+      ".deft/approved-scope/github.issue.42.json",
+      ".deft/approved-scope/github.issue.42.intent.json",
+    ]);
+    expect(
+      gitCalls.some((c) => c[1] === "push" && c.includes("HEAD:refs/heads/widen/github.issue.42")),
+    ).toBe(true);
+    expect(ghCalls[0]?.slice(0, 2)).toEqual(["pr", "create"]);
+    // Temporary checkout removed.
+    expect(existsSync(checkout)).toBe(false);
+  });
+
+  it("writes the widened file_scope once per path with existing entries kept", () => {
+    const { bound, checkout, gitCalls, seams } = setup();
+    let written = "";
+    const capture = {
+      ...seams,
+      git: (cwd: string, args: string[]) => {
+        if (args[0] === "add") {
+          written = readFileSync(join(checkout, BRIEF_REL), "utf8");
+        }
+        return seams.git(cwd, args);
+      },
+    };
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(
+      run(
+        [
+          BRIEF_REL,
+          "--project-root",
+          bound,
+          "--actor",
+          "scott",
+          "--confirm",
+          "--add-path",
+          "src/b.ts",
+          "--add-path",
+          "src/a.ts",
+        ],
+        operatorSeams(),
+        capture,
+      ),
+    ).toBe(0);
+    const scope = (
+      JSON.parse(written) as { plan: { metadata: { swarm: { file_scope: string[] } } } }
+    ).plan.metadata.swarm.file_scope;
+    expect(scope).toEqual([
+      "src/a.ts",
+      "src/b.ts",
+      ".deft/approved-scope/github.issue.42.json",
+      ".deft/approved-scope/github.issue.42.intent.json",
+    ]);
+    expect(gitCalls.length).toBeGreaterThan(0);
+  });
+
+  it("refuses from an agent shell with no checkout, branch or PR (gate unchanged)", () => {
+    const { bound, text, gitCalls, ghCalls, seams } = setup();
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(
+      [
+        BRIEF_REL,
+        "--project-root",
+        bound,
+        "--actor",
+        "scott",
+        "--confirm",
+        "--add-path",
+        "src/b.ts",
+      ],
+      { ...operatorSeams(), environ: { CLAUDECODE: "1" } },
+      seams,
+    );
+    expect(code).toBe(2);
+    expect(gitCalls).toEqual([]);
+    expect(ghCalls).toEqual([]);
+    expect(readFileSync(join(bound, BRIEF_REL), "utf8")).toBe(text);
+  });
+
+  it("rejects an unsafe --add-path before any git call", () => {
+    const { bound, gitCalls, seams } = setup();
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(
+      [BRIEF_REL, "--project-root", bound, "--actor", "scott", "--confirm", "--add-path", "../x"],
+      operatorSeams(),
+      seams,
+    );
+    expect(code).toBe(2);
+    expect(gitCalls).toEqual([]);
   });
 });
