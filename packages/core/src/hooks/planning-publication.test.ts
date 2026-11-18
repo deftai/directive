@@ -259,6 +259,19 @@ describe("listStagedIndexEntries / readStagedBlob on a real index (#5839)", () =
     expect(readStagedBlob(root, "f".repeat(40))).toBeNull();
   });
 
+  it("reads a staged blob larger than 1 MiB (#6602)", () => {
+    const root = repo();
+    const entries = Array.from({ length: 30000 }, (_unused, i) => ({
+      id: `story-${String(i)}-with-a-long-padding-name`,
+    }));
+    const text = JSON.stringify({ version: 1, entries });
+    expect(text.length).toBeGreaterThan(1024 * 1024);
+    put(root, ".deft/plan-sequence.json", text);
+    git(root, ["add", ".deft/plan-sequence.json"]);
+    const blob = git(root, ["rev-parse", ":.deft/plan-sequence.json"]).trim();
+    expect(readStagedBlob(root, blob)).toBe(text);
+  });
+
   it("returns a Result, not a throw, outside a git repository", () => {
     const listed = listStagedIndexEntries(join(tmpdir(), "deft-5839-missing-root"));
     expect(listed.ok).toBe(false);

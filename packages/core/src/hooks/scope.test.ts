@@ -517,6 +517,24 @@ describe("one-PR mint fence in selection and deny text (#6361)", () => {
     expect(text).not.toMatch(/scope:promote|scope:activate/);
   });
 
+  it("names the failed read, says the mint was not checked, and gives the activation route (#6602)", () => {
+    const detail =
+      "story write fence unreadable at merge-base:xbrief/PROJECT-DEFINITION.xbrief.json: «untrusted:boom»";
+    const text = formatPositiveGoverningAllowDeny({
+      fileScope: [],
+      denyPaths: [],
+      unreadableDetail: detail,
+    });
+    expect(text).toBe(
+      "Directive denied this mutation: the selected running scope's write fence could not be " +
+        `read (${detail}), so its one-PR mint was not checked (#6602). ` +
+        "Recovery: retry; if it repeats, report it, and land the brief through a separate " +
+        "activation PR so it is on the merge base.",
+    );
+    expect(text).not.toContain("positive governing story allow");
+    expect(text).not.toContain("scope:record-approved-scope");
+  });
+
   it("keeps the #5656 text when the merge-base level is off or the mint admitted", () => {
     expect(formatPositiveGoverningAllowDeny({ fileScope: [], denyPaths: [] })).toBe(
       POSITIVE_GOVERNING_ALLOW_REQUIRED,
