@@ -283,6 +283,33 @@ describe("prepareLinkedWorktree (#6100)", () => {
     expect(readdirSync(wt).sort()).toEqual(before);
     rmSync(repo, { recursive: true, force: true });
   });
+
+  it("a leftover installed runtime does not stand in for a missing pin (#6562)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "prep-leftover-"));
+    execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: repo, encoding: "utf8" });
+    writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "prep-leftover" }));
+    execFileSync("git", ["add", "package.json"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, encoding: "utf8" });
+    const wt = join(repo, "wt");
+    execFileSync("git", ["worktree", "add", "--detach", "-q", wt], { cwd: repo, encoding: "utf8" });
+    // The pin was dropped from package.json but the installed runtime is still there.
+    const runtimePkg = join(wt, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(join(runtimePkg, "dist"), { recursive: true });
+    writeFileSync(
+      join(runtimePkg, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "1.0.0" }),
+    );
+    writeFileSync(join(runtimePkg, "dist", "hook-bin.js"), "export {};\n");
+    const r = prepareLinkedWorktree(wt, { repoRoot: repo, presenterSessionId: "owner" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("pin-missing");
+      expect(r.message).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    }
+    rmSync(repo, { recursive: true, force: true });
+  });
   it("does not skip install when outer pin exists but installed runtime mismatches request", () => {
     const repo = mkdtempSync(join(tmpdir(), "prep-stale-"));
     execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });

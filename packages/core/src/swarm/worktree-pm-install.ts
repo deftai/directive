@@ -354,6 +354,19 @@ export function prepareLinkedWorktree(
     }
   }
 
+  // #6562 / AC9.12: no runtime pin → fail closed with the project-install
+  // message, before any shortcut: a leftover installed runtime is not a pin.
+  // Never copy retired `.deft/core` content into the worktree.
+  if (!worktreeHasRuntimePin(worktreePath)) {
+    return {
+      ok: false,
+      code: "pin-missing",
+      message:
+        `linked-worktree prep refused: ${join(worktreePath, "package.json")} does not pin ` +
+        `@deftai/directive-runtime. ${HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE}`,
+    };
+  }
+
   // Skip install only when outer pin exists AND installed runtime matches request (#6100).
   if (outerVisibleRuntimePinExists(worktreePath) && runtimePinMatchesRequest(worktreePath)) {
     return {
@@ -375,17 +388,6 @@ export function prepareLinkedWorktree(
     };
   }
 
-  // #6562 / AC9.12: no runtime pin → fail closed with the project-install
-  // message. Never copy retired `.deft/core` content into the worktree.
-  if (!worktreeHasRuntimePin(worktreePath)) {
-    return {
-      ok: false,
-      code: "pin-missing",
-      message:
-        `linked-worktree prep refused: ${join(worktreePath, "package.json")} does not pin ` +
-        `@deftai/directive-runtime. ${HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE}`,
-    };
-  }
   const pm = installWorktreePackages(worktreePath, { runner: seams.runner });
   if (!pm.ok) {
     return { ok: false, code: "pm-failed", message: pm.message };
