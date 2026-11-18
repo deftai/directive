@@ -35,6 +35,10 @@ describe("quoteShellArg and formatRerunCommand (#6647)", () => {
     expect(quoteShellArg("it's", "linux")).toBe("'it'\\''s'");
     expect(quoteShellArg("a b", "win32")).toBe('"a b"');
     expect(quoteShellArg('say "x"', "win32")).toBe('"say \\"x\\""');
+    // Backslash runs before a quote or the closing quote double (Windows argv rules).
+    expect(quoteShellArg('a\\"b c', "win32")).toBe('"a\\\\\\"b c"');
+    expect(quoteShellArg("C:\\my repo\\", "win32")).toBe('"C:\\my repo\\\\"');
+    expect(quoteShellArg("C:\\my repo", "win32")).toBe('"C:\\my repo"');
   });
 
   it("keeps the caller's arguments, drops any --session-id and appends the id", () => {

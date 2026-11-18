@@ -1589,7 +1589,11 @@ function uniquePrintCompanion(
 /** Quote one argument for the detected shell (#6647). Safe tokens stay bare. */
 export function quoteShellArg(arg: string, platform: NodeJS.Platform = process.platform): string {
   if (/^[A-Za-z0-9_@%+=:,./\\-]+$/.test(arg)) return arg;
-  if (platform === "win32") return `"${arg.replace(/"/g, '\\"')}"`;
+  if (platform === "win32") {
+    // Windows argv rules: a backslash run before a quote (or the closing quote) doubles.
+    const escaped = arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, "$1$1");
+    return `"${escaped}"`;
+  }
   return `'${arg.replace(/'/g, `'\\''`)}'`;
 }
 
