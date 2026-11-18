@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-032-rc-12-approved-plain-language-message",
+  "decision": "D-032: polfer approved RC-12 (drafts/RC-12.md of the OVPR planning folder, directive-ovpr-planning-202611) on 2026-11-18, with one change: customer-facing messages must not use 'OVPR' or other internal terms. The old-project message is: \"This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update.\" General rule for this initiative: every customer-facing message is short, direct and readable without Directive acronyms. RC-12 lands as its own docs-only PR (#6670) with exactly the approved text, merged by polfer before P1-U2 (#6653) merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-031, D-032)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "RC-12 message as first drafted, using internal terms",
+      "whyNot": "polfer: customer-facing messages must not use 'OVPR' or other internal terms"
+    },
+    {
+      "option": "Keep the current requirements text (RC-01 behaviour)",
+      "whyNot": "Rejected by D-031"
+    }
+  ],
+  "whyWinner": "polfer approved RC-12 with a plain-language message (D-032).",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T17:26:09Z",
+  "revisitTrigger": "The RC-12 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-12"
+  ],
+  "relatedIssues": [
+    6653,
+    6670
+  ]
+}
