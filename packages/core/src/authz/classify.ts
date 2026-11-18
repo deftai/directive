@@ -4122,11 +4122,43 @@ function cmdLauncherPayloadAt(text: string, start: number): string | null {
  * argument (`git commit -m '... cmd /c ...'`) is data, and it never hides a real launcher
  * later in the line: each candidate is judged on its own.
  */
-function cmdLauncherPayloads(command: string): string[] {
+function cmdLauncherPayloads(rawCommand: string): string[] {
+  const command = stripLineContinuations(rawCommand);
   const out = scanCmdLauncherPayloads(command, true);
   // Unbalanced quotes: the parser cannot tell what is data, so also scan with every quote
   // treated as literal (a superset). A line that names the kill-switch file fails closed.
   if (!shellQuotesBalanced(command)) out.push(...scanCmdLauncherPayloads(command, false));
+  return out;
+}
+
+/**
+ * Remove backslash-newline pairs (line continuations). Bash drops them before it decides
+ * what is a comment, a quote or a word, so every scan below works on the joined text.
+ * An even run of backslashes before a newline escapes itself, so that newline stays.
+ */
+function stripLineContinuations(text: string): string {
+  if (!text.includes("\\")) return text;
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] !== "\\") {
+      out += text[i];
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < text.length && text[j] === "\\") j++;
+    let newline = 0;
+    if (text[j] === "\n") newline = 1;
+    else if (text[j] === "\r" && text[j + 1] === "\n") newline = 2;
+    if (newline > 0 && (j - i) % 2 === 1) {
+      out += text.slice(i, j - 1);
+      i = j + newline;
+    } else {
+      out += text.slice(i, j);
+      i = j;
+    }
+  }
   return out;
 }
 
@@ -4138,14 +4170,17 @@ function isShellCommentStart(text: string, i: number): boolean {
   if (!(isCmdLauncherSpace(prev) || prev === ";" || prev === "&" || prev === "|" || prev === "(")) {
     return false;
   }
-  // A backslash-escaped space or separator is part of the word, so this `#` is not at a word start.
+  // A newline is never escaped here: backslash-newline is a continuation, removed first.
+  if (prev === "\n" || prev === "\r") return true;
+  // A backslash-escaped space, tab or separator is part of the word, so this `#` is not at a word start.
   let backslashes = 0;
   for (let j = i - 2; j >= 0 && text[j] === "\\"; j--) backslashes++;
   return backslashes % 2 === 0;
 }
 
 /** True when quotes pair up at end of input (comments and escapes aware). */
-function shellQuotesBalanced(text: string): boolean {
+function shellQuotesBalanced(rawText: string): boolean {
+  const text = stripLineContinuations(rawText);
   let quote: "'" | '"' | null = null;
   for (let i = 0; i < text.length; i++) {
     const c = text[i] as string;
@@ -4172,13 +4207,19 @@ function scanCmdLauncherPayloads(command: string, trackQuotes: boolean): string[
   const tryAt = (index: number): void => {
     const raw = cmdLauncherPayloadAt(command, index);
     if (raw === null) return;
-    let payload = raw.trim();
-    const q = payload[0];
-    if (q === '"' || q === "'") {
-      payload = payload.slice(1);
-      if (payload.endsWith(q)) payload = payload.slice(0, -1);
+    // cmd reads one line, so judge the first line on its own; also keep the whole rest of
+    // the text, in case a quoted payload spans lines.
+    const newline = raw.indexOf("\n");
+    const variants = newline < 0 ? [raw] : [raw.slice(0, newline), raw];
+    for (const variant of variants) {
+      let payload = variant.trim();
+      const q = payload[0];
+      if (q === '"' || q === "'") {
+        payload = payload.slice(1);
+        if (payload.endsWith(q)) payload = payload.slice(0, -1);
+      }
+      if (payload.length > 0) out.push(payload);
     }
-    if (payload.length > 0) out.push(payload);
   };
   // Every real launcher in the line is collected (the caller dedupes payloads, so nested
   // suffixes are judged once each).
@@ -4218,7 +4259,8 @@ function scanCmdLauncherPayloads(command: string, trackQuotes: boolean): string[
 }
 
 /** Pipelines: stages joined by a bare `|`; `||`, `;`, `&`, `&&`, newlines end the chain. */
-function splitUnquotedPipeChains(text: string, trackQuotes = true): string[][] {
+function splitUnquotedPipeChains(rawText: string, trackQuotes = true): string[][] {
+  const text = stripLineContinuations(rawText);
   const chains: string[][] = [];
   let stages: string[] = [];
   let cur = "";
@@ -4453,10 +4495,11 @@ function pipelineFeedsXargsWriter(
 
 /** `xargs <writer> <<EOF` whose body (any delimiter quoting) mentions the protected name. */
 function heredocFeedsXargsWriter(
-  command: string,
+  rawCommand: string,
   stageMentions: (stage: string) => boolean,
   trackQuotes = true,
 ): boolean {
+  const command = stripLineContinuations(rawCommand);
   // One pass with quote state: only an unquoted `<<DELIM` opens a heredoc, so a quoted
   // `"see <<EOF"` neither opens one nor swallows a real heredoc that follows. Each body
   // belongs to its opener (its lines are not commands), so an example `xargs touch <<EOF`

@@ -3016,6 +3016,22 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expectNoPlant(`echo ${kill} | env FOO=x\\\\ # xargs touch`);
   });
 
+  it("joins backslash-newline continuations before it finds comments and quotes", () => {
+    // Bash removes `\<newline>` first, so `# '` here is a comment, not a quote.
+    const cont = ": \\\n# '";
+    expectPlant(`${cont}\nxargs touch <<EOF\n${kill}\nEOF\n${cont}`);
+    expectStoreWrite(`${cont}\nxargs touch <<EOF\n${authz}\nEOF\n${cont}`);
+    expectPlant(`${cont}\necho ${kill} | xargs touch\n${cont}`);
+    expectPlant(`${cont}\ncmd /c "echo x > ${kill}"\n${cont}`);
+    expectPlant(`: \\\r\n# '\r\nxargs touch <<EOF\r\n${kill}\r\nEOF\r\n: \\\r\n# '`);
+    // A continuation inside a pipeline joins the stages.
+    expectPlant(`echo ${kill} | \\\nxargs touch`);
+    // Controls: read-only xargs stays allowed, and an escaped backslash does not continue the line.
+    expectNoPlant(`${cont}\nxargs grep touch <<EOF\n${kill}\nEOF\n${cont}`);
+    expectNoPlant(`${cont}\necho ${kill} | xargs grep touch\n${cont}`);
+    expectNoPlant(`echo ${kill} | env FOO=x\\\\\n# xargs touch`);
+  });
+
   it("treats an unterminated xargs heredoc as fed by its remaining lines", () => {
     expectPlant(`xargs touch <<EOF\n${kill}`);
     expectNoPlant(`xargs grep touch <<EOF\n${kill}`);
