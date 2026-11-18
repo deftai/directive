@@ -689,6 +689,33 @@ describe("uninstall keeps package.json until the package manager is done (#5999)
     expect(existsSync(join(root, ".githooks", "pre-commit"))).toBe(true);
   });
 
+  it("a retry with only the pin left still unsets Directive's core.hooksPath", () => {
+    const root = tempProject();
+    // An earlier run removed the hook files and record, then the package manager was interrupted.
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify({ private: true, devDependencies: { [RUNTIME]: "1.0.0" } }, null, 2)}\n`,
+    );
+    execFileSync("git", ["-C", root, "config", "core.hooksPath", ".githooks"]);
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: fakePmRemove(root, []),
+      },
+    );
+    expect(code).toBe(0);
+    expect(io.out()).toContain("Unset core.hooksPath");
+    expect(() =>
+      execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], { stdio: "pipe" }),
+    ).toThrow();
+  });
+
   it("launcher sole-author rule matches the runtime's", () => {
     const samples: Array<Record<string, unknown>> = [
       { private: true },

@@ -1689,11 +1689,15 @@ export function runUninstall(
   // Sole-author manifest goes only after the package manager is done with it (F-013 / #5999).
   const manifestRemoved = pmLeftovers.size === 0 ? removeSoleAuthorManifest(projectRoot) : [];
 
-  // core.hooksPath is touched only with evidence that Directive installed git
-  // hooks here (its hook files or its ownership record). Lines left in shared
+  // core.hooksPath is touched only with evidence that Directive was installed
+  // here: its hook files, its ownership record, or its pin (a retry after an
+  // interrupted package-manager remove still has the pin). Lines left in shared
   // files alone are not that evidence: `.githooks` may be the user's own (AC11.6).
   const directiveHooksEvidence =
     discovery.ownershipInspection !== "absent" ||
+    discovery.hasRuntimePin ||
+    discovery.hasLegacyLauncherPin ||
+    discovery.hasLegacyCore ||
     discovery.artifacts.some((a) => a.path.startsWith(".githooks/"));
   const hooksPathResult = directiveHooksEvidence
     ? (deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot))
