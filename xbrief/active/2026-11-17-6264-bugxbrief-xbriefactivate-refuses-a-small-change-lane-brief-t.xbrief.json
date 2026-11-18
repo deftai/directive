@@ -1,0 +1,384 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6264",
+    "updated": "2026-11-18T00:30:08Z"
+  },
+  "plan": {
+    "title": "bug(xbrief): xbrief:activate refuses a small-change lane brief that scope:activate admits",
+    "status": "running",
+    "narratives": {
+      "Description": "scope:activate and xbrief:activate both move a brief into active/, but only scope:activate runs the #6204 small-change lane gate. xbrief:activate refuses a thin lane brief that scope:activate admits (the #4768 ingress refusal has no lane waiver there), and it admits crossed or incompletely escalated lane briefs that scope:activate refuses. This story puts the lane verdict and the ingress verdict behind one shared helper that both verbs call, so the same brief gets the same exit code and the same lane-state write from either verb, from pending/ and from active/. Other differences between the two writers (D7 filename, zero-clause derivation, clause file_scope bind, #3334 acceptance-activate gate) stay out of scope.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6264",
+      "Overview": "\n\n1. Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.\n2. When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.\n3. When laneAdmitsThin holds, waive the #4768 ingress refusal.\n4. One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active.\n\nrelieves: P1\nrelieves: P2\n\nLeftover-pain: remaining writer splits (D7 filename, zero-clause derivation, clause file_scope bind, #3334 acceptance-activate gate) stay outside this Bound remedy. Swarm parent false-cross belongs on #6204.\n\n",
+      "Labels": "bug, area:vbrief, design-critique:ingest-ready, framework-gap, promise:lifecycle, promise:gates, leftover",
+      "UserStory": "As an agent or operator activating a scope brief, I want xbrief:activate and scope:activate to give the same lane and ingress verdict for the same brief, so that the verb the swarm skill names neither refuses an admitted small-change lane brief nor moves a crossed one into active/.",
+      "ImplementationPlan": "1. New packages/core/src/scope/lane-ingress-gate.ts: one helper that runs evaluateSmallChangeLaneGate (with the caller's gate name), derives laneAdmitsThin (applies, ok, verdict admitted, checkCommandBackedAcceptance ok), runs prepareActiveIngressAcceptance, and returns the lane verdict, the ingress verdict and the waiver together.\n2. packages/core/src/scope/transition.ts: replace the local laneAdmitsThin predicate and its ingress checks with the helper; the zero-clause waiver reads the same predicate, so no third copy of laneAdmitsThin appears.\n3. packages/core/src/vbrief-activate/activate.ts: call the helper in the already-active branch and the pending branch, next to the existing ingress call and outside withPlanIdIdentityLock; a lane refusal returns before any activation move or ingress restamp, and the lane gate keeps its own crossing record.\n4. packages/core/src/policy/small-change-lane.ts: add xbrief:activate to SmallChangeLaneGateName and to the header list of lane gates.\n5. Tests: lane-ingress-gate.test.ts for the helper; new scope/activate-lane-parity.test.ts for the parity matrix, with hand-built lane briefs.\n6. content/commands.md: add xbrief:activate / vbrief:activate to the small-change lane verb list; changelog fragment changelog.d/6264-xbrief-activate-lane-parity.md.",
+      "Constraint": "- Do not route xbrief:activate through runTransition (critic road not taken C): that imports the D7, derivation and acceptance-activate gates, which are out of scope.\n- Keep the lane gate's crossing record (pain-audit 6959029054 footnote): 'before any write' means before an activation move or ingress restamp.\n- Leftover-pain: other writer splits stay outside this story; the swarm-parent false-cross belongs on #6204.",
+      "Traces": "#6264"
+    },
+    "items": [
+      {
+        "title": "Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given the new shared lane-ingress helper, when xbrief:activate or scope:activate evaluates a brief, then both verbs call that one helper, and it returns the lane verdict and the ingress verdict together."
+        }
+      },
+      {
+        "title": "When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a brief whose lane gate applies and refuses, when xbrief:activate runs from pending/ or from active/, then it refuses with the lane message before any activation move or ingress restamp, and the lane gate's crossing record is kept."
+        }
+      },
+      {
+        "title": "When laneAdmitsThin holds, waive the #4768 ingress refusal.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a brief for which laneAdmitsThin holds, when xbrief:activate or scope:activate runs, then the #4768 ingress refusal is waived."
+        }
+      },
+      {
+        "title": "One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the parity matrix rows admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief, when each row runs from pending/ and from active/ through xbrief:activate and through scope:activate, then both verbs give the same exit code and the same lane-state write."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "promise:lifecycle",
+      "promise:gates",
+      "leftover"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6264",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6264: bug(xbrief): xbrief:activate refuses a small-change lane brief that scope:activate admits"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6204",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6204"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4768",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4768"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (4), in list order (#6333)",
+      "sentences": [
+        "Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.",
+        "When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.",
+        "When laneAdmitsThin holds, waive the #4768 ingress refusal.",
+        "One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active."
+      ],
+      "admitted_source_sentences": [
+        "Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.",
+        "When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.",
+        "When laneAdmitsThin holds, waive the #4768 ingress refusal.",
+        "One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active."
+      ],
+      "admitted_source_digest": "62378cbde62ef27f48041f1a3e38cb14093ee1beb4db65656730e764304b473a",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When laneAdmitsThin holds, waive the #4768 ingress refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/lane-ingress-gate.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/vbrief-activate/activate.ts",
+          "packages/core/src/policy/small-change-lane.ts",
+          "packages/core/src/scope/lane-ingress-gate.test.ts",
+          "packages/core/src/scope/activate-lane-parity.test.ts"
+        ],
+        "module_boundary": "The new scope/lane-ingress-gate.ts owns the combined lane and ingress verdict (evaluateSmallChangeLaneGate, checkCommandBackedAcceptance, prepareActiveIngressAcceptance). scope/transition.ts and vbrief-activate/activate.ts only call it. policy/small-change-lane.ts only gains the xbrief:activate gate name.",
+        "cohesion_exemption": "packages/core/src/scope/transition.ts (about 1630 lines) is the existing home of the scope:activate lane check; the story replaces its local laneAdmitsThin predicate with a call to the shared helper and adds no new logic there. New logic and new tests go in new files."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because xbrief:activate still calls prepareActiveIngressAcceptance without the #6204 laneAdmitsThin exemption that scope:activate uses, so a small-change lane brief that scope:activate admits is refused.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6264-dc\norigin-ref: origin/HEAD\ndispatch-sha: 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81\ndest-wo leftover-complete\nverification-path: pin-read git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:; dest cwd-without-occupy\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption that both activation verbs must give the same verdict for the same lane brief\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: specified leftover with closed AC; Stop 2 panel permission does not apply\n\npain: P1, P2\n\nP1. xbrief:activate refuses a small-change lane brief that scope:activate admits.\nP2. The two activation paths can drift unless they share the lane+ingress helper.\n\nDual-stop cap: 6 posts\n\nrefutation-target: xbrief:activate may keep refusing command-present / clause-text-empty lane briefs while scope:activate admits them, with scope:activate as the documented workaround.\n\ntarget: #6264\ntarget-shape: single-issue\ntarget-kind: issue\naudit-targets: none\n\n",
+          "id": 6958483134,
+          "html_url": "https://github.com/deftai/directive/issues/6264#issuecomment-6958483134",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:24:05Z",
+          "updated_at": "2026-11-17T19:24:05Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nfinding-classes: sharpening, footnote\n\nRound 1 critic, fresh seat, refutation charter, N=1. Input: the issue body and the Stop 1 write-back (id 6958483134); nothing after it. Every tree read is pinned to `4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81` (`git show '<sha>:<path>'`, `git grep <sha>`). The blob ids of the four inventory files match the envelope. Verification path: pin-read only. I ran no fixtures, so the behaviour claims below are control-flow reads of the pinned source, not executed probes. The issue body and write-back contain no embedded instructions.\n\n## Refutation target\n\nTarget: `xbrief:activate` may keep refusing command-present / clause-text-empty lane briefs while `scope:activate` admits them, with `scope:activate` as the documented workaround.\n\nResult: **refuted.** The status quo is not a safe resting state.\n\n1. Agents are routed to the refusing verb. `content/skills/deft-directive-swarm/references/core-phase-0.md:198` (Step 1, `!`) and `:234` name `task xbrief:activate <path>` as the actionable redirect. `tasks/xbrief.yml:42-50` says the swarm skill names it at MUST level. `packages/core/src/preflight/evaluate.ts:32` names `vbrief:activate` (same engine, `packages/runtime/src/dispatch.ts:473,478`) as the legacy alternative.\n2. The refusal sends the user the wrong way. Its remediation (`scope/acceptance-activate-gate.ts:143-147`) is \"Supply list items, test: lines, or acceptance: lines\". Ingress passes only when `plan.acceptance.clauses` is non-empty (`verify-ac/clauses.ts:693-697`). `checkCommandBackedAcceptance` refuses any non-empty `plan.acceptance.clauses` (`intake/thin-brief.ts:93-94`). So following the remediation takes the brief out of the thin shape while the lane marker stays `admitted`. That is not the documented lane exit (`escalated`; `content/commands.md:189`: \"The one remediation is lane exit\").\n3. The workaround is recorded only in this issue body. `content/commands.md:189` lists the lane verbs and does not say that `xbrief:activate` refuses.\n4. Idempotence breaks after the workaround. `tasks/xbrief.yml:52` calls the verb idempotent. After `scope:activate` puts a lane brief in `active/`, the already-active branch of `xbrief:activate` (`vbrief-activate/activate.ts:158-166`) exits 1 with \"cannot land or remain in active/\". The already-active branch of `scope:activate` (`scope/transition.ts:668-693`) returns a no-op success for the same file.\n\nSteelman for the target: `content/commands.md:189` (#6204) names exactly five lane verbs (`scope:promote`, `scope:activate`, `xbrief:preflight`, `verify:ac`, `scope:complete`) and leaves out `xbrief:activate`, so the omission can be read as deliberate. The trigger is also narrow today. `emitThinBrief` has no non-test caller. It is not exported from `intake/index.ts` or from any package subpath. No brief under `xbrief/` carries `x-directive/smallChangeLane`. Only a hand-authored lane brief reaches P1.\n\nWhat would flip the verdict: an operator ruling that `xbrief:activate` is not a lane verb. The remedy would then be message-only: name `scope:activate` in the refusal when a lane marker is present, and fix core-phase-0 `:198` / `:234`. That does not relieve P1 as written, so the decision belongs to the operator, not the lean.\n\n## Findings\n\n### sharpens-framing: parity runs both ways, but P1 names only one direction\n\nEvidence: `activate.ts` has no lane check (`grep -ci lane` on the pinned blob returns 0). It imports only `prepareActiveIngressAcceptance` and `evaluateEffortActivateGate` from `scope/` (`activate.ts:23-24`). `SmallChangeLaneGateName` (`policy/small-change-lane.ts:801-806`) has no entry for this writer. `scope:activate` runs the lane gate before both of its activate branches and refuses when the gate refuses (`transition.ts:645-659`). The code comment there gives the reason: \"so a crossed or oversized scope cannot go active without the lane exit\".\n\nFailure mode: a lane-marked brief can pass ingress (no commands, or acceptance that already has clauses). `xbrief:activate` then moves it to `active/` in cases where `scope:activate` refuses:\n- marker `crossed` (`small-change-lane.ts:882-889`);\n- marker `escalated` without the full shape (`:867-881`);\n- an `admitted` marker whose worktree diff now exceeds the bound. Here `scope:activate` refuses and records `crossed`; `xbrief:activate` does neither.\n\n`xbrief:preflight` runs the lane gate (`preflight/evaluate.ts:311-321`), so implementation is still gated. The damage is an `active/` entry that #6204 forbids, plus a lost crossing record. It is not an implementation bypass.\n\nThe risk is in the remedy. An exemption-only port borrows `laneAdmitsThin` only to waive the ingress refusal. That satisfies P1 as worded and leaves the refuse half missing.\n\nDisposition consequence: the Bound remedy and the AC must state both halves.\n- (a) When the lane gate applies and refuses, `xbrief:activate` refuses with the lane message before any write, in both the pending→active branch and the already-active branch.\n- (b) When `laneAdmitsThin` holds, the #4768 ingress refusal is waived.\n\nAC: one parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: lane admitted within bound, admitted over bound, `crossed`, `escalated` without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active.\n\n### sharpens-framing: a shared lane+ingress helper equalizes lane and ingress, not the two writers\n\nEvidence: apart from ingress and effort, `runTransition(\"activate\")` runs gates that `activate()` does not:\n- D7 `validateFilename` (`transition.ts:588`);\n- unconditional clause derivation, then `zeroClauseDerivationRefusal` (`:737`, `:744-745`);\n- `applyPromoteClauseFileScopeBind` (`:752`);\n- the #3334 `evaluateAcceptanceActivateGate` (`:769`).\n\nFailure mode: take a no-command brief whose derivation yields no clauses (the intake floor). `xbrief:activate` admits it, because `prepareActiveIngressAcceptance` returns early when there are no commands (`acceptance-activate-gate.ts:127-130`). `scope:activate` refuses it (`transition.ts:744-745`). That is the same class of verdict split as P1, and the shared helper leaves it in place. The issue's Expected section (\"so the two paths cannot drift\") claims more than the helper delivers.\n\nDisposition consequence: pick one.\n- (a) The lean scopes P2 relief to \"lane + ingress verdict parity\" and records the remaining splits as non-goals or leftover. The helper should return the lane verdict and the ingress verdict together. Then the zero-clause waiver at `transition.ts:745` reads the same predicate, and no third copy of `laneAdmitsThin` appears.\n- (b) The remedy routes both verbs through one writer (see Road not taken).\n\n### footnote: lane docs and the swarm redirect\n\nIf parity lands, add `xbrief:activate` / `vbrief:activate` to the lane-verb list at `content/commands.md:189`. Separately, `core-phase-0.md:198` says the preflight message names `task xbrief:activate`. At the pin, the message names `task scope:activate` first (`preflight/evaluate.ts:32`). That is existing docs drift.\n\n### footnote: gate name in the refusal\n\nThe refusal text includes the gate name (`small-change-lane.ts:845`), and the union at `:801-806` has no entry for this writer. If `xbrief:activate` passes `\"scope:activate\"`, the refusal names the wrong verb. Add the name to the union and to the header list at `:18-19`.\n\n### footnote: AC fixtures need a hand-built lane brief\n\nNo CLI or package surface emits a lane brief at the pin. The parity fixtures must build one with `emitThinBrief` (deep import) or by hand.\n\n### footnote: stale line cite\n\nThe issue body cites `transition.ts:622` for `laneAdmitsThin`. At the pin it is `:662-666`.\n\n### footnote: inherited premise not checked\n\nParity relies on #6204's premise that the downstream acceptance consumer handles command-only lane briefs left in `active/`. The #4768 refusal text says the opposite (\"cannot ... remain in active/ under the DCR text oracle\"). I did not trace that consumer.\n\n### footnote: lane measurement in a swarm parent checkout\n\nThe measurement root comes from the brief path, so in a swarm it is the parent checkout. Worktree mode diffs the working tree against `admitBase` (`small-change-lane.ts:575`, `:585`), so it counts every commit merged since `admitBase`. A parent that pulls the default branch between intake and activation can get a false `bound-crossed`, and the lane then stores it as permanent `crossed`. `scope:activate` already does this. Parity extends it to the verb the swarm skill names. If confirmed, file it against #6204; do not fix it inside this target.\n\n## Injection / swarm lens\n\nThis lens applies because the target changes lifecycle activation and shared `active/` state.\n\n- Authority: the waiver input is brief JSON that the author writes (`x-directive/smallChangeLane`, including an author-chosen `admitBase`). No emitter provenance exists at the pin. Parity extends the existing waiver from one activation writer to two. It adds no new waiver, because admission still needs `rapid` depth, a git measurement, and public surface `none`. Who may choose `admitBase` is a #6204 question, outside this target.\n- Shared state: on a crossing refusal, the lane gate rewrites the brief (`recordSmallChangeLaneCrossing`, `small-change-lane.ts:767-787`, temp file then rename). With parity, `xbrief:activate` becomes a second writer of that record. The write happens only on refusal, before any `active/` write, so a move cannot be left half done. Keep the lane call next to the ingress call (`activate.ts:236`), outside `withPlanIdIdentityLock` (`:254-262`), as `transition.ts` does.\n\n## Road not taken\n\nThe issue offers two options and the tree suggests a third:\n- (A) port the lane gate into `activate.ts` (Expected, option 1);\n- (B) one shared helper that both writers call (Expected, option 2);\n- (C) make `xbrief:activate` / `vbrief:activate` call `runTransition(\"activate\")`.\n\nRecommendation: B. It is the smallest mechanism that relieves P1 and P2 as worded (Thin Fail-Closed).\n\nSteelman for C: it closes the drift class. The second writer exists because of the #1782 byte-parity port (`activate.ts:104-111`). Its Python oracle, `scripts/vbrief_activate.py`, is not in the tree at the pin. `tasks/xbrief.yml:52` already calls the verb an alias, and the preflight message calls it legacy. The cost of C: `xbrief:activate` starts refusing no-command floor briefs and D7-invalid names. That changes behaviour beyond this leftover's closed AC.\n\nWhat flips the recommendation to C: the operator reads P2 as \"two activation writers must not drift\" rather than \"lane + ingress\". Under that reading, B does not relieve P2.",
+          "id": 6958824801,
+          "html_url": "https://github.com/deftai/directive/issues/6264#issuecomment-6958824801",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:38:11Z",
+          "updated_at": "2026-11-17T19:38:11Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nxbrief:activate still refuses a small-change lane brief that scope:activate admits, and a one-way exemption would leave the other direction drifting.\n\nThe accepted design is one shared helper both verbs call for the lane verdict and the ingress waiver, with a parity matrix for both directions and both pending and already-active files.\n\n**Lean:** bind shared helper.\n\nSpec-path: Bound remedy on this lean\n\nTarget-digest: sha256:7df744e79ad837bf1fe3bf5c341d5af3ed2601148410bf6ceb3330a76f1c19fc\n\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6264-dc\ndispatch-sha: 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81\narc-mode: no-ingest\nDual-stop cap: 6 posts\nRound 1 sibling count: 1\nCited critic: 6958824801\nSupersedes Stop 1 6958483134 as the disposition map.\n\nNon-self-arbitration: the same parent authored Stop 1 6958483134 and these proposed takes. Confirming binds them.\n\n## Parent-side substantiation\n\nsharpens-framing: parity runs both ways, but P1 names only one direction\naccept-into-contract\n\nsharpens-framing: a shared lane+ingress helper equalizes lane and ingress, not the two writers\naccept-into-contract\n\nfootnote: lane docs and the swarm redirect\naccept-into-contract\n\nfootnote: gate name in the refusal\naccept-into-contract\n\nfootnote: AC fixtures need a hand-built lane brief\naccept-into-contract\n\nfootnote: stale line cite\naccept-into-contract\n\nfootnote: inherited premise not checked\naccept-into-contract\n\nfootnote: lane measurement in a swarm parent checkout\naccept-into-contract\n\n## Bound remedy\n\n1. Share one helper that returns the lane verdict and the ingress verdict together; both xbrief:activate and scope:activate call it.\n2. When the lane gate applies and refuses, xbrief:activate refuses with the lane message before any write, in both the pending and already-active branches.\n3. When laneAdmitsThin holds, waive the #4768 ingress refusal.\n4. One parity matrix gives the same exit code and the same lane-state write for both verbs. Rows: admitted within bound, admitted over bound, crossed, escalated without full shape, and a no-marker command-only brief. Each row runs from pending and from already-active.\n\nrelieves: P1\nrelieves: P2\n\nLeftover-pain: remaining writer splits (D7 filename, zero-clause derivation, clause file_scope bind, #3334 acceptance-activate gate) stay outside this Bound remedy. Swarm parent false-cross belongs on #6204.\n\n",
+          "id": 6958923894,
+          "html_url": "https://github.com/deftai/directive/issues/6264#issuecomment-6958923894",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:42:24Z",
+          "updated_at": "2026-11-17T19:42:24Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:62378cbde62ef27f48041f1a3e38cb14093ee1beb4db65656730e764304b473a\n\nThe asserted relief for P1 and P2 holds at the design level on [successor lean 6958923894](https://github.com/deftai/directive/issues/6264#issuecomment-6958923894). No blocking or sharpening finding; one wording footnote below. The Bound remedy mechanism does not need to change.\n\nInput: issue body and comments through 6958923894 inclusive. Verification: source and existing test inspection using `git show '4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:<path>'`. No fixtures were executed. These are independently traced control-flow claims, not a claim that the proposed implementation has passed its parity matrix. No embedded instruction attempt was found in the issue or admitted comments.\n\n### P1 — verb mismatch is covered\n\nAt the pin, [scope activation](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/scope/transition.ts#L645-L692) evaluates the lane before already-active revalidation. Its waiver requires all four conditions: lane applies, lane succeeds, verdict is `admitted`, and `checkCommandBackedAcceptance` succeeds. Pending activation uses that same predicate for its zero-clause refusal (lines 737–746).\n\nBy contrast, [xbrief activation](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/vbrief-activate/activate.ts#L158-L166) returns the ingress refusal on the already-active branch; lines 236–241 do the same on the pending branch, without evaluating the lane. The shared ingress function requires clauses for command-present briefs ([lines 123–149](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/scope/acceptance-activate-gate.ts#L123-L149)). Thus the mismatch is real in both branches.\n\nThe lean covers both admission and refusal: reuse the lane gate, retain its refusal, and apply the existing thin-acceptance waiver. Its five-row, two-starting-folder matrix covers the named mismatch, crossed/incompletely escalated states, and preservation of the non-lane refusal. Existing [scope tests](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/scope/transition.test.ts#L2882-L2952) already encode thin admission/retry and refusal of crossed briefs even when clauses exist; the new matrix extends that contract to both verbs.\n\n### P2 — shared lane/ingress ownership is covered\n\nThe existing mechanisms are `evaluateSmallChangeLaneGate`, `checkCommandBackedAcceptance`, and `prepareActiveIngressAcceptance`. Bound item 1 puts their lane/ingress decision behind one helper used by both writers. That removes the duplication relevant to P2 without inventing a new lane policy. Preserve the existing scope zero-clause waiver through that shared decision rather than a second locally reconstructed predicate.\n\nThe Stop 1 pain specifically names sharing the lane+ingress helper. The lean explicitly leaves other writer differences outside the remedy. Its relief claim therefore does not promise universal activation equivalence. Routing the entire legacy writer through `runTransition` would enforce more uniform behavior, but would also import the expressly excluded filename, derivation and acceptance gates; that is not needed to relieve these two pains.\n\n### footnote: “before any write” excludes the required crossing record\n\nBound item 2 says refusal occurs “before any write,” while item 4 requires equal lane-state writes. The existing [lane gate](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/policy/small-change-lane.ts#L920-L932) deliberately records `crossed` before returning a crossing refusal. The [recording helper](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/policy/small-change-lane.ts#L763-L783) makes that refusal persistent even if the diff later shrinks.\n\nRead item 2 as before an activation move or ingress restamp, preserving the lane gate's crossing record. Suppressing that record would violate item 4 and the existing sticky-refusal mechanism. This is a wording clarification under the writing bar, not a different Bound remedy; no successor lean is needed for this footnote.\n\nInjection / swarm lens: brief-authored lane metadata is not sufficient by itself to earn the waiver; the existing gate remeasures admitted work and refuses crossed or incompletely escalated markers. Calling it before ingress in both branches preserves that boundary. The shared helper must retain its crossing persistence. This audit does not establish concurrency guarantees beyond the existing writer behavior.\n\n",
+          "id": 6959029054,
+          "html_url": "https://github.com/deftai/directive/issues/6264#issuecomment-6959029054",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:46:43Z",
+          "updated_at": "2026-11-17T19:46:43Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| xbrief:activate calls prepareActiveIngressAcceptance without laneAdmitsThin | verified | pin-read `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:packages/core/src/vbrief-activate/activate.ts` and `.../scope/transition.ts` |\n| Shared lane+ingress helper relieves P1 and P2 | verified | same pin-read plus pain-audit 6959029054 (gpt-6), a different family from the lean author |\n| Remaining writer splits stay leftover-pain | footnote | critic 6958824801; not Bound-remedy |\n\nNon-self-arbitration: this parent authored Stop 1 6958483134 and successor lean 6958923894. Pain-audit 6959029054 is the independent check.\n\n",
+          "id": 6959057229,
+          "html_url": "https://github.com/deftai/directive/issues/6264#issuecomment-6959057229",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:47:47Z",
+          "updated_at": "2026-11-17T19:47:47Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nxbrief:activate still refuses a small-change lane brief that scope:activate admits. The accepted design is one shared helper both verbs call for the lane verdict and the ingress waiver, with a parity matrix for both directions.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6958923894, verified-claims table 6959057229.\n\narc-mode: no-ingest\n\n",
+          "id": 6959061785,
+          "html_url": "https://github.com/deftai/directive/issues/6264#issuecomment-6959061785",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:47:57Z",
+          "updated_at": "2026-11-17T19:47:57Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\nA small-change lane brief (#6204) carries stated commands and no clauses by design. `scope:activate` and `scope:promote` admit it: `packages/core/src/scope/transition.ts:622` (`laneAdmitsThin`) lets an admitted lane brief past the #4768 active-ingress refusal.\n\n`xbrief:activate` calls the same `prepareActiveIngressAcceptance` check (`packages/core/src/vbrief-activate/activate.ts:161` and `:236`) with no lane exemption. It refuses the same brief with \"Refusing active ingress (#4768 Prefer-A): command-present / clause-text-empty acceptance cannot land or remain in active/\".\n\n## Expected\n\nBoth activation verbs give the same verdict for the same brief. Either `xbrief:activate` uses the lane gate (`evaluateSmallChangeLaneGate` plus `checkCommandBackedAcceptance`) as `scope:activate` does, or both share one helper so the two paths cannot drift.\n\n## Notes\n\n- Workaround today: use `scope:activate`.\n- Found after #6204 shipped.\n\nRefs #6204. Refs #4768.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6365937289,
+        "origin": "deftai/directive#6264",
+        "id": "github.issue.6365937289"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7df744e79ad837bf1fe3bf5c341d5af3ed2601148410bf6ceb3330a76f1c19fc"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6264,
+        "leanCommentId": 6958923894,
+        "harvestDigest": "62378cbde62ef27f48041f1a3e38cb14093ee1beb4db65656730e764304b473a",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/lane-ingress-gate.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/vbrief-activate/activate.ts",
+          "packages/core/src/policy/small-change-lane.ts",
+          "packages/core/src/scope/lane-ingress-gate.test.ts",
+          "packages/core/src/scope/activate-lane-parity.test.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/vbrief-activate/activate.test.ts",
+          "packages/core/src/policy/small-change-lane.test.ts",
+          "content/commands.md",
+          "changelog.d/6264-xbrief-activate-lane-parity.md",
+          "xbrief/.audit/spec-drift/github.issue.6365937289.json"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "scope-activate-lane",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/lane-ingress-gate.test.ts packages/core/src/scope/activate-lane-parity.test.ts packages/core/src/scope/transition.test.ts packages/core/src/vbrief-activate/activate.test.ts packages/core/src/policy/small-change-lane.test.ts"
+        ],
+        "expected_outputs": [
+          "one shared helper returns the lane verdict and the ingress verdict together, and both xbrief:activate and scope:activate call it",
+          "when the lane gate applies and refuses, xbrief:activate refuses with the lane message before any activation move or ingress restamp, in the pending and already-active branches; the lane gate's own crossing record is kept",
+          "when laneAdmitsThin holds, the #4768 ingress refusal is waived on both verbs",
+          "one parity matrix (admitted within bound, admitted over bound, crossed, escalated without full shape, no-marker command-only), each row from pending and from already-active, gives the same exit code and lane-state write for both verbs",
+          "xbrief:activate is added to the lane-verb list in content/commands.md and to the SmallChangeLaneGateName union",
+          "one changelog fragment changelog.d/6264-xbrief-activate-lane-parity.md"
+        ],
+        "Traces": [
+          "#6264"
+        ],
+        "acceptance_criteria_justification": "Four clauses: the four Bound remedy items of the accepted lean (comment 6958923894, synthesis 6959061785), one same-text clause each as the harvest admitted them. 'Before any write' in clause 2 is read per pain-audit 6959029054: before an activation move or ingress restamp, keeping the lane gate's crossing record. parallel_safe is true: no running brief declares these files. The lean's Leftover-pain (D7 filename, zero-clause derivation, clause file_scope bind, #3334 acceptance-activate gate) stays outside this story; the swarm-parent false-cross belongs on #6204."
+      }
+    },
+    "id": "github.issue.6365937289",
+    "updated": "2026-11-18T00:30:08Z"
+  }
+}
