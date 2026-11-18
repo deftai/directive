@@ -4077,11 +4077,37 @@ function tokenPlantsKillSwitch(token: string): boolean {
  * payload is unwrapped and scanned as a command of its own. Rest of line, as cmd reads it.
  */
 const CMD_LAUNCHER_PAYLOAD_RE =
-  /(?:^|[\s;&|(])(?:[^\s"';&|()]*[\\/])?cmd(?:\.exe)?\s+(?:\/[a-z]\s+)*\/[ckr]\s+([\s\S]*)$/gim;
+  /(?:^|[\s;&|(])(?:"(?:[^"]*[\\/])?cmd(?:\.exe)?"|(?:[^\s"';&|()]*[\\/])?cmd(?:\.exe)?)\s+(?:\/[a-z]\S*\s+)*?\/[ckr](?=\s|["'])\s*([\s\S]*)$/gim;
+
+/** True when `index` sits inside an open quote (escape-aware), so it is data, not a command. */
+function indexIsInsideQuote(text: string, index: number): boolean {
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < index; i++) {
+    const c = text[i] as string;
+    if (c === "\\" && quote !== "'" && i + 1 < text.length) {
+      i++;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      if (quote === null) quote = c;
+      else if (quote === c) quote = null;
+    }
+  }
+  return quote !== null;
+}
 
 function cmdLauncherPayloads(command: string): string[] {
   const out: string[] = [];
   for (const match of command.matchAll(CMD_LAUNCHER_PAYLOAD_RE)) {
+    // A launcher named inside a quoted argument (`git commit -m '... cmd /c ...'`) is data.
+    if (
+      indexIsInsideQuote(
+        command,
+        (match.index as number) + (match[0].length - match[0].trimStart().length),
+      )
+    ) {
+      continue;
+    }
     let payload = (match[1] as string).trim();
     const q = payload[0];
     if (q === '"' || q === "'") {
@@ -4099,6 +4125,7 @@ function splitUnquotedPipeChains(text: string): string[][] {
   let stages: string[] = [];
   let cur = "";
   let quote: "'" | '"' | null = null;
+  let afterPipe = false;
   const endChain = (): void => {
     stages.push(cur);
     chains.push(stages);
@@ -4129,12 +4156,19 @@ function splitUnquotedPipeChains(text: string): string[][] {
       } else if (text[i + 1] === "|") {
         endChain();
         i++;
+        afterPipe = false;
       } else {
+        // `|&` pipes stderr too: still one pipeline.
+        if (text[i + 1] === "&") i++;
         stages.push(cur);
         cur = "";
+        afterPipe = true;
       }
       continue;
     }
+    // A newline right after a pipe continues the pipeline (`a |\n xargs touch`).
+    if (afterPipe && (c === "\n" || c === "\r" || c === " " || c === "\t")) continue;
+    afterPipe = false;
     if (c === ";" || c === "\n" || c === "\r" || (c === "&" && prev !== ">" && prev !== "<")) {
       endChain();
       continue;
@@ -4158,11 +4192,136 @@ function wordIsXargsWriter(word: string): boolean {
   return false;
 }
 
+/** xargs options that take a separate value word. */
+const XARGS_VALUE_FLAGS = new Set([
+  "-I",
+  "-J",
+  "-n",
+  "-L",
+  "-P",
+  "-s",
+  "-E",
+  "-d",
+  "-a",
+  "--max-args",
+  "--max-lines",
+  "--max-procs",
+  "--max-chars",
+  "--delimiter",
+  "--arg-file",
+  "--eof",
+  "--replace",
+]);
+/** Wrappers that run the next command (their own options and assignments are skipped). */
+const XARGS_WRAPPERS = new Set([
+  "env",
+  "nohup",
+  "command",
+  "exec",
+  "time",
+  "setsid",
+  "busybox",
+  "xargs",
+]);
+/** Wrappers with value arguments, and programs whose arguments run as commands: every later word is checked. */
+const XARGS_RUNS_ARGS = new Set([
+  "find",
+  "parallel",
+  "watch",
+  "sudo",
+  "doas",
+  "nice",
+  "ionice",
+  "stdbuf",
+  "timeout",
+]);
+
+/**
+ * True when this stage's command is `xargs` and the program it runs is a writer
+ * (#6681). Only the invoked program counts: `xargs grep touch` only searches.
+ * A shell or interpreter payload (`xargs sh -c '...'`) is checked as a whole, and a
+ * `sh -c 'xargs touch'` stage is looked into.
+ */
+function stageRunsXargsWriter(stage: string): boolean {
+  const words = zipShellWords(stage) ?? stage.split(/\s+/).filter((w) => w.length > 0);
+  let i = 0;
+  const skipWrapperArgs = (): void => {
+    while (i < words.length) {
+      const w = words[i] as string;
+      if (isEnvAssign(w) || w.startsWith("-")) i++;
+      else break;
+    }
+  };
+  // Leading wrappers / assignments, then the command word.
+  while (i < words.length) {
+    const w = words[i] as string;
+    if (isEnvAssign(w)) {
+      i++;
+      continue;
+    }
+    const bare = writeBinName(w);
+    if (bare === "xargs") break;
+    if (XARGS_WRAPPERS.has(bare) || XARGS_RUNS_ARGS.has(bare) || /^\d+$/.test(w)) {
+      i++;
+      skipWrapperArgs();
+      continue;
+    }
+    // `sh -c 'xargs touch'`: look into the payload.
+    if (XARGS_SHELL_LAUNCHERS.has(bare) || isProgrammaticWriteBinToken(w)) {
+      for (let j = i + 1; j < words.length; j++) {
+        const f = (words[j] as string).toLowerCase();
+        const next = words[j + 1];
+        if ((f === "-c" || f === "/c") && next !== undefined) {
+          const payload = unwrapQuotedPayload(next);
+          if (splitUnquotedPipeChains(payload).some((chain) => chain.some(stageRunsXargsWriter))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+  if (i >= words.length) return false;
+  // Past `xargs`: skip its options, then wrappers, then the invoked program.
+  i++;
+  while (i < words.length) {
+    const w = words[i] as string;
+    if (w.startsWith("-")) {
+      i += XARGS_VALUE_FLAGS.has(w) ? 2 : 1;
+      continue;
+    }
+    if (isEnvAssign(w)) {
+      i++;
+      continue;
+    }
+    const bare = writeBinName(w);
+    if (XARGS_WRAPPERS.has(bare)) {
+      i++;
+      skipWrapperArgs();
+      continue;
+    }
+    break;
+  }
+  if (i >= words.length) return false;
+  const program = words[i] as string;
+  const bare = writeBinName(program);
+  if (
+    killSwitchWriteBinToken(program) ||
+    isProgrammaticWriteBinToken(program) ||
+    XARGS_SHELL_LAUNCHERS.has(bare)
+  ) {
+    return true;
+  }
+  if (XARGS_RUNS_ARGS.has(bare)) return words.slice(i + 1).some(wordIsXargsWriter);
+  return false;
+}
+
 /**
  * #6681: a pipeline stage that names a protected file, feeding a later `xargs` stage
  * whose command is a writer (`echo <name> | xargs touch`). The name never shares a
  * segment with the writer, so the same-segment scans miss it. Reads stay allowed
- * (`echo <name> | xargs cat`).
+ * (`echo <name> | xargs cat`). A heredoc body that names the file and feeds an
+ * `xargs` writer counts too; the body is read before heredoc bodies are stripped.
  */
 function pipelineFeedsXargsWriter(
   command: string,
@@ -4171,12 +4330,36 @@ function pipelineFeedsXargsWriter(
   const text = shellWithoutHereDocBodies(command);
   for (const chain of splitUnquotedPipeChains(text)) {
     for (let k = 1; k < chain.length; k++) {
-      const words = zipShellWords(chain[k] as string) ?? (chain[k] as string).split(/\s+/);
-      const xi = words.findIndex((w) => writeBinName(w) === "xargs");
-      if (xi < 0) continue;
-      if (!chain.slice(0, k).some(stageMentions)) continue;
-      if (words.slice(xi + 1).some(wordIsXargsWriter)) return true;
+      if (!stageRunsXargsWriter(chain[k] as string)) continue;
+      if (chain.slice(0, k).some(stageMentions)) return true;
     }
+  }
+  return heredocFeedsXargsWriter(command, stageMentions);
+}
+
+/** `xargs <writer> <<EOF` whose body (any delimiter quoting) mentions the protected name. */
+function heredocFeedsXargsWriter(
+  command: string,
+  stageMentions: (stage: string) => boolean,
+): boolean {
+  const lines = command.split(/\r?\n/);
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li] as string;
+    const m = /<<-?\s*(?:\\|["'])?([A-Za-z_][A-Za-z0-9_]*)["']?/.exec(line);
+    if (m === null || line[(m.index as number) + 2] === "<") continue;
+    const prefix = line.slice(0, m.index);
+    const runsXargs = splitUnquotedPipeChains(prefix).some((chain) =>
+      chain.some(stageRunsXargsWriter),
+    );
+    if (!runsXargs) continue;
+    const delimiter = m[1] as string;
+    const body: string[] = [];
+    for (let bi = li + 1; bi < lines.length; bi++) {
+      const bl = lines[bi] as string;
+      if (bl.trim() === delimiter) break;
+      body.push(bl);
+    }
+    if (stageMentions(body.join("\n"))) return true;
   }
   return false;
 }
@@ -5243,8 +5426,6 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
     }
   }
   if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
-  // #6681: a protected-store path piped into `xargs <writer>`.
-  if (pipelineFeedsXargsWriter(cmd, stageMentionsSettingsStore)) found.add("settings");
   // #3186: programmatic write/obfuscated-path shells fail closed as settings (not unclassifiable allow).
   // Always merge settings even when other ops already matched (e.g. `pytest && python -c '…write…'`)
   // so a compound safe prefix cannot hide a write-capable residual (SLizard residual).
@@ -5604,7 +5785,12 @@ export function classifyHookAuthzOps(input: {
 export function hasAuthzDirShellWrite(command: string): boolean {
   const cmd = command.trim();
   if (cmd.length === 0) return false;
-  return commandHasAuthzDirShellWrite(cmd, shellTokens(cmd));
+  // #6681: a protected-store path piped (or heredoc-fed) into `xargs <writer>` is a
+  // store write; it routes as protected_store, which no grant can allow.
+  return (
+    commandHasAuthzDirShellWrite(cmd, shellTokens(cmd)) ||
+    pipelineFeedsXargsWriter(cmd, stageMentionsSettingsStore)
+  );
 }
 
 /**

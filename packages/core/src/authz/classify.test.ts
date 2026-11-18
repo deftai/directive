@@ -2833,8 +2833,13 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expect(classifyShellAuthzOps(command), command).toContain("settings");
   }
 
+  // A store write routes as protected_store: no grant can allow it, UAT or not.
   function expectStoreWrite(command: string): void {
-    expect(classifyShellAuthzOps(command), command).toContain("settings");
+    expect(inactiveShellTargetsProtectedStore(command), command).toBe(true);
+    expect(
+      classifyHookAuthzOps({ toolName: "Bash", shellCommand: command, isDirectWrite: false }),
+      command,
+    ).toEqual(["protected_store"]);
   }
 
   function expectNoPlant(command: string): void {
@@ -2877,8 +2882,77 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
       `echo ${scope} | xargs touch`,
       `printf '%s' ${authz} | xargs -I{} touch {}`,
       `printf '%s' ${scope} | xargs -I{} touch {}`,
+      `echo ${authz} | xargs -0 touch`,
+      `echo ${scope} | xargs -0 touch`,
+      `echo ${authz} | tr a a | xargs touch`,
+      `echo ${scope} | tr a a | xargs touch`,
+      `echo ${authz} | sh -c 'xargs touch'`,
+      `xargs touch <<EOF\n${authz}\nEOF`,
     ]) {
       expectStoreWrite(command);
+    }
+  });
+
+  it("denies launcher forms with a quoted executable path or a switch with a value", () => {
+    for (const command of [
+      `"C:\\Windows\\System32\\cmd.exe" /c "echo x > ${kill}"`,
+      `"C:\\Program Files\\x\\cmd.exe" /c "echo x > ${kill}"`,
+      `cmd /v:on /c "echo x > ${kill}"`,
+      `cmd /s /c "echo x > ${kill}"`,
+      `cmd.exe /C "echo x > ${kill}"`,
+      `CMD /C "echo x > ${kill}"`,
+      `start cmd /c "echo x > ${kill}"`,
+      `start "" cmd /c "type nul > ${kill}"`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("keeps a continued pipeline in one chain (|& and a newline after the pipe)", () => {
+    for (const command of [
+      `echo ${kill} |& xargs touch`,
+      `echo ${kill} |\nxargs touch`,
+      `echo ${kill} |\n  xargs touch`,
+      `echo ${kill} | \\\n xargs touch`,
+    ]) {
+      expectPlant(command);
+    }
+    expectStoreWrite(`echo ${authz} |& xargs touch`);
+  });
+
+  it("denies xargs behind a shell launcher or fed by a heredoc (#6580 regressions)", () => {
+    for (const command of [
+      `echo ${kill} | sh -c 'xargs touch'`,
+      `echo ${kill} | bash -c "xargs touch"`,
+      `xargs touch <<EOF\n${kill}\nEOF`,
+      `xargs touch <<'EOF'\n${kill}\nEOF`,
+      `xargs -I{} touch {} <<-EOF\n\t${opt}\nEOF`,
+      `echo ${kill} | xargs sudo touch`,
+      `echo ${kill} | xargs env FOO=1 touch`,
+      `sudo xargs touch <<< ${kill}`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("looks at the program xargs runs, not every word after it", () => {
+    for (const command of [
+      `echo ${kill} | xargs grep touch`,
+      `echo ${kill} | xargs -n1 grep -l touch`,
+      `echo ${kill} | grep xargs touch`,
+      `xargs grep touch <<EOF\n${kill}\nEOF`,
+    ]) {
+      expectNoPlant(command);
+    }
+    expect(inactiveShellTargetsProtectedStore(`echo ${authz} | xargs grep touch`)).toBe(false);
+  });
+
+  it("treats a launcher named inside a quoted argument as data", () => {
+    for (const command of [
+      `git commit -m 'document cmd /c "echo x > ${kill}"'`,
+      `echo 'run cmd /c "echo x > ${opt}"'`,
+    ]) {
+      expectNoPlant(command);
     }
   });
 
@@ -2917,6 +2991,7 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     ]) {
       expectNoPlant(command);
     }
-    expect(classifyShellAuthzOps(`echo ${authz} | xargs cat`)).not.toContain("settings");
+    expect(inactiveShellTargetsProtectedStore(`echo ${authz} | xargs cat`)).toBe(false);
+    expect(inactiveShellTargetsProtectedStore(`echo ${scope} | xargs ls -la`)).toBe(false);
   });
 });

@@ -487,7 +487,7 @@ describe("inactive grant-store deny (#4709)", () => {
 describe("kill-switch plant guard decisions: launcher payloads and xargs pipelines (#6681)", () => {
   const kill = ".deft-directive-disable";
 
-  function decide(command: string): { ops: string[]; allowed: boolean } {
+  function decide(command: string, withLease = true): { ops: string[]; allowed: boolean } {
     const ops = classifyHookAuthzOps({
       toolName: "Bash",
       shellCommand: command,
@@ -495,27 +495,50 @@ describe("kill-switch plant guard decisions: launcher payloads and xargs pipelin
     });
     // The dispatcher gates a kill-switch plant (a `settings` op) behind a human-origin
     // grant through a synthetic UAT lease (#6136); no grant on file means deny.
-    const root = tempRoot();
-    startUatLease({ projectRoot: root, campaignId: "always-on-kill-switch-plant", actor: "test" });
-    const state = loadAuthzState(root);
+    // `withLease: false` is the state outside UAT, where a store write must still deny.
+    let state = inactiveState();
+    if (withLease) {
+      const root = tempRoot();
+      startUatLease({
+        projectRoot: root,
+        campaignId: "always-on-kill-switch-plant",
+        actor: "test",
+      });
+      state = loadAuthzState(root);
+    }
     const allowed = ops.every(
       (op) => evaluateAuthzMutation({ state, grants: [], op, path: null }).allowed,
     );
     return { ops, allowed };
   }
 
-  it("denies the forms that regressed in #6580", () => {
+  it("denies the kill-switch forms that regressed in #6580", () => {
     for (const command of [
       `cmd /c "echo x > ${kill}"`,
       `cmd /c "type nul > ${kill}"`,
       `echo ${kill} | xargs touch`,
       `printf '%s' ${kill} | xargs -I{} touch {}`,
-      `echo .deft/authz/state.json | xargs touch`,
-      `echo .deft/approved-scope/x.json | xargs touch`,
+      `echo ${kill} | sh -c 'xargs touch'`,
+      `xargs touch <<EOF\n${kill}\nEOF`,
     ]) {
       const d = decide(command);
       expect(d.ops, command).toContain("settings");
       expect(d.allowed, command).toBe(false);
+    }
+  });
+
+  it("denies the xargs store forms with and without a UAT lease", () => {
+    for (const command of [
+      `echo .deft/authz/state.json | xargs touch`,
+      `echo .deft/approved-scope/x.json | xargs touch`,
+      `echo .deft/authz/state.json | xargs -0 touch`,
+      `echo .deft/authz/state.json | tr a a | xargs touch`,
+    ]) {
+      for (const withLease of [false, true]) {
+        const d = decide(command, withLease);
+        expect(d.ops, command).toEqual(["protected_store"]);
+        expect(d.allowed, `${command} lease=${withLease}`).toBe(false);
+      }
     }
   });
 
