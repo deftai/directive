@@ -50,6 +50,59 @@ export function matchPinMismatchRecoveryCommand(command: string | null): string 
   return null;
 }
 
+/**
+ * Root-mismatch recovery admit (#6599).
+ *
+ * The root-mismatch refusal (payload root is not the launching checkout) names
+ * diagnostics and the host-hook disable as its recovery, and each is a shell
+ * command the refusal itself blocks. Only these exact simple commands are
+ * admitted; anything chained, extended or from another tool stays refused.
+ * The foreign-runtime-link refusal (#6185) never calls this.
+ */
+const ROOT_MISMATCH_DIAGNOSTIC_COMMANDS: readonly (readonly string[])[] = [
+  ["directive", "--version"],
+  ["deft", "--version"],
+  ["directive", "doctor"],
+];
+
+const ROOT_MISMATCH_CLIS: readonly string[] = ["directive", "deft"];
+
+/** Like {@link SIMPLE_COMMAND}, plus `:` for the `policy:disable-host-hooks` verb. */
+const SIMPLE_VERB_COMMAND = /^[A-Za-z0-9@/._=:-]+(?:[ \t]+[A-Za-z0-9@/._=:-]+)*$/;
+
+/** The exact commands admitted under a root mismatch for `host` (#6599). */
+export function rootMismatchRecoveryCommands(host: string): readonly string[] {
+  return [
+    ...ROOT_MISMATCH_DIAGNOSTIC_COMMANDS.map((tokens) => tokens.join(" ")),
+    ...ROOT_MISMATCH_CLIS.map((cli) => `${cli} policy:disable-host-hooks --host ${host} --confirm`),
+  ];
+}
+
+/** Canonical command when `command` is exactly an admitted one for `host`, else null. */
+export function matchRootMismatchRecoveryCommand(
+  command: string | null,
+  host: string,
+): string | null {
+  if (command === null) return null;
+  const trimmed = command.trim();
+  if (!SIMPLE_VERB_COMMAND.test(trimmed)) return null;
+  const normalized = trimmed.split(/[ \t]+/).join(" ");
+  return rootMismatchRecoveryCommands(host).includes(normalized) ? normalized : null;
+}
+
+export interface RootMismatchRecoveryAdmitInput {
+  /** True when the tool is a host shell tool that carries a command string. */
+  readonly shellTool: boolean;
+  readonly command: string | null;
+  readonly host: string;
+}
+
+/** Canonical recovery command to admit under a root mismatch, or null to refuse (#6599). */
+export function admitRootMismatchRecovery(input: RootMismatchRecoveryAdmitInput): string | null {
+  if (!input.shellTool) return null;
+  return matchRootMismatchRecoveryCommand(input.command, input.host);
+}
+
 /** True when pin ≠ installed is the only cheap fail-closed fault (#6313). */
 export function isPinMismatchOnly(cheap: CheapInSyncResult): boolean {
   return cheap.failClosed && cheap.pinMismatchOnly === true;

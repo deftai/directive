@@ -42,7 +42,7 @@ export const PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE =
  * not rebind a primary-rooted host session (operator note 6692738765).
  */
 export const HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE =
-  "Prep the linked worktree (`deft swarm-worktrees prep --path <dest>`), then open that worktree as the host project root so launchRoot matches payloadRoot. Primary `npm i -g @deftai/directive` / `directive install --repair` does not rebind a primary-rooted session.";
+  "Prep the linked worktree (`deft swarm-worktrees prep --path <dest>`), then open that worktree as the host project root so launchRoot matches payloadRoot. Primary `npm i -g @deftai/directive` / `directive install --repair` does not rebind a primary-rooted session. From this session only these exact commands run: `directive --version`, `deft --version`, `directive doctor`, and `directive policy:disable-host-hooks --host <this host> --confirm` (or its `deft` form); the disable takes effect in a new session.";
 
 /**
  * Recovery when the runtime that launched the hook is linked in from another

@@ -10,6 +10,11 @@ import {
   matchPinMismatchRecoveryCommand,
   PIN_MISMATCH_RECOVERY_COMMANDS,
 } from "./index.js";
+import {
+  admitRootMismatchRecovery,
+  matchRootMismatchRecoveryCommand,
+  rootMismatchRecoveryCommands,
+} from "./recovery-admit.js";
 import type { CheapInSyncResult } from "./types.js";
 
 function cheap(overrides: Partial<CheapInSyncResult> = {}): CheapInSyncResult {
@@ -119,5 +124,50 @@ describe("admitPinMismatchRecovery (#6313)", () => {
 
   it("refuses any other command", () => {
     expect(admitPinMismatchRecovery({ ...base, command: "git status" })).toBeNull();
+  });
+});
+
+describe("root-mismatch recovery admit (#6599)", () => {
+  it("lists the diagnostics and both disable forms for the host", () => {
+    expect(rootMismatchRecoveryCommands("cursor")).toEqual([
+      "directive --version",
+      "deft --version",
+      "directive doctor",
+      "directive policy:disable-host-hooks --host cursor --confirm",
+      "deft policy:disable-host-hooks --host cursor --confirm",
+    ]);
+  });
+
+  it.each([
+    "directive --version",
+    "deft --version",
+    "directive doctor",
+    "  directive   doctor  ",
+    "deft policy:disable-host-hooks --host grok --confirm",
+    "directive policy:disable-host-hooks --host grok --confirm",
+  ])("admits %j for grok", (command) => {
+    expect(admitRootMismatchRecovery({ shellTool: true, command, host: "grok" })).not.toBeNull();
+  });
+
+  it.each([
+    "directive doctor && rm x",
+    "directive doctor; echo hi",
+    "directive doctor | cat",
+    "directive doctor > out.txt",
+    "directive doctor --full",
+    "directive install --repair",
+    "git status",
+    "directive policy:disable-host-hooks --host cursor --confirm",
+    "directive policy:disable-host-hooks --host grok",
+    "",
+  ])("refuses %j for grok", (command) => {
+    expect(admitRootMismatchRecovery({ shellTool: true, command, host: "grok" })).toBeNull();
+  });
+
+  it("refuses a missing command and a non-shell tool", () => {
+    expect(matchRootMismatchRecoveryCommand(null, "claude")).toBeNull();
+    expect(
+      admitRootMismatchRecovery({ shellTool: false, command: "directive doctor", host: "claude" }),
+    ).toBeNull();
   });
 });

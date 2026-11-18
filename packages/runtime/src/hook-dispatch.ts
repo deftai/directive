@@ -10,7 +10,10 @@ import {
   INSTALLATION_RECOVERY_GUIDANCE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
-import { admitPinMismatchRecovery } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
+import {
+  admitPinMismatchRecovery,
+  admitRootMismatchRecovery,
+} from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import {
   classifyRootMismatch,
   FOREIGN_RUNTIME_LINK,
@@ -212,6 +215,39 @@ function pinMismatchRecoveryAdmit(
       `Directive hook admitted the pin-mismatch recovery \`${admitted}\` ` +
       `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). ` +
       "Other commands stay refused until the install matches the pin.",
+    scopePath: null,
+  };
+}
+
+/**
+ * Admit the root-mismatch refusal's own named recovery (#6599): an exact simple
+ * diagnostic or host-hook disable command through a shell tool. No setup, no
+ * policy dispatch. Returns null to keep the refusal.
+ */
+function rootMismatchRecoveryAdmit(
+  host: HookHost,
+  event: HookEvent,
+  projectRoot: string,
+  payload: unknown,
+): HookDecision | null {
+  if (event !== "tool.before") return null;
+  const toolName = hookToolName(payload, host);
+  const admitted = admitRootMismatchRecovery({
+    shellTool: toolName !== null && isShellTool(toolName),
+    command: hookShellCommand(payload),
+    host,
+  });
+  if (admitted === null) return null;
+  return {
+    verdict: "allow",
+    code: "shell-op-ready",
+    event,
+    host,
+    toolName,
+    projectRoot: normalizeHookProjectRoot(projectRoot),
+    message:
+      `Directive hook admitted the root-mismatch recovery \`${admitted}\`. ` +
+      "Other commands stay refused until the session root matches the launching checkout.",
     scopePath: null,
   };
 }
@@ -426,6 +462,15 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         seams.launcherPath ? seams.launcherPath() : process.argv[1],
         projectRoot,
       ) === FOREIGN_RUNTIME_LINK;
+    if (!foreign) {
+      // #6599: admit the refusal's own named recovery; the foreign branch never does.
+      const admit = rootMismatchRecoveryAdmit(args.host, args.event, projectRoot, payload);
+      if (admit !== null) {
+        const renderedAdmit = renderHostDecision(args.host, admit);
+        if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
+        return 0;
+      }
+    }
     const message = foreign
       ? `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
         `(payloadRoot=${payloadRootText} launchRoot=${launchRootText}). ` +
