@@ -434,7 +434,9 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
     }
   }
 
-  // F-013 / C5: drop sole-author husks ({} hooks, seed AGENTS, private-only package.json).
+  // F-013 / C5: drop sole-author husks ({} hooks, seed AGENTS, Taskfile, .gitignore).
+  // package.json and lockfiles stay: the launcher removes the runtime through the
+  // package manager first, then removes a sole-author manifest itself (#5999).
   // F-012 prune runs inside husk removals for emptied parents.
   const husks = removeSoleAuthorHusks(root);
   removed.push(...husks);
