@@ -368,24 +368,15 @@ interface CommandSegment extends ShellSegment {
   readonly grouped: boolean;
 }
 
-interface OpenGroup {
-  readonly id: number;
-  /** True for a `( … )` group; false for a `$( … )`, `<( … )` or `>( … )` substitution. */
-  readonly group: boolean;
-}
-
 /**
  * Track unquoted parentheses across the segments of one call (#6362). The stack
  * carries across heredoc chunks: a group can span a heredoc, and unquoted body
- * text is read as commands (#6187). An unmatched `)` closes nothing.
+ * text is read as commands (#6187). An unmatched `)` closes nothing. `group` is
+ * false for a `$( … )`, `<( … )` or `>( … )` substitution.
  */
 function markGroups(segments: readonly ShellSegment[]): CommandSegment[] {
-  const stack: OpenGroup[] = [];
+  const stack: { readonly id: number; readonly group: boolean }[] = [];
   let lastId = 0;
-  const nextId = (): number => {
-    lastId += 1;
-    return lastId;
-  };
   return segments.map((segment) => {
     let touchesGroup = false;
     const apply = (event: string): void => {
@@ -394,7 +385,8 @@ function markGroups(segments: readonly ShellSegment[]): CommandSegment[] {
         if (closed === undefined || closed.group) touchesGroup = true;
         return;
       }
-      stack.push({ id: nextId(), group: event === "(" });
+      lastId += 1;
+      stack.push({ id: lastId, group: event === "(" });
       if (event === "(") touchesGroup = true;
     };
     // The command word is the first word after `{` and `(` openers; its own
@@ -459,8 +451,6 @@ function withoutRedirections(words: readonly ShellWord[]): ShellWord[] {
 
 /** Shells whose `-c` command string the gate reads (#6362). */
 const SHELL_BINS = new Set(["sh", "bash", "zsh", "dash", "ksh", "ash", "mksh"]);
-/** Long shell options that take the next word as their value. */
-const SHELL_VALUE_LONG_OPTIONS = new Set(["--rcfile", "--init-file"]);
 /** Commands that run the command written after them (#6362). */
 const WRAPPER_BINS = new Set(
   "env command exec nohup time timeout xargs nice sudo doas stdbuf ionice".split(" "),
@@ -473,16 +463,26 @@ const WRAPPER_VALUE_OPTIONS = new Set(
     "--max-lines --max-procs --output --replace --signal --split-string --unset --user"
   ).split(" "),
 );
-/** Shells, wrappers and `eval` nested deeper than this are refused unread. */
-const MAX_NESTING = 8;
-
 const GROUPED_COMMIT = "the commit runs inside a `( … )` subshell group";
 
 /** What one command is, as far as the commit gate reads it (#6362). */
 type CommandReading =
   | { readonly kind: "commit"; readonly git: GitInvocation }
   | { readonly kind: "signal"; readonly reason: string }
+  /** A wrapper: the wrapped command is read next. */
+  | { readonly kind: "wrapped"; readonly words: readonly ShellWord[]; readonly name: string }
+  /** A `-c` or `eval` string: it is read next as a command list. */
+  | { readonly kind: "string"; readonly text: string; readonly what: string }
   | null;
+
+/** A command still to read, and how to report what it holds (#6362). */
+interface PendingCommand {
+  readonly words: readonly ShellWord[];
+  /** The refusal when the command is a commit; null at the top level, where commits resolve. */
+  readonly asCommit: string | null;
+  /** Put before a signal found in it (`in a \`bash -c\` string, `). */
+  readonly prefix: string;
+}
 
 /** The commits in one call and the first commit signal, if any (#6362). */
 interface CallReading {
@@ -512,23 +512,8 @@ function signal(reason: string): CommandReading {
   return { kind: "signal", reason };
 }
 
-/**
- * Read a command string run by a shell `-c` or by `eval` (#6362). A commit in it
- * is a signal: the gate does not rebuild the target inside the string.
- */
-function readCommandString(text: string, what: string, depth: number): CommandReading {
-  const inner = readCall(text, depth + 1);
-  if (inner.commits.length > 0) return signal(`${what} runs a git commit`);
-  return inner.signal === null ? null : signal(`in ${what}, ${inner.signal}`);
-}
-
 /** `sh -c '…'` and the like: the first operand after options holding `c` (#6362). */
-function readShellCommand(
-  words: readonly ShellWord[],
-  k: number,
-  name: string,
-  depth: number,
-): CommandReading {
+function readShellCommand(words: readonly ShellWord[], k: number, name: string): CommandReading {
   let hasC = false;
   let i = k + 1;
   while (i < words.length) {
@@ -543,7 +528,8 @@ function readShellCommand(
       break;
     }
     if (v.startsWith("--")) {
-      i += SHELL_VALUE_LONG_OPTIONS.has(v) ? 2 : 1;
+      // `--rcfile` / `--init-file` take a file as the next word.
+      i += v === "--rcfile" || v === "--init-file" ? 2 : 1;
       continue;
     }
     if ((v.startsWith("-") || v.startsWith("+")) && v.length > 1) {
@@ -563,11 +549,11 @@ function readShellCommand(
       `${what} holds a variable or substitution, so the gate cannot tell whether it commits`,
     );
   }
-  return readCommandString(withoutTrailingCloses(body), what, depth);
+  return { kind: "string", text: withoutTrailingCloses(body), what };
 }
 
 /** `eval …`: the arguments joined by spaces are read as a command string (#6362). */
-function readEval(words: readonly ShellWord[], k: number, depth: number): CommandReading {
+function readEval(words: readonly ShellWord[], k: number): CommandReading {
   const args = withoutRedirections(words.slice(k + 1));
   if (args.length === 0) return null;
   if (args.some((arg) => arg.expands)) {
@@ -575,17 +561,11 @@ function readEval(words: readonly ShellWord[], k: number, depth: number): Comman
       "an `eval` argument holds a variable or substitution, so the gate cannot tell whether it commits",
     );
   }
-  return readCommandString(args.map(withoutTrailingCloses).join(" "), "an `eval`", depth);
+  return { kind: "string", text: args.map(withoutTrailingCloses).join(" "), what: "an `eval`" };
 }
 
 /** `env`, `xargs`, `timeout 60` and the like around a command (#6362). */
-function readWrapper(
-  words: readonly ShellWord[],
-  k: number,
-  name: string,
-  depth: number,
-): CommandReading {
-  const behind = `the commit runs behind the \`${name}\` wrapper`;
+function readWrapper(words: readonly ShellWord[], k: number, name: string): CommandReading {
   // The wrapped command: the first word after options, option values and, for
   // `timeout`, the duration.
   let c = k + 1;
@@ -615,32 +595,27 @@ function readWrapper(
     break;
   }
   const wrapped = words[c];
-  if (wrapped !== undefined) {
-    const reading = readCommand(words.slice(c), depth + 1);
-    if (reading?.kind === "commit") return signal(behind);
-    if (reading !== null) return reading;
-    if (
-      name === "xargs" &&
-      programName(wrapped) === "git" &&
-      parseGitInvocation(words.slice(c))?.subcommand === null
-    ) {
-      return signal("`xargs` runs git with arguments from its input");
-    }
+  if (
+    name === "xargs" &&
+    wrapped !== undefined &&
+    programName(wrapped) === "git" &&
+    parseGitInvocation(words.slice(c))?.subcommand === null
+  ) {
+    return signal("`xargs` runs git with arguments from its input");
   }
   // An option value read as the command can hide a later `git … commit`.
   for (let j = k + 1; j < words.length; j++) {
     const word = words[j];
     if (j === c || word === undefined || programName(word) !== "git") continue;
-    if (parseGitInvocation(words.slice(j))?.subcommand === "commit") return signal(behind);
+    if (parseGitInvocation(words.slice(j))?.subcommand === "commit") {
+      return signal(`the commit runs behind the \`${name}\` wrapper`);
+    }
   }
-  return null;
+  return wrapped === undefined ? null : { kind: "wrapped", words: words.slice(c), name };
 }
 
 /** Read one command's words (after `{` / `(` openers) for a commit or a commit signal (#6362). */
-function readCommand(words: readonly ShellWord[], depth: number): CommandReading {
-  if (depth > MAX_NESTING) {
-    return signal("shells, wrappers or `eval` nest too deeply for the gate to read");
-  }
+function readCommand(words: readonly ShellWord[]): CommandReading {
   let k = 0;
   while (k < words.length && ENV_ASSIGNMENT.test(words[k]?.value ?? "")) k++;
   const word = words[k];
@@ -661,34 +636,69 @@ function readCommand(words: readonly ShellWord[], depth: number): CommandReading
     }
     return git.subcommand === "commit" ? { kind: "commit", git } : null;
   }
-  if (SHELL_BINS.has(name)) return readShellCommand(words, k, name, depth);
-  if (name === "eval") return readEval(words, k, depth);
-  if (WRAPPER_BINS.has(name)) return readWrapper(words, k, name, depth);
+  if (SHELL_BINS.has(name)) return readShellCommand(words, k, name);
+  if (name === "eval") return readEval(words, k);
+  if (WRAPPER_BINS.has(name)) return readWrapper(words, k, name);
   return null;
 }
 
-/**
- * Read a call: its commits, from every chunk the shell runs or expands, and the
- * first commit signal (#6362). A commit inside a `( … )` group is a signal.
- * Wrappers, `-c` strings, `eval` and unreadable command words are read from the
- * command text alone: a heredoc body is data apart from the commits it shows
- * (#6187), so its text raises no signal.
- */
-function readCall(command: string, depth: number): CallReading {
-  const segments = commandSegments(command);
+/** The recognized commits in a command list, from every chunk the shell runs or expands. */
+function recognizedCommits(
+  segments: readonly CommandSegment[],
+): { index: number; git: GitInvocation }[] {
   const commits: { index: number; git: GitInvocation }[] = [];
-  let found: string | null = null;
-  for (let index = 0; index < segments.length; index++) {
-    const segment = segments[index];
-    const git = segment === undefined ? null : parseGitInvocation(commandWords(segment));
-    if (segment === undefined || git === null || git.subcommand !== "commit") continue;
-    commits.push({ index, git });
-    if (segment.grouped && found === null) found = GROUPED_COMMIT;
-  }
-  for (const segment of tokenizeShellCommand(shellWithoutHereDocBodies(command))) {
-    if (found !== null) break;
-    const reading = readCommand(commandWords(segment), depth);
-    if (reading?.kind === "signal") found = reading.reason;
+  segments.forEach((segment, index) => {
+    const git = parseGitInvocation(commandWords(segment));
+    if (git !== null && git.subcommand === "commit") commits.push({ index, git });
+  });
+  return commits;
+}
+
+/** The command words of a list's command text, heredoc bodies removed (#6187). */
+function commandTextWords(command: string): (readonly ShellWord[])[] {
+  return tokenizeShellCommand(shellWithoutHereDocBodies(command)).map(commandWords);
+}
+
+/**
+ * Read a call: its commits and the first commit signal (#6362). A commit inside
+ * a `( … )` group is a signal. Wrappers, `-c` strings, `eval` and unreadable
+ * command words are read from the command text alone: a heredoc body is data
+ * apart from the commits it shows (#6187), so its text raises no signal. Each
+ * command read next is shorter than the one that held it, so the work list
+ * runs out without a depth limit.
+ */
+function readCall(command: string): CallReading {
+  const segments = commandSegments(command);
+  const commits = recognizedCommits(segments);
+  let found: string | null = commits.some(({ index }) => segments[index]?.grouped)
+    ? GROUPED_COMMIT
+    : null;
+  const pending: PendingCommand[] = commandTextWords(command).map((words) => ({
+    words,
+    asCommit: null,
+    prefix: "",
+  }));
+  for (let i = 0; i < pending.length && found === null; i++) {
+    const item = pending[i];
+    const reading = item === undefined ? null : readCommand(item.words);
+    if (item === undefined || reading === null) continue;
+    if (reading.kind === "signal") {
+      found = `${item.prefix}${reading.reason}`;
+    } else if (reading.kind === "commit") {
+      found = item.asCommit;
+    } else if (reading.kind === "wrapped") {
+      const asCommit = `${item.prefix}the commit runs behind the \`${reading.name}\` wrapper`;
+      pending.push({ words: reading.words, asCommit, prefix: item.prefix });
+    } else {
+      // The gate does not rebuild a target inside a `-c` or `eval` string.
+      const asCommit = `${item.prefix}${reading.what} runs a git commit`;
+      if (recognizedCommits(commandSegments(reading.text)).length > 0) {
+        found = asCommit;
+        continue;
+      }
+      const prefix = `${item.prefix}in ${reading.what}, `;
+      for (const words of commandTextWords(reading.text)) pending.push({ words, asCommit, prefix });
+    }
   }
   return { segments, commits, signal: found };
 }
@@ -781,7 +791,7 @@ function commitIndexMutatingWord(git: GitInvocation): string | null {
  * `-am`, `--include` or a pathspec), or null (#5656 / #6471). The refusal names it.
  */
 export function findGitCommitIndexMutatingWord(command: string): string | null {
-  for (const { git } of readCall(command, 0).commits) {
+  for (const { git } of readCall(command).commits) {
     const word = commitIndexMutatingWord(git);
     if (word !== null) return word;
   }
@@ -935,7 +945,7 @@ export function resolveCommitTarget(
   options: ResolveCommitTargetOptions = {},
 ): CommitTarget | null {
   const platform = options.platform ?? process.platform;
-  const { segments, commits, signal: found } = readCall(command, 0);
+  const { segments, commits, signal: found } = readCall(command);
   if (found !== null) return { kind: "unresolvable", reason: found };
   if (commits.length === 0) return null;
   let target: CommitTarget | null = null;

@@ -684,12 +684,24 @@ describe("commit signals outside the named shapes are unresolvable (#6362 clause
     }
   });
 
-  it("refuses shells, wrappers and eval nested too deeply to read", () => {
-    let command = "git commit -m x";
-    for (let i = 0; i < 10; i++) command = `env ${command}`;
-    expect(resolveCommitTarget(command, posix)).toMatchObject({
+  it("reads deeply nested wrappers, eval and -c strings without a depth limit", () => {
+    const wrapped = `${"env ".repeat(500)}git commit -m x`;
+    expect(resolveCommitTarget(wrapped, posix)).toMatchObject({
       kind: "unresolvable",
-      reason: expect.stringMatching(/nest too deeply/),
+      reason: expect.stringMatching(/behind the `env` wrapper/),
+    });
+    const evals = `${"eval ".repeat(200)}git commit -m x`;
+    expect(resolveCommitTarget(evals, posix)).toMatchObject({
+      kind: "unresolvable",
+      reason: expect.stringMatching(/^(in an `eval`, )+an `eval` runs a git commit$/),
+    });
+    expect(resolveCommitTarget(`${"eval ".repeat(200)}npm test`, posix)).toBeNull();
+    expect(
+      resolveCommitTarget("bash -c \"sh -c 'env timeout 5 git commit -m x'\"", posix),
+    ).toMatchObject({
+      kind: "unresolvable",
+      reason:
+        "in a `bash -c` string, in a `sh -c` string, the commit runs behind the `env` wrapper",
     });
   });
 
