@@ -1,0 +1,164 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6601",
+    "updated": "2026-11-18T01:59:50Z"
+  },
+  "plan": {
+    "title": "bug(swarm): finalize has no route for a long-shipped stranded brief (R7 refuses the product PR, the stamp refuses the activation PR)",
+    "status": "running",
+    "narratives": {
+      "Description": "swarm:finalize-cohort refuses to commit the lifecycle move of a long-shipped stranded brief with 'causal lifecycle diff refused unrelated xBRIEF path(s) ... (#4714 R7)'. The cause is a bug in R7 itself: the sweep runs in a temporary checkout (sweepRoot) but the lifecycle-diff check is given the implement-worktree story paths, so the allow-set holds bare file names and never matches xbrief/active/... or xbrief/completed/.... The fallback that derives lifecycle paths from the sweep also misses, because completeStory records a relative path that resolve() reads against the process cwd. This story passes the swept story paths to the check and resolves the recorded path against the project root. The second refusal in the issue (--pr 6593, the activation PR as productPullRequest) is correct behaviour and stays.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6601",
+      "Overview": "\n\n1. R7 admits the story's own active and completed brief twins when the finalize sweep runs in a temporary checkout.\n2. R7 admits the parent-epic record twins when the finalize sweep runs in a temporary checkout.\n3. R7 still refuses unrelated xBRIEF paths.\n4. The existing finalize-cohort and lifecycle-diff tests pass.\n\n",
+      "Labels": "bug",
+      "UserStory": "As an operator finalizing a shipped story whose sweep runs in a temporary checkout, I want the R7 causal lifecycle diff to admit that story's own active-to-completed move, so that finalize commits it without a hand-written leftover-complete lifecycle PR.",
+      "ImplementationPlan": "1. packages/core/src/swarm/finalize-cohort.ts: at the two lifecycle-diff calls (about lines 2653-2654), pass sweepStories (paths inside sweepRoot) instead of storyPaths (implement-worktree paths).\n2. Same file, derivedLifecycleRelsFromSweep: resolve each swept record path with resolve(projectRoot, rec.path), so the relative path that completeStory records no longer reads against the process cwd.\n3. packages/core/src/swarm/finalize-cohort.test.ts: add a temporary-checkout sweep case where git status reports 'R  xbrief/active/X -> xbrief/completed/X' and the commit succeeds with no R7 error; a parent-epic record twin case; and a case where an unrelated xbrief path is still refused.\n4. Changelog fragment changelog.d/6601-finalize-sweep-root-r7.md. Add complete-cohort.ts or lifecycle-diff.ts to scope only if the fix needs them.",
+      "Constraint": "- Refusal 2 (finalize --pr of the activation PR refused as productPullRequest) is correct behaviour; do not change it.\n- Do not loosen R7: an unrelated xBRIEF path must still be refused.",
+      "Traces": "#6601"
+    },
+    "items": [
+      {
+        "title": "R7 admits the story's own active and completed brief twins when the finalize sweep runs in a temporary checkout.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a finalize sweep that runs in a temporary checkout where git status reports the story's brief moving from xbrief/active/X to xbrief/completed/X, when finalize commits, then the R7 lifecycle-diff check admits both paths and the commit succeeds with no R7 error."
+        }
+      },
+      {
+        "title": "R7 admits the parent-epic record twins when the finalize sweep runs in a temporary checkout.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a finalize sweep in a temporary checkout that also moves a parent-epic record brief, when finalize commits, then the R7 check admits the parent-epic record twins and the commit succeeds."
+        }
+      },
+      {
+        "title": "R7 still refuses unrelated xBRIEF paths.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a temporary-checkout sweep whose diff also holds an xBRIEF path that is not the story's own or a parent-epic record twin, when finalize commits, then the R7 check still refuses with the unrelated-path error."
+        }
+      },
+      {
+        "title": "The existing finalize-cohort and lifecycle-diff tests pass.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the change, when the finalize-cohort and lifecycle-diff vitest suites run, then every existing test passes and the new cases pass."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6601",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6601: bug(swarm): finalize has no route for a long-shipped stranded brief (R7 refuses the product PR, the stamp refuses the activation PR)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5994",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5994"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4714",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4714"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per Acceptance Criteria item (4), in list order (#6333)",
+      "admitted_source_digest": "29c69b0ae0d0d4a399599d21d1d0ea75ef074fb325d6f8e0fa8ef575a8ca8283",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "R7 admits the story's own active and completed brief twins when the finalize sweep runs in a temporary checkout.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "R7 admits the parent-epic record twins when the finalize sweep runs in a temporary checkout.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "R7 still refuses unrelated xBRIEF paths.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The existing finalize-cohort and lifecycle-diff tests pass.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [],
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "changelog.d/6601-finalize-sweep-root-r7.md"
+        ],
+        "module_boundary": "packages/core/src/swarm/finalize-cohort.ts keeps owning the finalize sweep and its lifecycle-diff call sites; the change only swaps the paths those calls receive and resolves a recorded path against the project root. No new module, no new logic outside that file; new tests go in finalize-cohort.test.ts.",
+        "cohesion_exemption": "packages/core/src/swarm/finalize-cohort.ts (2992 lines) and packages/core/src/swarm/finalize-cohort.test.ts (4300 lines) are the existing home of the finalize sweep and its tests. The story changes two call arguments and one path resolution, and adds only test cases there; splitting those files is out of scope for a bug fix."
+      },
+      "issueBody": "swarm:finalize-cohort has no route for a story whose product PR shipped long ago while its brief was stranded outside active/ (issue #6601; case #5994, product PR #6016, activation PR #6593). Root cause is in the #4714 R7 check, see the issue comment. Refs #5994, #4714.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6457782720,
+        "origin": "deftai/directive#6601",
+        "id": "github.issue.6457782720"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "changelog.d/6601-finalize-sweep-root-r7.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "finalize-cohort",
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/swarm/lifecycle-diff.test.ts packages/core/src/swarm/finalize-realgit-4714.test.ts"
+        ],
+        "expected_outputs": [
+          "finalize commit from a temporary-checkout sweep admits the story's own xbrief/active and xbrief/completed twins with no R7 error",
+          "the parent-epic record twins are admitted the same way",
+          "an unrelated xBRIEF path is still refused by R7",
+          "one changelog fragment changelog.d/6601-finalize-sweep-root-r7.md"
+        ],
+        "Traces": [
+          "#6601"
+        ],
+        "acceptance_criteria_justification": "Four clauses: the four Acceptance Criteria items of the issue, one same-text clause each. parallel_safe is true: no running brief declares these files. Refusal 2 of the issue (activation PR as productPullRequest) is correct behaviour and stays outside this story."
+      }
+    },
+    "id": "github.issue.6457782720",
+    "updated": "2026-11-18T01:59:50Z"
+  }
+}
