@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -327,7 +328,6 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       "ceremony_dial_resolve",
       "git_head",
       "occupancy_plan",
-      "linked_deposit",
       "user_md_resolve",
       "alignment",
       "wsl_ownership_guard",
@@ -1158,171 +1158,66 @@ describe("runSessionStart primary-claim exception (#4266)", () => {
   });
 });
 
-describe("runSessionStart worktree deposit reconstitution (#4443)", () => {
-  function occupancyOk(root: string, input: ApplyOccupancyInput): OccupancyDecision {
-    const resolved = input.sessionId ?? "sess";
-    return {
-      action: input.write === false ? "claimed" : "heartbeat",
-      sessionId: resolved,
-      record: null,
-      path: join(root, ".deft", "occupancy.json"),
-      message: `occupancy ${resolved}`,
-      code: 0,
-    };
+describe("runSessionStart linked worktree + persist-time rollback (#6562 / #3906)", () => {
+  function git(cwd: string, args: readonly string[]): void {
+    execFileSync("git", [...args], { cwd, stdio: "ignore" });
   }
 
-  it("reconstitutes a linked-worktree payload on the mutation path", () => {
-    const root = tempRoot();
-    const reconstituteWorktreeDeposit = vi.fn(() => ({
-      status: "reconstituted",
-      source: "/payload",
-      dest: join(root, ".deft", "core"),
-      message: "reconstituted .deft/core from local payload",
-    }));
-    const result = runSessionStart(root, {
-      ...baseOptions(root, () => userMdResult({})),
-      sessionId: "host:test:v1:deposit",
-      applyOccupancy: (_projectRoot, input) => occupancyOk(root, input),
-      reconstituteWorktreeDeposit,
-      orientation: null,
-      runStalenessTickler: () => ({ lines: [], prompted: false }),
-    });
-    expect(reconstituteWorktreeDeposit).toHaveBeenCalled();
-    expect(result.lines.join("\n")).toContain("reconstituted .deft/core");
-  });
-
-  it("does not reconstitute on read-only posture", () => {
-    const root = tempRoot();
-    const reconstituteWorktreeDeposit = vi.fn(() => {
-      throw new Error("must not write on read-only");
-    });
-    const result = runSessionStart(root, {
-      ...baseOptions(root, () => userMdResult({})),
-      posture: READ_ONLY_POSTURE,
-      reconstituteWorktreeDeposit,
-    });
-    expect(result.code).toBe(0);
-    expect(reconstituteWorktreeDeposit).not.toHaveBeenCalled();
-  });
-
-  it("fails closed when reconstitution is refused", () => {
-    const root = tempRoot();
-    const result = runSessionStart(root, {
-      ...baseOptions(root, () => userMdResult({})),
-      sessionId: "host:test:v1:refuse",
-      applyOccupancy: (_projectRoot, input) => occupancyOk(root, input),
-      reconstituteWorktreeDeposit: () => ({
-        status: "refused",
-        source: "/payload",
-        dest: join(root, ".deft", "core"),
-        message: "deposit refused: symlink escaping the project tree",
-      }),
-      orientation: null,
-    });
-    expect(result.code).toBe(2);
-    expect(result.payload.ready).toBe(false);
-    expect(String(result.payload.message)).toContain("symlink escaping");
-  });
-
-  it("persists occupancy before reconstituting dest files (#3906)", () => {
-    const root = tempRoot();
-    const order: string[] = [];
-    const result = runSessionStart(root, {
-      ...baseOptions(root, () => userMdResult({})),
-      sessionId: "host:test:v1:claim-first",
-      applyOccupancy: (_projectRoot, input) => {
-        if (input.write === true) order.push("occupancy");
-        return occupancyOk(root, input);
+  it("writes nothing under .deft/core in a linked worktree of a runtime-pinned project (#6562)", () => {
+    const base = tempRoot();
+    const primary = join(base, "primary");
+    const worktree = join(base, "wt");
+    mkdirSync(join(primary, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(primary, "package.json"),
+      `${JSON.stringify({ name: "consumer", devDependencies: { "@deftai/directive-runtime": "0.129.15" } }, null, 2)}\n`,
+    );
+    // Old-layout leftover in the primary: a full payload the removed code copied from.
+    writeFileSync(join(primary, ".deft", "core", "main.md"), "# leftover\n");
+    writeFileSync(join(primary, ".deft", "core", "VERSION"), "tag: v0.126.2\n");
+    writeFileSync(join(primary, ".gitignore"), ".deft/\n");
+    git(primary, ["init", "-q", "-b", "main"]);
+    git(primary, ["-c", "user.email=t@example.com", "-c", "user.name=t", "add", "."]);
+    git(primary, ["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "init"]);
+    git(primary, ["worktree", "add", "-q", worktree]);
+    const fake = fakeGit(worktree);
+    const result = runSessionStart(worktree, {
+      ...baseOptions(worktree, () => userMdResult({})),
+      // Real common-dir lookup so the primary checkout (and its .deft/core) is found.
+      runGit: (cwd, args) => {
+        if (args[0] === "rev-parse" && args.includes("--git-common-dir")) {
+          const stdout = execFileSync("git", [...args], { cwd, encoding: "utf8" });
+          return { code: 0, stdout, stderr: "" };
+        }
+        return fake(cwd, args);
       },
-      reconstituteWorktreeDeposit: () => {
-        order.push("deposit");
-        return {
-          status: "reconstituted",
-          source: "/payload",
-          dest: join(root, ".deft", "core"),
-          message: "reconstituted .deft/core from local payload",
-        };
-      },
+      sessionId: "host:test:v1:no-core",
       orientation: null,
       runStalenessTickler: () => ({ lines: [], prompted: false }),
     });
     expect(result.code).toBe(0);
-    expect(order.slice(0, 2)).toEqual(["occupancy", "deposit"]);
+    expect(existsSync(join(worktree, ".deft", "core"))).toBe(false);
+    expect(result.lines.join("\n")).not.toContain(".deft/core");
   });
 
-  it("does not reconstitute when occupancy persist is denied (#3906)", () => {
-    const root = tempRoot();
-    const reconstituteWorktreeDeposit = vi.fn(() => ({
-      status: "reconstituted",
-      source: "/payload",
-      dest: join(root, ".deft", "core"),
-      message: "must not write",
-    }));
-    const result = runSessionStart(root, {
-      ...baseOptions(root, () => userMdResult({})),
-      sessionId: "host:test:v1:denied",
-      applyOccupancy: (_projectRoot, input) => ({
-        action: "denied",
-        sessionId: input.sessionId ?? "host:test:v1:denied",
-        record: null,
-        path: join(root, ".deft", "occupancy.json"),
-        message: "occupancy denied",
-        code: 2,
-      }),
-      reconstituteWorktreeDeposit,
-      orientation: null,
-    });
-    expect(result.code).toBe(2);
-    expect(reconstituteWorktreeDeposit).not.toHaveBeenCalled();
-  });
-
-  it("rolls back a persist-time claim when reconstitution is refused (#3906)", () => {
-    const root = tempRoot();
-    const result = runSessionStart(root, {
-      ...baseOptions(root, () => userMdResult({})),
-      sessionId: "host:test:v1:refuse-rollback",
-      reconstituteWorktreeDeposit: () => ({
-        status: "refused",
-        source: "/payload",
-        dest: join(root, ".deft", "core"),
-        message: "deposit refused: symlink escaping the project tree",
-      }),
-      orientation: null,
-    });
-    expect(result.code).toBe(2);
-    expect(readOccupancy(root)).toBeNull();
-  });
-
-  it("rolls back a persist-time claim when reconstitution throws (#3906)", () => {
-    const root = tempRoot();
-    const result = runSessionStart(root, {
-      ...baseOptions(root, () => userMdResult({})),
-      sessionId: "host:test:v1:copy-throw",
-      reconstituteWorktreeDeposit: () => {
-        throw new Error("ENOSPC: no space left on device");
-      },
-      orientation: null,
-    });
-    expect(result.code).toBe(2);
-    expect(String(result.payload.message)).toContain("ENOSPC");
-    expect(readOccupancy(root)).toBeNull();
-  });
-
-  it("surfaces occupancy rollback failure after a thrown deposit copy (#3906)", () => {
+  it("surfaces occupancy rollback failure after a refused start (#3906)", () => {
     const root = tempRoot();
     const result = runSessionStart(root, {
       ...baseOptions(root, () => userMdResult({})),
       sessionId: "host:test:v1:rollback-throw",
-      reconstituteWorktreeDeposit: () => {
-        throw new Error("ENOSPC: no space left on device");
-      },
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeFinalizeOwed: () => ({
+        lines: [],
+        blocks: false,
+        unknown: true,
+        repoRequired: true,
+      }),
       rollbackAcquiredOccupancy: () => {
         throw new Error("EACCES: occupancy lock");
       },
-      orientation: null,
     });
-    expect(result.code).toBe(2);
-    expect(String(result.payload.message)).toContain("ENOSPC");
+    expect(result.code).not.toBe(0);
     expect(String(result.payload.message)).toContain("occupancy rollback failed");
     expect(String(result.payload.message)).toContain("EACCES");
   });

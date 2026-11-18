@@ -968,6 +968,8 @@ export function runTransition(
       runner: options.acceptanceRunner,
       xbriefPath: resolvedPath,
       smallChangeLane: { ...options.smallChangeLane, deliveredCommit: laneDeliveredCommit },
+      // #6644: only the clauses a grant stamped in this run; never a disposition read from the brief.
+      grantedClauses: granted.grantedClauses,
     });
     if (!acWalk.ok) {
       return {
