@@ -723,7 +723,7 @@ describe("swarm verify-review-clean deep coverage", () => {
           stdout: JSON.stringify({
             check_runs: [
               {
-                name: "TypeScript (build + lint + test)",
+                name: "TypeScript (build + lint)",
                 status: "completed",
                 conclusion: "success",
               },
@@ -833,7 +833,7 @@ describe("swarm verify-review-clean deep coverage", () => {
           stdout: JSON.stringify({
             check_runs: [
               {
-                name: "TypeScript (build + lint + test)",
+                name: "TypeScript (build + lint)",
                 status: "completed",
                 conclusion: "success",
               },

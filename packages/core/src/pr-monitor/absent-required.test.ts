@@ -56,7 +56,7 @@ describe("readAbsentRequiredContexts", () => {
           ci: {
             ready_state: "ci_absent_required",
             absent_required: ["Greptile Review"],
-            pending_required: ["TypeScript (build + lint + test)"],
+            pending_required: ["TypeScript (build + lint)"],
           },
         },
       }),

@@ -15,15 +15,6 @@ const hairlineTotals = {
   statements: 86.0,
 };
 
-const GREEN_COVERAGE_CITE = {
-  ok: true as const,
-  cite: {
-    tipSha: "aaaabbbbccccddddeeeeffffaaaabbbbccccdddd",
-    runId: "36086680776",
-    checkName: "TypeScript (build + lint + test)",
-  },
-};
-
 const tempRoots: string[] = [];
 
 function tempProject(): string {
@@ -111,7 +102,6 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
         files.set(p, c);
       },
       isCi: () => false,
-      resolveCoverageOfRecord: () => GREEN_COVERAGE_CITE,
     };
 
     try {

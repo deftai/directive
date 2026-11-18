@@ -59,19 +59,14 @@ export function isAuthoritativeSuiteAggregator(name: string): boolean {
   if (n.includes("primary") || n.includes("failover") || n.includes("blacksmith")) {
     return false;
   }
-  if (n === "typescript (build + lint + test)") {
+  if (n === "typescript (build + lint)") {
     return true;
   }
   if (n === "go (test + build)") {
     return true;
   }
   // Tolerate minor naming drift while excluding lane suffixes.
-  if (
-    suiteFamilyOf(name) === "typescript" &&
-    n.includes("build") &&
-    n.includes("lint") &&
-    n.includes("test")
-  ) {
+  if (suiteFamilyOf(name) === "typescript" && n.includes("build") && n.includes("lint")) {
     return true;
   }
   if (suiteFamilyOf(name) === "go" && n.includes("test") && n.includes("build")) {
