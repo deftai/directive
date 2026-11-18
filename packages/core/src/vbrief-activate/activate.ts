@@ -164,17 +164,17 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     // #6264: the lane verdict comes first and the lane waiver applies, from
     // the helper scope:activate also calls. A lane refusal writes nothing here
     // except the lane gate's own crossing record.
-    const ingress = evaluateLaneIngressGate(planObj, {
+    const laneIngress = evaluateLaneIngressGate(planObj, {
       projectRoot: resolve(projectRootEarly),
       gate: "xbrief:activate",
       briefPath: resolve(vbriefPath),
       ingress: true,
       smallChangeLane: options.smallChangeLane,
     });
-    if (!ingress.ok) {
-      return { exitCode: 1, message: ingress.message };
+    if (!laneIngress.ok) {
+      return { exitCode: 1, message: laneIngress.message };
     }
-    if (ingress.applied) {
+    if (laneIngress.applied) {
       // Prefer-A Bound #4768 / Greptile P1: never truncate the only active
       // copy in place — write a sibling .tmp then rename (same shape as the
       // pending→active path below).
@@ -203,7 +203,7 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
         };
       }
     }
-    const suffix = ingress.message.length > 0 ? ` ${ingress.message}` : "";
+    const suffix = laneIngress.message.length > 0 ? ` ${laneIngress.message}` : "";
     return { exitCode: 0, message: `No-op: ${vbriefPath} already active.${suffix}` };
   }
 
@@ -244,15 +244,15 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
   // #4768 Prefer-A: vbrief-activate is the fixture-localized command-only
   // active writer — refuse / stamp usable clause text before the folder move.
   // #6264: lane verdict first, lane waiver applied; outside the identity lock.
-  const ingress = evaluateLaneIngressGate(planObj, {
+  const laneIngress = evaluateLaneIngressGate(planObj, {
     projectRoot: resolve(projectRootEarly),
     gate: "xbrief:activate",
     briefPath: resolve(vbriefPath),
     ingress: true,
     smallChangeLane: options.smallChangeLane,
   });
-  if (!ingress.ok) {
-    return { exitCode: 1, message: ingress.message };
+  if (!laneIngress.ok) {
+    return { exitCode: 1, message: laneIngress.message };
   }
 
   const runAdmitted = (): ActivateResult => {
@@ -264,7 +264,7 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     if (!admission.ok) {
       return { exitCode: 1, message: admission.message };
     }
-    return activateAfterIdentity(vbriefPath, payload, planObj, now, ingress.message);
+    return activateAfterIdentity(vbriefPath, payload, planObj, now, laneIngress.message);
   };
   try {
     return withPlanIdIdentityLock(vbriefDirEarly, runAdmitted);
