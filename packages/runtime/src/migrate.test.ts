@@ -207,7 +207,7 @@ describe("runMigrate (R7 / AC7.8)", () => {
     expect(readProjectDataStatus(root).dataStatus).toBe("current");
   });
 
-  it("F-017: marked vbrief retention still needs migrate for residual xbrief@0.6", () => {
+  it("F-017 / #6571: a marked vbrief/ always needs migrate, with or without residual xbrief@0.6", () => {
     const root = tempRoot();
     mkdirSync(join(root, "vbrief"), { recursive: true });
     writeFileSync(
@@ -235,7 +235,8 @@ describe("runMigrate (R7 / AC7.8)", () => {
       })}\n`,
       "utf8",
     );
-    expect(projectNeedsXbriefMigration(root)).toBe(false);
+    // The marker itself is now pending work: upgrade removes vbrief/ (#6571).
+    expect(projectNeedsXbriefMigration(root)).toBe(true);
   });
 
   it("F-017: parent folder named vbrief does not hide residual xbrief@0.6", () => {
@@ -265,7 +266,7 @@ describe("runMigrate (R7 / AC7.8)", () => {
     expect(projectNeedsXbriefMigration(root)).toBe(true);
   });
 
-  it("F-017: path containing ' in ' still ignores retained vbrief-only residuals", () => {
+  it("#6571: path containing ' in ' still reports a retained vbrief/ as pending", () => {
     // Parent folder substring must not affect skipLegacyRoot residual probe.
     const outer = tempRoot();
     const root = join(outer, "project in progress");
@@ -297,7 +298,46 @@ describe("runMigrate (R7 / AC7.8)", () => {
       })}\n`,
       "utf8",
     );
-    expect(projectNeedsXbriefMigration(root)).toBe(false);
+    expect(projectNeedsXbriefMigration(root)).toBe(true);
+  });
+
+  it("#6571: upgrade migrate finishes the move for dual-populated and marked repos (no keepLegacy)", () => {
+    for (const marked of [false, true]) {
+      const root = tempRoot();
+      mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+      if (marked) {
+        writeFileSync(
+          join(root, "vbrief", "DEPRECATED.md"),
+          "<!-- deft:vbrief-deprecated -->\nlegacy retained\n",
+          "utf8",
+        );
+      }
+      writeFileSync(
+        join(root, "vbrief", "active", "old.vbrief.json"),
+        `${JSON.stringify({
+          vBRIEFInfo: { version: "0.6", description: "leftover" },
+          plan: { title: "Old", status: "running", items: [] },
+        })}\n`,
+        "utf8",
+      );
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "active", "story.xbrief.json"),
+        `${JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "current" },
+          plan: { title: "Story", status: "running", items: [] },
+        })}\n`,
+        "utf8",
+      );
+      execFileSync("git", ["init", "-q"], { cwd: root });
+
+      const result = runMigrate({ from: "1.0.0", root });
+      expect(result.message).not.toMatch(/^migrate failed/);
+      expect(result.migrated).toContain("xbrief/active/old.xbrief.json");
+      expect(existsSync(join(root, "vbrief"))).toBe(false);
+      expect(projectNeedsXbriefMigration(root)).toBe(false);
+      expect(readProjectDataStatus(root).dataStatus).toBe("current");
+    }
   });
 
   it("F-017: relative --root still sees residual xbrief@0.6 behind a marker", () => {

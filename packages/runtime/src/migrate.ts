@@ -78,17 +78,15 @@ function emptyResult(from: string, root: string, message: string): MigrateResult
 export function projectNeedsXbriefMigration(projectRoot: string): boolean {
   const root = absoluteProjectRoot(projectRoot);
   const convergence = detectXbriefConvergence(root);
+  // A marked vbrief/ is no longer a resting state: upgrade finishes the move
+  // and deletes it (#6571 / D-012), so it always needs migrate.
   if (
     convergence.state === "legacy-only" ||
     convergence.state === "dual-populated" ||
-    convergence.state === "empty-vbrief"
+    convergence.state === "empty-vbrief" ||
+    convergence.state === "xbrief-marker"
   ) {
     return true;
-  }
-  // Marked vbrief/ retention is intentional; probe residual under xbrief/ only
-  // (skipLegacyRoot) so we never parse reason-string paths.
-  if (convergence.state === "xbrief-marker") {
-    return detectLegacyVbriefLayout(root, { skipLegacyRoot: true }).legacyLayout;
   }
   return detectLegacyVbriefLayout(root).legacyLayout;
 }
