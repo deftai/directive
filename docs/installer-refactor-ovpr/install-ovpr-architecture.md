@@ -1,6 +1,6 @@
 # Install OVPR — Architecture (active)
 
-**Document revision:** **v261118** (2026-11-18) — launcher entry order for pre-OVPR layouts. **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text; each carries the tag of the revision that last changed it.
+**Document revision:** **v261118** (2026-11-18) — one recovery table; project install for a missing or mismatched runtime; launcher entry order for pre-OVPR layouts. **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text; each carries the tag of the revision that last changed it.
 
 Compact map of the One Version Per Repo installer. Normative detail lives in [install-ovpr-requirements.md](./install-ovpr-requirements.md).
 
@@ -27,7 +27,7 @@ Retired as consumer installs: `@deftai/directive-core`, `-content`, `-types`, an
 | `directive install --repair` | Restore pin via PM if needed | Setup refresh | **Never** |
 | `directive upgrade` | Yes (V→W) | Setup when stale | **Yes** (only install-management path that migrates) |
 | `directive uninstall` | Removes runtime pin | Removes owned wiring | No (preserves `xbrief/`) |
-| `directive doctor` | No | No | No (read-only; names `upgrade` / `install --repair`) |
+| `directive doctor` | No | No | No (read-only; names the project install, `install --repair` or `upgrade`, v261118) |
 
 Configured project + bare `install` without `--repair` → exit 2 naming repair (does not silently repair/upgrade).
 
@@ -40,13 +40,14 @@ Configured project + bare `install` without `--repair` → exit 2 naming repair 
 - **No** `.deft/core` content copy on the OVPR path.
 
 
-## Host agent hooks (v261027)
+## Host agent hooks (v261118)
 
 ```text
 Host (Grok / Claude / Cursor / Codex)
   → node <host-deposit>/deft-hook-<sha8>.mjs --host … --event …
-       → entry guards: disable flag → missing pin (project PM install message) → else
+       → entry guards: disable flag → missing pin (project install message; a person runs it, nothing is let through) → else
        → load node_modules/@deftai/directive-runtime/dist/hook-bin.js
+            → pin identity: installed ≠ pin → block with the project install message (that exact install is let through)
             → policy / allow-deny (dispatcher)
 ```
 

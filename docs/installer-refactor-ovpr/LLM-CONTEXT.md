@@ -74,7 +74,7 @@ Retired as consumer installs: `@deftai/directive-core`, `-content`, `-types`, Go
 1. **The repo decides.** Exact pin in package.json + lockfile is the only version statement for that repo.
 2. **The runtime runs from the repo.** Inside a repo, product behavior comes from that pin’s `node_modules` tree.
 3. **Everything product-content points into the package** under `node_modules/@deftai/directive-runtime/…` (skills, AGENTS managed section, git-hook/Taskfile resolution, pin `hook-bin.js` after guards).
-4. **The global launcher is required** for named CLI bookends. Standard wiring recovery after packages exist: `npm i -g @deftai/directive` then `directive install --repair`. Do not teach npx/pnpm-exec as day-to-day identity.
+4. **The global launcher is required** for named CLI bookends. Recovery follows the failure (§3 remedy map): project install for a missing or mismatched runtime; `directive install --repair` for wiring with the right runtime. Do not teach npx/pnpm-exec as day-to-day identity.
 5. **Mutating install commands** show a bounded plan, take one approval, verify. Doctor is read-only.
 
 ### OVPR vs DOGFOOD (do not conflate)
@@ -96,7 +96,7 @@ Tip has a gate fix the pin lacks → usually **DOGFOOD / release-SLA**, not “O
 | `directive install --repair` | Restore pin via PM if needed | Setup refresh | **Never** | Restores pin/wiring; does not migrate schemas/data |
 | `directive upgrade` | Yes (V→W) when target differs | Setup when stale | **Yes** — only install-management path that migrates | Equal-version upgrade may migrate residual hybrids/schema behind |
 | `directive uninstall` | Removes runtime pin | Removes owned wiring | No (preserves `xbrief/`) | |
-| `directive doctor` | No | No | No | Read-only; names `upgrade` / `install --repair`; never self-repairs (AC8.8 / AC9.10) |
+| `directive doctor` | No | No | No | Read-only; names the project install, `install --repair` or `upgrade`; never self-repairs (AC8.8 / AC9.10) |
 
 Aliases: `init`→install, `update`→upgrade, `remove`→uninstall. No `sync`, no `migrate`, no `bootstrap`, no `doctor fix`.
 
@@ -104,12 +104,12 @@ Aliases: `init`→install, `update`→upgrade, `remove`→uninstall. No `sync`, 
 
 | Finding class | Correct remedy |
 | --- | --- |
-| Pin / `node_modules` desync or missing pin | **Project** `npm install` / `pnpm install` |
+| Pin / `node_modules` desync or missing pin | **Project** `npm install` / `pnpm install --frozen-lockfile` |
 | Wiring / hooks / skills / GENERATION damaged with good pin | `directive install --repair` |
 | Schema / project data behind runtime | `directive upgrade` |
 | Global launcher itself missing | `npm i -g @deftai/directive` |
 
-Do not always compose global-install + repair for every doctor red. After packages exist, AC9.7 launcher+repair remains for wiring/pin problems.
+Do not compose global-install + repair for any doctor red. `npm i -g @deftai/directive` is only for a missing launcher; `directive install --repair` is only for wiring with the right runtime installed.
 
 ---
 
@@ -118,7 +118,7 @@ Do not always compose global-install + repair for every doctor red. After packag
 ### AC9.12 order (same on host outer, git-hook helper, Taskfile pin entry, launcher paths that delegate to pin)
 
 1. Untracked `.deft-directive-disable` → tool-appropriate stop; **no** pin policy load
-2. Else missing/unusable pin under `node_modules/@deftai/directive-runtime` → **fail closed** with clear **project** `npm install` / `pnpm install` guidance
+2. Else missing/unusable pin under `node_modules/@deftai/directive-runtime` → **fail closed** naming the **project** install (`npm install` / `pnpm install --frozen-lockfile`); a person runs it, the hook lets nothing through
 3. Else run the pin
 
 **Do not** treat empty `node_modules` as a default global-launcher+repair (AC9.7) story when the only gap is unsynchronized project install. Launcher-only verbs (install/repair/upgrade/uninstall/doctor/version/help) remain available without a pin per existing ACs. `.no-deft-directive` = permanent project opt-out of install/session/setup.
@@ -221,7 +221,7 @@ Before proposing options, ask:
 2. Does this re-argue global launcher vs `directive-runtime`? → Stop. Split is locked.
 3. Does this require depositing full hook policy outside `node_modules`? → Stop. Dual-copy drift is forbidden.
 4. Does this replace the `.mjs` outer with `.sh`, bare `deft-hook`, or direct registered `hook-bin.js`? → Stop. AC9.1 locked.
-5. Does this make missing-pin recovery “global install + repair” as the primary hatch? → Stop. Project PM install first (AC9.12); AC9.7 after packages exist.
+5. Does this make missing-pin recovery “global install + repair” as the primary hatch? → Stop. Project install (AC9.12); `directive install --repair` only for wiring with the right runtime.
 6. Does this require pin-bump PRs to include deposit refresh “because auto-setup is flaky”? → Stop. Fix AC8.6; keep AC14.10.
 7. Does this reopen #5956 deadlines / allow-lists / D-9? → Stop. Rejected.
 8. Is the pain “tip has a gate the pin lacks”? → Classify **DOGFOOD**; release+pin bump. Do not invent tip-track for day-to-day.
