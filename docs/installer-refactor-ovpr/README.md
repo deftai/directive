@@ -6,7 +6,7 @@ Durable in-repo home for the #5490 / #5514 installer redesign that replaced the 
 
 | File | Kind | Use |
 | --- | --- | --- |
-| [install-ovpr-requirements.md](./install-ovpr-requirements.md) | **Active (normative)** | Full product requirements / ACs. Includes revisions **v261118** (`deft-hook` blocking response; launcher entry order; old-repo message) and **v261027** (entry guards + host `.mjs` outer). Prefer this when changing install/upgrade/uninstall/repair/doctor/hook-deposit behavior. |
+| [install-ovpr-requirements.md](./install-ovpr-requirements.md) | **Active (normative)** | Full product requirements / ACs. Includes revisions **v261118** (`.deft/core` edit list; `deft-hook` blocking response; launcher entry order; old-repo message) and **v261027** (entry guards + host `.mjs` outer). Prefer this when changing install/upgrade/uninstall/repair/doctor/hook-deposit behavior. |
 | [install-ovpr-architecture.md](./install-ovpr-architecture.md) | **Active (normative)** | Compact architecture map (packages, contract, setup/migrate, self-host, host-hook outer). |
 | [LLM-CONTEXT.md](./LLM-CONTEXT.md) | **Harness primer (not ACs)** | AI-audience OVPR context: ownership boundary (polfer install vs Scott dispatcher), verb matrix, entry guards / `.mjs` outer, Dependabot+AC8.6, anti-rathole. Read before triage/plan/feature work that intersects install. |
 | [install-ovpr-problem-ledger-2026-10-23.md](./install-ovpr-problem-ledger-2026-10-23.md) | **Decision record only** | Sealed 2026-10-23 FINALs for Problems 1–33 and ticket map. **Not requirements.** Points at requirements/architecture as SoT. |
@@ -25,6 +25,8 @@ Durable in-repo home for the #5490 / #5514 installer redesign that replaced the 
 On conflict: **requirements win** for installer semantics; architecture explains shape; `LLM-CONTEXT.md`, the problem ledger, and implementation-strategy history never relax an AC.
 
 ### v261118 (2026-11-18)
+
+Operator amendment: when Git tracks or reports untracked files under `.deft/core`, the conversion plan lists them (first 20, then a count) before removing it. No extra prompt, no refusal (AC10.6, §A9).
 
 Operator amendment: the launcher's `deft-hook` may know each host's blocking response and which event runs before a tool, so a `deft-hook` failure blocks (AC3.3, §A5.6, D4 rule 2).
 
