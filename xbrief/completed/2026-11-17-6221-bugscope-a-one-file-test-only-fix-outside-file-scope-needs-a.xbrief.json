@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6221",
-    "updated": "2026-11-17T16:16:48Z"
+    "updated": "2026-11-18T03:45:29Z"
   },
   "plan": {
     "title": "bug(scope): a one-file test-only fix outside file_scope needs a widen PR: tests are free on the production fence but refused by membership and the write fence",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A story that changes behaviour an existing test outside its file_scope depends on cannot fix that test: the write fence and membership refuse the test path while the production fence treats it as free, so a one-file test fix needs a separate widen PR (#5710 case). This story adds one shared extra-path admission helper that the write fence, membership and the Path-independent PR check all call under the same allowlist authority (merge-base mint when present, else concrete precommitment), so undeclared source, test and fixture extras spend one allowance (floor 2, cap 5), test and fixture extras are admitted only as modifies of paths on the merge-base tip, one reason token refuses beyond the budget on every surface, and the PR check lists each extra with its class and spend on success. No gate or grant is added; missing-declaration checks, project and story denies, active-brief protection, the #3715 empty-base skip and the CHANGELOG and lifecycle free paths are kept, and #6203 forge approval stays out of write authority.",
       "UserStory": "As a fenced story worker whose change breaks an existing test outside the brief's file_scope, I want to fix that test inside the same small allowance the PR check grants, so that a one-file test fix does not need a separate widen PR, while a reviewer still sees every undeclared path the PR changed and what it spent.",
@@ -20,98 +20,182 @@
     "items": [
       {
         "title": "relieves: P1 — Write fence calls the shared extra-path admission helper under the same allowlist authority membership would use for that story (merge-base mint when present, else concrete precommitment, with mint globs matching as membership and concrete-only authorities treating glob matches as extras).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/policy/write-fence-budget.ts, when a fenced write targets a path outside the story file_scope, then admission uses the authority membership would use for that story: the merge-base mint with glob matching when present, else concrete precommitment with glob matches counted as extras."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P1 — Write-time admission budgets the cumulative distinct-path change set including merge-base..HEAD, staged/unstaged/untracked, and every proposed target of the current operation together before execution, with rewrite of an already-counted path spending nothing again and inventory failure refusing closed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/policy/write-fence-budget.ts, when a write is assessed, then the budget counts distinct paths from merge-base..HEAD, staged, unstaged, untracked and every target of the operation together before execution, a rewrite of an already-counted path spends nothing, and an inventory failure refuses the write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P2 — Undeclared test and fixture paths spend the same production allowance (floor 2, cap 5) under the shared helper at membership, at the write fence, and at the Path-independent PR change-set check.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope-provenance/extra-path-admission.ts, when an undeclared test or fixture path changes, then it spends the same productionAllowance pool (floor 2, cap 5) as a production extra at membership, at the write fence and at the Path-independent PR check."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P2 — Budgeted undeclared test/fixture admits cover modify-only where modify means the path exists on the merge-base tip, and add/delete/rename of an undeclared test/fixture path is refused at membership, write fence, and the Path-independent PR check (shell deletes remain PR-check-only).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope-provenance/extra-path-admission.ts, when an undeclared test or fixture path is added, deleted or renamed, or is absent from the merge-base tip, then membership, the write fence and the Path-independent PR check refuse it, and a modify of a path on the merge-base tip spends the budget."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P3 — verify:scope-provenance always runs the shared budgeted extra-path check for source-root and test/fixture extras even when membership Path B is inactive, using the same allowlist authority as the write fence (mint globs match; concrete-only treats glob matches as extras), and the production-fence free-tests clause for undeclared test/fixture extras is removed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope-provenance/evaluate.ts, when the bound brief is not in the change set (Path A), then verify:scope-provenance still runs the shared budgeted check for source, test and fixture extras under the same authority as the write fence, and an undeclared test path is no longer free on the production fence."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Named residual (other class) — Undeclared other non-source non-test paths stay hard-refused at membership and write fence while Path A production-roots ignore keeps admitting them at the Path-independent surface, by choice, not claimed as fence-parity relief for that class.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope-provenance/extra-path-admission.ts, when an undeclared path is neither source, test nor fixture, then membership and the write fence refuse it as today, and the Path-independent check keeps ignoring it on Path A as a named residual."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P3 — content/docs/scope-provenance.md states the shared budgeted rule for source/test/fixture extras across write fence, membership, and the Path-independent check under one allowlist authority, and names the other-class Path A residual above.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given content/docs/scope-provenance.md, when a reader looks up extra paths, then the doc states one budgeted rule for source, test and fixture extras across the write fence, membership and the Path-independent check under one allowlist authority, and names the other-class Path A residual."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P4 — On success, verify:scope-provenance reports each classified extra path with class (production|test|fixture|other) and spend (spent|free) from the shared assessment without a second reporting gate, keeping hard-refused wording on refuse output only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/verify-scope-provenance.ts, when the check passes with extras, then it prints each extra path with its class (production|test|fixture|other) and spend (spent|free) from the shared assessment, and hard-refused wording appears only in refusal output."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Beyond-budget refuse uses the same reason token on write fence, membership, and the Path-independent PR check for budgeted classes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope-provenance/extra-path-admission.ts, when extras exceed the budget, then the write fence, membership and the Path-independent check refuse with the same reason token."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Existing prospective staged scope-cover / commit consumers reuse the shared extra-path decision for their extra-path portion while keeping readiness and positive-governing-allow checks.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, when the prospective staged scope-cover sees staged paths outside the story file_scope, then it applies the shared extra-path decision to them and still refuses a scope that is not ready or lacks a positive governing allow."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Budget admission cannot override mint/missing-declaration checks, project denies, story denies, or active-brief protection, and #6203 forge-approved head brief stays out of write authority.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, when a budget-admitted extra is also refused by a missing declaration, a project deny, a story deny or active-brief protection, then the write is still refused, and a #6203 forge-approved head brief never widens the write fence."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "CHANGELOG [Unreleased] names fence parity, budgeted modify-only undeclared test/fixture admits, explicit add/delete/rename refuse for those paths, Path-independent PR check under shared allowlist authority, glob-brief concrete-only tightening on write and Path A, other-class Path A residual, and success-path extra reporting.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given changelog.d/6221-fence-parity-budgeted-extras.md, when the release notes are built, then the [Unreleased] entry names fence parity, budgeted modify-only test and fixture admits, the add/delete/rename refusal, the Path-independent check under shared authority, the glob-brief tightening, the other-class residual and the success-path report."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+          "recorded_at": "2026-11-18T03:45:29Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -970,9 +1054,35 @@
         "leanCommentId": 6830525451,
         "harvestDigest": "103cb09b48f3e43773bdd162252f40c1ecf73f5f314738e513da068e233735d0",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d74a32df020d7e4f8b998ccac95a62b47e204868",
+        "prNumber": 6588,
+        "prBase": "master",
+        "mergeCommit": "833c4d4886e4a30dfb20ae9236645d6bd1da5c8d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "17116745a39d624c85e1191521d4032b241c457b",
+        "verifiedAt": "2026-11-18T03:45:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T03:45:29Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T03:45:29Z"
       }
     },
     "id": "github.issue.6354236425",
-    "updated": "2026-11-17T16:16:48Z"
+    "updated": "2026-11-18T03:45:29Z"
   }
 }
