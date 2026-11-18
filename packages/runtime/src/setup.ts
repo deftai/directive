@@ -15,6 +15,10 @@ import {
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
+  hostHookOuterRelPath,
+  hostHookOuterSha8,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import {
   defaultTrackedNames,
   isTrackedDeletePath,
   stageFrameworkPaths,
@@ -39,7 +43,10 @@ import {
 import { assertInventoryCompleteness } from "./installer-output-inventory.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { isConvertStrategyFrom, runStrategy } from "./removal-steps/index.js";
-import { removeLegacyBareVersionMarkers } from "./removal-steps/steps.js";
+import {
+  removeLegacyBareVersionMarkers,
+  removeRetiredCoreGuardWorkflow,
+} from "./removal-steps/steps.js";
 import {
   ensureAgentsManagedSection,
   ensureGitHooks,
@@ -68,7 +75,10 @@ export interface SetupResult {
   readonly modified: string[];
   readonly removed: string[];
   readonly conflicts: string[];
-  /** Tracked divergent managed hooks kept in place; non-failure, present only when non-empty (#5837). */
+  /**
+   * Files kept in place; non-failure, present only when non-empty. Tracked divergent
+   * managed hooks (#5837) and a user-edited retired core-guard workflow (#5835).
+   */
   readonly preserved?: string[];
   readonly message: string;
 }
@@ -352,6 +362,21 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       });
     }
   }
+  // AC11.10 / #6615: the committed host `.mjs` outers setup wrote (current sha8).
+  // Fingerprint LF-normalized text: setup keeps a CRLF checkout of the same
+  // outer, so the record must not change with core.autocrlf (AC13.2).
+  const outerSha8 = hostHookOuterSha8();
+  for (const host of ["claude", "codex", "cursor", "grok"] as const) {
+    const rel = hostHookOuterRelPath(host, outerSha8);
+    const body = readText(join(projectRoot, rel));
+    if (body !== null) {
+      artifacts.push({
+        path: rel,
+        kind: "whole-file",
+        fingerprint: fingerprintContent(body.replace(/\r\n/g, "\n")),
+      });
+    }
+  }
   // AC11.10 / OWN-SKILLS: wholly owned skill pointer paths (all hosts × inventory).
   for (const rel of listSkillPointerPaths()) {
     const body = readText(join(projectRoot, rel));
@@ -402,7 +427,11 @@ export function runSetup(options: {
 }): SetupResult {
   const { operation, from, root } = options;
   let preserved: string[] = [];
-  const withPreserved = (): { preserved?: string[] } => (preserved.length > 0 ? { preserved } : {});
+  const keptRetired: string[] = [];
+  const withPreserved = (): { preserved?: string[] } => {
+    const all = [...preserved, ...keptRetired];
+    return all.length > 0 ? { preserved: all } : {};
+  };
   const created: string[] = [];
   const modified: string[] = [];
   const removed: string[] = [];
@@ -464,6 +493,19 @@ export function runSetup(options: {
     // Upgrade only: never install, repair, uninstall or doctor.
     if (operation === "upgrade" && (legacyConversion || convertViaRemovals)) {
       removed.push(...removeLegacyBareVersionMarkers(root));
+    }
+
+    // #5835 / AC8.10: upgrade (any `from`) and convert delete the retired
+    // deft-core-guard workflow when it is Directive's file; a user-edited one is
+    // kept and named; a failed read/delete is a named conflict. Never ordinary
+    // install, repair, automatic setup or doctor.
+    if (operation === "upgrade" || convertViaRemovals) {
+      const guard = removeRetiredCoreGuardWorkflow(root);
+      removed.push(...guard.removed);
+      keptRetired.push(...guard.kept);
+      for (const rel of guard.failed) {
+        conflicts.push(`${rel}: could not remove the retired deft-core-guard workflow`);
+      }
     }
 
     // AC8.10: inventory completeness is load-time evidence (throws if incomplete).

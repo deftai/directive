@@ -62,7 +62,7 @@ const LOADED_LANE_EDGE_ITS: ReadonlyArray<{ file: string; titlePrefix: string }>
   },
   {
     file: "packages/core/src/init-deposit/refresh.test.ts",
-    titlePrefix: "#2148: DOES deposit deft-core-guard.yml when .deft/core is git-tracked",
+    titlePrefix: "#5835: does NOT deposit deft-core-guard.yml even when .deft/core is git-tracked",
   },
   {
     file: "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts",

@@ -156,7 +156,9 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
     ovprTarget: "N/A — guarded mixed .deft/core + app commits under copy model",
     disposition: "na-retired-copy-model",
     justification:
-      "AC8.10 / AC13.1: core-guard workflow solely enforced the retired .deft/core deposit layout.",
+      "AC8.10 / AC13.1: core-guard workflow solely enforced the retired .deft/core deposit layout. " +
+      "Its emitter is removed (#5835); upgrade and convert delete a leftover Directive-written copy " +
+      "via removal step removeRetiredCoreGuardWorkflow and keep a user-edited file.",
   },
   {
     id: "greptile-core-ignore",

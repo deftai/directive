@@ -258,7 +258,19 @@
           "packages/runtime/src/doctor.test.ts",
           "packages/runtime/src/setup.test.ts",
           "packages/cli/src/doctor-bookend.test.ts",
-          "changelog.d/6617-doctor-read-only-and-honest.md"
+          "changelog.d/6617-doctor-read-only-and-honest.md",
+          "packages/core/src/doctor/types.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/doctor/help.ts",
+          "packages/core/src/doctor/agents-md-branches.test.ts",
+          "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "packages/core/src/doctor/root-check-doctor.test.ts",
+          "packages/core/src/doctor/runtime-link-owner.test.ts",
+          "packages/core/src/session/orientation-runtime-link.test.ts",
+          "packages/core/src/session/session-start-runtime-link.test.ts",
+          "packages/runtime/src/doctor-diagnose-f010.test.ts",
+          "content/docs/SUPPORT.md",
+          "content/docs/getting-started.md"
         ],
         "readiness": "ready",
         "depends_on": [

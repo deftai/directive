@@ -134,7 +134,8 @@
         "file_scope": [
           "packages/core/src/class-checks/evaluate.ts",
           "packages/core/src/class-checks/evaluate.test.ts",
-          "changelog.d/6616-class4-committed-wiring-only.md"
+          "changelog.d/6616-class4-committed-wiring-only.md",
+          "xbrief/evaluator-surface-disposition.json"
         ],
         "readiness": "ready",
         "depends_on": [

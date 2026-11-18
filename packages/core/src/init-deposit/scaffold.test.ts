@@ -14,28 +14,20 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseManagedSectionAttrs, renderManagedSection } from "../platform/agents-md.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
-import { installerManagedGuardErePatterns } from "./hygiene.js";
 import {
-  assertCoreGuardWorkflowLoadable,
   buildInstallManifestText,
   CANONICAL_TASKFILE_INCLUDE,
-  CORE_GUARD_WORKFLOW_MAX_LINE,
-  coreGuardCheckoutUsesLine,
   depositNeutralization,
   ensureCodeqlPathsIgnore,
-  ensureCoreGuardWorkflow,
   ensureGitattributes,
   ensureGreptileIgnore,
   ensurePackageJsonPin,
   ensureTaskfile,
-  extractCoreGuardCheckoutUsesLine,
   gitattributesDepositComment,
   MANAGED_WIRING_GITATTRIBUTES_LINES,
-  mergeCoreGuardWorkflowRefresh,
   PIN_DEPENDENCY_NAME,
   pruneFrameworkSelfTests,
   pruneVendoredTsTests,
-  shouldPreserveCoreGuardCheckoutPin,
   writeAgentsMd,
   writeAgentsSkills,
   writeConsumerGitHooks,
@@ -204,114 +196,8 @@ describe("init-deposit scaffold", () => {
     expect(readFileSync(join(project, ".github/codeql/codeql-config.yml"), "utf8")).toContain(
       "paths-ignore",
     );
-    const guard = readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
-    expect(extractCoreGuardCheckoutUsesLine(guard)).toBe(coreGuardCheckoutUsesLine());
-    // Content-aware pin unit (#3193) deposited with the path allowlist (#3127).
-    expect(guard).toContain("#3193");
-    expect(guard).toContain("python3 -");
-    expect(guard).toContain("@deftai/directive");
-    expect(guard).toContain("package-lock.json");
-    expect(guard).toContain("pnpm-lock.yaml");
-  });
-
-  describe("deft-core-guard workflow load shape (#3345)", () => {
-    function depositGuard(): string {
-      const project = freshRoot("scaffold-guard-load-");
-      const { io } = captureIo();
-      expect(ensureCoreGuardWorkflow(project, io)).toBe(true);
-      return readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
-    }
-
-    it("starts with name deft-core-guard and declares pull_request + no-mixed-core-and-app", () => {
-      const guard = depositGuard();
-      expect(() => assertCoreGuardWorkflowLoadable(guard)).not.toThrow();
-      expect(guard.startsWith("name: deft-core-guard\n")).toBe(true);
-      expect(guard).toMatch(/\non:\n {2}pull_request:\n {4}paths:\n/);
-      expect(guard).toContain("      - '.deft/core/**'");
-      expect(guard).toContain("      - '.deft/GENERATION.json'");
-      expect(guard).toContain("#5552");
-      expect(guard).toMatch(/\njobs:\n {2}no-mixed-core-and-app:\n/);
-      expect(guard).toContain("runs-on: ubuntu-latest");
-    });
-
-    it("embeds the #3388 evidence-based sync exemption", () => {
-      const guard = depositGuard();
-      expect(guard).toContain("#3388");
-      expect(guard).toContain("BASE_REF:");
-      expect(guard).toContain("merge-base");
-      expect(guard).toContain("--is-ancestor");
-      expect(guard).toContain("sync PR detected: all commits already guard-checked on");
-      expect(guard).not.toMatch(/head\s*==\s*['"]develop['"]/);
-      expect(guard).not.toContain("origin/develop");
-    });
-
-    it("assertCoreGuardWorkflowLoadable refuses column-0 run body and mega-lines", () => {
-      expect(() => assertCoreGuardWorkflowLoadable("name: other\n")).toThrow(
-        /name: deft-core-guard/,
-      );
-      expect(() =>
-        assertCoreGuardWorkflowLoadable(
-          "name: deft-core-guard\n" + "run: |\n" + "          set -eu\n" + "import bad\n",
-        ),
-      ).toThrow(/dedents below run-block/);
-      expect(() =>
-        assertCoreGuardWorkflowLoadable(
-          "name: deft-core-guard\n" + "x".repeat(CORE_GUARD_WORKFLOW_MAX_LINE + 1) + "\n",
-        ),
-      ).toThrow(/chars/);
-    });
-
-    it("closes the generation heredoc at run-block indent and requires generation >= 1 (#4120)", () => {
-      const guard = depositGuard();
-      const run = " ".repeat(10);
-      expect(guard).toContain(`${run}python3 - "$BASE_REF" "$HEAD_SHA" <<'PY'`);
-      expect(guard).toContain(`\n${run}PY\n${run}fi\n`);
-      expect(guard).not.toMatch(/\n {12}PY\n/);
-      expect(guard).toContain("head generation is not an int >= 1");
-    });
-
-    it("keeps the run block loadable: no column-0 body lines, no mega-lines", () => {
-      const guard = depositGuard();
-      const lines = guard.split("\n");
-      let inRun = false;
-      let baseIndent: number | null = null;
-      for (const line of lines) {
-        if (line.trim() === "run: |") {
-          inRun = true;
-          baseIndent = null;
-          continue;
-        }
-        if (!inRun) continue;
-        if (line.trim() === "") continue;
-        const lead = line.match(/^( *)/)?.[1]?.length ?? 0;
-        if (baseIndent === null) {
-          baseIndent = lead;
-          continue;
-        }
-        // YAML literal blocks end when a content line is less indented than the first.
-        expect(lead).toBeGreaterThanOrEqual(baseIndent);
-        expect(line.length).toBeLessThanOrEqual(CORE_GUARD_WORKFLOW_MAX_LINE);
-      }
-      expect(baseIndent).toBe(10);
-      // Column-0 Python body was the #3345 load killer (pre-fix). Shared
-      // Go/TS embed (#3427) is the pretty script, not the old compact one-liner.
-      expect(guard).not.toMatch(/\nimport json\n/);
-      expect(guard).toContain(`${" ".repeat(10)}import json`);
-    });
-
-    it("emits allowlist as one ERE per line (not a single joined mega-pattern)", () => {
-      const guard = depositGuard();
-      const patterns = installerManagedGuardErePatterns();
-      expect(patterns.length).toBeGreaterThan(10);
-      expect(guard).toContain("grep -vE -f");
-      expect(guard).toContain("<<'ALLOW'");
-      for (const sample of ["^AGENTS\\.md$", "^package\\.json$", "^xbrief/\\.deft-version$"]) {
-        expect(patterns).toContain(sample);
-        expect(guard).toContain(sample);
-      }
-      // Joined mega-alternation must not reappear as one shell line.
-      expect(guard).not.toContain(patterns.slice(0, 5).join("|"));
-    });
+    // The retired deft-core-guard workflow is no longer written (#5835).
+    expect(existsSync(join(project, ".github/workflows/deft-core-guard.yml"))).toBe(false);
   });
 
   it("skips AGENTS.md rewrite when the managed section is already current", () => {
@@ -400,7 +286,6 @@ describe("init-deposit scaffold", () => {
     expect(ensureGitattributes(project, io)).toBe(false);
     expect(ensureGreptileIgnore(project, io)).toBe(false);
     expect(ensureCodeqlPathsIgnore(project, io)).toBe(false);
-    expect(ensureCoreGuardWorkflow(project, io)).toBe(false);
 
     const manifestPath = writeInstallManifest(project, join(project, ".deft/core"), {
       ref: "v0.53.0",
@@ -654,17 +539,10 @@ describe("init-deposit scaffold", () => {
     expect(lines.join("")).toContain(".githooks/ deposited");
   });
 
-  it("refreshes a stale deft-core guard and skips absent hook sources", () => {
-    const project = freshRoot("scaffold-guard-refresh-");
+  it("skips absent hook sources", () => {
+    const project = freshRoot("scaffold-hooks-absent-");
     const deftDir = join(project, ".deft/core");
     const { io } = captureIo();
-    mkdirSync(join(project, ".github/workflows"), { recursive: true });
-    writeFileSync(
-      join(project, ".github/workflows/deft-core-guard.yml"),
-      "name: deft-core-guard\nold: true\n",
-      "utf8",
-    );
-    expect(ensureCoreGuardWorkflow(project, io)).toBe(true);
     expect(writeConsumerGitHooks(project, deftDir, io)).toBe(false);
   });
 
@@ -680,103 +558,6 @@ describe("init-deposit scaffold", () => {
     expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain(
       CANONICAL_TASKFILE_INCLUDE,
     );
-  });
-
-  it("leaves a non-deft core guard workflow untouched", () => {
-    const project = freshRoot("scaffold-guard-foreign-");
-    mkdirSync(join(project, ".github/workflows"), { recursive: true });
-    writeFileSync(
-      join(project, ".github/workflows/deft-core-guard.yml"),
-      "name: custom-guard\n",
-      "utf8",
-    );
-    const { io } = captureIo();
-    expect(ensureCoreGuardWorkflow(project, io)).toBe(false);
-    expect(readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8")).toContain(
-      "custom-guard",
-    );
-  });
-
-  describe("deft-core-guard checkout pin (#1672)", () => {
-    it("deposits a commit-SHA checkout pin on greenfield guard creation", () => {
-      const project = freshRoot("scaffold-guard-sha-");
-      const { io } = captureIo();
-      expect(ensureCoreGuardWorkflow(project, io)).toBe(true);
-      const guard = readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
-      expect(guard).toContain(coreGuardCheckoutUsesLine());
-      expect(extractCoreGuardCheckoutUsesLine(guard)).toBe(coreGuardCheckoutUsesLine());
-    });
-
-    it("preserves a Dependabot-bumped checkout pin on refresh", () => {
-      const project = freshRoot("scaffold-guard-preserve-");
-      mkdirSync(join(project, ".github/workflows"), { recursive: true });
-      const bumped =
-        "name: deft-core-guard\n\non:\n  pull_request:\n\njobs:\n" +
-        "  no-mixed-core-and-app:\n    runs-on: ubuntu-latest\n    steps:\n" +
-        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n" +
-        "        with:\n          fetch-depth: 0\n" +
-        "      - name: Refuse PRs that mix .deft/core/** with non-framework paths\n" +
-        "        run: echo stale-body\n";
-      writeFileSync(join(project, ".github/workflows/deft-core-guard.yml"), bumped, "utf8");
-      const { io } = captureIo();
-      expect(ensureCoreGuardWorkflow(project, io)).toBe(true);
-      const guard = readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
-      expect(extractCoreGuardCheckoutUsesLine(guard)).toBe(
-        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
-      );
-      expect(guard).toContain("deft-core guard (#1430)");
-      expect(guard).not.toContain("echo stale-body");
-    });
-
-    it("migrates a legacy framework @v4 pin to the SHA template on refresh", () => {
-      const project = freshRoot("scaffold-guard-migrate-v4-");
-      mkdirSync(join(project, ".github/workflows"), { recursive: true });
-      const legacy =
-        "name: deft-core-guard\n\non:\n  pull_request:\n\njobs:\n" +
-        "  no-mixed-core-and-app:\n    runs-on: ubuntu-latest\n    steps:\n" +
-        "      - uses: actions/checkout@v4\n" +
-        "        with:\n          fetch-depth: 0\n" +
-        "      - name: Refuse PRs that mix .deft/core/** with non-framework paths\n" +
-        "        run: echo stale-body\n";
-      writeFileSync(join(project, ".github/workflows/deft-core-guard.yml"), legacy, "utf8");
-      const { io } = captureIo();
-      expect(ensureCoreGuardWorkflow(project, io)).toBe(true);
-      const guard = readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
-      expect(extractCoreGuardCheckoutUsesLine(guard)).toBe(coreGuardCheckoutUsesLine());
-      expect(guard).not.toContain("actions/checkout@v4");
-    });
-
-    it("mergeCoreGuardWorkflowRefresh keeps the existing pin when only checkout differs", () => {
-      const existing =
-        "steps:\n" +
-        "      - uses: actions/checkout@v6\n" +
-        "        with:\n          fetch-depth: 0\n" +
-        "      - name: step\n        run: old\n";
-      const desired =
-        "steps:\n" +
-        `${coreGuardCheckoutUsesLine()}\n` +
-        "        with:\n          fetch-depth: 0\n" +
-        "      - name: step\n        run: new\n";
-      const merged = mergeCoreGuardWorkflowRefresh(existing, desired);
-      expect(extractCoreGuardCheckoutUsesLine(merged)).toBe("      - uses: actions/checkout@v6");
-      expect(merged).toContain("run: new");
-    });
-
-    it("shouldPreserveCoreGuardCheckoutPin rejects legacy @v4 but accepts consumer bumps", () => {
-      const desired = coreGuardCheckoutUsesLine();
-      expect(shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v4", desired)).toBe(
-        false,
-      );
-      expect(
-        shouldPreserveCoreGuardCheckoutPin(
-          "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
-          desired,
-        ),
-      ).toBe(true);
-      expect(shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v6", desired)).toBe(
-        true,
-      );
-    });
   });
 
   it("updates an existing CodeQL config paths-ignore block", () => {
