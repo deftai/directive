@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-rc-05-approved-as-drafted",
+  "decision": "RC-05 approved by polfer as drafted (D-030), text in drafts/RC-05.md of the OVPR planning folder (directive-ovpr-planning-202611): .gitignore may cover 5 named per-checkout runtime files, including the pre-PR signing secret and .deft/orientation-state.json (AC8.5). Gates: P3-U2's ignore part; P5-U1b item 2. Lands as its own docs-only PR with exactly the approved text, merged by polfer before the gated unit merges.",
+  "governingRule": {
+    "description": "OVPR-CHANGE-GATE step 3-4: polfer approves the exact text, then it is recorded (D-002, D-030)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the current requirements text",
+      "whyNot": "Rejected by polfer's approval of the draft (D-030)"
+    }
+  ],
+  "whyWinner": "polfer approved the drafted text (D-030); see drafts/RC-05.md and drafts/RC-INDEX.md.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:33Z",
+  "revisitTrigger": "The RC-05 docs PR changes the approved text, or polfer withdraws approval",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate",
+    "rc-05"
+  ],
+  "relatedIssues": [
+    6271,
+    5967
+  ]
+}

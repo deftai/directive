@@ -1,0 +1,288 @@
+{
+  "sequence_id": "ovpr-fix-2026-11",
+  "sequence_kind": "delivery",
+  "entries": [
+    {
+      "id": "ovpr-p3-u1a",
+      "kind": "story",
+      "title": "Remove release checks A and B and the #6184 code (Phase 0, D-004)",
+      "batch": "0",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p1-u1",
+      "kind": "story",
+      "title": "Hosts block a tool call when the Directive hook can't decide",
+      "batch": "1.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p1-u2",
+      "kind": "story",
+      "title": "Old repos keep blocking when their hooks reach the new deft-hook",
+      "batch": "1.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p1-u3",
+      "kind": "story",
+      "title": "No-agent fixture test, steps 4 and 6",
+      "batch": "1.2",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u0",
+      "kind": "story",
+      "title": "Publish the installer's ownership record API",
+      "batch": "2.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u3",
+      "kind": "story",
+      "title": "Skill pointers and skill YAML right after install and upgrade",
+      "batch": "2.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u6",
+      "kind": "story",
+      "title": "task upgrade and task uninstall stop calling retired commands",
+      "batch": "2.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u11",
+      "kind": "story",
+      "title": "Node 20 works again",
+      "batch": "2.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u13",
+      "kind": "story",
+      "title": "Upgrade finishes the vbrief to xbrief move; vbrief/ always goes away (before P2-U1)",
+      "batch": "2.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u14",
+      "kind": "story",
+      "title": "Class 4 counts Directive's own wiring files only by what is committed (before P2-U1)",
+      "batch": "2.1b",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u1",
+      "kind": "story",
+      "title": "Upgrade refreshes git hooks and restores the brief gates",
+      "batch": "2.2",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u10",
+      "kind": "story",
+      "title": "Split-registry install and repair give honest messages",
+      "batch": "2.2",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u2",
+      "kind": "story",
+      "title": "Doctor green after an old-repo upgrade",
+      "batch": "2.3",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u9",
+      "kind": "story",
+      "title": "Directive stops editing pnpm's own config",
+      "batch": "2.3",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u12",
+      "kind": "story",
+      "title": "Linked worktrees stop getting a re-deposited .deft/core (after P2-U2)",
+      "batch": "2.4",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u4",
+      "kind": "story",
+      "title": "GENERATION.json keeps generation; retired core guard removed",
+      "batch": "2.4",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u5a",
+      "kind": "story",
+      "title": "No retired .deft/core lines in customer files; LF for hook files",
+      "batch": "2.5",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u5b",
+      "kind": "story",
+      "title": "Generated hook files don't fail customer lint",
+      "batch": "2.5b",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u8",
+      "kind": "story",
+      "title": "Foreign hooksPath no longer locks people out",
+      "batch": "2.6",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p2-u7",
+      "kind": "story",
+      "title": "Uninstall order and honest report",
+      "batch": "2.7",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p3-u1b",
+      "kind": "story",
+      "title": "Version bump is just a bump: Dependabot npm, fixture steps 1-3, #5952 text",
+      "batch": "3.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p3-u2",
+      "kind": "story",
+      "title": "Doctor read-only; warn on Directive files hidden by local ignore",
+      "batch": "3.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p4-u2",
+      "kind": "story",
+      "title": "Requirements text revision: project install first",
+      "batch": "4.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p4-u1",
+      "kind": "story",
+      "title": "Commit gate lets Directive's own changes through",
+      "batch": "4.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p4-u5",
+      "kind": "story",
+      "title": "Subfolder hook commands: repro, then fix or close",
+      "batch": "4.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p4-u3a",
+      "kind": "story",
+      "title": "One guard order and message table for hook entry points",
+      "batch": "4.2",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p4-u3b",
+      "kind": "story",
+      "title": "Launcher and launcher doctor use the shared guard",
+      "batch": "4.3",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p4-u3c",
+      "kind": "story",
+      "title": "Runtime doctor names one correct next command",
+      "batch": "4.3",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p4-u3d",
+      "kind": "story",
+      "title": "Git hooks, Taskfile and runtime entry check the pin the same way",
+      "batch": "4.3",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u2a",
+      "kind": "story",
+      "title": "Windows note; remove retired directive bootstrap",
+      "batch": "5.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u3a",
+      "kind": "story",
+      "title": "Release run not red after a good publish",
+      "batch": "5.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u3b",
+      "kind": "story",
+      "title": "materialize:runtime works under Git Bash",
+      "batch": "5.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u1a",
+      "kind": "story",
+      "title": "Launcher output edge cases",
+      "batch": "5.1",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u1b",
+      "kind": "story",
+      "title": "Doctor output tells the truth",
+      "batch": "5.2",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u2b",
+      "kind": "story",
+      "title": "Launcher vs runtime docs; stale missing-runtime doc",
+      "batch": "5.2",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u5",
+      "kind": "story",
+      "title": "Retire printed deft update recovery lines",
+      "batch": "5.3",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u2c",
+      "kind": "story",
+      "title": "Stop advertising the dead docs website",
+      "batch": "5.3",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u2d",
+      "kind": "story",
+      "title": "README rewrite",
+      "batch": "5.4",
+      "status": "pending"
+    },
+    {
+      "id": "ovpr-p5-u4",
+      "kind": "story",
+      "title": "Ticket close-outs and reassignments",
+      "batch": "5.any",
+      "status": "pending"
+    }
+  ],
+  "current_index": 0,
+  "batching_allowed": true,
+  "continuation_past_final": false,
+  "exhausted": false,
+  "authorized_by": "polfer",
+  "created_at": "2026-11-18T02:58:52.236Z",
+  "updated_at": "2026-11-18T02:58:52.236Z",
+  "generation": 1,
+  "source_revision": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b"
+}

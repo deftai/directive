@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-023-setup-replaces-directive-git-hooks",
+  "decision": "D-023 (was O-11 and O-12): install, install --repair, upgrade and uninstall say what they will do and ask for confirmation (--yes skips; --dry-run reports only); any git hook written, replaced (edited or not) or removed is listed in that plan. Exception: automatic setup (first tool/hook run after a PM install moved the pin) needs no approval, refreshes Directive's hooks with the rest of the wiring locally, and names what it updated. O-11: an edited Directive git hook is replaced and named ('Updated <path>; your earlier version is in git history'); a hook that isn't Directive-shaped stays a named conflict, untouched. O-12: automatic setup refreshes committed git hooks; a person commits them. #5859's keep-any-differing-hook rule is removed.",
+  "governingRule": {
+    "description": "polfer confirmed 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-023; AC8.3, INIT-18, section A9 l.549, AC4.3, AC14.10)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep and report edited hooks",
+      "whyNot": "Needs an RC on AC8.3, INIT-18, section A9, AC4.3"
+    },
+    {
+      "option": "Only upgrade and repair replace",
+      "whyNot": "Fails the #5808 Done-when for Dependabot users"
+    }
+  ],
+  "whyWinner": "Already answered by the requirements: git hooks are owned wiring, replaced even if hand-edited.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:29Z",
+  "revisitTrigger": "A customer case needs an edited Directive hook kept",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "hooks"
+  ],
+  "relatedIssues": [
+    5808,
+    5837,
+    5859
+  ]
+}

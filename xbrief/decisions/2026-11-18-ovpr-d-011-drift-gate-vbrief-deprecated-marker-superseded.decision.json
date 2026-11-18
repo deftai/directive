@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-011-drift-gate-vbrief-deprecated-marker-superseded",
+  "decision": "D-011 (SUPERSEDED by D-012 the same day; kept as audit trail): The brief drift gate would let Directive's own vbrief/DEPRECATED.md through via an exact-path exemption when the staged content carries Directive's sentinel (new unit P2-U13, wave 2.1, before P2-U1). Superseded because it rested on an overstated framing: the marker is written only in the dual-populated or --keep-legacy case, not on every migration.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17, superseded by D-012 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-011)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Fold into P4-U1",
+      "whyNot": null
+    },
+    {
+      "option": "Stop writing the marker",
+      "whyNot": null
+    },
+    {
+      "option": "No change",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Was chosen as the narrowest fix; superseded by D-012.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:26Z",
+  "revisitTrigger": "None: superseded by D-012",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "superseded",
+    "xbrief"
+  ],
+  "relatedIssues": [
+    6465,
+    6571,
+    2270
+  ]
+}

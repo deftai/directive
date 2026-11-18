@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-025-uninstall-keeps-local-state",
+  "decision": "D-025 (option A; was O-19): Uninstall does not delete Directive's local state (.deft/*.json state, .deft-cache/, .deft-scratch/, .deft-run-summary.json) or the tracked policy files (.deft/forward-coverage.allow, .deft/test-boundary.policy.json, .deft/settings.json); plan and report list them under Kept, exit 0. Uninstall warns by name about every registered git worktree under .deft-scratch/. Separately, #6603 (held, polfer) moves live worktrees out of .deft-scratch/; removing the housekeeping folders on uninstall is a later RC after that.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-025; AC11.2, AC11.3, AC11.7, AC11.10, AC11.11)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Remove the caches and scratch folders",
+      "whyNot": "Would repeat the #6007 loss of live worktrees"
+    }
+  ],
+  "whyWinner": "Live worktrees are not housekeeping; deleting them loses work.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:30Z",
+  "revisitTrigger": "#6603 ships",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "uninstall"
+  ],
+  "relatedIssues": [
+    6007,
+    6603
+  ]
+}

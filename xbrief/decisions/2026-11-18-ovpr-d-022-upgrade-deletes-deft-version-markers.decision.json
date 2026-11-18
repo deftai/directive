@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-022-upgrade-deletes-deft-version-markers",
+  "decision": "D-022 (option A; was O-13): During old-layout conversion, directive upgrade removes xbrief/.deft-version, root .deft-version and vbrief/.deft-version when each holds only a version string, and lists each removal in the upgrade report (AC10.6). Upgrade only, never repair, uninstall or doctor. Doctor ignores the marker in OVPR repos (#6001, #6503 item 3). Before deleting the root marker, P2-U2 confirms its four other readers are copy-model code only; if not, stop and report.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-022; AC8.10, AC10.6)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Leave the markers; doctor ignores them only",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "AC8.10 says remove scaffolding that only served the copy model.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:29Z",
+  "revisitTrigger": "An OVPR path still reads the root marker",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "upgrade"
+  ],
+  "relatedIssues": [
+    6001,
+    6503
+  ]
+}

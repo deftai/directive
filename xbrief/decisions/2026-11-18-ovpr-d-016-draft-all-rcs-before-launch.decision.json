@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-016-draft-all-rcs-before-launch",
+  "decision": "D-016 (option A): Claude drafts RC-01 to RC-07 before launch, each quoting the current text with the exact replacement, plus pre-decided rules for the conditional RC-08 (#5959 repro) and RC-09 (#5846 live run). polfer approves each in turn, settling the 13 RC-tied O-items. Approved RCs each still get their own docs-only PR, merged before the unit they gate.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-016; OVPR-CHANGE-GATE step 5)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Draft each RC when its unit is next",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Removes mid-run stops for requirements text.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:27Z",
+  "revisitTrigger": "A unit finds a new RC during the work",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "change-gate"
+  ],
+  "relatedIssues": [
+    5959,
+    5846
+  ]
+}

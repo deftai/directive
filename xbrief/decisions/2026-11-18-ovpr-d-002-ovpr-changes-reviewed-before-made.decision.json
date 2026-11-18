@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-002-ovpr-changes-reviewed-before-made",
+  "decision": "D-002: Any change to the OVPR requirements or architecture is reviewed by polfer before it is made. No edit to docs/installer-refactor-ovpr/, no override of a polfer decision, and no code that departs from the written design until polfer approves the exact change. Each change is a proposal (RC-nn) quoting the current text; its docs PR merges before dependent code. D-001 approves no requirements text.",
+  "governingRule": {
+    "description": "polfer instruction 2026-11-16 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-002; OVPR-CHANGE-GATE.md)",
+    "path": "docs/installer-refactor-ovpr/",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Review at PR time",
+      "whyNot": "A PR is not where a requirements change gets proposed"
+    }
+  ],
+  "whyWinner": "polfer required review before the change, not after.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:23Z",
+  "revisitTrigger": "polfer changes the change-gate procedure",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "process",
+    "change-gate"
+  ]
+}

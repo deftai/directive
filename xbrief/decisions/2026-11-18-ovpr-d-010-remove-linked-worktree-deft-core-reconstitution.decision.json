@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-010-remove-linked-worktree-deft-core-reconstitution",
+  "decision": "D-010 (option A): Remove linked-worktree .deft/core reconstitution (reconstituteLinkedWorktreeDeposit, #4443 / #5390) for consumer projects. It serves the retired vendored layout, and new code never serves old-layout repos (section A9). Swarm worktree prep without a pin fails closed with the Rule 3 project-install message instead of copying content. Unit P2-U12 (#6562), two PRs, after P2-U2.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-010)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep reconstitution with a runtime-pin check",
+      "whyNot": null
+    },
+    {
+      "option": "Leave as is",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Accommodation for the retired layout; copies without a pin check (#6465).",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:25Z",
+  "revisitTrigger": "A supported OVPR path is found to need it",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "worktree"
+  ],
+  "relatedIssues": [
+    4443,
+    5390,
+    6465,
+    6562
+  ]
+}
