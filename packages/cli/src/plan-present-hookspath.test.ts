@@ -13,7 +13,9 @@ import type { InvokeResult } from "./contract-invoke.js";
 import { setupArgv } from "./contract-invoke.js";
 import { readProjectInstallState } from "./pin.js";
 import {
+  foreignHooksInactiveFromSummary,
   HOOK_MANAGER_TIP_LINE,
+  presentRepairSuccess,
   presentUpgradeSuccess,
   tryParseSetupSummary,
 } from "./plan-present.js";
@@ -314,6 +316,35 @@ describe("first install with a global hooks folder (#4960)", () => {
     expect(c.text()).toContain("Git runs hooks from one folder only.");
     expect(calls[0]).toContain("--take-over-hooks-path");
     expect(c.text()).toContain("This repository now uses Directive's .githooks folder.");
+  });
+});
+
+describe("takeover that did not take effect (#4960)", () => {
+  it("repair names the setting to remove, not git init", () => {
+    const disclosure =
+      "Git hooks inactive: core.hooksPath is still 'included-hooks' after setting .githooks, because file:/x/extra.gitconfig sets it. Remove that setting, then run directive install --repair.";
+    const summary = tryParseSetupSummary(
+      JSON.stringify({
+        created: [],
+        modified: [],
+        removed: [],
+        conflicts: [],
+        gitHooksInactive: disclosure,
+        message: `setup repair completed; ${disclosure}`,
+      }),
+    );
+    expect(foreignHooksInactiveFromSummary(summary)).toBe(disclosure);
+    const c = capture();
+    presentRepairSuccess(c.io, {
+      version: VERSION,
+      restoredPackage: false,
+      summary,
+      verbosity: 0,
+    });
+    const text = c.text().replace(/\s+/g, " ");
+    expect(text).toContain("Remove that setting");
+    expect(text).not.toContain("git init");
+    expect(text).not.toContain("This repository now uses Directive's .githooks folder.");
   });
 });
 

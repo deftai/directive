@@ -4,7 +4,7 @@
  * (`takeOverHooksPath`); doctor names `directive install --repair`.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -188,6 +188,34 @@ describe("ensureGitHooks with another core.hooksPath (#4960 / #5846)", () => {
     const result = ensureGitHooks(root, { takeOverHooksPath: true });
     expect(result.hooksPathTakenOver).toEqual({ previous: "custom-hooks", scope: "local" });
     expect(git(root, "config", "--get", "core.hooksPath")).toBe(".githooks");
+  });
+
+  it("repeated local hooksPath entries: takeover replaces all of them", () => {
+    const root = repo();
+    git(root, "config", "--local", "core.hooksPath", "first-hooks");
+    git(root, "config", "--local", "--add", "core.hooksPath", "second-hooks");
+    const result = ensureGitHooks(root, { takeOverHooksPath: true });
+    expect(result.hooksPathActive).toBe(true);
+    expect(result.hooksPathTakenOver).toEqual({ previous: "second-hooks", scope: "local" });
+    expect(git(root, "config", "--local", "--get-all", "core.hooksPath")).toBe(".githooks");
+  });
+
+  it("value from an included config still wins: names the file, not a bare repair", () => {
+    const root = repo();
+    const included = join(temp("hookspath-include-"), "extra.gitconfig");
+    writeFileSync(included, "[core]\n\thooksPath = included-hooks\n");
+    // Include sits after the key we write, so it keeps winning.
+    const configPath = join(root, ".git", "config");
+    writeFileSync(
+      configPath,
+      `${readFileSync(configPath, "utf8")}[include]\n\tpath = ${included.replace(/\\/g, "/")}\n`,
+    );
+    const result = ensureGitHooks(root, { takeOverHooksPath: true });
+    expect(result.hooksPathActive).toBe(false);
+    expect(result.hooksPathTakenOver).toBeNull();
+    expect(result.inactiveDisclosure).toContain("still 'included-hooks'");
+    expect(result.inactiveDisclosure).toContain("extra.gitconfig");
+    expect(result.inactiveDisclosure).toContain("Remove that setting");
   });
 
   it("unset hooksPath: activates as before and reports no takeover", () => {

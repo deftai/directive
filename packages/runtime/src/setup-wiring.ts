@@ -1302,6 +1302,30 @@ export function formatForeignHooksPathInactive(state: HooksPathState): string {
   );
 }
 
+/**
+ * Disclosure when setting `.githooks` did not take effect because another config
+ * source still wins (an included file, or `git -c`). Names where it is set.
+ */
+export function formatHooksPathStillForeign(projectRoot: string, state: HooksPathState): string {
+  let origin = "";
+  try {
+    const raw = execFileSync(
+      "git",
+      ["-C", projectRoot, "config", "--show-origin", "--get", "core.hooksPath"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const tab = raw.indexOf("\t");
+    origin = (tab >= 0 ? raw.slice(0, tab) : "").trim();
+  } catch {
+    origin = "";
+  }
+  const where = origin === "" ? describeHooksPathScope(state.scope) : origin;
+  return (
+    `Git hooks inactive: core.hooksPath is still '${state.value ?? ""}' after setting .githooks, ` +
+    `because ${where} sets it. Remove that setting, then run directive install --repair.`
+  );
+}
+
 export interface EnsureGitHooksOptions {
   /** Explicit pre-write operator force: replace tracked divergent managed hooks (#5837). */
   readonly forceTrackedReplace?: boolean;
@@ -1445,11 +1469,14 @@ export function ensureGitHooks(
     } else if (state.kind === "unset" || options.takeOverHooksPath === true) {
       // Repository config only; never global or system (P20). A worktree-scoped
       // value outranks local config, so replace it where it lives.
+      // --replace-all: a repository config may hold the key more than once.
       const where = state.scope === "worktree" ? "--worktree" : "--local";
       try {
-        execFileSync("git", ["-C", projectRoot, "config", where, "core.hooksPath", ".githooks"], {
-          stdio: ["ignore", "ignore", "ignore"],
-        });
+        execFileSync(
+          "git",
+          ["-C", projectRoot, "config", where, "--replace-all", "core.hooksPath", ".githooks"],
+          { stdio: ["ignore", "ignore", "ignore"] },
+        );
       } catch {
         /* verified below */
       }
@@ -1460,7 +1487,9 @@ export function ensureGitHooks(
           hooksPathTakenOver = { previous: state.value, scope: state.scope };
         }
       } else if (after.kind === "foreign") {
-        inactiveDisclosure = formatForeignHooksPathInactive(after);
+        // Still another value after our write (an included config file or the
+        // command line wins). Repeating repair cannot fix that; name the file.
+        inactiveDisclosure = formatHooksPathStillForeign(projectRoot, after);
       } else {
         inactiveDisclosure = "Git hooks inactive: could not set core.hooksPath=.githooks";
       }
