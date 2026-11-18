@@ -252,3 +252,89 @@ describe("F-014 uninstall plan/report summary", () => {
     expect(cV.out()).toContain(".agents/skills/deft/SKILL.md");
   });
 });
+
+describe("uninstall report at default verbosity (#6007 / AC11.11)", () => {
+  const summary = summarizeUninstallRemovals([".githooks/pre-commit"], {
+    willRemovePin: true,
+    preserveLabels: ["xbrief"],
+  });
+
+  it("shows the hooksPath outcome, worktrees, kept data, leftovers and uncertainty", () => {
+    const c = capture();
+    presentUninstallSuccess(c.io, {
+      projectRoot: "/tmp/shop",
+      complete: false,
+      removal: summary,
+      preserved: ["xbrief"],
+      leftovers: [".deft/directive/unknown.txt"],
+      uncertainty: ["GENERATION.json absent; used known-artifact map"],
+      pinRemoved: true,
+      hooksPath: {
+        result: "preserved-sibling",
+        siblings: ["/w/a", "/w/b", "/w/c", "/w/d"],
+      },
+      keptData: [".deft/occupancy.json", ".deft-cache/"],
+      worktrees: [".deft-scratch/worktrees/a", ".deft-scratch/worktrees/b", "tools/wt"],
+      verbosity: 0,
+    });
+    const text = c.out();
+    expect(text).toMatch(/partially finished/);
+    expect(text).toContain(
+      "Kept core.hooksPath=.githooks: 4 other worktrees still use Directive hooks (/w/a, /w/b, /w/c and 1 more). Git hooks in this worktree are off until you run: git config --unset core.hooksPath",
+    );
+    expect(text).toContain(
+      "Kept (Directive data that uninstall does not delete): .deft/occupancy.json, .deft-cache/.",
+    );
+    expect(text).toContain(
+      "Not touched: 3 registered Git worktrees in .deft-scratch/worktrees/ (2), tools/ (1).",
+    );
+    expect(text).toContain("Known leftovers: .deft/directive/unknown.txt.");
+    expect(text).toContain("Not certain: GENERATION.json absent; used known-artifact map.");
+  });
+
+  it("claims the version removal only when the package manager removed it (#5999)", () => {
+    const failed = capture();
+    presentUninstallSuccess(failed.io, {
+      projectRoot: "/tmp/shop",
+      complete: false,
+      removal: summary,
+      pinRemoved: false,
+      verbosity: 0,
+    });
+    expect(failed.out()).not.toMatch(/Directive version from development tools/);
+    const ok = capture();
+    presentUninstallSuccess(ok.io, {
+      projectRoot: "/tmp/shop",
+      complete: true,
+      removal: summary,
+      pinRemoved: true,
+      hooksPath: { result: "unset" },
+      verbosity: 0,
+    });
+    expect(ok.out()).toMatch(/Directive version from development tools/);
+    expect(ok.out()).toContain("Unset core.hooksPath (it pointed at Directive's .githooks).");
+  });
+
+  it("plan names every worktree and the shared files it edits", () => {
+    const c = capture();
+    presentUninstallPlan(c.io, {
+      projectRoot: "/tmp/shop",
+      pm: "pnpm",
+      pmEvidence: "pnpm-lock.yaml",
+      pinVersion: "1.2.3",
+      pmCommand: null,
+      verbosity: 0,
+      removal: summary,
+      directiveLineFiles: [".gitattributes", "greptile.json"],
+      keptData: [".deft-scratch/"],
+      worktrees: [".deft-scratch/worktrees/a", ".deft-scratch/worktrees/b"],
+    });
+    const text = c.out();
+    expect(text).toContain(
+      "remove the lines Directive wrote in .gitattributes, greptile.json (the files stay)",
+    );
+    expect(text).toContain("Kept (Directive data that uninstall does not delete): .deft-scratch/.");
+    expect(text).toContain("  .deft-scratch/worktrees/a\n  .deft-scratch/worktrees/b\n");
+    expect(text).toMatch(/Don't delete \.deft-scratch\/ while these worktrees are registered/);
+  });
+});

@@ -28,6 +28,7 @@ import {
   removeLegacyBareVersionMarkers,
   removeOrphanDeftVersion,
   removeSoleAuthorHusks,
+  removeSoleAuthorManifest,
   runStep,
 } from "./steps.js";
 import { runStrategy, STRATEGIES, strategyForShape } from "./strategies.js";
@@ -100,9 +101,10 @@ describe("pruneEmptyAncestors (C4 / F-012)", () => {
 });
 
 describe("removeSoleAuthorHusks (C5 / F-013)", () => {
-  it("removes {private:true}-only package.json and {} hooks we created", () => {
+  it("removes {} hooks we created and leaves package.json for the package manager (#5999)", () => {
     const root = tempRoot();
     writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    writeFileSync(join(root, "package-lock.json"), "{}\n");
     mkdirSync(join(root, ".cursor"), { recursive: true });
     writeFileSync(join(root, ".cursor", "hooks.json"), "{}\n");
     // User content must stay.
@@ -114,8 +116,11 @@ describe("removeSoleAuthorHusks (C5 / F-013)", () => {
     );
 
     const removed = removeSoleAuthorHusks(root);
-    expect(removed).toEqual(expect.arrayContaining(["package.json", ".cursor/hooks.json"]));
-    expect(existsSync(join(root, "package.json"))).toBe(false);
+    expect(removed).toContain(".cursor/hooks.json");
+    expect(removed).not.toContain("package.json");
+    expect(removed).not.toContain("package-lock.json");
+    expect(existsSync(join(root, "package.json"))).toBe(true);
+    expect(existsSync(join(root, "package-lock.json"))).toBe(true);
     expect(existsSync(join(root, ".cursor", "hooks.json"))).toBe(false);
     expect(existsSync(join(root, "xbrief", "keep.txt"))).toBe(true);
     expect(JSON.parse(readFileSync(join(root, "real-pkg.json"), "utf8")).name).toBe("app");
@@ -165,7 +170,7 @@ describe("removeSoleAuthorHusks (C5 / F-013)", () => {
       )}\n`,
     );
 
-    const removed = removeSoleAuthorHusks(root);
+    const removed = removeSoleAuthorManifest(root);
     expect(removed).toEqual(expect.arrayContaining(["package.json", "package-lock.json"]));
     expect(existsSync(join(root, "package.json"))).toBe(false);
     expect(existsSync(join(root, "package-lock.json"))).toBe(false);

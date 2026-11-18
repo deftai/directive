@@ -11,14 +11,17 @@
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
+import { filesWithDirectiveLines, removeDirectiveWrittenLines } from "./retired-lines.js";
 
 export type UninstallOwnershipKind =
   | "whole-file"
@@ -742,6 +745,14 @@ export function applyLauncherCleanup(
     if (safeUnlink(projectRoot, ".deft/GENERATION.json")) removed.push(".deft/GENERATION.json");
   }
 
+  // Directive-written lines in shared files (AC8.10 / AC13.3); the files stay.
+  const lines = removeDirectiveWrittenLines(projectRoot, (rel, body) =>
+    safeWriteText(projectRoot, rel, body),
+  );
+  modified.push(...lines.modified);
+  leftovers.push(...lines.leftovers);
+  uncertainty.push(...lines.uncertainty);
+
   // Preserved settings/data even when not listed.
   if (existsSync(join(projectRoot, "xbrief")) && !preserved.includes("xbrief")) {
     preserved.push("xbrief");
@@ -767,6 +778,7 @@ function listLinkedWorktreePaths(projectRoot: string): string[] {
   try {
     const out = execFileSync("git", ["-C", projectRoot, "worktree", "list", "--porcelain"], {
       encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
     });
     const paths: string[] = [];
     for (const line of out.split(/\r?\n/)) {
@@ -778,15 +790,110 @@ function listLinkedWorktreePaths(projectRoot: string): string[] {
   }
 }
 
-function siblingNeedsHooksPath(projectRoot: string): boolean {
-  const rootResolved = join(projectRoot);
-  for (const wt of listLinkedWorktreePaths(projectRoot)) {
-    if (join(wt) === rootResolved) continue;
-    // Sibling still has Directive git-hook helper → shared hooksPath must stay.
-    if (existsSync(join(wt, ".githooks", "_directive-run.sh"))) return true;
-    if (existsSync(join(wt, ".deft", "GENERATION.json"))) return true;
+function realOrResolved(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return resolve(path);
   }
-  return false;
+}
+
+/** True when two paths name the same folder (symlinks and `C:/` vs `C:\\` resolved). */
+function samePath(a: string, b: string): boolean {
+  return relative(realOrResolved(a), realOrResolved(b)) === "";
+}
+
+/**
+ * Other worktrees of this repository that still use Directive git hooks, so
+ * the shared `core.hooksPath` must stay (AC11.6 / §A9).
+ */
+export function siblingWorktreesNeedingHooksPath(projectRoot: string): string[] {
+  const out: string[] = [];
+  for (const wt of listLinkedWorktreePaths(projectRoot)) {
+    if (samePath(wt, projectRoot)) continue;
+    if (
+      existsSync(join(wt, ".githooks", "_directive-run.sh")) ||
+      existsSync(join(wt, ".deft", "GENERATION.json"))
+    ) {
+      out.push(wt);
+    }
+  }
+  return out;
+}
+
+/**
+ * Registered git worktrees inside the project folder, as project-relative
+ * POSIX paths (#6007 / D-025). Uninstall never touches them; it names them.
+ */
+export function registeredWorktreesInsideProject(projectRoot: string): string[] {
+  const root = realOrResolved(projectRoot);
+  const out: string[] = [];
+  for (const wt of listLinkedWorktreePaths(projectRoot)) {
+    const rel = relative(root, realOrResolved(wt));
+    if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) continue;
+    out.push(rel.replace(/\\/g, "/"));
+  }
+  return out.sort();
+}
+
+/** `.gitignore` lines setup seeds; mirrors the runtime's sole-author rule (F-013). */
+const GITIGNORE_SEED_LINES: ReadonlySet<string> = new Set([
+  "node_modules/",
+  "node_modules",
+  "/node_modules/",
+  ".deft/directive/wiring-ready.*.json",
+]);
+
+/** Directive housekeeping at the project root that uninstall keeps (D-025). */
+const KEPT_ROOT_ENTRIES = [".deft-cache", ".deft-scratch", ".deft-run-summary.json"] as const;
+
+/** `.deft/` entries uninstall removes itself, or reports as leftovers. */
+const DEFT_DIR_REMOVED = new Set(["GENERATION.json", "core", "directive"]);
+
+function isDirectory(abs: string): boolean {
+  try {
+    return statSync(abs).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Directive data that uninstall keeps and lists (D-025 / AC11.2 / AC11.7):
+ * `.deft/` policy and state files, `.deft-cache/`, `.deft-scratch/`,
+ * `.deft-run-summary.json`, and Directive lines left in `.gitignore`.
+ * `xbrief/` is reported separately as preserved project data.
+ */
+export function listKeptDirectiveData(projectRoot: string): string[] {
+  const out: string[] = [];
+  const deftDir = join(projectRoot, ".deft");
+  if (isDirectory(deftDir)) {
+    let names: string[] = [];
+    try {
+      names = readdirSync(deftDir).sort();
+    } catch {
+      names = [];
+    }
+    for (const name of names) {
+      if (DEFT_DIR_REMOVED.has(name)) continue;
+      out.push(isDirectory(join(deftDir, name)) ? `.deft/${name}/` : `.deft/${name}`);
+    }
+  }
+  for (const rel of KEPT_ROOT_ENTRIES) {
+    const abs = join(projectRoot, rel);
+    if (existsSync(abs)) out.push(isDirectory(abs) ? `${rel}/` : rel);
+  }
+  const gitignore = readText(join(projectRoot, ".gitignore"));
+  const ignoreLines = (gitignore ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("#"));
+  // A `.gitignore` holding only setup's seed lines is removed with the rest (F-013).
+  const soleAuthor = ignoreLines.every((l) => GITIGNORE_SEED_LINES.has(l));
+  if (!soleAuthor && ignoreLines.some((l) => /^\/?\.deft([/-]|$)/.test(l))) {
+    out.push(".gitignore (Directive lines)");
+  }
+  return out;
 }
 
 /**
@@ -806,7 +913,7 @@ export function cleanupHooksPath(projectRoot: string): CleanupReport["hooksPath"
   if (current !== ".githooks" && current !== ".githooks/") {
     return "preserved-foreign";
   }
-  if (siblingNeedsHooksPath(projectRoot)) {
+  if (siblingWorktreesNeedingHooksPath(projectRoot).length > 0) {
     return "preserved-sibling";
   }
   try {
@@ -847,5 +954,102 @@ export function verifyUninstallComplete(projectRoot: string): {
     leftovers.push(`package.json#${LAUNCHER_PACKAGE_NAME}`);
   }
   for (const rel of listWiringReady(projectRoot)) leftovers.push(rel);
+  for (const rel of filesWithDirectiveLines(projectRoot))
+    leftovers.push(`${rel} (Directive lines)`);
   return { complete: leftovers.length === 0, leftovers };
+}
+
+/** Manifest and lockfiles the package manager needs for its remove (#5999). */
+export const MANIFEST_RELS = [
+  "package.json",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+] as const;
+
+/** Bytes of the manifest and lockfiles before the repository uninstaller runs. */
+export function snapshotManifestFiles(projectRoot: string): Map<string, Buffer> {
+  const snap = new Map<string, Buffer>();
+  for (const rel of MANIFEST_RELS) {
+    try {
+      snap.set(rel, readFileSync(join(projectRoot, rel)));
+    } catch {
+      /* absent */
+    }
+  }
+  return snap;
+}
+
+/**
+ * Write back manifest files an older repository uninstaller deleted before the
+ * package manager ran (#5999). Restores the pre-uninstall bytes exactly.
+ * @returns the restored paths
+ */
+export function restoreManifestFiles(projectRoot: string, snap: Map<string, Buffer>): string[] {
+  const restored: string[] = [];
+  for (const [rel, bytes] of snap) {
+    const abs = join(projectRoot, rel);
+    try {
+      // Anything at the path (even a dangling symlink) means: leave it alone.
+      lstatSync(abs);
+      continue;
+    } catch {
+      /* absent: restore */
+    }
+    try {
+      writeFileSync(abs, bytes, { flag: "wx" });
+      restored.push(rel);
+    } catch {
+      /* reported by the completion check */
+    }
+  }
+  return restored;
+}
+
+const DIRECTIVE_PACKAGE_NAMES: ReadonlySet<string> = new Set([
+  LAUNCHER_PACKAGE_NAME,
+  RUNTIME_PACKAGE_NAME,
+]);
+
+function isEmptyObject(value: unknown): boolean {
+  const o = object(value);
+  return o !== null && Object.keys(o).length === 0;
+}
+
+/**
+ * True when package.json is only Directive greenfield residue: `"private": true`
+ * plus at most empty `scripts` and Directive-only dependency maps. Launcher copy
+ * of the runtime's `isSoleAuthorPackageJson` (drift test in uninstall-bookend.test.ts).
+ */
+export function isSoleAuthorPackageJson(pkg: Record<string, unknown>): boolean {
+  if (pkg.private !== true) return false;
+  for (const [key, value] of Object.entries(pkg)) {
+    if (key === "private") continue;
+    if (key === "scripts" && isEmptyObject(value)) continue;
+    if (key === "dependencies" || key === "devDependencies" || key === "peerDependencies") {
+      const deps = object(value);
+      if (deps !== null && Object.keys(deps).every((name) => DIRECTIVE_PACKAGE_NAMES.has(name))) {
+        continue;
+      }
+      return false;
+    }
+    return false;
+  }
+  return true;
+}
+
+/**
+ * After a successful package-manager remove: delete a sole-author package.json
+ * and its lockfiles (F-013 / C5, moved here from the repository uninstaller by
+ * #5999). Leaves a user-authored manifest alone (AC11.7).
+ * @returns removed paths
+ */
+export function removeSoleAuthorManifest(projectRoot: string): string[] {
+  const pkg = readJsonObject(join(projectRoot, "package.json"));
+  if (pkg === null || !isSoleAuthorPackageJson(pkg)) return [];
+  const removed: string[] = [];
+  for (const rel of ["package.json", "package-lock.json", "pnpm-lock.yaml"] as const) {
+    if (safeUnlink(projectRoot, rel)) removed.push(rel);
+  }
+  return removed;
 }

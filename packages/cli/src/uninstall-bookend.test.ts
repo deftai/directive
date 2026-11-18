@@ -3,15 +3,26 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { isSoleAuthorPackageJson as runtimeIsSoleAuthorPackageJson } from "../../runtime/src/removal-steps/steps.js";
 import { type BookendIo, runUninstall, type UninstallDeps } from "./bookends.js";
 import type { ProjectInstallState } from "./pin.js";
 import {
   applyLauncherCleanup,
   discoverUninstallFootprint,
+  isSoleAuthorPackageJson,
   verifyUninstallComplete,
 } from "./uninstall-map.js";
 
@@ -400,5 +411,363 @@ describe("runUninstall bookend (AC11.3 / AC11.8)", () => {
     const code = runUninstall(root, baseState(root), ["--yes"], "0.0.0-yolo", io, deps);
     expect(code).toBe(0);
     expect(io.out()).toMatch(/fallback verified complete|complete/i);
+  });
+});
+
+function walkFiles(root: string, rel = ""): string[] {
+  const abs = rel ? join(root, rel) : root;
+  const out: string[] = [];
+  for (const name of readdirSync(abs)) {
+    if (!rel && (name === ".git" || name === "node_modules")) continue;
+    const childRel = rel ? `${rel}/${name}` : name;
+    if (statSync(join(root, childRel)).isDirectory()) out.push(...walkFiles(root, childRel));
+    else out.push(childRel);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// #5999 / #6007: manifest order, honest result, shared-file lines, report
+// ---------------------------------------------------------------------------
+
+const RUNTIME = "@deftai/directive-runtime";
+const MANAGED_GITATTRIBUTES =
+  "# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths\n" +
+  "# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).\n" +
+  ".githooks/** text=auto eol=lf\n" +
+  "AGENTS.md text=auto eol=lf\n";
+
+function writeNpmLock(root: string): void {
+  writeFileSync(
+    join(root, "package-lock.json"),
+    `${JSON.stringify(
+      {
+        name: "t",
+        lockfileVersion: 3,
+        requires: true,
+        packages: { "": { devDependencies: { [RUNTIME]: "0.0.0-yolo.cp-wave2g.1" } } },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+/** A package-manager remove that, like npm/pnpm, needs package.json to exist. */
+function fakePmRemove(root: string, calls: string[]): UninstallDeps["runPmRemove"] {
+  return ({ packageName }) => {
+    const pkgPath = join(root, "package.json");
+    if (!existsSync(pkgPath)) {
+      calls.push("no-manifest");
+      return {
+        ok: false,
+        message: `pnpm remove -D ${packageName} failed (exit 1)`,
+        stderr: "ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND",
+      };
+    }
+    calls.push(readFileSync(pkgPath, "utf8"));
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
+    const dev = (pkg.devDependencies ?? {}) as Record<string, unknown>;
+    delete dev[packageName];
+    writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+    return { ok: true };
+  };
+}
+
+function snapshotTree(root: string, rel: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const file of walkFiles(join(root, rel))) {
+    out[file] = readFileSync(join(root, rel, file), "utf8");
+  }
+  return out;
+}
+
+describe("uninstall keeps package.json until the package manager is done (#5999)", () => {
+  it("npm greenfield cycle: no package.json or lockfile left, Directive lines gone, xbrief identical, exit 0", () => {
+    const root = tempProject();
+    seedModernInstall(root);
+    writeNpmLock(root);
+    writeFileSync(join(root, ".gitattributes"), `*.png binary\n\n${MANAGED_GITATTRIBUTES}`);
+    writeFileSync(
+      join(root, "greptile.json"),
+      `{\n  "ignorePatterns": "build/**\\n.deft/core/**"\n}\n`,
+    );
+    const xbriefBefore = snapshotTree(root, "xbrief");
+    const calls: string[] = [];
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: fakePmRemove(root, calls),
+      },
+    );
+    expect(code).toBe(0);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain(RUNTIME);
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+    expect(existsSync(join(root, "package-lock.json"))).toBe(false);
+    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toBe("*.png binary\n");
+    expect(readFileSync(join(root, "greptile.json"), "utf8")).toBe(
+      `{\n  "ignorePatterns": "build/**"\n}\n`,
+    );
+    expect(snapshotTree(root, "xbrief")).toEqual(xbriefBefore);
+    const text = io.out();
+    expect(text).toMatch(/✓ Uninstalled/);
+    expect(text).toMatch(/the Directive version from development tools/);
+    expect(text).toMatch(/Directive lines in \.gitattributes, greptile\.json/);
+  });
+
+  it("pnpm remove failure: exit non-zero, package.json kept, failure named, no removal claim", () => {
+    const root = tempProject();
+    seedModernInstall(root);
+    writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    const pkgBefore = readFileSync(join(root, "package.json"), "utf8");
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: ({ packageName }) => ({
+          ok: false,
+          message: `pnpm remove -D ${packageName} failed (exit 1)`,
+          stderr: "ERR_PNPM_SOMETHING",
+        }),
+      },
+    );
+    expect(code).not.toBe(0);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(pkgBefore);
+    expect(existsSync(join(root, "pnpm-lock.yaml"))).toBe(true);
+    const text = io.out();
+    expect(text).toMatch(/partially finished/);
+    expect(text).toContain(`package.json#${RUNTIME} (pnpm remove -D ${RUNTIME} failed (exit 1))`);
+    expect(text).not.toMatch(/the Directive version from development tools/);
+  });
+
+  it("older runtime that deletes package.json: launcher restores it before the package-manager remove", () => {
+    const root = tempProject();
+    seedModernInstall(root);
+    writeNpmLock(root);
+    const pkgBefore = readFileSync(join(root, "package.json"), "utf8");
+    const calls: string[] = [];
+    const io = captureIo();
+    const code = runUninstall(root, baseState(root), ["--yes"], "0.0.0-yolo", io, {
+      stdinIsTTY: false,
+      invokeUninstall: () => {
+        // Old order: the repository uninstaller removes the sole-author manifest first.
+        rmSync(join(root, "package.json"));
+        rmSync(join(root, "package-lock.json"));
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify({ contract: 1, entry: "uninstall", removed: ["package.json"] }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        };
+      },
+      runPmRemove: fakePmRemove(root, calls),
+    });
+    expect(calls).toEqual([pkgBefore]);
+    expect(code).toBe(0);
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+    expect(existsSync(join(root, "package-lock.json"))).toBe(false);
+  });
+
+  it("user-authored package.json keeps every non-Directive field (AC11.7)", () => {
+    const root = tempProject();
+    seedModernInstall(root);
+    const userPkg = {
+      name: "shop",
+      version: "1.0.0",
+      private: true,
+      scripts: { test: "vitest" },
+      devDependencies: { [RUNTIME]: "0.0.0-yolo.cp-wave2g.1", leftpad: "1.0.0" },
+    };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(userPkg, null, 2)}\n`);
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: fakePmRemove(root, []),
+      },
+    );
+    expect(code).toBe(0);
+    const after = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+    expect(after).toEqual({ ...userPkg, devDependencies: { leftpad: "1.0.0" } });
+  });
+
+  it("runtime package still installed after a successful remove: partial, exit non-zero, no node_modules path", () => {
+    const root = tempProject();
+    seedModernInstall(root);
+    mkdirSync(join(root, "node_modules", "@deftai", "directive-runtime"), { recursive: true });
+    writeFileSync(
+      join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
+      "{}\n",
+    );
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: fakePmRemove(root, []),
+      },
+    );
+    expect(code).not.toBe(0);
+    expect(io.out()).toMatch(/partially finished/);
+    expect(io.out()).toContain(`Directive package still installed (${RUNTIME})`);
+    expect(io.out()).not.toContain("node_modules/@deftai");
+  });
+
+  it("launcher cleanup leftover makes the result partial (AC11.11)", () => {
+    const root = tempProject();
+    seedModernInstall(root);
+    writeFileSync(join(root, ".deft", "directive", "unknown.txt"), "?\n");
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: fakePmRemove(root, []),
+      },
+    );
+    expect(code).not.toBe(0);
+    expect(io.out()).toMatch(/partially finished/);
+    expect(io.out()).toContain(".deft/directive/unknown.txt");
+  });
+
+  it("launcher sole-author rule matches the runtime's", () => {
+    const samples: Array<Record<string, unknown>> = [
+      { private: true },
+      { private: true, devDependencies: { [RUNTIME]: "1.0.0" } },
+      { private: true, devDependencies: {}, scripts: {} },
+      { private: true, dependencies: { "@deftai/directive": "1.0.0", [RUNTIME]: "1.0.0" } },
+      { private: true, devDependencies: { leftpad: "1.0.0" } },
+      { private: true, scripts: { test: "x" } },
+      { private: false },
+      { name: "app", private: true },
+      { private: true, devDependencies: [] },
+      {},
+    ];
+    for (const pkg of samples) {
+      expect(isSoleAuthorPackageJson(pkg), JSON.stringify(pkg)).toBe(
+        runtimeIsSoleAuthorPackageJson(pkg),
+      );
+    }
+  });
+});
+
+describe("uninstall says what it kept (#6007 / D-025)", () => {
+  it("lists kept Directive data and exits 0 for it", () => {
+    const root = tempProject();
+    seedModernInstall(root);
+    writeFileSync(join(root, ".deft", "occupancy.json"), "{}\n");
+    writeFileSync(join(root, ".deft", "forward-coverage.allow"), "x\n");
+    mkdirSync(join(root, ".deft", "session-binds"), { recursive: true });
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    writeFileSync(join(root, ".deft-cache", "c.json"), "{}\n");
+    writeFileSync(join(root, ".deft-run-summary.json"), "{}\n");
+    writeFileSync(join(root, ".gitignore"), "dist/\n.deft/directive/wiring-ready.*.json\n");
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: fakePmRemove(root, []),
+      },
+    );
+    expect(code).toBe(0);
+    const text = io.out();
+    const kept = text.split("\n").filter((l) => l.startsWith("Kept (Directive data"));
+    // Once in the plan, once in the report.
+    expect(kept).toHaveLength(2);
+    for (const line of kept) {
+      for (const item of [
+        ".deft/forward-coverage.allow",
+        ".deft/occupancy.json",
+        ".deft/session-binds/",
+        ".deft-cache/",
+        ".deft-run-summary.json",
+        ".gitignore (Directive lines)",
+      ]) {
+        expect(line).toContain(item);
+      }
+    }
+    expect(existsSync(join(root, ".deft", "occupancy.json"))).toBe(true);
+    expect(existsSync(join(root, ".deft-cache", "c.json"))).toBe(true);
+    expect(existsSync(join(root, ".deft-run-summary.json"))).toBe(true);
+  });
+
+  it("keeps core.hooksPath for a sibling worktree, says so, and names the worktree", () => {
+    const root = tempProject();
+    execFileSync("git", ["-C", root, "commit", "-q", "--allow-empty", "-m", "init"]);
+    execFileSync("git", [
+      "-C",
+      root,
+      "worktree",
+      "add",
+      "-q",
+      "-b",
+      "wt1",
+      join(root, ".deft-scratch", "worktrees", "wt1"),
+    ]);
+    const wt = join(root, ".deft-scratch", "worktrees", "wt1");
+    mkdirSync(join(wt, ".githooks"), { recursive: true });
+    writeFileSync(join(wt, ".githooks", "_directive-run.sh"), "#!/bin/sh\n");
+    seedModernInstall(root);
+    const io = captureIo();
+    const code = runUninstall(
+      root,
+      baseState(root, { installed: null }),
+      ["--yes"],
+      "0.0.0-yolo",
+      io,
+      {
+        stdinIsTTY: false,
+        runPmRemove: fakePmRemove(root, []),
+      },
+    );
+    expect(code).toBe(0);
+    expect(
+      execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], {
+        encoding: "utf8",
+      }).trim(),
+    ).toBe(".githooks");
+    const text = io.out();
+    expect(text).toMatch(
+      /Kept core\.hooksPath=\.githooks: 1 other worktree still uses Directive hooks \(.*wt1\)\./,
+    );
+    expect(text).toContain("git config --unset core.hooksPath");
+    // Plan names the worktree; report gives the count and folder.
+    expect(text).toMatch(/^ {2}\.deft-scratch\/worktrees\/wt1$/m);
+    expect(text).toMatch(/Don't delete \.deft-scratch\//);
+    expect(text).toContain(
+      "Not touched: 1 registered Git worktree in .deft-scratch/worktrees/ (1).",
+    );
+    expect(existsSync(join(wt, ".githooks", "_directive-run.sh"))).toBe(true);
   });
 });

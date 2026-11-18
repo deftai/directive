@@ -82,10 +82,17 @@ import {
   validateTargetVersionSpec,
 } from "./registry.js";
 import { type RegistryHintVerb, scopedRegistryHint } from "./registry-hint.js";
+import { filesWithDirectiveLines } from "./retired-lines.js";
 import {
   applyLauncherCleanup,
   cleanupHooksPath,
   discoverUninstallFootprint,
+  listKeptDirectiveData,
+  registeredWorktreesInsideProject,
+  removeSoleAuthorManifest,
+  restoreManifestFiles,
+  siblingWorktreesNeedingHooksPath,
+  snapshotManifestFiles,
   type UninstallDiscovery,
   verifyUninstallComplete,
 } from "./uninstall-map.js";
@@ -181,6 +188,8 @@ export interface UninstallDeps {
     discovery: UninstallDiscovery,
   ) => ReturnType<typeof applyLauncherCleanup>;
   readonly cleanupHooksPath?: (projectRoot: string) => ReturnType<typeof cleanupHooksPath>;
+  /** Other worktrees that still use Directive hooks (report for `preserved-sibling`). */
+  readonly siblingWorktrees?: (projectRoot: string) => string[];
 }
 
 const CANCELLED_NO_CHANGES = "Cancelled. No project files were changed.";
@@ -1555,6 +1564,10 @@ export function runUninstall(
         ]
       : undefined;
 
+  // Shown at default verbosity: what uninstall edits in shared files, what it
+  // keeps, and the worktrees it leaves alone (AC11.3 / #6007 / D-025).
+  const directiveLineFiles = filesWithDirectiveLines(projectRoot);
+  const worktrees = registeredWorktreesInsideProject(projectRoot);
   presentUninstallPlan(io, {
     projectRoot,
     pm: pmDetect.ok ? pmDetect.pm : null,
@@ -1564,6 +1577,9 @@ export function runUninstall(
     verbosity: flags.verbosity,
     removal,
     extraHumanLines,
+    directiveLineFiles,
+    keptData: listKeptDirectiveData(projectRoot).filter((k) => !keepPaths.includes(k)),
+    worktrees,
   });
 
   if (flags.dryRun) {
@@ -1583,6 +1599,9 @@ export function runUninstall(
   );
   if (approval !== null) return approval;
 
+  // The package manager needs package.json for its remove. An older pinned
+  // runtime's uninstaller deletes it first (#5999), so keep the bytes to restore.
+  const manifestSnapshot = snapshotManifestFiles(projectRoot);
   let runtimeUninstallAttempted = false;
   let runtimeUninstallFailed = false;
   if (state.installed && state.contractSupported) {
@@ -1625,11 +1644,21 @@ export function runUninstall(
     }
   }
 
-  // PM remove after wiring cleanup (AC11.6).
+  const restored = restoreManifestFiles(projectRoot, manifestSnapshot);
+  if (restored.length > 0 && flags.verbosity >= 1) {
+    io.writeOut(`Restored ${restored.join(", ")} for the package manager remove.\n`);
+  }
+
+  // PM remove after wiring cleanup (AC11.6). Track the real result (#5999).
+  const pmLeftovers = new Map<string, string>();
+  let pinRemoved = false;
   if (packagesToRemove.length > 0) {
     if (!pmDetect.ok) {
       io.writeErr(`${pmDetect.message}\n`);
       io.writeErr("Could not remove package dependency via PM; pin may remain.\n");
+      for (const packageName of packagesToRemove) {
+        pmLeftovers.set(packageName, "no package manager found");
+      }
     } else {
       for (const packageName of packagesToRemove) {
         if (packageName === LAUNCHER_PACKAGE_NAME) {
@@ -1648,39 +1677,79 @@ export function runUninstall(
           io.writeErr(
             `PM remove of ${packageName} failed; continuing remaining uninstall steps.\n`,
           );
+          pmLeftovers.set(packageName, rm.message);
         } else if (flags.verbosity >= 1) {
           io.writeOut(`Removed ${packageName} via ${pmDetect.pm}.\n`);
         }
       }
     }
+    pinRemoved = pmLeftovers.size === 0;
   }
+
+  // Sole-author manifest goes only after the package manager is done with it (F-013 / #5999).
+  const manifestRemoved = pmLeftovers.size === 0 ? removeSoleAuthorManifest(projectRoot) : [];
 
   const hooksPathResult = deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot);
   if (flags.verbosity >= 1) {
     io.writeOut(`core.hooksPath: ${hooksPathResult}\n`);
   }
+  const siblings =
+    hooksPathResult === "preserved-sibling"
+      ? (deps.siblingWorktrees?.(projectRoot) ?? siblingWorktreesNeedingHooksPath(projectRoot))
+      : [];
 
   const verification = verifyUninstallComplete(projectRoot);
-  // Legacy launcher pin leftover only matters for old-style; modern projects should not have it.
-  const filteredLeftovers = verification.leftovers.filter((l) => {
+  const leftovers: string[] = [];
+  for (const l of verification.leftovers) {
+    // Legacy launcher pin leftover only matters for old-style; modern projects should not have it.
     if (
       l === `package.json#${LAUNCHER_PACKAGE_NAME}` &&
       !state.oldStyle &&
       !discovery.hasLegacyLauncherPin
     ) {
-      return false;
+      continue;
     }
-    return true;
-  });
-  const complete = filteredLeftovers.length === 0;
+    const pkg = l.startsWith("package.json#") ? l.slice("package.json#".length) : null;
+    const why = pkg !== null ? pmLeftovers.get(pkg) : undefined;
+    leftovers.push(why !== undefined ? `${l} (${why})` : l);
+  }
+  for (const [pkg, why] of pmLeftovers) {
+    if (!leftovers.some((l) => l.startsWith(`package.json#${pkg}`))) {
+      leftovers.push(`package.json#${pkg} (${why})`);
+    }
+  }
+  // AC5.16: never list node_modules; name the package instead.
+  if (
+    pinRemoved &&
+    packagesToRemove.includes(RUNTIME_PACKAGE_NAME) &&
+    existsSync(join(projectRoot, "node_modules", "@deftai", "directive-runtime"))
+  ) {
+    leftovers.push(`Directive package still installed (${RUNTIME_PACKAGE_NAME})`);
+  }
+  if (hooksPathResult === "unchanged") leftovers.push("core.hooksPath (could not unset)");
+  for (const l of cleanup.leftovers) {
+    if (!leftovers.includes(l)) leftovers.push(l);
+  }
+  // AC11.11: any leftover, failed PM remove or still-installed package is partial.
+  const complete = leftovers.length === 0;
 
+  const linesRemoved = cleanup.modified
+    .filter((m) => m.endsWith("#directive-lines"))
+    .map((m) => m.slice(0, -"#directive-lines".length));
+  const keptLabels = cleanup.preserved.length > 0 ? cleanup.preserved : keepPaths;
   presentUninstallSuccess(io, {
     projectRoot,
     complete,
     removal,
-    removedPaths: cleanup.removed,
-    preserved: cleanup.preserved.length > 0 ? cleanup.preserved : keepPaths,
-    leftovers: filteredLeftovers,
+    removedPaths: [...cleanup.removed, ...manifestRemoved],
+    preserved: keptLabels,
+    leftovers,
+    uncertainty: cleanup.uncertainty,
+    pinRemoved,
+    directiveLineFiles: linesRemoved,
+    hooksPath: { result: hooksPathResult, siblings },
+    keptData: listKeptDirectiveData(projectRoot).filter((k) => !keptLabels.includes(k)),
+    worktrees,
     verbosity: flags.verbosity,
   });
   if (runtimeUninstallAttempted && runtimeUninstallFailed && complete) {

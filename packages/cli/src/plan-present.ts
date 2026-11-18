@@ -125,6 +125,41 @@ export interface UninstallPlanFields {
   readonly removal?: UninstallRemovalSummary | null;
   /** @deprecated Prefer removal summary; kept for callers that still pass prose lines at -v. */
   readonly extraHumanLines?: readonly string[];
+  /** Shared files that hold lines Directive wrote (`.gitattributes`, `greptile.json`, …). */
+  readonly directiveLineFiles?: readonly string[];
+  /** Directive data uninstall keeps (D-025). */
+  readonly keptData?: readonly string[];
+  /** Registered git worktrees inside the project folder (#6007 / D-025). */
+  readonly worktrees?: readonly string[];
+}
+
+/** core.hooksPath outcome for the uninstall report (AC11.6 / #6007). */
+export interface UninstallHooksPathOutcome {
+  readonly result: "unset" | "preserved-sibling" | "preserved-foreign" | "absent" | "unchanged";
+  /** Other worktrees that still use Directive hooks (for `preserved-sibling`). */
+  readonly siblings?: readonly string[];
+}
+
+/** "a, b, c and 4 more" (keeps long lists readable). */
+function formatShortList(items: readonly string[], max = 8): string {
+  if (items.length <= max) return items.join(", ");
+  return `${items.slice(0, max).join(", ")} and ${items.length - max} more`;
+}
+
+const SCRATCH_DIR = ".deft-scratch/";
+
+function writeWorktreeNames(io: PresentIo, worktrees: readonly string[]): void {
+  writeHumanParagraph(
+    io,
+    `Uninstall does not touch these ${worktrees.length} registered Git worktree${worktrees.length === 1 ? "" : "s"} inside this project. They may hold uncommitted work:`,
+  );
+  for (const wt of worktrees) io.writeOut(`  ${wt}\n`);
+  if (worktrees.some((wt) => wt.startsWith(SCRATCH_DIR))) {
+    writeHumanParagraph(
+      io,
+      "Don't delete .deft-scratch/ while these worktrees are registered. Remove a worktree with: git worktree remove <path>",
+    );
+  }
 }
 
 function writeBlank(io: PresentIo): void {
@@ -620,6 +655,12 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
 
   if (fields.removal) {
     writeUninstallActionBullets(io, fields.removal, fields.pm);
+    if (fields.directiveLineFiles && fields.directiveLineFiles.length > 0) {
+      writeBullet(
+        io,
+        `remove the lines Directive wrote in ${fields.directiveLineFiles.join(", ")} (the files stay)`,
+      );
+    }
     writeBlank(io);
     const keep =
       fields.removal.preserveLabels.length > 0
@@ -631,6 +672,16 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
       io,
       "I'll remove Directive-owned wiring and the runtime pin from this project. Your xbrief/ project data and unrelated files stay in place.",
     );
+  }
+  if (fields.keptData && fields.keptData.length > 0) {
+    writeHumanParagraph(
+      io,
+      `Kept (Directive data that uninstall does not delete): ${formatShortList(fields.keptData)}.`,
+    );
+  }
+  if (fields.worktrees && fields.worktrees.length > 0) {
+    writeBlank(io);
+    writeWorktreeNames(io, fields.worktrees);
   }
   writeBlank(io);
   writePmCommandVerbose(io, PM_WILL_RUN_LABEL, fields.pmCommand, fields.verbosity);
@@ -887,6 +938,52 @@ export function presentUpgradeSuccess(
   }
 }
 
+/** Folders that hold the worktrees, with counts: ".deft-scratch/worktrees/ (60)". */
+function worktreeFolders(worktrees: readonly string[]): string {
+  const counts = new Map<string, number>();
+  for (const wt of worktrees) {
+    const slash = wt.lastIndexOf("/");
+    const parent = slash > 0 ? `${wt.slice(0, slash)}/` : "./";
+    counts.set(parent, (counts.get(parent) ?? 0) + 1);
+  }
+  return [...counts].map(([dir, n]) => `${dir} (${n})`).join(", ");
+}
+
+function writeHooksPathOutcome(io: PresentIo, outcome: UninstallHooksPathOutcome): void {
+  switch (outcome.result) {
+    case "unset":
+      writeHumanParagraph(io, "Unset core.hooksPath (it pointed at Directive's .githooks).");
+      return;
+    case "preserved-sibling": {
+      const siblings = outcome.siblings ?? [];
+      const n = siblings.length;
+      const who =
+        n > 0
+          ? `${n} other worktree${n === 1 ? " still uses" : "s still use"} Directive hooks (${formatShortList(siblings, 3)})`
+          : "another worktree still uses Directive hooks";
+      writeHumanParagraph(
+        io,
+        `Kept core.hooksPath=.githooks: ${who}. Git hooks in this worktree are off until you run: git config --unset core.hooksPath`,
+      );
+      return;
+    }
+    case "preserved-foreign":
+      writeHumanParagraph(
+        io,
+        "Left core.hooksPath as it is: it does not point at Directive's .githooks.",
+      );
+      return;
+    case "unchanged":
+      writeHumanParagraph(
+        io,
+        "Could not unset core.hooksPath. Run: git config --unset core.hooksPath",
+      );
+      return;
+    case "absent":
+      return;
+  }
+}
+
 /** Uninstall completion — category voice; path inventory at -v (F-014). */
 export function presentUninstallSuccess(
   io: PresentIo,
@@ -897,6 +994,15 @@ export function presentUninstallSuccess(
     removedPaths?: readonly string[];
     preserved?: readonly string[];
     leftovers?: readonly string[];
+    /** Launcher-cleanup uncertainty (AC11.11). */
+    uncertainty?: readonly string[];
+    /** Actual package-manager result; overrides the plan's `removal.willRemovePin` (#5999). */
+    pinRemoved?: boolean;
+    /** Shared files whose Directive lines were removed. */
+    directiveLineFiles?: readonly string[];
+    hooksPath?: UninstallHooksPathOutcome;
+    keptData?: readonly string[];
+    worktrees?: readonly string[];
     verbosity: Verbosity;
   },
 ): void {
@@ -913,13 +1019,19 @@ export function presentUninstallSuccess(
     if (opts.removal.hostHooks > 0) parts.push("host hooks");
     if (opts.removal.gitHooks > 0 || opts.removal.projectWiring > 0) parts.push("project wiring");
     if (opts.removal.legacyCore) parts.push("legacy core");
-    if (opts.removal.willRemovePin) parts.push("the Directive version from development tools");
+  }
+  if (opts.directiveLineFiles && opts.directiveLineFiles.length > 0) {
+    parts.push(`Directive lines in ${opts.directiveLineFiles.join(", ")}`);
+  }
+  if (opts.pinRemoved ?? opts.removal?.willRemovePin ?? false) {
+    parts.push("the Directive version from development tools");
   }
   if (parts.length > 0) {
     writeHumanParagraph(io, `Removed ${parts.join(", ")}.`);
   } else {
     writeHumanParagraph(io, "Removed Directive-owned wiring from this project.");
   }
+  if (opts.hooksPath) writeHooksPathOutcome(io, opts.hooksPath);
 
   const preserved = opts.preserved ?? opts.removal?.preserveLabels ?? [];
   if (preserved.length > 0) {
@@ -927,10 +1039,26 @@ export function presentUninstallSuccess(
   } else {
     writeHumanParagraph(io, "Preserved xbrief/ project data and unrelated files.");
   }
+  if (opts.keptData && opts.keptData.length > 0) {
+    writeHumanParagraph(
+      io,
+      `Kept (Directive data that uninstall does not delete): ${formatShortList(opts.keptData)}.`,
+    );
+  }
+  if (opts.worktrees && opts.worktrees.length > 0) {
+    const n = opts.worktrees.length;
+    writeHumanParagraph(
+      io,
+      `Not touched: ${n} registered Git worktree${n === 1 ? "" : "s"} in ${worktreeFolders(opts.worktrees)}. They may hold uncommitted work; remove them with git worktree remove, not by deleting the folder.`,
+    );
+  }
 
-  if (!opts.complete && opts.leftovers && opts.leftovers.length > 0) {
+  if (opts.leftovers && opts.leftovers.length > 0) {
     writeBlank(io);
     writeHumanParagraph(io, `Known leftovers: ${opts.leftovers.join(", ")}.`);
+  }
+  if (opts.uncertainty && opts.uncertainty.length > 0) {
+    writeHumanParagraph(io, `Not certain: ${opts.uncertainty.join("; ")}.`);
   }
 
   writeBlank(io);
