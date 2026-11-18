@@ -1591,8 +1591,19 @@ export function quoteShellArg(arg: string, platform: NodeJS.Platform = process.p
   if (/^[A-Za-z0-9_@%+=:,./\\-]+$/.test(arg)) return arg;
   if (platform === "win32") {
     // Windows argv rules: a backslash run before a quote (or the closing quote) doubles.
-    const escaped = arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, "$1$1");
-    return `"${escaped}"`;
+    // One linear pass (no backtracking regex): count a backslash run, double it when a
+    // quote or the end of the string follows.
+    let escaped = "";
+    let run = 0;
+    for (const ch of arg) {
+      if (ch === "\\") {
+        run += 1;
+        continue;
+      }
+      escaped += ch === '"' ? `${"\\".repeat(run * 2)}\\"` : `${"\\".repeat(run)}${ch}`;
+      run = 0;
+    }
+    return `"${escaped}${"\\".repeat(run * 2)}"`;
   }
   return `'${arg.replace(/'/g, `'\\''`)}'`;
 }

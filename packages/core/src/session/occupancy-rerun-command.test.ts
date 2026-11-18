@@ -39,6 +39,10 @@ describe("quoteShellArg and formatRerunCommand (#6647)", () => {
     expect(quoteShellArg('a\\"b c', "win32")).toBe('"a\\\\\\"b c"');
     expect(quoteShellArg("C:\\my repo\\", "win32")).toBe('"C:\\my repo\\\\"');
     expect(quoteShellArg("C:\\my repo", "win32")).toBe('"C:\\my repo"');
+    // A very long backslash run stays linear and doubles before the closing quote.
+    const long = "\\".repeat(50000);
+    expect(quoteShellArg(`a b${long}`, "win32")).toBe(`"a b${long}${long}"`);
+    expect(quoteShellArg(`${long}"`, "win32")).toBe(`"${long}${long}\\""`);
   });
 
   it("keeps the caller's arguments, drops any --session-id and appends the id", () => {
