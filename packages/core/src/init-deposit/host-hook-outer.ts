@@ -9,15 +9,25 @@
  * validated eligible (lstat regular-file + successful untracked `git ls-files`
  * listing with usable captured output). Tracked / wrong kind / indeterminate
  * never select the override.
+ *
+ * The outer runs the first steps of the shared entry order
+ * (`install-health/constants.ts`, #6620): disabled → runtime missing → run the
+ * runtime's hook-bin. Its messages are rows of that table.
  */
 
 import { createHash } from "node:crypto";
 import type { HookHost } from "../hooks/dispatcher.js";
+import {
+  ENTRY_GUARD_MESSAGES,
+  ENTRY_GUARD_PERSON_RUNS_INSTALL,
+} from "../install-health/constants.js";
 
-/** Project-PM guidance for missing pin (⊗ AC9.7 INSTALLATION_RECOVERY_GUIDANCE). */
-export const HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE =
-  "Directive hooks: missing node_modules/@deftai/directive-runtime. " +
-  "Run npm install or pnpm install (or yarn) in this project.";
+/**
+ * The outer's missing-runtime message (AC9.12, D-013): the `runtime-missing`
+ * row plus the note that a person runs the install. `{install}` is filled in
+ * from the project's lockfile when the outer runs.
+ */
+export const HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE = `${ENTRY_GUARD_MESSAGES["runtime-missing"]} ${ENTRY_GUARD_PERSON_RUNS_INSTALL}`;
 
 export const HOST_HOOK_OUTER_PIN_HOOK_BIN_REL =
   "node_modules/@deftai/directive-runtime/dist/hook-bin.js";
@@ -63,12 +73,9 @@ export function isHostHookOuterCommand(commandText: string): boolean {
 /**
  * Reason the outer gives when the pin exists but hook-bin reached no decision
  * (spawn error, signal / null status, non-zero exit, stdout capture failure,
- * or malformed Grok output). Placeholder wording; P4-U3a moves it into the
- * shared message table (#6201 / #6166).
+ * or malformed Grok output): the `hook-failed` row (#6201 / #6166).
  */
-export const HOST_HOOK_NONDECISION_REASON =
-  "Directive hooks: the hook could not reach a decision. " +
-  "Run directive doctor in this project to see the fix.";
+export const HOST_HOOK_NONDECISION_REASON = ENTRY_GUARD_MESSAGES["hook-failed"];
 
 /**
  * Pure ESM outer source deposited under each host dir.
@@ -86,8 +93,9 @@ export function hostHookOuterSource(): string {
   const pinRel = HOST_HOOK_OUTER_PIN_HOOK_BIN_REL;
   return `#!/usr/bin/env node
 /**
- * Directive host-hook outer (v261027 / #5994 / #6122 / #6201). Node built-ins only.
- * F1 order: eligible disable → missing pin (project PM) → spawn pin hook-bin.js.
+ * Directive host-hook outer (v261027 / #5994 / #6122 / #6201 / #6620). Node built-ins only.
+ * Shared entry order: eligible disable → runtime missing (project install, by
+ * lockfile) → spawn pin hook-bin.js.
  * Eligible = lstat regular-file + successful untracked git ls-files listing.
  * Any failure on tool.before blocks the tool call in the host's own form.
  */
@@ -145,6 +153,13 @@ function gitTrackListing(root, rel) {
   return r.stdout.trim().length > 0 ? "tracked" : "untracked";
 }
 
+/** The project install named in GUIDANCE, from the lockfile at root (AC9.12). */
+function installCommand(root) {
+  if (existsSync(join(root, "pnpm-lock.yaml"))) return "\`pnpm install --frozen-lockfile\`";
+  if (existsSync(join(root, "package-lock.json"))) return "\`npm install\`";
+  return "\`npm install\` (or \`pnpm install --frozen-lockfile\`)";
+}
+
 function quietAllow() {
   process.exit(0);
 }
@@ -199,7 +214,7 @@ if (isRegularFile(killPath) && gitTrackListing(root, FLAG) === "untracked") {
 
 const pin = join(root, PIN_REL);
 if (!existsSync(pin)) {
-  blockToolCall(host, event, GUIDANCE);
+  blockToolCall(host, event, GUIDANCE.replace("{install}", () => installCommand(root)));
 }
 
 const child = spawnSync(process.execPath, [pin, ...argv], {

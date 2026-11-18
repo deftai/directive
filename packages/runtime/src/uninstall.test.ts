@@ -110,7 +110,7 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     ).toBeFalsy();
   });
 
-  it("prunes empty skill/command/.githooks husks and sole-author package.json (F-012/F-013)", () => {
+  it("prunes empty skill/command/.githooks husks and keeps package.json for the package manager (F-012/F-013, #5999)", () => {
     const root = tempRoot();
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(join(root, "xbrief", "NOTE.txt"), "user-data\n");
@@ -120,13 +120,17 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
 
     runSetup({ operation: "install", from: "none", root });
     expect(existsSync(join(root, ".agents", "skills", "deft", "SKILL.md"))).toBe(true);
+    writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
 
     const result = runUninstall({ root });
     expect(result.stub).toBe(false);
+    expect(existsSync(join(root, "pnpm-lock.yaml"))).toBe(true);
     expect(existsSync(join(root, ".agents", "skills", "deft"))).toBe(false);
     expect(existsSync(join(root, ".githooks"))).toBe(false);
     expect(existsSync(join(root, ".claude", "commands"))).toBe(false);
-    expect(existsSync(join(root, "package.json"))).toBe(false);
+    // The launcher removes the runtime through the package manager, then the manifest.
+    expect(existsSync(join(root, "package.json"))).toBe(true);
+    expect(result.removed).not.toContain("package.json");
     expect(existsSync(join(root, "xbrief", "NOTE.txt"))).toBe(true);
     expect(existsSync(join(root, ".agents", "skills", "user-skill", "SKILL.md"))).toBe(true);
 
