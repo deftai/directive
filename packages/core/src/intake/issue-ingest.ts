@@ -26,11 +26,16 @@ import {
   classifyDesignCritiqueIngestPosture,
   DESIGN_CRITIQUE_INGEST_ADVISORY,
 } from "../design-critique/ingest-posture.js";
+import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { formatStaleIngestReadyDiagnostic } from "../design-critique/stale-ingest-ready-diagnostic.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
 import { stampIntendedPlacement } from "../preflight/intended-placement.js";
+import {
+  ADMITTED_SOURCE_EXTRACTOR_KEY,
+  ADMITTED_SOURCE_EXTRACTOR_V2,
+} from "../product-first-done-gate/acceptance.js";
 import {
   ADMITTED_SOURCE_DIGEST_KEY,
   ADMITTED_SOURCE_SENTENCES_KEY,
@@ -55,6 +60,7 @@ import {
 } from "../umbrella-current-shape/index.js";
 import { slugify, TODAY } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import {
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
@@ -63,6 +69,12 @@ import {
   MIGRATED_INFO_ROOT_KEY,
   VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
+import {
+  type CriteriaOnlyCandidate,
+  hasCriteriaOnlyRecordShape,
+  selectAdmittedSourceUnits,
+  selectCriteriaOnlyRecord,
+} from "./admitted-source-units.js";
 import {
   applyEmptyAfterHarvestNoticeForIngest,
   emitAcceptanceStampFromPlan,
@@ -107,6 +119,7 @@ import {
   attachSpecPathSourceRecord,
   findSpecPathSliceHolders,
   harvestSpecPathLean,
+  SPEC_PATH_SOURCE_KIND_CRITERIA_ONLY,
   type SpecPathSourceRecord,
 } from "./spec-path-source.js";
 
@@ -1576,6 +1589,42 @@ function applyHarvestedItemClauses(plan: Record<string, unknown>): void {
 }
 
 /**
+ * #6609 item 3: on the body route the sentence list, the pin and its digest come
+ * from the selected units, and the pin carries `admitted_source_extractor: 2`.
+ * The issue title is not on the list. On the sentence route a plan item title
+ * that is not already a unit joins the sentence list (not the pin), so every
+ * item still has its clause. A body with no units keeps the earlier stamp.
+ */
+function applyBodyRouteUnits(
+  plan: Record<string, unknown>,
+  selection: { readonly route: "list" | "sentence"; readonly units: readonly string[] } | null,
+): void {
+  const acceptance = asPlainRecord(plan.acceptance);
+  if (selection === null || selection.units.length === 0 || acceptance === null) {
+    return;
+  }
+  const units = selection.units.map(collapseWhitespace);
+  const sentences = [...units];
+  if (selection.route === "sentence") {
+    const known = new Set(units);
+    for (const raw of Array.isArray(plan.items) ? plan.items : []) {
+      const title = collapseWhitespace(String(asPlainRecord(raw)?.title ?? ""));
+      if (title.length > 0 && !known.has(title)) {
+        known.add(title);
+        sentences.push(title);
+      }
+    }
+  }
+  plan.acceptance = {
+    ...acceptance,
+    sentences,
+    [ADMITTED_SOURCE_SENTENCES_KEY]: units,
+    [ADMITTED_SOURCE_DIGEST_KEY]: digestAdmittedSourceSentences(units),
+    [ADMITTED_SOURCE_EXTRACTOR_KEY]: ADMITTED_SOURCE_EXTRACTOR_V2,
+  };
+}
+
+/**
  * #6333 item 7: on the body route ingest writes one clause per sentence-list
  * entry, same text, in order (title sentence and reference lines included).
  * The pin and its extractor do not change; a pinned sentence the list folded
@@ -1735,12 +1784,21 @@ export function buildIssueVbrief(
     narratives.Labels = labelNames.join(", ");
   }
 
+  // #6609: the body route picks its admitted units once (list route or
+  // sentence route). On the list route the plan items are those units.
+  const bodyUnits =
+    specPathHarvest === undefined && bodyStr.length > 0 ? selectAdmittedSourceUnits(bodyStr) : null;
   const planItemsRaw =
     specPathHarvest !== undefined
       ? specPathHarvest.items.map((item) => ({ title: item.title, status: item.status }))
-      : bodyStr.length > 0
-        ? extractPlanItems(bodyStr)
-        : [];
+      : bodyUnits !== null && bodyUnits.route === "list"
+        ? bodyUnits.units.map((title, index) => ({
+            title,
+            status: bodyUnits.statuses[index] ?? "proposed",
+          }))
+        : bodyStr.length > 0
+          ? extractPlanItems(bodyStr)
+          : [];
   // #2447: scan each derived plan-item title (empty-body issues still scan title above).
   const planItems = planItemsRaw.map((item) => ({
     ...item,
@@ -1825,6 +1883,7 @@ export function buildIssueVbrief(
   if (specPathHarvest !== undefined) {
     applyHarvestedItemClauses(plan);
   } else {
+    applyBodyRouteUnits(plan, bodyUnits);
     applySentenceListClauses(plan);
   }
   // #4671: empty plan.items after harvest must not print silent CREATED.
@@ -1897,15 +1956,21 @@ export function formatIngestCreatedMessage(
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return lead;
   }
+  // #6609 item 5: a report line, never a gate, so a mismatch shows before promote.
+  const planItems = (plan as { items?: unknown }).items;
   const acceptance = (plan as { acceptance?: unknown }).acceptance;
+  const counts =
+    `acceptance: ${readAcceptanceClauses(acceptance).length} clause(s), ` +
+    `${Array.isArray(planItems) ? planItems.length : 0} plan item(s)`;
+  const withCounts = `${lead}\n${counts}`;
   if (typeof acceptance !== "object" || acceptance === null || Array.isArray(acceptance)) {
-    return lead;
+    return withCounts;
   }
   const notice = (acceptance as { quality_notice?: unknown }).quality_notice;
   if (typeof notice !== "string" || notice.trim().length === 0) {
-    return lead;
+    return withCounts;
   }
-  return `${lead}\n${notice.trim()}`;
+  return `${withCounts}\n${notice.trim()}`;
 }
 
 export function targetFilename(
@@ -2201,6 +2266,48 @@ function threadCommentsFromIssue(issue: Record<string, unknown>): ThreadComment[
     out.push(threadCommentFromRow(id, body, rec));
   }
   return out;
+}
+
+/** Comment rows of an enriched issue as criteria-only candidates (#6609 item 6). */
+function criteriaOnlyCandidates(issue: Record<string, unknown>): CriteriaOnlyCandidate[] {
+  const out: CriteriaOnlyCandidate[] = [];
+  for (const raw of issueCommentThread(issue)) {
+    const id = Number(raw.id);
+    if (!Number.isSafeInteger(id) || id <= 0 || typeof raw.body !== "string") {
+      continue;
+    }
+    const login = raw.user?.login;
+    out.push({ id, body: raw.body, login: typeof login === "string" ? login : null });
+  }
+  return out;
+}
+
+/** Login of the issue's author (REST `user.login`), or null when the row has none. */
+function issueAuthorLogin(issue: Record<string, unknown>): string | null {
+  const login = asPlainRecord(issue.user)?.login;
+  return typeof login === "string" && login.length > 0 ? login : null;
+}
+
+/** One forge JSON read through the injected SCM call; a failure is returned, never thrown. */
+function forgeJsonRead(
+  path: string,
+  scmCall: ScmCallFn | undefined,
+  cwd: string | null | undefined,
+):
+  | { readonly ok: true; readonly value: unknown }
+  | { readonly ok: false; readonly detail: string } {
+  try {
+    const result = (scmCall ?? call)("github-issue", "api", [path], {
+      timeout: 30,
+      cwd: cwd ?? undefined,
+    });
+    if (result.returncode !== 0) {
+      return { ok: false, detail: (result.stderr || "").trim() || `exit ${result.returncode}` };
+    }
+    return { ok: true, value: JSON.parse(result.stdout) as unknown };
+  } catch (exc) {
+    return { ok: false, detail: exc instanceof Error ? exc.message : String(exc) };
+  }
 }
 
 /**
@@ -2626,7 +2733,12 @@ export function ingestOne(
       cwd: options.cwd,
       cacheRoot: options.cacheRoot,
     });
-    const comments = threadCommentsFromIssue(enriched);
+    const threadComments = threadCommentsFromIssue(enriched);
+    // #6609 item 6: a criteria-only record carries a Target-digest line, which
+    // the arc reader would take for a successor lean and block ingest as an
+    // arc "in flight". It is not a lean, so the arc is read without it; the
+    // posture below still sees it (not-warranted, `skipped-recorded`).
+    const comments = threadComments.filter((comment) => !hasCriteriaOnlyRecordShape(comment.body));
     const labels = issueLabelNames(enriched);
     const issueBody = typeof enriched.body === "string" ? enriched.body : "";
     // #6333 item 8: a slice line selects the slice route before any arc on
@@ -2644,7 +2756,7 @@ export function ingestOne(
       : classifyDesignCritiqueIngestPosture({
           verdict: preview,
           issueBody,
-          comments,
+          comments: threadComments,
         });
     if (ingestPosture !== null) {
       const projectRootForSummary =
@@ -2779,6 +2891,55 @@ export function ingestOne(
         if (pin.status === "match") {
           admittedDigest = pin.digest;
         }
+      }
+    }
+
+    // #6609 item 6: with no completed-arc record, a not-warranted record
+    // comment by the issue's author or an account with write access may carry
+    // the acceptance criteria. It is harvested through the Spec-path route.
+    if (
+      verdict.status === "not-in-arc" &&
+      specPathHarvest === undefined &&
+      repoSlug !== null &&
+      !sliceRoute
+    ) {
+      const criteria = selectCriteriaOnlyRecord({
+        comments: criteriaOnlyCandidates(enriched),
+        issueAuthor: issueAuthorLogin(enriched),
+        repo: repoSlug,
+        reader: {
+          getJson: (path) => forgeJsonRead(path, options.scmCall, options.cwd),
+        },
+      });
+      if (criteria.status === "found") {
+        const liveBody = fetchLiveIssueBodyForAdmission(number, options.repoUrl, {
+          scmCall: options.scmCall,
+          cwd: options.cwd,
+        });
+        const pin = evaluateTargetDigestAdmission({
+          citedLeanBody: criteria.body,
+          liveIssueBody: liveBody,
+        });
+        if (pin.status === "blocked") {
+          throw new DesignCritiqueIngestBlockedError(number, pin.reason, pin.detail);
+        }
+        if (pin.status === "match") {
+          admittedDigest = pin.digest;
+        }
+        leanCommentId = criteria.commentId;
+        specPathHarvest = {
+          items: criteria.items.map((title) => ({ title, status: "proposed" })),
+          sourceText: `${criteria.items.map((item) => `- ${item}`).join("\n")}\n`,
+          constraintLines: [],
+        };
+        specPathSource = {
+          repo: repoSlug,
+          issue: number,
+          leanCommentId: criteria.commentId,
+          harvestDigest: hashHarvestIdentity(criteria.body),
+          slice: null,
+          kind: SPEC_PATH_SOURCE_KIND_CRITERIA_ONLY,
+        };
       }
     }
 

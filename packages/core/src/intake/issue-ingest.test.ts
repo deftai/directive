@@ -20,7 +20,11 @@ import {
 } from "../design-critique/completed-arc-record.js";
 import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { INTENDED_PLACEMENT_SCHEMA } from "../preflight/intended-placement.js";
-import { extractAdmittedSourceSentencesFromText } from "../product-first-done-gate/acceptance.js";
+import {
+  digestAdmittedSourceSentences,
+  extractAdmittedSourceSentencesFromText,
+  stampAcceptanceFromLiteralCapture,
+} from "../product-first-done-gate/acceptance.js";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import type { CompletedProcess } from "../scm/call.js";
 import * as scm from "../scm/call.js";
@@ -53,7 +57,11 @@ import {
   stripRenderedIssueHeader,
 } from "./issue-ingest.js";
 import { extractBoundRemedyHarvest } from "./markdown-scanners.js";
-import { readSpecPathSourceRecord, resolveSpecPathLiveIdentities } from "./spec-path-source.js";
+import {
+  fetchSpecPathLiveIdentities,
+  readSpecPathSourceRecord,
+  resolveSpecPathLiveIdentities,
+} from "./spec-path-source.js";
 
 /** Tester 1 Issue A body from nheroux-bit/show-env-report-uat#1 (#4671). */
 const TESTER1_ISSUE_A_BODY = [
@@ -93,15 +101,16 @@ function readJsonObject(filePath: string): Record<string, unknown> {
 
 describe("formatIngestCreatedMessage (#3398)", () => {
   it("appends a quality_notice so a refused stamp is not silent", () => {
+    // #6609 item 5: the counts line follows the created path, then any notice.
     expect(formatIngestCreatedMessage("proposed", "a.xbrief.json", { title: "x" })).toBe(
-      "CREATED proposed/a.xbrief.json",
+      "CREATED proposed/a.xbrief.json\nacceptance: 0 clause(s), 0 plan item(s)",
     );
     expect(
       formatIngestCreatedMessage("proposed", "a.xbrief.json", {
         acceptance: { quality_notice: "derive clauses from the statement's testable constraints" },
       }),
     ).toBe(
-      "CREATED proposed/a.xbrief.json\nderive clauses from the statement's testable constraints",
+      "CREATED proposed/a.xbrief.json\nacceptance: 0 clause(s), 0 plan item(s)\nderive clauses from the statement's testable constraints",
     );
     expect(
       formatIngestCreatedMessage(
@@ -228,7 +237,7 @@ describe("buildIssueVbrief", () => {
     );
     expect(acceptance.quality_notice ?? "").not.toContain("plan.items is empty after body harvest");
     expect(formatIngestCreatedMessage("proposed", "issue-a.xbrief.json", plan)).toBe(
-      "CREATED proposed/issue-a.xbrief.json",
+      "CREATED proposed/issue-a.xbrief.json\nacceptance: 5 clause(s), 3 plan item(s)",
     );
   });
 
@@ -349,8 +358,8 @@ describe("buildIssueVbrief", () => {
       expect(stamp?.schema_version).toBe(1);
       expect(stamp?.payload.rung).toBe("derived");
       expect(stamp?.payload.none_stated).toBe(true);
-      // #6333 item 7: title sentence plus the body sentence.
-      expect(stamp?.payload.clause_count).toBe(2);
+      // #6609: the title is not on the sentence list, so the one body sentence is the clause.
+      expect(stamp?.payload.clause_count).toBe(1);
     } finally {
       if (prev === undefined) {
         delete process.env.DEFT_RUN_SUMMARY_PATH;
@@ -3828,44 +3837,128 @@ describe("ingested briefs are launch-ready (#6333)", () => {
     });
   });
 
-  describe("body route (#6333 item 7)", () => {
-    const BODY = [
-      "Summary sentence one.",
+  describe("body route (#6333 item 7, #6609 items 1 to 5)", () => {
+    const FOOTER = "\u{1F916} Generated with [Claude Code](https://claude.com/claude-code)";
+    const LIST_BODY = [
+      "## Summary",
+      "",
+      "Ingest turns every sentence into a clause.",
+      "",
+      "## Evidence",
+      "",
+      "- [ ] a checkbox under Evidence",
       "",
       "## Acceptance Criteria",
       "",
-      "- Given a body, when it is ingested, then each sentence has a clause.",
+      "- [ ] First criterion holds.",
+      "- Second criterion",
+      "  wraps onto an indented line.",
+      "- Third criterion holds.",
       "",
-      "Refs #6286.",
+      "Refs #6599",
       "",
+      FOOTER,
     ].join("\n");
+    const CRITERIA_UNITS = [
+      "First criterion holds.",
+      "Second criterion wraps onto an indented line.",
+      "Third criterion holds.",
+    ];
 
-    it("writes one clause per sentence-list entry and keeps today's pin", () => {
+    it("list route: one plan item, clause, sentence and pin entry per criterion, version 2", () => {
       withRoot((root, xbriefDir) => {
-        const [result, path] = ingest(root, xbriefDir, issue(6410, BODY));
+        const [result, path] = ingest(root, xbriefDir, issue(6410, LIST_BODY));
         expect(result).toBe("created");
         const plan = readPlan(path);
         const acceptance = plan.acceptance as Record<string, unknown>;
-        const sentences = acceptance.sentences as string[];
-        expect(sentences[0]).toBe("issue 6410");
-        expect(sentences).toContain("Refs #6286.");
+        expect((plan.items as { title: string }[]).map((item) => item.title)).toEqual(
+          CRITERIA_UNITS,
+        );
+        expect(acceptance.sentences).toEqual(CRITERIA_UNITS);
+        expect(acceptance.admitted_source_sentences).toEqual(CRITERIA_UNITS);
         expect((acceptance.clauses as { text: string }[]).map((clause) => clause.text)).toEqual(
-          sentences,
+          CRITERIA_UNITS,
         );
-        const overview = (plan.narratives as Record<string, string>).Overview;
-        expect(acceptance.admitted_source_sentences).toEqual(
-          extractAdmittedSourceSentencesFromText(overview),
-        );
+        expect(acceptance.admitted_source_extractor).toBe(2);
         expect(readSpecPathSourceRecord(plan)).toBeNull();
-        const verdict = verify(root, plan, [], BODY);
+        // No hand edit: the live compare and the unmapped floor are clean.
+        const verdict = verify(root, plan, [], LIST_BODY);
         expect(verdict.cause).toBeUndefined();
         expect(verdict.ok).toBe(true);
+        // Pin deleted, digest kept: recovery re-reads the live body with version 2.
+        const recovered = structuredClone(plan);
+        (recovered.acceptance as Record<string, unknown>).admitted_source_sentences = undefined;
+        const afterDelete = verify(root, recovered, [], LIST_BODY);
+        expect(afterDelete.cause).toBeUndefined();
+        expect(afterDelete.ok).toBe(true);
       });
     });
 
-    it("adds a same-text clause for a pinned sentence the list folded into another spelling", () => {
+    it("prints the clause and plan item counts and never refuses on them", () => {
+      withRoot((root, xbriefDir) => {
+        const [result, , message] = ingest(root, xbriefDir, issue(6411, LIST_BODY));
+        expect(result).toBe("created");
+        expect(message).toContain("acceptance: 3 clause(s), 3 plan item(s)");
+        const [, , bare] = ingest(root, xbriefDir, issue(6412, ""));
+        expect(bare).toContain("acceptance: ");
+      });
+    });
+
+    it("ignores a fenced Acceptance Criteria example ahead of the real list", () => {
+      const body = [
+        "```md",
+        "## Acceptance Criteria",
+        "- fenced bullet",
+        "```",
+        "",
+        "## Acceptance Criteria",
+        "- real criterion.",
+      ].join("\n");
       const [vbrief] = buildIssueVbrief(
-        { number: 6411, title: "Ship it.", body: "ship it.\n", labels: [] },
+        { number: 6413, title: "t", body, labels: [] },
+        "proposed",
+        "https://github.com/o/r",
+      );
+      const plan = vbrief.plan as Record<string, unknown>;
+      const acceptance = plan.acceptance as Record<string, unknown>;
+      expect((plan.items as { title: string }[]).map((item) => item.title)).toEqual([
+        "real criterion.",
+      ]);
+      expect(acceptance.sentences).toEqual(["real criterion."]);
+      expect(acceptance.admitted_source_sentences).toEqual(["real criterion."]);
+    });
+
+    it("sentence route: no heading glue, no reference or footer lines, and every checkbox keeps a clause", () => {
+      const body = [
+        "## Summary",
+        "Ingest turns every sentence into a clause.",
+        "",
+        "## Evidence",
+        "- [ ] a checkbox item",
+        "",
+        "Refs #6599",
+        FOOTER,
+      ].join("\n");
+      const [vbrief] = buildIssueVbrief(
+        { number: 6414, title: "The issue title", body, labels: [] },
+        "proposed",
+        "https://github.com/o/r",
+      );
+      const plan = vbrief.plan as Record<string, unknown>;
+      const acceptance = plan.acceptance as Record<string, unknown>;
+      const clauses = (acceptance.clauses as { text: string }[]).map((clause) => clause.text);
+      expect(clauses).toEqual(acceptance.sentences);
+      expect(clauses.join("\n")).not.toContain("Summary");
+      expect(clauses.join("\n")).not.toContain("Refs #6599");
+      expect(clauses.join("\n")).not.toContain("Generated with");
+      expect(clauses).not.toContain("The issue title");
+      expect(clauses).toContain("a checkbox item");
+      expect(acceptance.admitted_source_extractor).toBe(2);
+    });
+
+    it("keeps the earlier stamp for a body with no units", () => {
+      const [vbrief] = buildIssueVbrief(
+        { number: 6415, title: "Ship it.", body: "", labels: [] },
         "proposed",
         "https://github.com/o/r",
       );
@@ -3873,10 +3966,221 @@ describe("ingested briefs are launch-ready (#6333)", () => {
         string,
         unknown
       >;
-      expect((acceptance.clauses as { text: string }[]).map((clause) => clause.text)).toEqual([
-        "Ship it.",
-        "ship it.",
-      ]);
+      expect(acceptance.admitted_source_extractor).toBeUndefined();
+    });
+
+    it("a pin with no extractor version is read with the legacy extractor", () => {
+      withRoot((root, xbriefDir) => {
+        const body = "Summary sentence one.\n\n## Acceptance Criteria\n- Do it.\n";
+        const [, path] = ingest(root, xbriefDir, issue(6416, body));
+        const plan = readPlan(path);
+        const legacy = extractAdmittedSourceSentencesFromText(body);
+        const acceptance = plan.acceptance as Record<string, unknown>;
+        acceptance.admitted_source_extractor = undefined;
+        acceptance.admitted_source_sentences = legacy;
+        acceptance.admitted_source_digest = digestAdmittedSourceSentences(legacy);
+        acceptance.sentences = legacy;
+        acceptance.clauses = legacy.map((text, index) => ({
+          id: index + 1,
+          text,
+          artifact_path: null,
+          ambiguous: false,
+          provenance: "statement",
+        }));
+        const verdict = verify(root, plan, [], body);
+        expect(verdict.cause).toBeUndefined();
+        expect(verdict.ok).toBe(true);
+        // Deleting the pin recovers it with the same legacy extractor.
+        acceptance.admitted_source_sentences = undefined;
+        const recovered = verify(root, plan, [], body);
+        expect(recovered.cause).toBeUndefined();
+        expect(recovered.ok).toBe(true);
+      });
+    });
+
+    it("a restamp keeps the extractor version with its pin and digest", () => {
+      const [vbrief] = buildIssueVbrief(
+        { number: 6417, title: "t", body: LIST_BODY, labels: [] },
+        "proposed",
+        "https://github.com/o/r",
+      );
+      const plan = vbrief.plan as Record<string, unknown>;
+      const before = plan.acceptance as Record<string, unknown>;
+      const after = stampAcceptanceFromLiteralCapture(plan).acceptance as Record<string, unknown>;
+      expect(after.admitted_source_extractor).toBe(2);
+      expect(after.admitted_source_sentences).toEqual(before.admitted_source_sentences);
+      expect(after.admitted_source_digest).toBe(before.admitted_source_digest);
+    });
+  });
+
+  describe("criteria-only record (#6609 item 6)", () => {
+    const NW = "design-critique: not warranted, because the criteria are the whole change";
+    const ITEMS = ["Given a body, then it ingests.", "Given a record, then it verifies."];
+    const ISSUE_BODY = "Plain body prose.";
+
+    function recordBody(body: string = ISSUE_BODY, items: readonly string[] = ITEMS): string {
+      return (
+        `${NW}\n\nTarget-digest: sha256:${hashIssueBodyBytes(body)}\n\n` +
+        `## Acceptance Criteria\n${items.map((item) => `- ${item}`).join("\n")}\n`
+      );
+    }
+
+    type Row = { id: number; body: string; login: string };
+
+    function forge(
+      number: number,
+      body: string,
+      rows: readonly Row[],
+      permissions: Record<string, string> = {},
+    ) {
+      return (_source: string, _verb: string, args: readonly string[]): CompletedProcess => {
+        const path = args[0] ?? "";
+        const asComment = (row: Row) => ({
+          id: row.id,
+          body: row.body,
+          user: { login: row.login },
+        });
+        if (path === `repos/o/r/issues/${number}`) {
+          return completed(
+            JSON.stringify({ number, title: "t", body, user: { login: "author" }, labels: [] }),
+            "",
+            0,
+          );
+        }
+        if (path.startsWith(`repos/o/r/issues/${number}/comments`)) {
+          return completed(JSON.stringify(rows.map(asComment)), "", 0);
+        }
+        const single = /^repos\/o\/r\/issues\/comments\/(\d+)$/.exec(path);
+        if (single !== null) {
+          const row = rows.find((candidate) => candidate.id === Number(single[1]));
+          return row === undefined
+            ? completed("", "404", 1)
+            : completed(JSON.stringify(asComment(row)), "", 0);
+        }
+        const perm = /^repos\/o\/r\/collaborators\/([^/]+)\/permission$/.exec(path);
+        if (perm !== null) {
+          const permission = permissions[decodeURIComponent(perm[1] ?? "")];
+          return permission === undefined
+            ? completed("", "404", 1)
+            : completed(JSON.stringify({ permission }), "", 0);
+        }
+        return completed("[]", "", 0);
+      };
+    }
+
+    function input(number: number, rows: readonly Row[]) {
+      return {
+        number,
+        title: `issue ${number}`,
+        html_url: `https://github.com/o/r/issues/${number}`,
+        body: ISSUE_BODY,
+        user: { login: "author" },
+        labels: [],
+        [ISSUE_COMMENT_THREAD_KEY]: rows.map((row) => ({
+          id: row.id,
+          body: row.body,
+          user: { login: row.login },
+        })),
+      };
+    }
+
+    function verifyCriteria(
+      root: string,
+      plan: Record<string, unknown>,
+      scmCall: ReturnType<typeof forge>,
+    ) {
+      return evaluateVerifyAcFromPlan(plan, {
+        projectRoot: root,
+        captureFromNarratives: false,
+        hasSuiteFloor: true,
+        bankOnPass: false,
+        reuseMode: "never",
+        admittedSourceMergeBase: null,
+        fetchAdmittedSourceText: () => ({ ok: true, text: ISSUE_BODY }),
+        fetchSpecPathLiveIdentities: (record) =>
+          fetchSpecPathLiveIdentities(record, (path) => scmCall("github-issue", "api", [path])),
+      });
+    }
+
+    it("harvests the author's record through the Spec-path route and verifies while unlanded", () => {
+      withRoot((root, xbriefDir) => {
+        const rows = [{ id: 8100000001, body: recordBody(), login: "author" }];
+        const scmCall = forge(6420, ISSUE_BODY, rows);
+        const [result, path] = ingest(root, xbriefDir, input(6420, rows), scmCall);
+        expect(result).toBe("created");
+        const plan = readPlan(path);
+        const acceptance = plan.acceptance as Record<string, unknown>;
+        expect((plan.items as { title: string }[]).map((item) => item.title)).toEqual(ITEMS);
+        expect(acceptance.sentences).toEqual(ITEMS);
+        expect(acceptance.admitted_source_sentences).toEqual(ITEMS);
+        expect((acceptance.clauses as { text: string }[]).map((clause) => clause.text)).toEqual(
+          ITEMS,
+        );
+        expect(readSpecPathSourceRecord(plan)).toEqual({
+          repo: "o/r",
+          issue: 6420,
+          leanCommentId: 8100000001,
+          harvestDigest: hashHarvestIdentity(rows[0]?.body ?? ""),
+          slice: null,
+          kind: "criteria-only",
+        });
+        const verdict = verifyCriteria(root, plan, scmCall);
+        expect(verdict.cause).toBeUndefined();
+        expect(verdict.ok).toBe(true);
+        // The record comment edited after ingest moves the harvest digest.
+        const edited = forge(6420, ISSUE_BODY, [
+          { ...(rows[0] as Row), body: recordBody(ISSUE_BODY, [...ITEMS, "Extra."]) },
+        ]);
+        expect(verifyCriteria(root, plan, edited).ok).toBe(false);
+      });
+    });
+
+    it("uses a record by an account with write access that is not the author", () => {
+      withRoot((root, xbriefDir) => {
+        const rows = [{ id: 8100000002, body: recordBody(), login: "maintainer" }];
+        const scmCall = forge(6421, ISSUE_BODY, rows, { maintainer: "write" });
+        const [result, path] = ingest(root, xbriefDir, input(6421, rows), scmCall);
+        expect(result).toBe("created");
+        expect(readSpecPathSourceRecord(readPlan(path))?.kind).toBe("criteria-only");
+        // Access withdrawn later: the live check refuses.
+        const revoked = forge(6421, ISSUE_BODY, rows, { maintainer: "read" });
+        expect(verifyCriteria(root, readPlan(path), revoked).ok).toBe(false);
+      });
+    });
+
+    it("does not use a record by a stranger without write access (body route instead)", () => {
+      withRoot((root, xbriefDir) => {
+        const rows = [{ id: 8100000003, body: recordBody(), login: "stranger" }];
+        const scmCall = forge(6422, ISSUE_BODY, rows, { stranger: "read" });
+        const [result, path] = ingest(root, xbriefDir, input(6422, rows), scmCall);
+        expect(result).toBe("created");
+        const plan = readPlan(path);
+        expect(readSpecPathSourceRecord(plan)).toBeNull();
+        expect((plan.acceptance as Record<string, unknown>).sentences).not.toContain(ITEMS[0]);
+      });
+    });
+
+    it("refuses a record whose Target-digest no longer matches the body", () => {
+      withRoot((root, xbriefDir) => {
+        const rows = [{ id: 8100000004, body: recordBody("Older body."), login: "author" }];
+        const scmCall = forge(6423, ISSUE_BODY, rows);
+        expect(() => ingest(root, xbriefDir, input(6423, rows), scmCall)).toThrow(
+          DesignCritiqueIngestBlockedError,
+        );
+      });
+    });
+
+    it("harvests a completed arc's lean instead of a criteria-only record", () => {
+      withRoot((root, xbriefDir) => {
+        const lean = leanBody();
+        const rows = [{ id: 8100000005, body: recordBody(), login: "author" }];
+        const thread = [...arc(lean), ...rows];
+        const [result, path] = ingest(root, xbriefDir, issue(6424, "Body prose.", thread));
+        expect(result).toBe("created");
+        const record = readSpecPathSourceRecord(readPlan(path));
+        expect(record?.leanCommentId).toBe(LEAN);
+        expect(record?.kind).toBeUndefined();
+      });
     });
   });
 });
