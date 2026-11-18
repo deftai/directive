@@ -201,6 +201,40 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     expect(err.filter((chunk) => chunk.includes(expected))).toHaveLength(1);
   });
 
+  it("another core.hooksPath: never taken over, no readiness, fix named once (#4960 / #5846)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    const readyRel = join(
+      root,
+      ".deft",
+      "directive",
+      `wiring-ready.${installed.runtimeVersion}.json`,
+    );
+    rmSync(readyRel, { force: true });
+    execFileSync("git", ["-C", root, "config", "core.hooksPath", "custom-hooks"]);
+
+    const err: string[] = [];
+    const first = maybeSelfCompleteSetup(root, {
+      argv: ["verify:branch"],
+      writeErr: (text) => err.push(text),
+    });
+    expect(first.ran).toBe(true);
+    expect(first.setup?.conflicts).toEqual([]);
+    expect(existsSync(readyRel)).toBe(false);
+    expect(
+      execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], {
+        encoding: "utf8",
+      }).trim(),
+    ).toBe("custom-hooks");
+    const text = err.join("");
+    expect(text).toContain("core.hooksPath is 'custom-hooks'");
+    expect(text).toContain("directive install --repair");
+
+    maybeSelfCompleteSetup(root, { argv: ["verify:branch"], writeErr: (t) => err.push(t) });
+    expect(err.filter((chunk) => chunk.includes("custom-hooks"))).toHaveLength(1);
+  });
+
   it("hook-dispatch run threads seams.writeErr for preserve disclosure (#5885 P1)", () => {
     const root = tempRoot();
     const installed = runSetup({ operation: "install", from: "none", root });

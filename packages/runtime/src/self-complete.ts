@@ -165,5 +165,10 @@ export function maybeSelfCompleteSetup(
     root: projectRoot,
   });
   disclosePreservedHooks(setup.preserved, writeErr);
+  // #4960 / #5846: another core.hooksPath keeps Git hooks inactive; automatic
+  // setup never takes it over, so name the fix (once per process).
+  if (setup.gitHooksInactive?.includes("core.hooksPath is '")) {
+    disclosePreservedHooks([setup.gitHooksInactive], writeErr);
+  }
   return { ran: true, skipReason: null, setup };
 }
