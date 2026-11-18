@@ -1,0 +1,381 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6599",
+    "updated": "2026-11-18T01:17:38Z"
+  },
+  "plan": {
+    "title": "bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6599",
+      "Overview": "## Summary\n\nA root-mismatch hook refusal blocks its own named recovery, so a session that hits it is locked out. Admit the refusal's own recovery commands, the same way #6313 did for the pin-mismatch refusal.\n\nSplit from #6594 (fix 1 of 3). Fix 2, guarded admission of same-repository linked worktrees, waits on the #6550 direction. Fix 3 is the AGENTS.md lockout note for every host.\n\n## Evidence\n\nReproduced on 0.129.14 (#6594 comment 6965780737). With the hook running from the primary checkout and the payload `cwd` in a linked worktree, `packages/runtime/src/hook-dispatch.ts` (root check, about line 419) denies every `tool.before` call, including a read-only `git status` and every `deft` / `directive` command. The recovery the refusal prints cannot run from inside that session.\n\nPrecedent: the pin-mismatch refusal admits its own named recovery through `pinMismatchRecoveryAdmit` / `admitPinMismatchRecovery` (#6313).\n\n## Proposed change\n\nIn the root-mismatch branch of `hook-dispatch.ts`, before rendering the deny, admit a shell `tool.before` call when its command is exactly one of the recovery commands the refusal names, and nothing else is chained to it. Everything else stays refused.\n\n- Admitted set (exact match, no chaining): the read-only diagnostics `directive --version`, `deft --version` and `directive doctor`, plus the disable verb for the session's own host, `directive policy:disable-host-hooks --host <this host> --confirm` (also its `deft` form).\n- The refusal text names those commands, and says that the disable takes effect in a new session.\n- The foreign-runtime-link branch (#6185) keeps refusing everything; it is out of scope.\n- No setup, no policy dispatch, and no occupancy work on the admitted path, as in #6313.\n\n## Acceptance Criteria\n\n- [ ] Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.\n- [ ] Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.\n- [ ] The refusal text lists the admitted commands.\n- [ ] With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).\n- [ ] No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there).\n\n## Out of scope\n\nAdmitting linked worktrees (fix 2), deposit or installer changes, general read-only shell, and MCP or browser tools.\n\narc or design-critique: not warranted, because this mirrors the shipped #6313 admission pattern on one more refusal, with an exact-match allowlist and no new policy.\n\nRefs #6594\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.",
+        "status": "proposed",
+        "id": "clause.25"
+      },
+      {
+        "title": "Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.",
+        "status": "proposed",
+        "id": "clause.26"
+      },
+      {
+        "title": "The refusal text lists the admitted commands.",
+        "status": "proposed",
+        "id": "clause.27"
+      },
+      {
+        "title": "With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).",
+        "status": "proposed",
+        "id": "clause.28"
+      },
+      {
+        "title": "No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there).",
+        "status": "proposed",
+        "id": "clause.29"
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6599",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6599: bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6594",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6594"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git status",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "deft",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "directive",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts",
+          "changelog.d/6599-root-mismatch-recovery.md",
+          ".deft/approved-scope/github.issue.6457579333.json",
+          ".deft/approved-scope/github.issue.6457579333.intent.json"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts",
+          "changelog.d/6599-root-mismatch-recovery.md"
+        ],
+        "module_boundary": "packages/core/src/install-health (exact-match admit helper beside admitPinMismatchRecovery) and the root-mismatch branch of packages/runtime/src/hook-dispatch.ts"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6457579333,
+        "origin": "deftai/directive#6599",
+        "id": "github.issue.6457579333"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (29), in order (#6333)",
+      "sentences": [
+        "bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1)",
+        "Summary A root-mismatch hook refusal blocks its own named recovery, so a session that hits it is locked out.",
+        "Admit the refusal's own recovery commands, the same way #6313 did for the pin-mismatch refusal.",
+        "Split from #6594 (fix 1 of 3).",
+        "Fix 2, guarded admission of same-repository linked worktrees, waits on the #6550 direction.",
+        "Fix 3 is the AGENTS.md lockout note for every host.",
+        "Evidence Reproduced on 0.129.14 (#6594 comment 6965780737).",
+        "With the hook running from the primary checkout and the payload `cwd` in a linked worktree, `packages/runtime/src/hook-dispatch.ts` (root check, about line 419) denies every `tool.before` call, including a read-only `git status` and every `deft` / `directive` command.",
+        "The recovery the refusal prints cannot run from inside that session.",
+        "Precedent: the pin-mismatch refusal admits its own named recovery through `pinMismatchRecoveryAdmit` / `admitPinMismatchRecovery` (#6313).",
+        "Proposed change In the root-mismatch branch of `hook-dispatch.ts`, before rendering the deny, admit a shell `tool.before` call when its command is exactly one of the recovery commands the refusal names, and nothing else is chained to it.",
+        "Everything else stays refused.",
+        "Admitted set (exact match, no chaining): the read-only diagnostics `directive --version`, `deft --version` and `directive doctor`, plus the disable verb for the session's own host, `directive policy:disable-host-hooks --host <this host> --confirm` (also its `deft` form).",
+        "The refusal text names those commands, and says that the disable takes effect in a new session.",
+        "The foreign-runtime-link branch (#6185) keeps refusing everything; it is out of scope.",
+        "No setup, no policy dispatch, and no occupancy work on the admitted path, as in #6313.",
+        "Acceptance Criteria - [ ] Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.",
+        "[ ] Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.",
+        "[ ] The refusal text lists the admitted commands.",
+        "[ ] With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).",
+        "[ ] No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there).",
+        "Out of scope Admitting linked worktrees (fix 2), deposit or installer changes, general read-only shell, and MCP or browser tools.",
+        "arc or design-critique: not warranted, because this mirrors the shipped #6313 admission pattern on one more refusal, with an exact-match allowlist and no new policy.",
+        "Refs #6594 🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+        "Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.",
+        "Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.",
+        "The refusal text lists the admitted commands.",
+        "With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).",
+        "No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there)."
+      ],
+      "admitted_source_sentences": [
+        "Summary A root-mismatch hook refusal blocks its own named recovery, so a session that hits it is locked out.",
+        "Admit the refusal's own recovery commands, the same way #6313 did for the pin-mismatch refusal.",
+        "Split from #6594 (fix 1 of 3).",
+        "Fix 2, guarded admission of same-repository linked worktrees, waits on the #6550 direction.",
+        "Fix 3 is the AGENTS.md lockout note for every host.",
+        "Evidence Reproduced on 0.129.14 (#6594 comment 6965780737).",
+        "With the hook running from the primary checkout and the payload `cwd` in a linked worktree, `packages/runtime/src/hook-dispatch.ts` (root check, about line 419) denies every `tool.before` call, including a read-only `git status` and every `deft` / `directive` command.",
+        "The recovery the refusal prints cannot run from inside that session.",
+        "Precedent: the pin-mismatch refusal admits its own named recovery through `pinMismatchRecoveryAdmit` / `admitPinMismatchRecovery` (#6313).",
+        "Proposed change In the root-mismatch branch of `hook-dispatch.ts`, before rendering the deny, admit a shell `tool.before` call when its command is exactly one of the recovery commands the refusal names, and nothing else is chained to it.",
+        "Everything else stays refused.",
+        "Admitted set (exact match, no chaining): the read-only diagnostics `directive --version`, `deft --version` and `directive doctor`, plus the disable verb for the session's own host, `directive policy:disable-host-hooks --host <this host> --confirm` (also its `deft` form).",
+        "The refusal text names those commands, and says that the disable takes effect in a new session.",
+        "The foreign-runtime-link branch (#6185) keeps refusing everything; it is out of scope.",
+        "No setup, no policy dispatch, and no occupancy work on the admitted path, as in #6313.",
+        "Acceptance Criteria - [ ] Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.",
+        "[ ] Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.",
+        "[ ] The refusal text lists the admitted commands.",
+        "[ ] With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).",
+        "[ ] No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there).",
+        "Out of scope Admitting linked worktrees (fix 2), deposit or installer changes, general read-only shell, and MCP or browser tools.",
+        "arc or design-critique: not warranted, because this mirrors the shipped #6313 admission pattern on one more refusal, with an exact-match allowlist and no new policy.",
+        "Refs #6594 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+      ],
+      "admitted_source_digest": "6279d58552cba046b44be4e9d03b1976065af486005df0ac886097e0b8299c96",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary A root-mismatch hook refusal blocks its own named recovery, so a session that hits it is locked out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Admit the refusal's own recovery commands, the same way #6313 did for the pin-mismatch refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Split from #6594 (fix 1 of 3).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Fix 2, guarded admission of same-repository linked worktrees, waits on the #6550 direction.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Fix 3 is the AGENTS.md lockout note for every host.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Evidence Reproduced on 0.129.14 (#6594 comment 6965780737).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "With the hook running from the primary checkout and the payload `cwd` in a linked worktree, `packages/runtime/src/hook-dispatch.ts` (root check, about line 419) denies every `tool.before` call, including a read-only `git status` and every `deft` / `directive` command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The recovery the refusal prints cannot run from inside that session.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Precedent: the pin-mismatch refusal admits its own named recovery through `pinMismatchRecoveryAdmit` / `admitPinMismatchRecovery` (#6313).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Proposed change In the root-mismatch branch of `hook-dispatch.ts`, before rendering the deny, admit a shell `tool.before` call when its command is exactly one of the recovery commands the refusal names, and nothing else is chained to it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Everything else stays refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Admitted set (exact match, no chaining): the read-only diagnostics `directive --version`, `deft --version` and `directive doctor`, plus the disable verb for the session's own host, `directive policy:disable-host-hooks --host <this host> --confirm` (also its `deft` form).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "The refusal text names those commands, and says that the disable takes effect in a new session.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "The foreign-runtime-link branch (#6185) keeps refusing everything; it is out of scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "No setup, no policy dispatch, and no occupancy work on the admitted path, as in #6313.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Acceptance Criteria - [ ] Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "[ ] Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "[ ] The refusal text lists the admitted commands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "[ ] With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "[ ] No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Out of scope Admitting linked worktrees (fix 2), deposit or installer changes, general read-only shell, and MCP or browser tools.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "arc or design-critique: not warranted, because this mirrors the shipped #6313 admission pattern on one more refusal, with an exact-match allowlist and no new policy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Refs #6594 🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "The refusal text lists the admitted commands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6457579333",
+    "updated": "2026-11-18T01:17:38Z"
+  }
+}
