@@ -126,11 +126,9 @@ function splitLines(body: string): Line[] {
 
 /** Join the kept lines, each with its own original ending (mixed LF/CRLF stays as it was). */
 function joinKept(lines: readonly Line[], drop: readonly boolean[]): string {
-  const kept = lines.filter((_, idx) => !drop[idx]);
-  if (kept.length === 0) return "";
-  const unterminated = (lines[lines.length - 1]?.end ?? "\n") === "";
-  return kept
-    .map((l, idx) => (unterminated && idx === kept.length - 1 ? l.text : l.text + l.end))
+  return lines
+    .filter((_, idx) => !drop[idx])
+    .map((l) => l.text + l.end)
     .join("");
 }
 

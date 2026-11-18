@@ -135,6 +135,13 @@ describe("Directive-written lines in shared files (#6007)", () => {
     );
   });
 
+  it("keeps the kept line's own newline when the removed last line had none", () => {
+    const body = "a.png binary\n.githooks/** text=auto eol=lf";
+    expect(stripDirectiveLines(body, DIRECTIVE_WRITTEN_LINES[".gitattributes"]).next).toBe(
+      "a.png binary\n",
+    );
+  });
+
   it("keeps a user comment under the managed-wiring header", () => {
     const body =
       "# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths\n# my note\n.githooks/** text=auto eol=lf\n";

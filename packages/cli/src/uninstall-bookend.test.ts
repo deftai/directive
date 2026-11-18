@@ -659,6 +659,10 @@ describe("uninstall keeps package.json until the package manager is done (#5999)
   it("a retry still removes Directive lines left by an earlier partial uninstall", () => {
     const root = tempProject();
     writeFileSync(join(root, ".gitattributes"), `*.png binary\n\n${MANAGED_GITATTRIBUTES}`);
+    // The user's own hooks: no Directive evidence, so core.hooksPath must stay.
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    writeFileSync(join(root, ".githooks", "pre-commit"), "#!/bin/sh\nnpm test\n");
+    execFileSync("git", ["-C", root, "config", "core.hooksPath", ".githooks"]);
     const io = captureIo();
     const code = runUninstall(
       root,
@@ -677,6 +681,12 @@ describe("uninstall keeps package.json until the package manager is done (#5999)
     expect(code).toBe(0);
     expect(io.out()).not.toMatch(/Nothing to uninstall/);
     expect(readFileSync(join(root, ".gitattributes"), "utf8")).toBe("*.png binary\n");
+    expect(
+      execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], {
+        encoding: "utf8",
+      }).trim(),
+    ).toBe(".githooks");
+    expect(existsSync(join(root, ".githooks", "pre-commit"))).toBe(true);
   });
 
   it("launcher sole-author rule matches the runtime's", () => {
