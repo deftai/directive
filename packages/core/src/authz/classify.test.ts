@@ -836,10 +836,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("crane pull ghcr.io/example/g:latest /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("objcopy src.bin /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("weirdbin -o /tmp/out")).toEqual([]);
-    // scp `-o` is OpenSSH option, not a file dest (retain bin context; #3354 Greptile P1).
+    // scp `-o` is OpenSSH option, not a file dest (#3354 Greptile P1). The name is still a
+    // mention, and scp is not a plain read, so the #6681 mention rule refuses it.
     expect(
       classifyShellAuthzOps("scp -o IdentityFile=.deft-directive-disable host:x /tmp/out"),
-    ).toEqual([]);
+    ).toEqual(["settings"]);
     expect(classifyShellAuthzOps("scp -o ProxyCommand=none host:g.json /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("cpio -o > /tmp/a.cpio")).toEqual([]);
   });
@@ -1069,8 +1070,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("convert .deft/authz/x /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("magick .deft/authz/x /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("aws s3 cp .deft/approved-scope/x /tmp/out")).toEqual([]);
-    expect(classifyShellAuthzOps("convert .deft-directive-disable /tmp/out")).toEqual([]);
-    expect(classifyShellAuthzOps("env aws s3 cp .deft-directive-disable /tmp/out")).toEqual([]);
+    // #6681 mention rule: a kill-switch name in a non-read command is refused as `settings`.
+    expect(classifyShellAuthzOps("convert .deft-directive-disable /tmp/out")).toEqual(["settings"]);
+    expect(classifyShellAuthzOps("env aws s3 cp .deft-directive-disable /tmp/out")).toEqual([
+      "settings",
+    ]);
     expect(classifyShellAuthzOps("env aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("FOO=1 aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("sudo aws s3 cp src .deft/authz/grants/evil.json")).toContain(
@@ -1301,7 +1305,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("jj log")).toEqual([]);
     expect(
       classifyShellAuthzOps("pscp -o IdentityFile=.deft-directive-disable host:x /tmp/out"),
-    ).toEqual([]);
+    ).toEqual(["settings"]); // #6681 mention rule: pscp is not a plain read.
     // Read-only git bundle ops are not dest plants (#3529 Greptile P1).
     expect(classifyShellAuthzOps("git bundle verify .deft/authz/grants/evil.bundle")).toEqual([]);
     expect(classifyShellAuthzOps("git bundle list-heads .deft/authz/grants/evil.bundle")).toEqual(
@@ -1536,13 +1540,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "cat .deft/authz/state.json",
       "echo ok",
       "zip /tmp/backup.zip .deft/authz/state.json",
-      "zip /tmp/backup.zip .deft-directive-disable",
       "zip /tmp/backup.zip .deft/approved-scope/story.json",
       "zip .deft/authz/grants/no-input.zip",
       "(zip .deft/authz/grants/grouped-no-input.zip)",
       "{ zip .deft/authz/grants/brace-grouped-no-input.zip; }",
-      "zip .deft-directive-disable.backup /etc/hosts",
-      "zip .no-deft-directive.txt /etc/hosts",
       "zip .deft/authz-backup.zip /etc/hosts",
       String.raw`zip .deft\authz\grants\ordinary.json /etc/hosts`,
       'zip "$DEST/.deft/authz/grants/evil.json" /etc/hosts',
@@ -1552,7 +1553,6 @@ describe("classifyShellAuthzOps (#2944)", () => {
       'zip ".deft/authz/grants/%DEST%.json" /etc/hosts',
       "zip '.deft/authz/grants/unclosed.json /etc/hosts",
       "zip ~/.deft/authz/grants/evil.json /etc/hosts",
-      "zip -P .deft-directive-disable /tmp/backup.zip /etc/hosts",
       "zip .deft/authz/grants/no-input-option.zip -P secret",
       'zip ".deft/authz/grants/no input.zip"',
       'zip " .deft/authz/grants/leading-space.zip" /etc/hosts',
@@ -1573,6 +1573,16 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "cat <<'EOF'\nzip .deft/authz/grants/heredoc-data.zip /etc/hosts\nEOF",
     ]) {
       expect(classifyShellAuthzOps(command), command).toEqual([]);
+    }
+    // #6681 mention rule: a non-read command that names the kill-switch file is refused,
+    // even as a zip source or a name suffix. Over-refusal is accepted.
+    for (const command of [
+      "zip /tmp/backup.zip .deft-directive-disable",
+      "zip .deft-directive-disable.backup /etc/hosts",
+      "zip .no-deft-directive.txt /etc/hosts",
+      "zip -P .deft-directive-disable /tmp/backup.zip /etc/hosts",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).toEqual(["settings"]);
     }
 
     const stronger = classifyShellAuthzOps("ghc -o .deft/authz/grants/evil.json /tmp/source.hs");
@@ -2672,29 +2682,37 @@ describe("kill-switch read is not a plant (#6188)", () => {
       `cat ${kill} 2>/dev/null`,
       `Test-Path ${kill} 2>$null`,
       `Get-Item ${opt} 2>$null`,
+      `ls '${kill}`,
+      `cat ${kill} | wc -c`,
+      `echo ${kill}`,
+      `git status`,
+    ]) {
+      expectRead(command);
+    }
+  });
+
+  it("refuses a mention in anything that is not a plain read (#6681 mention rule, over-refusal pinned)", () => {
+    // These were allowed under #6188. The mention rule refuses them: touch, interpreters,
+    // a redirect, or a substitution is not a known plain read.
+    for (const command of [
       `touch /tmp/ordinary-file; ls ${kill}`,
       `touch /tmp/ordinary-file && ls -la ${opt}`,
       `printf '%s' 'example > ${kill}'`,
       `node -e "console.log('${kill}')"`,
       `node -e "console . log ( '${opt}' )"`,
-      `node -e "console.log('${kill}')" 2>/dev/null`,
       `python -c "print('${kill}')"`,
-      `python -c "print('${opt}');"`,
-      `python3.11 -c "print('${kill}')"`,
-      `node18 -e "console.log('${kill}')"`,
-      `deno -e "console.log('${opt}')"`,
-      `pypy -c "print('${kill}')"`,
       `/usr/bin/python3 -c "print('${kill}')"`,
       `cat <<'EOF'\necho > ${kill}\nEOF`,
-      `ls '${kill}`,
-      `node -e "console.log\t('${kill}')"`,
-      `node -e "console.log\n('${kill}')"`,
-      `node -e "console.log\r('${opt}')"`,
       `ls ${kill} >`,
-      `ls ${opt} >;`,
       `ls ${kill} foo&bar`,
+      `ls "$(printf ${kill})"`,
+      `cat "$(printf ${opt})"`,
+      `ls \`printf ${kill}\``,
+      `echo x > /tmp/ordinary; ls ${kill}`,
+      `touch /tmp/ordinary ;ls ${kill}`,
+      `git commit -m "mention ${kill}"`,
     ]) {
-      expectRead(command);
+      expectPlant(command);
     }
   });
 
@@ -2777,34 +2795,27 @@ describe("kill-switch read is not a plant (#6188)", () => {
   });
 
   it("does not treat an expanded read of the kill-switch name as a plant (#6188)", () => {
-    for (const command of [
-      `ls "$(printf ${kill})"`,
-      `cat "$(printf ${opt})"`,
-      `ls \`printf ${kill}\``,
-      `cat "\${VAR}${kill}"`,
-      `echo x > /tmp/ordinary; ls ${kill}`,
-      `echo x > /tmp/ordinary; cat ${opt}`,
-      `touch /tmp/ordinary ;ls ${kill}`,
-    ]) {
+    for (const command of [`cat "\${VAR}${kill}"`]) {
       expect(hasKillSwitchShellWrite(command), command).toBe(false);
       expect(classifyShellAuthzOps(command), command).not.toContain("settings");
     }
     expectRead(`ls ${kill}`);
     expectRead(`cat ${opt}`);
-    expectRead(`touch /tmp/ordinary-file; ls ${kill}`);
   });
 
   it("denies an option-looking interpreter payload that names the kill switch (#6188)", () => {
     expectPlant(`node -e -${kill}`);
     expectPlant(`python -c -open('${kill}','w').write('x')`);
     expectPlant(`node -e - "require('fs').writeFileSync('${kill}','x')"`);
-    expectRead(`node -e "console.log('${kill}')"`);
-    expectRead(`python -c "print('${opt}')"`);
+    // #6681 mention rule: an interpreter is not a plain read, even for a literal print.
+    expectPlant(`node -e "console.log('${kill}')"`);
+    expectPlant(`python -c "print('${opt}')"`);
   });
 
   it("keeps non-proof interpreters and authz print literals unknown", () => {
     expect(classifyShellAuthzOps(`qjs -e 'print("${kill}")'`)).toEqual(["unknown"]);
-    expect(hasKillSwitchShellWrite(`qjs -e 'print("${kill}")'`)).toBe(false);
+    // The mention rule refuses it too; the grant-immune `unknown` class above is kept.
+    expect(hasKillSwitchShellWrite(`qjs -e 'print("${kill}")'`)).toBe(true);
     expect(classifyShellAuthzOps(`graalpy -c 'print("${kill}")'`)).toEqual(["unknown"]);
     expect(classifyShellAuthzOps(`python -c "print('.deft/authz/grants/evil.json')"`)).toEqual([
       "unknown",
@@ -2817,8 +2828,9 @@ describe("kill-switch read is not a plant (#6188)", () => {
 
   it("does not let a read basename change aws or convert dest ownership", () => {
     expect(classifyShellAuthzOps(`env aws s3 cp /tmp/src ${kill}`)).toContain("settings");
-    expect(classifyShellAuthzOps(`env aws s3 cp ${kill} /tmp/out`)).toEqual([]);
-    expect(classifyShellAuthzOps(`convert ${kill} /tmp/out`)).toEqual([]);
+    // #6681 mention rule: neither is a plain read, so the name is refused as a mention.
+    expect(classifyShellAuthzOps(`env aws s3 cp ${kill} /tmp/out`)).toEqual(["settings"]);
+    expect(classifyShellAuthzOps(`convert ${kill} /tmp/out`)).toEqual(["settings"]);
   });
 });
 
@@ -2940,19 +2952,19 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
       `echo ${kill} | xargs grep touch`,
       `echo ${kill} | xargs -n1 grep -l touch`,
       `echo ${kill} | grep xargs touch`,
-      `xargs grep touch <<EOF\n${kill}\nEOF`,
     ]) {
       expectNoPlant(command);
     }
     expect(inactiveShellTargetsProtectedStore(`echo ${authz} | xargs grep touch`)).toBe(false);
   });
 
-  it("treats a launcher named inside a quoted argument as data", () => {
+  it("refuses a launcher named inside a quoted argument (over-refusal pinned)", () => {
+    // The mention rule does not parse quotes, so quoted examples are refused (#6188 class).
     for (const command of [
       `git commit -m 'document cmd /c "echo x > ${kill}"'`,
       `echo 'run cmd /c "echo x > ${opt}"'`,
     ]) {
-      expectNoPlant(command);
+      expectPlant(command);
     }
   });
 
@@ -2966,14 +2978,10 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     }
   });
 
-  it("does not scan a heredoc body printed inside another heredoc as commands", () => {
+  it("refuses a heredoc that mentions the name even when it is printed text (over-refusal pinned)", () => {
     const nested = `cat <<'DOC'\nxargs touch <<EOF\n${kill}\nEOF\nDOC`;
-    expectNoPlant(nested);
-    expectNoPlant(`cat <<'DOC'\necho ${kill} | xargs touch\nDOC`);
-    expect(
-      inactiveShellTargetsProtectedStore(`cat <<'DOC'\necho ${authz} | xargs touch\nDOC`),
-    ).toBe(false);
-    // A real xargs heredoc after the outer one is still found.
+    expectPlant(nested);
+    expectPlant(`cat <<'DOC'\necho ${kill} | xargs touch\nDOC`);
     expectPlant(`${nested}\nxargs touch <<EOF\n${kill}\nEOF`);
   });
 
@@ -2988,7 +2996,8 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     ]) {
       expectPlant(command);
     }
-    expectNoPlant(`cmd /c 'echo ok'; cmd /c "type ${kill}"`);
+    // cmd is not a plain read, so even a `type` through it is refused (over-refusal pinned).
+    expectPlant(`cmd /c 'echo ok'; cmd /c "type ${kill}"`);
     expectNoPlant(`ls ${kill} 'x`);
   });
 
@@ -3002,7 +3011,8 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
       expectPlant(command);
     }
     expectStoreWrite(`# don't skip this\nxargs touch <<EOF\n${authz}\nEOF`);
-    expectNoPlant(`# don't\nxargs grep touch <<EOF\n${kill}\nEOF`);
+    // Round-7 example: a continued comment line, then a real xargs heredoc.
+    expectPlant(`# note \\\nxargs touch <<EOF\n${kill}\nEOF`);
     expectNoPlant(`echo a#b '${kill}'`);
   });
 
@@ -3011,9 +3021,9 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expectPlant(`echo ${kill} | env FOO=x\\ # xargs touch`);
     expectPlant(`echo ${kill} | env FOO=x\\;# xargs touch`);
     expectStoreWrite(`echo ${authz} | env FOO=x\\ # xargs touch`);
-    // Control: an unescaped space makes it a real comment, and an even run of backslashes does too.
-    expectNoPlant(`echo ${kill} | env FOO=x # xargs touch`);
-    expectNoPlant(`echo ${kill} | env FOO=x\\\\ # xargs touch`);
+    // The mention rule does not read comments, so a commented writer is refused too.
+    expectPlant(`echo ${kill} | env FOO=x # xargs touch`);
+    expectPlant(`echo ${kill} | env FOO=x\\\\ # xargs touch`);
   });
 
   it("joins backslash-newline continuations before it finds comments and quotes", () => {
@@ -3026,15 +3036,12 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expectPlant(`: \\\r\n# '\r\nxargs touch <<EOF\r\n${kill}\r\nEOF\r\n: \\\r\n# '`);
     // A continuation inside a pipeline joins the stages.
     expectPlant(`echo ${kill} | \\\nxargs touch`);
-    // Controls: read-only xargs stays allowed, and an escaped backslash does not continue the line.
-    expectNoPlant(`${cont}\nxargs grep touch <<EOF\n${kill}\nEOF\n${cont}`);
-    expectNoPlant(`${cont}\necho ${kill} | xargs grep touch\n${cont}`);
-    expectNoPlant(`echo ${kill} | env FOO=x\\\\\n# xargs touch`);
+    // A read through a continuation stays a read.
+    expectNoPlant(`cat ${kill} | \\\nwc -c`);
   });
 
   it("treats an unterminated xargs heredoc as fed by its remaining lines", () => {
     expectPlant(`xargs touch <<EOF\n${kill}`);
-    expectNoPlant(`xargs grep touch <<EOF\n${kill}`);
   });
 
   it("judges a real xargs heredoc next to a quoted `<<EOF` marker", () => {
@@ -3046,16 +3053,14 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
         `echo "see <<EOF example"\nxargs touch <<EOF\n${authz}\nEOF`,
       ),
     ).toBe(true);
-    expectNoPlant(`echo "see <<EOF example"\nxargs grep touch <<EOF\n${kill}\nEOF`);
   });
 
-  it("scans deeply nested cmd launchers in linear time and still judges the innermost command", () => {
+  it("handles very long and deeply nested input in linear time", () => {
     const started = Date.now();
-    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(300)}type ${kill}`)).toBe(false);
-    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(300)}echo x > ${kill}`)).toBe(true);
+    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(3000)}type ${kill}`)).toBe(true);
+    expect(hasKillSwitchShellWrite(`${"cat x | ".repeat(3000)}cat ${kill}`)).toBe(false);
+    expect(hasKillSwitchShellWrite(`${"*[?{ ".repeat(3000)}.deft-dir*able`)).toBe(true);
     expect(Date.now() - started).toBeLessThan(2000);
-    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(3)}type ${kill}`)).toBe(false);
-    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(3)}echo x > ${kill}`)).toBe(true);
   });
 
   it("checks the program after a wrapper option that takes a value", () => {
@@ -3070,7 +3075,8 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
       expectPlant(command);
     }
     expectStoreWrite(`echo ${authz} | xargs env -u FOO touch`);
-    expectNoPlant(`echo ${kill} | xargs env -u FOO cat`);
+    // env is not a plain read, so xargs feeding it is refused even for `cat` (over-refusal).
+    expectPlant(`echo ${kill} | xargs env -u FOO cat`);
   });
 
   it("still denies the forms that were denied before #6580", () => {
@@ -3092,23 +3098,114 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     }
   });
 
-  it("keeps read-only mentions allowed", () => {
+  it("keeps plain reads allowed", () => {
     for (const command of [
-      `git commit -m "mention ${kill}"`,
-      `git commit -m "echo x > ${kill}"`,
-      `cmd /c "type ${kill}"`,
-      `cmd /c "dir ${kill} 2>nul"`,
-      `cmd /c "echo ok"`,
+      `cat ${kill}`,
+      `ls -la ${kill}`,
+      `type ${kill}`,
+      `dir ${kill}`,
+      `grep x ${kill}`,
+      `rg x ${kill}`,
+      `Test-Path ${kill}`,
+      `Get-Content ${kill}`,
+      `Get-ChildItem ${kill}`,
+      `Select-String x ${kill}`,
+      `head ${kill}`,
+      `stat ${kill}`,
+      `git status`,
+      `git log -1 -- ${kill}`,
+      `git diff -- ${kill}`,
+      `git show HEAD:${kill}`,
       `echo ${kill} | xargs cat`,
       `echo ${kill} | xargs ls -la`,
+      `echo ${kill} | xargs grep touch`,
       `echo ${kill} | wc -c`,
-      `ls ${kill}; echo x | xargs touch /tmp/ordinary`,
-      `ls ${kill} || echo x | xargs touch /tmp/ordinary`,
       `echo x | xargs touch /tmp/ordinary`,
     ]) {
       expectNoPlant(command);
     }
     expect(inactiveShellTargetsProtectedStore(`echo ${authz} | xargs cat`)).toBe(false);
     expect(inactiveShellTargetsProtectedStore(`echo ${scope} | xargs ls -la`)).toBe(false);
+    expect(inactiveShellTargetsProtectedStore(`cat ${authz}`)).toBe(false);
+    expect(inactiveShellTargetsProtectedStore(`ls .deft/authz`)).toBe(false);
+  });
+
+  it("refuses a mention in a non-read command (over-refusal pinned, #6188 class)", () => {
+    for (const command of [
+      `git commit -m "mention ${kill}"`,
+      `git commit -m "echo x > ${kill}"`,
+      `cmd /c "type ${kill}"`,
+      `cmd /c "dir ${kill} 2>nul"`,
+      `ls ${kill}; echo x | xargs touch /tmp/ordinary`,
+      `ls ${kill} || echo x | xargs touch /tmp/ordinary`,
+      `git log ${kill} > /tmp/out`,
+      `cat ${kill} > /tmp/out`,
+      `git diff --output=/tmp/out -- ${kill}`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("refuses the round-7 example and names a shell would decode", () => {
+    expectPlant(`# note \\\nxargs touch <<EOF\n${kill}\nEOF`);
+    expectPlant(`: \\\n# note\nxargs touch <<EOF\n${kill}\nEOF`);
+    // Quotes, backslashes, carets, $'..' and \\xHH escapes are removed or decoded.
+    expectPlant(`touch .deft-dir"ective-di"sable`);
+    expectPlant(`touch .deft-dir\\ective-disable`);
+    expectPlant(`touch '.deft-dir'ective-disable`);
+    expectPlant(`touch $'.deft-directive-disable'`);
+    expectPlant(`touch $'\\x2edeft-directive-disable'`);
+    expectPlant(`printf '\\x2edeft-directive-disable' | xargs touch`);
+    expectPlant(`touch .DEFT-DIRECTIVE-DISABLE`);
+    expectPlant(`cmd /c "echo x > .deft-dir^ective-disable"`);
+    expectPlant(`cmd /c "echo x > .^d^e^f^t^-directive-disable"`);
+  });
+
+  it("refuses a token that would match the name as a glob", () => {
+    for (const command of [
+      `find . -name '.deft-directive-*' -print0 | xargs -0 touch`,
+      `find . -maxdepth 1 -name ".deft-directive-*" -print0 | xargs -0 touch`,
+      `touch .deft-dir*able`,
+      `touch .deft-directive-dis?ble`,
+      `touch .deft-directive-[d]isable`,
+      `touch .deft-directive-{disable,x}`,
+      `touch .deft-dir{ective-dis,x}able`,
+      `touch ./.no-deft-direct*`,
+      `touch .*`,
+    ]) {
+      expectPlant(command);
+    }
+    // Reads and unrelated globs stay allowed: a glob must start with a dot to hit a dotfile.
+    for (const command of [
+      `ls .deft-directive-*`,
+      `touch *.ts`,
+      `touch src/*`,
+      `touch .gitignore*`,
+      `git add .github/*`,
+    ]) {
+      expectNoPlant(command);
+    }
+  });
+
+  it("refuses the store forms without a UAT lease, as protected_store", () => {
+    for (const command of [
+      `echo ${authz} | xargs touch`,
+      `echo ${scope} | xargs -0 touch`,
+      `# note \\\nxargs touch <<EOF\n${authz}\nEOF`,
+      `cmd /c "echo x > .deft\\authz\\state.json"`,
+      `touch .deft/./authz/state.json`,
+      `touch .DEFT/AUTHZ/state.json`,
+    ]) {
+      expectStoreWrite(command);
+    }
+  });
+
+  // Known limit (#6681): names built at run time (variables, sed, base64, command
+  // substitution) are not covered by the mention rule. The follow-up kill-switch issue
+  // covers them. This pins that they are NOT detected here.
+  it("does not cover names built at run time (known limit)", () => {
+    expectNoPlant(`touch "$HOME/.deft-directive-$X"`);
+    expectNoPlant(`echo .deft-directive-enable | sed s/enable/disable/ | xargs touch`);
+    expectNoPlant(`echo LmRlZnQtZGlyZWN0aXZlLWRpc2FibGU= | base64 -d | xargs touch`);
   });
 });

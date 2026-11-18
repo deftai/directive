@@ -4029,18 +4029,244 @@ function pathishMentionsKillSwitch(pathish: string): boolean {
 }
 
 /**
- * Shell write targeting `.deft-directive-disable` / `.no-deft-directive` (#3186 / #3039 / #3213 / #6136).
- * Always-on grant-gated plant deny (not UAT-only). Includes symlink plant bins
- * (`ln`/`link`/`mklink`) and quote-split-resistant basename checks.
- * #6188: plant only when the basename is a same-segment write destination
- * (redirect operand, dest flag, or dest positional). A stderr redirect or a
- * later read of the basename is not a plant. Literal console.log/print is not.
+ * Mention rule (#6681), replacing structural parsing of kill-switch and store plants.
+ *
+ * The command text is normalized the way a shell would, without parsing structure: line
+ * continuations joined, `$'...'` and `\xHH` escapes decoded, quote characters, backslash
+ * escapes and cmd `^` carets removed, lowercase. A MENTION is a kill-switch name, a token
+ * that would match one as a glob, or a `.deft/authz` / `.deft/approved-scope` path.
+ * A mention is refused unless every command segment is a known plain read.
+ * Over-refusal is accepted (`git commit -m "mention <name>"` is refused). Names built at
+ * run time (variables, sed, base64) are a known limit and are not covered here.
  */
-export function hasKillSwitchShellWrite(command: string, tokens?: readonly string[]): boolean {
+function normalizeMentionText(command: string): readonly [string, string] {
+  let text = stripLineContinuations(command);
+  text = decodeBackslashCodes(decodeAnsiCQuotes(text));
+  // Variant A drops backslash escapes; variant B reads a backslash as a Windows separator.
+  const dropped = text
+    .replace(/\\([\s\S])/g, "$1")
+    .replace(/['"^]/g, "")
+    .toLowerCase();
+  const slashed = text.replace(/['"^]/g, "").replace(/\\/g, "/").toLowerCase();
+  return [dropped, slashed];
+}
+
+function decodeBackslashCodes(text: string): string {
+  return text
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\([0-7]{3})/g, (_m, oct: string) => String.fromCharCode(parseInt(oct, 8)));
+}
+
+/** Replace `$'...'` with its decoded body. */
+function decodeAnsiCQuotes(text: string): string {
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "$" && text[i + 1] === "'") {
+      let j = i + 2;
+      let body = "";
+      while (j < text.length && text[j] !== "'") {
+        if (text[j] === "\\" && j + 1 < text.length) {
+          body += (text[j] as string) + (text[j + 1] as string);
+          j += 2;
+        } else {
+          body += text[j] as string;
+          j++;
+        }
+      }
+      out += decodeBackslashCodes(body);
+      i = j + 1;
+      continue;
+    }
+    out += text[i] as string;
+    i++;
+  }
+  return out;
+}
+
+/**
+ * Glob match of `name` against `pattern` (`*`, `?`, `[...]`, `{...}` read as `*`).
+ * A pattern must start with a literal dot to match a dotfile, as in a shell.
+ * Iterative with one backtrack point, so it stays polynomial on hostile input.
+ */
+function globMatchesName(pattern: string, name: string): boolean {
+  if (!pattern.startsWith(".")) return false;
+  const pat = pattern.replace(/\{[^{}]*\}/g, "*");
+  let pi = 0;
+  let ni = 0;
+  let starPi = -1;
+  let starNi = 0;
+  while (ni < name.length) {
+    const next = pi < pat.length && pat[pi] !== "*" ? globUnitEnd(pat, pi, name[ni] as string) : -1;
+    if (pi < pat.length && pat[pi] === "*") {
+      starPi = pi;
+      pi++;
+      starNi = ni;
+    } else if (next >= 0) {
+      pi = next;
+      ni++;
+    } else if (starPi >= 0) {
+      pi = starPi + 1;
+      starNi++;
+      ni = starNi;
+    } else {
+      return false;
+    }
+  }
+  while (pi < pat.length && pat[pi] === "*") pi++;
+  return pi === pat.length;
+}
+
+/** Index after one pattern unit if it matches `ch`, else -1. */
+function globUnitEnd(pat: string, pi: number, ch: string): number {
+  const p = pat[pi] as string;
+  if (p === "?") return pi + 1;
+  if (p === "[") {
+    const close = pat.indexOf("]", pi + 2);
+    if (close > 0) {
+      let set = pat.slice(pi + 1, close);
+      const negate = set.startsWith("!");
+      if (negate) set = set.slice(1);
+      let hit = false;
+      for (let k = 0; k < set.length; k++) {
+        if (set[k + 1] === "-" && k + 2 < set.length) {
+          if (ch >= (set[k] as string) && ch <= (set[k + 2] as string)) hit = true;
+          k += 2;
+        } else if (set[k] === ch) {
+          hit = true;
+        }
+      }
+      return hit !== negate ? close + 1 : -1;
+    }
+  }
+  return p === ch ? pi + 1 : -1;
+}
+
+function mentionTokens(text: string): string[] {
+  return text.split(/[\s;&|<>()=:]+/).filter((t) => t.length > 0);
+}
+
+function mentionsKillSwitchText(texts: readonly [string, string]): boolean {
+  for (const text of texts) {
+    for (const name of KILL_SWITCH_BASENAMES) {
+      if (text.includes(name)) return true;
+    }
+    for (const token of mentionTokens(text)) {
+      if (!/[*?[{]/.test(token)) continue;
+      const base = token.slice(token.lastIndexOf("/") + 1);
+      for (const name of KILL_SWITCH_BASENAMES) {
+        if (globMatchesName(base, name)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function mentionsStoreText(texts: readonly [string, string]): boolean {
+  for (const text of texts) {
+    for (const token of mentionTokens(text)) {
+      if (pathishIsSettingsStoreDir(token)) return true;
+    }
+  }
+  return false;
+}
+
+/** Plain read programs: with no output redirect and nothing run from their output. */
+const PLAIN_READ_BINS = new Set([
+  "cat",
+  "type",
+  "ls",
+  "dir",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "head",
+  "tail",
+  "less",
+  "more",
+  "wc",
+  "file",
+  "stat",
+  "test",
+  "findstr",
+  "echo",
+  "printf",
+  "test-path",
+  "get-content",
+  "get-childitem",
+  "get-item",
+  "select-string",
+  "gc",
+  "gci",
+  "sls",
+]);
+const PLAIN_READ_GIT_SUBCOMMANDS = new Set(["show", "log", "diff", "status"]);
+/** xargs options that take a separate value (lowercased: a value is skipped, never a program). */
+const XARGS_VALUE_OPTIONS = new Set(["-i", "-n", "-l", "-p", "-s", "-e", "-d", "-a", "-j"]);
+
+function readBinName(word: string): string {
+  const base = word.slice(word.lastIndexOf("/") + 1);
+  return base.endsWith(".exe") ? base.slice(0, -4) : base;
+}
+
+function wordsAreGitRead(words: readonly string[], at: number): boolean {
+  const sub = words[at + 1];
+  if (sub === undefined || !PLAIN_READ_GIT_SUBCOMMANDS.has(sub)) return false;
+  return !words.some((w) => w.startsWith("--output"));
+}
+
+/** One command segment is a plain read (xargs feeding a read program counts). */
+function segmentIsPlainRead(words: readonly string[]): boolean {
+  let at = 0;
+  if (readBinName(words[at] as string) === "xargs") {
+    at++;
+    while (at < words.length && (words[at] as string).startsWith("-")) {
+      at += XARGS_VALUE_OPTIONS.has(words[at] as string) ? 2 : 1;
+    }
+    if (at >= words.length) return false;
+  }
+  const bin = readBinName(words[at] as string);
+  if (bin === "git") return wordsAreGitRead(words, at);
+  return PLAIN_READ_BINS.has(bin);
+}
+
+/** True when every command segment of the line is a known plain read. */
+function allSegmentsPlainRead(text: string): boolean {
+  // Command substitution and process substitution run something else: unsure, not a read.
+  if (text.includes("`") || text.includes("$(") || text.includes("<(")) return false;
+  // Discarding or duplicating output is not a write.
+  const quiet = text
+    .replace(/\d*>{1,2}\s*(?:\/dev\/null|\$null|nul)(?![\w./-])/g, " ")
+    .replace(/\d*>&\d+/g, " ");
+  if (quiet.includes(">")) return false;
+  for (const segment of quiet.split(/[;&|\n\r]+/)) {
+    const words = segment.split(/\s+/).filter((w) => w.length > 0);
+    if (words.length === 0) continue;
+    if (!segmentIsPlainRead(words)) return false;
+  }
+  return true;
+}
+
+function mentionRefused(
+  command: string,
+  mentions: (texts: readonly [string, string]) => boolean,
+): boolean {
+  const texts = normalizeMentionText(command);
+  if (!mentions(texts)) return false;
+  return !allSegmentsPlainRead(texts[0]);
+}
+
+/**
+ * Shell command that mentions `.deft-directive-disable` / `.no-deft-directive` (#3186 /
+ * #3039 / #6136 / #6681). Always-on grant-gated plant deny (not UAT-only). See the
+ * mention rule above: a mention is refused unless every segment is a plain read.
+ */
+export function hasKillSwitchShellWrite(command: string, _tokens?: readonly string[]): boolean {
   const cmd = command.trim();
   if (cmd.length === 0) return false;
-  const resolvedTokens = tokens ?? shellTokens(cmd);
-  return hasKillSwitchShellWriteInner(cmd, resolvedTokens);
+  return mentionRefused(cmd, mentionsKillSwitchText);
 }
 
 function killSwitchWriteBinToken(token: string): boolean {
@@ -4068,67 +4294,6 @@ function tokenPlantsKillSwitch(token: string): boolean {
     if (p.startsWith(prefix) && pathishMentionsKillSwitch(p.slice(prefix.length))) return true;
   }
   return false;
-}
-
-/**
- * #6681: `cmd /c "<payload>"` runs the payload as a command line, so a redirect inside
- * those quotes is a real write. The quote-aware redirect scan skips `>` inside quotes
- * (a mention such as `git commit -m "x > name"` stays allowed), so a `cmd` launcher
- * payload is unwrapped and scanned as a command of its own. Rest of line, as cmd reads it.
- */
-function isCmdLauncherSpace(c: string | undefined): boolean {
-  return c === " " || c === "\t" || c === "\n" || c === "\r";
-}
-
-/**
- * If a `cmd` launcher word starts at `start` (quoted or bare, any path prefix), return
- * the rest of the line after its `/c` | `/k` | `/r` switch. Linear scan, no regex
- * backtracking; other switches (`/d`, `/s`, `/v:on`) are skipped.
- */
-function cmdLauncherPayloadAt(text: string, start: number): string | null {
-  let i = start;
-  const quote = text[i] === '"' || text[i] === "'" ? (text[i] as string) : null;
-  let word = "";
-  if (quote !== null) {
-    i++;
-    while (i < text.length && text[i] !== quote) word += text[i++];
-    if (i >= text.length) return null;
-    i++;
-  } else {
-    while (
-      i < text.length &&
-      !isCmdLauncherSpace(text[i]) &&
-      !";&|()\"'".includes(text[i] as string)
-    ) {
-      word += text[i++];
-    }
-  }
-  const base = (word.split(/[\\/]/).pop() as string).toLowerCase();
-  if (base !== "cmd" && base !== "cmd.exe") return null;
-  for (;;) {
-    while (i < text.length && isCmdLauncherSpace(text[i])) i++;
-    if (text[i] !== "/" || i + 1 >= text.length) return null;
-    const letter = (text[i + 1] as string).toLowerCase();
-    if (letter === "c" || letter === "k" || letter === "r") return text.slice(i + 2);
-    i += 2;
-    while (i < text.length && !isCmdLauncherSpace(text[i]) && text[i] !== '"' && text[i] !== "'") {
-      i++;
-    }
-  }
-}
-
-/**
- * Payloads of every `cmd` launcher in command position. A launcher named inside a quoted
- * argument (`git commit -m '... cmd /c ...'`) is data, and it never hides a real launcher
- * later in the line: each candidate is judged on its own.
- */
-function cmdLauncherPayloads(rawCommand: string): string[] {
-  const command = stripLineContinuations(rawCommand);
-  const out = scanCmdLauncherPayloads(command, true);
-  // Unbalanced quotes: the parser cannot tell what is data, so also scan with every quote
-  // treated as literal (a superset). A line that names the kill-switch file fails closed.
-  if (!shellQuotesBalanced(command)) out.push(...scanCmdLauncherPayloads(command, false));
-  return out;
 }
 
 /**
@@ -4162,438 +4327,12 @@ function stripLineContinuations(text: string): string {
   return out;
 }
 
-/** An unquoted `#` at a word start is a shell comment to end of line. */
-function isShellCommentStart(text: string, i: number): boolean {
-  if (text[i] !== "#") return false;
-  if (i === 0) return true;
-  const prev = text[i - 1] as string;
-  if (!(isCmdLauncherSpace(prev) || prev === ";" || prev === "&" || prev === "|" || prev === "(")) {
-    return false;
-  }
-  // A newline is never escaped here: backslash-newline is a continuation, removed first.
-  if (prev === "\n" || prev === "\r") return true;
-  // A backslash-escaped space, tab or separator is part of the word, so this `#` is not at a word start.
-  let backslashes = 0;
-  for (let j = i - 2; j >= 0 && text[j] === "\\"; j--) backslashes++;
-  return backslashes % 2 === 0;
-}
-
-/** True when quotes pair up at end of input (comments and escapes aware). */
-function shellQuotesBalanced(rawText: string): boolean {
-  const text = stripLineContinuations(rawText);
-  let quote: "'" | '"' | null = null;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i] as string;
-    if (quote === null && isShellCommentStart(text, i)) {
-      while (i < text.length && text[i] !== "\n") i++;
-      continue;
-    }
-    if (c === "\\" && quote !== "'" && i + 1 < text.length) {
-      i++;
-      continue;
-    }
-    if (c === "'" || c === '"') {
-      if (quote === null) quote = c;
-      else if (quote === c) quote = null;
-    }
-  }
-  return quote === null;
-}
-
-function scanCmdLauncherPayloads(command: string, trackQuotes: boolean): string[] {
-  const out: string[] = [];
-  let quote: "'" | '"' | null = null;
-  let atWordStart = true;
-  const tryAt = (index: number): void => {
-    const raw = cmdLauncherPayloadAt(command, index);
-    if (raw === null) return;
-    // cmd reads one line, so judge the first line on its own; also keep the whole rest of
-    // the text, in case a quoted payload spans lines.
-    const newline = raw.indexOf("\n");
-    const variants = newline < 0 ? [raw] : [raw.slice(0, newline), raw];
-    for (const variant of variants) {
-      let payload = variant.trim();
-      const q = payload[0];
-      if (q === '"' || q === "'") {
-        payload = payload.slice(1);
-        if (payload.endsWith(q)) payload = payload.slice(0, -1);
-      }
-      if (payload.length > 0) out.push(payload);
-    }
-  };
-  // Every real launcher in the line is collected (the caller dedupes payloads, so nested
-  // suffixes are judged once each).
-  for (let i = 0; i < command.length; i++) {
-    const c = command[i] as string;
-    if (quote === null && isShellCommentStart(command, i)) {
-      while (i < command.length && command[i] !== "\n") i++;
-      atWordStart = true;
-      continue;
-    }
-    if (c === "\\" && quote !== "'" && i + 1 < command.length) {
-      i++;
-      atWordStart = false;
-      continue;
-    }
-    if (c === "'" || c === '"') {
-      if (!trackQuotes) {
-        if (atWordStart) tryAt(i);
-      } else if (quote === null) {
-        if (atWordStart) tryAt(i);
-        quote = c;
-      } else if (quote === c) {
-        quote = null;
-      }
-      atWordStart = false;
-      continue;
-    }
-    if (quote !== null) continue;
-    if (isCmdLauncherSpace(c) || c === ";" || c === "&" || c === "|" || c === "(") {
-      atWordStart = true;
-      continue;
-    }
-    if (atWordStart) tryAt(i);
-    atWordStart = false;
-  }
-  return out;
-}
-
-/** Pipelines: stages joined by a bare `|`; `||`, `;`, `&`, `&&`, newlines end the chain. */
-function splitUnquotedPipeChains(rawText: string, trackQuotes = true): string[][] {
-  const text = stripLineContinuations(rawText);
-  const chains: string[][] = [];
-  let stages: string[] = [];
-  let cur = "";
-  let quote: "'" | '"' | null = null;
-  let afterPipe = false;
-  const endChain = (): void => {
-    stages.push(cur);
-    chains.push(stages);
-    stages = [];
-    cur = "";
-  };
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i] as string;
-    // A shell comment runs to end of line; its quotes do not count.
-    if (quote === null && isShellCommentStart(text, i)) {
-      while (i < text.length && text[i] !== "\n") i++;
-      i--;
-      continue;
-    }
-    if (c === "\\" && quote !== "'" && i + 1 < text.length) {
-      cur += c + (text[i + 1] as string);
-      i++;
-      continue;
-    }
-    if (c === "'" || c === '"') {
-      if (trackQuotes) {
-        if (quote === null) quote = c;
-        else if (quote === c) quote = null;
-      }
-      cur += c;
-      continue;
-    }
-    if (quote !== null) {
-      cur += c;
-      continue;
-    }
-    const prev = i > 0 ? (text[i - 1] as string) : "";
-    if (c === "|") {
-      if (prev === ">") {
-        cur += c;
-      } else if (text[i + 1] === "|") {
-        endChain();
-        i++;
-        afterPipe = false;
-      } else {
-        // `|&` pipes stderr too: still one pipeline.
-        if (text[i + 1] === "&") i++;
-        stages.push(cur);
-        cur = "";
-        afterPipe = true;
-      }
-      continue;
-    }
-    // A newline right after a pipe continues the pipeline (`a |\n xargs touch`).
-    if (afterPipe && (c === "\n" || c === "\r" || c === " " || c === "\t")) continue;
-    afterPipe = false;
-    if (c === ";" || c === "\n" || c === "\r" || (c === "&" && prev !== ">" && prev !== "<")) {
-      endChain();
-      continue;
-    }
-    cur += c;
-  }
-  endChain();
-  return chains;
-}
-
-const XARGS_SHELL_LAUNCHERS = new Set(["sh", "bash", "zsh", "dash", "ksh", "ash", "fish", "cmd"]);
-
-/** True when a word (or a word inside a quoted payload) is a write bin or shell launcher. */
-function wordIsXargsWriter(word: string): boolean {
-  for (const part of unwrapQuotedPayload(word).split(/[\s;&|()]+/)) {
-    if (part.length === 0) continue;
-    if (killSwitchWriteBinToken(part)) return true;
-    if (isProgrammaticWriteBinToken(part)) return true;
-    if (XARGS_SHELL_LAUNCHERS.has(writeBinName(part))) return true;
-  }
-  return false;
-}
-
-/** xargs options that take a separate value word. */
-const XARGS_VALUE_FLAGS = new Set([
-  "-I",
-  "-J",
-  "-n",
-  "-L",
-  "-P",
-  "-s",
-  "-E",
-  "-d",
-  "-a",
-  "--max-args",
-  "--max-lines",
-  "--max-procs",
-  "--max-chars",
-  "--delimiter",
-  "--arg-file",
-  "--eof",
-  "--replace",
-]);
-/** Wrappers that run the next command (their own options and assignments are skipped). */
-const XARGS_WRAPPERS = new Set([
-  "env",
-  "nohup",
-  "command",
-  "exec",
-  "time",
-  "setsid",
-  "busybox",
-  "xargs",
-]);
-/** Wrappers with value arguments, and programs whose arguments run as commands: every later word is checked. */
-const XARGS_RUNS_ARGS = new Set([
-  "find",
-  "parallel",
-  "watch",
-  "sudo",
-  "doas",
-  "nice",
-  "ionice",
-  "stdbuf",
-  "timeout",
-]);
-
 /**
- * True when this stage's command is `xargs` and the program it runs is a writer
- * (#6681). Only the invoked program counts: `xargs grep touch` only searches.
- * A shell or interpreter payload (`xargs sh -c '...'`) is checked as a whole, and a
- * `sh -c 'xargs touch'` stage is looked into.
- */
-function stageRunsXargsWriter(stage: string): boolean {
-  const words = zipShellWords(stage) ?? stage.split(/\s+/).filter((w) => w.length > 0);
-  let i = 0;
-  // A wrapper option may take a separate value (`env -u FOO`, `nice -n 5`); the value
-  // cannot be told from the program, so any option after a wrapper fails closed.
-  let lenient = false;
-  // Leading wrappers / assignments, then the command word.
-  while (i < words.length) {
-    const w = words[i] as string;
-    if (isEnvAssign(w)) {
-      i++;
-      continue;
-    }
-    const bare = writeBinName(w);
-    if (bare === "xargs") break;
-    if (XARGS_WRAPPERS.has(bare) || XARGS_RUNS_ARGS.has(bare) || /^\d+$/.test(w)) {
-      i++;
-      if (i < words.length && (words[i] as string).startsWith("-")) lenient = true;
-      continue;
-    }
-    // `sh -c 'xargs touch'`: look into the payload.
-    if (XARGS_SHELL_LAUNCHERS.has(bare) || isProgrammaticWriteBinToken(w)) {
-      for (let j = i + 1; j < words.length; j++) {
-        const f = (words[j] as string).toLowerCase();
-        const next = words[j + 1];
-        if ((f === "-c" || f === "/c") && next !== undefined) {
-          const payload = unwrapQuotedPayload(next);
-          if (splitUnquotedPipeChains(payload).some((chain) => chain.some(stageRunsXargsWriter))) {
-            return true;
-          }
-        }
-      }
-    }
-    if (lenient) {
-      i++;
-      continue;
-    }
-    return false;
-  }
-  if (i >= words.length) return false;
-  // Past `xargs`: skip its options, then wrappers, then the invoked program.
-  i++;
-  while (i < words.length) {
-    const w = words[i] as string;
-    if (w.startsWith("-")) {
-      i += XARGS_VALUE_FLAGS.has(w) ? 2 : 1;
-      continue;
-    }
-    if (isEnvAssign(w)) {
-      i++;
-      continue;
-    }
-    const bare = writeBinName(w);
-    if (XARGS_WRAPPERS.has(bare)) {
-      i++;
-      // `env -u FOO touch`: an option here may carry a value, so check the rest of the line.
-      if (i < words.length && (words[i] as string).startsWith("-")) {
-        return words.slice(i).some(wordIsXargsWriter);
-      }
-      continue;
-    }
-    break;
-  }
-  if (i >= words.length) return false;
-  const program = words[i] as string;
-  const bare = writeBinName(program);
-  if (
-    killSwitchWriteBinToken(program) ||
-    isProgrammaticWriteBinToken(program) ||
-    XARGS_SHELL_LAUNCHERS.has(bare)
-  ) {
-    return true;
-  }
-  if (XARGS_RUNS_ARGS.has(bare)) return words.slice(i + 1).some(wordIsXargsWriter);
-  return false;
-}
-
-/**
- * #6681: a pipeline stage that names a protected file, feeding a later `xargs` stage
- * whose command is a writer (`echo <name> | xargs touch`). The name never shares a
- * segment with the writer, so the same-segment scans miss it. Reads stay allowed
- * (`echo <name> | xargs cat`). A heredoc body that names the file and feeds an
- * `xargs` writer counts too; the body is read before heredoc bodies are stripped.
- */
-function pipelineFeedsXargsWriter(
-  command: string,
-  stageMentions: (stage: string) => boolean,
-): boolean {
-  const text = shellWithoutHereDocBodies(command);
-  // Unbalanced quotes: the parser cannot tell data from commands, so also split with every
-  // quote treated as literal (a superset) rather than let a stray quote hide a pipeline.
-  const trackModes = shellQuotesBalanced(text) ? [true] : [true, false];
-  for (const trackQuotes of trackModes) {
-    for (const chain of splitUnquotedPipeChains(text, trackQuotes)) {
-      for (let k = 1; k < chain.length; k++) {
-        if (!stageRunsXargsWriter(chain[k] as string)) continue;
-        if (chain.slice(0, k).some(stageMentions)) return true;
-      }
-    }
-  }
-  return heredocFeedsXargsWriter(command, stageMentions);
-}
-
-/** `xargs <writer> <<EOF` whose body (any delimiter quoting) mentions the protected name. */
-function heredocFeedsXargsWriter(
-  rawCommand: string,
-  stageMentions: (stage: string) => boolean,
-  trackQuotes = true,
-): boolean {
-  const command = stripLineContinuations(rawCommand);
-  // One pass with quote state: only an unquoted `<<DELIM` opens a heredoc, so a quoted
-  // `"see <<EOF"` neither opens one nor swallows a real heredoc that follows. Each body
-  // belongs to its opener (its lines are not commands), so an example `xargs touch <<EOF`
-  // printed inside another heredoc is not scanned.
-  const len = command.length;
-  let quote: "'" | '"' | null = null;
-  let lineStart = 0;
-  let pending: { prefix: string; delimiter: string }[] = [];
-  let i = 0;
-  while (i < len) {
-    const c = command[i] as string;
-    if (c === "\n") {
-      i++;
-      for (const open of pending) {
-        const body: string[] = [];
-        while (i < len) {
-          let end = command.indexOf("\n", i);
-          if (end < 0) end = len;
-          const bl = command.slice(i, end);
-          i = Math.min(end + 1, len);
-          if (bl.trim() === open.delimiter) break;
-          body.push(bl);
-        }
-        const runsXargs = splitUnquotedPipeChains(open.prefix).some((chain) =>
-          chain.some(stageRunsXargsWriter),
-        );
-        if (runsXargs && stageMentions(body.join("\n"))) return true;
-      }
-      pending = [];
-      lineStart = i;
-      continue;
-    }
-    // A shell comment runs to end of line; its quotes do not count.
-    if (quote === null && isShellCommentStart(command, i)) {
-      while (i < len && command[i] !== "\n") i++;
-      continue;
-    }
-    if (c === "\\" && quote !== "'" && i + 1 < len) {
-      i += 2;
-      continue;
-    }
-    if (c === "'" || c === '"') {
-      if (trackQuotes) {
-        if (quote === null) quote = c;
-        else if (quote === c) quote = null;
-      }
-      i++;
-      continue;
-    }
-    if (quote === null && c === "<" && command[i + 1] === "<") {
-      if (command[i + 2] === "<") {
-        i += 3;
-        continue;
-      }
-      const m = /^<<-?\s*(?:\\|["'])?([A-Za-z_][A-Za-z0-9_]*)["']?/.exec(command.slice(i, i + 200));
-      if (m !== null) {
-        pending.push({ prefix: command.slice(lineStart, i), delimiter: m[1] as string });
-        i += m[0].length;
-        continue;
-      }
-    }
-    i++;
-  }
-  // Quotes left open at end of input: fail closed by scanning again with every quote literal.
-  if (trackQuotes && quote !== null) return heredocFeedsXargsWriter(command, stageMentions, false);
-  return false;
-}
-
-function stageMentionsSettingsStore(stage: string): boolean {
-  const words = zipShellWords(stage) ?? stage.split(/\s+/);
-  return words.some((w) => pathishIsSettingsStoreDir(pathishToken(unwrapQuotedPayload(w))));
-}
-
-/**
- * `cmd /c "<payload>"`: each launcher's payload is the rest of the line from that launcher.
- * Judge every distinct payload once, with a worklist (no recursion depth to cap) (#6681).
+ * Structural kill-switch write shapes (#3213 / #3245 / #6188). These keep their op class
+ * (`settings`, or grant-immune `unknown` for dest-of-write forms). Refusal is decided by
+ * the mention rule above, not by this scan.
  */
 function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
-  // Worklist over distinct payload strings: every launcher in a line is judged, and a
-  // nested suffix is judged once however many launchers contain it.
-  const seen = new Set<string>([command]);
-  const work: { text: string; tokens: readonly string[] }[] = [{ text: command, tokens }];
-  for (let w = work.pop(); w !== undefined; w = work.pop()) {
-    if (killSwitchShellWriteInLine(w.text, w.tokens)) return true;
-    for (const payload of cmdLauncherPayloads(w.text)) {
-      if (seen.has(payload)) continue;
-      seen.add(payload);
-      work.push({ text: payload, tokens: shellTokens(payload) });
-    }
-  }
-  return false;
-}
-
-function killSwitchShellWriteInLine(command: string, tokens: readonly string[]): boolean {
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Quote-stripped form so `'.deft'-directive-disable`-class splits still match (#3213).
   const stripped = lower.replace(/['"]/g, "");
@@ -4617,9 +4356,6 @@ function killSwitchShellWriteInLine(command: string, tokens: readonly string[]):
   // Same-segment redirect operand, including noclobber `>!` / `>|` / `>&` (#6188 / #4199).
   // A later read argument after `2>/dev/null` is not the operand.
   if (quoteAwareRedirectPlantsKillSwitch(command)) return true;
-
-  // `echo <name> | xargs touch`: the name reaches the writer through the pipe (#6681).
-  if (pipelineFeedsXargsWriter(command, textMentionsKillSwitch)) return true;
 
   // Downloader/decoder destinations: curl -o .deft-directive-disable, scp, … (#3206 / #3213).
   for (const dest of downloaderDecoderDestinations(tokens)) {
@@ -5614,7 +5350,9 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (commandHasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
   // #3186 / #6136: kill-switch plant + policy authority mutators → settings
   // (always-on grant-gated via dispatcher; not UAT-only).
-  if (hasKillSwitchShellWrite(cmd, tokens)) found.add("settings");
+  // The structural shapes keep their op classes (`settings`, or grant-immune `unknown` below).
+  // The #6681 mention rule is added after those classes are known.
+  if (hasKillSwitchShellWriteInner(cmd, tokens)) found.add("settings");
   if (hasPolicyAuthorityMutator(tokens)) found.add("settings");
   // Split path write: `cd .deft && echo x > authz/state.json` OR `cd .deft/authz && echo x > state.json`
   // OR `cd .deft/authz && cp … grants/x` (write bin without redirect).
@@ -5682,6 +5420,11 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
     (!found.has("settings") || attachedProtected)
   ) {
     found.add("unknown");
+  }
+  // #6681 mention rule: any other command that names a kill-switch file is a plant unless
+  // every segment is a plain read. Structural classes above are left as they were.
+  if (!found.has("settings") && !found.has("unknown") && hasKillSwitchShellWrite(cmd)) {
+    found.add("settings");
   }
 
   return [...found];
@@ -6004,11 +5747,10 @@ export function classifyHookAuthzOps(input: {
 export function hasAuthzDirShellWrite(command: string): boolean {
   const cmd = command.trim();
   if (cmd.length === 0) return false;
-  // #6681: a protected-store path piped (or heredoc-fed) into `xargs <writer>` is a
-  // store write; it routes as protected_store, which no grant can allow.
+  // #6681 mention rule: a command that names a store path is refused unless every
+  // segment is a plain read. It routes as protected_store, which no grant can allow.
   return (
-    commandHasAuthzDirShellWrite(cmd, shellTokens(cmd)) ||
-    pipelineFeedsXargsWriter(cmd, stageMentionsSettingsStore)
+    commandHasAuthzDirShellWrite(cmd, shellTokens(cmd)) || mentionRefused(cmd, mentionsStoreText)
   );
 }
 

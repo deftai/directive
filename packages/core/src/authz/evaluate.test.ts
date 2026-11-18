@@ -554,13 +554,25 @@ describe("kill-switch plant guard decisions: launcher payloads and xargs pipelin
     }
   });
 
-  it("allows read-only mentions", () => {
+  it("allows plain reads that mention the name", () => {
+    for (const command of [`cat ${kill}`, `git status`, `echo ${kill} | xargs cat`]) {
+      expect(decide(command).allowed, command).toBe(true);
+    }
+  });
+
+  it("refuses a mention in a non-read command, glob and caret forms included (#6681 mention rule)", () => {
+    // `git commit -m "mention <name>"` is refused: over-refusal is accepted (#6188 class).
     for (const command of [
       `git commit -m "mention ${kill}"`,
       `cmd /c "type ${kill}"`,
-      `echo ${kill} | xargs cat`,
+      `touch .deft-dir*able`,
+      `find . -name '.deft-directive-*' -print0 | xargs -0 touch`,
+      `cmd /c "echo x > .deft-dir^ective-disable"`,
+      `# note \\\nxargs touch <<EOF\n${kill}\nEOF`,
     ]) {
-      expect(decide(command).allowed, command).toBe(true);
+      const d = decide(command);
+      expect(d.ops, command).toContain("settings");
+      expect(d.allowed, command).toBe(false);
     }
   });
 });
