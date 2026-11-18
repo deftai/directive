@@ -86,3 +86,45 @@ describe("runDoctor launcher basic diagnosis (AC12.4)", () => {
     expect(c.out()).not.toMatch(/directive upgrade/);
   });
 });
+
+describe("runDoctor --json (#6004)", () => {
+  const states: Array<[string, string | null, ProjectInstallState | null]> = [
+    ["no project", null, null],
+    ["old layout", "/tmp/proj", baseState({ oldStyle: true })],
+    ["runtime missing", "/tmp/proj", baseState()],
+    [
+      "pin ≠ installed",
+      "/tmp/proj",
+      baseState({
+        installed: {
+          version: "1.0.0",
+          contract: 1,
+          entryPath: "/tmp/proj/node_modules/@deftai/directive-runtime/dist/bin.js",
+          packageJsonPath: "/tmp/proj/node_modules/@deftai/directive-runtime/package.json",
+        },
+      }),
+    ],
+  ];
+  for (const [label, root, state] of states) {
+    it(`${label}: stdout is exactly one JSON document, exit unchanged`, () => {
+      const human = capture();
+      const humanCode = runDoctor(root, state, [], "9.9.9", human.io);
+      const c = capture();
+      const code = runDoctor(root, state, ["--json"], "9.9.9", c.io);
+      expect(code).toBe(humanCode);
+      const parsed = JSON.parse(c.out()) as Record<string, unknown>;
+      expect(parsed.entry).toBe("doctor");
+      expect(typeof parsed.status).toBe("string");
+      expect(c.out().trim().split("\n")).toHaveLength(1);
+    });
+  }
+
+  it("runtime missing: the JSON names the recovery", () => {
+    const c = capture();
+    runDoctor("/tmp/proj", baseState(), ["--json"], "9.9.9", c.io);
+    const parsed = JSON.parse(c.out()) as { status: string; recovery: string; pin: string };
+    expect(parsed.status).toBe("runtime-missing");
+    expect(parsed.recovery).toBe(RECOVERY_GUIDANCE);
+    expect(parsed.pin).toBe("1.2.3");
+  });
+});

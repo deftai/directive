@@ -164,7 +164,7 @@ function invalidateReadinessMarkers(
   }
 }
 
-/** Ensure .gitignore has node_modules and wiring-ready ignore entries (AC8.5). */
+/** Ensure .gitignore has the entries AC8.5 names (package folder, readiness, per-checkout runtime files). */
 function ensureGitignore(projectRoot: string): { created: boolean; modified: boolean } {
   const rel = ".gitignore";
   const needed: readonly string[] = DIRECTIVE_GITIGNORE_LINES;

@@ -27,11 +27,11 @@ import type { DoctorSeams, Finding } from "./types.js";
 export const OPENCLAW_SOFT_REBIND_CHECK = "openclaw-soft-agents-rebind";
 
 const DOC_OPENCLAW_HOST = "docs/openclaw-agent-host.md";
-const REMEDIATION_FIX = "deft doctor --fix";
+/** Setup deposits this skill; doctor only reports (AC12.1, #6622). */
+const REMEDIATION_FIX = "directive install --repair";
 
 export interface RunOpenClawSoftRebindOptions {
   readonly projectRoot: string;
-  readonly fixMode: boolean;
   readonly jsonMode: boolean;
   readonly allAgents: boolean;
   readonly seams?: DoctorSeams;
@@ -80,7 +80,7 @@ function assessGaps(skillsDirs: readonly string[]): {
 
 /**
  * Doctor check: OpenClaw soft AGENTS re-bind skill present and current.
- * No-ops when OpenClaw is not detected. Fix mode deposits managed skill.
+ * No-ops when OpenClaw is not detected. Read-only: setup deposits the skill.
  */
 export function runOpenClawSoftRebindCheck(
   sink: OutputSink,
@@ -125,55 +125,6 @@ export function runOpenClawSoftRebindCheck(
       skills_dirs: skillsDirs,
     });
     return null;
-  }
-
-  if (options.fixMode) {
-    const depositResult = depositOpenClawSoftRebindSkill({
-      env,
-      homeDir: homeDirFn(),
-      allAgents: options.allAgents,
-      isDir,
-      skillsDirs,
-    });
-    const after = assessGaps(skillsDirs);
-    if (after.missing.length === 0 && after.stale.length === 0) {
-      const message =
-        `${OPENCLAW_SOFT_REBIND_CHECK}: deposited soft AGENTS re-bind skill; ` +
-        `restart OpenClaw gateway or start a new session (${DOC_OPENCLAW_HOST})`;
-      sink.success(message);
-      addFinding({
-        severity: "skip",
-        message,
-        check: OPENCLAW_SOFT_REBIND_CHECK,
-        status: "fixed",
-        written: depositResult.writtenPaths,
-      });
-      return depositResult;
-    }
-    // Partial fix: report remaining gaps from post-deposit assessment (SLizard P2).
-    const partsAfter: string[] = [];
-    if (after.missing.length > 0) {
-      partsAfter.push(`missing=${after.missing.join(", ")}`);
-    }
-    if (after.stale.length > 0) {
-      partsAfter.push(`stale=${after.stale.join(", ")}`);
-    }
-    const messageAfter =
-      `${OPENCLAW_SOFT_REBIND_CHECK}: OpenClaw soft AGENTS re-bind skill incomplete after fix ` +
-      `(${partsAfter.join("; ")}). Remediation: ${REMEDIATION_FIX} — see ${DOC_OPENCLAW_HOST}`;
-    sink.warn(messageAfter);
-    addFinding({
-      severity: "warning",
-      message: messageAfter,
-      check: OPENCLAW_SOFT_REBIND_CHECK,
-      status: "incomplete",
-      missing: after.missing,
-      stale: after.stale,
-      written: depositResult.writtenPaths,
-      suggestion: REMEDIATION_FIX,
-      docs: [DOC_OPENCLAW_HOST],
-    });
-    return depositResult;
   }
 
   const parts: string[] = [];

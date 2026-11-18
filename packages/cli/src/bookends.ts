@@ -1699,6 +1699,14 @@ export function runUninstall(
 export const runUninstallStub = runUninstall;
 
 /**
+ * `directive doctor --json` writes exactly one JSON document to stdout in every
+ * launcher-only state (#6004). Human text goes to stderr or is omitted.
+ */
+function writeDoctorJson(io: BookendIo, payload: Record<string, unknown>): void {
+  io.writeOut(`${JSON.stringify({ entry: "doctor", launcher_only: true, ...payload })}\n`);
+}
+
+/**
  * Launcher doctor bookend (R12 / AC12.4 / AC3.15).
  * When the runtime can run: full read-only diagnosis.
  * When missing/broken: basic §A5.6 diagnosis ending in AC9.7.
@@ -1712,23 +1720,34 @@ export function runDoctor(
   io: BookendIo = defaultIo(),
 ): number {
   const { flags } = parseFlags(argv);
+  const json = argv.includes("--json");
   const node = checkNodeVersion();
-  if (node.warning) io.writeOut(`${node.warning}\n`);
+  if (node.warning) {
+    if (json) io.writeErr(`${node.warning}\n`);
+    else io.writeOut(`${node.warning}\n`);
+  }
 
   // AC14.27 / A5.6: no project → non-zero + directive install.
   if (projectRoot === null || state === null) {
     io.writeErr("No Directive project here. Run `directive install`.\n");
+    if (json) writeDoctorJson(io, { status: "no-project", recovery: "directive install" });
     return EXIT_CODES.FAILURE;
   }
 
   if (state.oldStyle) {
-    io.writeOut("This project uses an older Directive layout. Run `directive upgrade`.\n");
+    const message = "This project uses an older Directive layout. Run `directive upgrade`.";
+    if (json) {
+      writeDoctorJson(io, { status: "old-layout", message, recovery: "directive upgrade" });
+    } else {
+      io.writeOut(`${message}\n`);
+    }
     return EXIT_CODES.FAILURE;
   }
 
   // Bare --root / cwd with no Directive pin is still "not a project" (AC14.27).
   if (state.pin.kind === "none") {
     io.writeErr("No Directive project here. Run `directive install`.\n");
+    if (json) writeDoctorJson(io, { status: "no-project", recovery: "directive install" });
     return EXIT_CODES.FAILURE;
   }
 
@@ -1737,7 +1756,17 @@ export function runDoctor(
 
   // Runtime missing or pin≠installed → launcher basic diagnosis (AC12.4 / A5.6).
   if (state.installed === null || !state.pinMatchesInstalled) {
-    if (state.installed === null) {
+    if (json) {
+      writeDoctorJson(io, {
+        status: state.installed === null ? "runtime-missing" : "pin-mismatch",
+        project_root: projectRoot,
+        launcher: launcherVersion,
+        pin: pinLabel,
+        pin_kind: state.pin.kind,
+        installed: state.installed?.version ?? null,
+        recovery: RECOVERY_GUIDANCE,
+      });
+    } else if (state.installed === null) {
       io.writeOut(
         `directive doctor: project ${projectRoot}\n` +
           `  launcher: ${launcherVersion}\n` +
@@ -1761,10 +1790,26 @@ export function runDoctor(
     io.writeErr(
       "This launcher is too old for this project. `npm i -g @deftai/directive@latest`.\n",
     );
+    if (json) {
+      writeDoctorJson(io, {
+        status: "launcher-too-old",
+        recovery: "npm i -g @deftai/directive@latest",
+      });
+    }
     return EXIT_CODES.FAILURE;
   }
 
   if (flags.dryRun) {
+    if (json) {
+      writeDoctorJson(io, {
+        status: "dry-run",
+        project_root: projectRoot,
+        launcher: launcherVersion,
+        pin: pinLabel,
+        installed: installedLabel,
+      });
+      return EXIT_CODES.SUCCESS;
+    }
     io.writeOut(
       `directive doctor: project ${projectRoot}\n` +
         `  launcher: ${launcherVersion}\n` +

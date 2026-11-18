@@ -16,7 +16,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   FORBIDDEN_DOCTOR_REMEDY_PATTERNS,
   formatDoctorReport,
+  PIN_INVALID_RECOVERY_GUIDANCE,
+  projectInstallCommand,
   runDoctorDiagnosis,
+  WIRING_DAMAGED_RECOVERY_GUIDANCE,
   WIRING_RECOVERY_GUIDANCE,
 } from "./doctor-diagnose.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
@@ -182,32 +185,74 @@ describe("doctor failure-shaped remedy map (#5798)", () => {
     expect(text).toContain(WIRING_RECOVERY_GUIDANCE);
   });
 
-  it("true install skew / missing readiness still gets install/repair guidance", () => {
-    const { root, version } = installHealthyBase();
+  it("runtime missing → the project install (no npm i -g, no --repair)", () => {
+    const { root } = installHealthyBase();
     rmSync(join(root, "node_modules"), { recursive: true, force: true });
+    const diag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(diag.surfaces.installed.ok).toBe(false);
+    expect(diag.remedy).toBe("npm install");
+    const text = formatDoctorReport(diag);
+    expect(text).toMatch(/Next:\n {2}npm install\n/);
+    expect(text).not.toMatch(/npm i -g @deftai\/directive/);
+    expect(text).not.toContain("--repair");
+  });
 
-    const missingInstall = runDoctorDiagnosis(root, { probeHooks: false });
-    expect(missingInstall.surfaces.installed.ok).toBe(false);
-    expect(missingInstall.remedy).toBe(INSTALLATION_RECOVERY_GUIDANCE);
-    const missingText = formatDoctorReport(missingInstall);
-    expect(missingText).toMatch(/npm i -g @deftai\/directive/);
-    expect(missingText).toMatch(/install --repair/);
+  it("installed ≠ pin → the project install for the lockfile's package manager", () => {
+    const { root } = installHealthyBase();
+    writeFileSync(
+      join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
+      `${JSON.stringify({ name: RUNTIME_PIN_PACKAGE, version: "0.0.1" })}\n`,
+    );
+    const npmDiag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(npmDiag.failClosed).toBe(true);
+    expect(npmDiag.remedy).toBe("npm install");
+    rmSync(join(root, "package-lock.json"));
+    writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    const pnpmDiag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(pnpmDiag.remedy).toBe(projectInstallCommand(root));
+    expect(pnpmDiag.remedy).toBe("pnpm install --frozen-lockfile");
+    const text = formatDoctorReport(pnpmDiag);
+    expect(text).not.toMatch(/npm i -g @deftai\/directive/);
+    expect(text).not.toContain("--repair");
+  });
 
-    // Re-install base then drop readiness only.
-    const again = installHealthyBase();
-    rmSync(join(again.root, ".deft", "directive", `wiring-ready.${again.version}.json`), {
-      force: true,
-    });
-    const readinessGap = runDoctorDiagnosis(again.root, { probeHooks: false });
-    expect(readinessGap.surfaces.pin.ok).toBe(true);
-    expect(readinessGap.surfaces.installed.ok).toBe(true);
-    expect(readinessGap.surfaces.readiness.ok).toBe(false);
-    expect(readinessGap.incompleteInstall).toBeNull();
-    expect(readinessGap.remedy).toBe(INSTALLATION_RECOVERY_GUIDANCE);
-    const readyText = formatDoctorReport(readinessGap);
-    expect(readyText).toContain(INSTALLATION_RECOVERY_GUIDANCE);
-    // unused version bind keeps fixture honest
-    expect(version.length).toBeGreaterThan(0);
+  it("lockfile disagrees with the pin → repair (AC14.14)", () => {
+    const { root } = installHealthyBase();
+    writeLockfileNpm(root, "0.0.1");
+    const diag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(diag.surfaces.lockfile.ok).toBe(false);
+    expect(diag.remedy).toBe(WIRING_DAMAGED_RECOVERY_GUIDANCE);
+    expect(formatDoctorReport(diag)).toContain("Recovery: directive install --repair");
+  });
+
+  it("GENERATION.json missing → repair", () => {
+    const { root } = installHealthyBase();
+    rmSync(join(root, ".deft", "GENERATION.json"), { force: true });
+    const diag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(diag.surfaces.generation.ok).toBe(false);
+    expect(diag.remedy).toBe(WIRING_DAMAGED_RECOVERY_GUIDANCE);
+  });
+
+  it("readiness missing (with .git) → repair, never the global pair", () => {
+    const { root, version } = installHealthyBase();
+    rmSync(join(root, ".deft", "directive", `wiring-ready.${version}.json`), { force: true });
+    const diag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(diag.surfaces.readiness.ok).toBe(false);
+    expect(diag.incompleteInstall).toBeNull();
+    expect(diag.remedy).toBe(WIRING_DAMAGED_RECOVERY_GUIDANCE);
+    expect(formatDoctorReport(diag)).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
+  });
+
+  it("range pin → rectify the pin; never an install command", () => {
+    const { root } = installHealthyBase();
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify({ name: "t", private: true, devDependencies: { [RUNTIME_PIN_PACKAGE]: "^1.0.0" } })}\n`,
+    );
+    const diag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(diag.surfaces.pin.ok).toBe(false);
+    expect(diag.remedy).toBe(PIN_INVALID_RECOVERY_GUIDANCE);
+    expect(diag.remedy).not.toMatch(/install/);
   });
 
   it("wiring + schema residual lists per-surface remedies (no AC9.7 hammer)", () => {

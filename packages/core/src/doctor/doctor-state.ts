@@ -1,11 +1,15 @@
-import { mkdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { join } from "node:path";
 import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { CLEAN_WINDOW_HOURS, DIRTY_WINDOW_HOURS, ENV_STATE_PATH } from "./constants.js";
 import type { DoctorState, ThrottleDecision } from "./types.js";
 
+/**
+ * Legacy doctor throttle file (#1315). Doctor no longer writes it (AC12.1,
+ * #6617); session start reads it once for compatibility when its own record
+ * in `.deft/orientation-state.json` has no doctor entry yet.
+ */
 const STATE_FILENAME = "doctor-state.json";
 
 export function statePath(projectRoot: string): string {
@@ -54,70 +58,6 @@ export function readState(projectRoot: string, readFile = defaultReadFile): Doct
 
 function defaultReadFile(path: string): string {
   return readFileSync(path, "utf8");
-}
-
-export function writeState(
-  projectRoot: string,
-  payload: {
-    exitCode: number;
-    findingCount: number;
-    errorCount: number;
-    /** Live deposit presence. Omitted leaves old files without the field (#4886). */
-    hasDeftCore?: boolean;
-    now?: Date;
-  },
-): string | null {
-  const when = payload.now ?? new Date();
-  const body = {
-    last_run_at: formatUtcIso(when),
-    last_exit_code: payload.exitCode,
-    last_finding_count: payload.findingCount,
-    last_error_count: payload.errorCount,
-    ...(typeof payload.hasDeftCore === "boolean"
-      ? { last_has_deft_core: payload.hasDeftCore }
-      : {}),
-  };
-  const path = statePath(projectRoot);
-  try {
-    // #2980 wave C: product write sink routes through containedWrite.
-    // Default path is under the project triage cache; ENV_STATE_PATH may point outside.
-    const projectAbs = resolve(projectRoot);
-    const pathAbs = resolve(path);
-    const rel = relative(projectAbs, pathAbs);
-    const nested = rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
-    const payload = `${JSON.stringify(body, null, 2)}\n`;
-    if (nested) {
-      containedWrite({
-        root: projectAbs,
-        target: pathAbs,
-        data: payload,
-        mode: "replace",
-      });
-    } else {
-      const parent = dirname(pathAbs);
-      mkdirSync(parent, { recursive: true });
-      containedWrite({
-        root: resolve(parent),
-        target: basename(pathAbs),
-        data: payload,
-        mode: "replace",
-      });
-    }
-    return path;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Stored deposit bit equals live `classify().hasDeftCore`.
- * An absent field does not match. Both-false matches; skip still requires live core (#4723 / #4886).
- */
-export function rememberedDepositMatches(
-  remembered: boolean | undefined,
-  liveHasDeftCore: boolean,
-): boolean {
-  return remembered === liveHasDeftCore;
 }
 
 export function decideThrottle(state: DoctorState | null, now = new Date()): ThrottleDecision {

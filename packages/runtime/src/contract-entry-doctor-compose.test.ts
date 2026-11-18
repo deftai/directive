@@ -9,16 +9,19 @@ import { join } from "node:path";
 import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/constants.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const productDoctorRun = vi.fn(async (_argv: string[]): Promise<number> => {
-  process.stdout.write("Pre-cutover: none -- current vBRIEF document model.\n");
-  process.stdout.write(
-    "Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n",
-  );
-  return 0;
-});
+const productDoctorRun = vi.fn(
+  async (_argv: string[], _options?: { extraJson?: Record<string, unknown> }): Promise<number> => {
+    process.stdout.write("Pre-cutover: none -- current vBRIEF document model.\n");
+    process.stdout.write(
+      "Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n",
+    );
+    return 0;
+  },
+);
 
 vi.mock("./doctor.js", () => ({
-  run: (argv: string[]) => productDoctorRun(argv),
+  run: (argv: string[], options?: { extraJson?: Record<string, unknown> }) =>
+    productDoctorRun(argv, options),
 }));
 
 import {
@@ -27,6 +30,8 @@ import {
   handleContractEntrypoint,
 } from "./contract-entry.js";
 import {
+  DOCTOR_OVERALL_OK,
+  DOCTOR_OVERALL_PROBLEMS,
   GIT_PRECONDITION_READINESS_DETAIL,
   GIT_PRECONDITION_RECOVERY_GUIDANCE,
 } from "./doctor-diagnose.js";
@@ -184,13 +189,14 @@ describe("handleContractEntrypoint doctor compose (F-015 / C6)", () => {
     expect(out).toContain("Pre-cutover:");
     expect(out).toContain("Deposit hygiene:");
     expect(productDoctorRun).toHaveBeenCalledTimes(1);
-    expect(productDoctorRun).toHaveBeenCalledWith(["--project-root", root]);
+    expect(productDoctorRun.mock.calls[0]?.[0]).toEqual(["--project-root", root]);
 
-    // Trailing machine discriminant still present after both sections.
-    expect(out).toMatch(/"entry":"doctor"/);
+    // Human output carries no machine line; it ends with the overall verdict (#6004 / #5967).
+    expect(out).not.toMatch(/"entry":"doctor"/);
+    expect(out.trimEnd().endsWith(DOCTOR_OVERALL_PROBLEMS)).toBe(true);
 
     // Order: sync report, then separator, then product suite.
-    const syncIdx = out.indexOf("directive doctor:");
+    const syncIdx = out.indexOf("Install sync:");
     const sepIdx = out.indexOf(DOCTOR_PRODUCT_SECTION_SEPARATOR);
     const deepIdx = out.indexOf("Pre-cutover:");
     expect(syncIdx).toBeGreaterThanOrEqual(0);
@@ -239,11 +245,60 @@ describe("handleContractEntrypoint doctor compose (F-015 / C6)", () => {
       code = (await handleContractEntrypoint(["doctor", "--root", root])) ?? -1;
     });
 
-    expect(out).toContain("directive doctor: in sync");
+    expect(out).toContain("Install sync: in sync");
     expect(out).toContain(DOCTOR_PRODUCT_SECTION_SEPARATOR);
     expect(out).toContain("Pre-cutover:");
+    // Product suite reported problems: the overall line must not say OK (#5967 / #6003).
+    expect(out).not.toContain("directive doctor: in sync");
+    expect(out.trimEnd().endsWith(DOCTOR_OVERALL_PROBLEMS)).toBe(true);
     expect(productDoctorRun).toHaveBeenCalledTimes(1);
     expect(code).toBe(3);
+  });
+
+  it("ends with an OK overall line only when both sections are clean", async () => {
+    const root = tempRootWithGit();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    writeLockfileNpm(root, installed.runtimeVersion);
+    writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
+
+    let code = -1;
+    const out = await captureStdout(async () => {
+      code = (await handleContractEntrypoint(["doctor", "--root", root])) ?? -1;
+    });
+    expect(code).toBe(0);
+    expect(out.trimEnd().endsWith(DOCTOR_OVERALL_OK)).toBe(true);
+  });
+
+  it("--json writes exactly one JSON document with the install-sync result (#6004)", async () => {
+    productDoctorRun.mockImplementation(async (_argv, options) => {
+      process.stdout.write(
+        `${JSON.stringify({ ...options?.extraJson, status: "completed", findings: [] }, null, 2)}\n`,
+      );
+      return 0;
+    });
+    const root = tempRootNoGit();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    writeLockfileNpm(root, installed.runtimeVersion);
+    writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
+
+    let code = -1;
+    const out = await captureStdout(async () => {
+      code = (await handleContractEntrypoint(["doctor", "--json", "--full", "--root", root])) ?? -1;
+    });
+    // Exit code unchanged: install sync (no git) is unhealthy.
+    expect(code).toBe(1);
+    const parsed = JSON.parse(out) as Record<string, unknown>;
+    expect(parsed.contract).toBe(1);
+    expect(parsed.entry).toBe("doctor");
+    expect(parsed.dataStatus).toBe("current");
+    expect(parsed.findings).toEqual([]);
+    const sync = parsed.install_sync as Record<string, unknown>;
+    expect(sync.exit_code).toBe(1);
+    expect(sync.remedy).toBe(GIT_PRECONDITION_RECOVERY_GUIDANCE);
+    expect(out).not.toContain(DOCTOR_PRODUCT_SECTION_SEPARATOR);
+    expect(out).not.toContain("Install sync:");
   });
 
   it("prefers install-sync exit when sync is unhealthy even if product returns higher code", async () => {

@@ -175,7 +175,7 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", { timeout: 30_000 }, () => {
     expect(text).not.toMatch(/directive upgrade/);
   });
 
-  it("names AC9.7 when installed runtime missing (AC12.2)", () => {
+  it("names the project install when the installed runtime is missing (AC9.7 / AC12.2)", () => {
     const root = tempRoot();
     pinRuntime(root, "1.2.3");
     writeLockfileNpm(root, "1.2.3");
@@ -192,11 +192,12 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", { timeout: 30_000 }, () => {
     expect(diag.inSync).toBe(false);
     expect(diag.surfaces.installed.ok).toBe(false);
     expect(diag.dataStatus).toBe("current");
-    expect(diag.remedy).toBe(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(diag.remedy).toBe("npm install");
     const text = formatDoctorReport(diag);
-    // wave 4g: plain Next: block (same AC9.7 steps, friendlier layout)
-    expect(text).toMatch(/npm i -g @deftai\/directive/);
-    expect(text).toMatch(/directive install --repair/);
+    // One next command (AC9.7 v261118): the project install, no global + repair.
+    expect(text).toMatch(/Next:\n {2}npm install\n/);
+    expect(text).not.toMatch(/npm i -g @deftai\/directive/);
+    expect(text).not.toMatch(/directive install --repair/);
     expect(text).not.toMatch(/directive upgrade/);
   });
 
@@ -344,8 +345,8 @@ describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
       exitCode: 1,
     };
     const text = formatDoctorReport(diag);
-    expect(text).toMatch(/directive doctor: not in sync/);
-    expect(text).not.toMatch(/^directive doctor: in sync$/m);
+    expect(text).toMatch(/Install sync: not in sync/);
+    expect(text).not.toMatch(/^Install sync: in sync$/m);
     expect(text).toMatch(/skill pointers: FAIL/);
   });
 
@@ -385,7 +386,7 @@ describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
     expect(diag.surfaces.skillPointers.ok).toBe(true);
     expect(diag.exitCode).toBe(0);
     const text = formatDoctorReport(diag);
-    expect(text).toMatch(/directive doctor: in sync/);
+    expect(text).toMatch(/Install sync: in sync/);
     expect(text).toMatch(/skill pointers: ok/);
   });
 });
@@ -411,6 +412,26 @@ describe("AC12.7 dual remedy exclusion", () => {
       const hasAc97 = text.includes(INSTALLATION_RECOVERY_GUIDANCE);
       expect(hasUpgrade && hasAc97, text).toBe(false);
       if (diag.remedy === INSTALLATION_RECOVERY_GUIDANCE) expect(diag.schemaRemedy).toBeNull();
+    }
+  });
+});
+
+describe("absent is not ok (#5967 / #6003)", () => {
+  it("shows 'not present' for missing hook configs and skill pointers, 'not probed' for the default probe", () => {
+    const root = mkdtempSync(join(tmpdir(), "doctor-absent-"));
+    try {
+      const diag = runDoctorDiagnosis(root, { findHiddenFiles: () => null });
+      const text = formatDoctorReport(diag);
+      expect(text).toMatch(/hook command form: not present/);
+      expect(text).toMatch(/skill pointers: not present/);
+      expect(text).toMatch(/hook probe: not probed/);
+      expect(text).not.toMatch(/hook command form: ok/);
+      expect(text).not.toMatch(/skill pointers: ok/);
+      // Display only: the surfaces still count as ok for the exit code.
+      expect(diag.surfaces.hookCommandForm.ok).toBe(true);
+      expect(diag.surfaces.skillPointers.ok).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 });

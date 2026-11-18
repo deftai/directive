@@ -18,15 +18,20 @@ export const GO_BRIDGE_RELEASES_URL = "https://github.com/deftai/directive/relea
 
 /**
  * Recovery guidance for doctor FAIL suggested_fix.
- * Wave 2e / AC9.7 / AC12.5 / rule 9: no npx/pnpm-exec; install faults use
- * launcher-plus-repair; update-as-repair is retired (rule 10).
+ * AC9.7 (v261118) one recovery table: runtime missing or not the pin → the
+ * project install; wiring → `directive install --repair`; data or old layout →
+ * `directive upgrade`; launcher missing → `npm i -g @deftai/directive`.
+ * No npx/pnpm-exec (AC12.5); update-as-repair is retired (rule 10).
  */
 export const RECOVERY_LADDER_AGENTS_REFRESH = "directive install --repair";
 export const RECOVERY_LADDER_UPDATE = "directive upgrade";
 export const RECOVERY_LADDER_NPX_PREFIX = "npm i -g @deftai/directive";
 export const RECOVERY_LADDER_NPM_GLOBAL = "npm i -g @deftai/directive";
-export const RECOVERY_LADDER_INSTALL_REPAIR =
-  "npm i -g @deftai/directive, then directive install --repair";
+/** Wiring with the right runtime installed (AC9.7). */
+export const RECOVERY_LADDER_INSTALL_REPAIR = "directive install --repair";
+/** Runtime missing or not the pinned version (AC9.7 / AC9.12): the project install. */
+export const RECOVERY_LADDER_PROJECT_INSTALL =
+  "`npm install` (or `pnpm install --frozen-lockfile`)";
 
 export type RecoveryLadderPrimary = "agents-refresh" | "update";
 
@@ -57,7 +62,8 @@ export function recoveryLadderFields(primary: RecoveryLadderPrimary): RecoveryLa
 export function recoveryLadderProse(primary: RecoveryLadderPrimary): string {
   const f = recoveryLadderFields(primary);
   return (
-    `Run \`${f.suggested_fix}\`. Installation/wiring faults: \`${RECOVERY_LADDER_INSTALL_REPAIR}\`. ` +
+    `Run \`${f.suggested_fix}\`. Runtime missing or not the pinned version: ${RECOVERY_LADDER_PROJECT_INSTALL}. ` +
+    `Wiring: \`${RECOVERY_LADDER_INSTALL_REPAIR}\`. ` +
     `Data/schema migration: \`${RECOVERY_LADDER_UPDATE}\`. ` +
     `Launcher missing: \`${f.suggested_fix_npm_global}\`. ` +
     `Supported legacy layout: \`directive upgrade\` (see ${f.upgrading_doc_url}).`
@@ -108,7 +114,7 @@ export const DEPRECATED_SKILL_REDIRECT_SENTINEL = "<!-- deft:deprecated-skill-re
 export const REDIRECT_STUB_HEADER_LINES = 8;
 
 export const TASKFILE_INCLUDE_SNIPPET =
-  "version: '3'\n\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\n";
+  "version: '3'\n\nincludes:\n  deft:\n    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml\n    optional: true\n";
 
 export const DOCTOR_ALLOWED_FLAGS = [
   "--session",

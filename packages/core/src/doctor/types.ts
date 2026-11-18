@@ -143,18 +143,6 @@ export interface DoctorSeams {
   readonly runNpmConfigGet?: NpmConfigGet;
   readonly agentsRefreshPlan?: (projectRoot: string) => Record<string, unknown>;
   readonly agentsMdAdvisoryEvaluate?: (projectRoot: string) => AdvisoryEvaluateResult;
-  readonly readState?: (projectRoot: string) => DoctorState | null;
-  readonly writeState?: (
-    projectRoot: string,
-    payload: {
-      exitCode: number;
-      findingCount: number;
-      errorCount: number;
-      /** Live `classify().hasDeftCore` at the completed probe (#4886). */
-      hasDeftCore?: boolean;
-      now?: Date;
-    },
-  ) => string | null;
   readonly isTty?: () => boolean;
   /**
    * stdout TTY probe for session coda (#2712). Defaults to
@@ -262,4 +250,10 @@ export interface DoctorSeams {
    * Absent means this invocation did not evaluate hygiene.
    */
   readonly depositHygiene?: DoctorDepositHygiene;
+  /**
+   * Extra top-level keys merged into the `--json` payload (#6004). The runtime
+   * contract entry uses it to carry the install-sync result, so `--json`
+   * stdout stays one JSON document. Existing keys are never overwritten.
+   */
+  readonly extraJson?: Readonly<Record<string, unknown>>;
 }

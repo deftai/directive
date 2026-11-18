@@ -7,7 +7,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkFullInSync, INSTALLATION_RECOVERY_GUIDANCE, RUNTIME_PIN_PACKAGE } from "./index.js";
+import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "./constants.js";
+import { checkFullInSync, RUNTIME_PIN_PACKAGE } from "./index.js";
 
 const temps: string[] = [];
 
@@ -212,9 +213,9 @@ describe("checkFullInSync pin≠installed fail-closed (AC2.6)", () => {
     expect(result.inSync).toBe(false);
     expect(result.failClosed).toBe(true);
     expect(result.allowSetup).toBe(false);
-    expect(result.recoveryGuidance).toBe(INSTALLATION_RECOVERY_GUIDANCE);
-    expect(INSTALLATION_RECOVERY_GUIDANCE).toContain("npm i -g @deftai/directive");
-    expect(INSTALLATION_RECOVERY_GUIDANCE).toContain("directive install --repair");
+    // AC9.7: installed ≠ pin → the project install, never the global + repair pair.
+    expect(result.recoveryGuidance).toBe(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    expect(result.recoveryGuidance).not.toContain("npm i -g @deftai/directive, then");
   });
 });
 

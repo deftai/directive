@@ -109,7 +109,7 @@ directive install
 directive doctor --full
 ```
 
-Doctor is read-only. `--full` bypasses the 24h clean / 4h dirty throttle so a skip is not a healthy install. When the install is healthy it prints `System check passed!`. When action is required it prints exactly one `Next command:` with a root-cause line.
+Doctor is read-only and never skips a run; `--full` also runs the live hook probe. When the install is healthy it prints `System check passed!`. When action is required it prints exactly one `Next command:` with a root-cause line.
 
 **Success:** `System check passed!` (not a throttle-skip line). **Recovery:** run the printed `Next command:`. Detect-state ladders stay in [QUICK-START.md](../QUICK-START.md).
 

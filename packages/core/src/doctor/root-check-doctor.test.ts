@@ -46,7 +46,7 @@ const INCLUDE = `version: '3'
 
 includes:
   deft:
-    taskfile: ./.deft/core/Taskfile.yml
+    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml
     optional: true
 `;
 

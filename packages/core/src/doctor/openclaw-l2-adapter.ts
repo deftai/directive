@@ -1,9 +1,9 @@
 /**
- * Doctor check + --fix wire for OpenClaw L2 product-command skills (#3064 D5).
+ * Doctor check for OpenClaw L2 product-command skills (#3064 D5). Read-only
+ * (AC12.1, #6622): `directive install --repair` deposits them.
  *
- * Primary operator recovery path when OpenClaw is detected. Deposits thin
- * user-invocable router + 13 product skills into workspace skills roots.
- * Fail-closed when OC signals are absent. Policy opt-out:
+ * Checks the thin user-invocable router + 13 product skills in workspace
+ * skills roots. Fail-closed when OC signals are absent. Policy opt-out:
  * `plan.policy.openClawProductCommands: false`.
  */
 
@@ -16,7 +16,6 @@ import {
   listOpenClawManagedSkillSlugs,
 } from "../slash/openclaw-adapter.js";
 import {
-  depositOpenClawL2ProductCommands,
   loadOpenClawProductCommandsPolicyFromProject,
   type OpenClawL2DepositResult,
 } from "../slash/openclaw-deposit.js";
@@ -29,11 +28,11 @@ export const OPENCLAW_L2_ADAPTER_CHECK = "openclaw-l2-product-commands";
 
 const DOC_OPENCLAW_HOST = "docs/openclaw-agent-host.md";
 const DOC_SLASH_MULTI = "docs/slash-multi-host.md";
-const REMEDIATION_FIX = "deft doctor --fix";
+/** Setup deposits (or, when opted out, removes) these skills; doctor only reports (AC12.1, #6622). */
+const REMEDIATION_FIX = "directive install --repair";
 
 export interface RunOpenClawL2AdapterOptions {
   readonly projectRoot: string;
-  readonly fixMode: boolean;
   readonly jsonMode: boolean;
   readonly allAgents: boolean;
   readonly seams?: DoctorSeams;
@@ -87,7 +86,7 @@ function assessGaps(skillsDirs: readonly string[]): {
 
 /**
  * Doctor check: OpenClaw L2 product-command skills present and current.
- * No-ops when OpenClaw is not detected. Fix mode deposits managed skills.
+ * No-ops when OpenClaw is not detected. Read-only: setup deposits the skills.
  */
 export function runOpenClawL2AdapterCheck(
   sink: OutputSink,
@@ -114,43 +113,11 @@ export function runOpenClawL2AdapterCheck(
 
   const policy = loadOpenClawProductCommandsPolicyFromProject(options.projectRoot);
   if (!policy) {
-    // Opt-out: under --fix, strip managed L2 skills so the adapter does not
-    // stay active after openClawProductCommands=false (#3064 Greptile P1).
-    let depositResult: OpenClawL2DepositResult | null = null;
-    if (options.fixMode) {
-      depositResult = depositOpenClawL2ProductCommands({
-        projectRoot: options.projectRoot,
-        env,
-        homeDir: home,
-        allAgents: options.allAgents,
-        policy: false,
-        printf: (t) => {
-          if (!options.jsonMode) sink.info(t.trimEnd());
-        },
-        isDir,
-      });
-      const message =
-        `${OPENCLAW_L2_ADAPTER_CHECK}: opted out (plan.policy.openClawProductCommands=false); ` +
-        (depositResult.removedPaths.length > 0
-          ? `removed ${depositResult.removedPaths.length} managed skill path(s)`
-          : "no managed L2 skills to remove");
-      sink.success(message);
-      addFinding({
-        severity: "skip",
-        message,
-        check: OPENCLAW_L2_ADAPTER_CHECK,
-        status: "opted-out-fixed",
-        reason: "policy-false",
-        removed: depositResult.removedPaths,
-        detect_reasons: detect.reasons,
-      });
-      return depositResult;
-    }
     sink.info(`${OPENCLAW_L2_ADAPTER_CHECK}: skip -- plan.policy.openClawProductCommands=false`);
     addFinding({
       severity: "skip",
       message:
-        "OpenClaw L2 product commands opted out via policy; run `deft doctor --fix` to remove managed skills",
+        "OpenClaw L2 product commands opted out via policy; run `directive install --repair` to remove managed skills",
       check: OPENCLAW_L2_ADAPTER_CHECK,
       status: "opted-out",
       reason: "policy-false",
@@ -182,38 +149,6 @@ export function runOpenClawL2AdapterCheck(
     return null;
   }
 
-  let depositResult: OpenClawL2DepositResult | null = null;
-  if (options.fixMode) {
-    depositResult = depositOpenClawL2ProductCommands({
-      projectRoot: options.projectRoot,
-      env,
-      homeDir: home,
-      allAgents: options.allAgents,
-      policy: true,
-      printf: (t) => {
-        if (!options.jsonMode) sink.info(t.trimEnd());
-      },
-      isDir,
-    });
-    const post = assessGaps(skillsDirs);
-    if (post.missing.length === 0 && post.stale.length === 0) {
-      const message =
-        `${OPENCLAW_L2_ADAPTER_CHECK}: deposited OpenClaw L2 product-command skills; ` +
-        "restart the OpenClaw gateway or start a new session so available_skills refreshes";
-      sink.success(message);
-      addFinding({
-        severity: "skip",
-        message,
-        check: OPENCLAW_L2_ADAPTER_CHECK,
-        status: "fixed",
-        skills_dirs: skillsDirs,
-        written: depositResult.writtenPaths,
-        detect_reasons: detect.reasons,
-      });
-      return depositResult;
-    }
-  }
-
   const message =
     `${OPENCLAW_L2_ADAPTER_CHECK}: OpenClaw L2 product-command skills incomplete ` +
     `(missing: ${gaps.missing.length}, stale: ${gaps.stale.length}) under ${skillsDirs.join(", ")}. ` +
@@ -231,5 +166,5 @@ export function runOpenClawL2AdapterCheck(
     docs: [DOC_OPENCLAW_HOST, DOC_SLASH_MULTI],
     detect_reasons: detect.reasons,
   });
-  return depositResult;
+  return null;
 }

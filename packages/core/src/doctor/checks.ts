@@ -24,6 +24,7 @@ import {
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
 } from "../init-deposit/migrate.js";
+import { DIRECTIVE_GITIGNORE_LINES } from "../install-health/owned-paths.js";
 import { readRuntimePin } from "../install-health/readers.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
@@ -489,6 +490,32 @@ export function checkDanglingNodeModulesLinks(
     };
   }
   const named = dangling.map((d) => d.relativePath).join(", ");
+  // #5967 item 3: pnpm leaves dangling links on purpose (for example optional
+  // platform packages it did not install). Only a Directive package link or a
+  // link into an agent scratch worktree (#3749) is a broken install; any other
+  // dangling link is an advisory warning.
+  const hard = dangling.filter(
+    (d) => d.agentScratchWorktreeTarget || d.relativePath.startsWith("@deftai/"),
+  );
+  if (hard.length === 0) {
+    return {
+      name,
+      status: "fail",
+      detail:
+        `Dangling link(s) under node_modules: ${named}. Package managers can leave these on ` +
+        "purpose (for example pnpm's links to optional packages it did not install), so this " +
+        `is not a broken install by itself. If a package fails to load, run \`${recovery}\`.`,
+      data: stampAdvisory({
+        dangling,
+        recovery,
+        package_manager: pm,
+        ...(incomplete
+          ? { incomplete: true, incomplete_reason: incompleteReason ?? "bounded" }
+          : {}),
+        discovery: "throttle-skip-or-doctor-full",
+      }),
+    };
+  }
   const worktreeHits = dangling.filter((d) => d.agentScratchWorktreeTarget);
   const worktreeNote =
     worktreeHits.length > 0
@@ -1734,55 +1761,76 @@ export function checkTypescript7SideBySide(
   };
 }
 
-/**
- * #6271: escape when `directive update` refuses `dirty_tree` because local
- * runtime files the missing entries would ignore are still untracked.
- */
-export const GITIGNORE_DIRTY_TREE_FIX = "directive update --allow-dirty-no-stage" as const;
+/** Remedy for a missing Directive `.gitignore` line: setup owns these lines (AC8.5 / AC9.7). */
+export const GITIGNORE_REPAIR_FIX = "directive install --repair" as const;
 
-const GITIGNORE_DIRTY_TREE_RECOVERY =
-  "If update refuses with dirty_tree because untracked local runtime files " +
-  "(for example under .deft/) are present, run " +
-  `\`${GITIGNORE_DIRTY_TREE_FIX}\`, then commit .gitignore.`;
+/** Remedy on an old-layout project (no runtime pin): the conversion (AC9.7). */
+const GITIGNORE_OLD_LAYOUT_FIX = "directive upgrade" as const;
+
+function gitignoreNodeModulesCovered(present: ReadonlySet<string>): boolean {
+  return ["node_modules/", "node_modules", "/node_modules/", "/node_modules"].some((v) =>
+    present.has(v),
+  );
+}
 
 /**
- * #2206: check that the consumer `.gitignore` carries the canonical Deft baseline
- * entries. Advisory (exit-exempt) because missing entries are an adoption risk, not
- * a broken install.
+ * #2206 / #5967 item 2 / #6618: check that the consumer `.gitignore` carries
+ * Directive's entries. Advisory (exit-exempt): a missing entry is an adoption
+ * risk, not a broken install. Read-only; never edits `.gitignore`.
  *
- * Skips when `.gitignore` is absent (greenfield project that has not yet run
- * `directive init` or `directive update`).
+ * With a runtime pin, the required set is the AC8.5 list that setup writes
+ * (`DIRECTIVE_GITIGNORE_LINES`); its remedy is `directive install --repair`.
+ * Other lines from the old installer's baseline are listed as information.
+ * Old-layout projects (no runtime pin) keep the old baseline, remedy
+ * `directive upgrade`.
  */
 export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = {}): CheckResult {
   const gitignorePath = join(projectRoot, ".gitignore");
   const text = readText(gitignorePath, seams);
+  const runtimePinned = readRuntimePin(projectRoot).rawSpec !== null;
+  const fix = runtimePinned ? GITIGNORE_REPAIR_FIX : GITIGNORE_OLD_LAYOUT_FIX;
 
   if (text === null) {
     return {
       name: "gitignore-coverage",
       status: "skip",
-      detail: ".gitignore not found; run `directive init` or `directive update` to create it.",
+      detail: `.gitignore not found; run \`${fix}\` to create it.`,
       data: { gitignore_path: gitignorePath, missing: [] },
     };
   }
 
   const present = collectGitignorePresent(text);
+  const required: readonly string[] = runtimePinned
+    ? DIRECTIVE_GITIGNORE_LINES
+    : CANONICAL_GITIGNORE_BASELINE;
   const missing: string[] = [];
-  for (const line of CANONICAL_GITIGNORE_BASELINE) {
+  for (const line of required) {
+    if (line === "node_modules/" && gitignoreNodeModulesCovered(present)) continue;
     if (!gitignoreLineIsCovered(present, line)) {
       missing.push(line);
     }
   }
-  // Check .deft/core/ separately — only required for hybrid/greenfield installs.
-  // We conservatively omit it from the missing list here (tracked-deposit projects
-  // legitimately omit it). The update path handles this correctly per layout.
+  // Information only (runtime pin): old-baseline lines setup does not own.
+  const optional: string[] = [];
+  if (runtimePinned) {
+    const requiredSet = new Set<string>(required);
+    for (const line of CANONICAL_GITIGNORE_BASELINE) {
+      if (requiredSet.has(line) || gitignoreLineIsCovered(present, line)) continue;
+      optional.push(line);
+    }
+  }
+  const optionalNote =
+    optional.length > 0
+      ? ` Information: other local files you may want to ignore: ${optional.join(", ")}. ` +
+        "Add these to .gitignore if you don't want to see them in `git status`."
+      : "";
 
   if (missing.length === 0) {
     return {
       name: "gitignore-coverage",
       status: "pass",
-      detail: "All canonical Deft .gitignore entries are present.",
-      data: { gitignore_path: gitignorePath, missing: [] },
+      detail: `All Directive .gitignore entries are present.${optionalNote}`,
+      data: { gitignore_path: gitignorePath, missing: [], optional },
     };
   }
 
@@ -1790,16 +1838,13 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
     name: "gitignore-coverage",
     status: "fail",
     detail:
-      `Deft .gitignore coverage incomplete: ${missing.length} canonical entr${missing.length === 1 ? "y" : "ies"} ` +
-      `missing (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ", …" : ""}). ` +
-      "Run `directive update` to add the missing entries (idempotent, safe on re-run). " +
-      `${GITIGNORE_DIRTY_TREE_RECOVERY} ` +
-      `Full missing list: ${JSON.stringify(missing)}.`,
+      `Directive .gitignore entries missing: ${missing.join(", ")}. ` +
+      `Run \`${fix}\` to add them.${optionalNote}`,
     data: stampAdvisory({
       gitignore_path: gitignorePath,
       missing,
-      suggested_fix: "directive update",
-      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
+      optional,
+      suggested_fix: fix,
     }),
   };
 }
@@ -1856,15 +1901,14 @@ export function checkPrePrSecretTracked(projectRoot: string, seams: CheckSeams =
     detail:
       `The pre-PR HMAC secret ${PRE_PR_HMAC_SECRET_REL} is tracked in git. ` +
       "Anyone with the repository can forge pre-PR execution records. " +
-      "Doctor does not untrack it. Fix: run `directive update` to refresh the .gitignore baseline " +
-      `(\`${GITIGNORE_DIRTY_TREE_FIX}\` if it refuses with dirty_tree), ` +
+      "Doctor does not untrack it. Fix: run `directive install --repair` to add the missing " +
+      ".gitignore entries, " +
       `untrack the secret with \`${untrack}\` and commit, ` +
       `then rotate it (${rotate}) and re-run pre-PR.`,
     data: stampAdvisory({
       secret_path: PRE_PR_HMAC_SECRET_REL,
       tracked: true,
       untrack_command: untrack,
-      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
       rotate,
       suggested_fix: untrack,
     }),
