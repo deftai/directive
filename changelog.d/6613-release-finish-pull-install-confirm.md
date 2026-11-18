@@ -1,0 +1,3 @@
+section: Changed
+- `task release:local-update` now only pulls, installs and confirms the installed runtime equals the pin. It no longer requires refreshed hook files on `master`, refuses a dirty tree, checks the AgeExclude row, runs `directive upgrade`, or fails on a post-upgrade diff. Hook files refresh on the next hook run; commit a later `directive upgrade` when you choose. The release skill's Phase 7 step 8 says the same and names the pin-bump PR step. Refs #6613.
+- Removed the release-only Cursor deposit helpers added by #6184 (`validateCursorDepositAssociation`, `stageTipRequiredCursorDeposit`, `preparePinCandidateCursorDeposit` and related exports) that shipped inside the runtime. The deposited hook file bytes are unchanged. Refs #6613.
