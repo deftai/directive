@@ -110,6 +110,17 @@ describe("#6006 Review and commit lists every changed path", () => {
     }
   });
 
+  it("removed paths are listed so deletions are committed too", () => {
+    const review = collectReviewPaths([
+      {
+        created: [".deft/GENERATION.json"],
+        modified: [],
+        removed: [".deft/core", ".deft/VERSION", "node_modules/old-pkg"],
+      },
+    ]);
+    expect(review).toEqual([".deft/GENERATION.json", ".deft/core", ".deft/VERSION"]);
+  });
+
   it("small folders are listed file by file; no 16-path cap", () => {
     const many = Array.from({ length: 30 }, (_, i) => `file-${i}.md`);
     const review = collectReviewPaths([{ created: many, modified: [], removed: [] }]);

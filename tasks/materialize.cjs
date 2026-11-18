@@ -294,17 +294,24 @@ function smokeCheckRuntime(pinDir, projectRoot, deps = {}) {
 }
 
 /** Default tip build: stage + pack via the runtime package scripts; returns the tgz path. */
-function buildTipTarball(root) {
+function buildTipTarball(root, tmpBase = os.tmpdir()) {
   const stageScript = path.join(root, "packages", "runtime", "scripts", "stage-bundle.mjs");
   const packScript = path.join(root, "packages", "runtime", "scripts", "pack-staged-runtime.mjs");
   if (!fs.existsSync(stageScript) || !fs.existsSync(packScript)) {
     throw new Error("stage-bundle/pack-staged-runtime scripts missing; run from framework-source checkout");
   }
-  const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-stage-"));
-  const packDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-pack-"));
-  runNode(stageScript, [stageDir], { cwd: root });
-  const tgz = runNode(packScript, [stageDir, packDir], { cwd: root });
-  return { tgz, cleanup: [stageDir, packDir] };
+  const stageDir = fs.mkdtempSync(path.join(tmpBase, "deft-materialize-stage-"));
+  const packDir = fs.mkdtempSync(path.join(tmpBase, "deft-materialize-pack-"));
+  try {
+    runNode(stageScript, [stageDir], { cwd: root });
+    const tgz = runNode(packScript, [stageDir, packDir], { cwd: root });
+    return { tgz, cleanup: [stageDir, packDir] };
+  } catch (err) {
+    // The caller only learns these folders on success; remove them here on failure.
+    rmrf(stageDir);
+    rmrf(packDir);
+    throw err;
+  }
 }
 
 /**
@@ -476,6 +483,7 @@ if (require.main === module) {
 
 module.exports = {
   materialize,
+  buildTipTarball,
   extractTarball,
   tarCommand,
   resolveSwapTarget,
