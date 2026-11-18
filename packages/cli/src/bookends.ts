@@ -163,7 +163,8 @@ export function listDeftCoreGitEdits(projectRoot: string): string[] {
       "--",
       ".deft/core",
     ],
-    { encoding: "utf8", env: process.env },
+    // Read-only: no optional index refresh writes; bounded so a slow Git never stalls the plan.
+    { encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" }, timeout: 5000 },
   );
   if (result.error || result.status !== 0 || typeof result.stdout !== "string") return [];
   const tokens = result.stdout.split("\0");

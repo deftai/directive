@@ -153,6 +153,17 @@ describe("writeDeftCoreGitEdits (#6002)", () => {
   });
 });
 
+describe("writeDeftCoreGitEdits escapes control characters (#6002)", () => {
+  it("quotes a path holding terminal control characters", () => {
+    const c = capture();
+    writeDeftCoreGitEdits(c.io, [".deft/core/a\u001b[2Jb.md", ".deft/core/plain.md"]);
+    const text = c.out();
+    expect(text).not.toContain("\u001b");
+    expect(text).toContain('".deft/core/a\\u001b[2Jb.md"');
+    expect(text).toContain("    .deft/core/plain.md\n");
+  });
+});
+
 describe("upgrade plan lists .deft/core edits (#6002 / AC10.6)", () => {
   it("dry-run plan lists Git-reported edits and still exits 0 without a prompt", () => {
     const root = legacyRepo();

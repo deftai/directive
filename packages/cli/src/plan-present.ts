@@ -108,6 +108,12 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly deftCoreGitEdits?: readonly string[] | null;
 }
 
+/** Quote a path that holds control characters so it cannot rewrite the terminal. */
+function printablePath(path: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point.
+  return /[\u0000-\u001f\u007f-\u009f]/.test(path) ? JSON.stringify(path) : path;
+}
+
 /** Most `.deft/core` edit paths the upgrade plan lists before a count (AC10.6). */
 export const DEFT_CORE_EDIT_LIST_LIMIT = 20;
 
@@ -127,7 +133,7 @@ export function writeDeftCoreGitEdits(
       "They are removed with it. Save any you need before you approve:",
   );
   for (const path of paths.slice(0, DEFT_CORE_EDIT_LIST_LIMIT)) {
-    io.writeOut(`    ${path}\n`);
+    io.writeOut(`    ${printablePath(path)}\n`);
   }
   if (count > DEFT_CORE_EDIT_LIST_LIMIT) {
     io.writeOut(`    ...and ${count - DEFT_CORE_EDIT_LIST_LIMIT} more\n`);
