@@ -2921,7 +2921,12 @@ export function ingestOne(
           liveIssueBody: liveBody,
         });
         if (pin.status === "blocked") {
-          throw new DesignCritiqueIngestBlockedError(number, pin.reason, pin.detail);
+          return [
+            "refused",
+            null,
+            `issue:ingest refused #${number}: criteria-only record ${criteria.commentId} ` +
+              `${pin.reason} (${pin.detail}) -- nothing written.`,
+          ];
         }
         if (pin.status === "match") {
           admittedDigest = pin.digest;

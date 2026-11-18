@@ -4174,9 +4174,12 @@ describe("ingested briefs are launch-ready (#6333)", () => {
       withRoot((root, xbriefDir) => {
         const rows = [{ id: 8100000004, body: recordBody("Older body."), login: "author" }];
         const scmCall = forge(6423, ISSUE_BODY, rows);
-        expect(() => ingest(root, xbriefDir, input(6423, rows), scmCall)).toThrow(
-          DesignCritiqueIngestBlockedError,
-        );
+        const [result, path, message] = ingest(root, xbriefDir, input(6423, rows), scmCall);
+        expect(result).toBe("refused");
+        expect(path).toBeNull();
+        expect(message).toContain("stale-target");
+        expect(message).toContain("nothing written");
+        expect(readdirSync(xbriefDir)).toEqual([]);
       });
     });
 
