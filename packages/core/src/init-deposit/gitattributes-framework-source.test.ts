@@ -94,7 +94,7 @@ describe("ensureGitattributes in a framework source checkout (#6337)", () => {
     // Compare with the checked-out bytes (core.autocrlf may rewrite line ends).
     const before = readFileSync(join(worktree, ".gitattributes"), "utf8");
 
-    await depositNeutralization(worktree, io, { skipGuardWorkflow: true });
+    await depositNeutralization(worktree, io);
 
     expect(readFileSync(join(worktree, ".gitattributes"), "utf8")).toBe(before);
     expect(git(worktree, ["status", "--porcelain", "--", ".gitattributes"])).toBe("");
