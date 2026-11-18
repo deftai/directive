@@ -1,0 +1,2 @@
+section: Fixed
+- Install, upgrade (including `--dry-run`) and repair now explain a split `@deftai` registry. When `@deftai:registry` points at a private registry and a Directive package is missing there, the launcher says why, says not to remap the whole scope, and gives a one-run environment override. It does not print the private registry URL or change any config. Doctor reports `split-scope` instead of advising a scope remap when the project uses other `@deftai` packages, and `UPGRADING.md` now names only the two published packages (#6141).

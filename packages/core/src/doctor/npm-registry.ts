@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { NPM_REGISTRY_MIRROR_DOC_URL, PUBLIC_NPM_REGISTRY } from "./constants.js";
 import type { OutputSink } from "./output.js";
 import type { Finding, NpmConfigGet, NpmConfigGetResult } from "./types.js";
@@ -7,6 +9,15 @@ const CHECK_NAME = "npm-registry-mirror";
 const DEFT_SCOPE_REGISTRY_KEY = "@deftai:registry";
 const DEFAULT_REGISTRY_KEY = "registry";
 const UNSET_NPM_VALUES = new Set(["", "null", "undefined"]);
+/** The only two packages Directive publishes (AC13.4). */
+const DIRECTIVE_PUBLISHED_PACKAGES = new Set(["@deftai/directive", "@deftai/directive-runtime"]);
+const DIRECTIVE_PACKAGES_LABEL = "`@deftai/directive` and `@deftai/directive-runtime`";
+const DEPENDENCY_MAPS = [
+  "dependencies",
+  "devDependencies",
+  "optionalDependencies",
+  "peerDependencies",
+] as const;
 
 /** Seams for the read-only npm registry routing diagnostic. */
 export interface NpmRegistryMirrorSeams {
@@ -106,6 +117,29 @@ function isCanonicalPublicRegistry(value: string): boolean {
   }
 }
 
+/**
+ * True when the project `package.json` depends on any `@deftai/*` package other
+ * than Directive's two published packages (#6141 split scope). Unreadable or
+ * malformed manifests read as "no other packages" so today's advice stands.
+ */
+function projectUsesOtherDeftaiPackages(projectRoot: string): boolean {
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf8"));
+  } catch {
+    return false;
+  }
+  if (manifest === null || typeof manifest !== "object") return false;
+  for (const key of DEPENDENCY_MAPS) {
+    const deps = (manifest as Record<string, unknown>)[key];
+    if (deps === null || typeof deps !== "object" || Array.isArray(deps)) continue;
+    for (const name of Object.keys(deps)) {
+      if (name.startsWith("@deftai/") && !DIRECTIVE_PUBLISHED_PACKAGES.has(name)) return true;
+    }
+  }
+  return false;
+}
+
 function skipFinding(addFinding: (finding: Finding) => void): void {
   addFinding({
     severity: "skip",
@@ -137,6 +171,30 @@ export function runNpmRegistryMirrorCheck(
     return;
   }
 
+  if (selected.source === "scoped" && projectUsesOtherDeftaiPackages(projectRoot)) {
+    // #6141: npm and pnpm route a whole scope to one registry, so remapping
+    // `@deftai` would break the project's other `@deftai/*` packages.
+    const splitMessage =
+      `${CHECK_NAME}: \`@deftai:registry\` routes @deftai packages to a non-public registry, ` +
+      "and this project also uses other @deftai packages from there. " +
+      "npm and pnpm send a whole scope to one registry. " +
+      `Directive's two packages (${DIRECTIVE_PACKAGES_LABEL}) are published only on the public npm registry. ` +
+      "Do not remap the whole @deftai scope; that would break your other @deftai packages. " +
+      "If the lockfile already records the runtime, reinstall from it (`npm ci` / `pnpm install --frozen-lockfile`). " +
+      "To add or upgrade Directive, your registry needs to serve these two packages (for example a proxy registry with an upstream to npmjs), " +
+      `or the internal packages need a different scope. See ${NPM_REGISTRY_MIRROR_DOC_URL}.`;
+    sink.warn(splitMessage);
+    addFinding({
+      severity: "warning",
+      message: splitMessage,
+      check: CHECK_NAME,
+      status: "split-scope",
+      registry_source: selected.source,
+      suggestion: NPM_REGISTRY_MIRROR_DOC_URL,
+    });
+    return;
+  }
+
   const message =
     `${CHECK_NAME}: @deftai packages resolve through a non-public npm registry. ` +
     "Corporate mirrors can return E404/ETARGET or silently serve stale @latest metadata. " +
@@ -144,7 +202,7 @@ export function runNpmRegistryMirrorCheck(
     "Where corporate policy permits, retry from a directory that does not load the project `.npmrc` (for example `$HOME`; " +
     `optionally \`--userconfig\` to a file that sets \`@deftai:registry=${PUBLIC_NPM_REGISTRY}\`), ` +
     `or add \`@deftai:registry=${PUBLIC_NPM_REGISTRY}\` to \`.npmrc\`. ` +
-    `Otherwise ask your registry administrator to sync the @deftai packages. See ${NPM_REGISTRY_MIRROR_DOC_URL}.`;
+    `Otherwise ask your registry administrator to sync ${DIRECTIVE_PACKAGES_LABEL}. See ${NPM_REGISTRY_MIRROR_DOC_URL}.`;
   sink.warn(message);
   addFinding({
     severity: "warning",

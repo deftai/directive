@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   isWiringCurrentForVersion,
   parseDoctorDataStatusResponse,
+  runInstall,
   runUpgrade,
 } from "./bookends.js";
 import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
@@ -905,5 +906,130 @@ describe("npm view directive --json unwrap (#5916)", () => {
     }));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.message).toMatch(/invalid directive\.contract/);
+  });
+});
+
+describe("split @deftai registry hint (#6141)", () => {
+  const PRIVATE = "http://127.0.0.1:48765/";
+  const NPM_VIEW_404 =
+    "npm view @deftai/directive-runtime version failed: npm error code E404\n" +
+    "npm error 404 Not Found - GET http://127.0.0.1:48765/@deftai%2fdirective-runtime - Not found";
+  const HINT_MARK = "Do not remap the whole @deftai scope";
+  const OVERRIDE = "env 'npm_config_@deftai:registry=https://registry.npmjs.org/'";
+
+  function count(text: string, needle: string): number {
+    return text.split(needle).length - 1;
+  }
+
+  it("upgrade --dry-run shows the hint on a lookup miss, without the private URL", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    const code = runUpgrade(root, stateFor(root), ["--dry-run"], "0.0.0-test", c.io, {
+      resolveLatest: () => ({ ok: false as const, message: NPM_VIEW_404 }),
+      readScopedRegistry: () => PRIVATE,
+    });
+    expect(code).toBe(1);
+    const err = c.err();
+    expect(count(err, HINT_MARK)).toBe(1);
+    expect(err).toContain(`${OVERRIDE} directive upgrade`);
+    expect(err).toContain("E404");
+    expect(err).not.toContain("127.0.0.1");
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("upgrade --target-version shows the hint when the contract lookup misses", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({
+          ok: false as const,
+          message: "npm view @deftai/directive-runtime@2.0.0 directive failed: npm error code E404",
+        }),
+        readScopedRegistry: () => PRIVATE,
+      },
+    );
+    expect(code).toBe(1);
+    expect(count(c.err(), HINT_MARK)).toBe(1);
+  });
+
+  it("no hint when the lookup succeeds under a non-public registry (proxy serves Directive)", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const c = capture();
+    let read = false;
+    const code = runUpgrade(root, stateFor(root), ["--dry-run"], "0.0.0-test", c.io, {
+      resolveLatest: () => ({ ok: true as const, version: "2.0.0" }),
+      resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+      readScopedRegistry: () => {
+        read = true;
+        return PRIVATE;
+      },
+    });
+    expect(code).toBe(0);
+    expect(read).toBe(false);
+    expect(c.err() + c.out()).not.toContain(HINT_MARK);
+  });
+
+  it("no hint on a lookup miss when @deftai:registry is public", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const c = capture();
+    const code = runUpgrade(root, stateFor(root), ["--dry-run"], "0.0.0-test", c.io, {
+      resolveLatest: () => ({ ok: false as const, message: NPM_VIEW_404 }),
+      readScopedRegistry: () => "https://registry.npmjs.org/",
+    });
+    expect(code).toBe(1);
+    expect(c.err()).not.toContain(HINT_MARK);
+    expect(c.err()).toContain(NPM_VIEW_404);
+  });
+
+  it("install prints the hint once when the PM add misses", () => {
+    const root = tempProject();
+    const c = capture();
+    const code = runInstall(root, stateFor(root), ["--yes"], "0.0.0-test", c.io, {
+      checkPmAvailable: () => ({ ok: true as const }),
+      resolveLatest: () => ({ ok: true as const, version: "1.2.3" }),
+      runPmAdd: () => ({
+        ok: false as const,
+        message: "npm install --save-dev --save-exact @deftai/directive-runtime@1.2.3 failed",
+        stderr:
+          "npm error code E404\nnpm error 404 Not Found - GET http://127.0.0.1:48765/@deftai%2fdirective-runtime",
+      }),
+      readScopedRegistry: () => PRIVATE,
+    });
+    expect(code).toBe(1);
+    expect(count(c.err(), HINT_MARK)).toBe(1);
+    expect(c.err()).toContain(`${OVERRIDE} directive install`);
+    expect(c.err()).not.toContain("127.0.0.1");
+  });
+
+  it("repair with a lockfile pin names the lockfile install first", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    rmSync(join(root, "node_modules"), { recursive: true, force: true });
+    const c = capture();
+    const code = runInstall(root, stateFor(root), ["--repair", "--yes"], "0.0.0-test", c.io, {
+      checkPmAvailable: () => ({ ok: true as const }),
+      runPmAdd: () => ({
+        ok: false as const,
+        message: "npm install @deftai/directive-runtime@1.2.3 failed",
+        stderr: "npm error code E404",
+      }),
+      readScopedRegistry: () => PRIVATE,
+    });
+    expect(code).toBe(1);
+    const err = c.err();
+    expect(count(err, HINT_MARK)).toBe(1);
+    expect(err).toContain("run `npm ci` in this project, then `directive install --repair`");
+    expect(err).toContain(`${OVERRIDE} directive install --repair`);
   });
 });

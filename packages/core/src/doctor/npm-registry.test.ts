@@ -1,4 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({
@@ -147,6 +150,106 @@ describe("npm registry mirror doctor check (#2808)", () => {
     expect(serialized).not.toContain(secretRegistry);
     expect(serialized).not.toContain("npm.internal.example.com");
     expect(serialized).not.toContain("super-secret");
+  });
+
+  it("names only the two published Directive packages in mirror advice (#6141)", () => {
+    const result = runCheck({
+      "@deftai:registry": { ok: true, value: "undefined" },
+      registry: { ok: true, value: "https://npm.internal.example.com/" },
+    });
+
+    expect(result.output).toContain("`@deftai/directive` and `@deftai/directive-runtime`");
+    for (const retired of ["directive-core", "directive-content", "directive-types"]) {
+      expect(result.output).not.toContain(retired);
+    }
+  });
+
+  describe("split @deftai scope (#6141)", () => {
+    function runInProject(
+      manifest: Record<string, unknown> | null,
+      values: Readonly<Record<string, { ok: boolean; value: string }>>,
+    ): { findings: Finding[]; output: string } {
+      const root = mkdtempSync(join(tmpdir(), "npm-registry-split-"));
+      try {
+        if (manifest !== null) {
+          writeFileSync(join(root, "package.json"), JSON.stringify(manifest));
+        }
+        const findings: Finding[] = [];
+        const output: string[] = [];
+        runNpmRegistryMirrorCheck(
+          root,
+          createPlainSink({ write: (text) => output.push(text) }),
+          (finding) => findings.push(finding),
+          { runNpmConfigGet: (key) => values[key] ?? { ok: false, value: "" } },
+        );
+        return { findings, output: output.join("") };
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    }
+
+    const privateScope = "https://ci-bot:tok123@npm.pkg.github.com/deftai/";
+
+    it("reports split-scope without remap advice or the configured URL", () => {
+      const result = runInProject(
+        {
+          dependencies: { "@deftai/rivet-os": "1.0.0" },
+          devDependencies: { "@deftai/directive-runtime": "1.2.3" },
+        },
+        { "@deftai:registry": { ok: true, value: privateScope } },
+      );
+
+      expect(result.findings).toEqual([
+        expect.objectContaining({
+          severity: "warning",
+          check: "npm-registry-mirror",
+          status: "split-scope",
+          registry_source: "scoped",
+        }),
+      ]);
+      expect(result.output).not.toContain("@deftai:registry=https://registry.npmjs.org/");
+      expect(result.output).toContain("Do not remap the whole @deftai scope");
+      expect(result.output).toContain("`npm ci` / `pnpm install --frozen-lockfile`");
+      expect(result.output).toContain("proxy registry");
+      expect(result.output).toContain("different scope");
+      expect(result.output).toContain("`@deftai/directive` and `@deftai/directive-runtime`");
+      const serialized = JSON.stringify(result.findings) + result.output;
+      expect(serialized).not.toContain("npm.pkg.github.com");
+      expect(serialized).not.toContain("tok123");
+    });
+
+    it("keeps today's advice when no other @deftai package is used", () => {
+      const result = runInProject(
+        { devDependencies: { "@deftai/directive-runtime": "1.2.3", "@deftai/directive": "1.2.3" } },
+        { "@deftai:registry": { ok: true, value: privateScope } },
+      );
+
+      expect(result.findings[0]).toMatchObject({ status: "non-public", registry_source: "scoped" });
+      expect(result.output).toContain("@deftai:registry=https://registry.npmjs.org/");
+      expect(result.output).toContain("`@deftai/directive` and `@deftai/directive-runtime`");
+      expect(result.output).not.toContain("npm.pkg.github.com");
+    });
+
+    it("does not call a default-registry mirror split even with other @deftai packages", () => {
+      const result = runInProject(
+        { dependencies: { "@deftai/rivet-os": "1.0.0" } },
+        {
+          "@deftai:registry": { ok: true, value: "undefined" },
+          registry: { ok: true, value: "https://npm.internal.example.com/" },
+        },
+      );
+
+      expect(result.findings[0]).toMatchObject({
+        status: "non-public",
+        registry_source: "default",
+      });
+    });
+
+    it("treats a missing package.json as no other packages", () => {
+      expect(
+        runInProject(null, { "@deftai:registry": { ok: true, value: privateScope } }).findings[0],
+      ).toMatchObject({ status: "non-public" });
+    });
   });
 
   it("does not treat the insecure public HTTP endpoint as canonical", () => {

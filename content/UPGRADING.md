@@ -226,7 +226,9 @@ If either effective value is not
 corporate policy:
 
 - **Leave the project directory** so the project `.npmrc` is not loaded
-  (for example `$HOME`), then install:
+  (for example `$HOME`), then install the global launcher. This helps the
+  global launcher only: the project pin (`@deftai/directive-runtime`) must
+  install inside the project.
 
   ```bash
   cd "$HOME" && npm i -g @deftai/directive@<version>
@@ -238,16 +240,52 @@ corporate policy:
   that file. `--userconfig` does not beat a project `.npmrc` `@deftai:registry`.
 
 - **Durable scoped routing:** add this line to the user or project `.npmrc` so
-  only the `@deftai` scope bypasses the default mirror:
+  only the `@deftai` scope bypasses the default mirror. Do not use this if the
+  project has other `@deftai` packages on a private registry (see "Split
+  scope" below):
 
   ```ini
   @deftai:registry=https://registry.npmjs.org/
   ```
 
 If direct public-registry access is prohibited, do not bypass the policy. Ask
-IT or the registry administrator to synchronize all Directive packages:
-`@deftai/directive`, `@deftai/directive-core`,
-`@deftai/directive-content`, and `@deftai/directive-types`.
+IT or the registry administrator to synchronize Directive's two published
+packages: `@deftai/directive` and `@deftai/directive-runtime`. The older
+`@deftai/directive-core`, `@deftai/directive-content` and
+`@deftai/directive-types` packages are no longer published and do not need
+syncing.
+
+**Split scope.** Some projects route `@deftai` to a private registry (for
+example GitHub Packages) for their own `@deftai/*` packages. npm and pnpm send
+a whole scope to one registry, so Directive's two packages, which are
+published only on `https://registry.npmjs.org/`, return `E404` there. Do not
+remap the whole `@deftai` scope in `.npmrc`; that breaks your other `@deftai`
+packages. Instead:
+
+- If the lockfile already records the runtime, reinstall from it
+  (`npm ci` / `pnpm install --frozen-lockfile`), then run
+  `directive install --repair`.
+- To install or upgrade Directive for one run, override the scope in the
+  environment only. Nothing is written to config, and the lockfile then
+  records public npm URLs, so later `npm ci` works:
+
+  ```bash
+  env 'npm_config_@deftai:registry=https://registry.npmjs.org/' directive upgrade
+  ```
+
+  ```powershell
+  ${env:npm_config_@deftai:registry}='https://registry.npmjs.org/'; directive upgrade; Remove-Item 'env:npm_config_@deftai:registry'
+  ```
+
+- For a durable fix, your registry needs to serve the two Directive packages
+  (for example a proxy registry with an upstream to npmjs), or the internal
+  packages need a different scope.
+
+`directive install`, `directive upgrade` (including `--dry-run`) and
+`directive install --repair` print this hint when a Directive package misses
+under a non-public `@deftai:registry`. Doctor reports a `split-scope` finding
+when `@deftai:registry` is non-public and `package.json` uses other `@deftai`
+packages.
 
 `directive doctor` checks this routing with offline `npm config get` reads. A
 non-public effective registry produces an advisory warning but does not make
