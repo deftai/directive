@@ -1,0 +1,874 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6644",
+    "updated": "2026-11-18T18:07:22Z"
+  },
+  "plan": {
+    "title": "bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses",
+    "status": "running",
+    "narratives": {
+      "Description": "scope:complete refuses a story whose acceptance clauses have no green command even when an operator has recorded a disposition for them, and its refusal does not name the clauses that are the gap. The acceptance-disposition grant records only `deferred`, and no verb moves a sentence that is not a criterion out of the way, so workers hand-edit the acceptance block and recompute its digest. This story builds the accepted design (synthesis 6969950740, Bound lean 6969795502): three grant values, a walk that leaves this run's granted clauses out of its counts, a refusal that names the unresolved clauses, and one `scope:confess` verb.",
+      "UserStory": "As an operator completing a story, I want a clause I dropped or waived to count as handled, and a sentence that is not a criterion to be confessed by a verb, so that completion no longer needs a hand-edited acceptance block, a recomputed digest, or a confession PR.",
+      "ImplementationPlan": "1. packages/core/src/policy/acceptance-disposition-grant.ts: store the disposition value on the grant (new surface), default `deferred` for old grants; viewOf accepts a missing deferred-to for `not_applicable` and `waived`; acceptanceDispositionRecordFor writes the stored value and `deferred_to` only for `deferred`; formatAcceptanceDispositionCommand names `--disposition` and `--deferred-to` only for `deferred`; applyAcceptanceDispositionGrants also returns the clause ids it stamped this run with value and reason.\n2. packages/runtime/src/authz.ts: `--disposition` flag, `--deferred-to` required for `deferred` and refused otherwise, `--reason` required, `authz:show` prints the value.\n3. packages/core/src/scope/transition.ts: pass the granted clauses of this run to the completion walk.\n4. packages/core/src/product-first-done-gate/evaluate.ts and acceptance-resolver.ts: the clause walk leaves granted clauses out of walked, failed, adjudicableUnverified and verified, prints each as granted, and the printed lead names the granted count.\n5. packages/core/src/scope/acceptance-evidence.ts: the completion zero-verified rule is decided from the counts; the refusal lists each clause that is neither verified nor granted with the two remedies.\n6. New packages/core/src/scope/confess.ts plus main.ts, index.ts, route-argv.ts, tasks/scope.yml and commands.md: `scope:confess --sentence` / `--all-unmapped`.\n7. Tests for each, one changelog fragment.",
+      "Traces": "#6644",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6644",
+      "Overview": "\n1. Grant values. `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`; the default is `deferred`, so today's calls are unchanged. `--reason` is required for every value. `--deferred-to` is required for `deferred` and refused for the other two. The value is stored on the grant beside the existing deferred-to and reason fields; a grant minted before this change reads as `deferred`. `acceptanceDispositionRecordFor` writes the grant's value, and writes `deferred_to` only for `deferred`. The grant reader (`viewOf`) accepts a grant with no deferred-to value when its stored value is `not_applicable` or `waived`, and still requires deferred-to when the stored value is `deferred` or absent. The resolve step, the apply step and the restamp check of a completed brief (`checkCitedAcceptanceDispositionGrants`) all use that reader, so a new-value grant is stamped, enters the granted set and restamps from `acceptanceDispositionRecordFor`. The remint text (`formatAcceptanceDispositionCommand`) names `--disposition <value>` and names `--deferred-to` only for `deferred`. `authz:show` prints the stored value. The mint gate, the clause-text digest, expiry and the place of the apply step in complete prep are unchanged.\n2. Granted set. `applyAcceptanceDispositionGrants` already returns the ids it stamped in this run. `scope:complete` passes the clause ids among them to its walk as the granted set. Nothing else enters that set: a disposition written into the brief, with or without a grant id, does not.\n3. Walk counts. In the `scope:complete` walk, a clause in the granted set is not counted in `walked`, `failed`, `adjudicableUnverified` or the verified count, and the walk prints it as granted with its value and reason. The printed lead is built after this omission and names the granted count. The zero-verified rule at completion is decided from these counts, not from the printed text: it refuses only when at least one clause is neither verified nor granted, no clause is verified and no executable command ran green. A walk whose every clause is granted, or verified or granted, passes without a command. The clause stays in `acceptance.clauses`; the sentence floor and the admitted-source identity check read the brief as today.\n4. Refusal text. When the completion walk refuses, it lists each clause id that is neither verified nor granted, with the start of its text, and gives two remedies: a verify command that covers the clause, or the grant command with that clause id and a value. This replaces the \"(disposition is not a substitute)\" sentence on that refusal.\n5. Non-criterion clause. A clause that is not a criterion is marked by the item 1 grant with `not_applicable` and a reason. The brief, its clauses, sentences, pin and digest are not edited.\n6. Non-criterion sentence. `deft scope:confess -- <brief> --sentence \"<text>\"` (repeatable) or `--all-unmapped` appends to `acceptance.confessions` each named sentence that is in `acceptance.sentences`, is not a clause text and is not an admitted-source identity. It prints each sentence it wrote and changes nothing else in the brief. It refuses, and writes nothing, for a sentence that is not in the list, or that is an admitted-source identity; for the second it names the item 1 grant for that sentence's clause.\n7. `verify:ac` run outside `scope:complete`, the rapid check, the evidence gate and the merge stamper are unchanged.\n\n## Acceptance Criteria\n\n- Given an `acceptance-disposition` grant minted with `--disposition not_applicable --reason R` on clause 5, when `scope:complete` runs, then clause 5's plan item carries `not_applicable`, reason R and the grant id, and no merge evidence.\n- Given `--disposition waived` with `--deferred-to 7`, then the mint refuses and names the flag; given `--disposition deferred` without `--deferred-to`, then the mint refuses as today.\n- Given a grant minted before this change, when `scope:complete` applies it, then the item carries `deferred` and its `deferred_to`.\n- Given a `waived` grant on clause 12 of a brief that `scope:complete` completed, when the completed brief is restamped, then the restamp check finds the grant and the item keeps `waived` with the grant id.\n- Given a `not_applicable` grant whose clause text has changed, when `scope:complete` refuses, then the remint text names `--disposition not_applicable` and does not name `--deferred-to`.\n- Given a stored grant with value `deferred` and no deferred-to value, when it is read, then it is treated as malformed as today.\n- Given a brief with no verify command whose every clause is covered by a grant applied in this run, when `scope:complete` runs, then the walk passes, the clauses are still in `acceptance.clauses` and the output lists each clause as granted.\n- Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when `scope:complete` runs, then it refuses, names that clause id and prints both remedies.\n- Given a clause-keyed item whose `x-directive/disposition` was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when `scope:complete` runs with no verify command, then the walk still refuses for that clause.\n- Given a grant whose clause text has changed since mint, when `scope:complete` runs, then it refuses as today and no clause enters the granted set.\n- Given a clause granted in this run that also has a token oracle that fails, when `scope:complete` runs, then that clause does not count as failed.\n- Given an unmapped sentence that is not an admitted-source identity, when `scope:confess --sentence` names it, then it is appended to `acceptance.confessions`, nothing else in the brief changes and `verify:ac` no longer reports it as unmapped.\n- Given a sentence that is an admitted-source identity, when `scope:confess` names it, then it refuses, writes nothing and names the grant command for its clause.\n- Given `scope:confess --all-unmapped`, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each.\n- Given `verify:ac` run on a brief outside `scope:complete`, then its result is the same as before this change.\n\n\n",
+      "Constraint": "- A refresh verb that rewrites clauses, sentences, the admitted-source pin and its digest from the current issue body (comment 6969613924 finding 1).\n- Letting a working pin replace the merge-base or HEAD pin when its digest equals the live issue body (comment 6969613924 finding 1).\n- Removing a granted clause from `acceptance.clauses`, or excusing it from the sentence floor or the identity check (comment 6969613924 finding 2).\n- A walk exclusion keyed on what the brief says (a human-origin shape or a grant id) instead of this run's applied ids (comment 6969613924 finding 3).\n- Deciding the zero-verified rule from the printed lead after the counts change (comment 6969613924 finding 4).\n- A confession that covers an admitted-source identity (comment 6969613924 road not taken).\n- A new-value grant that the reader drops because it has no deferred-to value (comment 6969783258 finding 1).\n- Merge provenance as a substitute for an executable pass; a new authenticity check on grant files.",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "Grant values. `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`; the default is `deferred`, so today's calls are unchanged. `--reason` is required for every value. `--deferred-to` is required for `deferred` and refused for the other two. The value is stored on the grant beside the existing deferred-to and reason fields; a grant minted before this change reads as `deferred`. `acceptanceDispositionRecordFor` writes the grant's value, and writes `deferred_to` only for `deferred`. The grant reader (`viewOf`) accepts a grant with no deferred-to value when its stored value is `not_applicable` or `waived`, and still requires deferred-to when the stored value is `deferred` or absent. The resolve step, the apply step and the restamp check of a completed brief (`checkCitedAcceptanceDispositionGrants`) all use that reader, so a new-value grant is stamped, enters the granted set and restamps from `acceptanceDispositionRecordFor`. The remint text (`formatAcceptanceDispositionCommand`) names `--disposition <value>` and names `--deferred-to` only for `deferred`. `authz:show` prints the stored value. The mint gate, the clause-text digest, expiry and the place of the apply step in complete prep are unchanged.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given authz:grant --template acceptance-disposition with --disposition not_applicable, waived or deferred (default deferred) and a --reason, when it mints, then the value is stored on the grant, --deferred-to is required for deferred only, the reader accepts a missing deferred-to for the two new values, and the remint text names --disposition and --deferred-to only for deferred."
+        }
+      },
+      {
+        "title": "Granted set. `applyAcceptanceDispositionGrants` already returns the ids it stamped in this run. `scope:complete` passes the clause ids among them to its walk as the granted set. Nothing else enters that set: a disposition written into the brief, with or without a grant id, does not.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given scope:complete applies grants, when the walk starts, then only the clause ids that applyAcceptanceDispositionGrants stamped in this run are passed to it as the granted set, and a disposition written into the brief never enters that set."
+        }
+      },
+      {
+        "title": "Walk counts. In the `scope:complete` walk, a clause in the granted set is not counted in `walked`, `failed`, `adjudicableUnverified` or the verified count, and the walk prints it as granted with its value and reason. The printed lead is built after this omission and names the granted count. The zero-verified rule at completion is decided from these counts, not from the printed text: it refuses only when at least one clause is neither verified nor granted, no clause is verified and no executable command ran green. A walk whose every clause is granted, or verified or granted, passes without a command. The clause stays in `acceptance.clauses`; the sentence floor and the admitted-source identity check read the brief as today.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a granted set, when the completion walk runs, then granted clauses are left out of walked, failed, adjudicableUnverified and the verified count, each is printed as granted with its value and reason, the zero-verified rule is decided from the counts, and a walk whose clauses are all verified or granted passes with no command."
+        }
+      },
+      {
+        "title": "Refusal text. When the completion walk refuses, it lists each clause id that is neither verified nor granted, with the start of its text, and gives two remedies: a verify command that covers the clause, or the grant command with that clause id and a value. This replaces the \"(disposition is not a substitute)\" sentence on that refusal.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a completion walk that refuses, when the refusal prints, then it lists each clause id that is neither verified nor granted with the start of its text and gives both remedies (a verify command, or the grant command with that clause id and a value) in place of the disposition-is-not-a-substitute sentence."
+        }
+      },
+      {
+        "title": "Non-criterion clause. A clause that is not a criterion is marked by the item 1 grant with `not_applicable` and a reason. The brief, its clauses, sentences, pin and digest are not edited.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a clause that is not a criterion, when an operator mints the grant with not_applicable and a reason, then scope:complete marks it from the grant and the brief, its clauses, sentences, pin and digest are not edited."
+        }
+      },
+      {
+        "title": "Non-criterion sentence. `deft scope:confess -- <brief> --sentence \"<text>\"` (repeatable) or `--all-unmapped` appends to `acceptance.confessions` each named sentence that is in `acceptance.sentences`, is not a clause text and is not an admitted-source identity. It prints each sentence it wrote and changes nothing else in the brief. It refuses, and writes nothing, for a sentence that is not in the list, or that is an admitted-source identity; for the second it names the item 1 grant for that sentence's clause.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given scope:confess with --sentence (repeatable) or --all-unmapped, when it runs, then it appends each named sentence that is in acceptance.sentences, is not clause text and is not an admitted-source identity to acceptance.confessions, prints each, changes nothing else, and refuses with no write for any other sentence."
+        }
+      },
+      {
+        "title": "`verify:ac` run outside `scope:complete`, the rapid check, the evidence gate and the merge stamper are unchanged.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given verify:ac outside scope:complete, the rapid check, the evidence gate and the merge stamper, when each runs on a brief with no granted set, then each result is the same as before this change."
+        }
+      },
+      {
+        "title": "Given an `acceptance-disposition` grant minted with `--disposition not_applicable --reason R` on clause 5, when `scope:complete` runs, then clause 5's plan item carries `not_applicable`, reason R and the grant id, and no merge evidence.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given an acceptance-disposition grant minted with --disposition not_applicable --reason R on clause 5, when scope:complete runs, then clause 5's plan item carries not_applicable, reason R and the grant id, and no merge evidence."
+        }
+      },
+      {
+        "title": "Given `--disposition waived` with `--deferred-to 7`, then the mint refuses and names the flag; given `--disposition deferred` without `--deferred-to`, then the mint refuses as today.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given --disposition waived with --deferred-to 7, then the mint refuses and names the flag; given --disposition deferred without --deferred-to, then the mint refuses as today."
+        }
+      },
+      {
+        "title": "Given a grant minted before this change, when `scope:complete` applies it, then the item carries `deferred` and its `deferred_to`.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a grant minted before this change, when scope:complete applies it, then the item carries deferred and its deferred_to."
+        }
+      },
+      {
+        "title": "Given a `waived` grant on clause 12 of a brief that `scope:complete` completed, when the completed brief is restamped, then the restamp check finds the grant and the item keeps `waived` with the grant id.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a waived grant on clause 12 of a brief that scope:complete completed, when the completed brief is restamped, then the restamp check finds the grant and the item keeps waived with the grant id."
+        }
+      },
+      {
+        "title": "Given a `not_applicable` grant whose clause text has changed, when `scope:complete` refuses, then the remint text names `--disposition not_applicable` and does not name `--deferred-to`.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a not_applicable grant whose clause text has changed, when scope:complete refuses, then the remint text names --disposition not_applicable and does not name --deferred-to."
+        }
+      },
+      {
+        "title": "Given a stored grant with value `deferred` and no deferred-to value, when it is read, then it is treated as malformed as today.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a stored grant with value deferred and no deferred-to value, when it is read, then it is treated as malformed as today."
+        }
+      },
+      {
+        "title": "Given a brief with no verify command whose every clause is covered by a grant applied in this run, when `scope:complete` runs, then the walk passes, the clauses are still in `acceptance.clauses` and the output lists each clause as granted.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given a brief with no verify command whose every clause is covered by a grant applied in this run, when scope:complete runs, then the walk passes, the clauses are still in acceptance.clauses and the output lists each clause as granted."
+        }
+      },
+      {
+        "title": "Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when `scope:complete` runs, then it refuses, names that clause id and prints both remedies.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when scope:complete runs, then it refuses, names that clause id and prints both remedies."
+        }
+      },
+      {
+        "title": "Given a clause-keyed item whose `x-directive/disposition` was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when `scope:complete` runs with no verify command, then the walk still refuses for that clause.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given a clause-keyed item whose disposition was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when scope:complete runs with no verify command, then the walk still refuses for that clause."
+        }
+      },
+      {
+        "title": "Given a grant whose clause text has changed since mint, when `scope:complete` runs, then it refuses as today and no clause enters the granted set.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given a grant whose clause text has changed since mint, when scope:complete runs, then it refuses as today and no clause enters the granted set."
+        }
+      },
+      {
+        "title": "Given a clause granted in this run that also has a token oracle that fails, when `scope:complete` runs, then that clause does not count as failed.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given a clause granted in this run that also has a token oracle that fails, when scope:complete runs, then that clause does not count as failed."
+        }
+      },
+      {
+        "title": "Given an unmapped sentence that is not an admitted-source identity, when `scope:confess --sentence` names it, then it is appended to `acceptance.confessions`, nothing else in the brief changes and `verify:ac` no longer reports it as unmapped.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given an unmapped sentence that is not an admitted-source identity, when scope:confess --sentence names it, then it is appended to acceptance.confessions, nothing else in the brief changes and verify:ac no longer reports it as unmapped."
+        }
+      },
+      {
+        "title": "Given a sentence that is an admitted-source identity, when `scope:confess` names it, then it refuses, writes nothing and names the grant command for its clause.",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given a sentence that is an admitted-source identity, when scope:confess names it, then it refuses, writes nothing and names the grant command for its clause."
+        }
+      },
+      {
+        "title": "Given `scope:confess --all-unmapped`, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each.",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given scope:confess --all-unmapped, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each."
+        }
+      },
+      {
+        "title": "Given `verify:ac` run on a brief outside `scope:complete`, then its result is the same as before this change.",
+        "status": "proposed",
+        "id": "clause.22",
+        "narrative": {
+          "Acceptance": "Given verify:ac run on a brief outside scope:complete, then its result is the same as before this change."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6644",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6644: bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6601",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6601"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "authz:grant --template acceptance-disposition",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "--disposition deferred|not_applicable|waived",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "--disposition <value>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "deft scope:confess -- <brief> --sentence \"<text>\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "--disposition not_applicable --reason R",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L14"
+        },
+        {
+          "command": "scope:confess --sentence",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L25"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "packages/core/src/policy/acceptance-disposition-grant.test.ts",
+          "packages/core/src/policy/acceptance-disposition-grant-values.test.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/authz.test.ts",
+          "packages/runtime/src/authz-disposition.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "packages/core/src/scope/confess.ts",
+          "packages/core/src/scope/confess.test.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/main.test.ts",
+          "packages/core/src/scope/index.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.test.ts",
+          "packages/runtime/src/cli-router/route-argv.ts",
+          "tasks/scope.yml",
+          "content/commands.md",
+          "content/contracts/human-origin-authz.md",
+          "changelog.d/6644-acceptance-grant-values-confess.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "scope-complete-acceptance",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/acceptance-disposition-grant.test.ts packages/core/src/policy/acceptance-disposition-grant-values.test.ts packages/core/src/scope/confess.test.ts packages/core/src/scope/acceptance-grant-walk.test.ts packages/runtime/src/authz-disposition.test.ts",
+          "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts packages/core/src/scope/main.test.ts packages/core/src/product-first-done-gate/acceptance-resolver.test.ts packages/runtime/src/authz.test.ts"
+        ],
+        "expected_outputs": [
+          "authz:grant --template acceptance-disposition mints deferred, not_applicable and waived grants; --deferred-to is required for deferred only",
+          "scope:complete stamps a not_applicable or waived grant onto the clause item and leaves that clause out of the walk counts",
+          "a brief whose every clause is verified or granted completes with no executable command",
+          "the completion refusal names each clause that is neither verified nor granted with both remedies",
+          "scope:confess --sentence and --all-unmapped append non-admitted unmapped sentences to acceptance.confessions and refuse an admitted-source identity",
+          "one changelog fragment changelog.d/6644-acceptance-grant-values-confess.md"
+        ],
+        "Traces": [
+          "#6644"
+        ],
+        "acceptance_criteria_justification": "22 clauses: the seven Bound remedy items and fifteen Acceptance Criteria items of Bound lean 6969795502, one same-text clause each, in list order. parallel_safe is false: sibling story #6645 also edits scope:complete code (transition.ts, acceptance-evidence.ts), so the two stories must not run in parallel."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/confess.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/runtime/src/cli-router/route-argv.ts",
+          "changelog.d/6644-acceptance-grant-values-confess.md"
+        ],
+        "module_boundary": "The grant value, reader, record and remint text stay in packages/core/src/policy/acceptance-disposition-grant.ts, which already owns the acceptance-disposition grant; the CLI flag stays in packages/runtime/src/authz.ts. The completion walk change stays where the walk lives: the clause-walk omission in product-first-done-gate/evaluate.ts, the lead in acceptance-resolver.ts, the zero-verified decision and refusal text in scope/acceptance-evidence.ts, and one argument pass-through in scope/transition.ts. The new verb is one new module, scope/confess.ts, wired like scope:bind-clause (main.ts, index.ts, route-argv.ts, tasks/scope.yml). New behaviour tests go in new files so the large existing test files change only where an assertion changes.",
+        "cohesion_exemption": "These existing files are over the size trigger and are the single home of the behaviour this story narrows: packages/core/src/product-first-done-gate/evaluate.ts (2329 lines, clause walk), packages/core/src/scope/acceptance-evidence.ts (2185 lines, completion walk), packages/core/src/scope/transition.ts (1625 lines, complete prep), packages/runtime/src/authz.ts (1185 lines, authz:grant CLI) and the test files packages/core/src/scope/acceptance-evidence.test.ts, packages/core/src/scope/transition.test.ts and packages/runtime/src/authz.test.ts. Each change is a small edit in place (an option, a count, a flag, one argument); splitting those files is out of scope for this fix, and the new logic that can stand alone is in new files."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6644; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what `scope:complete` and `verify:ac` accept as proof for an acceptance clause, which values an operator grant can record, and who may remove a clause from a brief; each has several plausible designs, and a wrong rule either lets real criteria drop silently or keeps stories stuck.\n\nTarget-digest: sha256:de213118347be65e5f94e7e2be75aaf064b57f412db28397c6d678be3b3b613e\ndispatch-sha: e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb\ndest: .deft-scratch/worktrees/arc-6644 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: three narrow pains on one acceptance path; one critic of a different model family (Grok), as the overnight envelope sets.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nWhen a story finishes, `scope:complete` checks its acceptance clauses in two ways: every clause needs evidence or an operator disposition, and the acceptance walk must report at least one verified clause or a green command. Three gaps make stories stuck or force hand edits. The walk does not read dispositions at all, so a clause the operator dropped or waived still blocks it, and the refusal does not say which clauses need what. The operator grant that records a disposition can only write `deferred`, although the brief format already accepts `not_applicable` and `waived`. And there is no sanctioned way to take a sentence that is not a criterion out of the brief: workers hand-edit the acceptance block and recompute its digest, which the integrity check was built to refuse. The recommended fix widens the existing grant to all three values, lets the walk skip clauses that carry a grant disposition, and adds one verb that re-reads the acceptance block from the issue body as it is now, so the operator fixes the issue text and the brief follows.\n\nThe issue has no `## Acceptance Criteria` heading. The three pains below are derived from its `## Expected` section, one per bullet.\n\n## Pains\n- P1 — The acceptance walk at completion does not accept a recorded disposition where no executable pass applies, and its refusal does not name which clauses need an executable pass or a disposition (#6602 clauses 5 and 12).\n- P2 — The `acceptance-disposition` grant records only `deferred`; it cannot record `not_applicable` or `waived` with an operator reason.\n- P3 — No verb removes a clause that is not a criterion; the only route is hand-editing the brief's acceptance block and recomputing the admitted-source digest (#6601, #6639).\n\n## Constraints (not pains)\n- No new gate, grant template, refusal or stored policy flag. Narrowing an existing check is allowed; adding one is not.\n- An agent must not be able to drop a real criterion silently. The #5055 admitted-source identity check stays the guard for that.\n- #6609 fixes what ingest harvests (in parallel; not this arc). #6645 fixes the story marks and the unreachable delivery-identity remedy (in parallel; not this arc). This arc must not depend on either landing first.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/scope/acceptance-evidence.ts` 78-80: `ACCEPTANCE_DISPOSITIONS = [\"waived\", \"deferred\", \"not_applicable\"]`. 636-700 `parseDisposition`: reason, recorded_at and a human-origin provenance shape are required. 1612-1650 `applyGrantedDispositions` stamps grant dispositions in memory. 1878-1886: the complete remedy text ends \"(disposition is not a substitute)\". 1898-2012 `evaluateScopeCompleteAcceptanceWalk`: refuses a zero-verified walk unless the predicate is `executable-pass`; merge provenance admits only clause-less historical briefs (#5403).\n- `packages/core/src/check/rapid-zero-verified.ts` 108-120 `scopeCompleteRejectsZeroVerifiedWalk` (#4870).\n- `packages/core/src/scope/transition.ts` 905-986: complete prep order is persist clause-keyed items, apply disposition grants, merge stamp, evidence gate, then the walk.\n- `packages/core/src/policy/acceptance-disposition-grant.ts` 1-18 (deferred only), 140-160 `--deferred-to` parse, 555-596 `applyAcceptanceDispositionGrants`.\n- `packages/core/src/verify-ac/clauses.ts` 1786-1872 `evaluateStatementSentenceCoverage`: a sentence must be a clause or a confession.\n- `packages/core/src/product-first-done-gate/evaluate.ts` 1656-1776 `resolveAdmittedSourceIdentities` (merge-base pin first, then working pin with a live REST digest compare), 1779-1886 `applyAdmittedSourceIdentityGate`: an admitted identity that is no longer a clause, or is only confessed, fails (#5055).\n- No `deft` verb writes `acceptance.confessions` or rewrites `acceptance.clauses` after ingest (search of `packages/` at the pin).\n\n## Recommended mechanism (the thing to critique)\n- F1. Three values on the existing grant (P2). `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived` (default `deferred`, so today's calls are unchanged). `--reason` is required for every value; `--deferred-to` is required for `deferred` only and refused for the other two. Mint path, clause-text digest, expiry and the apply step in complete prep are unchanged.\n- F2. The walk honours grant dispositions (P1). In `scope:complete`, a clause whose clause-keyed plan item carries a disposition applied from a grant in this run is left out of the walk: it is not adjudicated and does not count toward the zero-verified rule, the sentence floor or the admitted-source identity check. When every clause is either verified or so dispositioned, the walk passes without an executable command. A disposition written into the brief by hand does not get this exclusion. Merge provenance alone stays no substitute for an executable pass (#4870 unchanged).\n- F3. The refusal names the clauses (P1). When the walk refuses, it lists each clause id that is neither verified nor dispositioned and gives the two remedies: a verify command that covers it, or the grant command with that clause id.\n- F4. One refresh verb (P3). `deft scope:refresh-acceptance -- <brief>` re-reads the origin issue body at its current revision through the ingest harvest and rewrites `sentences`, `clauses`, `admitted_source_sentences` and `admitted_source_digest`. A clause whose text is unchanged keeps its id; new text gets new ids above the highest; the clause-keyed pending item of a removed clause is removed. It prints every removed and added clause. The operator removes a non-criterion by editing the issue text; nobody edits the brief or computes a digest.\n- F5. The identity check follows the source (P3). When the working pin differs from the merge-base pin, `resolveAdmittedSourceIdentities` uses the working pin only if its digest equals the live digest of the origin issue body; otherwise (offline, or a mismatch) today's result stands and the message names `scope:refresh-acceptance`. Spec-path briefs keep today's rules.\n\nQuestions for the critic:\n1. Is F2 safe? Can an agent reach the walk exclusion without an operator, for example through a disposition stamped by hand with a human-origin shape, or a grant replayed onto a changed clause?\n2. Does F5 reopen the hole #5055 closed: can an agent drop a real criterion by editing the issue body and refreshing, and is the human merge review of the brief diff enough?\n3. Is a refresh from the issue body the right shape for P3, or is a direct drop verb (clause to confession, with a reason) smaller and safer?\n\n",
+          "id": 6969469895,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969469895",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:54:58Z",
+          "updated_at": "2026-11-18T04:54:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6969470233\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb\ndest: .deft-scratch/worktrees/arc-6644\nverification-path: pin-read git show e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6969469895\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Grok, a different model family, run against the dest with the launcher above. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration.\n- The seat is told not to use GitHub. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6969470233,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969470233",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:54:59Z",
+          "updated_at": "2026-11-18T04:55:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nA finished story is still blocked when its acceptance clauses have no green command. The evidence check already accepts a waived, deferred, or not-applicable clause, but the completion walk still demands a verified clause or a green command, and it does not say which clauses are the gap. The operator grant that is supposed to record that decision can write only \"deferred\". Sentences that were never criteria stay in the brief, and the only way people get them out today is to rewrite the brief and its digest by hand. That rewrite is what the identity check was added to refuse.\n\nThe grant should learn the other two values, and a clause that this completion actually stamped from a grant should drop out of the zero-verified count so a story with no command can finish. The refresh verb, and the rule that lets a rewritten brief replace the git pin when it matches the live issue, should not be accepted. A smaller \"move this clause to a confession\" verb does not unlock those stories either.\n\nOn the three questions. A hand-written disposition that merely looks human does not reach the walk exclusion, and a grant whose clause text has changed is already refused, provided the exclusion is the set of ids this run's grant apply stamped. That is not the whole safety story: any human-shaped file in the grant directory is treated as a grant, and the interactive mint check never runs on that read. Switching the identity check over to the live issue body does reopen the hole the git pin closed. Matching the issue is not an operator mint, because issue edit has no such check, and a review of the brief diff is not a control that holds the line. Refreshing from the issue is the wrong shape. Keeping the sentence as a clause, and recording not-applicable or waived through the existing grant, is the shape that finishes the story without deleting an admitted sentence.\n\nThe pin was read from the trees whose HEAD is e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb (primary `refs/heads/master`, and the arc-6645 worktree). `git show` from this dest was refused by the missing-runtime hook. This dest's HEAD is c569ca24830474d1998bb7d19e588aad7ee063fc and its files were not used. No instruction-shaped text in the snapshot was followed.\n\n## 1. Refresh replaces the pin the identity check froze — blocks-the-design\n\nEvidence: `packages/core/src/product-first-done-gate/evaluate.ts` 1675-1686 and 2173-2174. A merge-base or HEAD pin is the identity list, and the live issue is not consulted. The comment on 2173-2174 says an edited or shrunk working pin must not replace those identities. `loadAdmittedSourceFromGit` (2004-2031) is that pin. The live compare (1803-1843) runs only when there is no git pin. `packages/core/src/intake/github-body.ts` 486-491 writes a new issue body with no interactive mint. `packages/core/src/verify-ac/clauses.ts` 624-660 rebuilds clauses from the current harvest and numbers them by position.\n\nFailure mode: an agent edits the origin issue, the refresh verb rewrites `sentences`, `clauses`, and `admitted_source_digest` to match, and F5 then treats that working pin as the identity list because its digest equals the live body. A real criterion that was on the merge-base or HEAD pin is gone, and the identity check has nothing left to compare. Offline, F5 keeps today's pin, so the hole opens only when the issue write succeeds. The same refresh, run through today's harvest, also pulls prose sentences back in as clauses. This arc cannot wait for the harvest fix, so the verb reimports the noise it is meant to clear. A human reading the brief diff is the only remaining check, and that is not a deterministic control.\n\nDisposition consequence: F4 and F5 cannot bind. Pain 3 is a clause that stays in the brief, with not-applicable or waived recorded by the existing grant, so the git pin still contains the sentence.\n\n## 2. Taking a granted clause out of the sentence floor and the identity check blocks the story again — blocks-the-design\n\nEvidence: `packages/core/src/verify-ac/clauses.ts` 1824-1864. A statement sentence is covered only by a clause with the same text or by a confession. `packages/core/src/product-first-done-gate/evaluate.ts` 1274-1277 and 1374-1377: an empty clause list never enters the clause walk and falls through to the empty-acceptance floor. The sentence floor runs at 1405, and it always calls the identity check (1936). That check (1862-1871) treats an admitted sentence that is no longer a clause, or is only a confession, as removed. `packages/core/src/scope/acceptance-evidence.ts` 1893-1896 says a disposition on a plan item does not skip this walk.\n\nFailure mode: F2 says a grant-stamped clause is left out of the walk and does not count toward the sentence floor or the identity check. The floor and the identity check use the clause list, not the zero-verified tally. Removing the clause from that list makes its own sentence unmapped, so completion fails `unmapped-sentence`, or, if the list is emptied, fails the empty-acceptance floor. The story F2 set out to finish stays stuck. The same removal is what the identity check calls a dropped admitted sentence. A confession does not save it: 1862-1871 counts a confession of an admitted sentence as the removal.\n\nDisposition consequence: F2 can bind only as an omission from the zero-verified tally and from `clauseWalkBlocks`. The clause text stays in `acceptance.clauses`. The sentence floor and `applyAdmittedSourceIdentityGate` stay as they are. The Stop 1 constraint that the identity check remains the guard is this omission, not a second pass over the same sentences.\n\n## 3. \"Applied from a grant\" is safe for the two named attacks only when it means this run's apply set — sharpens-framing\n\nEvidence: `packages/core/src/authz/origin.ts` 38-48 accepts `operator-cli` plus a non-agent actor with no mint ceremony. `parseDisposition` in `packages/core/src/scope/acceptance-evidence.ts` 674-688 uses that check, so a hand-written disposition already satisfies the evidence gate. `packages/core/src/scope/transition.ts` 908-918 applies grants before that gate and before the walk. `packages/core/src/policy/acceptance-disposition-grant.ts` 500-511 refuses the whole completion when the clause text's digest does not match the grant. `packages/core/src/authz/store.ts` 808-821 and 831-850 load every grant JSON file; outside an active UAT lease an empty pin activates every unexpired human-shaped grant. `packages/runtime/src/human-presence-mint.ts` 279-291 is the interactive mint gate, and it runs on the CLI write, not on this read. `planGrantViews` (acceptance-disposition-grant.ts 407-418) uses that directory listing.\n\nFailure mode: if the walk exclusion is \"the item's disposition parses as human\" or \"the item carries a grant id\", the hand stamp the question asks about skips the executable pass. Keyed to the ids `applyAcceptanceDispositionGrants` stamped in this run, that stamp does not qualify, and a grant replayed onto changed text never stamps because 500-511 refuses first. A file dropped into the main clone's grant directory does qualify. Nothing in the apply path re-checks the typed mint phrase. Once F2 lets those ids out of the zero-verified rule, that file is enough to finish a story that has no green command. Today the same file can stamp `deferred` and pass the evidence gate, and the zero-verified rule still refuses.\n\nDisposition consequence: state the exclusion as this run's applied ids, and state the directory listing as the limit of that proof. A hand-written human-origin shape stays on the evidence gate only. A new authenticity check on the grant file is outside this arc's \"no new gate\" constraint; leaving it unnamed would overclaim F2.\n\n## 4. The zero-verified rule reads the printed lead, and that lead says a disposition is not a substitute — sharpens-framing\n\nEvidence: `packages/core/src/check/rapid-zero-verified.ts` 21-29 and 114-118. Completion refuses when the walk text matches \"0 verified\" and the predicate is not `executable-pass`. `packages/core/src/scope/acceptance-evidence.ts` 1882-1886 is the remedy appended on that refusal, and it says a disposition is not a substitute. `packages/core/src/product-first-done-gate/evaluate.ts` 1286-1316 builds the clause-walk message from the full report, and `relabelVerifyAcPassLead` (acceptance-resolver.ts 445-480) writes the \"0 verified\" lead from `clauseOutcomes`. `clauseWalkBlocks` (503-516) is a separate boolean.\n\nFailure mode: omitting granted clauses inside `clauseWalkBlocks` while the printed lead still counts them leaves the \"0 verified\" line in place, so completion still refuses and pain 1 stays. The standing remedy also points the operator away from the grant F3 tells them to run. The clause-walk body may already name unverifiable rows; the refusal the operator is told to act on does not offer the grant for the ids that remain.\n\nDisposition consequence: compute the lead after the granted ids are omitted, so a story whose every clause is verified or grant-stamped does not print \"0 verified\". Replace the remedy sentence at 1882-1886, for the ids that remain, with the two commands F3 names: a verify command that covers the clause, or the grant command with that clause id.\n\n## 5. footnote\n\nF1 matches the reader. `ACCEPTANCE_DISPOSITIONS` at acceptance-evidence.ts 79 already includes `waived`, `deferred`, and `not_applicable`, and the evidence-gate text at 2064 already lists all three. The writer does not. `acceptanceDispositionRecordFor` (acceptance-disposition-grant.ts 525-544) hardcodes `deferred`, and `grantAcceptanceDisposition` (packages/runtime/src/authz.ts 1062-1077) requires `--deferred-to` before the mint gate. Those two sites are the F1 edit. `deriveAcceptanceClauses` (clauses.ts 660) sets `id` to position, so a refresh cannot call that harvest and also keep the id of unchanged text. A positional rebuild moves later sentences onto new ids, the grant digest for the old id no longer matches, and 500-511 refuses completion.\n\n## Road not taken\n\nThe rejected smaller verb is a direct drop that records the clause as a confession with a reason. It avoids a round trip through the issue, avoids renumbering, and avoids the harvest. It still fails completion: an admitted sentence covered only by a confession is the removal the identity check refuses (evaluate.ts 1862-1871). That verdict flips if a granted confession were defined to satisfy the identity check. The check says the opposite, and the constraint keeps that check. The refresh shape flips only if a shrink of a sentence already on the merge-base or HEAD pin required the same interactive mint as the grant, naming the removed sentences, and the verb refused while that pin existed without the mint.\n\n",
+          "id": 6969613924,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969613924",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:04:14Z",
+          "updated_at": "2026-11-18T05:04:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 6969469895 (round 1: 1 of 1 critic posted, comment 6969613924)\n\n## In plain English\nProblem: when a story finishes, `scope:complete` needs evidence or an operator disposition on each acceptance clause, and its acceptance walk needs a verified clause or a green command. The walk does not read dispositions, so a clause the operator dropped still blocks a story that has no command, and the refusal does not say which clauses are the gap. The operator grant can record only `deferred`. And there is no verb for a sentence that is not a criterion; workers hand-edit the acceptance block and its digest.\n\nWhat the critic found: the refresh-from-the-issue verb and the rule that lets a rewritten brief replace the git pin reopen the hole the identity check closed (#5055), because an issue edit is not an operator mint. Taking a granted clause out of the clause list would also make its own sentence unmapped and fail the identity check, so the story would stay stuck. The walk exclusion is safe only when it means the clause ids this completion's grant step stamped. And the zero-verified refusal is read from printed text, so the count must change where the text is built.\n\nSolution this lean proposes: the existing grant takes three values: `deferred`, `not_applicable` and `waived`, each with an operator reason. At completion, a clause that a grant stamped in this run stays in the brief but is left out of the walk's counts, so a story whose clauses are all verified or granted finishes without a command. When the walk refuses, it lists each clause that is neither verified nor granted and the two commands that fix it. A clause that is not a criterion is marked with the same grant as `not_applicable`; nobody edits the brief. A sentence that is not a clause and not an admitted sentence gets one verb, `scope:confess`, that writes it to the existing `confessions` list instead of a hand edit.\n\nWhat this adds: two values on an existing grant template, and one verb that writes a list the checks already read. No new gate, grant template, refusal or policy flag.\n\nWhat it removes: hand-edits of the acceptance block, recomputed digests, confession PRs written by hand, and the operator-held completion for clauses an operator dropped.\n\nWhat it does not do:\n- It does not change what ingest harvests; that is #6609. Fewer noise clauses after #6609 means fewer grants here; this design does not depend on it.\n- It does not change story marks or the delivery-identity remedy; that is #6645.\n- It does not let merge provenance stand in for an executable pass (#4870 unchanged).\n- It does not change `verify:ac` outside `scope:complete`, the sentence floor, or the admitted-source identity check (#5055).\n- It does not add an authenticity check on grant files. A human-shaped grant file placed in the main clone's grant store by hand is read as a grant, as it is today for the evidence gate.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:de213118347be65e5f94e7e2be75aaf064b57f412db28397c6d678be3b3b613e\n**Spec-path:** Bound remedy on this lean\n**Recut:** none. Stop 1 write-back: comment 6969469895. Sibling count: 1 (comment 6969613924). Panel deposit: comment 6969470233.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Grant values. `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`; the default is `deferred`, so today's calls are unchanged. `--reason` is required for every value. `--deferred-to` is required for `deferred` and refused for the other two. The value is stored on the grant beside the existing deferred-to and reason fields; a grant minted before this change reads as `deferred`. `acceptanceDispositionRecordFor` writes the grant's value, and writes `deferred_to` only for `deferred`. The mint gate, the clause-text digest, expiry and the place of the apply step in complete prep are unchanged.\n2. Granted set. `applyAcceptanceDispositionGrants` already returns the ids it stamped in this run. `scope:complete` passes the clause ids among them to its walk as the granted set. Nothing else enters that set: a disposition written into the brief, with or without a grant id, does not.\n3. Walk counts. In the `scope:complete` walk, a clause in the granted set is not counted in `walked`, `failed`, `adjudicableUnverified` or the verified count, and the walk prints it as granted with its value and reason. The printed lead is built after this omission and names the granted count. The zero-verified rule at completion is decided from these counts, not from the printed text: it refuses only when at least one clause is neither verified nor granted, no clause is verified and no executable command ran green. A walk whose every clause is granted, or verified or granted, passes without a command. The clause stays in `acceptance.clauses`; the sentence floor and the admitted-source identity check read the brief as today.\n4. Refusal text. When the completion walk refuses, it lists each clause id that is neither verified nor granted, with the start of its text, and gives two remedies: a verify command that covers the clause, or the grant command with that clause id and a value. This replaces the \"(disposition is not a substitute)\" sentence on that refusal.\n5. Non-criterion clause. A clause that is not a criterion is marked by the item 1 grant with `not_applicable` and a reason. The brief, its clauses, sentences, pin and digest are not edited.\n6. Non-criterion sentence. `deft scope:confess -- <brief> --sentence \"<text>\"` (repeatable) or `--all-unmapped` appends to `acceptance.confessions` each named sentence that is in `acceptance.sentences`, is not a clause text and is not an admitted-source identity. It prints each sentence it wrote and changes nothing else in the brief. It refuses, and writes nothing, for a sentence that is not in the list, or that is an admitted-source identity; for the second it names the item 1 grant for that sentence's clause.\n7. `verify:ac` run outside `scope:complete`, the rapid check, the evidence gate and the merge stamper are unchanged.\n\n## Acceptance Criteria\n- Given an `acceptance-disposition` grant minted with `--disposition not_applicable --reason R` on clause 5, when `scope:complete` runs, then clause 5's plan item carries `not_applicable`, reason R and the grant id, and no merge evidence.\n- Given `--disposition waived` with `--deferred-to 7`, then the mint refuses and names the flag; given `--disposition deferred` without `--deferred-to`, then the mint refuses as today.\n- Given a grant minted before this change, when `scope:complete` applies it, then the item carries `deferred` and its `deferred_to`.\n- Given a brief with no verify command whose every clause is covered by a grant applied in this run, when `scope:complete` runs, then the walk passes, the clauses are still in `acceptance.clauses` and the output lists each clause as granted.\n- Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when `scope:complete` runs, then it refuses, names that clause id and prints both remedies.\n- Given a clause-keyed item whose `x-directive/disposition` was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when `scope:complete` runs with no verify command, then the walk still refuses for that clause.\n- Given a grant whose clause text has changed since mint, when `scope:complete` runs, then it refuses as today and no clause enters the granted set.\n- Given a clause granted in this run that also has a token oracle that fails, when `scope:complete` runs, then that clause does not count as failed.\n- Given an unmapped sentence that is not an admitted-source identity, when `scope:confess --sentence` names it, then it is appended to `acceptance.confessions`, nothing else in the brief changes and `verify:ac` no longer reports it as unmapped.\n- Given a sentence that is an admitted-source identity, when `scope:confess` names it, then it refuses, writes nothing and names the grant command for its clause.\n- Given `scope:confess --all-unmapped`, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each.\n- Given `verify:ac` run on a brief outside `scope:complete`, then its result is the same as before this change.\n\n## Reject\n- A refresh verb that rewrites clauses, sentences, the admitted-source pin and its digest from the current issue body (comment 6969613924 finding 1).\n- Letting a working pin replace the merge-base or HEAD pin when its digest equals the live issue body (comment 6969613924 finding 1).\n- Removing a granted clause from `acceptance.clauses`, or excusing it from the sentence floor or the identity check (comment 6969613924 finding 2).\n- A walk exclusion keyed on what the brief says (a human-origin shape or a grant id) instead of this run's applied ids (comment 6969613924 finding 3).\n- Deciding the zero-verified rule from the printed lead after the counts change (comment 6969613924 finding 4).\n- A confession that covers an admitted-source identity (comment 6969613924 road not taken).\n- Merge provenance as a substitute for an executable pass; a new authenticity check on grant files.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6969613924 | 1. Refresh replaces the pin the identity check froze | blocks-the-design | accept-into-contract (F4 and F5 dropped; items 5 and 6) |\n| comment 6969613924 | 2. Taking a granted clause out of the sentence floor and the identity check blocks the story again | blocks-the-design | accept-into-contract (item 3) |\n| comment 6969613924 | 3. \"Applied from a grant\" is safe only when it means this run's apply set | sharpens-framing | accept-into-contract (item 2; grant-store limit stated) |\n| comment 6969613924 | 4. The zero-verified rule reads the printed lead | sharpens-framing | accept-into-contract (items 3 and 4) |\n\nFootnote in the census, no take: comment 6969613924 finding 5; its edit sites are carried in item 1.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 6969632101,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969632101",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:05:24Z",
+          "updated_at": "2026-11-18T05:05:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking\nharvest-changed: true\nharvest-digest: sha256:6fc2c687083675ed063f1fd4b15c190ac874599423aca390e8be3e1713ce9bbc\n\n## In plain English\n\nA story with no green command can finish when a grant this completion actually stamped is left out of the walk counts and the zero-verified decision uses those counts. A deferred grant already reaches that stamp. A `not_applicable` or `waived` grant does not. Item 1 stores those two values with no deferred-to surface, and the reader that turns a grant into a stamped clause requires that surface, so the grant is dropped before the walk ever sees it. Showing the grant and revoking it by id still work. A later restamp of a completed brief then reports the same grant as missing. A clause that is not a criterion is marked only by that stamp, and `scope:confess` writes a sentence that is neither clause text nor an admitted-source identity, so the clause stays and the hand-edit of the acceptance block remains. Confessing does not clear an admitted criterion: the verb refuses an admitted-source identity, and a confession of one is still the removal the identity check rejects.\n\nThe shell hook refused `git show` in this dest and in the primary checkout because the directive runtime is missing. The lines below were read from the primary tree and from the arc-6645 worktree. Both HEAD refs are `e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb`. This dest's files were not used. No instruction-shaped text in the snapshot was followed.\n\npain-P1: holds - a deferred grant already survives `viewOf` and is stamped, and item 3 then lets a no-command story finish. The count omission alone leaves the refusal in place: `scopeCompleteRejectsZeroVerifiedWalk` (`packages/core/src/check/rapid-zero-verified.ts` 114-118) matches the printed clause-walk line, `formatClauseWalkMessage` (`packages/core/src/verify-ac/clauses.ts` 1937-1939) still emits `0 verified, 0 unverifiable, 0 failed` when every clause is omitted, and that line matches `CLAUSE_WALK_ZERO_VERIFIED` (same file, 21-22). `relabelVerifyAcPassLead` (`packages/core/src/product-first-done-gate/acceptance-resolver.ts` 457-459) leaves that line untouched when the outcome list is empty. Item 3 already decides the completion rule from the post-omission counts, which skips that match.\npain-P2: does not hold - a `not_applicable` or `waived` grant has no deferred-to surface, `viewOf` returns null (`packages/core/src/policy/acceptance-disposition-grant.ts` 377-384), and the apply step never stamps the value.\npain-P3: does not hold - item 5 marks a non-criterion clause only with that grant, and item 6 appends a sentence that is not clause text and not an admitted-source identity, so the clause stays. With the grant dropped, the acceptance block is still hand-edited. An admitted sentence is refused, and `applyAdmittedSourceIdentityGate` (`packages/core/src/product-first-done-gate/evaluate.ts` 1862-1871) still treats a confession of an admitted identity as removal.\n\n## 1. A waiver grant never becomes a stamped clause — blocks-the-design\n\nEvidence: `packages/core/src/policy/acceptance-disposition-grant.ts` 284-285 and 336-351, where mint parses `--deferred-to` and always writes that surface plus `issueIds`; 377-384, where `viewOf` returns null when the surface is absent; 407-418, where `planGrantViews` drops that null; 454-522, where resolve therefore has no cover for the id; 590-594, where `appliedIds` are only the ids just stamped from those covers; 643-753, where `checkCitedAcceptanceDispositionGrants` uses the same reader and at 726-744 refuses a restamp when the view is missing. `packages/runtime/src/authz.ts` 1158-1178 lists the grant by id, plan, items and state. `packages/runtime/src/authz.ts` 1001-1026 revokes by id. `packages/core/src/authz/store.ts` 149-163 keeps surface strings it does not interpret.\n\nFailure mode: item 1 refuses `--deferred-to` for `not_applicable` and `waived` and stores the value without that surface. `viewOf` treats the grant as malformed. The clause never enters this run's granted set, mint or no mint. A disposition written on the brief stays out of that set as well, because `appliedIds` comes only from resolved covers. `scope:complete` does not write the value onto the plan item, so the evidence gate still lacks a disposition and the walk exclusion never applies. A completed brief that cites the grant fails restamp with the grant reported missing. `authz:show` and `authz:revoke` still open the file. The remint text at 199-210 always includes `--deferred-to`, which this mint refuses for the two new values.\n\nDisposition consequence: items 1 and 5 cannot bind. P2 and P3 stay unrelieved on this harvest. The walk rule in items 2 and 3 can stay for grants the reader already accepts.\n\nSmallest change that passes: `viewOf` accepts a missing deferred-to surface when the stored value is `not_applicable` or `waived`, and still requires deferred-to when the value is absent or `deferred`, so a grant minted before this change still reads as `deferred`. `checkCitedAcceptanceDispositionGrants` keeps using that reader, so restamp rewrites the item from `acceptanceDispositionRecordFor`. `formatAcceptanceDispositionCommand` includes `--disposition` and includes `--deferred-to` only for `deferred`.\n\n",
+          "id": 6969783258,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969783258",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:14:49Z",
+          "updated_at": "2026-11-18T05:14:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6969783258 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6969632101\n\n## In plain English\nThe audit held the first pain as relieved: a grant stamped in this run is left out of the walk counts, and the completion rule is decided from those counts, so a story with no command can finish. It refused the second and third pains on one point, and the parent agrees after reading the code it cites. The grant reader treats a grant without a deferred-to value as malformed and drops it, so a `not_applicable` or `waived` grant as item 1 stores it would never be stamped, never enter the granted set, and fail a later restamp as missing. The remint text also always names `--deferred-to`. The fix is in the reader and the remint text only.\n\nThe Bound remedy on 6969632101 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:de213118347be65e5f94e7e2be75aaf064b57f412db28397c6d678be3b3b613e\n\nrelieves: P1\ndoes-not-relieve: P2\ndoes-not-relieve: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6969783258 | 1. A waiver grant never becomes a stamped clause | blocks-the-design | accept-into-contract (the grant reader accepts a missing deferred-to value for `not_applicable` and `waived`; restamp and remint text follow) |\n\nAudit verdicts recorded: `pain-P1` holds; `pain-P2` does not hold; `pain-P3` does not hold.\n\n",
+          "id": 6969789210,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969789210",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:15:11Z",
+          "updated_at": "2026-11-18T05:15:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6969789210 (does-not-relieve `P2` and `P3` on a Recut map)\nopen-question: With the grant reader accepting a missing deferred-to value for `not_applicable` and `waived`, still requiring it for `deferred` and for grants with no stored value, and the restamp and remint text following the stored value, does every new-value grant reach this run's granted set and the plan item, and does anything else break?\n\n## In plain English\nOne change is needed, in item 1: the code that reads a grant back must accept the two new values without a deferred-to issue, and keep requiring one for `deferred` and for grants minted before this change. The restamp of a completed brief uses the same reader, and the remint text names `--disposition` and names `--deferred-to` only for `deferred`. The rest of the retracted lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 2. The parent continues only while each audit returns fewer blocking findings than the one before; this audit returned one, so the next must return none.\n\n",
+          "id": 6969789857,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969789857",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:15:13Z",
+          "updated_at": "2026-11-18T05:15:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first recut bind lean under Stop 1 6969469895, after pain audit 6969783258 (round 1: 1 of 1 critic posted, comment 6969613924)\n\n## In plain English\nProblem: when a story finishes, `scope:complete` needs evidence or an operator disposition on each acceptance clause, and its acceptance walk needs a verified clause or a green command. The walk does not read dispositions, so a clause the operator dropped still blocks a story that has no command, and the refusal does not say which clauses are the gap. The operator grant can record only `deferred`. And there is no verb for a sentence that is not a criterion; workers hand-edit the acceptance block and its digest.\n\nWhat the critic found: the refresh-from-the-issue verb and the rule that lets a rewritten brief replace the git pin reopen the hole the identity check closed (#5055), because an issue edit is not an operator mint. Taking a granted clause out of the clause list would also make its own sentence unmapped and fail the identity check, so the story would stay stuck. The walk exclusion is safe only when it means the clause ids this completion's grant step stamped. And the zero-verified refusal is read from printed text, so the count must change where the text is built. The audit of the first lean held the first pain as relieved and found one gap: the code that reads a grant back drops any grant without a deferred-to issue, so a `not_applicable` or `waived` grant would never be stamped. This recut changes that reader.\n\nSolution this lean proposes: the existing grant takes three values: `deferred`, `not_applicable` and `waived`, each with an operator reason. At completion, a clause that a grant stamped in this run stays in the brief but is left out of the walk's counts, so a story whose clauses are all verified or granted finishes without a command. When the walk refuses, it lists each clause that is neither verified nor granted and the two commands that fix it. A clause that is not a criterion is marked with the same grant as `not_applicable`; nobody edits the brief. A sentence that is not a clause and not an admitted sentence gets one verb, `scope:confess`, that writes it to the existing `confessions` list instead of a hand edit.\n\nWhat this adds: two values on an existing grant template, and one verb that writes a list the checks already read. No new gate, grant template, refusal or policy flag.\n\nWhat it removes: hand-edits of the acceptance block, recomputed digests, confession PRs written by hand, and the operator-held completion for clauses an operator dropped.\n\nWhat it does not do:\n- It does not change what ingest harvests; that is #6609. Fewer noise clauses after #6609 means fewer grants here; this design does not depend on it.\n- It does not change story marks or the delivery-identity remedy; that is #6645.\n- It does not let merge provenance stand in for an executable pass (#4870 unchanged).\n- It does not change `verify:ac` outside `scope:complete`, the sentence floor, or the admitted-source identity check (#5055).\n- It does not add an authenticity check on grant files. A human-shaped grant file placed in the main clone's grant store by hand is read as a grant, as it is today for the evidence gate.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:de213118347be65e5f94e7e2be75aaf064b57f412db28397c6d678be3b3b613e\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes retraction map 6969789210 and successor lean 6969632101. Stop 1 write-back: comment 6969469895. Handoff: comment 6969789857. Sibling count: 1 (comment 6969613924). Panel deposit: comment 6969470233.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Grant values. `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`; the default is `deferred`, so today's calls are unchanged. `--reason` is required for every value. `--deferred-to` is required for `deferred` and refused for the other two. The value is stored on the grant beside the existing deferred-to and reason fields; a grant minted before this change reads as `deferred`. `acceptanceDispositionRecordFor` writes the grant's value, and writes `deferred_to` only for `deferred`. The grant reader (`viewOf`) accepts a grant with no deferred-to value when its stored value is `not_applicable` or `waived`, and still requires deferred-to when the stored value is `deferred` or absent. The resolve step, the apply step and the restamp check of a completed brief (`checkCitedAcceptanceDispositionGrants`) all use that reader, so a new-value grant is stamped, enters the granted set and restamps from `acceptanceDispositionRecordFor`. The remint text (`formatAcceptanceDispositionCommand`) names `--disposition <value>` and names `--deferred-to` only for `deferred`. `authz:show` prints the stored value. The mint gate, the clause-text digest, expiry and the place of the apply step in complete prep are unchanged.\n2. Granted set. `applyAcceptanceDispositionGrants` already returns the ids it stamped in this run. `scope:complete` passes the clause ids among them to its walk as the granted set. Nothing else enters that set: a disposition written into the brief, with or without a grant id, does not.\n3. Walk counts. In the `scope:complete` walk, a clause in the granted set is not counted in `walked`, `failed`, `adjudicableUnverified` or the verified count, and the walk prints it as granted with its value and reason. The printed lead is built after this omission and names the granted count. The zero-verified rule at completion is decided from these counts, not from the printed text: it refuses only when at least one clause is neither verified nor granted, no clause is verified and no executable command ran green. A walk whose every clause is granted, or verified or granted, passes without a command. The clause stays in `acceptance.clauses`; the sentence floor and the admitted-source identity check read the brief as today.\n4. Refusal text. When the completion walk refuses, it lists each clause id that is neither verified nor granted, with the start of its text, and gives two remedies: a verify command that covers the clause, or the grant command with that clause id and a value. This replaces the \"(disposition is not a substitute)\" sentence on that refusal.\n5. Non-criterion clause. A clause that is not a criterion is marked by the item 1 grant with `not_applicable` and a reason. The brief, its clauses, sentences, pin and digest are not edited.\n6. Non-criterion sentence. `deft scope:confess -- <brief> --sentence \"<text>\"` (repeatable) or `--all-unmapped` appends to `acceptance.confessions` each named sentence that is in `acceptance.sentences`, is not a clause text and is not an admitted-source identity. It prints each sentence it wrote and changes nothing else in the brief. It refuses, and writes nothing, for a sentence that is not in the list, or that is an admitted-source identity; for the second it names the item 1 grant for that sentence's clause.\n7. `verify:ac` run outside `scope:complete`, the rapid check, the evidence gate and the merge stamper are unchanged.\n\n## Acceptance Criteria\n- Given an `acceptance-disposition` grant minted with `--disposition not_applicable --reason R` on clause 5, when `scope:complete` runs, then clause 5's plan item carries `not_applicable`, reason R and the grant id, and no merge evidence.\n- Given `--disposition waived` with `--deferred-to 7`, then the mint refuses and names the flag; given `--disposition deferred` without `--deferred-to`, then the mint refuses as today.\n- Given a grant minted before this change, when `scope:complete` applies it, then the item carries `deferred` and its `deferred_to`.\n- Given a `waived` grant on clause 12 of a brief that `scope:complete` completed, when the completed brief is restamped, then the restamp check finds the grant and the item keeps `waived` with the grant id.\n- Given a `not_applicable` grant whose clause text has changed, when `scope:complete` refuses, then the remint text names `--disposition not_applicable` and does not name `--deferred-to`.\n- Given a stored grant with value `deferred` and no deferred-to value, when it is read, then it is treated as malformed as today.\n- Given a brief with no verify command whose every clause is covered by a grant applied in this run, when `scope:complete` runs, then the walk passes, the clauses are still in `acceptance.clauses` and the output lists each clause as granted.\n- Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when `scope:complete` runs, then it refuses, names that clause id and prints both remedies.\n- Given a clause-keyed item whose `x-directive/disposition` was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when `scope:complete` runs with no verify command, then the walk still refuses for that clause.\n- Given a grant whose clause text has changed since mint, when `scope:complete` runs, then it refuses as today and no clause enters the granted set.\n- Given a clause granted in this run that also has a token oracle that fails, when `scope:complete` runs, then that clause does not count as failed.\n- Given an unmapped sentence that is not an admitted-source identity, when `scope:confess --sentence` names it, then it is appended to `acceptance.confessions`, nothing else in the brief changes and `verify:ac` no longer reports it as unmapped.\n- Given a sentence that is an admitted-source identity, when `scope:confess` names it, then it refuses, writes nothing and names the grant command for its clause.\n- Given `scope:confess --all-unmapped`, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each.\n- Given `verify:ac` run on a brief outside `scope:complete`, then its result is the same as before this change.\n\n## Reject\n- A refresh verb that rewrites clauses, sentences, the admitted-source pin and its digest from the current issue body (comment 6969613924 finding 1).\n- Letting a working pin replace the merge-base or HEAD pin when its digest equals the live issue body (comment 6969613924 finding 1).\n- Removing a granted clause from `acceptance.clauses`, or excusing it from the sentence floor or the identity check (comment 6969613924 finding 2).\n- A walk exclusion keyed on what the brief says (a human-origin shape or a grant id) instead of this run's applied ids (comment 6969613924 finding 3).\n- Deciding the zero-verified rule from the printed lead after the counts change (comment 6969613924 finding 4).\n- A confession that covers an admitted-source identity (comment 6969613924 road not taken).\n- A new-value grant that the reader drops because it has no deferred-to value (comment 6969783258 finding 1).\n- Merge provenance as a substitute for an executable pass; a new authenticity check on grant files.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6969613924 | 1. Refresh replaces the pin the identity check froze | blocks-the-design | accept-into-contract (F4 and F5 dropped; items 5 and 6) |\n| comment 6969613924 | 2. Taking a granted clause out of the sentence floor and the identity check blocks the story again | blocks-the-design | accept-into-contract (item 3) |\n| comment 6969613924 | 3. \"Applied from a grant\" is safe only when it means this run's apply set | sharpens-framing | accept-into-contract (item 2; grant-store limit stated) |\n| comment 6969613924 | 4. The zero-verified rule reads the printed lead | sharpens-framing | accept-into-contract (items 3 and 4) |\n| comment 6969783258 | 1. A waiver grant never becomes a stamped clause | blocks-the-design | accept-into-contract (item 1: reader, restamp and remint text) |\n\nFootnote in the census, no take: comment 6969613924 finding 5; its edit sites are carried in item 1.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean on this thread. The three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 6969795502,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969795502",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:15:34Z",
+          "updated_at": "2026-11-18T05:15:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:4e96484f929f79c9bde8e1ad13b92cb77667038f7ef617db211d79faa9434505\n\n## In plain English\n\nA grant for not applicable or waived, stored with a reason and no deferred-to issue, now reaches the clause. The one reader that used to drop that shape is the reader resolve, apply, and the restamp of a completed brief all use, so the clause is stamped, joins this run's granted set, and is written back from the grant on restamp. Show and revoke find the grant by id and do not require the deferred-to issue. The use record copies the grant and only marks it used, so the stored value stays the one minted. The completion walk leaves those stamped clause ids out of its counts, which is what lets a story with no green command finish, and the refusal still names whatever clause is left. A clause that is not a criterion is marked not applicable by that grant, so the acceptance block stays as it is. A sentence that is not a clause is appended to the confession list.\n\nThe shell hook refused `git show` in this dest and from the primary checkout. The lines below were read from the primary tree and checked against the arc-6645 worktree. Both HEAD refs are `e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb`. This dest's files were not used. No instruction-shaped text in the snapshot was followed.\n\npain-P1: holds - once `viewOf` accepts the grant, `applyAcceptanceDispositionGrants` (`packages/core/src/policy/acceptance-disposition-grant.ts` 569-595) stamps it and returns that id in `appliedIds`, which item 2 passes as the granted set. Item 3 omits that set from the walk counts and decides the completion rule from those counts. `parseDisposition` (`packages/core/src/scope/acceptance-evidence.ts` 652-702) already accepts `waived` and `not_applicable` with `deferred_to` optional, and `stampDeclaredMergeEvidence` (1169-1171) skips an item that already has a disposition, so the clause carries the value with no merge evidence.\npain-P2: holds - item 1 stores the value and teaches `viewOf` (377-384, the only reader of the deferred-to surface) to accept a missing deferred-to issue when the value is `not_applicable` or `waived`, and to keep requiring one when the value is `deferred` or absent. Resolve (454-522), apply (563-595), and `checkCitedAcceptanceDispositionGrants` (657-753) all go through that reader, including the expired-grant refusal (472-489), which uses the same view and the remint function item 1 updates. `authz:show` lists by `isAcceptanceDispositionGrant` (`packages/runtime/src/authz.ts` 491-494 and 1158-1178) and item 1 has it print the stored value. `revokeGrant` (`packages/core/src/authz/actions.ts` 213-228) and `markGrantUsed` (`packages/core/src/authz/store.ts` 259-277) key by id. The use record copies `scope` and writes `usedAt` only; a surface change is an authority-field mutate (`packages/core/src/authz/uat-write-guard.ts` 74-80 and 110-124), so the product path does not change the value between mint and use.\npain-P3: holds - item 5 marks a non-criterion clause with that grant, and the stamp above is what keeps the acceptance block unedited. Item 6 appends a sentence that is in `acceptance.sentences`, is not clause text, and is not an admitted-source identity. `evaluateStatementSentenceCoverage` (`packages/core/src/verify-ac/clauses.ts` 1854-1864) already treats a confession as coverage. An admitted identity stays on the grant, and `applyAdmittedSourceIdentityGate` (`packages/core/src/product-first-done-gate/evaluate.ts` 1862-1871) still treats a confession of one as removal. The reader change does not touch that path.\n\n",
+          "id": 6969939988,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969939988",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:24:40Z",
+          "updated_at": "2026-11-18T05:24:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6969795502. Dispatch SHA: e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism, the retraction map and both leans. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run; every method is a source read. All critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation; rows that only critics read are marked so. The critics' shells refused `git show` in the dest (no runtime installed there) and they read checkouts whose HEAD is the dispatch SHA, as each disclosed.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The brief format already accepts `waived`, `deferred` and `not_applicable`, with a reason and a human-origin provenance shape | verified | parent pin-read of `packages/core/src/scope/acceptance-evidence.ts` 78-80, 636-700; critic 6969613924 finding 5 |\n| 2 | The grant writes only `deferred`: `acceptanceDispositionRecordFor` hardcodes it and the CLI requires `--deferred-to` before the mint gate | verified | parent pin-read of `packages/core/src/policy/acceptance-disposition-grant.ts` 525-544 and `packages/runtime/src/authz.ts` 1062-1077; critic 6969613924 finding 5 |\n| 3 | The grant reader `viewOf` returns null when the deferred-to surface is absent, and resolve, apply and the completed-brief restamp all use it; the remint text always names `--deferred-to` | verified | parent pin-read of `acceptance-disposition-grant.ts` 199-210, 377-384; audit 6969783258 finding 1 |\n| 4 | Complete prep applies grants before the merge stamper, the evidence gate and the walk; the merge stamper skips an item that already carries a disposition | verified | parent pin-read of `packages/core/src/scope/transition.ts` 905-986 and `acceptance-evidence.ts` 1162-1172; audit 6969939988 |\n| 5 | The completion walk does not read dispositions; it refuses a zero-verified walk unless the predicate is `executable-pass`, and that rule matches the printed walk text | verified | parent pin-read of `acceptance-evidence.ts` 1878-2012 and `packages/core/src/check/rapid-zero-verified.ts` 108-120; critic 6969613924 finding 4 |\n| 6 | `clauseWalkBlocks` blocks only on failed clauses or adjudicable unverified clauses without a green executable run | verified | parent pin-read of `packages/core/src/product-first-done-gate/acceptance-resolver.ts` 500-517 |\n| 7 | The sentence floor covers a sentence only by clause text or a confession; the admitted-source identity check treats an admitted sentence that is only confessed, or no longer a clause, as removed | verified | parent pin-read of `packages/core/src/verify-ac/clauses.ts` 1786-1872 and `packages/core/src/product-first-done-gate/evaluate.ts` 1862-1872; critic 6969613924 finding 2 |\n| 8 | A merge-base or HEAD pin is preferred over the working pin, and the live issue compare runs only for a working pin, against the current body | verified | parent pin-read of `evaluate.ts` 1656-1776 and `packages/runtime/src/verify-ac.ts` 225-271; critic 6969613924 finding 1 |\n| 9 | No `deft` verb writes `acceptance.confessions` or rewrites `acceptance.clauses` after ingest | verified | parent `git grep` of `packages/` at the pin |\n| 10 | Any human-shaped grant file in the main clone's grant store is read as a grant; the interactive mint check runs on the CLI write, not on the read | critic-read | critic 6969613924 finding 3 (`packages/core/src/authz/store.ts` 808-850, `packages/runtime/src/human-presence-mint.ts` 279-291) |\n| 11 | `authz:show`, `authz:revoke` and the use record key the grant by id; the use record writes `usedAt` only | critic-read | audit 6969939988 (`packages/runtime/src/authz.ts` 491-494, 1158-1178; `packages/core/src/authz/actions.ts` 213-228; `packages/core/src/authz/store.ts` 259-277) |\n| 12 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6969939988 (`pain-P1`, `pain-P2`, `pain-P3` hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 13 | The walk counts, the reader change and `scope:confess` behave as designed when run | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 6969950350,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969950350",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:25:19Z",
+          "updated_at": "2026-11-18T05:25:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: at completion, `scope:complete` needs evidence or an operator disposition on each acceptance clause, and its walk needs a verified clause or a green command. The walk did not read dispositions, so a clause the operator dropped still blocked a story with no command, and the refusal did not say which clauses were the gap. The operator grant could record only `deferred`. And there was no verb for a sentence that is not a criterion, so workers hand-edited the acceptance block and its digest.\n\nAccepted solution: the existing `acceptance-disposition` grant takes `--disposition deferred|not_applicable|waived` with a reason; `--deferred-to` stays required for `deferred` only, and the grant reader, the completed-brief restamp and the remint text follow the stored value. At completion, a clause that a grant stamped in this run stays in the brief but is left out of the walk counts, and the zero-verified rule is decided from those counts, so a story whose clauses are all verified or granted finishes without a command. A refusal lists each clause that is neither verified nor granted, with the two commands that fix it. A clause that is not a criterion is marked with the grant as `not_applicable`. A sentence that is not a clause and not an admitted sentence is written to the existing `confessions` list by one new verb, `scope:confess`.\n\nLimits accepted: the sentence floor, the admitted-source identity check (#5055), `verify:ac` outside completion, the rapid check and the merge stamper are unchanged; merge provenance is still no substitute for an executable pass. A refresh of the brief from the issue body was rejected, because an issue edit is not an operator mint. A grant file placed in the grant store by hand is read as a grant, as today; no authenticity check is added. The design adds two values on an existing grant and one verb that writes a list the checks already read; no new gate, grant template, refusal or flag. Ingest harvest (#6609) and story marks (#6645) are separate. It was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6969795502.\nverified-claims table 6969950350\n\nConfirm conjunct: yolo standing (Stop 1 6969469895, `yolo-standing: on`) on the operator's launch of this arc. No operator turn occurred during the arc; the parent continued after the blocking audit only because the blocking count fell (one, then none). Round-1 critic: comment 6969613924, posted by the parent verbatim (progress narration before the `model:` line stripped) as disclosed on panel-deposit 6969470233. Clean audit: comment 6969939988 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Earlier lean 6969632101 was retracted (comment 6969789210) after audit 6969783258 and is not part of the contract. Critic posts used: 3 of 6.\n\n",
+          "id": 6969950740,
+          "html_url": "https://github.com/deftai/directive/issues/6644#issuecomment-6969950740",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:25:20Z",
+          "updated_at": "2026-11-18T05:25:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe acceptance walk has gaps that leave stories stuck or force hand-edits: it wants an executable pass that merge provenance and dispositions do not satisfy, the disposition grant supports only `deferred`, and there is no verb to drop clauses that are not criteria.\n\n## Evidence\n\n- #6601 (product PR #6610): a worker hand-rewrote the brief's acceptance block and recomputed the digest, because unmapped sentences blocked `verify:ac`. #6639 then had to confess 12 unmapped acceptance sentences.\n- #6602: clauses 5 and 12 need an operator disposition or waiver at completion, but the disposition grant supports `deferred` only. There is no `not_applicable` or `waived` value.\n- Non-criterion clauses (whole-body harvest, #6609) cannot be dropped by any verb; the only route is hand-editing the brief.\n\n## Expected\n\n- The walk accepts merge provenance or a recorded disposition where no executable pass applies, or says clearly which clauses need one.\n- The disposition grant supports `not_applicable` and `waived` with an operator reason.\n- One verb marks a clause as non-criterion, so nobody hand-edits the brief or recomputes a digest.\n\n## Workaround used today\n\nHand-rewritten acceptance block with recomputed digest (#6601), a confession PR (#6639), and operator-held completion for #6602 clauses 5 and 12.\n\nRefs #6601, #6602, #6609, #6610, #6639\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6460187526,
+        "origin": "deftai/directive#6644",
+        "id": "github.issue.6460187526"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "de213118347be65e5f94e7e2be75aaf064b57f412db28397c6d678be3b3b613e"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6644,
+        "leanCommentId": 6969795502,
+        "harvestDigest": "4e96484f929f79c9bde8e1ad13b92cb77667038f7ef617db211d79faa9434505",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (22), in list order (#6333)",
+      "sentences": [
+        "Grant values. `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`; the default is `deferred`, so today's calls are unchanged. `--reason` is required for every value. `--deferred-to` is required for `deferred` and refused for the other two. The value is stored on the grant beside the existing deferred-to and reason fields; a grant minted before this change reads as `deferred`. `acceptanceDispositionRecordFor` writes the grant's value, and writes `deferred_to` only for `deferred`. The grant reader (`viewOf`) accepts a grant with no deferred-to value when its stored value is `not_applicable` or `waived`, and still requires deferred-to when the stored value is `deferred` or absent. The resolve step, the apply step and the restamp check of a completed brief (`checkCitedAcceptanceDispositionGrants`) all use that reader, so a new-value grant is stamped, enters the granted set and restamps from `acceptanceDispositionRecordFor`. The remint text (`formatAcceptanceDispositionCommand`) names `--disposition <value>` and names `--deferred-to` only for `deferred`. `authz:show` prints the stored value. The mint gate, the clause-text digest, expiry and the place of the apply step in complete prep are unchanged.",
+        "Granted set. `applyAcceptanceDispositionGrants` already returns the ids it stamped in this run. `scope:complete` passes the clause ids among them to its walk as the granted set. Nothing else enters that set: a disposition written into the brief, with or without a grant id, does not.",
+        "Walk counts. In the `scope:complete` walk, a clause in the granted set is not counted in `walked`, `failed`, `adjudicableUnverified` or the verified count, and the walk prints it as granted with its value and reason. The printed lead is built after this omission and names the granted count. The zero-verified rule at completion is decided from these counts, not from the printed text: it refuses only when at least one clause is neither verified nor granted, no clause is verified and no executable command ran green. A walk whose every clause is granted, or verified or granted, passes without a command. The clause stays in `acceptance.clauses`; the sentence floor and the admitted-source identity check read the brief as today.",
+        "Refusal text. When the completion walk refuses, it lists each clause id that is neither verified nor granted, with the start of its text, and gives two remedies: a verify command that covers the clause, or the grant command with that clause id and a value. This replaces the \"(disposition is not a substitute)\" sentence on that refusal.",
+        "Non-criterion clause. A clause that is not a criterion is marked by the item 1 grant with `not_applicable` and a reason. The brief, its clauses, sentences, pin and digest are not edited.",
+        "Non-criterion sentence. `deft scope:confess -- <brief> --sentence \"<text>\"` (repeatable) or `--all-unmapped` appends to `acceptance.confessions` each named sentence that is in `acceptance.sentences`, is not a clause text and is not an admitted-source identity. It prints each sentence it wrote and changes nothing else in the brief. It refuses, and writes nothing, for a sentence that is not in the list, or that is an admitted-source identity; for the second it names the item 1 grant for that sentence's clause.",
+        "`verify:ac` run outside `scope:complete`, the rapid check, the evidence gate and the merge stamper are unchanged.",
+        "Given an `acceptance-disposition` grant minted with `--disposition not_applicable --reason R` on clause 5, when `scope:complete` runs, then clause 5's plan item carries `not_applicable`, reason R and the grant id, and no merge evidence.",
+        "Given `--disposition waived` with `--deferred-to 7`, then the mint refuses and names the flag; given `--disposition deferred` without `--deferred-to`, then the mint refuses as today.",
+        "Given a grant minted before this change, when `scope:complete` applies it, then the item carries `deferred` and its `deferred_to`.",
+        "Given a `waived` grant on clause 12 of a brief that `scope:complete` completed, when the completed brief is restamped, then the restamp check finds the grant and the item keeps `waived` with the grant id.",
+        "Given a `not_applicable` grant whose clause text has changed, when `scope:complete` refuses, then the remint text names `--disposition not_applicable` and does not name `--deferred-to`.",
+        "Given a stored grant with value `deferred` and no deferred-to value, when it is read, then it is treated as malformed as today.",
+        "Given a brief with no verify command whose every clause is covered by a grant applied in this run, when `scope:complete` runs, then the walk passes, the clauses are still in `acceptance.clauses` and the output lists each clause as granted.",
+        "Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when `scope:complete` runs, then it refuses, names that clause id and prints both remedies.",
+        "Given a clause-keyed item whose `x-directive/disposition` was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when `scope:complete` runs with no verify command, then the walk still refuses for that clause.",
+        "Given a grant whose clause text has changed since mint, when `scope:complete` runs, then it refuses as today and no clause enters the granted set.",
+        "Given a clause granted in this run that also has a token oracle that fails, when `scope:complete` runs, then that clause does not count as failed.",
+        "Given an unmapped sentence that is not an admitted-source identity, when `scope:confess --sentence` names it, then it is appended to `acceptance.confessions`, nothing else in the brief changes and `verify:ac` no longer reports it as unmapped.",
+        "Given a sentence that is an admitted-source identity, when `scope:confess` names it, then it refuses, writes nothing and names the grant command for its clause.",
+        "Given `scope:confess --all-unmapped`, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each.",
+        "Given `verify:ac` run on a brief outside `scope:complete`, then its result is the same as before this change."
+      ],
+      "admitted_source_sentences": [
+        "Grant values. `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`; the default is `deferred`, so today's calls are unchanged. `--reason` is required for every value. `--deferred-to` is required for `deferred` and refused for the other two. The value is stored on the grant beside the existing deferred-to and reason fields; a grant minted before this change reads as `deferred`. `acceptanceDispositionRecordFor` writes the grant's value, and writes `deferred_to` only for `deferred`. The grant reader (`viewOf`) accepts a grant with no deferred-to value when its stored value is `not_applicable` or `waived`, and still requires deferred-to when the stored value is `deferred` or absent. The resolve step, the apply step and the restamp check of a completed brief (`checkCitedAcceptanceDispositionGrants`) all use that reader, so a new-value grant is stamped, enters the granted set and restamps from `acceptanceDispositionRecordFor`. The remint text (`formatAcceptanceDispositionCommand`) names `--disposition <value>` and names `--deferred-to` only for `deferred`. `authz:show` prints the stored value. The mint gate, the clause-text digest, expiry and the place of the apply step in complete prep are unchanged.",
+        "Granted set. `applyAcceptanceDispositionGrants` already returns the ids it stamped in this run. `scope:complete` passes the clause ids among them to its walk as the granted set. Nothing else enters that set: a disposition written into the brief, with or without a grant id, does not.",
+        "Walk counts. In the `scope:complete` walk, a clause in the granted set is not counted in `walked`, `failed`, `adjudicableUnverified` or the verified count, and the walk prints it as granted with its value and reason. The printed lead is built after this omission and names the granted count. The zero-verified rule at completion is decided from these counts, not from the printed text: it refuses only when at least one clause is neither verified nor granted, no clause is verified and no executable command ran green. A walk whose every clause is granted, or verified or granted, passes without a command. The clause stays in `acceptance.clauses`; the sentence floor and the admitted-source identity check read the brief as today.",
+        "Refusal text. When the completion walk refuses, it lists each clause id that is neither verified nor granted, with the start of its text, and gives two remedies: a verify command that covers the clause, or the grant command with that clause id and a value. This replaces the \"(disposition is not a substitute)\" sentence on that refusal.",
+        "Non-criterion clause. A clause that is not a criterion is marked by the item 1 grant with `not_applicable` and a reason. The brief, its clauses, sentences, pin and digest are not edited.",
+        "Non-criterion sentence. `deft scope:confess -- <brief> --sentence \"<text>\"` (repeatable) or `--all-unmapped` appends to `acceptance.confessions` each named sentence that is in `acceptance.sentences`, is not a clause text and is not an admitted-source identity. It prints each sentence it wrote and changes nothing else in the brief. It refuses, and writes nothing, for a sentence that is not in the list, or that is an admitted-source identity; for the second it names the item 1 grant for that sentence's clause.",
+        "`verify:ac` run outside `scope:complete`, the rapid check, the evidence gate and the merge stamper are unchanged.",
+        "Given an `acceptance-disposition` grant minted with `--disposition not_applicable --reason R` on clause 5, when `scope:complete` runs, then clause 5's plan item carries `not_applicable`, reason R and the grant id, and no merge evidence.",
+        "Given `--disposition waived` with `--deferred-to 7`, then the mint refuses and names the flag; given `--disposition deferred` without `--deferred-to`, then the mint refuses as today.",
+        "Given a grant minted before this change, when `scope:complete` applies it, then the item carries `deferred` and its `deferred_to`.",
+        "Given a `waived` grant on clause 12 of a brief that `scope:complete` completed, when the completed brief is restamped, then the restamp check finds the grant and the item keeps `waived` with the grant id.",
+        "Given a `not_applicable` grant whose clause text has changed, when `scope:complete` refuses, then the remint text names `--disposition not_applicable` and does not name `--deferred-to`.",
+        "Given a stored grant with value `deferred` and no deferred-to value, when it is read, then it is treated as malformed as today.",
+        "Given a brief with no verify command whose every clause is covered by a grant applied in this run, when `scope:complete` runs, then the walk passes, the clauses are still in `acceptance.clauses` and the output lists each clause as granted.",
+        "Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when `scope:complete` runs, then it refuses, names that clause id and prints both remedies.",
+        "Given a clause-keyed item whose `x-directive/disposition` was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when `scope:complete` runs with no verify command, then the walk still refuses for that clause.",
+        "Given a grant whose clause text has changed since mint, when `scope:complete` runs, then it refuses as today and no clause enters the granted set.",
+        "Given a clause granted in this run that also has a token oracle that fails, when `scope:complete` runs, then that clause does not count as failed.",
+        "Given an unmapped sentence that is not an admitted-source identity, when `scope:confess --sentence` names it, then it is appended to `acceptance.confessions`, nothing else in the brief changes and `verify:ac` no longer reports it as unmapped.",
+        "Given a sentence that is an admitted-source identity, when `scope:confess` names it, then it refuses, writes nothing and names the grant command for its clause.",
+        "Given `scope:confess --all-unmapped`, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each.",
+        "Given `verify:ac` run on a brief outside `scope:complete`, then its result is the same as before this change."
+      ],
+      "admitted_source_digest": "89b093c651b26a8b395a6f3d5b2c6958556ad65445900c201c59f8da8ba15f3d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Grant values. `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`; the default is `deferred`, so today's calls are unchanged. `--reason` is required for every value. `--deferred-to` is required for `deferred` and refused for the other two. The value is stored on the grant beside the existing deferred-to and reason fields; a grant minted before this change reads as `deferred`. `acceptanceDispositionRecordFor` writes the grant's value, and writes `deferred_to` only for `deferred`. The grant reader (`viewOf`) accepts a grant with no deferred-to value when its stored value is `not_applicable` or `waived`, and still requires deferred-to when the stored value is `deferred` or absent. The resolve step, the apply step and the restamp check of a completed brief (`checkCitedAcceptanceDispositionGrants`) all use that reader, so a new-value grant is stamped, enters the granted set and restamps from `acceptanceDispositionRecordFor`. The remint text (`formatAcceptanceDispositionCommand`) names `--disposition <value>` and names `--deferred-to` only for `deferred`. `authz:show` prints the stored value. The mint gate, the clause-text digest, expiry and the place of the apply step in complete prep are unchanged.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Granted set. `applyAcceptanceDispositionGrants` already returns the ids it stamped in this run. `scope:complete` passes the clause ids among them to its walk as the granted set. Nothing else enters that set: a disposition written into the brief, with or without a grant id, does not.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Walk counts. In the `scope:complete` walk, a clause in the granted set is not counted in `walked`, `failed`, `adjudicableUnverified` or the verified count, and the walk prints it as granted with its value and reason. The printed lead is built after this omission and names the granted count. The zero-verified rule at completion is decided from these counts, not from the printed text: it refuses only when at least one clause is neither verified nor granted, no clause is verified and no executable command ran green. A walk whose every clause is granted, or verified or granted, passes without a command. The clause stays in `acceptance.clauses`; the sentence floor and the admitted-source identity check read the brief as today.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Refusal text. When the completion walk refuses, it lists each clause id that is neither verified nor granted, with the start of its text, and gives two remedies: a verify command that covers the clause, or the grant command with that clause id and a value. This replaces the \"(disposition is not a substitute)\" sentence on that refusal.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Non-criterion clause. A clause that is not a criterion is marked by the item 1 grant with `not_applicable` and a reason. The brief, its clauses, sentences, pin and digest are not edited.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Non-criterion sentence. `deft scope:confess -- <brief> --sentence \"<text>\"` (repeatable) or `--all-unmapped` appends to `acceptance.confessions` each named sentence that is in `acceptance.sentences`, is not a clause text and is not an admitted-source identity. It prints each sentence it wrote and changes nothing else in the brief. It refuses, and writes nothing, for a sentence that is not in the list, or that is an admitted-source identity; for the second it names the item 1 grant for that sentence's clause.",
+          "artifact_path": "packages/core/src/scope/confess.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`verify:ac` run outside `scope:complete`, the rapid check, the evidence gate and the merge stamper are unchanged.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given an `acceptance-disposition` grant minted with `--disposition not_applicable --reason R` on clause 5, when `scope:complete` runs, then clause 5's plan item carries `not_applicable`, reason R and the grant id, and no merge evidence.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant-values.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given `--disposition waived` with `--deferred-to 7`, then the mint refuses and names the flag; given `--disposition deferred` without `--deferred-to`, then the mint refuses as today.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant-values.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a grant minted before this change, when `scope:complete` applies it, then the item carries `deferred` and its `deferred_to`.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant-values.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a `waived` grant on clause 12 of a brief that `scope:complete` completed, when the completed brief is restamped, then the restamp check finds the grant and the item keeps `waived` with the grant id.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant-values.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a `not_applicable` grant whose clause text has changed, when `scope:complete` refuses, then the remint text names `--disposition not_applicable` and does not name `--deferred-to`.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant-values.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a stored grant with value `deferred` and no deferred-to value, when it is read, then it is treated as malformed as today.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant-values.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a brief with no verify command whose every clause is covered by a grant applied in this run, when `scope:complete` runs, then the walk passes, the clauses are still in `acceptance.clauses` and the output lists each clause as granted.",
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a brief with no verify command, two clauses granted and one clause neither verified nor granted, when `scope:complete` runs, then it refuses, names that clause id and prints both remedies.",
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a clause-keyed item whose `x-directive/disposition` was written into the brief by hand, with a human-origin shape and a grant id, and no matching grant in the store, when `scope:complete` runs with no verify command, then the walk still refuses for that clause.",
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a grant whose clause text has changed since mint, when `scope:complete` runs, then it refuses as today and no clause enters the granted set.",
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given a clause granted in this run that also has a token oracle that fails, when `scope:complete` runs, then that clause does not count as failed.",
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given an unmapped sentence that is not an admitted-source identity, when `scope:confess --sentence` names it, then it is appended to `acceptance.confessions`, nothing else in the brief changes and `verify:ac` no longer reports it as unmapped.",
+          "artifact_path": "packages/core/src/scope/confess.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given a sentence that is an admitted-source identity, when `scope:confess` names it, then it refuses, writes nothing and names the grant command for its clause.",
+          "artifact_path": "packages/core/src/scope/confess.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Given `scope:confess --all-unmapped`, then it confesses exactly the sentences the sentence floor reports as unmapped that are not admitted-source identities, and prints each.",
+          "artifact_path": "packages/core/src/scope/confess.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Given `verify:ac` run on a brief outside `scope:complete`, then its result is the same as before this change.",
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6460187526",
+    "updated": "2026-11-18T18:07:22Z"
+  }
+}
