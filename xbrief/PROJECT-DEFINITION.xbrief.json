@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Project definition -- current Deft Directive identity, policy, scope registry, and authored architecture metadata.",
-    "updated": "2026-11-18T18:40:08Z"
+    "updated": "2026-11-18T20:35:45Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -646,38 +646,80 @@
         }
       },
       {
-        "id": "2026-11-18-6301-fixscope-strict-acceptance-axes-should-skip-text-inside-back",
-        "title": "fix(scope): strict acceptance axes should skip text inside backticks and code fences",
+        "id": "2026-11-18-6567-docssetup-tell-users-at-setup-that-reduced-local-gates-need",
+        "title": "docs(setup): tell users at setup that reduced local gates need the full merge-path stack (#6535)",
         "status": "running",
         "metadata": {
-          "source_path": "active/2026-11-18-6301-fixscope-strict-acceptance-axes-should-skip-text-inside-back.xbrief.json",
+          "source_path": "active/2026-11-18-6567-docssetup-tell-users-at-setup-that-reduced-local-gates-need.xbrief.json",
           "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/6301",
+              "uri": "https://github.com/deftai/directive/issues/6567",
               "type": "x-xbrief/github-issue",
-              "title": "Issue #6301: fix(scope): strict acceptance axes should skip text inside backticks and code fences"
+              "title": "Issue #6567: docs(setup): tell users at setup that reduced local gates need the full merge-path stack (#6535)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6535",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6535"
             }
           ]
         }
       },
       {
-        "id": "2026-11-18-6591-fixscope-warn-when-a-declaration-added-after-activation-lowe",
-        "title": "fix(scope): warn when a declaration added after activation lowers the evidence a clause requires",
+        "id": "2026-11-18-6584-perfci-do-not-re-run-the-full-stack-on-a-master-push-the-mer",
+        "title": "perf(ci): do not re-run the full stack on a master push the merge queue already passed",
         "status": "running",
         "metadata": {
-          "source_path": "active/2026-11-18-6591-fixscope-warn-when-a-declaration-added-after-activation-lowe.xbrief.json",
+          "source_path": "active/2026-11-18-6584-perfci-do-not-re-run-the-full-stack-on-a-master-push-the-mer.xbrief.json",
           "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/6591",
+              "uri": "https://github.com/deftai/directive/issues/6584",
               "type": "x-xbrief/github-issue",
-              "title": "Issue #6591: fix(scope): warn when a declaration added after activation lowers the evidence a clause requires"
+              "title": "Issue #6584: perf(ci): do not re-run the full stack on a master push the merge queue already passed"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-6585-choreci-retire-the-no-op-go-lane",
+        "title": "chore(ci): retire the no-op Go lane",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-6585-choreci-retire-the-no-op-go-lane.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6585",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6585: chore(ci): retire the no-op Go lane"
             },
             {
-              "uri": "https://github.com/deftai/directive/issues/6301",
+              "uri": "https://github.com/deftai/directive/issues/5490",
               "type": "x-xbrief/refs",
-              "title": "Issue #6301"
+              "title": "Issue #5490"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-6586-perfci-run-the-full-typescript-suite-once-per-ci-run-not-in",
+        "title": "perf(ci): run the full TypeScript suite once per CI run, not in both the TS lane and the merge gate",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-6586-perfci-run-the-full-typescript-suite-once-per-ci-run-not-in.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6586",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6586: perf(ci): run the full TypeScript suite once per CI run, not in both the TS lane and the merge gate"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1704",
+              "type": "x-xbrief/refs",
+              "title": "Issue #1704"
             }
           ]
         }
@@ -709,6 +751,69 @@
         }
       },
       {
+        "id": "2026-11-18-6609-bugingest-the-derived-acceptance-rung-turns-every-prose-sent",
+        "title": "bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-6609-bugingest-the-derived-acceptance-rung-turns-every-prose-sent.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6609",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6609: bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6594",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6594"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6599",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6599"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-6644-bugscope-acceptance-walk-gaps-no-non-executable-pass-disposi",
+        "title": "bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-6644-bugscope-acceptance-walk-gaps-no-non-executable-pass-disposi.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6644",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6644: bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6601",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6601"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-6647-enhancementcli-flag-and-path-friction-across-verify-occupanc",
+        "title": "enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-6647-enhancementcli-flag-and-path-friction-across-verify-occupanc.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6647",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6647: enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-11-18-6648-enhancementxbrief-project-definition-has-grown-past-1-mib-wi",
         "title": "enhancement(xbrief): PROJECT-DEFINITION has grown past 1 MiB with no bound or pruning path",
         "status": "running",
@@ -725,6 +830,343 @@
               "uri": "https://github.com/deftai/directive/issues/6602",
               "type": "x-xbrief/refs",
               "title": "Issue #6602"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-6681-securityauthz-kill-switch-plant-guard-regressed-in-6580-quot",
+        "title": "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-6681-securityauthz-kill-switch-plant-guard-regressed-in-6580-quot.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6681",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6681: security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-codeql",
+        "title": "fix(hygiene): two lockfile-reader patterns flagged by CodeQL as slow on crafted input",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-codeql.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6680",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6680: fix(hygiene): two lockfile-reader patterns flagged by CodeQL as slow on crafted input"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6658",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6658"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-customer-files",
+        "title": "directive upgrade leaves consumer wiring pointing at the deleted .deft/core, including CI steps that would silently skip",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-customer-files.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/5961",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #5961: directive upgrade leaves consumer wiring pointing at the deleted .deft/core, including CI steps that would silently skip"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6167",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6167"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6256",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6256"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-docs",
+        "title": "docs+product(ovpr): calm SLizard/Greptile on launcher vs runtime bins and node_modules pin paths",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-docs.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/5869",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #5869: docs+product(ovpr): calm SLizard/Greptile on launcher vs runtime bins and node_modules pin paths"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/4662",
+              "type": "x-xbrief/refs",
+              "title": "Issue #4662"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5809",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5809"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/4750",
+              "type": "x-xbrief/refs",
+              "title": "Issue #4750"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5977",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5977"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5867",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5867"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6619",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6619"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-doctor",
+        "title": "doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1)",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-doctor.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6617",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6617: doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6618",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6618"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6622",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6622"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5967",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5967"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6004",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6004"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-generation",
+        "title": "0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-generation.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6012",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6012: 0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5835",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5835"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-hookspath",
+        "title": "setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-hookspath.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/5846",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #5846: setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/4960",
+              "type": "x-xbrief/refs",
+              "title": "Issue #4960"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-message-table",
+        "title": "hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-message-table.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6620",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6620: hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6466",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6466"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5940",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5940"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6225",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6225"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5977",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5977"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6517",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6517"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6550",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6550"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-small-fixes",
+        "title": "--root with a lowercase drive letter is rejected as not the Git working-tree root on Windows",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-small-fixes.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6005",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6005: --root with a lowercase drive letter is rejected as not the Git working-tree root on Windows"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6006",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6006"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5965",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5965"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/5603",
+              "type": "x-xbrief/refs",
+              "title": "Issue #5603"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6220",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6220"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-subfolder-hook",
+        "title": "Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-subfolder-hook.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/5959",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #5959: Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6185",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6185"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6206",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6206"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-uninstall",
+        "title": "Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-uninstall.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/5999",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #5999: Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6007",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6007"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-11-18-ovpr-g-worktree-core",
+        "title": "bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-ovpr-g-worktree-core.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6562",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6562: bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6465",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6465"
             }
           ]
         }
