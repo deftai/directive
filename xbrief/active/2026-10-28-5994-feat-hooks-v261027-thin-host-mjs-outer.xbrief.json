@@ -2,13 +2,13 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #5994 — v261027 thin host .mjs outer; kill .sh emit; unify entry guards (F1/F2)",
-    "updated": "2026-10-28T15:50:29Z"
+    "updated": "2026-11-18T00:04:14Z"
   },
   "plan": {
     "id": "github.issue.6081456211",
     "title": "feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards",
-    "status": "proposed",
-    "updated": "2026-10-28T21:30:00Z",
+    "status": "running",
+    "updated": "2026-11-18T00:04:14Z",
     "tags": [
       "feat",
       "harness",
