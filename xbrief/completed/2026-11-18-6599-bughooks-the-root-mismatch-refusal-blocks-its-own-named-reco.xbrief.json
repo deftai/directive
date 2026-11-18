@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6599",
-    "updated": "2026-11-18T01:17:38Z"
+    "updated": "2026-11-18T03:14:55Z"
   },
   "plan": {
     "title": "bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6599",
@@ -16,28 +16,351 @@
     "items": [
       {
         "title": "Under a root mismatch, each admitted command is allowed for hosts claude, cursor, grok and codex, and the decision message names the admission.",
-        "status": "proposed",
-        "id": "clause.25"
+        "status": "completed",
+        "id": "clause.25",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Under a root mismatch, a chained or extended form (`directive doctor && rm x`, `directive doctor; ...`, a pipe or redirect), any other command and any non-shell tool are refused.",
-        "status": "proposed",
-        "id": "clause.26"
+        "status": "completed",
+        "id": "clause.26",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The refusal text lists the admitted commands.",
-        "status": "proposed",
-        "id": "clause.27"
+        "status": "completed",
+        "id": "clause.27",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "With no mismatch, behaviour is unchanged (existing hook-dispatch tests pass).",
-        "status": "proposed",
-        "id": "clause.28"
+        "status": "completed",
+        "id": "clause.28",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "No new default refusal is added, so the #6281 warn-first table is not touched (if review finds otherwise, declare it there).",
-        "status": "proposed",
-        "id": "clause.29"
+        "status": "completed",
+        "id": "clause.29",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+          "recorded_at": "2026-11-18T03:14:55Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -104,10 +427,42 @@
         "github_issue_id": 6457579333,
         "origin": "deftai/directive#6599",
         "id": "github.issue.6457579333"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "942d2a23dedd628c33553c969fb18a8a887206f2",
+        "prNumber": 6607,
+        "prBase": "master",
+        "mergeCommit": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d9133c306a933b6b4c7955d280a353e78ee06ed1",
+        "verifiedAt": "2026-11-18T03:14:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6604,
+          6624
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T03:14:55Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T03:14:55Z"
       }
     },
     "acceptance": {
-      "commands": ["pnpm exec vitest run packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts packages/core/src/install-health/recovery-admit.test.ts"],
+      "commands": [
+        "pnpm exec vitest run packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts packages/core/src/install-health/recovery-admit.test.ts"
+      ],
       "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "one clause per sentence-list entry (29), in order (#6333)",
@@ -376,6 +731,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6457579333",
-    "updated": "2026-11-18T01:17:38Z"
+    "updated": "2026-11-18T03:14:55Z"
   }
 }
