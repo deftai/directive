@@ -4400,15 +4400,18 @@ function heredocFeedsXargsWriter(
     const runsXargs = splitUnquotedPipeChains(prefix).some((chain) =>
       chain.some(stageRunsXargsWriter),
     );
-    if (!runsXargs) continue;
     const delimiter = m[1] as string;
     const body: string[] = [];
-    for (let bi = li + 1; bi < lines.length; bi++) {
+    let bi = li + 1;
+    for (; bi < lines.length; bi++) {
       const bl = lines[bi] as string;
       if (bl.trim() === delimiter) break;
       body.push(bl);
     }
-    if (stageMentions(body.join("\n"))) return true;
+    if (runsXargs && stageMentions(body.join("\n"))) return true;
+    // The body belongs to this heredoc: its lines are not commands of their own, so an
+    // example `xargs touch <<EOF` printed inside another heredoc is not scanned.
+    li = bi;
   }
   return false;
 }

@@ -2966,6 +2966,17 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     }
   });
 
+  it("does not scan a heredoc body printed inside another heredoc as commands", () => {
+    const nested = `cat <<'DOC'\nxargs touch <<EOF\n${kill}\nEOF\nDOC`;
+    expectNoPlant(nested);
+    expectNoPlant(`cat <<'DOC'\necho ${kill} | xargs touch\nDOC`);
+    expect(
+      inactiveShellTargetsProtectedStore(`cat <<'DOC'\necho ${authz} | xargs touch\nDOC`),
+    ).toBe(false);
+    // A real xargs heredoc after the outer one is still found.
+    expectPlant(`${nested}\nxargs touch <<EOF\n${kill}\nEOF`);
+  });
+
   it("checks the program after a wrapper option that takes a value", () => {
     for (const command of [
       `echo ${kill} | xargs env -u FOO touch`,
