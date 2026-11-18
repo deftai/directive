@@ -218,7 +218,9 @@ export function runNpmRegistryMirrorCheck(
       "npm and pnpm send a whole scope to one registry. " +
       `Directive's two packages (${DIRECTIVE_PACKAGES_LABEL}) are published only on the public npm registry. ` +
       "Do not remap the whole @deftai scope; that would break your other @deftai packages. " +
-      "If the lockfile already records the runtime, reinstall from it (`npm ci` / `pnpm install --frozen-lockfile`). " +
+      "If `package-lock.json` already records the runtime's npmjs URL, `npm ci` reinstalls from it. " +
+      "pnpm lockfiles do not record that URL, so pnpm installs route through `@deftai:registry` again. " +
+      "For one run, set `npm_config_@deftai:registry=https://registry.npmjs.org/` in the environment (changes no config). " +
       "To add or upgrade Directive, your registry needs to serve these two packages (for example a proxy registry with an upstream to npmjs), " +
       `or the internal packages need a different scope. See ${NPM_REGISTRY_MIRROR_DOC_URL}.`;
     sink.warn(splitMessage);

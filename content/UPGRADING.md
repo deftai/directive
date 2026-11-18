@@ -262,12 +262,14 @@ published only on `https://registry.npmjs.org/`, return `E404` there. Do not
 remap the whole `@deftai` scope in `.npmrc`; that breaks your other `@deftai`
 packages. Instead:
 
-- If the lockfile already records the runtime, reinstall from it
-  (`npm ci` / `pnpm install --frozen-lockfile`), then run
-  `directive install --repair`.
-- To install or upgrade Directive for one run, override the scope in the
-  environment only. Nothing is written to config, and the lockfile then
-  records public npm URLs, so later `npm ci` works:
+- npm: if `package-lock.json` already records the runtime's npmjs URL,
+  `npm ci` reinstalls from it; then run `directive install --repair`.
+  pnpm lockfiles do not record that URL, so a pnpm install routes through
+  `@deftai:registry` again; use the override below.
+- To install, upgrade or repair Directive for one run, override the scope in
+  the environment only. Nothing is written to config. With npm, the lockfile
+  then records public npm URLs, so later `npm ci` works. Add the same flags
+  you would normally use:
 
   ```bash
   env 'npm_config_@deftai:registry=https://registry.npmjs.org/' directive upgrade

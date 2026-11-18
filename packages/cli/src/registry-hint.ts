@@ -123,10 +123,6 @@ function commandFor(verb: RegistryHintVerb): string {
   return `directive ${verb}`;
 }
 
-function lockfileInstallCommand(pm: "npm" | "pnpm"): string {
-  return pm === "pnpm" ? "pnpm install --frozen-lockfile" : "npm ci";
-}
-
 /**
  * Return the split-scope hint when `blob` is a registry miss for a Directive
  * package and the effective `@deftai:registry` is set and not public npm.
@@ -158,9 +154,15 @@ export function scopedRegistryHint(
       `Directive's two packages (${LAUNCHER_PACKAGE_NAME}, ${RUNTIME_PACKAGE_NAME}) are published only on ${PUBLIC_NPM_REGISTRY}`,
     "Do not remap the whole @deftai scope in .npmrc; that would break your other @deftai packages.",
   ];
-  if (options.verb === "repair" && options.lockfileRecordsPin === true) {
+  // npm lockfiles record each package's resolved URL; pnpm lockfiles do not, so
+  // a pnpm frozen install routes through `@deftai:registry` again (#6141).
+  if (
+    options.verb === "repair" &&
+    options.lockfileRecordsPin === true &&
+    (options.pm ?? "npm") === "npm"
+  ) {
     lines.push(
-      `The lockfile already records the runtime: run \`${lockfileInstallCommand(options.pm ?? "npm")}\` in this project, then \`${command}\`.`,
+      `If package-lock.json records the runtime's npmjs URL, run \`npm ci\` in this project, then \`${command}\`.`,
     );
     lines.push(
       "Or re-run the same command with the same flags, overriding the registry for that one run (changes no config):",

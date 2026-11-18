@@ -211,9 +211,14 @@ describe("npm registry mirror doctor check (#2808)", () => {
           registry_source: "scoped",
         }),
       ]);
-      expect(result.output).not.toContain("@deftai:registry=https://registry.npmjs.org/");
+      // No `.npmrc` scope remap; only the one-run `npm_config_…` environment override.
+      expect(result.output).not.toContain("`@deftai:registry=https://registry.npmjs.org/`");
+      expect(result.output).not.toContain("to `.npmrc`");
       expect(result.output).toContain("Do not remap the whole @deftai scope");
-      expect(result.output).toContain("`npm ci` / `pnpm install --frozen-lockfile`");
+      expect(result.output).toContain("`npm ci` reinstalls from it");
+      expect(result.output).toContain("pnpm lockfiles do not record that URL");
+      expect(result.output).toContain("npm_config_@deftai:registry=https://registry.npmjs.org/");
+      expect(result.output).not.toContain("--frozen-lockfile");
       expect(result.output).toContain("proxy registry");
       expect(result.output).toContain("different scope");
       expect(result.output).toContain("`@deftai/directive` and `@deftai/directive-runtime`");

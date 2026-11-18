@@ -123,21 +123,27 @@ describe("scopedRegistryHint", () => {
     expect(read).toBe(false);
   });
 
-  it("repair with a lockfile pin names the lockfile install first", () => {
+  it("npm repair with a lockfile pin names npm ci first; pnpm does not", () => {
     const npm = hintFor(NPM_404, PRIVATE, {
       verb: "repair",
       pm: "npm",
       lockfileRecordsPin: true,
     })?.hint;
-    expect(npm).toContain("run `npm ci` in this project, then `directive install --repair`");
+    expect(npm).toContain(
+      "If package-lock.json records the runtime's npmjs URL, run `npm ci` in this project, then `directive install --repair`",
+    );
     expect(npm?.indexOf("npm ci")).toBeLessThan(npm?.indexOf("env 'npm_config") ?? 0);
 
+    // pnpm lockfiles carry no tarball URL; a frozen install re-routes through the scope.
     const pnpm = hintFor(NPM_404, PRIVATE, {
       verb: "repair",
       pm: "pnpm",
       lockfileRecordsPin: true,
     })?.hint;
-    expect(pnpm).toContain("`pnpm install --frozen-lockfile`");
+    expect(pnpm).not.toContain("--frozen-lockfile");
+    expect(pnpm).toContain(
+      "env 'npm_config_@deftai:registry=https://registry.npmjs.org/' directive install --repair",
+    );
 
     const noLock = hintFor(NPM_404, PRIVATE, { verb: "repair", lockfileRecordsPin: false })?.hint;
     expect(noLock).not.toContain("npm ci");
