@@ -35,17 +35,19 @@ directive install --repair
 
 CI / swarm images may use `directive install --repair --yes` with a valid exact pin.
 
-## Out-of-band escape (disable Cursor / Grok hooks)
+## Out-of-band escape (disable host hooks)
 
-There is no in-session escape on a host without Node. Run this from a shell where Node and the CLI **are** available — your workstation, or the repo before you push it:
+There is no in-session escape on a host without Node. Run this from a shell where Node and the CLI **are** available — your workstation, or the repo before you push it. Disable each host you use; Claude and Codex block too (#6201):
 
 ```bash
 directive policy:disable-host-hooks --host cursor --confirm
 directive policy:disable-host-hooks --host grok --confirm
+directive policy:disable-host-hooks --host claude --confirm
+directive policy:disable-host-hooks --host codex --confirm
 directive install --repair   # or directive upgrade — refresh owned hook wiring
 ```
 
-That sets `plan.policy.hostHooks.<host> = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next repair/upgrade strips the Cursor registration and the Grok wrapper deposit. Commit and push; the locked-out environment clears on its next pull or fresh clone.
+That sets `plan.policy.hostHooks.<host> = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next repair/upgrade strips that host's registration (and the Grok wrapper deposit). Commit and push; the locked-out environment clears on its next pull or fresh clone.
 
 If the goal is to remove Directive entirely, follow the [full-stop recipe](./full-stop.md) before uninstalling — leftover `.cursor/hooks.json` can remain failClosed authority, and leftover Grok wrapper + registration can still deny when the host starts the wrapper.
 
