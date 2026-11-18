@@ -1,0 +1,482 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6584",
+    "updated": "2026-11-18T19:01:06Z"
+  },
+  "plan": {
+    "title": "perf(ci): do not re-run the full stack on a master push the merge queue already passed",
+    "status": "running",
+    "narratives": {
+      "Description": "perf(ci): do not re-run the full stack on a master push the merge queue already passed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6584",
+      "Overview": "\n1. Lookup (one decision). In `.github/workflows/ci.yml`, the `changes` job gains one step that runs only on `push`. It runs a lookup script read from the push's base tree (as the artifact-only predicate is), using `GH_TOKEN` with the existing `actions: read`. It lists runs of the current run's `workflow_id` with `event=merge_group` and `head_sha == github.sha`, takes the newest such run at its latest attempt, and reads that attempt's jobs (`actions/runs/{id}/attempts/{n}/jobs`). It outputs `queue_passed=true`, `queue_run_id` and `queue_run_attempt` only when that attempt is completed with conclusion success and the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` in it are completed success. Any other state (no run, in progress, failure, cancelled, an API error, the script absent on the base tree, a non-push event) outputs `queue_passed=false`.\n2. Skip. `ts-primary` gains `needs: [changes]` and `if: always() && needs.changes.outputs.queue_passed != 'true'`. The other heavy jobs (`merge-gate-primary`, `windows-task-dispatch`, and `go-primary` while it exists) add `&& needs.changes.outputs.queue_passed != 'true'` to their existing `always()` conditions. `capacity-watchdog`, `capacity-arm` and the failover jobs add the same clause. When `changes` fails, its outputs are empty, so every job runs as today.\n3. Aggregators. `ts`, `merge-gate` and `go` (while it exists) keep their names. Each gains `changes` in `needs`; `merge-gate` and `go` change their condition to `always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')`. Each passes `QUEUE_PASSED`, `QUEUE_RUN_ID` and `QUEUE_RUN_ATTEMPT` to `.github/scripts/resolve-ci-authoritative-lane.mjs`, which, when `QUEUE_PASSED` is `true` and the id and attempt are set, exits 0 and logs the queue run URL and attempt; it makes no second API read. Otherwise it behaves as today.\n4. Gate change named. The `ci.yml` header comment and the Framework CI runners lines of `content/scm/github.md` state that on a master push the two required aggregators are green either because this run passed or because the named queue run attempt of this workflow passed this exact commit, and that any lookup doubt runs the full stack.\n\n## Acceptance Criteria\n\n- In `.github/workflows/ci.yml`, the `changes` job outputs `queue_passed=true` with the queue run id and attempt only for a push whose exact SHA has a latest-attempt `merge_group` run of this workflow that completed success with `TypeScript (build + lint + test)` and `Merge gate (task check)` successful, using a lookup read from the base tree, and outputs `queue_passed=false` in every other case.\n- In `.github/workflows/ci.yml`, when `queue_passed` is true the primaries, Windows job, capacity watchdog, capacity arm and failovers skip, and when it is not true (including a failed `changes` job) they run as today.\n- In `.github/workflows/ci.yml`, the `ts`, `merge-gate` and (while present) `go` aggregators keep their names, run whenever `queue_passed` is true regardless of the artifact-only result, and receive the queue run id and attempt.\n- In `.github/scripts/resolve-ci-authoritative-lane.mjs`, `QUEUE_PASSED=true` with a queue run id and attempt exits 0 and logs the queue run URL and attempt without a second lookup, and every other input behaves as today.\n- In `content/scm/github.md`, the Framework CI runners lines name the new meaning of a green required aggregator on a master push and the full-run fallback.\n\n\n",
+      "Constraint": "- A second lookup in the aggregator after the heavy jobs are skipped (comment 6988069299, finding 1).\n- Keeping the artifact-only condition ahead of queue reuse on the `merge-gate` and `go` aggregators (comment 6988069299, finding 2).\n- Dropping the push trigger and covering direct pushes another way (comment 6988069299, answer 4).",
+      "Labels": "enhancement, ci-cd, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Lookup (one decision). In `.github/workflows/ci.yml`, the `changes` job gains one step that runs only on `push`. It runs a lookup script read from the push's base tree (as the artifact-only predicate is), using `GH_TOKEN` with the existing `actions: read`. It lists runs of the current run's `workflow_id` with `event=merge_group` and `head_sha == github.sha`, takes the newest such run at its latest attempt, and reads that attempt's jobs (`actions/runs/{id}/attempts/{n}/jobs`). It outputs `queue_passed=true`, `queue_run_id` and `queue_run_attempt` only when that attempt is completed with conclusion success and the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` in it are completed success. Any other state (no run, in progress, failure, cancelled, an API error, the script absent on the base tree, a non-push event) outputs `queue_passed=false`.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Skip. `ts-primary` gains `needs: [changes]` and `if: always() && needs.changes.outputs.queue_passed != 'true'`. The other heavy jobs (`merge-gate-primary`, `windows-task-dispatch`, and `go-primary` while it exists) add `&& needs.changes.outputs.queue_passed != 'true'` to their existing `always()` conditions. `capacity-watchdog`, `capacity-arm` and the failover jobs add the same clause. When `changes` fails, its outputs are empty, so every job runs as today.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Aggregators. `ts`, `merge-gate` and `go` (while it exists) keep their names. Each gains `changes` in `needs`; `merge-gate` and `go` change their condition to `always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')`. Each passes `QUEUE_PASSED`, `QUEUE_RUN_ID` and `QUEUE_RUN_ATTEMPT` to `.github/scripts/resolve-ci-authoritative-lane.mjs`, which, when `QUEUE_PASSED` is `true` and the id and attempt are set, exits 0 and logs the queue run URL and attempt; it makes no second API read. Otherwise it behaves as today.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Gate change named. The `ci.yml` header comment and the Framework CI runners lines of `content/scm/github.md` state that on a master push the two required aggregators are green either because this run passed or because the named queue run attempt of this workflow passed this exact commit, and that any lookup doubt runs the full stack.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, the `changes` job outputs `queue_passed=true` with the queue run id and attempt only for a push whose exact SHA has a latest-attempt `merge_group` run of this workflow that completed success with `TypeScript (build + lint + test)` and `Merge gate (task check)` successful, using a lookup read from the base tree, and outputs `queue_passed=false` in every other case.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, when `queue_passed` is true the primaries, Windows job, capacity watchdog, capacity arm and failovers skip, and when it is not true (including a failed `changes` job) they run as today.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, the `ts`, `merge-gate` and (while present) `go` aggregators keep their names, run whenever `queue_passed` is true regardless of the artifact-only result, and receive the queue run id and attempt.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "In `.github/scripts/resolve-ci-authoritative-lane.mjs`, `QUEUE_PASSED=true` with a queue run id and attempt exits 0 and logs the queue run URL and attempt without a second lookup, and every other input behaves as today.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "In `content/scm/github.md`, the Framework CI runners lines name the new meaning of a green required aggregator on a master push and the full-run fallback.",
+        "status": "proposed",
+        "id": "clause.9"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6584",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6584: perf(ci): do not re-run the full stack on a master push the merge queue already passed"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "actions: read",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "head_sha == github.sha",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "TypeScript (build + lint + test)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "go",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/scripts/resolve-ci-authoritative-lane.mjs",
+          ".github/scripts/ci-queue-reuse-lookup.mjs",
+          "content/scm/github.md",
+          "packages/core/src/init-deposit/ci-watchdog.test.ts",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts",
+          "changelog.d/6584-reuse-queue-result-on-master-push.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "ci-workflow",
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts packages/core/src/init-deposit/ci-watchdog.test.ts"
+        ],
+        "expected_outputs": [
+          "the changes job outputs queue_passed, queue_run_id and queue_run_attempt from one lookup read from the base tree",
+          "heavy jobs, watchdog, arm and failovers skip when queue_passed is true; aggregators keep names and report success citing the queue run",
+          "resolve-ci-authoritative-lane.mjs exits 0 on QUEUE_PASSED=true with id and attempt, no second lookup",
+          "content/scm/github.md names the new meaning of a green aggregator on a master push",
+          "one changelog fragment changelog.d/6584-reuse-queue-result-on-master-push.md"
+        ],
+        "Traces": [
+          "#6584"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci.yml",
+          ".github/scripts/resolve-ci-authoritative-lane.mjs",
+          ".github/scripts/ci-queue-reuse-lookup.mjs",
+          "content/scm/github.md",
+          "packages/core/src/init-deposit/ci-watchdog.test.ts",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts",
+          "changelog.d/6584-reuse-queue-result-on-master-push.md"
+        ],
+        "module_boundary": "The lookup is one new script beside the existing CI helper scripts in .github/scripts, read from the base tree like the artifact-only predicate. The changes job, job conditions and aggregators stay in ci.yml; resolve-ci-authoritative-lane.mjs gains one early-exit branch; tests go beside the existing CI contract tests.",
+        "cohesion_exemption": ".github/workflows/ci.yml (about 1088 lines before the Go lane removal) is the single CI workflow file. The story adds one lookup step and job conditions to it; splitting the workflow is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6584; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and the change alters what a green `Merge gate (task check)` and `TypeScript (build + lint + test)` mean on a master push, which is a gate change (`content/docs/gate-integrity.md`).\n\nTarget-digest: sha256:f467ceb66f86b9a57e277674a936ccf7d90fe9f2ec58e0d05c80c27e78aaf8e0\ndispatch-sha: a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e\ndest: .deft-scratch/worktrees/arc-6584 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; one CI workflow change with constraints already bounded in the issue; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e: + dest cwd-without-occupy\npain: P1\npain: P2\n\n## In plain English\nWith the merge queue on, the queue's group commit becomes the master commit. So the CI run on the master push tests the same commit the queue just tested and passed. That costs 7 to 12 minutes of runner time per merge. Worse, while it runs, the newest `Merge gate (task check)` on the master tip is pending, and `pr:merge-ready`, `pr:finish-loop` and release Step 5 refuse until it ends.\n\nThe recommended fix is to look up, at the start of a master push run, whether the queue run of this same workflow already passed this exact commit. If it did, the heavy jobs skip and the two required aggregators report green by citing that queue run. If the lookup cannot confirm it, for any reason, the full stack runs as today. This is a deliberate gate change: on such a push, the green aggregator means \"this commit passed in the queue run of this workflow\", and the design names that.\n\nPain source: the issue has no `## Acceptance Criteria` heading. The two pains below are derived from its Problem, Evidence and Wanted behavior sections. Its four hard constraints and the release-flow note are carried as constraints, not pains.\n\n## Pains\n- P1 — A master push whose SHA already has a successful `merge_group` run of `ci.yml` runs the heavy lanes again (TypeScript, merge gate, Windows, Go), 7 to 12 minutes of runner time per merge.\n- P2 — During that repeat run the newest `Merge gate (task check)` check on the master tip is pending, so `pr:merge-ready`, `pr:finish-loop` and release Step 5 refuse for 7 to 12 minutes after every merge (#6071).\n\n## Excluded (not pains, not in this arc)\n- Other workflows that run on push but not on `merge_group` (for example `greenfield-python-free-smoke.yml`); they are not repeats and stay.\n- #6309 (release Step 5 lookup) and the newest-run handling it would need; this arc keeps the tip's named check green so that reader works as is.\n- Whether an artifact-only master push can leave a skipped `Merge gate (task check)` on the tip (issue's retained uncertainty); not changed here.\n- The stale required-check rows in the `ci.yml` header table and `content/scm/github.md`, the Go lane (#6585) and the TypeScript lane's test step (#6586, separate arc). Those touch the same files; build order is the parent's call.\n- Ownership check: no file here is in the installer/OVPR maintainer's area (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` §5); these are CI workflow and CI script files.\n\n## Constraints (not pains; from the issue)\n- C1 Fail closed: if the queue result for that exact SHA cannot be confirmed, the full stack runs. A direct push with no queue run runs the full stack as today.\n- C2 No new gate and no new check name. The required checks (`TypeScript (build + lint + test)`, `Merge gate (task check)`; live REST `branches/master/protection` read 2026-11-18) keep reporting on every master push.\n- C3 The newest same-name check on the tip is completed success or the push runs in full: a skipped aggregator must never be the newest run (`selectNamedMergeGateRun` and `evaluateNamedMergeGateFromRuns`, `packages/core/src/pr-wait-mergeable/semantic-green.ts` 893-993, refuse `skipped` and pending).\n- C4 A pass-through is a gate change and must bind its lookup: same SHA, `merge_group` event, same workflow, conclusion success.\n- C5 Skipped primaries must not arm failover (`cancelled_unclaimed`, `.github/scripts/classify-ci-job-state.mjs`).\n- C6 Release Step 5 needs a green `Merge gate (task check)` on the release commit; release commits go through a release PR and the queue (#6296).\n\n## Anchors at the dispatch SHA\n- `.github/workflows/ci.yml`: triggers 3-10; `changes` 81-135 (event routing 101-115; the trusted predicate script is read from the base tree, 121-135); `ts-primary` 137-142 (no `needs`, no `if`); `go-primary` 144-151 and `merge-gate-primary` 153-209 gate on `artifact_only`; `capacity-watchdog` 221-327 and `capacity-arm` 336-427 (ARTIFACT_ONLY treats Go and merge gate as done; TypeScript has no such exemption, 254 and 376, and arms on `cancelled_unclaimed`, 264 and 385); failovers 437-514; aggregators `ts` 522-538 (`if: always()`), `go` 540-556, `merge-gate` 558-574 (both `if: always() && artifact_only != 'true'`); `windows-task-dispatch` 576-584 onward.\n- `.github/scripts/resolve-ci-authoritative-lane.mjs` 79-120: reads only its own run's jobs (`actions/runs/${RUN_ID}/jobs`).\n- `packages/core/src/pr-wait-mergeable/merge-group-skip.ts`: the four PR-context checks skipped on `merge_group`; on push they run today. #6295 accepts that they are judged on the PR head.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1, C1, C4). In the `changes` job, add one step that runs only on `push`: look up the run of this same workflow (`workflow_id` of the current run) with `event=merge_group`, `head_sha == github.sha`, status completed, conclusion success, and in that run the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` completed success. Output `queue_passed=true` and `queue_run_id`. Any API error, no match, more than one candidate that disagrees, or a non-push event outputs `queue_passed=false`. The lookup script is read from the push's base tree, like the artifact-only predicate, so a pushed commit cannot change its own lookup.\n- R2 (P1, C5). Every heavy job (`ts-primary`, `merge-gate-primary`, `windows-task-dispatch`, and the Go jobs while they exist) adds `needs.changes.outputs.queue_passed != 'true'` to its `if:`; `ts-primary` gains `needs: [changes]`. `capacity-watchdog`, `capacity-arm` and the failovers skip when `queue_passed` is true, so nothing classifies a skipped primary as capacity death.\n- R3 (P2, C2, C3, C4). The `ts` and `merge-gate` aggregators keep their names and still run. When `queue_passed` is true, `resolve-ci-authoritative-lane.mjs` re-reads `queue_run_id` from the API, re-checks the same binding as R1 (same SHA, `merge_group`, same workflow, run success, its own aggregator name success) and exits 0 with the queue run URL in the log; on any mismatch or error it exits 1. Otherwise it works as today. The aggregators finish in about a minute, so the tip is green shortly after the merge instead of 7 to 12 minutes later.\n- R4 (gate change named). The `ci.yml` header comment and the CI section of `content/scm/github.md` state the new meaning: on a master push, the two aggregators are green either because this run passed, or because the queue run of this workflow passed this exact commit.\n\nQuestions for the critic:\n1. Is the R1/R3 binding tight enough to rule out a pass on a commit the queue did not fully test (re-runs, run attempts, a queue run for the same SHA from a different workflow, a cancelled group)?\n2. Does R2 leave any path where a skipped job becomes the newest named check on the tip, or where failover still arms?\n3. Is `needs: [changes]` on `ts-primary` acceptable (it delays the TypeScript primary on PRs by the `changes` job time), or is there a smaller place for the lookup?\n4. Is there a simpler design that meets C1-C6, for example not triggering `ci.yml` on push at all and covering direct pushes another way?\n\n",
+          "id": 6988009867,
+          "html_url": "https://github.com/deftai/directive/issues/6584#issuecomment-6988009867",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:39:00Z",
+          "updated_at": "2026-11-18T18:39:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6988013400\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e\ndest: .deft-scratch/worktrees/arc-6584\nverification-path: pin-read git show a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6988009867\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6988013400,
+          "html_url": "https://github.com/deftai/directive/issues/6584#issuecomment-6988013400",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:39:09Z",
+          "updated_at": "2026-11-18T18:39:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe push workflow repeats work already performed by the merge queue and temporarily replaces a green check with a pending one. Reusing the queue’s result is a reasonable solution, but R1–R4 cannot bind as written: a failed second lookup leaves the heavy jobs skipped, and the existing artifact-only condition can still skip the required aggregator.\n\nAnswers to the Stop 1 questions:\n\n1. Matching the SHA, event, workflow and successful named jobs is the right foundation. Run-attempt consistency remains unspecified; the run ID alone does not describe which attempt supplied the evidence.\n2. Skipping both capacity jobs prevents the intended failover path. However, the artifact-only aggregator condition and the remaining Go aggregator need explicit handling.\n3. Adding `needs: [changes]` to TypeScript is acceptable. Its condition must preserve execution when `changes` fails; the existing Go and merge-gate primaries already demonstrate that pattern.\n4. Keeping the push trigger is the smaller design under C1–C6. Removing it eliminates the duplicate run elegantly, but requires another mechanism for direct-push coverage and changes C2’s reporting contract. That alternative becomes preferable only if those constraints change.\n\nAll code references below were read with `git show` at `a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e`. No tests, network calls, mutations or posts were performed.\n\n### 1. blocks-the-design — R3 does not provide C1’s promised fallback\n\n**Evidence:** `.github/workflows/ci.yml:437–458,522–574` places aggregators after the failover decisions. `.github/scripts/resolve-ci-authoritative-lane.mjs:96–140` can report lane results but cannot start skipped jobs.\n\n**Failure mode:** R1 confirms queue success; R2 skips the heavy jobs and failover machinery; R3 then encounters an API error or changed queue-run state and exits 1. The push neither reuses confirmed evidence nor runs the full stack. It leaves a new red required check, contrary to C1 and C3.\n\n**Disposition consequence:** The design needs one explicit decision boundary. Either loss of evidence at R3 has a real execution fallback, or C1 is narrowed to initial routing and a later verification failure is explicitly allowed to leave the push red. The latter is conservative against false green, but it changes the stated availability guarantee.\n\n### 2. blocks-the-design — Queue reuse must override the artifact-only aggregator skip\n\n**Evidence:** `.github/workflows/ci.yml:104–110` computes artifact-only routing on push while forcing full execution on `merge_group`; lines `558–574` still condition the named merge-gate aggregator on `artifact_only != 'true'`. `packages/core/src/pr-wait-mergeable/semantic-green.ts:893–937` selects the newest named check and rejects a completed skipped result.\n\n**Failure mode:** A queued lifecycle-only change has a successful full queue run. Its push sets both `queue_passed=true` and `artifact_only=true`. Keeping the existing aggregator condition prevents R3 from running and produces exactly the skipped named check C3 prohibits.\n\n**Disposition consequence:** R3 needs explicit precedence: confirmed queue reuse admits the aggregator regardless of artifact-only classification. This addresses the newly introduced reuse path; it does not require resolving the excluded historical artifact-only behavior when no queue evidence exists.\n\n### 3. sharpens-framing — Attempt identity and coherent reads belong in the evidence contract\n\n**Evidence:** `.github/scripts/resolve-ci-authoritative-lane.mjs:84–107` currently carries a run ID and reads that run’s jobs without an explicit attempt identity. R1 proposes exporting only `queue_run_id`, while R3 performs another independent read.\n\n**Failure mode:** A rerun can change the evidence between routing and aggregation. Without a declared attempt policy, an implementation can combine run metadata and job results from different observations or silently substitute a different attempt.\n\n**Disposition consequence:** R1/R3 should identify the accepted attempt and define how metadata and exact-name job results are kept consistent, including what happens when that attempt changes. This sharpens the binding rather than proving an existing false-green exploit. Different-workflow and cancelled-run cases are already rejected by the proposed fields when applied consistently.\n\n### 4. sharpens-framing — The dependency wiring needs two explicit completion rules\n\n**Evidence:** `.github/workflows/ci.yml:137–156` contrasts independent TypeScript with primaries using `always()` after `changes`; lines `522–524` omit `changes` from TypeScript’s direct dependencies. Lines `540–556` leave the Go aggregator running, and the resolver’s lines `125–131` reject skipped, unclaimed primaries.\n\n**Failure mode:** A bare new TypeScript condition can inherit dependency-success behavior and skip after `changes` fails. Separately, skipping Go’s primary and failover while retaining its existing aggregator makes an otherwise successful reuse push fail.\n\n**Disposition consequence:** The design should explicitly preserve TypeScript’s full-run fallback on predicate failure, give its aggregator direct access to `changes`, and define Go’s aggregator outcome while that lane exists. Landing #6585 first could remove the Go interaction; it is not safe to assume that ordering implicitly.\n\n### 5. footnote — Thread instructions remained data\n\nThe snapshot contains imperative proposal text, including “Do not re-run” in linked #6071 and directions in linked #6295. I treated these as described requirements to assess, not commands authorizing execution. The critique ends here for parent disposition.",
+          "id": 6988069299,
+          "html_url": "https://github.com/deftai/directive/issues/6584#issuecomment-6988069299",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:41:30Z",
+          "updated_at": "2026-11-18T18:41:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 6988009867 (round 1: 1 of 1 critic posted, comment 6988069299)\n\n## In plain English\nProblem: with the merge queue on, the queue's group commit becomes the master commit, so the CI run on the master push tests a commit the queue just passed. That costs 7 to 12 minutes of runner time per merge, and while it runs the newest `Merge gate (task check)` on the tip is pending, so `pr:merge-ready`, `pr:finish-loop` and release Step 5 refuse.\n\nWhat the critic found: reusing the queue's result is the right shape and keeping the push trigger is the smaller design. Two parts of the first draft did not hold. A second lookup in the aggregator could fail after the heavy jobs were already skipped, leaving the push neither reused nor run, but red. And the merge-gate aggregator's artifact-only condition could still skip it on a lifecycle-only push, leaving a skipped named check on the tip. Two points were made sharper: the evidence must name the exact queue run attempt it read, and the new conditions must keep today's full-run fallback when the predicate job fails, and must say what the Go aggregator does while it exists.\n\nSolution this lean proposes: one lookup, made once, in the `changes` job, from code read from the push's base tree. It passes only when the latest attempt of a `merge_group` run of this same workflow on this exact SHA completed with success and its two required aggregators succeeded. If it passes, the heavy jobs, watchdog, arm and failovers skip, and every aggregator (whatever the artifact-only result) reports success citing that run and attempt. If it does not pass, or the job fails, everything runs as today. The aggregators do no second lookup, so there is no point after the skip where the evidence can be lost.\n\nWhat this changes: a gate meaning, named in the docs. On a master push, a green `TypeScript (build + lint + test)` or `Merge gate (task check)` means either this run passed, or the queue run of this workflow passed this exact commit. No new gate, check name or job.\n\nWhat it does not do:\n- It does not change pull request or `merge_group` runs, other workflows that run on push, or the artifact-only behaviour when there is no queue evidence.\n- It does not implement #6309.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:f467ceb66f86b9a57e277674a936ccf7d90fe9f2ec58e0d05c80c27e78aaf8e0\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 6988069299). Panel deposit: comment 6988013400.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Lookup (one decision). In `.github/workflows/ci.yml`, the `changes` job gains one step that runs only on `push`. It runs a lookup script read from the push's base tree (as the artifact-only predicate is), using `GH_TOKEN` with the existing `actions: read`. It lists runs of the current run's `workflow_id` with `event=merge_group` and `head_sha == github.sha`, takes the newest such run at its latest attempt, and reads that attempt's jobs (`actions/runs/{id}/attempts/{n}/jobs`). It outputs `queue_passed=true`, `queue_run_id` and `queue_run_attempt` only when that attempt is completed with conclusion success and the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` in it are completed success. Any other state (no run, in progress, failure, cancelled, an API error, the script absent on the base tree, a non-push event) outputs `queue_passed=false`.\n2. Skip. `ts-primary` gains `needs: [changes]` and `if: always() && needs.changes.outputs.queue_passed != 'true'`. The other heavy jobs (`merge-gate-primary`, `windows-task-dispatch`, and `go-primary` while it exists) add `&& needs.changes.outputs.queue_passed != 'true'` to their existing `always()` conditions. `capacity-watchdog`, `capacity-arm` and the failover jobs add the same clause. When `changes` fails, its outputs are empty, so every job runs as today.\n3. Aggregators. `ts`, `merge-gate` and `go` (while it exists) keep their names. Each gains `changes` in `needs`; `merge-gate` and `go` change their condition to `always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')`. Each passes `QUEUE_PASSED`, `QUEUE_RUN_ID` and `QUEUE_RUN_ATTEMPT` to `.github/scripts/resolve-ci-authoritative-lane.mjs`, which, when `QUEUE_PASSED` is `true` and the id and attempt are set, exits 0 and logs the queue run URL and attempt; it makes no second API read. Otherwise it behaves as today.\n4. Gate change named. The `ci.yml` header comment and the Framework CI runners lines of `content/scm/github.md` state that on a master push the two required aggregators are green either because this run passed or because the named queue run attempt of this workflow passed this exact commit, and that any lookup doubt runs the full stack.\n\n## Acceptance Criteria\n- In `.github/workflows/ci.yml`, the `changes` job outputs `queue_passed=true` with the queue run id and attempt only for a push whose exact SHA has a latest-attempt `merge_group` run of this workflow that completed success with `TypeScript (build + lint + test)` and `Merge gate (task check)` successful, using a lookup read from the base tree, and outputs `queue_passed=false` in every other case.\n- In `.github/workflows/ci.yml`, when `queue_passed` is true the primaries, Windows job, capacity watchdog, capacity arm and failovers skip, and when it is not true (including a failed `changes` job) they run as today.\n- In `.github/workflows/ci.yml`, the `ts`, `merge-gate` and (while present) `go` aggregators keep their names, run whenever `queue_passed` is true regardless of the artifact-only result, and receive the queue run id and attempt.\n- In `.github/scripts/resolve-ci-authoritative-lane.mjs`, `QUEUE_PASSED=true` with a queue run id and attempt exits 0 and logs the queue run URL and attempt without a second lookup, and every other input behaves as today.\n- In `content/scm/github.md`, the Framework CI runners lines name the new meaning of a green required aggregator on a master push and the full-run fallback.\n\n## Reject\n- A second lookup in the aggregator after the heavy jobs are skipped (comment 6988069299, finding 1).\n- Keeping the artifact-only condition ahead of queue reuse on the `merge-gate` and `go` aggregators (comment 6988069299, finding 2).\n- Dropping the push trigger and covering direct pushes another way (comment 6988069299, answer 4).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6988069299 | 1. R3 does not provide C1's promised fallback | blocks-the-design | accept-into-contract (item 1 is the only lookup; item 3 makes no second read) |\n| comment 6988069299 | 2. Queue reuse must override the artifact-only aggregator skip | blocks-the-design | accept-into-contract (item 3 condition) |\n| comment 6988069299 | 3. Attempt identity and coherent reads belong in the evidence contract | sharpens-framing | accept-into-contract (item 1 reads one attempt's jobs and outputs its number) |\n| comment 6988069299 | 4. The dependency wiring needs two explicit completion rules | sharpens-framing | accept-into-contract (item 2 `always()` fallback; item 3 `changes` in aggregator `needs` and the Go aggregator) |\n\nFootnotes in the census, no take: comment 6988069299 finding 5.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6988101713,
+          "html_url": "https://github.com/deftai/directive/issues/6584#issuecomment-6988101713",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:42:52Z",
+          "updated_at": "2026-11-18T18:42:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:e611ed703ff9430704b5cb6eab3516184093019d73f6cb17f16e2ef26e000e5d\n\n## In plain English\n\nBoth relief claims hold. Building the Bound remedy removes the duplicate heavy run when queue evidence qualifies and lets the named aggregators finish successfully using that evidence. The accepted corrections address the earlier findings; no further mechanism or Acceptance Criteria change is needed.\n\npain-P1: holds - Item 2 skips every identified heavy lane and both capacity-control jobs. Skipping capacity-arm also prevents failovers from starting: their existing conditions require its successful result and explicit arm output (`.github/workflows/ci.yml:437–458`). The conservative fallback remains when queue evidence cannot be confirmed.\n\npain-P2: holds - Item 3 keeps the named aggregators running, overrides the artifact-only skip for confirmed reuse, and supplies an immediate successful resolver path without another lookup. This removes their dependence on the repeated suite (`.github/workflows/ci.yml:522–574`; `.github/scripts/resolve-ci-authoritative-lane.mjs:96–140`). The existing reader accepts the resulting completed-success check (`packages/core/src/pr-wait-mergeable/semantic-green.ts:893–979`).\n\nA brief pending interval remains while the predicate and aggregators start and finish. The design removes the suite-length wait; it does not guarantee instantaneous green or a fixed wall-clock duration.\n\nAll code references were read at `a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e`. This was a static design audit; no tests, network calls, file changes or posts were performed.",
+          "id": 6988162917,
+          "html_url": "https://github.com/deftai/directive/issues/6584#issuecomment-6988162917",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:45:16Z",
+          "updated_at": "2026-11-18T18:45:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6988101713. Dispatch SHA: a645dfaa58ff573e45ff9b24ffec9fe5cfb72c4e. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. Both critic posts are from one family (Codex), so their agreement is not counted as extra confirmation. No tests were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `ci.yml` runs on `pull_request`, `merge_group` and `push` to master; `changes` forces the full stack on `merge_group` and computes artifact-only on push | verified | parent pin-read of `.github/workflows/ci.yml` 3-10, 81-135; critic 6988069299 finding 2 |\n| 2 | The named Merge gate reader takes the newest same-name check on the tip and refuses `skipped` and pending | verified | parent pin-read of `packages/core/src/pr-wait-mergeable/semantic-green.ts` 893-993; critic 6988069299 finding 2; audit 6988162917 |\n| 3 | The resolver reads only its own run's jobs and treats a skipped, unclaimed primary as failure | verified | parent pin-read of `.github/scripts/resolve-ci-authoritative-lane.mjs` 79-140; critic 6988069299 findings 1 and 4 |\n| 4 | The `merge-gate` and `go` aggregators skip on artifact-only today, so queue reuse needs its own admit clause | verified | parent pin-read of `ci.yml` 540-574; critic 6988069299 finding 2 |\n| 5 | Skipping `capacity-arm` keeps every failover job from starting | verified | parent pin-read of `ci.yml` 437-458; audit 6988162917 |\n| 6 | A single lookup in `changes`, read from the base tree, leaves no point after the skip where evidence can be lost; a failed `changes` job leaves outputs empty and the full stack runs | verified as design | critic 6988069299 findings 1 and 4; audit 6988162917; parent pin-read of `ci.yml` 121-135 (base-tree pattern) and 144-156 (`always()` pattern) |\n| 7 | The live required checks are `TypeScript (build + lint + test)` and `Merge gate (task check)` | verified | parent REST read of `branches/master/protection/required_status_checks` on 2026-11-18; critics could not re-check offline |\n| 8 | The Bound remedy relieves P1 and P2 | verified as design coverage | audit 6988162917 on the bound lean (`pain-P1`, `pain-P2` hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 9 | The lookup, skips and pass-through behave as designed on GitHub Actions | endorsed, not verified | nothing was executed; the implementer covers the resolver with unit tests and the workflow with its first queued merge |\n\n",
+          "id": 6988177517,
+          "html_url": "https://github.com/deftai/directive/issues/6584#issuecomment-6988177517",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:45:53Z",
+          "updated_at": "2026-11-18T18:45:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: with the merge queue on, the queue's group commit becomes the master commit, so the CI run on the master push tests a commit the queue just passed. That costs 7 to 12 minutes of runner time per merge, and while it runs the named Merge gate check on the tip is pending, so merge-ready, finish-loop and release Step 5 refuse.\n\nAccepted solution: the `changes` job makes one lookup on a master push, with code read from the base tree. It passes only when the latest attempt of a queue run of this same workflow on this exact commit succeeded, with both required aggregators green. Then the heavy jobs, watchdog, arm and failovers skip, and the required aggregators keep their names and report success citing that run and attempt, with no second lookup. In every other case, including a failed lookup job, the full stack runs as today.\n\nLimits accepted: this is a named gate change; on a master push a green required aggregator can mean \"the queue run of this workflow passed this exact commit\", and the docs say so. A short pending window remains while the lookup and aggregators run. Pull request and queue runs, other push workflows and #6309 are unchanged. The design adds no gate, check name or job. It was checked by reading the source at the pinned commit; nothing was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6988101713.\nverified-claims table 6988177517\n\nConfirm conjunct: yolo standing (Stop 1 6988009867, `yolo-standing: on`). Round-1 critic: comment 6988069299, posted by the parent verbatim as disclosed on panel-deposit 6988013400; its four classified findings are accepted on the lean. Clean audit of the bound lean: comment 6988162917 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 6.\n\n",
+          "id": 6988183496,
+          "html_url": "https://github.com/deftai/directive/issues/6584#issuecomment-6988183496",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:46:08Z",
+          "updated_at": "2026-11-18T18:46:08Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`.github/workflows/ci.yml` runs on `pull_request`, `merge_group` and `push` to master. With the merge queue on (#6295), the queue's group commit becomes the master commit, so the push run repeats the queue's run on the same SHA.\n\nWhile the push run is in flight, the newest `Merge gate (task check)` run on the master tip is pending. For those 7 to 12 minutes after every merge, `pr:merge-ready`, `pr:finish-loop` and release Step 5 refuse (#6071 treats pending as not green).\n\nWithin `ci.yml` the push run adds only four checks. On `merge_group`, `verify:closing-keywords`, `verify:scope-provenance`, `verify:intent-constraint` and `verify:changelog-unreleased` skip themselves (`MERGE_GROUP_SKIPPED_CHECKS` in `packages/core/src/pr-wait-mergeable/merge-group-skip.ts`); on push they run. #6295 and RELEASING.md already accept that these are judged on the PR head. This issue covers `ci.yml` only: other workflows that run on push but not on `merge_group` (for example `greenfield-python-free-smoke.yml`) are not repeats and stay.\n\n## Evidence (2026-11-17)\n\nEach of the last 12 CI runs on master pushes has an earlier green `merge_group` run on the same head SHA (for example push run 44167008030 and queue run 44165437751 on 54ff3341f1). Push runs took 7 to 12 minutes of wall clock. Jobs in run 44167008030: TypeScript primary 430s, Merge gate primary 387s, Windows task dispatch 198s (GitHub-hosted), Go 43s.\n\nThe #6295 design critique raised this as a footnote (\"CI on push to master re-tests a commit the queue already tested. Make it advisory, or drop it\", comment 6862653243). The later census (comment 6862680027) listed it as a footnote only. No issue owns it.\n\n## Wanted behavior\n\n- A master push whose SHA already has a successful `merge_group` CI run does not start the heavy lanes.\n- A master push with no such run (a direct push) runs the full stack as today. This is the conservative default, not a proven need: direct pushes are now rare, since releases go through a release PR and the queue (#6296). The two recent direct-push reds (runs 44142382943 and 44142862505, around the v0.129.14 cut) were `verify:changelog-unreleased` failing on the expected shape of a release commit.\n\n## Hard constraints\n\n1. **Every same-name check-run on the queued SHA is completed success, or there is none.** `selectNamedMergeGateRun` (`packages/core/src/pr-wait-mergeable/semantic-green.ts`) takes the newest `Merge gate (task check)` run on the tip; `skipped` and pending both refuse (#6071). A job-level `if:` that skips the aggregator would become the newest run and turn the tip red.\n2. **A pass-through is a gate change.** If the push run's aggregators report success by citing the queue run, that changes what a green `Merge gate (task check)` means (`content/docs/gate-integrity.md`). The issue's design must name it as that change and bind the lookup: same SHA, `merge_group` event, same workflow, conclusion success. `resolve-ci-authoritative-lane.mjs` reads only its own run's jobs today, so this needs new cross-run code.\n3. **Capacity watchdog.** A skipped primary with no runner classifies as `cancelled_unclaimed` (`.github/scripts/classify-ci-job-state.mjs`), which arms GitHub-hosted failover and re-runs the suite. The artifact-only exemption covers only the Go and Merge gate primaries; the TypeScript primary has none, so skipping it needs a new exemption.\n4. **Every master tip keeps a green named Merge gate check.** #6071 relies on it.\n\n## Related\n\n- #6071: reads the named Merge gate check on the master tip.\n- #6309 (open, not built): proposes that release Step 5 look up `Merge gate (task check)` success on the release commit; it would need the same newest-run handling.\n\n## Source\n\nPrompted by https://vincent.build/openclaw-ci-cost-reduction/ (\"Do not rerun the full suite after every merge\"). Actionable now. The mechanism is left open; the constraints above bound it.\n\n## Critic verdict (process-only, pre-issue)\n\nThis is a critic verdict, not an arc stamp. Two independent critic passes reviewed this issue against the tree at `b905cfadf`. Pass 1 raised one blocks-the-design finding: the first draft's \"decide at the job condition\" would leave a skipped check as the newest run on the tip and arm failover. Disposition: recut; the mechanism was removed and the failure paths became hard constraints. Pass 2 on the recut raised no blocking finding; its two sharpens-framing findings are applied (the direct-push evidence reframed, and the pass-through named as a gate change with a bound lookup). Retained uncertainty: whether the three other PR-context checks do real work on a push with no PR number was not verified, and whether the existing artifact-only skip can leave a skipped Merge gate check on master is unobserved in the last 60 push runs, not disproven.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6454551314,
+        "origin": "deftai/directive#6584",
+        "id": "github.issue.6454551314"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f467ceb66f86b9a57e277674a936ccf7d90fe9f2ec58e0d05c80c27e78aaf8e0"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6584,
+        "leanCommentId": 6988101713,
+        "harvestDigest": "e611ed703ff9430704b5cb6eab3516184093019d73f6cb17f16e2ef26e000e5d",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (9), in list order (#6333)",
+      "sentences": [
+        "Lookup (one decision). In `.github/workflows/ci.yml`, the `changes` job gains one step that runs only on `push`. It runs a lookup script read from the push's base tree (as the artifact-only predicate is), using `GH_TOKEN` with the existing `actions: read`. It lists runs of the current run's `workflow_id` with `event=merge_group` and `head_sha == github.sha`, takes the newest such run at its latest attempt, and reads that attempt's jobs (`actions/runs/{id}/attempts/{n}/jobs`). It outputs `queue_passed=true`, `queue_run_id` and `queue_run_attempt` only when that attempt is completed with conclusion success and the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` in it are completed success. Any other state (no run, in progress, failure, cancelled, an API error, the script absent on the base tree, a non-push event) outputs `queue_passed=false`.",
+        "Skip. `ts-primary` gains `needs: [changes]` and `if: always() && needs.changes.outputs.queue_passed != 'true'`. The other heavy jobs (`merge-gate-primary`, `windows-task-dispatch`, and `go-primary` while it exists) add `&& needs.changes.outputs.queue_passed != 'true'` to their existing `always()` conditions. `capacity-watchdog`, `capacity-arm` and the failover jobs add the same clause. When `changes` fails, its outputs are empty, so every job runs as today.",
+        "Aggregators. `ts`, `merge-gate` and `go` (while it exists) keep their names. Each gains `changes` in `needs`; `merge-gate` and `go` change their condition to `always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')`. Each passes `QUEUE_PASSED`, `QUEUE_RUN_ID` and `QUEUE_RUN_ATTEMPT` to `.github/scripts/resolve-ci-authoritative-lane.mjs`, which, when `QUEUE_PASSED` is `true` and the id and attempt are set, exits 0 and logs the queue run URL and attempt; it makes no second API read. Otherwise it behaves as today.",
+        "Gate change named. The `ci.yml` header comment and the Framework CI runners lines of `content/scm/github.md` state that on a master push the two required aggregators are green either because this run passed or because the named queue run attempt of this workflow passed this exact commit, and that any lookup doubt runs the full stack.",
+        "In `.github/workflows/ci.yml`, the `changes` job outputs `queue_passed=true` with the queue run id and attempt only for a push whose exact SHA has a latest-attempt `merge_group` run of this workflow that completed success with `TypeScript (build + lint + test)` and `Merge gate (task check)` successful, using a lookup read from the base tree, and outputs `queue_passed=false` in every other case.",
+        "In `.github/workflows/ci.yml`, when `queue_passed` is true the primaries, Windows job, capacity watchdog, capacity arm and failovers skip, and when it is not true (including a failed `changes` job) they run as today.",
+        "In `.github/workflows/ci.yml`, the `ts`, `merge-gate` and (while present) `go` aggregators keep their names, run whenever `queue_passed` is true regardless of the artifact-only result, and receive the queue run id and attempt.",
+        "In `.github/scripts/resolve-ci-authoritative-lane.mjs`, `QUEUE_PASSED=true` with a queue run id and attempt exits 0 and logs the queue run URL and attempt without a second lookup, and every other input behaves as today.",
+        "In `content/scm/github.md`, the Framework CI runners lines name the new meaning of a green required aggregator on a master push and the full-run fallback."
+      ],
+      "admitted_source_sentences": [
+        "Lookup (one decision). In `.github/workflows/ci.yml`, the `changes` job gains one step that runs only on `push`. It runs a lookup script read from the push's base tree (as the artifact-only predicate is), using `GH_TOKEN` with the existing `actions: read`. It lists runs of the current run's `workflow_id` with `event=merge_group` and `head_sha == github.sha`, takes the newest such run at its latest attempt, and reads that attempt's jobs (`actions/runs/{id}/attempts/{n}/jobs`). It outputs `queue_passed=true`, `queue_run_id` and `queue_run_attempt` only when that attempt is completed with conclusion success and the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` in it are completed success. Any other state (no run, in progress, failure, cancelled, an API error, the script absent on the base tree, a non-push event) outputs `queue_passed=false`.",
+        "Skip. `ts-primary` gains `needs: [changes]` and `if: always() && needs.changes.outputs.queue_passed != 'true'`. The other heavy jobs (`merge-gate-primary`, `windows-task-dispatch`, and `go-primary` while it exists) add `&& needs.changes.outputs.queue_passed != 'true'` to their existing `always()` conditions. `capacity-watchdog`, `capacity-arm` and the failover jobs add the same clause. When `changes` fails, its outputs are empty, so every job runs as today.",
+        "Aggregators. `ts`, `merge-gate` and `go` (while it exists) keep their names. Each gains `changes` in `needs`; `merge-gate` and `go` change their condition to `always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')`. Each passes `QUEUE_PASSED`, `QUEUE_RUN_ID` and `QUEUE_RUN_ATTEMPT` to `.github/scripts/resolve-ci-authoritative-lane.mjs`, which, when `QUEUE_PASSED` is `true` and the id and attempt are set, exits 0 and logs the queue run URL and attempt; it makes no second API read. Otherwise it behaves as today.",
+        "Gate change named. The `ci.yml` header comment and the Framework CI runners lines of `content/scm/github.md` state that on a master push the two required aggregators are green either because this run passed or because the named queue run attempt of this workflow passed this exact commit, and that any lookup doubt runs the full stack.",
+        "In `.github/workflows/ci.yml`, the `changes` job outputs `queue_passed=true` with the queue run id and attempt only for a push whose exact SHA has a latest-attempt `merge_group` run of this workflow that completed success with `TypeScript (build + lint + test)` and `Merge gate (task check)` successful, using a lookup read from the base tree, and outputs `queue_passed=false` in every other case.",
+        "In `.github/workflows/ci.yml`, when `queue_passed` is true the primaries, Windows job, capacity watchdog, capacity arm and failovers skip, and when it is not true (including a failed `changes` job) they run as today.",
+        "In `.github/workflows/ci.yml`, the `ts`, `merge-gate` and (while present) `go` aggregators keep their names, run whenever `queue_passed` is true regardless of the artifact-only result, and receive the queue run id and attempt.",
+        "In `.github/scripts/resolve-ci-authoritative-lane.mjs`, `QUEUE_PASSED=true` with a queue run id and attempt exits 0 and logs the queue run URL and attempt without a second lookup, and every other input behaves as today.",
+        "In `content/scm/github.md`, the Framework CI runners lines name the new meaning of a green required aggregator on a master push and the full-run fallback."
+      ],
+      "admitted_source_digest": "ed5b2c60aa9e0d03f029c70db2a6c427e7af6d8fa877571853263ab971705f28",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Lookup (one decision). In `.github/workflows/ci.yml`, the `changes` job gains one step that runs only on `push`. It runs a lookup script read from the push's base tree (as the artifact-only predicate is), using `GH_TOKEN` with the existing `actions: read`. It lists runs of the current run's `workflow_id` with `event=merge_group` and `head_sha == github.sha`, takes the newest such run at its latest attempt, and reads that attempt's jobs (`actions/runs/{id}/attempts/{n}/jobs`). It outputs `queue_passed=true`, `queue_run_id` and `queue_run_attempt` only when that attempt is completed with conclusion success and the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` in it are completed success. Any other state (no run, in progress, failure, cancelled, an API error, the script absent on the base tree, a non-push event) outputs `queue_passed=false`.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Skip. `ts-primary` gains `needs: [changes]` and `if: always() && needs.changes.outputs.queue_passed != 'true'`. The other heavy jobs (`merge-gate-primary`, `windows-task-dispatch`, and `go-primary` while it exists) add `&& needs.changes.outputs.queue_passed != 'true'` to their existing `always()` conditions. `capacity-watchdog`, `capacity-arm` and the failover jobs add the same clause. When `changes` fails, its outputs are empty, so every job runs as today.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Aggregators. `ts`, `merge-gate` and `go` (while it exists) keep their names. Each gains `changes` in `needs`; `merge-gate` and `go` change their condition to `always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')`. Each passes `QUEUE_PASSED`, `QUEUE_RUN_ID` and `QUEUE_RUN_ATTEMPT` to `.github/scripts/resolve-ci-authoritative-lane.mjs`, which, when `QUEUE_PASSED` is `true` and the id and attempt are set, exits 0 and logs the queue run URL and attempt; it makes no second API read. Otherwise it behaves as today.",
+          "artifact_path": ".github/scripts/resolve-ci-authoritative-lane.mjs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Gate change named. The `ci.yml` header comment and the Framework CI runners lines of `content/scm/github.md` state that on a master push the two required aggregators are green either because this run passed or because the named queue run attempt of this workflow passed this exact commit, and that any lookup doubt runs the full stack.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "In `.github/workflows/ci.yml`, the `changes` job outputs `queue_passed=true` with the queue run id and attempt only for a push whose exact SHA has a latest-attempt `merge_group` run of this workflow that completed success with `TypeScript (build + lint + test)` and `Merge gate (task check)` successful, using a lookup read from the base tree, and outputs `queue_passed=false` in every other case.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "In `.github/workflows/ci.yml`, when `queue_passed` is true the primaries, Windows job, capacity watchdog, capacity arm and failovers skip, and when it is not true (including a failed `changes` job) they run as today.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In `.github/workflows/ci.yml`, the `ts`, `merge-gate` and (while present) `go` aggregators keep their names, run whenever `queue_passed` is true regardless of the artifact-only result, and receive the queue run id and attempt.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "In `.github/scripts/resolve-ci-authoritative-lane.mjs`, `QUEUE_PASSED=true` with a queue run id and attempt exits 0 and logs the queue run URL and attempt without a second lookup, and every other input behaves as today.",
+          "artifact_path": ".github/scripts/resolve-ci-authoritative-lane.mjs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "In `content/scm/github.md`, the Framework CI runners lines name the new meaning of a green required aggregator on a master push and the full-run fallback.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6454551314",
+    "updated": "2026-11-18T19:01:06Z"
+  }
+}

@@ -1,0 +1,945 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5869",
+    "updated": "2026-11-18T18:45:49Z"
+  },
+  "plan": {
+    "title": "docs+product(ovpr): calm SLizard/Greptile on launcher vs runtime bins and node_modules pin paths",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-J (story id ovpr-g-docs): the Phase 5 docs pass in one PR. P5-U2a: Windows install note (#4662 Locked text) and remove `directive bootstrap` from README, getting-started and doctor's Next command (#5867 items from #6000). P5-U2b + D-019: runtime package description and new runtime README explain launcher vs pin (#5869); one 'Directive hook can't run' card with the D-019 alert line replaces the stale #3785 card in agents-entry; known-limitations gets a 'hook never starts' row and a corrected missing-runtime row; hook-runtime-unavailable.md rewritten (#5809 doc line). P5-U2c option A: stop advertising the dead deftai.github.io URL (#4750). P5-U5: retire printed and documented `deft update` recovery lines (#5977 item 1), no guard test (D-037). P4-U2 remainder: the downstream user docs (README, content/UPGRADING.md, agents-entry, commands) follow the merged RC-06 recovery table (#6619); no edit to docs/installer-refactor-ovpr/. RC-08 residual: Codex/Grok subfolder hook case documented on known-limitations. README rewrite (P5-U2d, #5867) last within the PR.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5869",
+      "Overview": "## Locked disposition (do not re-triage)\n\n**TRIAGED** — installer/OVPR problem-ledger walk. **Do not re-adjudicate options. Do not run design-critique / arc to reopen the fix shape.**\n\n`design-critique: not warranted, because operator disposition is already locked on this issue; implement the contract below.`\n\n### Do\n- Bot-visible OVPR split: runtime `package.json` description, published runtime README, agents-entry one-liner, optional Greptile/SLizard custom FP rules.\n- Relative `node_modules/@deftai/directive-runtime/...` touchpoints: fail closed with **project PM install** hatch; consistent wording (#5809 aligned).\n- Body Proposal sections A–C are the contract.\n\n### Don't\n- Fake `directive`/`deft` bins on the runtime package.\n- Second runtime copy outside `node_modules` to silence bots.\n\n### Done when\nCold SLizard/Greptile on OVPR consumer + deftai/directive does not P0/P1 solely for missing local CLI bins or “fragile node_modules path” when hatch text is present.\n\n### Evidence / history\nPrior FINAL disposition comments on this thread (if any). Original report preserved below.\n\n---\n\n## Background\n\nUnder One Version Per Repo (OVPR):\n\n- **Global launcher:** `@deftai/directive` — ships `directive` / `deft` / `deft-hook` on PATH.\n- **Project pin:** `@deftai/directive-runtime` — exact version in the project’s `package.json`; ships content, hooks, engine entry as `directive-runtime` (not `directive`/`deft`).\n\nAutomated reviewers (SLizard, Greptile, similar) repeatedly treat a healthy OVPR tree as broken:\n\n1. **Missing local CLI bins** — They see Directive mentioned everywhere, see `@deftai/directive-runtime` in `package.json`, look for `node_modules/.bin/directive` or `deft`, find only `directive-runtime` (or nothing with those names), and file “incomplete install / missing npm binary” findings. That is **false**. Absence of project-local `directive`/`deft` is intentional.\n\n2. **Relative paths into `node_modules/@deftai/directive-runtime/...`** — Deposited hooks, skills, AGENTS pointers, and wrappers correctly invoke the pin by relative path. Reviewers flag these as fragile (“what if node_modules is missing?”). The product answer is already: **fail closed with a clear recovery that runs the project package manager install** (and launcher repair when the pin/wiring story needs it) — not “invent a second copy outside node_modules.” Reviewers should treat that escape hatch as the design, not as a standing defect.\n\nWe need every Directive-using repo (including `deftai/directive` itself) to be reviewable without constant false positives on these two patterns.\n\nRelated ledger context: Problem 31 (SLizard Pass-2 “missing CLI bins”); standing OVPR dogfood rule that pin-present / clear project `npm`/`pnpm` install error messaging must appear across launcher, AGENTS, skills, hooks, Taskfile.\n\n## Environment\n\n- Packages: `@deftai/directive` (launcher), `@deftai/directive-runtime` (pin)\n- Surfaces reviewers actually read: root/consumer `package.json`, runtime package metadata/README, deposited AGENTS managed section (`agents-entry`), hooks/wrappers that `node` into `node_modules/@deftai/directive-runtime/...`, Greptile/SLizard custom instructions where we control them\n- Docs that already state the split (under-weighted by bots): `content/docs/known-limitations.md`, getting-started / launcher docs\n\n## Proposal\n\n### A. Make the OVPR split impossible to miss in bot-weighted surfaces\n\n1. **`@deftai/directive-runtime` `package.json` `description`** — Explicit: this package is the project pin (content/hooks/engine). CLI commands `directive` / `deft` come **only** from global `@deftai/directive`. Missing those bin names on this package is **intentional**.\n2. **Published `packages/runtime/README.md`** (ships with the npm package) — Short (≤1 screen): launcher vs pin; expected bins; “do not flag missing local `directive`/`deft`”; recover with `npm i -g @deftai/directive` + project `pnpm`/`npm` install / `directive install --repair` as appropriate.\n3. **`agents-entry` / managed AGENTS** — One always-on plain sentence: project pin ≠ launcher; no `node_modules/.bin/directive` expected; use global launcher; if runtime path missing, run project package-manager install (not a second product copy).\n4. **Human README** — Same story in the install section (coordinates with #5867 human README revamp; can land a minimal OVPR callout earlier if #5867 stays on hold).\n5. **Optional Greptile/SLizard custom instructions** (directive repo + document for consumers) — Explicit FP rules:\n   - Do not flag missing project-local `directive`/`deft` when only `@deftai/directive-runtime` is pinned.\n   - Do not flag relative `node_modules/@deftai/directive-runtime/...` invocation alone as a defect when recovery text demands project package-manager install / documented repair.\n\n### B. Pin-present path + package-manager escape hatch (product + reviewer story)\n\nFor every touchpoint that resolves the runtime by relative path under `node_modules` (hooks, `_directive-run.sh`-class wrappers, skill/AGENTS pointers, Taskfile/`deft` invoke):\n\n1. **On miss:** fail closed with a **single clear remediation**: project `pnpm install` / `npm install` to materialize the pin (and launcher line only when the failure mode is actually “no `directive` on PATH” / wiring repair — do not steer “missing node_modules pin” to global-only install).\n2. **Wording consistency** so reviewers see the escape hatch next to the path (comment, stderr, or adjacent doc pointer).\n3. **Do not** “fix” reviewer anxiety by vendoring a second runtime outside `node_modules` or by adding fake `directive`/`deft` bins on the runtime package.\n\n### C. Done when\n\n- A cold SLizard/Greptile pass on a stock OVPR consumer (and on `deftai/directive`) does not open P0/P1 solely for “no local `directive`/`deft` bin” or “relative path into node_modules runtime might fail” when the documented PM-install escape hatch is present.\n- Runtime package metadata + agents-entry + (minimal) README/custom-instruction carry the same split story.\n- Spot-check: at least the highest-traffic hook/wrapper miss paths print PM-install-first recovery (align with existing pin-present messaging mandate).\n\n### Non-goals\n\n- Rejoining launcher and runtime into one package\n- Adding `directive`/`deft` bin aliases on `@deftai/directive-runtime` to silence bots\n- Silencing real bugs (empty pin, wrong recovery that only says `npm i -g` when `node_modules` is missing, etc.)\n\n### Refs\n\n- OVPR / known-limitations (global launcher required; pin is runtime)\n- Problem ledger #31; SLizard deftSE#9 Pass-2 missing-CLI-bins class\n- #5867 README revamp (human front door; complementary)\n- Pin-present / project PM install messaging across hooks/AGENTS/skills/Taskfile\n\n",
+      "Labels": "documentation, urgent, area:installer, dogfood, framework-gap, core-capabilities, promise:lifecycle",
+      "UserStory": "As a first-time Directive user, I want the README and docs to say plainly what Directive is, how to install, upgrade, repair, uninstall and get help, and to name only recovery commands that work, so that I can set up Directive without retired verbs, dead links or wrong fixes, and reviewers stop flagging a healthy install as broken.",
+      "StoryId": "ovpr-g-docs (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P5-U2a-windows-note-and-retired-bootstrap.md, P5-U2b-launcher-vs-runtime-for-reviewers.md, P5-U2c-dead-docs-url.md, P5-U5-retire-deft-update-recovery-lines.md, P5-U2d-readme-revamp.md and P4-U2-requirements-recovery-text-revision.md ('Downstream text' note only), plus drafts/RC-08-09-rules.md (RC-08 rule step 3) and decision D-019. Read all in full; an 'Update' banner wins over the text below it. Group G-J in scratchpad groups.md; polfer decision D-037 (go wide, one PR, no 5-production-file cap, no guard-only tests).",
+      "ImplementationPlan": "Order inside the PR: steps 1-6, then the README rewrite (7) last.\n1. P5-U2a: packages/core/src/doctor/main.ts: no `directive bootstrap` fallback Next command for never_incepted (JSON next_command null); reword FIRST_SCOPE_NEXT_HINT in plain words. Update doctor tests that assert the old string. Windows note (polfer #4662 FINAL: same two steps, `npm.cmd i -g @deftai/directive` only if PowerShell refuses npm's script, `directive.cmd` is the same command, no npx, no ExecutionPolicy advice) in README and content/docs/getting-started.md; remove `directive bootstrap` lines there.\n2. P5-U2b + D-019: packages/runtime/package.json description (CLI comes from the global launcher; no local bins on purpose); new packages/runtime/README.md (launcher vs pin, missing node_modules/.bin/directive is expected, message-table recovery rows quoted exactly, short 'for automated reviewers' paragraph). content/templates/agents-entry.md: one always-on pin-vs-launcher sentence; replace the 'Hook runtime unavailable (#3785)' card with one 'Directive hook can't run' card carrying the D-019 alert line (tell the operator once, continue, don't install anything yourself; any recovery command quotes the message table and says a person runs it, D-013); fix the AC9.7 recovery line to the table. Then `task agents:refresh` (regenerates AGENTS.md) and update agents_entry_contract.test.ts. content/docs/known-limitations.md: add 'hook never starts (Node missing, hook file not found, host timeout)' row; missing-runtime row stops teaching global + repair. Rewrite content/docs/hook-runtime-unavailable.md (registered `node <host>/deft-hook-<sha8>.mjs` form, AC9.12 order, P1-U1 per-host block behaviour, message-table recovery; drop the .sh wrapper and direct hook-bin.js text). Optional: 'Reviewer false positives' section in content/tools/greptile.md.\n3. RC-08 residual (rule step 3): add the Codex/Grok subfolder case (host runs the hook from a subfolder; no project-root variable) to known-limitations. Claude's `${CLAUDE_PROJECT_DIR}` form is G-H's code change, not this group.\n4. P5-U2c option A: README docs line points at in-repo docs; `homepage` in packages/cli/package.json and packages/runtime/package.json becomes https://github.com/deftai/directive#readme. Leave docs-site/ and its workflow alone.\n5. P5-U5: inventory every `deft update` line (git grep -F 'deft update' -- packages content Taskfile.yml tasks, excluding tests) classed R (printed recovery) / D (user docs) / H (history, leave) / S (Scott's areas: policy/host-hooks.ts, check/*, session/*, consumer-check-contract/*; Scott reviews). Put the table in the PR body. Map each R and D line to its message-table row (data behind → `directive upgrade`; wiring damaged → `directive install --repair`; runtime missing or pin ≠ installed → project install; launcher missing → `npm i -g @deftai/directive`). Code lines import the table entry from G-G's shared table instead of restating words. No guard test (D-037).\n6. P4-U2 remainder: after RC-06 docs PR #6633 merges, make content/UPGRADING.md, content/commands.md, README and agents-entry recovery text match the RC-06 table word for word. Do not edit any file under docs/installer-refactor-ovpr/ (RC-06 is the RC docs agent's PR; the RC-13 candidate about requirements line 1618 is not approved and is not in scope).\n7. P5-U2d (last): rewrite README.md for a first-time reader per #5867 Bar 1-7: what it is, the two packages, Install / Upgrade / Repair / Uninstall / Doctor as situation → command → result, the Windows note, getting help, short maintainers link list. Move the cold-start box and maintainer sections to linked docs (keep the deft:cold-start-bootstrap markers if a test or skill reads them; check already_installed_skip, node_version_contracts and support_hub tests). Fix `content/QUICK-START.md` path; Node line matches the engines policy.\n8. One changelog fragment changelog.d/5869-docs-recovery-and-readme.md.",
+      "Constraint": "- Never edit docs/installer-refactor-ovpr/ in this group. The P4-U2 requirements revision is RC-06 only, in its own docs PR (#6633); this group only makes downstream docs follow it after it merges. If a downstream line needs requirements text that is not approved, stop that part and hand back an RC.\n- Recovery text: quote the Rule 3 message table (G-G / P4-U3a, RC-06, RC-12) word for word; never invent wording. If the table has not merged, wait for it before merging this group.\n- Don't un-retire `bootstrap` or add a replacement verb; don't teach npx / pnpm exec; no ExecutionPolicy advice (#4662 Locked).\n- No `directive`/`deft` bin on the runtime package; no runtime copy outside node_modules (#5869 Don't).\n- Don't edit AGENTS.md by hand: change content/templates/agents-entry.md and run `task agents:refresh` (#1309); review the refresh diff.\n- Don't publish the stale docs-site/ or change GitHub Pages settings (P5-U2c option B is not in this group).\n- P5-U5 changes text only: no `deft update` alias or shim, no history/changelog rewrites, no behaviour change; no guard test (D-037). Lines in Scott's areas go to Scott for review.\n- README rewrite: no product behaviour change, no lost content (every moved section gets a link), no new gates; the Node line follows the engines policy (#5873 decision).\n- Claude's onFailure block is not used (D-019).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: G-G (ovpr-g-message-table, P4-U3a/b/d shared message table that recovery lines quote and import), G-F (ovpr-g-doctor, also edits packages/core/src/doctor/main.ts and checks.ts), RC-06 docs PR #6633 merged (P4-U2), and P1-U1 merged (per-host block behaviour that hook-runtime-unavailable.md describes). Coordinate with G-H (ovpr-g-subfolder-hook) for the RC-08 outcome. Blocks: P5-U4 close-outs (#5809, #5867, #4750, #4662, #5977 comments).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #5869, #4662, #4750, #5867. Partly addresses #5809 (doc line; close in P5-U4), #5977 (item 1; item 2 is G-G / P4-U3d, item 3 is Scott's), #6619 (downstream docs only). Ticket actions need polfer's OK."
+    },
+    "items": [
+      {
+        "title": "`directive doctor` on a never-incepted project prints no `directive bootstrap` text; if it prints a Next command, that command runs.",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a never-incepted project, when `directive doctor` runs (text and `--json`), then no output contains `directive bootstrap` and `resolution.next_command` is null unless a real, runnable command exists."
+        }
+      },
+      {
+        "title": "README and getting-started no longer teach `directive bootstrap`.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given the branch, when `git grep -n \"directive bootstrap\" -- README.md content/docs/getting-started.md` runs, then it returns nothing."
+        }
+      },
+      {
+        "title": "README and getting-started carry a Windows note matching the #4662 Locked disposition.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given README.md and content/docs/getting-started.md, when the Windows note is read, then it gives the single `npm i -g @deftai/directive` → `directive` path, `npm.cmd` only as npm's own fallback, `directive.cmd` as the same command, and no npx or ExecutionPolicy advice."
+        }
+      },
+      {
+        "title": "The launcher still rejects `directive bootstrap`.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given the launcher, when `directive bootstrap` runs, then it is still refused as a retired verb."
+        }
+      },
+      {
+        "title": "The runtime package description says the CLI comes from the global launcher.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given packages/runtime/package.json, when its `description` is read (and `npm view @deftai/directive-runtime description` after release), then it says the `directive` and `deft` commands come from the global `@deftai/directive` launcher."
+        }
+      },
+      {
+        "title": "The packed runtime tarball contains README.md with the launcher-vs-pin explanation and the message-table recovery rows.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given packages/runtime staged and packed (stage-bundle.mjs + pack-staged-runtime.mjs or `task release:e2e`), when the tarball is listed, then it contains README.md explaining launcher vs pin and quoting the message-table recovery rows."
+        }
+      },
+      {
+        "title": "The managed AGENTS section has the pin-vs-launcher rule and one 'Directive hook can't run' card with the D-019 alert line; it no longer sends a missing node_modules to `npm i -g` + `install --repair` or mentions `deft-hook` exit 127.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given content/templates/agents-entry.md and AGENTS.md after `task agents:refresh`, when they are read, then they contain the pin-vs-launcher sentence and the single 'Directive hook can't run' card (tell the operator once that Directive is not protecting this session, continue, don't install anything yourself), and no longer contain the 'Hook runtime unavailable (#3785)' card, the `deft-hook` exit-127 claim, or global + repair as the fix for a missing runtime; agents_entry_contract.test.ts passes."
+        }
+      },
+      {
+        "title": "known-limitations has a 'hook never starts' row and a missing-runtime row that no longer teaches global + repair; it also documents the Codex/Grok subfolder hook case (RC-08 rule step 3).",
+        "status": "proposed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given content/docs/known-limitations.md, when it is read, then it has a row for a hook that never starts (Node missing, hook file not found, host timeout), its missing-runtime row names the project install, and it documents that Codex and Grok may run hooks from a subfolder with no project-root variable (disclosed residual, §A9)."
+        }
+      },
+      {
+        "title": "hook-runtime-unavailable.md describes only the `.mjs` hook file form, the AC9.12 order, the P1-U1 per-host block behaviour and the message-table recovery.",
+        "status": "proposed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given content/docs/hook-runtime-unavailable.md, when it is read, then it describes `node <host>/deft-hook-<sha8>.mjs`, the disable flag → missing pin → run pin order, each host's block behaviour, and the message-table recovery, and contains no `deft-pretooluse-wrapper.sh` or direct `dist/hook-bin.js` registered command."
+        }
+      },
+      {
+        "title": "All recovery lines in the touched files match the message table word for word.",
+        "status": "proposed",
+        "id": "ac.10",
+        "narrative": {
+          "Acceptance": "Given every file this group touches, when its recovery lines are compared with the shared message table (RC-06 / RC-12 text), then each matches word for word."
+        }
+      },
+      {
+        "title": "No file in the repo or in either published package.json points at https://deftai.github.io/directive/, and the README docs link opens a live page.",
+        "status": "proposed",
+        "id": "ac.11",
+        "narrative": {
+          "Acceptance": "Given the branch, when `git grep -n \"deftai.github.io/directive\" -- README.md 'packages/*/package.json' content/docs` runs, then it returns nothing, both `homepage` fields are https://github.com/deftai/directive#readme, and the README docs link resolves to a file or page that exists."
+        }
+      },
+      {
+        "title": "No printed recovery (R) or user-doc (D) line names `deft update`; each names the message table's command for its situation, and code lines take the text from the shared table.",
+        "status": "proposed",
+        "id": "ac.12",
+        "narrative": {
+          "Acceptance": "Given the inventory table in the PR body (every `deft update` line classed R, D, H or S), when `git grep -F 'deft update' -- packages content Taskfile.yml ':!*.test.ts'` runs, then only H (history/comment) lines remain, and each former R line in code imports its text from the shared message table."
+        }
+      },
+      {
+        "title": "No behaviour change from the `deft update` text pass: existing tests pass apart from updated string assertions.",
+        "status": "proposed",
+        "id": "ac.13",
+        "narrative": {
+          "Acceptance": "Given the touched production files, when their existing tests run, then they pass, with only string assertions updated for the new recovery text."
+        }
+      },
+      {
+        "title": "The README's first screen (about 40 lines) says what Directive is and how to install it, with no RFC numbers, AC ids or agent ceremony.",
+        "status": "proposed",
+        "id": "ac.14",
+        "narrative": {
+          "Acceptance": "Given the rewritten README.md, when its first 40 lines are read, then they say what Directive is and how to install it, with no issue/RFC numbers, AC ids or agent cold-start ceremony."
+        }
+      },
+      {
+        "title": "Install, Upgrade, Repair, Uninstall and Doctor each have a README section with the real command and a one-line outcome.",
+        "status": "proposed",
+        "id": "ac.15",
+        "narrative": {
+          "Acceptance": "Given the rewritten README.md, when it is read, then each of Install, Upgrade, Repair, Uninstall and Doctor has a section naming the real command and a one-line result."
+        }
+      },
+      {
+        "title": "Every file path the README names exists, the Node line matches the engines policy, and the Windows note is present.",
+        "status": "proposed",
+        "id": "ac.16",
+        "narrative": {
+          "Acceptance": "Given the rewritten README.md, when each relative path is followed and the Node line is compared with package engines, then every path exists (for example content/QUICK-START.md), the Node line matches, and the Windows note from step 1 is present."
+        }
+      },
+      {
+        "title": "Every section moved out of the README is reachable by a link, and existing README-marker tests still pass.",
+        "status": "proposed",
+        "id": "ac.17",
+        "narrative": {
+          "Acceptance": "Given the sections moved out of README.md (cold-start box, Owners, Rule Hierarchy, Branch policy, retired Go installer, maintainer notes), when the README is read, then each is linked; and when `pnpm exec vitest run packages/core/src/content-contracts` runs, then the README-marker tests pass."
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "urgent",
+      "area:installer",
+      "dogfood",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5869",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5869: docs+product(ovpr): calm SLizard/Greptile on launcher vs runtime bins and node_modules pin paths"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4662",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4662"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5809",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5809"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4750",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4750"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5977",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5977"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5867",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5867"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6619",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6619"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L63"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "README.md",
+          "content/docs/getting-started.md",
+          "content/QUICK-START.md",
+          "content/docs/SUPPORT.md",
+          "CONTRIBUTING.md",
+          "content/docs/cold-start.md",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/constants.ts",
+          "packages/core/src/doctor/constants.test.ts",
+          "packages/core/src/doctor/payload-staleness.ts",
+          "packages/core/src/doctor/payload-staleness.test.ts",
+          "packages/core/src/doctor/main-branches.test.ts",
+          "packages/core/src/doctor/doctor-branches.test.ts",
+          "packages/runtime/package.json",
+          "packages/runtime/README.md",
+          "packages/cli/package.json",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "packages/core/src/content-contracts/standards/ovpr_docs_ac13.test.ts",
+          "packages/core/src/content-contracts/standards/support_hub.test.ts",
+          "packages/core/src/content-contracts/standards/already_installed_skip.test.ts",
+          "packages/core/src/content-contracts/standards/node_version_contracts.test.ts",
+          "packages/core/src/content-contracts/standards/readme_brownfield.test.ts",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/docs/known-limitations.md",
+          "content/tools/greptile.md",
+          "content/UPGRADING.md",
+          "content/commands.md",
+          "content/scm/github.md",
+          "content/.agents/skills/deft-directive-sync/SKILL.md",
+          "content/contracts/agent-hook-readiness.md",
+          "content/docs/BROWNFIELD.md",
+          "content/docs/consumer-check-contract.md",
+          "content/docs/host-surface-assumptions.md",
+          "content/docs/host-tool-surface-audit.md",
+          "content/docs/openclaw-agent-host.md",
+          "content/docs/product-signal.md",
+          "content/docs/slash-multi-host.md",
+          "Taskfile.yml",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.ts",
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/check/consumer-gate-integrity.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/consumer-check-contract/evaluate.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/freshness/compare.ts",
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/xbrief-migrate/clause-ids.ts",
+          "packages/runtime/src/init-cli/help.ts",
+          "packages/runtime/src/install-upgrade.ts",
+          "changelog.d/5869-docs-recovery-and-readme.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6458882984",
+          "github.issue.6458883594"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor packages/core/src/content-contracts packages/core/src/init-deposit/refresh.test.ts"
+        ],
+        "Traces": [
+          "#5869",
+          "#4662",
+          "#5809",
+          "#4750",
+          "#5977",
+          "#5867",
+          "#6619"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "doctor",
+        "expected_outputs": [
+          "`directive doctor` on a never-incepted project prints no `directive bootstrap` text; if it prints a Next command, that command runs.",
+          "README and getting-started no longer teach `directive bootstrap`.",
+          "README and getting-started carry a Windows note matching the #4662 Locked disposition.",
+          "The launcher still rejects `directive bootstrap`.",
+          "The runtime package description says the CLI comes from the global launcher.",
+          "The packed runtime tarball contains README.md with the launcher-vs-pin explanation and the message-table recovery rows.",
+          "The managed AGENTS section has the pin-vs-launcher rule and one 'Directive hook can't run' card with the D-019 alert line; it no longer sends a missing node_modules to `npm i -g` + `install --repair` or mentions `deft-hook` exit 127.",
+          "known-limitations has a 'hook never starts' row and a missing-runtime row that no longer teaches global + repair; it also documents the Codex/Grok subfolder hook case (RC-08 rule step 3).",
+          "hook-runtime-unavailable.md describes only the `.mjs` hook file form, the AC9.12 order, the P1-U1 per-host block behaviour and the message-table recovery.",
+          "All recovery lines in the touched files match the message table word for word.",
+          "No file in the repo or in either published package.json points at https://deftai.github.io/directive/, and the README docs link opens a live page.",
+          "No printed recovery (R) or user-doc (D) line names `deft update`; each names the message table's command for its situation, and code lines take the text from the shared table.",
+          "No behaviour change from the `deft update` text pass: existing tests pass apart from updated string assertions.",
+          "The README's first screen (about 40 lines) says what Directive is and how to install it, with no RFC numbers, AC ids or agent ceremony.",
+          "Install, Upgrade, Repair, Uninstall and Doctor each have a README section with the real command and a one-line outcome.",
+          "Every file path the README names exists, the Node line matches the engines policy, and the Windows note is present.",
+          "Every section moved out of the README is reachable by a link, and existing README-marker tests still pass.",
+          "one changelog fragment changelog.d/5869-docs-recovery-and-readme.md"
+        ],
+        "acceptance_criteria_justification": "Seventeen items: P5-U2a criteria 1-4; P5-U2b criteria 1-5 with the D-019 card and known-limitations rows (plus the RC-08 step-3 Codex/Grok row) folded into items 7-8; P5-U2c option A criteria 1-2 in one item; P5-U5 criteria 2, 3 and 5 (criterion 1 is the PR-body inventory, folded into item 12; criterion 4, the guard test, is dropped by D-037); P5-U2d criteria 1-7 in items 14-17. The P4-U2 remainder is covered by item 10 (downstream text matches the RC-06 table)."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "README.md",
+          "content/docs/getting-started.md",
+          "content/QUICK-START.md",
+          "content/docs/SUPPORT.md",
+          "CONTRIBUTING.md",
+          "content/docs/cold-start.md",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/constants.ts",
+          "packages/core/src/doctor/constants.test.ts",
+          "packages/core/src/doctor/payload-staleness.ts",
+          "packages/core/src/doctor/payload-staleness.test.ts",
+          "packages/core/src/doctor/main-branches.test.ts",
+          "packages/core/src/doctor/doctor-branches.test.ts",
+          "packages/runtime/package.json",
+          "packages/runtime/README.md",
+          "packages/cli/package.json",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "packages/core/src/content-contracts/standards/ovpr_docs_ac13.test.ts",
+          "packages/core/src/content-contracts/standards/support_hub.test.ts",
+          "packages/core/src/content-contracts/standards/already_installed_skip.test.ts",
+          "packages/core/src/content-contracts/standards/node_version_contracts.test.ts",
+          "packages/core/src/content-contracts/standards/readme_brownfield.test.ts",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/docs/known-limitations.md",
+          "content/tools/greptile.md",
+          "content/UPGRADING.md",
+          "content/commands.md",
+          "content/scm/github.md",
+          "content/.agents/skills/deft-directive-sync/SKILL.md",
+          "content/contracts/agent-hook-readiness.md",
+          "content/docs/BROWNFIELD.md",
+          "content/docs/consumer-check-contract.md",
+          "content/docs/host-surface-assumptions.md",
+          "content/docs/host-tool-surface-audit.md",
+          "content/docs/openclaw-agent-host.md",
+          "content/docs/product-signal.md",
+          "content/docs/slash-multi-host.md",
+          "Taskfile.yml",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.ts",
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/check/consumer-gate-integrity.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/consumer-check-contract/evaluate.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/freshness/compare.ts",
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/xbrief-migrate/clause-ids.ts",
+          "packages/runtime/src/init-cli/help.ts",
+          "packages/runtime/src/install-upgrade.ts",
+          "changelog.d/5869-docs-recovery-and-readme.md"
+        ],
+        "module_boundary": "Docs and printed text only: README and user docs under content/, the managed AGENTS template (plus regenerated AGENTS.md), the runtime package description and README, package homepage fields, doctor's never-incepted Next command, and recovery strings that name `deft update`. No behaviour change apart from doctor not printing a non-runnable Next command. Never docs/installer-refactor-ovpr/.",
+        "cohesion_exemption": "packages/core/src/doctor/main.ts (2558 lines), packages/core/src/doctor/checks.ts (2280 lines), packages/core/src/init-deposit/refresh.ts (2104 lines), Taskfile.yml (1376 lines), packages/core/src/init-deposit/scaffold.ts (1208 lines), packages/core/src/consumer-check-contract/evaluate.ts (1207 lines), content/UPGRADING.md (1139 lines) and packages/core/src/session/verify-session-ritual.ts (1069 lines) already exceed the review trigger. This group changes text lines in them (recovery strings and one doctor fallback); splitting them is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Cross-link — Problem 33 / #5809\n\nHook helpers that resolve `node_modules/@deftai/directive-runtime/...` must check `.deft-directive-disable` and print **project PM install** recovery before hard-failing on a missing bin. That product fix lives on #5809; this ticket (#5869) owns bot-visible OVPR split + consistent escape-hatch wording so SLizard/Greptile stop treating those paths as standing defects.\n\n",
+          "id": 6372810430,
+          "html_url": "https://github.com/deftai/directive/issues/5869#issuecomment-6372810430",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T19:16:01Z",
+          "updated_at": "2026-10-23T19:16:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## TRIAGED — do not re-adjudicate (arc / design-critique skip)\n\n**Seal date:** 2026-10-23\n\n`design-critique: not warranted, because operator disposition is already locked on this issue via the installer/OVPR problem-ledger FINAL. Implement the **Locked disposition** section at the top of the issue body. Do not reopen option analysis or run an arc panel to redesign the fix.`\n\n",
+          "id": 6373357869,
+          "html_url": "https://github.com/deftai/directive/issues/5869#issuecomment-6373357869",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T19:46:13Z",
+          "updated_at": "2026-10-23T19:46:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## OVPR v261027 pointer (2026-10-27)\n\nRecovery / bot-visible wording should match OVPR v261027 + AC9.12 (project PM install when pin absent). https://github.com/deftai/directive/pull/5987. #5956 closed not_planned.\n\nProblem ledger (decision record only): `docs/installer-refactor-ovpr/install-ovpr-problem-ledger-2026-10-23.md` on that PR.\n\n",
+          "id": 6454034855,
+          "html_url": "https://github.com/deftai/directive/issues/5869#issuecomment-6454034855",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-27T21:29:33Z",
+          "updated_at": "2026-10-27T21:29:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6003718173,
+        "origin": "deftai/directive#5869",
+        "id": "github.issue.6003718173"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/doctor packages/core/src/content-contracts packages/core/src/init-deposit/refresh.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (48), in order (#6333)",
+      "sentences": [
+        "docs+product(ovpr): calm SLizard/Greptile on launcher vs runtime bins and node_modules pin paths",
+        "Locked disposition (do not re-triage) TRIAGED — installer/OVPR problem-ledger walk.",
+        "Do not re-adjudicate options.",
+        "Do not run design-critique / arc to reopen the fix shape. `design-critique: not warranted, because operator disposition is already locked on this issue; implement the contract below.` ### Do - Bot-visible OVPR split: runtime `package.json` description, published runtime README, agents-entry one-liner, optional Greptile/SLizard custom FP rules.",
+        "Relative `node_modules/@deftai/directive-runtime/...` touchpoints: fail closed with project PM install hatch; consistent wording (#5809 aligned).",
+        "Body Proposal sections A–C are the contract.",
+        "Don't - Fake `directive`/`deft` bins on the runtime package.",
+        "Second runtime copy outside `node_modules` to silence bots.",
+        "Done when Cold SLizard/Greptile on OVPR consumer + deftai/directive does not P0/P1 solely for missing local CLI bins or “fragile node_modules path” when hatch text is present.",
+        "Evidence / history Prior FINAL disposition comments on this thread (if any).",
+        "Original report preserved below.",
+        "--- ## Background Under One Version Per Repo (OVPR): - Global launcher: `@deftai/directive` — ships `directive` / `deft` / `deft-hook` on PATH.",
+        "Project pin: `@deftai/directive-runtime` — exact version in the project’s `package.json`; ships content, hooks, engine entry as `directive-runtime` (not `directive`/`deft`).",
+        "Automated reviewers (SLizard, Greptile, similar) repeatedly treat a healthy OVPR tree as broken: 1.",
+        "Missing local CLI bins — They see Directive mentioned everywhere, see `@deftai/directive-runtime` in `package.json`, look for `node_modules/.bin/directive` or `deft`, find only `directive-runtime` (or nothing with those names), and file “incomplete install / missing npm binary” findings.",
+        "That is false.",
+        "Absence of project-local `directive`/`deft` is intentional.",
+        "Relative paths into `node_modules/@deftai/directive-runtime/...` — Deposited hooks, skills, AGENTS pointers, and wrappers correctly invoke the pin by relative path.",
+        "Reviewers flag these as fragile (“what if node_modules is missing?”).",
+        "The product answer is already: fail closed with a clear recovery that runs the project package manager install (and launcher repair when the pin/wiring story needs it) — not “invent a second copy outside node_modules.” Reviewers should treat that escape hatch as the design, not as a standing defect.",
+        "We need every Directive-using repo (including `deftai/directive` itself) to be reviewable without constant false positives on these two patterns.",
+        "Related ledger context: Problem 31 (SLizard Pass-2 “missing CLI bins”); standing OVPR dogfood rule that pin-present / clear project `npm`/`pnpm` install error messaging must appear across launcher, AGENTS, skills, hooks, Taskfile.",
+        "Environment - Packages: `@deftai/directive` (launcher), `@deftai/directive-runtime` (pin) - Surfaces reviewers actually read: root/consumer `package.json`, runtime package metadata/README, deposited AGENTS managed section (`agents-entry`), hooks/wrappers that `node` into `node_modules/@deftai/directive-runtime/...`, Greptile/SLizard custom instructions where we control them - Docs that already state the split (under-weighted by bots): `content/docs/known-limitations.md`, getting-started / launcher docs ## Proposal ### A.",
+        "Make the OVPR split impossible to miss in bot-weighted surfaces 1.",
+        "`@deftai/directive-runtime` `package.json` `description` — Explicit: this package is the project pin (content/hooks/engine).",
+        "CLI commands `directive` / `deft` come only from global `@deftai/directive`.",
+        "Missing those bin names on this package is intentional.",
+        "Published `packages/runtime/README.md` (ships with the npm package) — Short (≤1 screen): launcher vs pin; expected bins; “do not flag missing local `directive`/`deft`”; recover with `npm i -g @deftai/directive` + project `pnpm`/`npm` install / `directive install --repair` as appropriate.",
+        "`agents-entry` / managed AGENTS — One always-on plain sentence: project pin ≠ launcher; no `node_modules/.bin/directive` expected; use global launcher; if runtime path missing, run project package-manager install (not a second product copy).",
+        "Human README — Same story in the install section (coordinates with #5867 human README revamp; can land a minimal OVPR callout earlier if #5867 stays on hold).",
+        "Optional Greptile/SLizard custom instructions (directive repo + document for consumers) — Explicit FP rules: - Do not flag missing project-local `directive`/`deft` when only `@deftai/directive-runtime` is pinned.",
+        "Do not flag relative `node_modules/@deftai/directive-runtime/...` invocation alone as a defect when recovery text demands project package-manager install / documented repair.",
+        "B.",
+        "Pin-present path + package-manager escape hatch (product + reviewer story) For every touchpoint that resolves the runtime by relative path under `node_modules` (hooks, `_directive-run.sh`-class wrappers, skill/AGENTS pointers, Taskfile/`deft` invoke): 1.",
+        "On miss: fail closed with a single clear remediation: project `pnpm install` / `npm install` to materialize the pin (and launcher line only when the failure mode is actually “no `directive` on PATH” / wiring repair — do not steer “missing node_modules pin” to global-only install).",
+        "Wording consistency so reviewers see the escape hatch next to the path (comment, stderr, or adjacent doc pointer).",
+        "Do not “fix” reviewer anxiety by vendoring a second runtime outside `node_modules` or by adding fake `directive`/`deft` bins on the runtime package.",
+        "C.",
+        "Done when - A cold SLizard/Greptile pass on a stock OVPR consumer (and on `deftai/directive`) does not open P0/P1 solely for “no local `directive`/`deft` bin” or “relative path into node_modules runtime might fail” when the documented PM-install escape hatch is present.",
+        "Runtime package metadata + agents-entry + (minimal) README/custom-instruction carry the same split story.",
+        "Spot-check: at least the highest-traffic hook/wrapper miss paths print PM-install-first recovery (align with existing pin-present messaging mandate).",
+        "Rejoining launcher and runtime into one package",
+        "Adding `directive`/`deft` bin aliases on `@deftai/directive-runtime` to silence bots",
+        "Silencing real bugs (empty pin, wrong recovery that only says `npm i -g` when `node_modules` is missing, etc.)",
+        "OVPR / known-limitations (global launcher required; pin is runtime)",
+        "Problem ledger #31; SLizard deftSE#9 Pass-2 missing-CLI-bins class",
+        "#5867 README revamp (human front door; complementary)",
+        "Pin-present / project PM install messaging across hooks/AGENTS/skills/Taskfile"
+      ],
+      "admitted_source_sentences": [
+        "Locked disposition (do not re-triage) TRIAGED — installer/OVPR problem-ledger walk.",
+        "Do not re-adjudicate options.",
+        "Do not run design-critique / arc to reopen the fix shape. `design-critique: not warranted, because operator disposition is already locked on this issue; implement the contract below.` ### Do - Bot-visible OVPR split: runtime `package.json` description, published runtime README, agents-entry one-liner, optional Greptile/SLizard custom FP rules.",
+        "Relative `node_modules/@deftai/directive-runtime/...` touchpoints: fail closed with project PM install hatch; consistent wording (#5809 aligned).",
+        "Body Proposal sections A–C are the contract.",
+        "Don't - Fake `directive`/`deft` bins on the runtime package.",
+        "Second runtime copy outside `node_modules` to silence bots.",
+        "Done when Cold SLizard/Greptile on OVPR consumer + deftai/directive does not P0/P1 solely for missing local CLI bins or “fragile node_modules path” when hatch text is present.",
+        "Evidence / history Prior FINAL disposition comments on this thread (if any).",
+        "Original report preserved below.",
+        "--- ## Background Under One Version Per Repo (OVPR): - Global launcher: `@deftai/directive` — ships `directive` / `deft` / `deft-hook` on PATH.",
+        "Project pin: `@deftai/directive-runtime` — exact version in the project’s `package.json`; ships content, hooks, engine entry as `directive-runtime` (not `directive`/`deft`).",
+        "Automated reviewers (SLizard, Greptile, similar) repeatedly treat a healthy OVPR tree as broken: 1.",
+        "Missing local CLI bins — They see Directive mentioned everywhere, see `@deftai/directive-runtime` in `package.json`, look for `node_modules/.bin/directive` or `deft`, find only `directive-runtime` (or nothing with those names), and file “incomplete install / missing npm binary” findings.",
+        "That is false.",
+        "Absence of project-local `directive`/`deft` is intentional.",
+        "Relative paths into `node_modules/@deftai/directive-runtime/...` — Deposited hooks, skills, AGENTS pointers, and wrappers correctly invoke the pin by relative path.",
+        "Reviewers flag these as fragile (“what if node_modules is missing?”).",
+        "The product answer is already: fail closed with a clear recovery that runs the project package manager install (and launcher repair when the pin/wiring story needs it) — not “invent a second copy outside node_modules.” Reviewers should treat that escape hatch as the design, not as a standing defect.",
+        "We need every Directive-using repo (including `deftai/directive` itself) to be reviewable without constant false positives on these two patterns.",
+        "Related ledger context: Problem 31 (SLizard Pass-2 “missing CLI bins”); standing OVPR dogfood rule that pin-present / clear project `npm`/`pnpm` install error messaging must appear across launcher, AGENTS, skills, hooks, Taskfile.",
+        "Environment - Packages: `@deftai/directive` (launcher), `@deftai/directive-runtime` (pin) - Surfaces reviewers actually read: root/consumer `package.json`, runtime package metadata/README, deposited AGENTS managed section (`agents-entry`), hooks/wrappers that `node` into `node_modules/@deftai/directive-runtime/...`, Greptile/SLizard custom instructions where we control them - Docs that already state the split (under-weighted by bots): `content/docs/known-limitations.md`, getting-started / launcher docs ## Proposal ### A.",
+        "Make the OVPR split impossible to miss in bot-weighted surfaces 1.",
+        "`@deftai/directive-runtime` `package.json` `description` — Explicit: this package is the project pin (content/hooks/engine).",
+        "CLI commands `directive` / `deft` come only from global `@deftai/directive`.",
+        "Missing those bin names on this package is intentional.",
+        "Published `packages/runtime/README.md` (ships with the npm package) — Short (≤1 screen): launcher vs pin; expected bins; “do not flag missing local `directive`/`deft`”; recover with `npm i -g @deftai/directive` + project `pnpm`/`npm` install / `directive install --repair` as appropriate.",
+        "`agents-entry` / managed AGENTS — One always-on plain sentence: project pin ≠ launcher; no `node_modules/.bin/directive` expected; use global launcher; if runtime path missing, run project package-manager install (not a second product copy).",
+        "Human README — Same story in the install section (coordinates with #5867 human README revamp; can land a minimal OVPR callout earlier if #5867 stays on hold).",
+        "Optional Greptile/SLizard custom instructions (directive repo + document for consumers) — Explicit FP rules: - Do not flag missing project-local `directive`/`deft` when only `@deftai/directive-runtime` is pinned.",
+        "Do not flag relative `node_modules/@deftai/directive-runtime/...` invocation alone as a defect when recovery text demands project package-manager install / documented repair.",
+        "B.",
+        "Pin-present path + package-manager escape hatch (product + reviewer story) For every touchpoint that resolves the runtime by relative path under `node_modules` (hooks, `_directive-run.sh`-class wrappers, skill/AGENTS pointers, Taskfile/`deft` invoke): 1.",
+        "On miss: fail closed with a single clear remediation: project `pnpm install` / `npm install` to materialize the pin (and launcher line only when the failure mode is actually “no `directive` on PATH” / wiring repair — do not steer “missing node_modules pin” to global-only install).",
+        "Wording consistency so reviewers see the escape hatch next to the path (comment, stderr, or adjacent doc pointer).",
+        "Do not “fix” reviewer anxiety by vendoring a second runtime outside `node_modules` or by adding fake `directive`/`deft` bins on the runtime package.",
+        "C.",
+        "Done when - A cold SLizard/Greptile pass on a stock OVPR consumer (and on `deftai/directive`) does not open P0/P1 solely for “no local `directive`/`deft` bin” or “relative path into node_modules runtime might fail” when the documented PM-install escape hatch is present.",
+        "Runtime package metadata + agents-entry + (minimal) README/custom-instruction carry the same split story.",
+        "Spot-check: at least the highest-traffic hook/wrapper miss paths print PM-install-first recovery (align with existing pin-present messaging mandate).",
+        "Rejoining launcher and runtime into one package",
+        "Adding `directive`/`deft` bin aliases on `@deftai/directive-runtime` to silence bots",
+        "Silencing real bugs (empty pin, wrong recovery that only says `npm i -g` when `node_modules` is missing, etc.)",
+        "OVPR / known-limitations (global launcher required; pin is runtime)",
+        "Problem ledger #31; SLizard deftSE#9 Pass-2 missing-CLI-bins class",
+        "#5867 README revamp (human front door; complementary)",
+        "Pin-present / project PM install messaging across hooks/AGENTS/skills/Taskfile"
+      ],
+      "admitted_source_digest": "50f25a02f3b1e820aebcaf0055b166193131f99c3bce4879127e68218625c0f2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "docs+product(ovpr): calm SLizard/Greptile on launcher vs runtime bins and node_modules pin paths",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Locked disposition (do not re-triage) TRIAGED — installer/OVPR problem-ledger walk.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not re-adjudicate options.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not run design-critique / arc to reopen the fix shape. `design-critique: not warranted, because operator disposition is already locked on this issue; implement the contract below.` ### Do - Bot-visible OVPR split: runtime `package.json` description, published runtime README, agents-entry one-liner, optional Greptile/SLizard custom FP rules.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Relative `node_modules/@deftai/directive-runtime/...` touchpoints: fail closed with project PM install hatch; consistent wording (#5809 aligned).",
+          "artifact_path": "content/docs/hook-runtime-unavailable.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Body Proposal sections A–C are the contract.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Don't - Fake `directive`/`deft` bins on the runtime package.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Second runtime copy outside `node_modules` to silence bots.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Done when Cold SLizard/Greptile on OVPR consumer + deftai/directive does not P0/P1 solely for missing local CLI bins or “fragile node_modules path” when hatch text is present.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Evidence / history Prior FINAL disposition comments on this thread (if any).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Original report preserved below.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "--- ## Background Under One Version Per Repo (OVPR): - Global launcher: `@deftai/directive` — ships `directive` / `deft` / `deft-hook` on PATH.",
+          "artifact_path": "packages/runtime/README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Project pin: `@deftai/directive-runtime` — exact version in the project’s `package.json`; ships content, hooks, engine entry as `directive-runtime` (not `directive`/`deft`).",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Automated reviewers (SLizard, Greptile, similar) repeatedly treat a healthy OVPR tree as broken: 1.",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 15,
+          "text": "Missing local CLI bins — They see Directive mentioned everywhere, see `@deftai/directive-runtime` in `package.json`, look for `node_modules/.bin/directive` or `deft`, find only `directive-runtime` (or nothing with those names), and file “incomplete install / missing npm binary” findings.",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 16,
+          "text": "That is false.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Absence of project-local `directive`/`deft` is intentional.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Relative paths into `node_modules/@deftai/directive-runtime/...` — Deposited hooks, skills, AGENTS pointers, and wrappers correctly invoke the pin by relative path.",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 19,
+          "text": "Reviewers flag these as fragile (“what if node_modules is missing?”).",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 20,
+          "text": "The product answer is already: fail closed with a clear recovery that runs the project package manager install (and launcher repair when the pin/wiring story needs it) — not “invent a second copy outside node_modules.” Reviewers should treat that escape hatch as the design, not as a standing defect.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "We need every Directive-using repo (including `deftai/directive` itself) to be reviewable without constant false positives on these two patterns.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Related ledger context: Problem 31 (SLizard Pass-2 “missing CLI bins”); standing OVPR dogfood rule that pin-present / clear project `npm`/`pnpm` install error messaging must appear across launcher, AGENTS, skills, hooks, Taskfile.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Environment - Packages: `@deftai/directive` (launcher), `@deftai/directive-runtime` (pin) - Surfaces reviewers actually read: root/consumer `package.json`, runtime package metadata/README, deposited AGENTS managed section (`agents-entry`), hooks/wrappers that `node` into `node_modules/@deftai/directive-runtime/...`, Greptile/SLizard custom instructions where we control them - Docs that already state the split (under-weighted by bots): `content/docs/known-limitations.md`, getting-started / launcher docs ## Proposal ### A.",
+          "artifact_path": "content/docs/known-limitations.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Make the OVPR split impossible to miss in bot-weighted surfaces 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "`@deftai/directive-runtime` `package.json` `description` — Explicit: this package is the project pin (content/hooks/engine).",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "CLI commands `directive` / `deft` come only from global `@deftai/directive`.",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Missing those bin names on this package is intentional.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Published `packages/runtime/README.md` (ships with the npm package) — Short (≤1 screen): launcher vs pin; expected bins; “do not flag missing local `directive`/`deft`”; recover with `npm i -g @deftai/directive` + project `pnpm`/`npm` install / `directive install --repair` as appropriate.",
+          "artifact_path": "packages/runtime/README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "`agents-entry` / managed AGENTS — One always-on plain sentence: project pin ≠ launcher; no `node_modules/.bin/directive` expected; use global launcher; if runtime path missing, run project package-manager install (not a second product copy).",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "Human README — Same story in the install section (coordinates with #5867 human README revamp; can land a minimal OVPR callout earlier if #5867 stays on hold).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Optional Greptile/SLizard custom instructions (directive repo + document for consumers) — Explicit FP rules: - Do not flag missing project-local `directive`/`deft` when only `@deftai/directive-runtime` is pinned.",
+          "artifact_path": "content/tools/greptile.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "Do not flag relative `node_modules/@deftai/directive-runtime/...` invocation alone as a defect when recovery text demands project package-manager install / documented repair.",
+          "artifact_path": "content/tools/greptile.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "B.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "Pin-present path + package-manager escape hatch (product + reviewer story) For every touchpoint that resolves the runtime by relative path under `node_modules` (hooks, `_directive-run.sh`-class wrappers, skill/AGENTS pointers, Taskfile/`deft` invoke): 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "On miss: fail closed with a single clear remediation: project `pnpm install` / `npm install` to materialize the pin (and launcher line only when the failure mode is actually “no `directive` on PATH” / wiring repair — do not steer “missing node_modules pin” to global-only install).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Wording consistency so reviewers see the escape hatch next to the path (comment, stderr, or adjacent doc pointer).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "Do not “fix” reviewer anxiety by vendoring a second runtime outside `node_modules` or by adding fake `directive`/`deft` bins on the runtime package.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "C.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "Done when - A cold SLizard/Greptile pass on a stock OVPR consumer (and on `deftai/directive`) does not open P0/P1 solely for “no local `directive`/`deft` bin” or “relative path into node_modules runtime might fail” when the documented PM-install escape hatch is present.",
+          "artifact_path": "packages/runtime/README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Runtime package metadata + agents-entry + (minimal) README/custom-instruction carry the same split story.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "Spot-check: at least the highest-traffic hook/wrapper miss paths print PM-install-first recovery (align with existing pin-present messaging mandate).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Rejoining launcher and runtime into one package",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "Adding `directive`/`deft` bin aliases on `@deftai/directive-runtime` to silence bots",
+          "artifact_path": "packages/runtime/package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "Silencing real bugs (empty pin, wrong recovery that only says `npm i -g` when `node_modules` is missing, etc.)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "OVPR / known-limitations (global launcher required; pin is runtime)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "Problem ledger #31; SLizard deftSE#9 Pass-2 missing-CLI-bins class",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "#5867 README revamp (human front door; complementary)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "Pin-present / project PM install messaging across hooks/AGENTS/skills/Taskfile",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "id": "github.issue.6003718173",
+    "updated": "2026-11-18T18:45:49Z"
+  }
+}
