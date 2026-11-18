@@ -271,7 +271,10 @@
           "packages/core/src/init-deposit/refresh.test.ts",
           "packages/core/src/freshness/generation-gate.test.ts",
           "packages/runtime/src/doctor-remedy-inventory.test.ts",
-          "changelog.d/6012-generation-kept-core-guard-removed.md"
+          "changelog.d/6012-generation-kept-core-guard-removed.md",
+          "packages/core/src/init-deposit/dest-symlink-2912.test.ts",
+          "packages/core/src/init-deposit/gitattributes-framework-source.test.ts",
+          "packages/core/src/vitest-runner/dest-contention-it-timeout.test.ts"
         ],
         "readiness": "ready",
         "depends_on": [],

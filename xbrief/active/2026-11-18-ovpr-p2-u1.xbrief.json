@@ -366,7 +366,14 @@
           "packages/cli/src/upgrade-bookend.test.ts",
           "packages/core/src/content-contracts/standards/branch_gate.test.ts",
           "changelog.d/5808-git-hooks-restore-brief-gates.md",
-          "changelog.d/5976-setup-replaces-directive-git-hooks.md"
+          "changelog.d/5976-setup-replaces-directive-git-hooks.md",
+          "packages/runtime/src/self-complete.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/ownership-fix.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/install-health/in-sync.test.ts",
+          "packages/core/src/verify-env/branches.test.ts",
+          "packages/core/src/release-e2e/greenfield-python-free-smoke.ts"
         ],
         "readiness": "ready",
         "depends_on": [

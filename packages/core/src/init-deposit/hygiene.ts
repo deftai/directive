@@ -26,7 +26,6 @@ import {
   type MutationSummary,
   snapshotMutationSummary,
 } from "../fs/mutation-ledger.js";
-import { applyCoreGuardWithBranchSync, type BranchSyncDetection } from "../policy/branch-sync.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 import { CONSUMER_SKILL_DISCOVERY_INVENTORY } from "./skill-discovery-deposit.js";
@@ -34,7 +33,6 @@ import { hostSkillRelativePath, listSkillDiscoveryHosts } from "./skill-discover
 import { slashCommandManagedExactPaths } from "./slash-deposit.js";
 
 export const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
-export const CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
 
 // The lifecycle dir names are identical across the legacy `vbrief/` tree and the
 // post-#2034 / #2110 `xbrief/` tree, so both allowlist families reuse this list.
@@ -48,7 +46,7 @@ export interface InstallerManagedMatcher {
 /**
  * Consumer paths that MUST trip no-mixed-core-and-app when mixed with
  * `.deft/core/**` (#1430 SPEC). These probe paths must never match
- * `installerManagedMatchers()` / the deposited guard ERE.
+ * `installerManagedMatchers()`.
  *
  * Legitimate installer scaffolding (xbrief/.deft-version, lifecycle .gitkeep,
  * schemas/, migration/, xbrief.md) is NOT in this denylist — see #2277.
@@ -99,7 +97,8 @@ function multiHostSkillDiscoveryManagedMatchers(): InstallerManagedMatcher[] {
 /**
  * Single source of truth for installer-managed paths (#1440 / #1576).
  *
- * Pre-OVPR deft-core-guard allowlist (path-only; retires with #5835). For
+ * Pre-OVPR installer-managed allowlist (path-only). The deft-core-guard workflow
+ * that embedded it is retired and no longer written (#5835). For
  * "is this change Directive's own?" use `listDirectiveOwnedPaths` /
  * `classifyDirectiveOwnedChange` in `install-health/owned-paths.ts` (#6615).
  * Do not merge the two lists here.
@@ -140,7 +139,8 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: ".prettierignore" },
     { exact: "greptile.json" },
     { exact: CODEQL_CONFIG_REL },
-    { exact: CORE_GUARD_WORKFLOW_REL },
+    // Retired guard workflow (#5835): no longer written; upgrade stages its deletion.
+    { exact: ".github/workflows/deft-core-guard.yml" },
     { exact: "Taskfile.yml" },
     // Upgrade co-travel unit (#3127 / #3193): path-allow package/lock + GENERATION
     // so they are not auto-classified as "app". When mixed with .deft/core/**, the
@@ -175,15 +175,6 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { prefix: "xbrief/migration/" },
     ...VBRIEF_LIFECYCLE_DIRS.map((sub) => ({ exact: `xbrief/${sub}/.gitkeep` })),
   ];
-}
-
-function escapeEre(value: string): string {
-  return value.replace(/[.^$*+?()[\]{}|\\]/g, "\\$&");
-}
-
-function matcherToEre(matcher: InstallerManagedMatcher): string {
-  if (matcher.exact) return `^${escapeEre(matcher.exact)}$`;
-  return `^${escapeEre(matcher.prefix ?? "")}`;
 }
 
 function matchesInstallerManaged(
@@ -258,23 +249,6 @@ export function assertInstallerAllowlistHonors1430(
       }
     }
   }
-}
-
-/**
- * Individual POSIX ERE patterns for the deposited deft-core-guard allowlist.
- * One pattern per line in the workflow heredoc (#3345) — joined form is still
- * available via {@link installerManagedGuardEre} for tests and classifiers.
- */
-export function installerManagedGuardErePatterns(): string[] {
-  const matchers = installerManagedMatchers();
-  // Refuse to emit a guard workflow that would exempt consumer denylist paths.
-  assertInstallerAllowlistHonors1430(matchers);
-  return matchers.map((matcher) => matcherToEre(matcher));
-}
-
-/** POSIX ERE alternation (joined) for tests / tooling that want a single pattern. */
-export function installerManagedGuardEre(): string {
-  return installerManagedGuardErePatterns().join("|");
 }
 
 export function isInstallerManagedPath(path: string): boolean {
@@ -576,6 +550,18 @@ function pnpmUnquote(s: string): string {
 }
 
 /**
+ * Value of an 8-space-indented `<key>: <value>` lockfile line, or null when the
+ * line is not that key or has no value. Prefix check plus trim, so a crafted long
+ * line cannot trigger regex backtracking (#6680).
+ */
+function pnpmLockKeyValue(line: string, key: string): string | null {
+  const prefix = `        ${key}:`;
+  if (!line.startsWith(prefix)) return null;
+  const value = line.slice(prefix.length).trim();
+  return value === "" ? null : value;
+}
+
+/**
  * pnpm importers oracle (#5245): every importer, keyed at full identity, with
  * both specifier and version. Do not widen a version-only bare-name map.
  */
@@ -634,14 +620,14 @@ export function pnpmLockImporterDeps(raw: string): Record<string, string> {
       continue;
     }
     if (currentPkg) {
-      const specMatch = line.match(/^ {8}specifier:\s*(.+?)\s*$/);
-      if (specMatch) {
-        pendingSpecifier = pnpmUnquote(specMatch[1] ?? "");
+      const specValue = pnpmLockKeyValue(line, "specifier");
+      if (specValue !== null) {
+        pendingSpecifier = pnpmUnquote(specValue);
         continue;
       }
-      const verMatch = line.match(/^ {8}version:\s*(.+?)\s*$/);
-      if (verMatch) {
-        const version = pnpmUnquote(verMatch[1] ?? "");
+      const verValue = pnpmLockKeyValue(line, "version");
+      if (verValue !== null) {
+        const version = pnpmUnquote(verValue);
         const identity = `${pendingSpecifier ?? ""}|${version}`;
         out[`${currentImporter}\0${currentPkg}`] = identity;
         currentPkg = null;
@@ -874,28 +860,12 @@ export function classifyMixedCoreAndApp(
 }
 
 /**
- * Path classifier plus the shared #3388 sync predicate. Feature mixes still
- * fail; a matching sync PR passes with a loud exemption message.
- */
-export function classifyMixedCoreAndAppForPr(
-  changedPaths: readonly string[],
-  sync: BranchSyncDetection,
-  matchers: readonly InstallerManagedMatcher[] = installerManagedMatchers(),
-): MixedCoreAndAppClassification & { loudMessage: string | null } {
-  const base = classifyMixedCoreAndApp(changedPaths, matchers);
-  const applied = applyCoreGuardWithBranchSync(base, sync);
-  return { ...base, wouldFail: applied.wouldFail, loudMessage: applied.loudMessage };
-}
-
-/**
  * Content-aware upgrade co-travel classifier (#3193).
  *
  * Starts from path classification (#3127 allowlist), then when `.deft/core/**`
  * is present reclassifies package.json / lockfile paths as **app** unless their
  * base→head content is the Directive pin unit (or lock follow-through).
  * `.deft/GENERATION.json` remains path-allowlisted for mixed-core-and-app.
- * When that path changes, deposited deft-core-guard also requires
- * `head.generation` greater than `origin/$BASE_REF` (#4120).
  *
  * Missing content for a pin path co-travelling with core fails closed (treated
  * as app) so partial fixtures cannot silently re-open the path-only hole.
@@ -1815,8 +1785,8 @@ export function printCommitGuidance(
     io.printf(
       "\nCommit hygiene (#1453, #1671, #3127, #3193, #3394): keep the framework upgrade in its OWN branch/PR.\n",
     );
-    io.printf("Do NOT use `git add -A` -- mixing the payload with product/app files trips the\n");
-    io.printf("deft-core-guard CI check.\n");
+    io.printf("Do NOT use `git add -A` -- mixing the payload with product/app files makes the\n");
+    io.printf("upgrade hard to review.\n");
     io.printf(
       "One upgrade PR MAY co-travel: .deft/core/** + installer-managed deposits + package.json\n",
     );
@@ -1841,15 +1811,13 @@ export function printCommitGuidance(
       io.printf("Stage ONLY these framework + installer-managed paths:\n");
       io.printf(`  ${gitAddGuidanceCmd(inIndex.length > 0 ? inIndex : paths)}\n`);
     }
-    io.printf("Then take the framework deposit through the full PR lifecycle so deft-core-guard\n");
-    io.printf("evaluates a clean, standalone upgrade PR:\n");
+    io.printf("Then take the framework deposit through the full PR lifecycle as a clean,\n");
+    io.printf("standalone upgrade PR:\n");
     io.printf(`  1. Branch: git switch -c ${COMMIT_HYGIENE_BRANCH_NAME}\n`);
     io.printf('  2. Commit: git commit -m "chore(deft): update framework payload"\n');
     io.printf(`  3. Push:   git push -u origin ${COMMIT_HYGIENE_BRANCH_NAME}\n`);
     io.printf('  4. PR:     gh pr create --fill --title "chore(deft): update framework payload"\n');
-    io.printf(
-      "  5. Merge:  gh pr merge --squash --delete-branch   # after deft-core-guard passes\n",
-    );
+    io.printf("  5. Merge:  gh pr merge --squash --delete-branch   # after CI passes\n");
   }
   printUnstagedLedgerRemainder(io, unstagedRemainder);
 }

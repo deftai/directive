@@ -45,6 +45,7 @@ export const SCOPE_LIFECYCLE_VERBS = new Set([
   "unblock",
   "stamp-evidence",
   "bind-clause",
+  "confess",
 ]);
 
 /** pr:* task names that do not hyphenate 1:1 to handler stems. */

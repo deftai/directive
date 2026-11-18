@@ -14,6 +14,7 @@ import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
 import { BIND_CLAUSE_ACTION, bindClauseOnBrief } from "./bind-clause.js";
 import { checkoutHygieneWarningLines } from "./checkout-hygiene-warning.js";
+import { CONFESS_ACTION, confessOnBrief } from "./confess.js";
 import { TRANSITIONS } from "./constants.js";
 import {
   type DeliveryEvidenceInput,
@@ -71,6 +72,10 @@ export interface LifecycleArgs {
   clauseIds?: number[];
   /** In-PR completion for scope:complete (#6277). */
   inPr?: boolean;
+  /** Sentences for scope:confess --sentence (#6644). */
+  sentences?: string[];
+  /** scope:confess --all-unmapped (#6644). */
+  allUnmapped?: boolean;
 }
 
 export interface DemoteArgs {
@@ -122,7 +127,8 @@ const LIFECYCLE_USAGE_STDERR =
   "  complete --in-pr completes the story inside its last product PR (lands-with-product; #6277)\n" +
   "  stamp-evidence is evidence-only: no --pr / --merge-commit / disposition argv (#4840)\n" +
   "  bind-clause binds selected --clause ids onto --path under file_scope (#4986)\n" +
-  "  actions: activate, bind-clause, block, cancel, complete, fail, promote, restore, stamp-evidence, unblock\n" +
+  '  confess writes --sentence "<text>" (repeatable) or --all-unmapped to acceptance.confessions (#6644)\n' +
+  "  actions: activate, bind-clause, block, cancel, complete, confess, fail, promote, restore, stamp-evidence, unblock\n" +
   "The verb already encodes the action (e.g. deft scope:promote <file>). Do not pass the action again.\n" +
   "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n" +
   "(promote --from-issue=N may omit file; #1136)\n" +
@@ -136,7 +142,8 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   if (
     !(action in TRANSITIONS) &&
     action !== STAMP_EVIDENCE_ACTION &&
-    action !== BIND_CLAUSE_ACTION
+    action !== BIND_CLAUSE_ACTION &&
+    action !== CONFESS_ACTION
   ) {
     return { args: null, error: "usage" };
   }
@@ -150,6 +157,8 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   let forceNoCache = false;
   let pathFlag: string | undefined;
   const clauseIds: number[] = [];
+  const sentences: string[] = [];
+  let allUnmapped = false;
   let nonDeliveryDisposition: NonDeliveryDisposition | undefined;
   let prNumber: number | undefined;
   let mergeCommit: string | undefined;
@@ -174,6 +183,21 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       strict = true;
     } else if (arg === "--force-no-cache") {
       forceNoCache = true;
+    } else if (arg === "--all-unmapped") {
+      allUnmapped = true;
+    } else if (arg === "--sentence") {
+      const raw = argv[i + 1];
+      i += 1;
+      if (raw === undefined || raw.trim().length === 0) {
+        return { args: null, error: "usage" };
+      }
+      sentences.push(raw);
+    } else if (arg?.startsWith("--sentence=")) {
+      const raw = arg.slice("--sentence=".length);
+      if (raw.trim().length === 0) {
+        return { args: null, error: "usage" };
+      }
+      sentences.push(raw);
     } else if (arg === "--clause") {
       const raw = argv[i + 1];
       i += 1;
@@ -341,6 +365,21 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   if (file.length === 0) {
     return { args: null, error: "usage" };
   }
+  if (action === CONFESS_ACTION) {
+    if (
+      deliveryEvidence !== undefined ||
+      nonDeliveryDisposition !== undefined ||
+      clauseIds.length > 0 ||
+      pathFlag !== undefined ||
+      (sentences.length === 0 && !allUnmapped)
+    ) {
+      return { args: null, error: "usage" };
+    }
+    return { args: { action, file, projectRoot, force, sentences, allUnmapped } };
+  }
+  if (sentences.length > 0 || allUnmapped) {
+    return { args: null, error: "usage" };
+  }
   if (action === STAMP_EVIDENCE_ACTION) {
     if (
       deliveryEvidence !== undefined ||
@@ -428,6 +467,8 @@ export function lifecycleMain(argv: string[]): number {
     nonDeliveryDisposition,
     deliveryEvidence,
     inPr,
+    sentences,
+    allUnmapped,
   } = parsed.args;
 
   if (batch === true && action === "promote") {
@@ -506,6 +547,20 @@ export function lifecycleMain(argv: string[]): number {
       return 0;
     }
     process.stderr.write(`Error: ${bound.message}\n`);
+    return 1;
+  }
+
+  if (action === CONFESS_ACTION) {
+    const confessed = confessOnBrief(filePath, {
+      projectRoot,
+      sentences: sentences ?? [],
+      allUnmapped: allUnmapped === true,
+    });
+    if (confessed.ok) {
+      process.stdout.write(`${confessed.message}\n`);
+      return 0;
+    }
+    process.stderr.write(`Error: ${confessed.message}\n`);
     return 1;
   }
 

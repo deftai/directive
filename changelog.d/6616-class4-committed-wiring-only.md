@@ -1,0 +1,2 @@
+section: Fixed
+- `verify:class-checks` no longer fails a story PR because automatic setup rewrote Directive's own hook files (`.githooks/`, `.cursor/hooks.json`, `.cursor/hooks/`) in CI. For those files, class 4 now counts only committed changes; it names each file it did not count. A committed hook edit mixed with story code still fails, and so does any change to a hook file that is not Directive's. Refs #6616.

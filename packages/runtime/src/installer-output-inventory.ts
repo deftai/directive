@@ -113,7 +113,34 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
     ovprTarget: "N/A — no .deft/core content copy under OVPR (AC13.1)",
     disposition: "na-retired-copy-model",
     justification:
-      "AC8.10: scaffolding solely served the retired copied-content model; no package-relative substitute required.",
+      "AC8.10: scaffolding solely served the retired copied-content model; no package-relative substitute required. Setup removes the exact lines it wrote (#5961).",
+  },
+  {
+    id: "gitattributes-managed-wiring-lf",
+    legacyOutputs: [".gitattributes # Deft managed wiring: LF lines (#5995)"],
+    ovprTarget:
+      ".gitattributes managed block: LF for host commands, skills, .githooks, AGENTS.md and the deft-hook-*.mjs outers",
+    disposition: "retained",
+    justification:
+      "AC8.10 / AC9.1: Windows autocrlf checkouts keep Directive's committed files LF (#5995 / #6167).",
+    setupActivator: "ensureManagedPathGitattributes",
+  },
+  {
+    id: "prettierignore-core-exclusion",
+    legacyOutputs: [".prettierignore .deft/core/"],
+    ovprTarget: "N/A — no vendored .deft/core tree to exclude",
+    disposition: "na-retired-copy-model",
+    justification:
+      "AC8.10: the Prettier exclusion existed only for copied .deft/core; setup removes the exact line it wrote (#5961).",
+  },
+  {
+    id: "prettierignore-hook-files",
+    legacyOutputs: [],
+    ovprTarget: ".prettierignore **/deft-hook-*.mjs, only when the file already exists",
+    disposition: "conditional",
+    justification:
+      "AC13.3: one managed line keeps the committed hook files out of the project's formatter check (#6167).",
+    setupActivator: "ensurePrettierIgnoreHookLine",
   },
   {
     id: "codeql-core-exclusion",
@@ -121,7 +148,7 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
     ovprTarget: "N/A — no vendored .deft/core tree to exclude",
     disposition: "na-retired-copy-model",
     justification:
-      "AC8.10: CodeQL exclusion existed only for copied .deft/core; runtime stays in node_modules.",
+      "AC8.10: CodeQL exclusion existed only for copied .deft/core; runtime stays in node_modules. Setup removes the exact item and comments it wrote; the file stays (#5961).",
   },
   {
     id: "core-guard-workflow",
@@ -129,14 +156,17 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
     ovprTarget: "N/A — guarded mixed .deft/core + app commits under copy model",
     disposition: "na-retired-copy-model",
     justification:
-      "AC8.10 / AC13.1: core-guard workflow solely enforced the retired .deft/core deposit layout.",
+      "AC8.10 / AC13.1: core-guard workflow solely enforced the retired .deft/core deposit layout. " +
+      "Its emitter is removed (#5835); upgrade and convert delete a leftover Directive-written copy " +
+      "via removal step removeRetiredCoreGuardWorkflow and keep a user-edited file.",
   },
   {
     id: "greptile-core-ignore",
     legacyOutputs: ["greptile.json ignorePatterns .deft/core/**"],
     ovprTarget: "N/A — no .deft/core tree",
     disposition: "na-retired-copy-model",
-    justification: "AC8.10: greptile ignore of .deft/core solely served the copy model.",
+    justification:
+      "AC8.10: greptile ignore of .deft/core solely served the copy model. Setup removes the exact pattern; the file stays (#5961).",
   },
   {
     id: "bare-version-marker",
@@ -175,6 +205,9 @@ export function assertInventoryCompleteness(): void {
     "openclaw-integrations",
     "copilot-skill-discovery",
     "gitattributes-core-markers",
+    "gitattributes-managed-wiring-lf",
+    "prettierignore-core-exclusion",
+    "prettierignore-hook-files",
     "codeql-core-exclusion",
     "core-guard-workflow",
     "bare-version-marker",

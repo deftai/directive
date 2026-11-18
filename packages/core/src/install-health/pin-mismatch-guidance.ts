@@ -5,8 +5,8 @@
  * the exact project install at a proven run directory (#6313). A host that
  * does not report the run directory (Codex) cannot run that install itself,
  * so the refusal tells a person what to run in their own terminal: the
- * checked project root on a labelled line, the plain install of the package
- * manager whose lockfile is at that root, and when to retry.
+ * checked project root on a labelled line, the install of the package manager
+ * whose lockfile is at that root (one the hook lets through), and when to retry.
  *
  * Advice only: nothing here changes what the hook admits. The package manager
  * comes from which lockfile exists at the root; the runtime version the
@@ -45,13 +45,14 @@ export function escapeControlCharacters(value: string): string {
   return out;
 }
 
-/** The install command line and the optional frozen-form line, by lockfile kind. */
+/**
+ * The install command line by lockfile kind. It names only installs the hook
+ * lets through (#6313, O-30): plain `pnpm install` is refused, so pnpm gets
+ * the frozen form.
+ */
 function commandLines(kind: "npm" | "pnpm" | "absent"): string[] {
   if (kind === "pnpm") {
-    return [
-      "Run: `pnpm install`",
-      "You can try `pnpm install --frozen-lockfile` instead when the lockfile already records the pin.",
-    ];
+    return ["Run: `pnpm install --frozen-lockfile`"];
   }
   if (kind === "npm") {
     return [

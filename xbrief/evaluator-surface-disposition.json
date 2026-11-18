@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6613,
+  "issue": 6022,
   "surfaces": [
     "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6613: the Taskfile `release:local-update` task becomes pull, install, confirm installed = pin. It drops the dirty-tree refusal, the AgeExclude check, the committed hook-file checks (#6127 / #6184), the `directive upgrade` call, the post-upgrade diff failure and the final `verify:hooks-installed`. These checks contradict the #5947 decision (a pin-only bump is complete, AC14.10). No other task, verifier or threshold changes. Disclosure only; not #3164 authorization. Refs #6613."
+  "note": "Disclosure for #6022: in the root Taskfile.yml, the `upgrade` and `uninstall` alias descriptions now say the task is retired and name `directive upgrade` / `directive uninstall` (matching tasks/install.yml after #6661). The stale comment above `upgrade` that named `install-upgrade` is removed. The aliases still run the retired install:upgrade / install:uninstall tasks; no command, verifier or threshold changes. Disclosure only; not #3164 authorization. Refs #6022."
 }
