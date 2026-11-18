@@ -259,13 +259,29 @@ a later commit); a variable, `~` or substitution in the path; `--git-dir` / `--w
 `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. In each case the gate
 cannot know which index the commit will use.
 
+**Commit signals (#6362).** These are refused the same way, for the whole call, whatever visible
+commit comes before or after them: a commit after `cd <path> &` (a lone `&` ends the command, so
+the `cd` is not joined by `&&`); a commit inside a `( … )` subshell, also when the group spans
+several commands (a group that closes first does not move a later commit, so
+`(cd /r/wt) && git commit` is still judged at the hook root); a `git commit` in a literal
+`sh -c` / `bash -c` string, `env -S` string or `eval`; a commit behind a wrapper (`env`,
+`command`, `exec`, `nohup`, `time`, `timeout`, `xargs`, `nice`, `sudo`, `doas`, `stdbuf`,
+`ionice`; only the wrapped command is read, not its arguments); a command word or git subcommand
+that holds a variable (`$GIT commit`, `git $SUB`); and a `-c`, `env -S` or `eval` string that
+holds a variable or substitution. The last two are refused even when they never commit, because
+the gate cannot read them. An unquoted heredoc body raises no signal, and its parentheses open or
+close a group only inside a `$( … )`; only the commits it shows are read.
+
 **Limits, named and not closed here.** A plain commit is still judged at the hook project root,
 wherever the shell actually is; workers name their worktree in every git command (#6291). A
 `git add` in the same call as the commit stages after the gate has read the index, and that now
 also reaches the two named forms. The commit is held to the target story's `file_scope` for the
-product paths in that snapshot; it does not authenticate which actor commits. Other shell forms
-(subshells, `pushd`, an exported `GIT_DIR`) are not interpreted; this is not a general shell
-parser.
+product paths in that snapshot; it does not authenticate which actor commits. Forms the gate does
+not read stay open (#3595): keyword forms (`if … then git commit`, `!`), `pushd`, an exported
+`GIT_DIR`, a commit in a one-line `$( … )`, scripts, and git verbs other than `commit` that
+create commits. The git pre-commit hook runs only `verify:encoding`, so nothing catches them
+later. This is a guardrail over the commands the gate reads, not a shell parser and not a
+security boundary; branch policy (at push) and the merge-base scope fence (in CI) are unchanged.
 
 ## Warn-only sites behind a live merge gate (#6535)
 
