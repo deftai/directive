@@ -10,14 +10,18 @@
 
 import { execFileSync } from "node:child_process";
 import {
+  closeSync,
   existsSync,
+  constants as fsConstants,
   lstatSync,
+  openSync,
   readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
   statSync,
   writeFileSync,
+  writeSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
@@ -999,7 +1003,20 @@ export function restoreManifestFiles(projectRoot: string, snap: Map<string, Buff
       /* absent: restore */
     }
     try {
-      writeFileSync(abs, bytes, { flag: "wx" });
+      // Create only: O_EXCL fails if anything appeared at the path, and
+      // O_NOFOLLOW (where the platform has it) refuses a symlink leaf.
+      const fd = openSync(
+        abs,
+        fsConstants.O_WRONLY |
+          fsConstants.O_CREAT |
+          fsConstants.O_EXCL |
+          (fsConstants.O_NOFOLLOW ?? 0),
+      );
+      try {
+        writeSync(fd, bytes);
+      } finally {
+        closeSync(fd);
+      }
       restored.push(rel);
     } catch {
       /* reported by the completion check */
