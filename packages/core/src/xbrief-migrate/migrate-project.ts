@@ -1,6 +1,12 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedRemove,
+  containedRename,
+  containedWrite,
+} from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
@@ -1030,17 +1036,21 @@ function finishLegacyMove(
   const readme = join(migratedDir, ARCHIVE_REL_DIR, ARCHIVE_README_FILENAME);
   const readmeExisted = existsSync(readme);
 
-  // Every path this run creates, recorded before the write starts, so a write
-  // that throws after creating its file is rolled back too. A path that already
-  // existed is never recorded (create mode refuses it without writing).
+  // Paths this run created, so a write that throws after creating its file is
+  // rolled back too. A refusal before any I/O (the target appeared meanwhile,
+  // a symlink, an escape) did not create anything here, so that target is never
+  // eligible for cleanup: it may belong to another writer.
   const created: string[] = [];
   const createFile = (target: string, write: () => void): void => {
-    if (existsSync(target)) {
+    try {
       write();
-      return;
+    } catch (err) {
+      const refusedBeforeIo =
+        err instanceof ContainedWriteError && err.code !== ContainedWriteErrorCode.IO;
+      if (!refusedBeforeIo) created.push(target);
+      throw err;
     }
     created.push(target);
-    write();
   };
   const migratedPaths: string[] = [];
   const archivedPaths: string[] = [];

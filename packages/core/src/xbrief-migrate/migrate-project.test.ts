@@ -1483,6 +1483,29 @@ describe("runXbriefMigration finishes the vbrief move (#6571 / D-012)", () => {
     if (retry.kind === "migrated") expect(retry.archivedPaths).toEqual([]);
   });
 
+  it("never removes a target another writer created while this run was writing", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-race-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    const realWrite = containedWriteMod.containedWrite;
+    let calls = 0;
+    let raced = "";
+    vi.spyOn(containedWriteMod, "containedWrite").mockImplementation((input) => {
+      calls += 1;
+      if (calls === 2) {
+        raced = String(input.target);
+        writeFileSync(raced, "other writer\n", "utf8");
+      }
+      return realWrite(input);
+    });
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    vi.restoreAllMocks();
+    expect(outcome.kind).toBe("config");
+    expect(readFileSync(raced, "utf8")).toBe("other writer\n");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "notes.md"))).toBe(true);
+  });
+
   itSymlink("refuses a marked vbrief/ that holds only symlinks instead of deleting it", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-finish-link-"));
     temps.push(base);
