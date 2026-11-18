@@ -363,7 +363,7 @@ The `deft-directive-sync` skill (and any agent following this upgrade path) MUST
 
 ### One upgrade PR shape (#3127 / #3193)
 
-A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `deft-core-guard` (`no-mixed-core-and-app`, #1430) allowlists the upgrade co-travel unit so deposit + pin + freshness stamp land together — and **content-constrains** package/lock when they co-travel with `.deft/core/**` (#3193):
+A normal framework upgrade is **one PR**, not two stacked PRs: deposit + pin + freshness stamp land together, and package/lock changes stay limited to the Directive pin (#3193):
 
 | Include in the upgrade PR | Why |
 | --- | --- |
@@ -375,19 +375,17 @@ A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `de
 
 | Keep out of the upgrade PR | Why |
 | --- | --- |
-| Application source, tests, product docs | True app/product work — guard still fails if mixed with `.deft/core/**` |
-| Unrelated `package.json` fields (scripts, metadata, non-Directive deps) co-travelling with deposit | Content-aware guard rejects (#3193); path allowlist alone is not enough |
-| Unrelated lock direct product dep bumps riding the pin exemption | Content-aware guard rejects (#3193) |
+| Application source, tests, product docs | True app/product work |
+| Unrelated `package.json` fields (scripts, metadata, non-Directive deps) co-travelling with deposit | Not part of the pin unit (#3193) |
+| Unrelated lock direct product dep bumps riding the pin exemption | Not part of the pin unit (#3193) |
 | Consumer kit narrative / host prose not deposited by Directive | Not installer-managed |
 | Arbitrary playbooks, cast, features | Product scope, not upgrade |
 
-**Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade. Consumers should **not** hand-roll a forked `deft-core-guard.yml` for normal upgrades — the deposited workflow already enforces pin-only + lock follow-through.
+**Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade.
 
 **Format before you open the PR (#3395):** if `deft update` listed rewritten consumer-owned `xbrief/schemas/*` paths, run `task fmt` (or your repo formatter) first. Update does not invoke the consumer formatter.
 
-**Load fix (#3345):** if GitHub Actions shows workflow name as the path string `.github/workflows/deft-core-guard.yml` (not `deft-core-guard`), or historical runs are 0s/0 jobs and the required check `no-mixed-core-and-app` never appears on PRs, the deposited workflow failed to load (invalid YAML from an unindented Python heredoc). Run `deft update` (or re-init deposit) so the fixed workflow is rewritten, then open a normal upgrade PR — classic branch protection that requires `no-mixed-core-and-app` can clear once the job posts.
-
-**Paths filter + required-check migration (#5552):** the deposited `deft-core-guard` workflow now uses `on.pull_request.paths` for `.deft/core/**` and `.deft/GENERATION.json`, so ordinary app-only PRs skip the workflow (and burn no Actions minutes). A path-filtered skip posts **no** check at all — missing ≠ a skipped job. If classic branch protection currently requires `no-mixed-core-and-app`, remove that required status check before adopting the filtered advisory workflow, or replace it with a consumer-owned always-run workflow that does **not** keep the `name: deft-core-guard` recognition marker (else `EnsureCoreGuardWorkflow` refresh restores the filtered template). Do not treat “allow skipped required checks” alone as enough when the workflow never starts. GitHub’s path filter only inspects the first ~300 files in a PR; huge PRs can miss the filter — that ceiling is an accepted residual, not a detection guarantee. Consumers that need complete detection keep an always-triggered guard.
+**Retired `deft-core-guard` workflow (#5835):** Directive no longer writes `.github/workflows/deft-core-guard.yml`. `directive upgrade` deletes a leftover copy that still has the `name: deft-core-guard` line and leaves any other file at that path alone. If branch protection requires the `deft-core-guard` / `no-mixed-core-and-app` check, remove that required check, or the upgrade PR cannot merge.
 
 Refs: [#3127](https://github.com/deftai/directive/issues/3127), [#3193](https://github.com/deftai/directive/issues/3193), [#1430](https://github.com/deftai/directive/issues/1430), [#3117](https://github.com/deftai/directive/issues/3117), [#3345](https://github.com/deftai/directive/issues/3345), [#5552](https://github.com/deftai/directive/issues/5552).
 

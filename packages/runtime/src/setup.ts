@@ -33,7 +33,10 @@ import {
 import { assertInventoryCompleteness } from "./installer-output-inventory.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { isConvertStrategyFrom, runStrategy } from "./removal-steps/index.js";
-import { removeLegacyBareVersionMarkers } from "./removal-steps/steps.js";
+import {
+  removeLegacyBareVersionMarkers,
+  removeRetiredCoreGuardWorkflow,
+} from "./removal-steps/steps.js";
 import {
   ensureAgentsManagedSection,
   ensureGitHooks,
@@ -61,7 +64,10 @@ export interface SetupResult {
   readonly modified: string[];
   readonly removed: string[];
   readonly conflicts: string[];
-  /** Tracked divergent managed hooks kept in place; non-failure, present only when non-empty (#5837). */
+  /**
+   * Files kept in place; non-failure, present only when non-empty. Tracked divergent
+   * managed hooks (#5837) and a user-edited retired core-guard workflow (#5835).
+   */
   readonly preserved?: string[];
   readonly message: string;
 }
@@ -357,7 +363,11 @@ export function runSetup(options: {
 }): SetupResult {
   const { operation, from, root } = options;
   let preserved: string[] = [];
-  const withPreserved = (): { preserved?: string[] } => (preserved.length > 0 ? { preserved } : {});
+  const keptRetired: string[] = [];
+  const withPreserved = (): { preserved?: string[] } => {
+    const all = [...preserved, ...keptRetired];
+    return all.length > 0 ? { preserved: all } : {};
+  };
   const created: string[] = [];
   const modified: string[] = [];
   const removed: string[] = [];
@@ -419,6 +429,15 @@ export function runSetup(options: {
     // Upgrade only: never install, repair, uninstall or doctor.
     if (operation === "upgrade" && (legacyConversion || convertViaRemovals)) {
       removed.push(...removeLegacyBareVersionMarkers(root));
+    }
+
+    // #5835 / AC8.10: upgrade (any `from`) deletes the retired deft-core-guard
+    // workflow when it is Directive's file; a user-edited one is kept and named.
+    // Upgrade only: never install, repair, automatic setup or doctor.
+    if (operation === "upgrade") {
+      const guard = removeRetiredCoreGuardWorkflow(root);
+      removed.push(...guard.removed);
+      keptRetired.push(...guard.kept);
     }
 
     // AC8.10: inventory completeness is load-time evidence (throws if incomplete).

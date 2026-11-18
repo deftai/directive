@@ -2,8 +2,12 @@
  * Wave 3g — F-009 / F-011 / F-014 owner-boundary presenter tests.
  * Plain shop-English plan/completion + TTY wrap + uninstall summary.
  */
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  detectRetiredCoreGuard,
   HUMAN_GIT_HOOKS_INACTIVE_LINE,
   HUMAN_INSTALL_SCRIPT_LINE,
   type PresentIo,
@@ -11,8 +15,14 @@ import {
   presentInstallSuccess,
   presentUninstallPlan,
   presentUninstallSuccess,
+  presentUpgradePlan,
+  presentUpgradeSuccess,
+  RETIRED_CORE_GUARD_KEPT_LINE,
+  RETIRED_CORE_GUARD_REMOVED_LINE,
+  RETIRED_CORE_GUARD_WORKFLOW_REL,
   resolveWrapWidth,
   summarizeUninstallRemovals,
+  tryParseSetupSummary,
   type UninstallRemovalSummary,
   wrapWords,
 } from "./plan-present.js";
@@ -250,5 +260,130 @@ describe("F-014 uninstall plan/report summary", () => {
       verbosity: 1,
     });
     expect(cV.out()).toContain(".agents/skills/deft/SKILL.md");
+  });
+});
+
+describe("retired deft-core-guard workflow in upgrade output (#5835)", () => {
+  const planBase = {
+    projectRoot: "/tmp/shop",
+    pm: "npm" as const,
+    pmEvidence: "package-lock.json",
+    version: "1.3.0",
+    currentVersion: "1.2.0",
+    targetVersion: "1.3.0",
+    versionChange: true,
+    pmCommand: "npm install --save-exact @deftai/directive-runtime@1.3.0",
+    needSetup: true,
+    needMigrate: true,
+    oldStyle: false,
+    gitHooksInactive: false,
+    nodeWarning: null,
+    verbosity: 0 as const,
+  };
+  const successBase = {
+    version: "1.3.0",
+    versionChange: true,
+    pm: "npm" as const,
+    migrateSummary: null,
+    verbosity: 0 as const,
+  };
+
+  function projectWithGuard(body: string | null): string {
+    const root = mkdtempSync(join(tmpdir(), "p2u4-plan-"));
+    if (body !== null) {
+      mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+      writeFileSync(join(root, RETIRED_CORE_GUARD_WORKFLOW_REL), body);
+    }
+    return root;
+  }
+
+  it("plan announces the removal only when the guard is Directive's file", () => {
+    const roots = [
+      projectWithGuard("name: deft-core-guard\n"),
+      projectWithGuard("name: team-guard\n"),
+      projectWithGuard(null),
+    ];
+    try {
+      const [managedRoot, keptRoot, noneRoot] = roots as [string, string, string];
+      const managed = capture();
+      presentUpgradePlan(managed.io, { ...planBase, projectRoot: managedRoot });
+      expect(managed.out()).toContain(`remove the retired ${RETIRED_CORE_GUARD_WORKFLOW_REL}`);
+
+      const kept = capture();
+      presentUpgradePlan(kept.io, { ...planBase, projectRoot: keptRoot });
+      expect(kept.out()).not.toContain("remove the retired");
+      expect(kept.out()).toContain(`${RETIRED_CORE_GUARD_WORKFLOW_REL} does not look like`);
+
+      const none = capture();
+      presentUpgradePlan(none.io, { ...planBase, projectRoot: noneRoot });
+      expect(none.out()).not.toContain("deft-core-guard");
+
+      // No setup in the plan: nothing is removed, so nothing is announced.
+      const noSetup = capture();
+      presentUpgradePlan(noSetup.io, { ...planBase, projectRoot: managedRoot, needSetup: false });
+      expect(noSetup.out()).not.toContain("deft-core-guard");
+    } finally {
+      for (const root of roots) rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("-v plan lists the removal in the keyed block", () => {
+    const root = projectWithGuard("name: deft-core-guard\n");
+    try {
+      const c = capture();
+      presentUpgradePlan(c.io, { ...planBase, projectRoot: root, verbosity: 1 });
+      expect(c.out()).toContain(`remove: ${RETIRED_CORE_GUARD_WORKFLOW_REL} (retired workflow)`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("success names the deletion and the branch-protection step only when removed", () => {
+    const removed = capture();
+    presentUpgradeSuccess(removed.io, {
+      ...successBase,
+      summary: { created: [], modified: [], removed: [RETIRED_CORE_GUARD_WORKFLOW_REL] },
+    });
+    expect(removed.out()).toContain(`${RETIRED_CORE_GUARD_WORKFLOW_REL} (deleted)`);
+    expect(removed.out()).toContain(RETIRED_CORE_GUARD_REMOVED_LINE);
+    expect(RETIRED_CORE_GUARD_REMOVED_LINE).toContain("required status check");
+
+    const plain = capture();
+    presentUpgradeSuccess(plain.io, {
+      ...successBase,
+      summary: { created: [], modified: [".deft/GENERATION.json"], removed: [] },
+    });
+    expect(plain.out()).not.toContain("deft-core-guard");
+  });
+
+  it("success names a kept user-edited file", () => {
+    const parsed = tryParseSetupSummary(
+      JSON.stringify({
+        created: [],
+        modified: [],
+        removed: [],
+        preserved: [RETIRED_CORE_GUARD_WORKFLOW_REL],
+      }),
+    );
+    expect(parsed?.preserved).toEqual([RETIRED_CORE_GUARD_WORKFLOW_REL]);
+    const c = capture();
+    presentUpgradeSuccess(c.io, { ...successBase, summary: parsed });
+    expect(c.out()).toContain(RETIRED_CORE_GUARD_KEPT_LINE);
+    expect(c.out()).not.toContain(RETIRED_CORE_GUARD_REMOVED_LINE);
+  });
+
+  it("detectRetiredCoreGuard uses the same ownership test as the removal step", () => {
+    const root = mkdtempSync(join(tmpdir(), "p2u4-detect-"));
+    try {
+      expect(detectRetiredCoreGuard(root)).toBeNull();
+      mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+      const abs = join(root, RETIRED_CORE_GUARD_WORKFLOW_REL);
+      writeFileSync(abs, "name: deft-core-guard\n");
+      expect(detectRetiredCoreGuard(root)).toBe("managed");
+      writeFileSync(abs, "name: team-guard\n");
+      expect(detectRetiredCoreGuard(root)).toBe("kept");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
