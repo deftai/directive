@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { globSyncCompat, globSyncFallback } from "./glob-sync.js";
 
 // #5873: the Node 20 fallback must return what Node 22+ `fs.globSync` returns.
@@ -10,9 +10,6 @@ type GlobFn = (pattern: string, options?: { cwd?: string }) => string[];
 const nativeGlobSync = (fs as { globSync?: unknown }).globSync as GlobFn | undefined;
 const hasNative = typeof nativeGlobSync === "function";
 const native: GlobFn = (pattern, options) => nativeGlobSync?.(pattern, options) ?? [];
-// The fallback follows Node 22/24 glob. Node 26 changed how `**` treats
-// symlinked directories, so the symlink part of the fixture runs on <= 24 only.
-const NODE_MAJOR = Number(process.versions.node.split(".")[0]);
 
 const FILES = [
   "a.ts",
@@ -81,13 +78,18 @@ beforeAll(() => {
     mkdirSync(dirname(abs), { recursive: true });
     writeFileSync(abs, rel);
   }
-  if (NODE_MAJOR <= 24) {
-    try {
-      // Symlinked directory: Node does not follow it with `**` (default).
-      symlinkSync(join(root, "lib"), join(root, "linked"), "junction");
-    } catch {
-      // No symlink rights (some Windows setups): the rest of the fixture still runs.
-    }
+  const linked = join(root, "linked");
+  try {
+    // Symlinked directory: Node does not follow it with `**` (default).
+    symlinkSync(join(root, "lib"), linked, "junction");
+  } catch {
+    // No symlink rights (some Windows setups): the rest of the fixture still runs.
+  }
+  // The fallback ports Node 24.22+ / 26, where `**` never steps into a
+  // symlinked directory. Older 22/24 releases step in one level; on those,
+  // drop the link so the rest of the fixture still compares exactly.
+  if (hasNative && native("**/*", { cwd: root }).includes(join("linked", "x.ts"))) {
+    rmSync(linked, { recursive: false, force: true });
   }
 });
 
@@ -106,7 +108,7 @@ describe("globSyncCompat on Node 22+ (native present)", () => {
   });
 });
 
-describe("globSyncFallback (native hidden, as on Node 20)", () => {
+describe("globSyncFallback called directly (the Node 20 path)", () => {
   it.skipIf(!hasNative).each(RELATIVE_PATTERNS)("matches fs.globSync for %s", (pattern) => {
     expect(globSyncFallback(pattern, { cwd: root })).toEqual(native(pattern, { cwd: root }));
   });
@@ -135,5 +137,35 @@ describe("globSyncFallback (native hidden, as on Node 20)", () => {
 
   it("returns an empty list for a missing base directory", () => {
     expect(globSyncFallback("nope/**/*.ts", { cwd: root })).toEqual([]);
+  });
+});
+
+describe("globSyncCompat with fs.globSync missing (Node 20)", () => {
+  afterEach(() => {
+    vi.doUnmock("node:fs");
+    vi.resetModules();
+  });
+
+  it.skipIf(!hasNative)("selects the fallback and honours cwd", async () => {
+    let walkedDirs = 0;
+    vi.resetModules();
+    vi.doMock("node:fs", async (importOriginal) => {
+      const real = await importOriginal<typeof import("node:fs")>();
+      // Node 20 has no fs.globSync; the fallback walks with readdirSync.
+      const readdirSync = ((...args: Parameters<typeof real.readdirSync>) => {
+        walkedDirs += 1;
+        return real.readdirSync(...args);
+      }) as typeof real.readdirSync;
+      const node20 = { ...real, globSync: undefined, readdirSync };
+      return { ...node20, default: node20 };
+    });
+    const hidden = await import("./glob-sync.js");
+    for (const pattern of ["**/*.ts", "{src,lib}/*", "src/deep/**"]) {
+      expect(hidden.globSyncCompat(pattern, { cwd: root })).toEqual(native(pattern, { cwd: root }));
+    }
+    expect(hidden.globSyncCompat("*.ts", { cwd: join(root, "src") })).toEqual(
+      native("*.ts", { cwd: join(root, "src") }),
+    );
+    expect(walkedDirs).toBeGreaterThan(0);
   });
 });
