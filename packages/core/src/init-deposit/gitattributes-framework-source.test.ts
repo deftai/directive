@@ -95,7 +95,8 @@ describe("ensureGitattributes in a framework source checkout (#6256 / D-029)", (
 
     // No framework-source skip: this repository is set up like any project.
     await depositNeutralization(worktree, io, { skipGuardWorkflow: true });
-    const attrs = readFileSync(join(worktree, ".gitattributes"), "utf8");
+    // A Windows core.autocrlf checkout gives CRLF; the writer keeps the file's line ends.
+    const attrs = readFileSync(join(worktree, ".gitattributes"), "utf8").replace(/\r\n/g, "\n");
     expect(attrs.startsWith(TRACKED_ATTRS)).toBe(true);
     expect(attrs).not.toContain(".deft/core");
     for (const line of DESIRED_GITATTRIBUTES_LINES) expect(attrs).toContain(line);

@@ -564,7 +564,8 @@ function seedOldFiles(root: string): void {
 
 const SHARED_FILES = [".gitattributes", ".prettierignore", "greptile.json", CODEQL_REL];
 
-describe("setup and retired .deft/core lines (#5961)", { timeout: 60_000 }, () => {
+// Each case runs full setup more than once; the Windows VM needs about 2 minutes.
+describe("setup and retired .deft/core lines (#5961)", { timeout: 240_000 }, () => {
   it("install on an empty project writes no .deft/core text anywhere", () => {
     const root = committedProject();
     runSetup({ operation: "install", from: "none", root });
