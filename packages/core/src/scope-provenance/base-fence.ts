@@ -29,6 +29,7 @@
 
 import { CHANGELOG_FILE_REL, isChangelogEntryPath } from "../changelog/entry-path.js";
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
+import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import {
   isCompletionMoveShaped,
   isSpecDriftRowFilePath,
@@ -42,6 +43,7 @@ import {
 import { normalizeFileScope } from "./digest.js";
 import {
   assessExtraPaths,
+  declaredExtraPathRefusal,
   type ExtraPathAssessment,
   type ExtraPathChangeKind,
   extraPathRemedy,
@@ -148,6 +150,10 @@ export interface ProductionScopeFenceInput {
   readonly changeKind?: (relPath: string) => ExtraPathChangeKind | null;
   /** Receives the shared assessment for the success report (#6221 P4). */
   readonly onAssessment?: (assessment: ExtraPathAssessment) => void;
+  /** Declared refusal rows (tests); defaults to the shipped table (#6281). */
+  readonly refusalRows?: readonly RefusalDeclaration[];
+  /** Receives each warn-mode declared refusal line instead of a finding (#6281). */
+  readonly onWarning?: (line: string) => void;
 }
 
 export interface ProductionScopeFenceFinding {
@@ -206,6 +212,42 @@ export function evaluateProductionScopeFence(
   });
   input.onAssessment?.(assessment);
   if (extraPathsAdmitted(assessment)) {
+    return null;
+  }
+
+  // #6281 warn-first: a test or fixture add, delete or rename, and any other
+  // path the budget never admits, passed free on this check before #6221; and a
+  // test or fixture modify now spends the allowance. Those are the new refusals:
+  // each is a declared row that warns for one release. Production extras past
+  // the allowance refused before #6221 and keep refusing.
+  const productionSpent = assessment.entries.filter(
+    (e) => e.spend === "spent" && e.pathClass === "production",
+  ).length;
+  const legacyOverflow = productionSpent > assessment.allowance;
+  const warnings: string[] = [];
+  let refusing = legacyOverflow;
+  if (assessment.refused.length > 0) {
+    const declared = declaredExtraPathRefusal(
+      assessment,
+      "not-admitted",
+      formatExtraPathRefusal({ ...assessment, overflow: [] }),
+      input.refusalRows,
+    );
+    if (declared.proceed) warnings.push(declared.line);
+    else refusing = true;
+  }
+  if (assessment.overflow.length > 0 && !legacyOverflow) {
+    const declared = declaredExtraPathRefusal(
+      assessment,
+      "over-budget",
+      formatExtraPathRefusal({ ...assessment, refused: [] }),
+      input.refusalRows,
+    );
+    if (declared.proceed) warnings.push(declared.line);
+    else refusing = true;
+  }
+  if (!refusing) {
+    for (const line of warnings) input.onWarning?.(line);
     return null;
   }
 

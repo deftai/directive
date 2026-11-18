@@ -19,6 +19,10 @@ import {
   prePrPushGateRefusal,
   prePrPushGateRefusalLine,
 } from "../preflight-gh/pre-push.js";
+import {
+  assessExtraPaths,
+  declaredExtraPathRefusal,
+} from "../scope-provenance/extra-path-admission.js";
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { formatDeclaredRefusal, parsePrintedRemedy } from "./print.js";
 import { loadRefusalDeclarations, rowsWithoutRemedyCase } from "./table.js";
@@ -161,6 +165,39 @@ const CASES: Readonly<Record<string, RemedyCase>> = {
       const [code, message] = evaluatePrePush([], { projectRoot: root, enrolledBoundPrePr: true });
       expect(code).toBe(1);
       return message;
+    },
+    retry: null,
+  },
+  // #6221: both budget rows warn for one release; the fix is a brief edit, so
+  // the row is deferred to #6221 and the line says so.
+  "extra-path-not-admitted": {
+    refuse: () => {
+      const assessment = assessExtraPaths({
+        allowlist: ["packages/core/src/a.ts"],
+        authority: "concrete",
+        changedPaths: ["packages/core/src/new.test.ts"],
+        changeKind: () => "add",
+        otherClass: "refuse",
+      });
+      expect(assessment.refused).toEqual(["packages/core/src/new.test.ts"]);
+      return declaredExtraPathRefusal(assessment, "not-admitted", "a test add.").line;
+    },
+    retry: null,
+  },
+  "extra-paths-over-budget": {
+    refuse: () => {
+      const assessment = assessExtraPaths({
+        allowlist: ["packages/core/src/a.ts"],
+        authority: "concrete",
+        changedPaths: [
+          "packages/core/src/x.ts",
+          "packages/core/src/y.ts",
+          "packages/core/src/z.ts",
+        ],
+        otherClass: "refuse",
+      });
+      expect(assessment.overflow.length).toBeGreaterThan(0);
+      return declaredExtraPathRefusal(assessment, "over-budget", "three extras.").line;
     },
     retry: null,
   },

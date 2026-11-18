@@ -1499,6 +1499,8 @@ function deny(
 interface MergeGateWarner {
   readonly lines: string[];
   warn(refusal: string): boolean;
+  /** Record a declared warn-mode line (#6281); no signal read, always recorded. */
+  note(line: string): void;
 }
 
 function createMergeGateWarner(
@@ -1528,6 +1530,9 @@ function createMergeGateWarner(
       const line = mergeGateWarningLine(refusal, result);
       if (!lines.includes(line)) lines.push(line);
       return true;
+    },
+    note(line: string): void {
+      if (!lines.includes(line)) lines.push(line);
     },
   };
 }
@@ -1723,6 +1728,10 @@ function runtimeAuthorityForDirectWrite(
   // or invalid approval record stays a hard deny, and project allow/deny paths
   // and story deny paths still apply below.
   let warnedStoryAllow: readonly string[] | null = null;
+  // #6221 / #6281: a budget refusal in `warn` mode is admitted with its declared line.
+  if (storyAllow.kind === "scope") {
+    for (const line of storyAllow.warnings ?? []) warner?.note(line);
+  }
   if (storyAllow.kind === "refuse") {
     const refusal = `Directive denied this direct write: ${storyAllow.reason}${fenceRootNote}`;
     if (storyAllow.scopeOnly === true && warner?.warn(refusal) === true) {
@@ -5771,6 +5780,7 @@ export function evaluateProspectiveScopeCover(
     input.resolveStoryWriteAllow !== undefined ||
     (typeof fence.mergeBaseSha === "string" && fence.fileScope.length > 0);
   let extraRefusal = "";
+  let stagedWarnings: readonly string[] = [];
   let merge: ReturnType<typeof excuseMergeArrivals> | null = null;
   let uncovered: string[];
   if (sharedRule) {
@@ -5797,6 +5807,9 @@ export function evaluateProspectiveScopeCover(
     uncovered = storyStaged.filter((rel) => !matchAny(coverGlobs, rel));
     if (stagedAllow.kind === "refuse" && uncovered.length > 0) {
       extraRefusal = ` ${stagedAllow.reason}`;
+    }
+    if (stagedAllow.kind === "scope") {
+      stagedWarnings = stagedAllow.warnings ?? [];
     }
   } else {
     const outside = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
@@ -5831,7 +5844,8 @@ export function evaluateProspectiveScopeCover(
       `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s)` +
       (merge !== null && merge.excused.length > 0
         ? ` (${String(merge.excused.length)} unchanged from the fetched default branch in this merge, #6379).`
-        : "."),
+        : ".") +
+      (stagedWarnings.length > 0 ? ` ${stagedWarnings.join(" ")}` : ""),
     uncovered: [],
     scopePath: scope.path,
   };

@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { loadRefusalDeclarations } from "../refusal-declarations/table.js";
 import { buildApprovedScopeRecord } from "../scope-provenance/digest.js";
 import type { StoryWriteFenceView } from "./write-fence.js";
 import { resolveStoryWriteAllow, type WriteFenceGit } from "./write-fence-budget.js";
@@ -229,13 +230,25 @@ describe("resolveStoryWriteAllow (#6221)", () => {
 
   it("treats a glob match as an extra without a mint", () => {
     const { root, sha } = repo(BASE);
-    const d = resolveStoryWriteAllow({
+    const input = {
       projectRoot: root,
       fence: fence(sha, ["packages/core/src/**"]),
       targets: ["packages/core/src/c.ts", "packages/core/src/d.ts", "packages/core/src/e.ts"],
+    };
+    const enforced = resolveStoryWriteAllow({
+      ...input,
+      refusalRows: loadRefusalDeclarations().map((row) => ({ ...row, mode: "enforce" as const })),
     });
-    expect(d.kind).toBe("refuse");
-    if (d.kind === "refuse") expect(d.reason).toContain("extra-paths-over-budget");
+    expect(enforced.kind).toBe("refuse");
+    if (enforced.kind === "refuse") expect(enforced.reason).toContain("extra-paths-over-budget");
+    // The glob admitted these before #6221: the new refusal warns for one release (#6281).
+    const warned = resolveStoryWriteAllow(input);
+    expect(warned.kind).toBe("scope");
+    if (warned.kind === "scope") {
+      expect(warned.storyAllow).toEqual(input.targets);
+      expect(warned.warnings?.[0]).toContain("deft gate extra-paths-over-budget");
+      expect(warned.warnings?.[0]).toContain("can refuse from a later release");
+    }
   });
 
   it("honors a basename-keyed mint only for the same-named brief (no plan.id)", () => {

@@ -80,6 +80,18 @@ export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* ref
     "mode": "enforce",
     "remedy": ["directive install --repair --yes"],
     "exception": "existing refusal that refused before this table existed; seed row from #5977 with a remedy that runs as printed"
+  },
+  {
+    "id": "extra-path-not-admitted",
+    "gate": "extra-path budget: test or fixture add, delete or rename, and glob-matched or other-class paths outside file_scope (#6221)",
+    "remedy": ["deft verify:scope-provenance"],
+    "deferred": "the fix is a brief edit (name the path in file_scope on a widened brief that lands on the base, or move the path to a follow-up story); no printed command can make it for you; owned by #6221"
+  },
+  {
+    "id": "extra-paths-over-budget",
+    "gate": "extra-path budget: undeclared extra paths past the allowance (#6221)",
+    "remedy": ["deft verify:scope-provenance"],
+    "deferred": "the fix is a brief edit (split the extra paths to a follow-up story, or land a widened brief on the base); no printed command can make it for you; owned by #6221"
   }
 ] /* refusal-declarations:end */;
 

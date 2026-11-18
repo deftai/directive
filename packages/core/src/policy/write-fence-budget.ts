@@ -22,6 +22,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { isChangelogEntryPath } from "../changelog/entry-path.js";
+import { matchAny } from "../orchestration/pathspec.js";
+import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import {
   approvedScopeSafePlanId,
   isHumanApprovalStamp,
@@ -31,6 +33,7 @@ import { basenameMintPathOk, parseApprovedScopeRecordRaw } from "../scope-proven
 import {
   assessExtraPaths,
   classifyExtraPath,
+  declaredExtraPathRefusal,
   EXTRA_PATH_NOT_ADMITTED_TOKEN,
   EXTRA_PATHS_OVER_BUDGET_TOKEN,
   type ExtraPathAssessment,
@@ -69,6 +72,8 @@ export type StoryWriteAllowDecision =
       readonly kind: "scope";
       readonly storyAllow: readonly string[];
       readonly assessment: ExtraPathAssessment | null;
+      /** Warn-mode declared refusal lines (#6281): the targets are admitted and the caller prints these. */
+      readonly warnings?: readonly string[];
     }
   /** Refuse; `storyAllow` is the allowlist without extras. */
   | {
@@ -96,6 +101,8 @@ export interface ResolveStoryWriteAllowInput {
   readonly mode?: "write" | "commit";
   /** Paths that are not the story's change (merge arrivals, #6379): left out of the inventory. */
   readonly excludeFromInventory?: readonly string[];
+  /** Declared refusal rows (tests); defaults to the shipped table (#6281). */
+  readonly refusalRows?: readonly RefusalDeclaration[];
   readonly git?: WriteFenceGit;
   readonly roots?: {
     readonly testRoots?: readonly string[];
@@ -300,40 +307,66 @@ export function resolveStoryWriteAllow(
     // On a refusal, `storyAllow` still names every target the rule admits, so
     // the staged consumer reports only the refused paths as uncovered.
     const refusedTargets = extraTargets.filter((t) => assessment.refused.includes(t));
+    // #6281 warn-first. Before #6221 this fence admitted exactly the paths its
+    // `file_scope` globs matched and refused the rest. A refusal of a path those
+    // globs did not match is that old refusal and stays hard. A refusal of a path
+    // they did match (an unminted glob match that now spends the allowance, or is
+    // not admitted) is new: it is a declared row that warns for one release (the
+    // path is admitted with the printed line) and refuses once the row enforces.
+    const globAdmittedBefore = (t: string): boolean => matchAny(fence.fileScope, t);
+    const warnings: string[] = [];
+    const admitted = [...spentTargets];
     if (refusedTargets.length > 0) {
       const detail = assessment.entries
         .filter((e) => refusedTargets.includes(e.path))
         .map((e) => `${e.path} (${e.pathClass}: ${e.note})`)
         .join(", ");
-      return {
-        kind: "refuse",
-        reason:
-          `${EXTRA_PATH_NOT_ADMITTED_TOKEN}: ${detail} is outside the story file_scope and ` +
-          `the extra-path budget does not admit it. ${extraPathRemedy(assessment)}`,
-        storyAllow: [...storyAllow, ...spentTargets],
-        scopeOnly: true,
-      };
+      const reason =
+        `${EXTRA_PATH_NOT_ADMITTED_TOKEN}: ${detail} is outside the story file_scope and ` +
+        "the extra-path budget does not admit it.";
+      const isNew = refusedTargets.every(globAdmittedBefore);
+      const declared = isNew
+        ? declaredExtraPathRefusal(assessment, "not-admitted", reason, input.refusalRows)
+        : null;
+      if (declared === null || !declared.proceed) {
+        return {
+          kind: "refuse",
+          reason: declared?.line ?? `${reason} ${extraPathRemedy(assessment)}`,
+          storyAllow: [...storyAllow, ...spentTargets],
+          scopeOnly: true,
+        };
+      }
+      warnings.push(declared.line);
+      admitted.push(...refusedTargets);
     }
     const overBudget = assessment.spent.length > assessment.allowance;
     const newSpending =
       mode === "commit" ? spentTargets : spentTargets.filter((t) => !inventory.has(t));
     if (overBudget && newSpending.length > 0) {
       const overflow = new Set(assessment.overflow);
-      return {
-        kind: "refuse",
-        reason:
-          `${EXTRA_PATHS_OVER_BUDGET_TOKEN}: ${String(assessment.spent.length)} extra path(s) ` +
-          `would spend the allowance ${String(assessment.allowance)} ` +
-          `(concreteBase=${String(assessment.concreteBaseCount)}): ${assessment.spent.join(", ")}. ` +
-          extraPathRemedy(assessment),
-        storyAllow: [...storyAllow, ...spentTargets.filter((t) => !overflow.has(t))],
-        scopeOnly: true,
-      };
+      const reason =
+        `${EXTRA_PATHS_OVER_BUDGET_TOKEN}: ${String(assessment.spent.length)} extra path(s) ` +
+        `would spend the allowance ${String(assessment.allowance)} ` +
+        `(concreteBase=${String(assessment.concreteBaseCount)}): ${assessment.spent.join(", ")}.`;
+      const isNew = spentTargets.filter((t) => overflow.has(t)).every(globAdmittedBefore);
+      const declared = isNew
+        ? declaredExtraPathRefusal(assessment, "over-budget", reason, input.refusalRows)
+        : null;
+      if (declared === null || !declared.proceed) {
+        return {
+          kind: "refuse",
+          reason: declared?.line ?? `${reason} ${extraPathRemedy(assessment)}`,
+          storyAllow: [...storyAllow, ...spentTargets.filter((t) => !overflow.has(t))],
+          scopeOnly: true,
+        };
+      }
+      warnings.push(declared.line);
     }
     return {
       kind: "scope",
-      storyAllow: [...storyAllow, ...spentTargets],
+      storyAllow: [...storyAllow, ...admitted],
       assessment,
+      ...(warnings.length > 0 ? { warnings } : {}),
     };
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);

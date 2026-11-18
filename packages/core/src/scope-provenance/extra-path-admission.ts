@@ -20,6 +20,8 @@
  * {@link EXTRA_PATHS_OVER_BUDGET_TOKEN}.
  */
 
+import { type DeclaredRefusalLine, formatDeclaredRefusal } from "../refusal-declarations/print.js";
+import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import {
   DEFAULT_FIXTURE_ROOTS,
   DEFAULT_SOURCE_ROOTS,
@@ -39,6 +41,10 @@ import { normalizeFileScope } from "./digest.js";
 export const EXTRA_PATHS_OVER_BUDGET_TOKEN = "extra-paths-over-budget";
 /** Reason token for an extra the budget never admits (#6221). */
 export const EXTRA_PATH_NOT_ADMITTED_TOKEN = "extra-path-not-admitted";
+
+/** Declared refusal rows for the two budget refusals (#6221 / #6281). */
+export const EXTRA_PATH_NOT_ADMITTED_REFUSAL_ID = "extra-path-not-admitted";
+export const EXTRA_PATHS_OVER_BUDGET_REFUSAL_ID = "extra-paths-over-budget";
 
 export type ExtraPathClass = "production" | "test" | "fixture" | "other";
 export type ExtraPathSpend = "spent" | "free" | "hard-refused";
@@ -267,6 +273,29 @@ export function extraPathRemedy(assessment: ExtraPathAssessment): string {
     `${glob} (#6221 / #5192). Only a modify of an existing test or fixture path spends the allowance; ` +
     "a new, deleted or renamed test or fixture path outside file_scope needs the brief to name it."
   );
+}
+
+/**
+ * Declare the refusal through the shared #6281 helper. Both new #6221 refusals
+ * (a path the budget never admits, extras past the allowance) are table rows
+ * that warn for one release: `proceed` is true in `warn` mode and the caller
+ * prints the line and lets the work continue. In `enforce` mode the same line is
+ * the refusal.
+ */
+export function declaredExtraPathRefusal(
+  assessment: ExtraPathAssessment,
+  kind: "not-admitted" | "over-budget",
+  detail: string,
+  rows?: readonly RefusalDeclaration[],
+): DeclaredRefusalLine {
+  return formatDeclaredRefusal({
+    id:
+      kind === "not-admitted"
+        ? EXTRA_PATH_NOT_ADMITTED_REFUSAL_ID
+        : EXTRA_PATHS_OVER_BUDGET_REFUSAL_ID,
+    detail: `${detail} ${extraPathRemedy(assessment)}`,
+    ...(rows !== undefined ? { rows } : {}),
+  });
 }
 
 /** Success-path lines: each extra with its class and spend (#6221 P4). */

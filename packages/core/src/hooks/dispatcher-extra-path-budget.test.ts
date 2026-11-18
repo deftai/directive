@@ -188,9 +188,10 @@ describe("story write fence: shared extra-path rule (#6221)", () => {
     const root = storyRepo(["src/**"]);
     write(root, "src/b.ts", "b\n");
     write(root, "src/c.ts", "c\n");
+    // Before #6221 the glob admitted this write, so the over-budget refusal is
+    // new and warns for one release (#6281): the write is admitted.
     const decision = writeTo(root, "src/d.ts");
-    expect(decision).toMatchObject({ verdict: "deny" });
-    expect(decision.message).toContain("extra-paths-over-budget");
+    expect(decision).toMatchObject({ verdict: "allow" });
   });
 
   it("keeps the story deny paths: a budget admit never overrides them", () => {

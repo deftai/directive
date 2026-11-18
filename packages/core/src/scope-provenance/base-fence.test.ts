@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { loadRefusalDeclarations } from "../refusal-declarations/table.js";
 import {
   evaluateApprovedScopeMembership,
   evaluateProductionScopeFence,
@@ -8,6 +9,9 @@ import {
   PRODUCTION_ALLOWANCE_FLOOR,
   productionAllowance,
 } from "./base-fence.js";
+
+/** The shipped rows with every row set to enforce: the refusal a later release ships. */
+const ENFORCE_ROWS = loadRefusalDeclarations().map((row) => ({ ...row, mode: "enforce" as const }));
 
 describe("production allowance (#4956)", () => {
   it("clamps concrete production count to floor 2 and cap 5", () => {
@@ -52,19 +56,36 @@ describe("evaluateProductionScopeFence (#4956)", () => {
     expect(hit).toBeNull();
   });
 
-  it("refuses test-root paths with an unknown or add change kind (#6221)", () => {
+  it("refuses test-root paths with an unknown or add change kind once the row enforces (#6221)", () => {
     const hit = evaluateProductionScopeFence({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
       baseFileScope: ["packages/core/src/a.ts"],
       changedFiles: ["packages/core/src/a.ts", "packages/core/src/a.test.ts"],
+      refusalRows: ENFORCE_ROWS,
     });
     expect(hit?.kind).toBe("production-scope-over-budget");
     expect(hit?.detail).toContain("extra-path-not-admitted");
   });
 
-  it("refuses a third test modify past the allowance with the shared token (#6221)", () => {
+  it("warns for one release instead of refusing a test add; the line names the row and remedy (#6281)", () => {
+    const warnings: string[] = [];
     const hit = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/a.ts"],
+      changedFiles: ["packages/core/src/a.ts", "packages/core/src/a.test.ts"],
+      onWarning: (line) => warnings.push(line),
+    });
+    expect(hit).toBeNull();
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("deft gate extra-path-not-admitted");
+    expect(warnings[0]).toContain("can refuse from a later release");
+    expect(warnings[0]).toContain("Remedy: `deft verify:scope-provenance`");
+  });
+
+  it("refuses a third test modify past the allowance with the shared token once the row enforces (#6221)", () => {
+    const input = {
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
       baseFileScope: ["packages/core/src/a.ts"],
@@ -73,10 +94,27 @@ describe("evaluateProductionScopeFence (#4956)", () => {
         "packages/core/src/b.test.ts",
         "packages/core/src/c.ts",
       ],
-      changeKind: () => "modify",
-    });
+      changeKind: () => "modify" as const,
+    };
+    const hit = evaluateProductionScopeFence({ ...input, refusalRows: ENFORCE_ROWS });
     expect(hit?.detail).toContain("extra-paths-over-budget");
     expect(hit?.remediation).toMatch(/follow-up story/i);
+    // Warn mode: the overflow comes from a test modify, a new refusal, so it warns.
+    const warnings: string[] = [];
+    expect(
+      evaluateProductionScopeFence({ ...input, onWarning: (l) => warnings.push(l) }),
+    ).toBeNull();
+    expect(warnings[0]).toContain("deft gate extra-paths-over-budget");
+  });
+
+  it("keeps refusing production extras past the allowance in warn mode (refused before #6221)", () => {
+    const hit = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: ["packages/core/src/a.ts"],
+      changedFiles: ["packages/core/src/b.ts", "packages/core/src/c.ts", "packages/core/src/d.ts"],
+    });
+    expect(hit?.kind).toBe("production-scope-over-budget");
   });
 
   it("under a mint, globs match but a broader mint does not widen the brief (#6221 / #5192)", () => {

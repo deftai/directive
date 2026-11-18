@@ -448,10 +448,13 @@ describe("evaluateScopeProvenance one-PR mint level (#6273)", () => {
     expect(result.mintLevelAdmits?.[0]?.fileScope).toContain("packages/core/src/feature.test.ts");
     // Membership admits the widened brief, but the Path-independent check stays
     // on the merge-base brief (#4956): a new test it does not name is an add
-    // the extra-path rule refuses (#6221), as the write fence would.
-    expect(result.exitCode).toBe(1);
-    expect(result.findings.map((f) => f.kind)).toEqual(["production-scope-over-budget"]);
-    expect(result.findings[0]?.expandedPaths).toEqual(["packages/core/src/feature.test.ts"]);
+    // the extra-path rule does not admit (#6221). That refusal is new, so it
+    // warns for one release (#6281) and lists the declared line.
+    expect(result.exitCode).toBe(0);
+    expect(result.findings).toEqual([]);
+    const report = (result.extraPathReport ?? []).join("\n");
+    expect(report).toContain("deft gate extra-path-not-admitted");
+    expect(report).toContain("packages/core/src/feature.test.ts");
   });
 
   it("reads the level at the merge base, not the base branch tip", () => {

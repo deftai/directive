@@ -59,6 +59,7 @@ import {
   type OnePrScopeProofGate,
 } from "../policy/one-pr-scope-proof.js";
 import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
+import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
 import { parseGitHubRepoSlug } from "../text/redos-safe.js";
 import {
@@ -176,6 +177,8 @@ export interface ScopeProvenanceOptions {
    * injected changedFiles: every kind is unknown (test/fixture extras refuse).
    */
   readonly changeKinds?: ReadonlyMap<string, ExtraPathChangeKind>;
+  /** Declared refusal rows for the extra-path warn-first check (tests, #6281). */
+  readonly refusalRows?: readonly RefusalDeclaration[];
   /** Inject active xBRIEF payloads: relPath -> raw JSON text. */
   readonly activeXbriefs?: ReadonlyMap<string, string>;
   /** Inject approved records (skips disk). */
@@ -1875,6 +1878,11 @@ function evaluateWithRunner(
         changeKind: changeKindFor,
         onAssessment: (a) => {
           fenceSeen.assessment = a;
+        },
+        ...(options.refusalRows !== undefined ? { refusalRows: options.refusalRows } : {}),
+        // Warn-first declared refusals (#6281) print with the success report.
+        onWarning: (line) => {
+          extraPathReport.push(line);
         },
       });
       if (fenceHit === null && fenceSeen.assessment !== null) {

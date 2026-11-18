@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { loadRefusalDeclarations } from "../refusal-declarations/table.js";
 import {
   type ApprovedScopeRecord,
   buildApprovedScopeRecord,
@@ -1336,7 +1337,23 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
     );
   });
 
-  it("refuses an undeclared test add on the Path-independent check (#6221)", () => {
+  it("refuses an undeclared test add on the Path-independent check once the row enforces (#6221)", () => {
+    const base = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const result = evaluateScopeProvenance("/tmp/proj", {
+      changedFiles: ["packages/core/src/a.ts", "packages/core/src/new.test.ts"],
+      changeKinds: new Map([["packages/core/src/new.test.ts", "add"]]),
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
+      approvedRecords: [],
+      refusalRows: loadRefusalDeclarations().map((row) => ({ ...row, mode: "enforce" as const })),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
+    expect(result.findings[0]?.detail).toContain("extra-path-not-admitted");
+    expect(result.extraPathReport).toBeUndefined();
+  });
+
+  it("warns for one release on an undeclared test add and lists the declared line (#6281)", () => {
     const base = xbrief("story-1", ["packages/core/src/a.ts"]);
     const result = evaluateScopeProvenance("/tmp/proj", {
       changedFiles: ["packages/core/src/a.ts", "packages/core/src/new.test.ts"],
@@ -1345,10 +1362,8 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
       baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
       approvedRecords: [],
     });
-    expect(result.exitCode).toBe(1);
-    expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
-    expect(result.findings[0]?.detail).toContain("extra-path-not-admitted");
-    expect(result.extraPathReport).toBeUndefined();
+    expect(result.exitCode).toBe(0);
+    expect(result.extraPathReport?.join("\n")).toContain("deft gate extra-path-not-admitted");
   });
 
   it("hard-fails same-PR rewrite of an approved-scope record without remint copy", () => {

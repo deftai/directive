@@ -256,13 +256,15 @@ describe("verify-scope-provenance CLI (#3145 / #5057)", () => {
     expect(ok.stdout).toContain("extra paths for xbrief/active/story.xbrief.json");
     expect(ok.stdout).toContain("packages/core/src/other.test.ts class=test spend=spent");
 
-    // A new undeclared test file is refused with the shared token.
+    // A new undeclared test file warns for one release (#6281): exit 0 and the
+    // declared line names the row, the path and the remedy.
     writeTracked(root, "packages/core/src/new.test.ts", "// new\n");
     commit(root, "add test");
-    const refused = captureRun(["--project-root", root, "--base-ref", "base"]);
-    expect(refused.code).toBe(1);
-    expect(refused.stderr).toContain("extra-path-not-admitted");
-    expect(refused.stderr).toContain("packages/core/src/new.test.ts");
+    const warned = captureRun(["--project-root", root, "--base-ref", "base"]);
+    expect(warned.code).toBe(0);
+    expect(warned.stdout).toContain("deft gate extra-path-not-admitted");
+    expect(warned.stdout).toContain("packages/core/src/new.test.ts");
+    expect(warned.stdout).toContain("can refuse from a later release");
   });
 
   // Windows dest worktrees: one git show per lifecycle brief (~1800) is ~200ms
