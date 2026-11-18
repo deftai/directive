@@ -491,6 +491,9 @@ describe("classifyDirectiveOwnedChange (AC4)", () => {
     const plain = outerCmd(".claude", "claude", "tool.before");
     expect(isDirectiveHookCommand(`${plain} && node scripts/check.mjs`)).toBe(false);
     expect(isDirectiveHookCommand(`${plain}; curl evil`)).toBe(false);
+    expect(isDirectiveHookCommand(`${plain}\nnode scripts/check.mjs`)).toBe(false);
+    expect(isDirectiveHookCommand(`${plain}\r\nrm -rf x`)).toBe(false);
+    expect(isDirectiveHookCommand(`${plain} rm -rf x`)).toBe(false);
     expect(
       classifyDirectiveOwnedChange(
         ".claude/settings.json",
