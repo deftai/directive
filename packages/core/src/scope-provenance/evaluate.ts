@@ -88,6 +88,7 @@ import {
   resolveStoryContinuity,
   sameBasenameLifecyclePaths,
 } from "./continuity.js";
+import { declarationHidesAxisLines } from "./declaration-hides-axis.js";
 import {
   type ApprovedScopeRecord,
   approvedScopeIntentRel,
@@ -1929,6 +1930,21 @@ function evaluateWithRunner(
           remediation: fenceHit.remediation,
         });
       }
+    }
+
+    // #6591: a declaration changed after activation that hides a strict axis.
+    // Own pre-move read (evaluateLegacyIntent stays on the head path); warn
+    // line on the extra-path channel, never a finding or an exit-code change.
+    if (modified) {
+      const hides = resolveMergeBaseBriefRead(rel, continuity, readAtBase, headLifecycleRels);
+      extraPathReport.push(
+        ...declarationHidesAxisLines({
+          headRel: rel,
+          headPayload: payload,
+          baseRel: hides.baseRel,
+          baseRead: hides.read,
+        }),
+      );
     }
 
     // Intent pin (#3385) only when a digest already exists / is rewritten —

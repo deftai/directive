@@ -267,6 +267,44 @@ describe("verify-scope-provenance CLI (#3145 / #5057)", () => {
     expect(warned.stdout).toContain("can refuse from a later release");
   });
 
+  it("prints the declaration-hides-axis line on exit 0, active and completed (#6591)", () => {
+    const root = initRepo();
+    roots.push(root);
+    const active = "xbrief/active/2026-11-18-story.xbrief.json";
+    const done = "xbrief/completed/2026-11-18-story.xbrief.json";
+    const story = (item: Record<string, unknown>): string => {
+      const payload = JSON.parse(xbrief("story", ["packages/core/src/a.ts"])) as {
+        plan: Record<string, unknown>;
+      };
+      payload.plan.items = [
+        { id: "clause.1", title: "Deploy to staging and confirm the site serves it", ...item },
+      ];
+      return `${JSON.stringify(payload, null, 2)}\n`;
+    };
+    writeTracked(root, active, story({}));
+    commit(root, "base");
+    git(root, ["branch", "base"]);
+    git(root, ["checkout", "-q", "-b", "impl"]);
+    writeTracked(root, active, story({ "x-directive/requires": "merge" }));
+    commit(root, "declare merge after activation");
+
+    // The brief stays in active/: the line prints after the intent-pin WARN.
+    const stays = captureRun(["--project-root", root, "--base-ref", "base"]);
+    expect(stays.code).toBe(0);
+    expect(stays.stdout).toMatch(/WARN \d+ intent-pin finding\(s\)/);
+    expect(stays.stdout).toContain("deft gate declaration-hides-axis ");
+    expect(stays.stdout).toContain(`${active} item clause.1: its declaration hides deploy`);
+
+    // The same edit in the move to completed/: clean, and the line still prints.
+    git(root, ["rm", "-q", "--", active]);
+    writeTracked(root, done, story({ "x-directive/requires": "merge" }));
+    commit(root, "move to completed");
+    const moved = captureRun(["--project-root", root, "--base-ref", "base"]);
+    expect(moved.code).toBe(0);
+    expect(moved.stdout).toMatch(/verify_scope_provenance: clean/);
+    expect(moved.stdout).toContain(`${done} item clause.1: its declaration hides deploy`);
+  });
+
   // Windows dest worktrees: one git show per lifecycle brief (~1800) is ~200ms
   // each here (~6 min serial); suite load pushes past the 240s win32 project
   // default. Do not undercut with a tighter per-it timeout (#5391 lane flake).

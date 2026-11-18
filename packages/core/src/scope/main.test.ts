@@ -547,4 +547,36 @@ describe("strict-axis advisory at promote and activate (#6272)", () => {
     expect(refused.code).toBe(1);
     expect(refused.stdout).not.toContain("#6272");
   });
+
+  it("#6591: promote and activate keep the declaration sentence and mark declared rows", () => {
+    const items = [
+      ...strictItems(),
+      {
+        id: "clause.4",
+        title: "Deploy the docs site.",
+        status: "pending",
+        "x-directive/requires": "merge",
+      },
+    ];
+    const promoted = capture([
+      "promote",
+      writeBrief("proposed", "proposed", items),
+      "--project-root",
+      root,
+    ]);
+    expect(promoted.code).toBe(0);
+    expect(promoted.stdout).toContain("2 clause(s) will need strict-axis evidence");
+    expect(promoted.stdout).toContain("  clause.4: deploy (declared)\n");
+    expect(promoted.stdout).toContain("declare x-directive/requires (merge or one axis)");
+    rmSync(root, { recursive: true, force: true });
+    const activated = capture([
+      "activate",
+      writeBrief("pending", "pending", items),
+      "--project-root",
+      root,
+    ]);
+    expect(activated.code).toBe(0);
+    expect(activated.stdout).toContain("  clause.4: deploy (declared)\n");
+    expect(activated.stdout).toContain("declare x-directive/requires (merge or one axis)");
+  });
 });
