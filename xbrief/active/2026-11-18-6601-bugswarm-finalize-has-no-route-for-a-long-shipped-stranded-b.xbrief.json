@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6601",
-    "updated": "2026-11-18T01:59:50Z"
+    "updated": "2026-11-18T03:53:53Z"
   },
   "plan": {
     "title": "bug(swarm): finalize has no route for a long-shipped stranded brief (R7 refuses the product PR, the stamp refuses the activation PR)",
@@ -107,7 +107,21 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(swarm): finalize has no route for a long-shipped stranded brief (R7 refuses the product PR, the stamp refuses the activation PR)",
+        "swarm:finalize-cohort refuses to commit the lifecycle move of a long-shipped stranded brief with 'causal lifecycle diff refused unrelated xBRIEF path(s) ...",
+        "(#4714 R7)'.",
+        "The cause is a bug in R7 itself: the sweep runs in a temporary checkout (sweepRoot) but the lifecycle-diff check is given the implement-worktree story paths, so the allow-set holds bare file names and never matches xbrief/active/...",
+        "or xbrief/completed/....",
+        "The fallback that derives lifecycle paths from the sweep also misses, because completeStory records a relative path that resolve() reads against the process cwd.",
+        "This story passes the swept story paths to the check and resolves the recorded path against the project root.",
+        "The second refusal in the issue (--pr 6593, the activation PR as productPullRequest) is correct behaviour and stays.",
+        "Given a finalize sweep that runs in a temporary checkout where git status reports the story's brief moving from xbrief/active/X to xbrief/completed/X, when finalize commits, then the R7 lifecycle-diff check admits both paths and the commit succeeds with no R7 error.",
+        "Given a finalize sweep in a temporary checkout that also moves a parent-epic record brief, when finalize commits, then the R7 check admits the parent-epic record twins and the commit succeeds.",
+        "Given a temporary-checkout sweep whose diff also holds an xBRIEF path that is not the story's own or a parent-epic record twin, when finalize commits, then the R7 check still refuses with the unrelated-path error.",
+        "Given the change, when the finalize-cohort and lifecycle-diff vitest suites run, then every existing test passes and the new cases pass."
+      ]
     },
     "metadata": {
       "kind": "story",
@@ -159,6 +173,6 @@
       }
     },
     "id": "github.issue.6457782720",
-    "updated": "2026-11-18T01:59:50Z"
+    "updated": "2026-11-18T03:53:53Z"
   }
 }
