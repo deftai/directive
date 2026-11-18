@@ -279,6 +279,11 @@ packages. Instead:
   ${env:npm_config_@deftai:registry}='https://registry.npmjs.org/'; directive upgrade; Remove-Item 'env:npm_config_@deftai:registry'
   ```
 
+  The override sends every `@deftai` package to public npm for that run. It
+  works only when your other `@deftai` packages do not need the private
+  registry during that run (for example npm with their lockfile URLs already
+  recorded). Otherwise use the durable fix below.
+
 - For a durable fix, your registry needs to serve the two Directive packages
   (for example a proxy registry with an upstream to npmjs), or the internal
   packages need a different scope.

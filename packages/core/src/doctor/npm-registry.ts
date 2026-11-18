@@ -220,7 +220,8 @@ export function runNpmRegistryMirrorCheck(
       "Do not remap the whole @deftai scope; that would break your other @deftai packages. " +
       "If `package-lock.json` already records the runtime's npmjs URL, `npm ci` reinstalls from it. " +
       "pnpm lockfiles do not record that URL, so pnpm installs route through `@deftai:registry` again. " +
-      "For one run, set `npm_config_@deftai:registry=https://registry.npmjs.org/` in the environment (changes no config). " +
+      "For one run, set `npm_config_@deftai:registry=https://registry.npmjs.org/` in the environment (changes no config); " +
+      "this works only when your other @deftai packages do not need the private registry during that run. " +
       "To add or upgrade Directive, your registry needs to serve these two packages (for example a proxy registry with an upstream to npmjs), " +
       `or the internal packages need a different scope. See ${NPM_REGISTRY_MIRROR_DOC_URL}.`;
     sink.warn(splitMessage);

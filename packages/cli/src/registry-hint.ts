@@ -176,5 +176,11 @@ export function scopedRegistryHint(
   lines.push(
     `  PowerShell: \${env:${OVERRIDE_ENV_KEY}}='${PUBLIC_NPM_REGISTRY}'; ${command}; Remove-Item 'env:${OVERRIDE_ENV_KEY}'`,
   );
+  lines.push(
+    "The override sends every @deftai package to public npm for that run, so it works only when your other @deftai packages " +
+      "do not need the private registry then (for example npm with their lockfile URLs already recorded). " +
+      "Otherwise your registry needs to serve Directive's two packages (for example a proxy with an npmjs upstream), " +
+      "or the internal packages need a different scope.",
+  );
   return { hint: lines.join("\n"), redact: redactorFor(raw, url) };
 }

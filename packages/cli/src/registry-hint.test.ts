@@ -77,6 +77,8 @@ describe("scopedRegistryHint", () => {
     expect(hint).toContain("@deftai/directive, @deftai/directive-runtime");
     expect(hint).toContain("Do not remap the whole @deftai scope in .npmrc");
     expect(hint).toContain("Re-run the same command with the same flags");
+    expect(hint).toContain("works only when your other @deftai packages");
+    expect(hint).toContain("proxy with an npmjs upstream");
     expect(hint).toContain(
       "env 'npm_config_@deftai:registry=https://registry.npmjs.org/' directive upgrade",
     );
