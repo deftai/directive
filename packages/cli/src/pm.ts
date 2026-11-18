@@ -448,6 +448,27 @@ export function formatPnpmIgnoredBuildsRecovery(): string {
   );
 }
 
+/** True when PM stderr/message shows pnpm's release-age policy refused the install (#5854). */
+export function isPnpmReleaseAgeFailure(text: string): boolean {
+  return /ERR_PNPM_(NO_MATURE_MATCHING_VERSION|MINIMUM_RELEASE_AGE_VIOLATION)/i.test(text);
+}
+
+/**
+ * #5854 (Outcome B): PM-shaped recovery when pnpm's minimumReleaseAge blocks the runtime.
+ * pnpm-workspace.yaml is owned by pnpm and the project; Directive does not change it.
+ */
+export function formatPnpmReleaseAgeRecovery(version: string): string {
+  const spec = `@deftai/directive-runtime@${version}`;
+  return (
+    `pnpm's release-age policy in this project blocks ${spec}: it is newer than your configured minimum age.\n` +
+    `This is your project's supply-chain setting. Directive does not change it.\n` +
+    `To recover, do one of these, then run the same command again:\n` +
+    `  - Wait until ${version} is old enough.\n` +
+    `  - Or add '${spec}' under minimumReleaseAgeExclude in pnpm-workspace.yaml\n` +
+    `    (or extend your existing @deftai/directive-runtime row with "|| ${version}").`
+  );
+}
+
 /**
  * AC5.8 / INIT-10: verify the selected PM binary is spawnable.
  * Does not install or switch managers; Corepack is suggested, never assumed.
@@ -497,6 +518,15 @@ function fileDigest(absPath: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Digest of pnpm-workspace.yaml (null when absent). Bookends compare it before and
+ * after the PM add so a file pnpm itself changed is listed under "Review and commit"
+ * (#5854 / #6006). Read-only: Directive never writes this file.
+ */
+export function pnpmWorkspaceDigest(projectRoot: string): string | null {
+  return fileDigest(join(projectRoot, "pnpm-workspace.yaml"));
 }
 
 /**

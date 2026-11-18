@@ -4,12 +4,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  addWithRuntimeAgeExcludeHeal,
-  formatAgeExcludeHealLine,
-  healRuntimeAgeExclude,
-  previewRuntimeAgeExcludeHeal,
-} from "./age-exclude.js";
-import {
   CONTRACT_NUMBER,
   EXIT_CODES,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
@@ -62,14 +56,17 @@ import {
   formatPmExactAddCommand,
   formatPmRemoveCommand,
   formatPnpmIgnoredBuildsRecovery,
+  formatPnpmReleaseAgeRecovery,
   INSTALL_SCRIPT_POLICY_PLAN_LINE,
   isPnpmIgnoredBuildsFailure,
+  isPnpmReleaseAgeFailure,
   lockfileRecordsExactPin,
   PARTIAL_CHANGES_MAY_REMAIN,
   type PackageManager,
   type PlanFingerprint,
   type PmAddResult,
   planFingerprintChanged,
+  pnpmWorkspaceDigest,
   purgeRetiredDirectiveLockfiles,
   RETIRED_DIRECTIVE_PACKAGE_NAMES,
   readDeclaredPackageManagerVersion,
@@ -328,12 +325,20 @@ function assertPlanStillValid(
 }
 
 /** Map PM add/remove failure to exit code; interruption → 130 (AC5.15 / AC14.56). */
-function reportPmFailure(io: BookendIo, add: Extract<PmAddResult, { ok: false }>): number {
+function reportPmFailure(
+  io: BookendIo,
+  add: Extract<PmAddResult, { ok: false }>,
+  runtimeVersion?: string,
+): number {
   io.writeErr(`${add.message}\n`);
   if (add.stderr) io.writeErr(`${add.stderr}\n`);
   const blob = `${add.message}\n${add.stderr ?? ""}`;
   if (isPnpmIgnoredBuildsFailure(blob)) {
     io.writeErr(`${formatPnpmIgnoredBuildsRecovery()}\n`);
+  }
+  // #5854 (Outcome B): explain pnpm's release-age refusal; Directive never edits pnpm-workspace.yaml.
+  if (runtimeVersion !== undefined && isPnpmReleaseAgeFailure(blob)) {
+    io.writeErr(`${formatPnpmReleaseAgeRecovery(runtimeVersion)}\n`);
   }
   if (add.interrupted) {
     if (!/partial changes may remain/i.test(add.message)) {
@@ -614,10 +619,6 @@ function runFirstInstall(
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
-  // #5854: disclose the runtime AgeExclude replace in plan / dry-run output.
-  const ageExcludeHeal =
-    pmDetect.pm === "pnpm" ? previewRuntimeAgeExcludeHeal(projectRoot, targetVersion) : null;
-  if (ageExcludeHeal !== null) io.writeOut(formatAgeExcludeHealLine(ageExcludeHeal, targetVersion));
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -636,18 +637,14 @@ function runFirstInstall(
     io.writeOut('Created package.json { "private": true }\n');
   }
 
-  // #5854 P2: shared pre+post runtime AgeExclude upsert around the exact add.
-  const add = addWithRuntimeAgeExcludeHeal(
-    projectRoot,
-    pmDetect.pm,
-    targetVersion,
-    () =>
-      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
-      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env }),
-  );
+  const wsBefore = pnpmWorkspaceDigest(projectRoot);
+  const add =
+    deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
+    runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
   if (!add.ok) {
-    return reportPmFailure(io, add);
+    return reportPmFailure(io, add, targetVersion);
   }
+  const pnpmWorkspaceChanged = pnpmWorkspaceDigest(projectRoot) !== wsBefore;
 
   // Verify pin + installed version (INIT-14)
   const after = readProjectInstallState(projectRoot);
@@ -685,6 +682,7 @@ function runFirstInstall(
     deps,
     verbosity: flags.verbosity,
     pm: pmDetect.pm,
+    pnpmWorkspaceChanged,
   }).exitCode;
 }
 
@@ -739,10 +737,6 @@ function runRepair(
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
-  // #5854: disclose the runtime AgeExclude replace in plan / dry-run output.
-  const ageExcludeHeal =
-    pmDetect.pm === "pnpm" ? previewRuntimeAgeExcludeHeal(projectRoot, pinVersion) : null;
-  if (ageExcludeHeal !== null) io.writeOut(formatAgeExcludeHealLine(ageExcludeHeal, pinVersion));
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -761,22 +755,16 @@ function runRepair(
   const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
   if (stale !== null) return stale;
 
-  // #5854 P2: heal a stranded stale/dual runtime AgeExclude even when no PM restore runs.
-  if (pmDetect.pm === "pnpm") healRuntimeAgeExclude(projectRoot, pinVersion);
-
+  let pnpmWorkspaceChanged = false;
   if (needsPmRestore) {
-    // #5854 P2: shared pre+post runtime AgeExclude upsert around the exact add.
-    const add = addWithRuntimeAgeExcludeHeal(
-      projectRoot,
-      pmDetect.pm,
-      pinVersion,
-      () =>
-        deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: pinVersion }) ??
-        runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: pinVersion, env }),
-    );
+    const wsBefore = pnpmWorkspaceDigest(projectRoot);
+    const add =
+      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: pinVersion }) ??
+      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: pinVersion, env });
     if (!add.ok) {
-      return reportPmFailure(io, add);
+      return reportPmFailure(io, add, pinVersion);
     }
+    pnpmWorkspaceChanged = pnpmWorkspaceDigest(projectRoot) !== wsBefore;
   }
 
   const after = readProjectInstallState(projectRoot);
@@ -809,6 +797,7 @@ function runRepair(
     verbosity: flags.verbosity,
     pm: pmDetect.pm,
     restoredPackage: needsPmRestore,
+    pnpmWorkspaceChanged,
   }).exitCode;
 }
 
@@ -852,6 +841,8 @@ function handOffSetup(opts: {
   verbosity: Verbosity;
   pm: PackageManager;
   restoredPackage?: boolean;
+  /** pnpm changed pnpm-workspace.yaml during the PM add (#5854 / #6006). */
+  pnpmWorkspaceChanged?: boolean;
 }): { exitCode: number; summary: SetupSummary | null } {
   const argv = setupArgv(opts.operation, opts.from, opts.projectRoot);
   const result =
@@ -882,6 +873,7 @@ function handOffSetup(opts: {
         pm: opts.pm,
         summary,
         verbosity: opts.verbosity,
+        pnpmWorkspaceChanged: opts.pnpmWorkspaceChanged ?? false,
       });
     } else if (opts.operation === "repair") {
       presentRepairSuccess(opts.io, {
@@ -890,6 +882,7 @@ function handOffSetup(opts: {
         summary,
         verbosity: opts.verbosity,
         pm: opts.pm,
+        pnpmWorkspaceChanged: opts.pnpmWorkspaceChanged ?? false,
       });
     }
     // upgrade: caller presents after migrate
@@ -1194,12 +1187,6 @@ export function runUpgrade(
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
-  // #5854: disclose the runtime AgeExclude replace in plan / dry-run output.
-  const ageExcludeHeal =
-    pmDetect.pm === "pnpm" && versionChange
-      ? previewRuntimeAgeExcludeHeal(projectRoot, targetVersion)
-      : null;
-  if (ageExcludeHeal !== null) io.writeOut(formatAgeExcludeHealLine(ageExcludeHeal, targetVersion));
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -1221,6 +1208,8 @@ export function runUpgrade(
   if (stale !== null) return stale;
 
   if (versionChange) {
+    // #5854 / #6006: baseline before any PM call so a file pnpm changes is listed for review.
+    const wsBefore = pnpmWorkspaceDigest(projectRoot);
     // AC10.3: replace pre-split @deftai/directive pin before PM adds the runtime.
     if (state.oldStyle || convertViaRemovals) {
       // F-016 / AC6.12: create {private:true} BEFORE any PM remove. `npm remove`
@@ -1256,18 +1245,13 @@ export function runUpgrade(
     if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
       ensurePackageJson(projectRoot);
     }
-    // #5854 P2: shared pre+post runtime AgeExclude upsert around the exact add.
-    const add = addWithRuntimeAgeExcludeHeal(
-      projectRoot,
-      pmDetect.pm,
-      targetVersion,
-      () =>
-        deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
-        runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env }),
-    );
+    const add =
+      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
+      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
     if (!add.ok) {
-      return reportPmFailure(io, add);
+      return reportPmFailure(io, add, targetVersion);
     }
+    const pnpmWorkspaceChanged = pnpmWorkspaceDigest(projectRoot) !== wsBefore;
 
     const after = readProjectInstallState(projectRoot);
     if (after.pin.kind !== "exact" || after.pin.version !== targetVersion) {
@@ -1353,6 +1337,7 @@ export function runUpgrade(
       summary: setupResult.summary,
       migrateSummary: migrateResult.summary,
       verbosity: flags.verbosity,
+      pnpmWorkspaceChanged,
     });
     return EXIT_CODES.SUCCESS;
   }

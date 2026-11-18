@@ -724,6 +724,12 @@ function gitHooksInactiveFromSummary(summary: SetupSummary | null | undefined): 
   return /Git hooks inactive/i.test(msg);
 }
 
+/**
+ * "Review and commit" entry when pnpm itself changed pnpm-workspace.yaml during the
+ * PM add (#5854 / #6006). Directive never writes that file; it only reports the change.
+ */
+export const PNPM_WORKSPACE_REVIEW_LINE = "pnpm-workspace.yaml (updated by pnpm)";
+
 /** §C9 Example A completion after successful first install. */
 export function presentInstallSuccess(
   io: PresentIo,
@@ -733,6 +739,7 @@ export function presentInstallSuccess(
     pm: PackageManager;
     summary: SetupSummary | null;
     verbosity: Verbosity;
+    pnpmWorkspaceChanged?: boolean;
   },
 ): void {
   const lock = lockfileNameFor(opts.pm);
@@ -763,6 +770,7 @@ export function presentInstallSuccess(
   io.writeOut("Review and commit:\n");
   io.writeOut("  package.json\n");
   io.writeOut(`  ${lock}\n`);
+  if (opts.pnpmWorkspaceChanged) io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
   const review = collectReviewPaths(opts.summary);
   for (const p of review) {
     io.writeOut(`  ${p}\n`);
@@ -785,6 +793,7 @@ export function presentRepairSuccess(
     summary: SetupSummary | null;
     verbosity: Verbosity;
     pm?: PackageManager;
+    pnpmWorkspaceChanged?: boolean;
   },
 ): void {
   const hooksInactive = gitHooksInactiveFromSummary(opts.summary);
@@ -815,6 +824,7 @@ export function presentRepairSuccess(
     if (!review.includes("package.json")) review.unshift("package.json");
     if (!review.includes(lock)) review.splice(1, 0, lock);
   }
+  if (opts.pnpmWorkspaceChanged) review.push(PNPM_WORKSPACE_REVIEW_LINE);
   if (review.length > 0) {
     writeBlank(io);
     io.writeOut("Review and commit:\n");
@@ -838,6 +848,7 @@ export function presentUpgradeSuccess(
     summary: SetupSummary | null;
     migrateSummary: SetupSummary | null;
     verbosity: Verbosity;
+    pnpmWorkspaceChanged?: boolean;
   },
 ): void {
   if (opts.versionChange) {
@@ -859,6 +870,7 @@ export function presentUpgradeSuccess(
     io.writeOut("  package.json\n");
     io.writeOut(`  ${lockfileNameFor(opts.pm)}\n`);
   }
+  if (opts.pnpmWorkspaceChanged) io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
   const review = [...collectReviewPaths(opts.summary), ...collectReviewPaths(opts.migrateSummary)];
   const seen = new Set<string>();
   for (const p of review) {

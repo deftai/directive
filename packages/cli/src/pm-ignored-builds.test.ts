@@ -2,7 +2,7 @@
  * #5797 Locked: PM-owned allowBuilds; IGNORED_BUILDS surfaces pnpm-shaped recovery;
  * Directive never writes allowBuilds placeholders.
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -178,6 +178,44 @@ describe("allowBuilds ownership invariant (#5797)", () => {
     }
     // Operator-facing recovery must never instruct writing the interactive placeholder.
     expect(formatPnpmIgnoredBuildsRecovery()).not.toContain(PNPM_IGNORED_BUILDS_PLACEHOLDER);
+  });
+
+  it("no product writer touches pnpm-workspace.yaml (allowBuilds or minimumReleaseAge*, #5854)", () => {
+    // pnpm-workspace.yaml is PM-owned as a whole (ledger Problem 13 / #5797 / #5854 Outcome B).
+    const productRels = readdirSync(HERE).filter(
+      (f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && !f.endsWith(".d.ts"),
+    );
+    expect(productRels).toContain("bookends.ts");
+    const writer =
+      /\b(writeFileSync|appendFileSync|writeFile|appendFile|renameSync|rename|copyFileSync|copyFile|createWriteStream|rmSync|unlinkSync)\s*\(/;
+    for (const rel of productRels) {
+      const src = readFileSync(join(HERE, rel), "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "");
+      const namesWorkspace = /pnpm-workspace\.yaml|PNPM_WORKSPACE_FILE/.test(src);
+      if (!namesWorkspace) continue;
+      // A module that names the file may read it, but every write call in it must target
+      // something else. Check each statement that writes for a workspace-file reference,
+      // directly or through a local name bound to the workspace path.
+      const statements = src.split(/;\s*\n/);
+      const terms = [
+        "pnpm-workspace\\.yaml",
+        "PNPM_WORKSPACE_FILE",
+        "minimumReleaseAge",
+        "allowBuilds",
+      ];
+      for (const stmt of statements) {
+        const bound = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/.exec(stmt);
+        if (bound && /pnpm-workspace\.yaml|PNPM_WORKSPACE_FILE/.test(stmt)) {
+          terms.push(`\\b${bound[1]}\\b`);
+        }
+      }
+      const forbidden = new RegExp(terms.join("|"));
+      for (const stmt of statements) {
+        if (!writer.test(stmt)) continue;
+        expect(stmt, `${rel}: writes pnpm-workspace.yaml`).not.toMatch(forbidden);
+      }
+    }
   });
 
   it("UPGRADING.md does not instruct writing the pnpm interactive placeholder", () => {
