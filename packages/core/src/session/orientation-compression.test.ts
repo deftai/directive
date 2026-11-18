@@ -1,9 +1,11 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { CheckResult } from "../doctor/types.js";
 import {
   DEPOSIT_SHA_MATCH_NOOP,
+  doctorStateFromOrientationRecord,
   ENV_SESSION_COMPACT,
   ENV_SESSION_VERBOSE,
   formatOrientationCompactLines,
@@ -12,9 +14,15 @@ import {
   resolveSessionCompact,
   resolveSessionVerbose,
   runCacheFreshOrientationSection,
+  runDoctorOrientationSection,
   runOrientationCompression,
 } from "./orientation-compression.js";
-import { readOrientationState, writeOrientationState } from "./orientation-state.js";
+import {
+  type OrientationState,
+  type OrientationSurfaceRecord,
+  readOrientationState,
+  writeOrientationState,
+} from "./orientation-state.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -275,5 +283,173 @@ describe("orientation compression (#3286)", () => {
     expect(section.ok).toBe(false);
     expect(section.lines.join("\n")).toMatch(/triage cache not populated|triage:bootstrap/i);
     expect(section.lines.join("\n")).not.toMatch(/status: "error"/);
+  });
+});
+
+// Session start keeps the doctor time window in its own record (#6617).
+// Doctor itself writes nothing (AC12.1); a skipped section must not extend
+// the window, and a new timestamp is stamped only when doctor really ran.
+
+const PASS_LINK: CheckResult = { name: "foreign-runtime-link", status: "pass", detail: "ok" };
+
+function priorWith(doctor: OrientationSurfaceRecord): OrientationState {
+  return { schema_version: 1, deposit_sha: "abc", updated_at: doctor.ts, doctor };
+}
+
+const CLEAN_AT_NOON: OrientationSurfaceRecord = {
+  ok: true,
+  ts: "2026-01-01T12:00:00Z",
+  exit_code: 0,
+  message: "[deft doctor] status: ok",
+  error_count: 0,
+  finding_count: 0,
+};
+
+const FAILING_AT_NOON: OrientationSurfaceRecord = {
+  ok: false,
+  ts: "2026-01-01T12:00:00Z",
+  exit_code: 1,
+  message: "[deft doctor] status: dirty (exit 1)",
+  error_count: 2,
+  finding_count: 3,
+};
+
+function hoursAfterNoon(hours: number): Date {
+  return new Date(Date.parse("2026-01-01T12:00:00Z") + hours * 3_600_000);
+}
+
+function writePrior(root: string, state: OrientationState): string {
+  mkdirSync(join(root, ".deft"), { recursive: true });
+  writeFileSync(join(root, ".deft", "orientation-state.json"), JSON.stringify(state), "utf8");
+  return root;
+}
+
+describe("session-start doctor window (#6617)", () => {
+  it("skips doctor inside the 24 h clean window", () => {
+    let ran = false;
+    const section = runDoctorOrientationSection(tempRoot(), {
+      now: hoursAfterNoon(23),
+      prior: priorWith(CLEAN_AT_NOON),
+      seams: { checkRuntimeLinkOwner: () => PASS_LINK },
+      doctorRunner: () => {
+        ran = true;
+        return 0;
+      },
+    });
+    expect(ran).toBe(false);
+    expect(section.detail?.throttle_skipped).toBe(true);
+    expect(section.ok).toBe(true);
+  });
+
+  it("runs doctor once the clean window has passed", () => {
+    let ran = false;
+    const section = runDoctorOrientationSection(tempRoot(), {
+      now: hoursAfterNoon(25),
+      prior: priorWith(CLEAN_AT_NOON),
+      seams: { checkRuntimeLinkOwner: () => PASS_LINK },
+      doctorRunner: () => {
+        ran = true;
+        return 0;
+      },
+    });
+    expect(ran).toBe(true);
+    expect(section.detail?.throttle_skipped).toBe(false);
+  });
+
+  it("uses the 4 h window after a failing run and reports it dirty", () => {
+    const root = tempRoot();
+    const inside = runDoctorOrientationSection(root, {
+      now: hoursAfterNoon(3),
+      prior: priorWith(FAILING_AT_NOON),
+      seams: { checkRuntimeLinkOwner: () => PASS_LINK },
+      doctorRunner: () => {
+        throw new Error("must stay skipped");
+      },
+    });
+    expect(inside.detail?.throttle_skipped).toBe(true);
+    expect(inside.status).toBe("dirty");
+    expect(inside.lines[0]).toContain("2 errors");
+    let ran = false;
+    runDoctorOrientationSection(root, {
+      now: hoursAfterNoon(5),
+      prior: priorWith(FAILING_AT_NOON),
+      seams: { checkRuntimeLinkOwner: () => PASS_LINK },
+      doctorRunner: () => {
+        ran = true;
+        return 1;
+      },
+    });
+    expect(ran).toBe(true);
+  });
+
+  it("never skips on a record of an errored run (exit 2)", () => {
+    expect(doctorStateFromOrientationRecord({ ...CLEAN_AT_NOON, ok: false, exit_code: 2 })).toBe(
+      null,
+    );
+  });
+
+  it("a skipped section keeps the previous doctor record, so the window does not move", () => {
+    const bundle = runOrientationCompression({
+      projectRoot: writePrior(tempRoot(), priorWith(CLEAN_AT_NOON)),
+      now: hoursAfterNoon(10),
+      persistState: false,
+      includePreflight: false,
+      includeAgentsRefresh: false,
+      includeCacheFresh: false,
+      doctorSeams: { checkRuntimeLinkOwner: () => PASS_LINK },
+    });
+    expect(bundle.sections[0]?.detail?.throttle_skipped).toBe(true);
+    expect(bundle.state.doctor).toEqual(CLEAN_AT_NOON);
+  });
+
+  it("a real run stamps a new record with its counts", () => {
+    const root = writePrior(tempRoot(), priorWith(CLEAN_AT_NOON));
+    const now = hoursAfterNoon(30);
+    const bundle = runOrientationCompression({
+      projectRoot: root,
+      now,
+      persistState: false,
+      includePreflight: false,
+      includeAgentsRefresh: false,
+      includeCacheFresh: false,
+      doctorSection: runDoctorOrientationSection(root, {
+        now,
+        seams: { checkRuntimeLinkOwner: () => PASS_LINK },
+        doctorRunner: () => {
+          process.stdout.write(
+            `${JSON.stringify({ status: "completed", summary: { errors: 1, warnings: 2 } })}\n`,
+          );
+          return 1;
+        },
+      }),
+    });
+    expect(bundle.state.doctor?.ts).toBe("2026-01-02T18:00:00Z");
+    expect(bundle.state.doctor?.exit_code).toBe(1);
+    expect(bundle.state.doctor?.error_count).toBe(1);
+    expect(bundle.state.doctor?.finding_count).toBe(3);
+  });
+
+  it("reads the legacy doctor-state.json once when there is no session record", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", ".triage-cache", "doctor-state.json"),
+      JSON.stringify({
+        last_run_at: "2026-01-01T12:00:00Z",
+        last_exit_code: 0,
+        last_finding_count: 0,
+        last_error_count: 0,
+      }),
+      "utf8",
+    );
+    const section = runDoctorOrientationSection(root, {
+      now: hoursAfterNoon(1),
+      prior: null,
+      seams: { checkRuntimeLinkOwner: () => PASS_LINK },
+      doctorRunner: () => {
+        throw new Error("legacy record inside the window must skip");
+      },
+    });
+    expect(section.detail?.throttle_skipped).toBe(true);
   });
 });

@@ -737,7 +737,8 @@ describe("checkGitignoreCoverage (#2206)", () => {
   it("skips when .gitignore is absent", () => {
     const result = checkGitignoreCoverage("/proj", seamsFor(null));
     expect(result.status).toBe("skip");
-    expect(result.detail).toContain("directive init");
+    // "/proj" has no runtime pin: old layout → the conversion names upgrade.
+    expect(result.detail).toContain("directive upgrade");
   });
 
   it("passes when all canonical entries are present", () => {
@@ -756,9 +757,11 @@ describe("checkGitignoreCoverage (#2206)", () => {
     const missing = result.data?.missing as string[];
     expect(missing.length).toBeGreaterThan(0);
     expect(missing).toContain(".deft-cache/");
-    expect(result.detail).toContain("directive update");
-    expect(result.detail).toContain("directive update --allow-dirty-no-stage");
-    expect(result.data?.dirty_tree_fix).toBe("directive update --allow-dirty-no-stage");
+    // Old layout (no runtime pin): the conversion is the remedy; never update / --allow-dirty-no-stage.
+    expect(result.detail).toContain("directive upgrade");
+    expect(result.detail).not.toContain("directive update");
+    expect(result.detail).not.toContain("--allow-dirty-no-stage");
+    expect(result.data?.dirty_tree_fix).toBeUndefined();
   });
 
   it("reports xBRIEF-era eval result paths as missing (#2206)", () => {
@@ -1653,7 +1656,8 @@ describe("checkPrePrSecretTracked (#6271)", () => {
     expect(result.detail).toContain("rotate");
     expect(result.detail).toContain("Doctor does not untrack it");
     expect(result.data?.untrack_command).toBe(`git rm --cached -- ${PRE_PR_HMAC_SECRET_REL}`);
-    expect(result.detail).toContain("directive update --allow-dirty-no-stage");
+    expect(result.detail).toContain("directive install --repair");
+    expect(result.detail).not.toContain("--allow-dirty-no-stage");
   });
 
   it("warns on a real tracked secret and leaves the git index unchanged", () => {

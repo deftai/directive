@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,9 +55,8 @@ describe("cmdDoctor", () => {
     expect(cmdDoctor(["--full", "--json"], { whichFn: () => null })).toBe(1);
   });
 
-  it("honours throttle skip when dirty", () => {
-    const now = new Date("2026-01-01T12:00:00Z");
-    const root = mkdtempSync(join(tmpdir(), "deft-doc-dirty-skip-"));
+  it("never throttle-skips and never writes doctor-state.json (AC12.1, #6617)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-no-state-"));
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
     const stdout: string[] = [];
     const origWrite = process.stdout.write.bind(process.stdout);
@@ -57,142 +64,28 @@ describe("cmdDoctor", () => {
       stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
       return true;
     }) as typeof process.stdout.write;
-    let exit: number;
     try {
-      exit = cmdDoctor(["--json", "--project-root", root], {
+      cmdDoctor(["--json", "--project-root", root], {
         whichFn: () => "/usr/bin/x",
-        readState: () => ({
-          lastRunAt: new Date("2026-01-01T10:00:00Z"),
-          lastExitCode: 1,
-          lastFindingCount: 2,
-          lastErrorCount: 1,
-          lastHasDeftCore: true,
-        }),
-        writeState: () => {
-          throw new Error("matching dirty skip must not persist");
-        },
-        now: () => now,
         engineProbe: () => ({ reachable: false, version: null }),
       });
+      cmdDoctor(["--json", "--project-root", root], {
+        whichFn: () => "/usr/bin/x",
+        engineProbe: () => ({ reachable: false, version: null }),
+      });
+      expect(existsSync(join(root, "xbrief", ".triage-cache", "doctor-state.json"))).toBe(false);
+      expect(existsSync(join(root, "vbrief", ".triage-cache", "doctor-state.json"))).toBe(false);
     } finally {
       process.stdout.write = origWrite;
       rmSync(root, { recursive: true, force: true });
     }
-    expect(exit).toBe(1);
-    const payload = JSON.parse(stdout.join("")) as { hint?: string };
-    expect(payload.hint).toContain("re-probe only");
-    expect(payload.hint).toContain("hard errors");
-    expect(payload.hint).toContain("advisory warnings do not block writes");
-    expect(payload.hint).not.toContain("address findings");
+    const outputs = stdout.join("");
+    expect(outputs).not.toContain("throttle-skipped");
+    expect(outputs).toContain('"status": "completed"');
   });
 
-  function runDepositSkipProbe(
-    args: readonly string[],
-    remembered: {
-      lastHasDeftCore?: boolean;
-    },
-    withCore: boolean,
-  ): {
-    exit: number;
-    output: string;
-    persisted: Array<{ errorCount: number; hasDeftCore?: boolean }>;
-  } {
-    const now = new Date("2026-01-01T12:00:00Z");
-    const root = mkdtempSync(join(tmpdir(), "deft-doc-deposit-"));
-    if (withCore) {
-      mkdirSync(join(root, ".deft", "core"), { recursive: true });
-    }
-    const stdout: string[] = [];
-    const origWrite = process.stdout.write.bind(process.stdout);
-    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
-      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
-      return true;
-    }) as typeof process.stdout.write;
-    const persisted: Array<{ errorCount: number; hasDeftCore?: boolean }> = [];
-    let exit = -1;
-    try {
-      exit = cmdDoctor([...args, "--project-root", root], {
-        whichFn: () => "/usr/bin/x",
-        readState: () => ({
-          lastRunAt: new Date("2026-01-01T10:00:00Z"),
-          lastExitCode: 1,
-          lastFindingCount: 2,
-          lastErrorCount: 1,
-          ...(remembered.lastHasDeftCore === undefined
-            ? {}
-            : { lastHasDeftCore: remembered.lastHasDeftCore }),
-        }),
-        writeState: (_projectRoot, payload) => {
-          persisted.push({ errorCount: payload.errorCount, hasDeftCore: payload.hasDeftCore });
-          return null;
-        },
-        now: () => now,
-        engineProbe: () => ({ reachable: false, version: null }),
-      });
-    } finally {
-      process.stdout.write = origWrite;
-      rmSync(root, { recursive: true, force: true });
-    }
-    return { exit, output: stdout.join(""), persisted };
-  }
-
-  it("falls through remembered dirty when the stored deposit bit is absent (#4886)", () => {
-    const { output, persisted } = runDepositSkipProbe(["--json"], {}, true);
-    const payload = JSON.parse(output) as { status?: string };
-    expect(payload.status).toBe("completed");
-    expect(output).not.toContain("throttle-skipped");
-    expect(output).not.toContain("UNRESOLVED");
-    expect(persisted).toHaveLength(1);
-    expect(persisted[0]?.hasDeftCore).toBe(true);
-    expect(typeof persisted[0]?.errorCount).toBe("number");
-  });
-
-  it("falls through remembered dirty when the stored deposit bit is false (#4886)", () => {
-    const { output, persisted } = runDepositSkipProbe(["--json"], { lastHasDeftCore: false }, true);
-    const payload = JSON.parse(output) as { status?: string };
-    expect(payload.status).toBe("completed");
-    expect(output).not.toContain("UNRESOLVED");
-    expect(persisted[0]?.hasDeftCore).toBe(true);
-  });
-
-  it("does not print remembered UNRESOLVED after deposit presence changes (#4886)", () => {
-    const { output, persisted } = runDepositSkipProbe([], { lastHasDeftCore: false }, true);
-    expect(output).not.toContain("UNRESOLVED");
-    expect(output).toContain("Checking system dependencies");
-    expect(persisted[0]?.hasDeftCore).toBe(true);
-  });
-
-  it("full mode still probes when a matching dirty deposit bit would skip (#4886)", () => {
-    const { output, persisted } = runDepositSkipProbe(
-      ["--full", "--json"],
-      { lastHasDeftCore: true },
-      true,
-    );
-    const payload = JSON.parse(output) as { status?: string };
-    expect(payload.status).toBe("completed");
-    expect(output).not.toContain("throttle-skipped");
-    expect(persisted[0]?.hasDeftCore).toBe(true);
-  });
-
-  it("does not skip when remembered and live deposit are both absent (#4723)", () => {
-    const { output } = runDepositSkipProbe([], { lastHasDeftCore: false }, false);
-    expect(output).not.toContain("[doctor] ran");
-    expect(output).not.toContain("UNRESOLVED");
-    expect(output).toContain("Checking system dependencies");
-  });
-
-  it("bypasses throttle with --full", () => {
-    expect(
-      cmdDoctor(["--full", "--json"], {
-        whichFn: () => "/usr/bin/x",
-        readState: () => ({
-          lastRunAt: new Date(),
-          lastExitCode: 0,
-          lastFindingCount: 0,
-          lastErrorCount: 0,
-        }),
-      }),
-    ).toBe(0);
+  it("accepts --full as a no-op flag", () => {
+    expect(cmdDoctor(["--full", "--json"], { whichFn: () => "/usr/bin/x" })).toBe(0);
   });
 
   it("emits a warning finding when a bare plan.policy shadows the namespaced form (#2301)", () => {
@@ -460,7 +353,7 @@ describe("enforceDirectiveSurface (#2267 no bare task)", () => {
 
 describe("resolveTaskfileWiring (#2267 seam-honoured)", () => {
   const wiredTaskfile =
-    "version: '3'\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n";
+    "version: '3'\nincludes:\n  deft:\n    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml\n";
 
   it("reads the Taskfile through the injected readText seam (no real fs)", () => {
     const seen: string[] = [];
@@ -784,28 +677,22 @@ describe("xbrief envelope version check (#2971)", () => {
     const exit = cmdDoctor(["--full", "--json", "--project-root", root], {
       whichFn: () => "/usr/bin/x",
       engineProbe: engineAt("0.68.0"),
-      writeState: () => null,
     });
     expect(exit).toBe(1);
   });
 });
 
 describe("cmdDoctor read-only + resolution wiring (#2267)", () => {
-  it("mutates no project files in default report mode (only throttle state may be written)", () => {
+  it("mutates no project files in default report mode (AC12.1)", () => {
     const root = makeRoot();
     makeDeposit(root);
     writePackagePin(root, "0.68.0");
     const before = snapshot(root);
     const writeTextSpy = vi.fn();
-    const stateWrites: string[] = [];
     const exit = cmdDoctor(["--full", "--json", "--project-root", root], {
       whichFn: () => "/usr/bin/x",
       engineProbe: engineAt("0.68.0"),
       writeText: writeTextSpy,
-      writeState: (p) => {
-        stateWrites.push(p);
-        return null;
-      },
     });
     const after = snapshot(root);
     expect(writeTextSpy).not.toHaveBeenCalled();
@@ -827,7 +714,6 @@ describe("cmdDoctor read-only + resolution wiring (#2267)", () => {
       cmdDoctor(["--full", "--json", "--project-root", root], {
         whichFn: () => "/usr/bin/x",
         engineProbe: engineAt("0.68.0"),
-        writeState: () => null,
       });
     } finally {
       process.stdout.write = origWrite;
@@ -977,17 +863,12 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
       stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
       return true;
     }) as typeof process.stdout.write;
-    let lastErrorCount = -1;
     let exit: number;
     try {
       exit = cmdDoctor(argv, {
         whichFn: () => "/usr/bin/x",
         frameworkRoot: framework,
         agentsRefreshPlan: () => ({ state: "current" }),
-        writeState: (_projectRoot, payload) => {
-          lastErrorCount = payload.errorCount;
-          return null;
-        },
         ...extraSeams,
       });
     } finally {
@@ -996,6 +877,7 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
     const parsed: unknown = JSON.parse(stdout.join(""));
     expect(parsed).not.toBeNull();
     expect(typeof parsed).toBe("object");
+    const lastErrorCount = (parsed as { summary?: { errors?: number } }).summary?.errors ?? -1;
     return {
       exit,
       lastErrorCount,
@@ -1140,7 +1022,6 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
       stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
       return true;
     }) as typeof process.stdout.write;
-    let lastErrorCount = -1;
     let exit: number;
     try {
       exit = cmdDoctor(["--full", "--json"], {
@@ -1148,10 +1029,6 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
         frameworkRoot: process.cwd(),
         whichFn: () => "/usr/bin/x",
         checkDanglingNodeModulesLinks: () => dangling,
-        writeState: (_projectRoot, payload) => {
-          lastErrorCount = payload.errorCount;
-          return null;
-        },
       });
     } finally {
       process.stdout.write = origWrite;
@@ -1159,6 +1036,7 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
     const parsed: unknown = JSON.parse(stdout.join(""));
     expect(parsed).not.toBeNull();
     expect(typeof parsed).toBe("object");
+    const lastErrorCount = (parsed as { summary?: { errors?: number } }).summary?.errors ?? -1;
     return {
       exit,
       lastErrorCount,
