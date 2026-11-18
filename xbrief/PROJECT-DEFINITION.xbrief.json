@@ -816,10 +816,10 @@
       {
         "id": "2026-11-18-6648-enhancementxbrief-project-definition-has-grown-past-1-mib-wi",
         "title": "enhancement(xbrief): PROJECT-DEFINITION has grown past 1 MiB with no bound or pruning path",
-        "status": "completed",
+        "status": "running",
         "metadata": {
-          "source_path": "completed/2026-11-18-6648-enhancementxbrief-project-definition-has-grown-past-1-mib-wi.xbrief.json",
-          "lifecycle_folder": "completed",
+          "source_path": "active/2026-11-18-6648-enhancementxbrief-project-definition-has-grown-past-1-mib-wi.xbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/6648",
