@@ -135,19 +135,26 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
       nextHooks[key] = value;
       continue;
     }
-    const filtered = value.filter((entry) => {
+    const filtered: unknown[] = [];
+    for (const entry of value) {
       const e = object(entry);
-      if (e === null) return true;
-      if (typeof e.command === "string" && isManagedHookCommand(e.command)) return false;
-      if (Array.isArray(e.hooks)) {
-        const nestedManaged = e.hooks.some((h) => {
-          const hook = object(h);
-          return typeof hook?.command === "string" && isManagedHookCommand(hook.command);
-        });
-        if (nestedManaged) return false;
+      if (e === null) {
+        filtered.push(entry);
+        continue;
       }
-      return true;
-    });
+      if (typeof e.command === "string" && isManagedHookCommand(e.command)) continue;
+      if (Array.isArray(e.hooks)) {
+        // Drop only Directive commands; keep a group that still holds user commands.
+        const kept = e.hooks.filter((h) => {
+          const hook = object(h);
+          return !(typeof hook?.command === "string" && isManagedHookCommand(hook.command));
+        });
+        if (kept.length === e.hooks.length) filtered.push(entry);
+        else if (kept.length > 0) filtered.push({ ...e, hooks: kept });
+        continue;
+      }
+      filtered.push(entry);
+    }
     if (filtered.length > 0) nextHooks[key] = filtered;
   }
   if (Object.keys(nextHooks).length === 0) {
@@ -211,6 +218,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
 
   const ownership = ownershipFromDisk(root);
   const fallback = fallbackLists(root);
+  const deferredOuters: string[] = [];
 
   // AC11.4: structured hook entries before whole-file targets.
   const ordered = [...ownership].sort((a, b) => {
@@ -298,6 +306,11 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
       continue;
     }
 
+    // AC11.4: hook `.mjs` files wait until every registration is stripped (below).
+    if (fallback.outerPatterns.some((p) => p.pattern?.test(art.path))) {
+      deferredOuters.push(art.path);
+      continue;
+    }
     safeRemove(root, art.path, removed);
   }
 
@@ -395,9 +408,20 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
       modified.push(`${rel}#hooks`);
     }
   }
-  // AC11.4: the `.mjs` outers go only after every registration above is stripped.
-  for (const rel of listHostHookOuters(root, fallback.outerPatterns)) {
-    safeRemove(root, rel, removed);
+  // AC11.4: the `.mjs` outers go only once no registration still points at one.
+  // If a config could not be cleaned (unreadable, invalid JSON, write failed),
+  // keep the files and report them so no host is left running a missing file.
+  const outers = [
+    ...new Set([...deferredOuters, ...listHostHookOuters(root, fallback.outerPatterns)]),
+  ];
+  const stillRegistered = fallback.hostHookConfigs.filter((rel) =>
+    /deft-hook-[a-f0-9]{8}\.mjs/.test(readText(join(root, rel)) ?? ""),
+  );
+  if (stillRegistered.length > 0) {
+    remaining.push(...stillRegistered.map((rel) => `${rel}#hooks`));
+    remaining.push(...outers.filter((rel) => existsSync(join(root, rel))));
+  } else {
+    for (const rel of outers) safeRemove(root, rel, removed);
   }
   const taskBody = readText(join(root, "Taskfile.yml"));
   if (taskBody !== null && !modified.some((m) => m.startsWith("Taskfile.yml#"))) {

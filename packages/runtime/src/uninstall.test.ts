@@ -182,6 +182,34 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     expect(existsSync(join(root, ".cursor", "hooks", "consumer-custom.mjs"))).toBe(true);
     expect(mjsOuters(root)).toEqual([]);
   });
+
+  it("keeps a user command added to a Directive hook group", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const cfg = JSON.parse(readFileSync(rel, "utf8")) as {
+      hooks: Record<string, Array<{ hooks: Array<{ type: string; command: string }> }>>;
+    };
+    const event = Object.keys(cfg.hooks)[0] as string;
+    cfg.hooks[event]?.[0]?.hooks.push({ type: "command", command: "node scripts/mine.mjs" });
+    writeFileSync(rel, `${JSON.stringify(cfg, null, 2)}\n`);
+    runUninstall({ root });
+    const after = readFileSync(rel, "utf8");
+    expect(after).toContain("node scripts/mine.mjs");
+    expect(after).not.toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
+  });
+
+  it("keeps the .mjs files and reports them when a registration cannot be removed", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    // Invalid JSON: uninstall cannot strip this config's registration.
+    const rel = join(root, ".codex", "hooks.json");
+    writeFileSync(rel, `${readFileSync(rel, "utf8")}\n{ broken`);
+    const result = runUninstall({ root });
+    expect(mjsOuters(root)).toHaveLength(4);
+    expect(result.remaining).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
+    expect(result.remaining.filter((r) => r.endsWith(".mjs"))).toHaveLength(4);
+  });
 });
 
 function mjsOuters(root: string): string[] {

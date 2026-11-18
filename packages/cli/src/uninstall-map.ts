@@ -106,6 +106,20 @@ export const HOST_HOOK_OUTER_DIRS = [".claude", ".codex", ".cursor/hooks", ".gro
 
 const HOST_HOOK_OUTER_FILE_RE = /^deft-hook-[a-f0-9]{8}\.mjs$/;
 
+/** Any mention of an outer file name inside a host config's text. */
+const HOST_HOOK_OUTER_TEXT_RE = /deft-hook-[a-f0-9]{8}\.mjs/;
+
+/** True for `<host dir>/deft-hook-<sha8>.mjs` in one of the four host dirs. */
+function isHostHookOuterRel(rel: string): boolean {
+  const slash = rel.lastIndexOf("/");
+  if (slash < 0) return false;
+  const dir = rel.slice(0, slash);
+  return (
+    (HOST_HOOK_OUTER_DIRS as readonly string[]).includes(dir) &&
+    HOST_HOOK_OUTER_FILE_RE.test(rel.slice(slash + 1))
+  );
+}
+
 /** Mirrors core `isHostHookOuterCommand` (AC3.1: no core import). */
 const HOST_HOOK_OUTER_COMMAND_RE = /(?:^|[\s/])deft-hook-[a-f0-9]{8}\.mjs(?:\s|$)/;
 
@@ -510,19 +524,26 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
       nextHooks[key] = value;
       continue;
     }
-    const filtered = value.filter((entry) => {
+    const filtered: unknown[] = [];
+    for (const entry of value) {
       const e = object(entry);
-      if (e === null) return true;
-      if (typeof e.command === "string" && isManagedHookCommand(e.command)) return false;
-      if (Array.isArray(e.hooks)) {
-        const nestedManaged = e.hooks.some((h) => {
-          const hook = object(h);
-          return typeof hook?.command === "string" && isManagedHookCommand(hook.command);
-        });
-        if (nestedManaged) return false;
+      if (e === null) {
+        filtered.push(entry);
+        continue;
       }
-      return true;
-    });
+      if (typeof e.command === "string" && isManagedHookCommand(e.command)) continue;
+      if (Array.isArray(e.hooks)) {
+        // Drop only Directive commands; keep a group that still holds user commands.
+        const kept = e.hooks.filter((h) => {
+          const hook = object(h);
+          return !(typeof hook?.command === "string" && isManagedHookCommand(hook.command));
+        });
+        if (kept.length === e.hooks.length) filtered.push(entry);
+        else if (kept.length > 0) filtered.push({ ...e, hooks: kept });
+        continue;
+      }
+      filtered.push(entry);
+    }
     if (filtered.length > 0) nextHooks[key] = filtered;
   }
   if (Object.keys(nextHooks).length === 0) {
@@ -729,10 +750,37 @@ export function applyLauncherCleanup(
       continue;
     }
 
+    // AC11.4: hook `.mjs` files wait until registrations are confirmed gone (below).
+    if (isHostHookOuterRel(art.path)) continue;
     if (safeUnlink(projectRoot, art.path)) {
       removed.push(art.path);
       if (art.path.includes("/")) {
         removed.push(...maybeRemoveEmptyParents(projectRoot, art.path));
+      }
+    }
+  }
+
+  // Remove the `.mjs` hook files only when no host config still registers one.
+  // A config that could not be cleaned keeps its files, reported as leftovers.
+  const outers = [
+    ...new Set([
+      ...discovery.artifacts.map((a) => a.path).filter(isHostHookOuterRel),
+      ...listHostHookOuters(projectRoot),
+    ]),
+  ].filter((rel) => existsSync(join(projectRoot, rel)));
+  const stillRegistered = HOST_HOOK_RELS.filter((rel) =>
+    HOST_HOOK_OUTER_TEXT_RE.test(readText(join(projectRoot, rel)) ?? ""),
+  );
+  if (stillRegistered.length > 0 && outers.length > 0) {
+    leftovers.push(...stillRegistered.map((rel) => `${rel}#hooks`), ...outers);
+    uncertainty.push(
+      `kept ${outers.length} hook .mjs file(s): ${stillRegistered.join(", ")} still register them`,
+    );
+  } else {
+    for (const rel of outers) {
+      if (safeUnlink(projectRoot, rel)) {
+        removed.push(rel);
+        removed.push(...maybeRemoveEmptyParents(projectRoot, rel));
       }
     }
   }
@@ -892,7 +940,7 @@ export function verifyUninstallComplete(projectRoot: string): {
   for (const rel of listHostHookOuters(projectRoot)) leftovers.push(rel);
   for (const rel of HOST_HOOK_RELS) {
     const body = readText(join(projectRoot, rel));
-    if (body !== null && /deft-hook-[a-f0-9]{8}\.mjs/.test(body)) leftovers.push(`${rel}#hooks`);
+    if (body !== null && HOST_HOOK_OUTER_TEXT_RE.test(body)) leftovers.push(`${rel}#hooks`);
   }
   return { complete: leftovers.length === 0, leftovers };
 }

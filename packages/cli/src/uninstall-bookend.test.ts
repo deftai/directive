@@ -480,6 +480,36 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
       expect.arrayContaining([".claude/deft-hook-1a2b3c4d.mjs", ".claude/settings.json#hooks"]),
     );
   });
+
+  it("keeps a user command added to a Directive hook group", () => {
+    const root = tempProject("mjs-group");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const cfg = JSON.parse(readFileSync(rel, "utf8")) as {
+      hooks: Record<string, Array<{ hooks: Array<{ type: string; command: string }> }>>;
+    };
+    const event = Object.keys(cfg.hooks)[0] as string;
+    cfg.hooks[event]?.[0]?.hooks.push({ type: "command", command: "node scripts/mine.mjs" });
+    writeFileSync(rel, `${JSON.stringify(cfg, null, 2)}\n`);
+    rmSync(join(root, ".deft", "GENERATION.json"));
+    applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    const after = readFileSync(rel, "utf8");
+    expect(after).toContain("node scripts/mine.mjs");
+    expect(after).not.toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
+  });
+
+  it("keeps the .mjs files as leftovers when a registration cannot be removed", () => {
+    const root = tempProject("mjs-stuck");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".codex", "hooks.json");
+    writeFileSync(rel, `${readFileSync(rel, "utf8")}\n{ broken`);
+    const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    expect(outersOnDisk(root)).toHaveLength(4);
+    expect(report.leftovers).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
+    expect(report.leftovers.filter((l) => l.endsWith(".mjs"))).toHaveLength(4);
+  });
 });
 
 describe("launcher known-map vs core ownership API (#6615 drift guard)", () => {
