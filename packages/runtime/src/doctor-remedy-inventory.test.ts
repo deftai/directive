@@ -9,15 +9,16 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  formatEntryGuardMessage,
   INSTALLATION_RECOVERY_GUIDANCE,
+  pinInvalidValues,
+  projectInstallCommand,
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   FORBIDDEN_DOCTOR_REMEDY_PATTERNS,
   formatDoctorReport,
-  PIN_INVALID_RECOVERY_GUIDANCE,
-  projectInstallCommand,
   runDoctorDiagnosis,
   WIRING_DAMAGED_RECOVERY_GUIDANCE,
   WIRING_RECOVERY_GUIDANCE,
@@ -190,9 +191,12 @@ describe("doctor failure-shaped remedy map (#5798)", () => {
     rmSync(join(root, "node_modules"), { recursive: true, force: true });
     const diag = runDoctorDiagnosis(root, { probeHooks: false });
     expect(diag.surfaces.installed.ok).toBe(false);
-    expect(diag.remedy).toBe("npm install");
+    expect(diag.remedy).toBe(
+      formatEntryGuardMessage("runtime-missing", { install: "`npm install`" }),
+    );
     const text = formatDoctorReport(diag);
-    expect(text).toMatch(/Next:\n {2}npm install\n/);
+    expect(text).toContain(`Next: ${diag.remedy}\n`);
+    expect(text.match(/^(Next|Recovery):/gm)).toHaveLength(1);
     expect(text).not.toMatch(/npm i -g @deftai\/directive/);
     expect(text).not.toContain("--repair");
   });
@@ -205,12 +209,13 @@ describe("doctor failure-shaped remedy map (#5798)", () => {
     );
     const npmDiag = runDoctorDiagnosis(root, { probeHooks: false });
     expect(npmDiag.failClosed).toBe(true);
-    expect(npmDiag.remedy).toBe("npm install");
+    expect(npmDiag.remedy).toContain("installed @deftai/directive-runtime 0.0.1 is not the pinned");
+    expect(npmDiag.remedy).toContain("Run `npm install`");
     rmSync(join(root, "package-lock.json"));
     writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
     const pnpmDiag = runDoctorDiagnosis(root, { probeHooks: false });
-    expect(pnpmDiag.remedy).toBe(projectInstallCommand(root));
-    expect(pnpmDiag.remedy).toBe("pnpm install --frozen-lockfile");
+    expect(pnpmDiag.remedy).toContain(`Run ${projectInstallCommand(root)}`);
+    expect(pnpmDiag.remedy).toContain("`pnpm install --frozen-lockfile`");
     const text = formatDoctorReport(pnpmDiag);
     expect(text).not.toMatch(/npm i -g @deftai\/directive/);
     expect(text).not.toContain("--repair");
@@ -222,7 +227,9 @@ describe("doctor failure-shaped remedy map (#5798)", () => {
     const diag = runDoctorDiagnosis(root, { probeHooks: false });
     expect(diag.surfaces.lockfile.ok).toBe(false);
     expect(diag.remedy).toBe(WIRING_DAMAGED_RECOVERY_GUIDANCE);
-    expect(formatDoctorReport(diag)).toContain("Recovery: directive install --repair");
+    expect(formatDoctorReport(diag)).toContain(
+      "Recovery: Directive's wiring is damaged. Run `directive install --repair`.",
+    );
   });
 
   it("GENERATION.json missing → repair", () => {
@@ -243,7 +250,7 @@ describe("doctor failure-shaped remedy map (#5798)", () => {
     expect(formatDoctorReport(diag)).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
   });
 
-  it("range pin → rectify the pin; never an install command", () => {
+  it("range pin → fix the pin first (shared pin-invalid row, D-042)", () => {
     const { root } = installHealthyBase();
     writeFileSync(
       join(root, "package.json"),
@@ -251,8 +258,11 @@ describe("doctor failure-shaped remedy map (#5798)", () => {
     );
     const diag = runDoctorDiagnosis(root, { probeHooks: false });
     expect(diag.surfaces.pin.ok).toBe(false);
-    expect(diag.remedy).toBe(PIN_INVALID_RECOVERY_GUIDANCE);
-    expect(diag.remedy).not.toMatch(/install/);
+    expect(diag.remedy).toBe(
+      formatEntryGuardMessage("pin-invalid", pinInvalidValues(root, "^1.0.0")),
+    );
+    expect(diag.remedy).toContain("It currently says `^1.0.0`");
+    expect(diag.remedy).not.toContain("--repair");
   });
 
   it("wiring + schema residual lists per-surface remedies (no AC9.7 hammer)", () => {

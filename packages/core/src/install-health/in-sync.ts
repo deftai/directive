@@ -11,7 +11,7 @@
  * Pin≠installed fails closed with AC9.7 recovery guidance; no setup (AC2.6).
  */
 
-import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "./constants.js";
+import { formatEntryGuardMessage, projectInstallCommand } from "./constants.js";
 import {
   compareSchemaVersion,
   type FsSeams,
@@ -157,7 +157,13 @@ export function checkFullInSync(
     failClosed,
     allowSetup,
     // AC9.7: installed ≠ pin is fixed by the project install, never global + repair.
-    recoveryGuidance: failClosed ? PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE : null,
+    recoveryGuidance: failClosed
+      ? formatEntryGuardMessage("pin-mismatch", {
+          install: projectInstallCommand(projectRoot),
+          pin: V ?? undefined,
+          installed: installedVersion ?? undefined,
+        })
+      : null,
     predicates: { pin, lockfile, installed, generation, wiring, readiness },
     separateSignals,
   };

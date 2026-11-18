@@ -192,10 +192,10 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", { timeout: 30_000 }, () => {
     expect(diag.inSync).toBe(false);
     expect(diag.surfaces.installed.ok).toBe(false);
     expect(diag.dataStatus).toBe("current");
-    expect(diag.remedy).toBe("npm install");
+    expect(diag.remedy).toContain("is not installed in this project. Run `npm install`");
     const text = formatDoctorReport(diag);
     // One next command (AC9.7 v261118): the project install, no global + repair.
-    expect(text).toMatch(/Next:\n {2}npm install\n/);
+    expect(text).toContain(`Next: ${diag.remedy}\n`);
     expect(text).not.toMatch(/npm i -g @deftai\/directive/);
     expect(text).not.toMatch(/directive install --repair/);
     expect(text).not.toMatch(/directive upgrade/);

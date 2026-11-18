@@ -6,13 +6,14 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readProjectDataStatus } from "./data-status.js";
 import { inventoryEntry } from "./installer-output-inventory.js";
@@ -483,5 +484,334 @@ describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
     expect(result.conflicts).toEqual([]);
     expect(existsSync(join(root, "deft"))).toBe(false);
     expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+  });
+
+  it("records every .mjs outer setup wrote as whole-file (#6615 AC1)", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      ownership: Array<{ path: string; kind: string }>;
+    };
+    const outers = gen.ownership.filter((o) => /deft-hook-[a-f0-9]{8}\.mjs$/.test(o.path));
+    expect(outers.map((o) => o.path.replace(/deft-hook-[a-f0-9]{8}/, "X")).sort()).toEqual([
+      ".claude/X.mjs",
+      ".codex/X.mjs",
+      ".cursor/hooks/X.mjs",
+      ".grok/hooks/X.mjs",
+    ]);
+    expect(outers.every((o) => o.kind === "whole-file")).toBe(true);
+    for (const o of outers) expect(existsSync(join(root, o.path))).toBe(true);
+  });
+
+  it("a second setup with no change leaves GENERATION.json byte-identical (#6615 AC7 / AC13.2)", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const first = readFileSync(join(root, ".deft", "GENERATION.json"), "utf8");
+    runSetup({ operation: "repair", from: "none", root });
+    expect(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")).toBe(first);
+  });
+
+  it("a CRLF checkout of the .mjs outers does not change GENERATION.json", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    const first = readFileSync(join(root, ".deft", "GENERATION.json"), "utf8");
+    const gen = JSON.parse(first) as { ownership: Array<{ path: string }> };
+    for (const o of gen.ownership.filter((e) => e.path.endsWith(".mjs"))) {
+      const abs = join(root, o.path);
+      writeFileSync(abs, readFileSync(abs, "utf8").replace(/\r?\n/g, "\r\n"));
+    }
+    runSetup({ operation: "repair", from: "none", root });
+    expect(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")).toBe(first);
+  });
+});
+
+describe("GENERATION.json keeps the raised generation (#6012 / AC10.9)", () => {
+  const genPath = (root: string): string => join(root, ".deft", "GENERATION.json");
+  const readGen = (root: string): { generation?: number; runtimeVersion?: string } =>
+    JSON.parse(readFileSync(genPath(root), "utf8")) as {
+      generation?: number;
+      runtimeVersion?: string;
+    };
+
+  function convertLegacy(root: string, generation: number): void {
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# deposit\n");
+    writeFileSync(genPath(root), `${JSON.stringify({ schemaVersion: 1, generation }, null, 2)}\n`);
+    const result = runSetup({ operation: "upgrade", from: "old-style", root });
+    expect(result.conflicts).toEqual([]);
+  }
+
+  it("conversion raises N to N+1 and a later version upgrade keeps it", () => {
+    const root = tempRoot();
+    initGit(root);
+    convertLegacy(root, 12);
+    expect(readGen(root).generation).toBe(13);
+
+    // Simulate the record written by an older runtime so the next upgrade rewrites it.
+    const prior = readGen(root);
+    writeFileSync(
+      genPath(root),
+      `${JSON.stringify({ ...prior, runtimeVersion: "0.0.1-older" }, null, 2)}\n`,
+    );
+    const result = runSetup({ operation: "upgrade", from: "0.0.1-older", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.modified).toContain(".deft/GENERATION.json");
+    const after = readGen(root);
+    expect(after.runtimeVersion).not.toBe("0.0.1-older");
+    expect(after.generation).toBe(13);
+  });
+
+  it("repair keeps the generation", () => {
+    const root = tempRoot();
+    initGit(root);
+    convertLegacy(root, 12);
+    const prior = readGen(root);
+    writeFileSync(
+      genPath(root),
+      `${JSON.stringify({ ...prior, runtimeVersion: "0.0.1-older" }, null, 2)}\n`,
+    );
+    runSetup({ operation: "repair", from: "0.0.1-older", root });
+    expect(readGen(root).generation).toBe(13);
+  });
+
+  it("a second identical run does not rewrite GENERATION.json (AC8.2 / AC13.2)", () => {
+    const root = tempRoot();
+    initGit(root);
+    convertLegacy(root, 12);
+    const version = readGen(root).runtimeVersion ?? "";
+    runSetup({ operation: "upgrade", from: version, root });
+    const before = readFileSync(genPath(root), "utf8");
+    const result = runSetup({ operation: "upgrade", from: version, root });
+    expect(result.modified).not.toContain(".deft/GENERATION.json");
+    expect(readFileSync(genPath(root), "utf8")).toBe(before);
+    expect(readGen(root).generation).toBe(13);
+  });
+});
+
+describe("retired deft-core-guard workflow on upgrade (#5835)", () => {
+  const guardRel = ".github/workflows/deft-core-guard.yml";
+  function writeGuard(root: string, body: string): void {
+    mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+    writeFileSync(join(root, guardRel), body);
+  }
+
+  it("upgrade from a version removes Directive's guard and lists it", () => {
+    const root = tempRoot();
+    writeGuard(root, "name: deft-core-guard\non:\n  pull_request:\n");
+    const result = runSetup({ operation: "upgrade", from: "0.129.1", root });
+    expect(result.removed).toContain(guardRel);
+    expect(existsSync(join(root, guardRel))).toBe(false);
+    expect(result.preserved ?? []).not.toContain(guardRel);
+  });
+
+  it("upgrade keeps a user-edited file at that path and names it", () => {
+    const root = tempRoot();
+    writeGuard(root, "name: team-guard\n");
+    const result = runSetup({ operation: "upgrade", from: "0.129.1", root });
+    expect(result.removed).not.toContain(guardRel);
+    expect(result.preserved).toContain(guardRel);
+    expect(readFileSync(join(root, guardRel), "utf8")).toBe("name: team-guard\n");
+  });
+
+  it("install that converts an old layout also removes Directive's guard or names a kept one", () => {
+    const managed = tempRoot();
+    mkdirSync(join(managed, ".deft", "core"), { recursive: true });
+    writeFileSync(join(managed, ".deft", "core", "main.md"), "# c\n");
+    writeGuard(managed, "name: deft-core-guard\n");
+    const removedResult = runSetup({
+      operation: "install",
+      from: "vendored-core-go",
+      root: managed,
+    });
+    expect(removedResult.removed).toContain(guardRel);
+    expect(existsSync(join(managed, guardRel))).toBe(false);
+
+    const kept = tempRoot();
+    mkdirSync(join(kept, ".deft", "core"), { recursive: true });
+    writeFileSync(join(kept, ".deft", "core", "main.md"), "# c\n");
+    writeGuard(kept, "name: team-guard\n");
+    const keptResult = runSetup({ operation: "install", from: "vendored-core-go", root: kept });
+    expect(keptResult.preserved).toContain(guardRel);
+    expect(existsSync(join(kept, guardRel))).toBe(true);
+  });
+
+  it("install and repair leave the guard in place", () => {
+    for (const operation of ["install", "repair"] as const) {
+      const root = tempRoot();
+      writeGuard(root, "name: deft-core-guard\n");
+      const result = runSetup({ operation, from: "0.129.1", root });
+      expect(result.removed).not.toContain(guardRel);
+      expect(existsSync(join(root, guardRel))).toBe(true);
+    }
+  });
+});
+
+// #5961 / AC8.10: setup removes the retired `.deft/core` lines Directive wrote
+// into shared files, lists them as modified, and writes no `.deft/core` text.
+// #6167 / AC13.3: an existing `.prettierignore` gets the hook-file line.
+
+const CODEQL_REL = ".github/codeql/codeql-config.yml";
+const OLD_CODEQL =
+  "# Deft framework: exclude the vendored payload from CodeQL analysis (#1430).\n" +
+  "# .deft/core/** is packaged framework code, not consumer source.\n" +
+  'name: "CodeQL config (deft)"\n' +
+  "paths-ignore:\n" +
+  "  - 'vendor/**'\n" +
+  "  - '.deft/core/**'\n";
+const OLD_ATTRS =
+  "*.png binary\n\n" +
+  "# Deft framework: the vendored payload is packaged framework code, not\n" +
+  "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+  "# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n" +
+  ".deft/core/** text=auto eol=lf\n" +
+  ".deft/core/** linguist-generated=true\n" +
+  ".deft/core/** linguist-vendored=true\n";
+
+function writeRel(root: string, rel: string, body: string): void {
+  const abs = join(root, rel);
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, body, "utf8");
+}
+
+function readRel(root: string, rel: string): string {
+  return readFileSync(join(root, rel), "utf8");
+}
+
+function git(root: string, args: readonly string[]): string {
+  return execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
+}
+
+function committedProject(): string {
+  const root = tempRoot();
+  git(root, ["init", "-q"]);
+  git(root, ["config", "user.email", "t@t.dev"]);
+  git(root, ["config", "user.name", "t"]);
+  return root;
+}
+
+function commitAll(root: string): void {
+  git(root, ["add", "-A"]);
+  git(root, ["-c", "commit.gpgsign=false", "commit", "-q", "-m", "old layout"]);
+}
+
+/** Every file under root except .git, project-relative. */
+function allFiles(root: string, dir = root): string[] {
+  const out: string[] = [];
+  for (const ent of readdirSync(dir, { withFileTypes: true })) {
+    if (ent.name === ".git") continue;
+    const abs = join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...allFiles(root, abs));
+    else out.push(relative(root, abs));
+  }
+  return out;
+}
+
+function seedOldFiles(root: string): void {
+  writeRel(root, ".gitattributes", OLD_ATTRS);
+  writeRel(
+    root,
+    ".prettierignore",
+    "dist/\n\n# Deft framework: the vendored payload is outside the consumer Prettier gate (#2534).\n.deft/core/\n",
+  );
+  writeRel(
+    root,
+    "greptile.json",
+    '{\n  "ignorePatterns": "dist/**\\n.deft/core/**",\n  "x": 1\n}\n',
+  );
+  writeRel(root, CODEQL_REL, OLD_CODEQL);
+}
+
+const SHARED_FILES = [".gitattributes", ".prettierignore", "greptile.json", CODEQL_REL];
+
+// Each case runs full setup more than once; the Windows VM needs about 2 minutes.
+describe("setup and retired .deft/core lines (#5961)", { timeout: 240_000 }, () => {
+  it("install on an empty project writes no .deft/core text anywhere", () => {
+    const root = committedProject();
+    runSetup({ operation: "install", from: "none", root });
+    for (const rel of allFiles(root)) {
+      expect(readRel(root, rel), rel).not.toContain(".deft/core");
+    }
+  });
+
+  it("repair removes exactly the retired lines, reports them, and a second run changes nothing", () => {
+    const root = committedProject();
+    seedOldFiles(root);
+    commitAll(root);
+
+    const first = runSetup({ operation: "repair", from: "0.0.0", root });
+
+    for (const rel of SHARED_FILES) {
+      expect(first.modified).toContain(rel);
+      expect(readRel(root, rel), rel).not.toContain(".deft/core");
+    }
+    expect(readRel(root, ".gitattributes").startsWith("*.png binary\n")).toBe(true);
+    expect(readRel(root, ".prettierignore")).toBe(
+      "dist/\n\n# Deft managed wiring: Directive's committed hook files are not formatted (AC13.3).\n**/deft-hook-*.mjs\n",
+    );
+    expect(readRel(root, "greptile.json")).toBe('{\n  "ignorePatterns": "dist/**",\n  "x": 1\n}\n');
+    expect(readRel(root, CODEQL_REL)).toBe(
+      "name: \"CodeQL config (deft)\"\npaths-ignore:\n  - 'vendor/**'\n",
+    );
+
+    const snapshot = Object.fromEntries(SHARED_FILES.map((rel) => [rel, readRel(root, rel)]));
+    const second = runSetup({ operation: "repair", from: "0.0.0", root });
+    for (const [rel, body] of Object.entries(snapshot)) {
+      expect(readRel(root, rel), rel).toBe(body);
+      expect(second.modified).not.toContain(rel);
+    }
+  });
+
+  it("upgrade leaves a shared file with unstaged customer edits unstaged", () => {
+    const root = committedProject();
+    seedOldFiles(root);
+    commitAll(root);
+    writeRel(
+      root,
+      "greptile.json",
+      '{\n  "ignorePatterns": "dist/**\\n.deft/core/**",\n  "x": 2\n}\n',
+    );
+
+    const result = runSetup({ operation: "upgrade", from: "0.0.0", root });
+
+    expect(result.modified).toContain("greptile.json");
+    expect(git(root, ["diff", "--cached", "--name-only", "--", "greptile.json"])).toBe("");
+    expect(git(root, ["diff", "--cached", "--name-only", "--", CODEQL_REL]).trim()).toBe(
+      CODEQL_REL,
+    );
+  });
+
+  it("upgrade does not stage an untracked .prettierignore it adds the hook line to", () => {
+    const root = committedProject();
+    writeRel(root, "README.md", "x\n");
+    commitAll(root);
+    writeRel(root, ".prettierignore", "dist/\n");
+
+    const result = runSetup({ operation: "upgrade", from: "0.0.0", root });
+
+    expect(result.modified).toContain(".prettierignore");
+    expect(readRel(root, ".prettierignore")).toContain("**/deft-hook-*.mjs");
+    expect(git(root, ["status", "--porcelain", "--", ".prettierignore"]).trim()).toBe(
+      "?? .prettierignore",
+    );
+  });
+
+  it("no .prettierignore: setup does not create one (AC13.3)", () => {
+    const root = committedProject();
+    runSetup({ operation: "install", from: "none", root });
+    expect(allFiles(root)).not.toContain(".prettierignore");
+  });
+
+  it("the inventory lists the managed LF block and the retired Prettier line", () => {
+    expect(inventoryEntry("gitattributes-managed-wiring-lf")?.disposition).toBe("retained");
+    expect(inventoryEntry("gitattributes-managed-wiring-lf")?.setupActivator).toBe(
+      "ensureManagedPathGitattributes",
+    );
+    expect(inventoryEntry("prettierignore-core-exclusion")?.disposition).toBe(
+      "na-retired-copy-model",
+    );
+    expect(inventoryEntry("prettierignore-hook-files")?.disposition).toBe("conditional");
   });
 });

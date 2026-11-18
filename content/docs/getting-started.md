@@ -210,6 +210,50 @@ For brownfield adoption of an existing repo, see [BROWNFIELD.md](./BROWNFIELD.md
 
 ---
 
+## Fewer local hook refusals (#6535)
+
+Optional. You do not need this for the first green `deft check`. For the repository settings it names, see [GitHub merge queue setup](./github-merge-queue-setup.md), which carries this same section after "How agents merge afterwards".
+
+A repository can let five local hook refusals warn instead of refuse, when its merge path already runs the full gate.
+
+**Part A. What the hook checks**
+
+- (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree).
+- (b) That check is required on the delivery branch, by a ruleset or by classic branch protection.
+- (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total. A 404 on either protection read is fine; any other error on either means no signal.
+
+**Part B. What you make true (the hook does not check it)**
+
+- (d) The named check runs the full merge gate (`deft check`) and runs on `merge_group`.
+- (e) The merge queue is on for the delivery branch.
+- (f) The review bot is a required check.
+
+When Part A holds, the five warn sites warn and every other refusal stays. When any item of Part A fails, the hook refuses as today. For the site table, the floor and the limits, see [Warn-only sites behind a live merge gate (#6535)](./hook-root-admission.md#warn-only-sites-behind-a-live-merge-gate-6535).
+
+**Worked example**
+
+The policy fragment in `xbrief/PROJECT-DEFINITION.xbrief.json`:
+
+```json
+"plan": {
+  "policy": {
+    "mergeGateContext": "Merge gate (task check)"
+  }
+}
+```
+
+Three reads, as diagnostics. They show that the parts are in place. They do not prove that the hook's read finishes within its budget.
+
+```bash
+gh api "repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>"
+gh api repos/<owner>/<repo>/rules/branches/<branch>
+gh api repos/<owner>/<repo>/branches/<branch>/protection
+```
+
+The result, when Part A holds: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text. Any later refusal (occupancy, a protected store, a binding refusal) still wins.
+
+---
+
 ## Using Strategies
 
 This first-project journey uses **interview** (the setup default). Strategies are not a second onboarding path.

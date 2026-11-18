@@ -20,3 +20,21 @@ vbrief/.triage-cache/*.jsonl  merge=union
 
 # xbrief variant — same semantics as above.
 xbrief/.triage-cache/*.jsonl  merge=union
+
+# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths
+# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).
+.claude/commands/** text=auto eol=lf
+.cursor/commands/** text=auto eol=lf
+.grok/commands/** text=auto eol=lf
+.codex/prompts/** text=auto eol=lf
+.agents/skills/** text=auto eol=lf
+.claude/skills/** text=auto eol=lf
+.cursor/skills/** text=auto eol=lf
+.codex/skills/** text=auto eol=lf
+.github/skills/** text=auto eol=lf
+.githooks/** text=auto eol=lf
+.grok/hooks/** text=auto eol=lf
+AGENTS.md text=auto eol=lf
+.claude/deft-hook-*.mjs text=auto eol=lf
+.codex/deft-hook-*.mjs text=auto eol=lf
+.cursor/hooks/deft-hook-*.mjs text=auto eol=lf

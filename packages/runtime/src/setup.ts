@@ -5,6 +5,7 @@
  * seed placeholders and current data-schema marker (AC6.2). Never deposits
  * .deft/core (AC13.1). Repair does not migrate schema.
  */
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,11 +15,20 @@ import {
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
+  hostHookOuterRelPath,
+  hostHookOuterSha8,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import {
   defaultTrackedNames,
   isTrackedDeletePath,
   stageFrameworkPaths,
 } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import { seedMinimalProjectDefinition } from "@deftai/directive-core/dist/init-deposit/init-deposit.js";
+import {
+  ensurePrettierIgnoreHookLine,
+  RETIRED_COPY_MODEL_LINE_FILES,
+  removeRetiredCopyModelLines,
+} from "@deftai/directive-core/dist/init-deposit/retired-copy-model-lines.js";
 import {
   buildOwnershipRecord,
   DIRECTIVE_GITIGNORE_LINES,
@@ -33,7 +43,10 @@ import {
 import { assertInventoryCompleteness } from "./installer-output-inventory.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { isConvertStrategyFrom, runStrategy } from "./removal-steps/index.js";
-import { removeLegacyBareVersionMarkers } from "./removal-steps/steps.js";
+import {
+  removeLegacyBareVersionMarkers,
+  removeRetiredCoreGuardWorkflow,
+} from "./removal-steps/steps.js";
 import {
   ensureAgentsManagedSection,
   ensureGitHooks,
@@ -44,6 +57,7 @@ import {
   ensureTaskfileInclude,
   listSkillPointerPaths,
   listVerifiedManagedSlashCommandPaths,
+  pathHasUnstagedChanges,
   RUNTIME_PREFIX,
 } from "./setup-wiring.js";
 
@@ -61,7 +75,10 @@ export interface SetupResult {
   readonly modified: string[];
   readonly removed: string[];
   readonly conflicts: string[];
-  /** Tracked divergent managed hooks kept in place; non-failure, present only when non-empty (#5837). */
+  /**
+   * Files kept in place; non-failure, present only when non-empty. Tracked divergent
+   * managed hooks (#5837) and a user-edited retired core-guard workflow (#5835).
+   */
   readonly preserved?: string[];
   readonly message: string;
 }
@@ -192,6 +209,44 @@ function ensureGitignore(projectRoot: string): { created: boolean; modified: boo
   return { created: false, modified: true };
 }
 
+/**
+ * Shared ignore/config files: remove the retired `.deft/core` lines from
+ * `.prettierignore`, `greptile.json` and the CodeQL config (AC8.10 / #5961),
+ * and add the hook-file line to an existing `.prettierignore` (AC13.3).
+ * `keepUnstaged` lists changed files that already had unstaged edits, so
+ * install/upgrade staging leaves the customer's own work alone.
+ */
+/** True when `rel` is inside a Git work tree but not tracked. */
+function pathIsUntracked(projectRoot: string, rel: string): boolean {
+  try {
+    const out = execFileSync(
+      "git",
+      ["-C", projectRoot, "status", "--porcelain", "--untracked-files=all", "--", rel],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    return out.split("\n").some((line) => line.startsWith("??"));
+  } catch {
+    return false;
+  }
+}
+
+function refreshSharedLineFiles(projectRoot: string): {
+  modified: string[];
+  keepUnstaged: string[];
+} {
+  // Untracked files count as the customer's own work too: `git diff` does not list them.
+  const dirty = RETIRED_COPY_MODEL_LINE_FILES.filter(
+    (rel) =>
+      existsSync(join(projectRoot, rel)) &&
+      (pathHasUnstagedChanges(projectRoot, rel) || pathIsUntracked(projectRoot, rel)),
+  );
+  const modified = removeRetiredCopyModelLines(projectRoot);
+  if (ensurePrettierIgnoreHookLine(projectRoot) && !modified.includes(".prettierignore")) {
+    modified.push(".prettierignore");
+  }
+  return { modified, keepUnstaged: dirty.filter((rel) => modified.includes(rel)) };
+}
+
 function writeReadiness(
   projectRoot: string,
   runtimeVersion: string,
@@ -307,6 +362,21 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       });
     }
   }
+  // AC11.10 / #6615: the committed host `.mjs` outers setup wrote (current sha8).
+  // Fingerprint LF-normalized text: setup keeps a CRLF checkout of the same
+  // outer, so the record must not change with core.autocrlf (AC13.2).
+  const outerSha8 = hostHookOuterSha8();
+  for (const host of ["claude", "codex", "cursor", "grok"] as const) {
+    const rel = hostHookOuterRelPath(host, outerSha8);
+    const body = readText(join(projectRoot, rel));
+    if (body !== null) {
+      artifacts.push({
+        path: rel,
+        kind: "whole-file",
+        fingerprint: fingerprintContent(body.replace(/\r\n/g, "\n")),
+      });
+    }
+  }
   // AC11.10 / OWN-SKILLS: wholly owned skill pointer paths (all hosts × inventory).
   for (const rel of listSkillPointerPaths()) {
     const body = readText(join(projectRoot, rel));
@@ -357,7 +427,11 @@ export function runSetup(options: {
 }): SetupResult {
   const { operation, from, root } = options;
   let preserved: string[] = [];
-  const withPreserved = (): { preserved?: string[] } => (preserved.length > 0 ? { preserved } : {});
+  const keptRetired: string[] = [];
+  const withPreserved = (): { preserved?: string[] } => {
+    const all = [...preserved, ...keptRetired];
+    return all.length > 0 ? { preserved: all } : {};
+  };
   const created: string[] = [];
   const modified: string[] = [];
   const removed: string[] = [];
@@ -421,10 +495,26 @@ export function runSetup(options: {
       removed.push(...removeLegacyBareVersionMarkers(root));
     }
 
+    // #5835 / AC8.10: upgrade (any `from`) and convert delete the retired
+    // deft-core-guard workflow when it is Directive's file; a user-edited one is
+    // kept and named; a failed read/delete is a named conflict. Never ordinary
+    // install, repair, automatic setup or doctor.
+    if (operation === "upgrade" || convertViaRemovals) {
+      const guard = removeRetiredCoreGuardWorkflow(root);
+      removed.push(...guard.removed);
+      keptRetired.push(...guard.kept);
+      for (const rel of guard.failed) {
+        conflicts.push(`${rel}: could not remove the retired deft-core-guard workflow`);
+      }
+    }
+
     // AC8.10: inventory completeness is load-time evidence (throws if incomplete).
     assertInventoryCompleteness();
 
     track(created, modified, ".gitignore", ensureGitignore(root));
+
+    const sharedLines = refreshSharedLineFiles(root);
+    modified.push(...sharedLines.modified);
 
     const agents = ensureAgentsManagedSection(root);
     track(created, modified, "AGENTS.md", agents);
@@ -512,7 +602,11 @@ export function runSetup(options: {
     // Still no auto-commit. Repair does not stage (seeds are install-only; upgrade stages
     // existing PD/lifecycle with refreshed wiring).
     if (conflicts.length === 0 && (operation === "install" || operation === "upgrade")) {
-      stageSetupManagedPaths(root, [...created, ...modified, ...removed]);
+      const keepUnstaged = new Set(sharedLines.keepUnstaged);
+      stageSetupManagedPaths(
+        root,
+        [...created, ...modified, ...removed].filter((rel) => !keepUnstaged.has(rel)),
+      );
     }
 
     if (conflicts.length > 0) {

@@ -7,7 +7,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "./constants.js";
 import { checkFullInSync, RUNTIME_PIN_PACKAGE } from "./index.js";
 
 const temps: string[] = [];
@@ -214,7 +213,11 @@ describe("checkFullInSync pin≠installed fail-closed (AC2.6)", () => {
     expect(result.failClosed).toBe(true);
     expect(result.allowSetup).toBe(false);
     // AC9.7: installed ≠ pin → the project install, never the global + repair pair.
-    expect(result.recoveryGuidance).toBe(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    // The shared `pin-mismatch` row, with both versions filled in.
+    expect(result.recoveryGuidance).toContain(
+      "the installed @deftai/directive-runtime 0.9.0 is not the pinned",
+    );
+    expect(result.recoveryGuidance).toMatch(/Run `(npm|pnpm) install/);
     expect(result.recoveryGuidance).not.toContain("npm i -g @deftai/directive, then");
   });
 });

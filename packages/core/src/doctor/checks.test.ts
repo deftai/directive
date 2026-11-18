@@ -382,36 +382,16 @@ describe("checks", () => {
     expect(result.data?.suggested_fix).toBe("deft update");
   });
 
-  it("missing YAML on eligible linked worktree suggests session:start (#5390)", () => {
+  it("missing YAML never routes to a session:start rebuild of .deft/core (#6562)", () => {
     const result = checkManifestAgreement("/tmp/wt", ".deft/core", {
       isFile: (p) => p.replace(/\\/g, "/").includes("xbrief/.deft-version"),
       readText: (p) =>
         p.replace(/\\/g, "/").includes("xbrief/.deft-version") ? "0.119.13\n" : null,
-      isLinkedWorktree: () => true,
-      isFrameworkSource: () => false,
-      payloadPresent: () => true,
-      resolvePayloadSourceVersion: () => "0.119.13",
-    });
-    expect(result.status).toBe("fail");
-    expect(result.data?.suggested_fix).toBe("deft session:start");
-    expect(result.data?.missing_manifest_reconstitute_eligible).toBe(true);
-    expect(result.detail).toContain("session:start");
-    expect(result.detail).toContain("--rearm");
-  });
-
-  it("missing YAML on non-linked tree keeps deft update (#5390)", () => {
-    const result = checkManifestAgreement("/tmp/primary", ".deft/core", {
-      isFile: (p) => p.replace(/\\/g, "/").includes("xbrief/.deft-version"),
-      readText: (p) =>
-        p.replace(/\\/g, "/").includes("xbrief/.deft-version") ? "0.119.13\n" : null,
-      isLinkedWorktree: () => false,
-      isFrameworkSource: () => false,
-      payloadPresent: () => true,
-      resolvePayloadSourceVersion: () => "0.119.13",
     });
     expect(result.status).toBe("fail");
     expect(result.data?.suggested_fix).toBe("deft update");
-    expect(result.data?.missing_manifest_reconstitute_eligible).toBe(false);
+    expect(result.data).not.toHaveProperty("missing_manifest_reconstitute_eligible");
+    expect(result.detail).not.toContain("session:start");
   });
 
   it("manifest agreement yaml only passes with note", () => {

@@ -1,8 +1,18 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import {
   DEFAULT_TEST_ROOTS,
   defaultTestBoundaryPolicy,
@@ -835,5 +845,182 @@ describe("candidate tree: working tree against the merge base (#6336)", () => {
     const result = evaluateClassChecks(root, options);
     expect(result.exitCode).toBe(0);
     expect(result.message).toMatch(/clean|0 finding|no finding/i);
+  });
+});
+
+describe("class 4 counts Directive wiring only by what is committed (D-026 / #6616)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const dir of roots.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  function git(root: string, ...args: string[]): string {
+    return execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@example.com",
+        "-c",
+        "commit.gpgsign=false",
+        "-c",
+        "core.autocrlf=false",
+        ...args,
+      ],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+  }
+
+  function put(root: string, rel: string, text: string): void {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), text);
+  }
+
+  /** master holds Directive's git hook; branch `story` commits a story product change. */
+  function seed(): string {
+    const root = mkdtempSync(join(tmpdir(), "class-checks-wiring-"));
+    roots.push(root);
+    git(root, "init", "-q", "-b", "master");
+    put(root, "src/app.py", "x = 1\n");
+    put(root, ".githooks/pre-commit", "#!/bin/sh\necho old\n");
+    put(root, ".githooks/my-team-check", "#!/bin/sh\necho team\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "base");
+    git(root, "checkout", "-q", "-b", "story");
+    put(root, "src/app.py", "x = 2\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "story");
+    return root;
+  }
+
+  const options = {
+    baseRef: "master",
+    baseTestBoundaryPolicy: baseTb({
+      sourceRoots: ["src/**"],
+      testRoots: ["tests/**"],
+      enforcementMode: "enforce",
+    }),
+    classChecksPolicy: defaultClassChecksPolicy(),
+  };
+
+  const notCountedLine = (path: string): string =>
+    `Not counted: \`${path}\` (uncommitted change to Directive wiring, for example by automatic setup).`;
+
+  it("passes an uncommitted rewrite of Directive's .githooks/pre-commit and names it", () => {
+    const root = seed();
+    put(root, ".githooks/pre-commit", "#!/bin/sh\necho refreshed\n");
+    const result = evaluateClassChecks(root, options);
+    expect(result.findings).toEqual([]);
+    expect(result.exitCode).toBe(0);
+    expect(result.notCounted).toEqual([".githooks/pre-commit"]);
+    expect(result.message).toContain(notCountedLine(".githooks/pre-commit"));
+  });
+
+  it("passes an untracked Directive-owned .cursor/hooks outer", () => {
+    const root = seed();
+    put(root, ".cursor/hooks/deft-hook-0123abcd.mjs", "// outer\n");
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(0);
+    expect(result.notCounted).toEqual([".cursor/hooks/deft-hook-0123abcd.mjs"]);
+    expect(result.message).toContain(notCountedLine(".cursor/hooks/deft-hook-0123abcd.mjs"));
+  });
+
+  it("fails a committed edit to .githooks/pre-commit mixed with story product", () => {
+    const root = seed();
+    put(root, ".githooks/pre-commit", "#!/bin/sh\necho edited\n");
+    git(root, "commit", "-q", "-am", "edit hook");
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.map((f) => [f.path, f.kind])).toContainEqual([
+      ".githooks/pre-commit",
+      "protected-glob",
+    ]);
+    expect(result.notCounted).toBeUndefined();
+    expect(result.message).not.toContain("Not counted");
+  });
+
+  it("fails an uncommitted change to a non-Directive file under .githooks/", () => {
+    const root = seed();
+    put(root, ".githooks/my-team-check", "#!/bin/sh\necho changed\n");
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.map((f) => f.path)).toContain(".githooks/my-team-check");
+    expect(result.notCounted).toBeUndefined();
+  });
+
+  it("fails an uncommitted change to a non-wiring protected path (class-checks/**)", () => {
+    const root = seed();
+    put(root, "packages/core/src/class-checks/policy.ts", "export const x = 1;\n");
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.map((f) => f.path)).toContain(
+      "packages/core/src/class-checks/policy.ts",
+    );
+  });
+
+  it("still counts an uncommitted .cursor/hooks.json change that adds a non-Directive hook", () => {
+    const root = seed();
+    put(
+      root,
+      ".cursor/hooks.json",
+      `${JSON.stringify({ version: 1, hooks: { stop: [{ command: "./my-script.sh" }] } }, null, 2)}\n`,
+    );
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.map((f) => f.path)).toContain(".cursor/hooks.json");
+  });
+
+  it("counts every wiring path when changedFiles is injected (no working tree to compare)", () => {
+    const result = evaluateClassChecks("/tmp/injected", {
+      ...options,
+      changedFiles: ["src/app.py", ".githooks/pre-commit"],
+      fileContents: new Map<string, string>(),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.map((f) => f.path)).toContain(".githooks/pre-commit");
+  });
+
+  it("passes a CI-shaped run: pin bump committed, then automatic setup rewrites Cursor hooks", () => {
+    const root = mkdtempSync(join(tmpdir(), "class-checks-ci-"));
+    roots.push(root);
+    git(root, "init", "-q", "-b", "master");
+    put(root, "src/app.py", "x = 1\n");
+    put(root, "package.json", `${JSON.stringify({ name: "app", version: "1.0.0" }, null, 2)}\n`);
+    // The committed wiring an older Directive version wrote: same shape, older outer.
+    writeAgentHookDeposit(root);
+    const hooksDir = join(root, ".cursor", "hooks");
+    const outer = readdirSync(hooksDir).find((n) => /^deft-hook-[a-f0-9]{8}\.mjs$/.test(n));
+    expect(outer).toBeDefined();
+    const currentSha8 = (outer as string).slice("deft-hook-".length, -".mjs".length);
+    renameSync(join(hooksDir, outer as string), join(hooksDir, "deft-hook-00000000.mjs"));
+    const hooksJsonPath = join(root, ".cursor", "hooks.json");
+    writeFileSync(
+      hooksJsonPath,
+      readFileSync(hooksJsonPath, "utf8").replaceAll(currentSha8, "00000000"),
+    );
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "base with older Directive wiring");
+    git(root, "checkout", "-q", "-b", "story");
+    put(root, "src/app.py", "x = 2\n");
+    put(
+      root,
+      "package.json",
+      `${JSON.stringify({ name: "app", version: "1.0.0", devDependencies: { "@deftai/directive-runtime": "0.129.15" } }, null, 2)}\n`,
+    );
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "story + pin bump");
+    expect(git(root, "status", "--porcelain")).toBe("");
+
+    // Automatic setup in CI refreshes Directive's wiring before the check.
+    writeAgentHookDeposit(root);
+    expect(existsSync(join(hooksDir, outer as string))).toBe(true);
+    expect(git(root, "status", "--porcelain")).toContain(".cursor/hooks.json");
+
+    const result = evaluateClassChecks(root, options);
+    expect(result.findings).toEqual([]);
+    expect(result.exitCode).toBe(0);
+    expect(result.notCounted).toContain(".cursor/hooks.json");
+    expect(result.notCounted).toContain(`.cursor/hooks/${outer as string}`);
   });
 });

@@ -166,7 +166,6 @@ describe("runSessionStart read-only posture (#2176)", () => {
       "ceremony_dial_resolve",
       "git_head",
       "occupancy_plan",
-      "linked_deposit",
       "user_md_resolve",
       "alignment",
       "wsl_ownership_guard",

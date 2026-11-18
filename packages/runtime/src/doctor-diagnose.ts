@@ -12,6 +12,12 @@ import {
   isHostHookOuterCommand,
 } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
+  ENTRY_GUARD_MESSAGES,
+  formatEntryGuardMessage,
+  pinInvalidValues,
+  projectInstallCommand,
+} from "@deftai/directive-core/dist/install-health/constants.js";
+import {
   checkFullInSync,
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   type FullInSyncResult,
@@ -19,6 +25,7 @@ import {
   RUNTIME_PACKAGE_PATH_PREFIX,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { listDirectiveOwnedPaths } from "@deftai/directive-core/dist/install-health/owned-paths.js";
+import { readRuntimePin } from "@deftai/directive-core/dist/install-health/readers.js";
 import {
   checkIgnoreVerboseStdout,
   displayIgnoreSource,
@@ -222,29 +229,11 @@ export const GIT_PRECONDITION_READINESS_DETAIL =
 export const WIRING_RECOVERY_GUIDANCE =
   "inspect Taskfile.yml / Directive wiring targets (or probe); for owned wiring damage: directive install --repair";
 
-/** Wiring damaged while the pinned runtime is installed (AC9.7 / AC14.14). */
-export const WIRING_DAMAGED_RECOVERY_GUIDANCE = "directive install --repair";
-
 /**
- * Pin is not one exact version (range, tag) or not readable: the user fixes
- * package.json; doctor never names an install for it (AC9.7, AC12.2).
+ * Wiring damaged while the pinned runtime is installed (AC9.7 / AC14.14): the
+ * shared message table's `wiring-damaged` row.
  */
-export const PIN_INVALID_RECOVERY_GUIDANCE =
-  "set @deftai/directive-runtime in package.json to one exact version (no range or tag)";
-
-/**
- * The project install for a missing or mismatched runtime (AC9.7 / AC9.12),
- * chosen from the lockfile at the project root. Only commands the hook lets
- * through on a pin mismatch are named (O-30): `pnpm install --frozen-lockfile`,
- * `npm install`.
- */
-export function projectInstallCommand(projectRoot: string): string {
-  const pnpm = existsSync(join(projectRoot, "pnpm-lock.yaml"));
-  const npm = existsSync(join(projectRoot, "package-lock.json"));
-  if (pnpm && !npm) return "pnpm install --frozen-lockfile";
-  if (npm && !pnpm) return "npm install";
-  return "npm install (or pnpm install --frozen-lockfile)";
-}
+export const WIRING_DAMAGED_RECOVERY_GUIDANCE = ENTRY_GUARD_MESSAGES["wiring-damaged"];
 
 /** Patterns that must never appear as doctor remedies (AC12.5–12.7 / AC9.11). */
 export const FORBIDDEN_DOCTOR_REMEDY_PATTERNS: readonly RegExp[] = [
@@ -538,16 +527,29 @@ function chooseRemedy(
   // AC9.7 (v261118): one next command per failure class; never global + repair,
   // and never repair and upgrade together for an install-class red (AC12.7).
   const schemaBehind = dataStatus === "migration_needed" || dataStatus === "diagnosis_failed";
+  const install = projectInstallCommand(projectRoot);
   if (sync.failClosed) {
     // Installed runtime is not the pinned version → the project install.
-    return { remedy: projectInstallCommand(projectRoot), schemaRemedy: null };
+    return {
+      remedy: formatEntryGuardMessage("pin-mismatch", {
+        install,
+        pin: sync.version ?? undefined,
+        installed: p.installed.version ?? undefined,
+      }),
+      schemaRemedy: null,
+    };
   }
   if (!p.pin.ok) {
-    return { remedy: PIN_INVALID_RECOVERY_GUIDANCE, schemaRemedy: null };
+    // Range, tag or unreadable pin: the user rectifies package.json (D-042).
+    const spec = readRuntimePin(projectRoot).rawSpec ?? "";
+    return {
+      remedy: formatEntryGuardMessage("pin-invalid", pinInvalidValues(projectRoot, spec)),
+      schemaRemedy: null,
+    };
   }
   if (!p.installed.ok) {
     // Runtime missing → the project install.
-    return { remedy: projectInstallCommand(projectRoot), schemaRemedy: null };
+    return { remedy: formatEntryGuardMessage("runtime-missing", { install }), schemaRemedy: null };
   }
   const wiringBroken = !p.wiring.ok;
   // Lockfile disagrees (AC14.14), GENERATION or readiness missing (with .git):
@@ -696,14 +698,10 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   } else {
     lines.push("Install sync: not in sync");
     lines.push("");
-    if (needsProjectInstall(diag)) {
-      const ver = diag.version ?? "the pinned version";
-      lines.push(
-        `The project asks for Directive ${ver}, but that package is missing or the wrong version is installed.`,
-      );
+    if (needsProjectInstall(diag) && diag.remedy) {
+      // The shared table row names the problem and the one project install.
+      lines.push(`Next: ${diag.remedy}`);
       lines.push("");
-      lines.push("Next:");
-      lines.push(`  ${diag.remedy ?? "npm install"}`);
     }
   }
 

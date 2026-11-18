@@ -177,6 +177,8 @@ xbrief/
 
 `PROJECT-DEFINITION.xbrief.json` replaces the old `PROJECT.md` authority role. `SPECIFICATION.md` is generated from `xbrief/specification.xbrief.json`; do not hand-edit it for durable changes.
 
+`PROJECT-DEFINITION.xbrief.json` `plan.items` lists open scopes only (`proposed/`, `pending/`, `active/`). Completed and cancelled briefs live in their own folders and are not copied into it; the lifecycle-move sync removes a row when its scope finishes and adds or updates one when a scope moves into an open folder. The greenfield spec export's implementation plan reads those rows, so it lists open scopes only. Keep the file under about 1 MiB (target, not a gate): run `task project:render` to drop finished rows. Readers capture the file with a 64 MiB limit (`SUBPROCESS_MAX_BUFFER`).
+
 > **Historical:** durable state used to live under `vbrief/` with `*.vbrief.json` names. New writes use `xbrief/` and xBRIEF 0.8.
 
 ## Content Packs

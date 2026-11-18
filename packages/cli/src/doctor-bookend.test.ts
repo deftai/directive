@@ -1,9 +1,12 @@
 /**
  * Wave 2e launcher doctor bookend tests (AC12.4 / AC14.27 / AC12.5).
  */
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runDoctor } from "./bookends.js";
-import { EXIT_CODES, RECOVERY_GUIDANCE } from "./constants.js";
+import { EXIT_CODES } from "./constants.js";
 import type { ProjectInstallState } from "./pin.js";
 
 function capture() {
@@ -56,11 +59,15 @@ describe("runDoctor launcher basic diagnosis (AC12.4)", () => {
     expect(c.err() + c.out()).toMatch(/No Directive project here/);
   });
 
-  it("missing installed runtime → AC9.7, no global-runtime remedy", () => {
+  it("missing installed runtime → one Next line naming the project install (AC9.7)", () => {
     const c = capture();
     const code = runDoctor("/tmp/proj", baseState(), [], "9.9.9", c.io);
     expect(code).toBe(EXIT_CODES.FAILURE);
-    expect(c.out()).toContain(RECOVERY_GUIDANCE);
+    expect(c.out()).toContain(
+      "Next: Directive can't run: @deftai/directive-runtime is not installed in this project. Run `npm install` (or `pnpm install --frozen-lockfile`) in a terminal in this project.",
+    );
+    expect(c.out().match(/^(Next|Recovery):/gm)).toHaveLength(1);
+    expect(c.out()).not.toContain("npm i -g @deftai/directive, then");
     expect(c.out()).not.toMatch(/directive-runtime@/);
     expect(c.out()).not.toMatch(/\bnpx\b/);
     expect(c.out()).not.toMatch(/align-pin|accept-engine|DEFT_ACCEPT_ENGINE_SKEW/i);
@@ -82,8 +89,33 @@ describe("runDoctor launcher basic diagnosis (AC12.4)", () => {
     expect(code).toBe(EXIT_CODES.FAILURE);
     expect(c.out()).toMatch(/1\.2\.3/);
     expect(c.out()).toMatch(/1\.0\.0/);
-    expect(c.out()).toContain(RECOVERY_GUIDANCE);
+    expect(c.out()).toContain(
+      "Next: Directive can't run: the installed @deftai/directive-runtime 1.0.0 is not the pinned 1.2.3.",
+    );
+    expect(c.out()).not.toContain("npm i -g @deftai/directive, then");
     expect(c.out()).not.toMatch(/directive upgrade/);
+  });
+
+  it("pin≠installed with a pnpm lockfile names `pnpm install --frozen-lockfile`", () => {
+    const root = mkdtempSync(join(tmpdir(), "doctor-6620-"));
+    try {
+      writeFileSync(join(root, "pnpm-lock.yaml"), "");
+      const c = capture();
+      const state = baseState({
+        installed: {
+          version: "1.0.0",
+          contract: 1,
+          entryPath: join(root, "node_modules/@deftai/directive-runtime/dist/bin.js"),
+          packageJsonPath: join(root, "node_modules/@deftai/directive-runtime/package.json"),
+        },
+      });
+      expect(runDoctor(root, state, [], "9.9.9", c.io)).toBe(EXIT_CODES.FAILURE);
+      expect(c.out()).toContain(
+        "Run `pnpm install --frozen-lockfile` in a terminal in this project.",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
@@ -119,12 +151,15 @@ describe("runDoctor --json (#6004)", () => {
     });
   }
 
-  it("runtime missing: the JSON names the recovery", () => {
+  it("runtime missing: the JSON names the same next step as the human report", () => {
+    const human = capture();
+    runDoctor("/tmp/proj", baseState(), [], "9.9.9", human.io);
     const c = capture();
     runDoctor("/tmp/proj", baseState(), ["--json"], "9.9.9", c.io);
     const parsed = JSON.parse(c.out()) as { status: string; recovery: string; pin: string };
     expect(parsed.status).toBe("runtime-missing");
-    expect(parsed.recovery).toBe(RECOVERY_GUIDANCE);
+    expect(human.out()).toContain(`Next: ${parsed.recovery}\n`);
+    expect(parsed.recovery).not.toContain("npm i -g @deftai/directive, then");
     expect(parsed.pin).toBe("1.2.3");
   });
 });
