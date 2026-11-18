@@ -2,13 +2,13 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #5994 — v261027 thin host .mjs outer; kill .sh emit; unify entry guards (F1/F2)",
-    "updated": "2026-11-18T00:04:14Z"
+    "updated": "2026-11-18T02:49:10Z"
   },
   "plan": {
     "id": "github.issue.6081456211",
     "title": "feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards",
-    "status": "running",
-    "updated": "2026-11-18T00:04:14Z",
+    "status": "completed",
+    "updated": "2026-11-18T02:49:10Z",
     "tags": [
       "feat",
       "harness",
@@ -32,6 +32,13 @@
         "narrative": {
           "Acceptance": "Shared outer deposits as deft-hook-<sha8>.mjs; order is disable quiet-allow (no pin load, no required message) then missing/unusable pin fails closed with project npm/pnpm install guidance only (rejects AC9.7 INSTALLATION_RECOVERY_GUIDANCE string) then passthrough to pin hook-bin.js",
           "Traces": "#5994 F1 AC9.1 AC9.12 AC14.3"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bfc9097b3c2ac20f64adf951b5a3754743b8f7dc",
+          "recorded_at": "2026-11-18T02:49:10Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
@@ -41,6 +48,13 @@
         "narrative": {
           "Acceptance": "core init-deposit agent-hooks and runtime setup-wiring ensureHostHooks/nestedToolCommand (plus install/upgrade/repair/self-complete paths they feed) emit node <deposit>/deft-hook-<sha8>.mjs … only; never .sh; never direct registered hook-bin.js as the host command",
           "Traces": "#5994 F2 Decision 7"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bfc9097b3c2ac20f64adf951b5a3754743b8f7dc",
+          "recorded_at": "2026-11-18T02:49:10Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
@@ -50,6 +64,13 @@
         "narrative": {
           "Acceptance": "Upgrade/repair rewrites .sh and direct registered hook-bin to .mjs; inspect/drift, hygiene managed paths, and coverage-applicability treat only .mjs registration as success and treat .sh plus direct hook-bin as legacy",
           "Traces": "#5994 F2"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bfc9097b3c2ac20f64adf951b5a3754743b8f7dc",
+          "recorded_at": "2026-11-18T02:49:10Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
@@ -59,6 +80,13 @@
         "narrative": {
           "Acceptance": "Deposited git-hook helper and Taskfile pin entry evaluate disable before requiring dist/bin.js / pin path; quiet skip on disable; missing pin uses project PM guidance only",
           "Traces": "#5994 #5809 AC9.12"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bfc9097b3c2ac20f64adf951b5a3754743b8f7dc",
+          "recorded_at": "2026-11-18T02:49:10Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
@@ -68,6 +96,13 @@
         "narrative": {
           "Acceptance": "Repo host deposits updated to .mjs form; automated tests cover emit convergence, idempotence of correct .mjs under repair, quiet disable with empty modules, missing-pin project-PM message (not AC9.7), legacy rewrite, passthrough, classifier; CHANGELOG Unreleased Refs #5994 only",
           "Traces": "#5994"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bfc9097b3c2ac20f64adf951b5a3754743b8f7dc",
+          "recorded_at": "2026-11-18T02:49:10Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -249,7 +284,35 @@
         "effort": "M"
       },
       "capacityBucket": "agentic-debt",
-      "productPullRequest": 6016
+      "productPullRequest": 6016,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "afc41b8849bf81c3f5d7bc9393b42d1bd0bec7a6",
+        "prNumber": 6016,
+        "prBase": "master",
+        "mergeCommit": "bfc9097b3c2ac20f64adf951b5a3754743b8f7dc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dea75ec316a6ce63088d3e2ce7c422bdecd4875b",
+        "verifiedAt": "2026-11-18T02:49:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MGI1YzNiYWMtNzljZS00OWFmLWJjYzEtMjQ3MDA4NjM3M2Nl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6593
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T02:49:10Z",
+      "completedSessionId": "host:claude:v1:MGI1YzNiYWMtNzljZS00OWFmLWJjYzEtMjQ3MDA4NjM3M2Nl",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T02:49:10Z"
+      }
     }
   }
 }
