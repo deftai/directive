@@ -606,13 +606,16 @@ function readWrapper(words: readonly ShellWord[], k: number, name: string): Comm
       c += 1;
       continue;
     }
-    // `env -S` splits its string, and the words after it join the command it builds.
+    // `env -S` splits only its own string into words; the words after it are
+    // added as they are, so the wrapped command is the split words plus the rest.
     const split =
       name === "env" && !optionsDone ? /^(?:-[^-uCPS]*S|--split-string=?)(.*)$/s.exec(v) : null;
     if (split !== null) {
-      const rest = withoutRedirections(words.slice(c + 1));
-      const own = split[1] ? [{ value: split[1], expands: word?.expands ?? false }] : [];
-      return joinedString([...own, ...rest], "an `env -S` string");
+      const own = split[1] ? word : words[c + 1];
+      if (own === undefined) return null;
+      if (own.expands) return unreadable("an `env -S` string");
+      const parts = tokenizeShellCommand(split[1] || own.value).flatMap((part) => part.words);
+      return { kind: "wrapped", words: [...parts, ...words.slice(split[1] ? c + 1 : c + 2)], name };
     }
     if (!optionsDone && v.startsWith("-") && v.length > 1) {
       // `command -v` / `-V` only describe the command.
