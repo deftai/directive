@@ -17,7 +17,8 @@
       "Dependencies": "Depends on the #5994 close-out only (D-004). Does not depend on P1-U3 (that applies to P3-U1b). Decisions: D-001 (Rule 1), D-004 (split), D-006 (drop dirty-tree refusal and AgeExclude check), D-017 / O-40 (fold in #6358 release half), D-028 (no Dependabot change).",
       "StoryId": "ovpr-p3-u1a (OVPR fix plan, Phase 0). Spec: units/P3-U1-version-bump-is-just-a-bump.md, Fix steps 1-3.",
       "DesignCritique": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
-      "Traces": "#6613 (primary; Part A). Related: #6358 (release half folded in), #6127, #6184, #5947, #5948."
+      "Traces": "#6613 (primary; Part A). Related: #6358 (release half folded in), #6127, #6184, #5947, #5948.",
+      "UserStory": "As a Directive maintainer who runs releases, I want the release finish step to be pull, install and confirm that the installed version equals the pin, so that a version bump is complete without first committing refreshed hook files."
     },
     "items": [
       {
@@ -130,15 +131,29 @@
           "changelog.d/6613-release-finish-pull-install-confirm.md"
         ],
         "readiness": "ready",
-        "depends_on": [],
+        "depends_on": [
+          "github.issue.6081456211"
+        ],
         "size": "medium",
         "verify_commands": [
-          "pnpm vitest run packages/core/src/init-deposit packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts"
+          "pnpm exec vitest run packages/core/src/init-deposit packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts"
         ],
         "Traces": [
           "#6613"
         ],
-        "acceptance_criteria_justification": "Five items: Part A acceptance criteria 1-5 of #6613 (spec ACs 1-5). Part B criteria (fixture, #5952 text) belong to P3-U1b. Spec AC6 (Dependabot) was dropped by D-028."
+        "acceptance_criteria_justification": "Five items: Part A acceptance criteria 1-5 of #6613 (spec ACs 1-5). Part B criteria (fixture, #5952 text) belong to P3-U1b. Spec AC6 (Dependabot) was dropped by D-028.",
+        "parallel_safe": true,
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "release-finish",
+        "expected_outputs": [
+          "`git grep -n -E 'validateCursorDepositAssociation|stageTipRequiredCursorDeposit|preparePinCandidateCursorDeposit|tipRequiredCursorDepositPaths|defaultGitAddForce'` returns nothing in `packages/` or `Taskfile.yml`.",
+          "`hostHookOuterSha8()` is unchanged.",
+          "`release:local-update` contains no `verify:hooks-installed`, no `DEFT_DOCTOR_HOOK_DIAGNOSTIC`, no `directive upgrade`, and no failure on tracked-file changes after install.",
+          "On a checkout where pin and installed are both V, `task release:local-update -- V --checkout <primary>` exits 0 after pull and install, even when committed hook files are older than V.",
+          "Release skill Phase 7 step 8 lists exactly: checkout checks, pull, install, confirm installed = pin; and says a later upgrade diff is normal.",
+          "one changelog fragment changelog.d/6613-release-finish-pull-install-confirm.md"
+        ]
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -154,7 +169,8 @@
           "xbrief/evaluator-surface-disposition.json",
           "changelog.d/6613-release-finish-pull-install-confirm.md"
         ],
-        "module_boundary": "packages/core/src/init-deposit (removal only; hostHookOuterSource() untouched), the release:local-update task in Taskfile.yml, and Phase 7 step 8 of the release skill with its generated mirrors."
+        "module_boundary": "packages/core/src/init-deposit (removal only; hostHookOuterSource() untouched), the release:local-update task in Taskfile.yml, and Phase 7 step 8 of the release skill with its generated mirrors.",
+        "cohesion_exemption": "agent-hooks.ts (1314 lines), agent-hooks.test.ts (1442 lines) and Taskfile.yml (1504 lines) already exceed the review trigger. This unit only removes code and text from them (the #6184 functions and tests, and the release:local-update checks), so each file gets shorter; splitting them is out of scope."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -438,14 +454,16 @@
           "text": "`Taskfile.yml` `release:local-update` (`:861` onward): - `print_deposit_recovery` (`:956-962`): \"force-add tip-required Cursor paths … merge that pin+deposit tip, then re-run\".",
           "artifact_path": "Taskfile.yml",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 14,
           "text": "dirty-tree refusal (`:1019-1023`); AgeExclude check on `pnpm-workspace.yaml` (`:1044-1091`).",
           "artifact_path": "Taskfile.yml",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 15,
@@ -494,21 +512,24 @@
           "text": "#6184 product code: `packages/core/src/init-deposit/host-hook-outer.ts` (`execFileSync` import `:17`, `CURSOR_HOOKS_JSON_REL` `:30`, `tipRequiredCursorDepositPaths` `:75`, `defaultGitAddForce` `:159` which runs `git add -f`, `stageTipRequiredCursorDeposit` `:172`, `validateCursorDepositAssociation` `:190`) and `packages/core/src/init-deposit/agent-hooks.ts` (wrapper `:35`, `preparePinCandidateCursorDeposit` `:693` with no production caller, `resolveCursorDepositAssociationForCloseout` `:727`).",
           "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 22,
           "text": "None of it is inside `hostHookOuterSource()`, so removing it does not change the deposited `.mjs` bytes or their sha8.",
           "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 23,
           "text": "Release skill `content/skills/deft-directive-release/SKILL.md`, Phase 7 step 8 (`:411-426`): sub-step 6 (\"Keep Phase 7 local closeout incomplete until that deposit evidence exists\"), sub-step 8 (post-upgrade tracked diff = incomplete), sub-step 9; Skill Completion (`:470`); anti-patterns (`:478`).",
           "artifact_path": "content/skills/deft-directive-release/SKILL.md",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "source_kind": "defect-description"
         },
         {
           "id": 24,
@@ -541,7 +562,7 @@
         {
           "id": 28,
           "text": "Decision `xbrief/decisions/2026-11-10-close-5947-5948-via-ac14-10-proof-process-note-pin-only-dependab.decision.json`: pin-only/Dependabot OK; the rejected alternative is \"Require deposit refresh in every pin/Dependabot PR\".",
-          "artifact_path": "Taskfile.yml",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -597,7 +618,7 @@
         {
           "id": 36,
           "text": "`.github/dependabot.yml` stays as it is.",
-          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -730,7 +751,7 @@
         {
           "id": 55,
           "text": "Change only the `@deftai/directive-runtime` pin and lockfile in the fixture from V to W.",
-          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -751,14 +772,14 @@
         {
           "id": 58,
           "text": "Assert: the hook proceeds; `GENERATION.json` records W; the readiness marker for W exists; the new-sha8 outer exists if the outer bytes changed; `package.json`, the lockfile and `xbrief/` are unchanged.",
-          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 59,
           "text": "If the fixture can't get two real published versions, use a fake W as `self-complete.test.ts:285` does, and say so in the test.",
-          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -849,7 +870,7 @@
         {
           "id": 72,
           "text": "Verification: `pnpm vitest run packages/core/src/init-deposit`; `task check`; `packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts` still passes; manual run on a scratch clone at the current pin exits 0 with the new completion line.",
-          "artifact_path": "Taskfile.yml",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -870,7 +891,7 @@
         {
           "id": 75,
           "text": "#6163's real cause was a per-clone `.git/info/exclude` entry; doctor warns about that in #6618.",
-          "artifact_path": "changelog.d/6613-release-finish-pull-install-confirm.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
