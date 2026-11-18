@@ -2989,10 +2989,10 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     expectNoPlant(`echo "see <<EOF example"\nxargs grep touch <<EOF\n${kill}\nEOF`);
   });
 
-  it("scans deeply nested cmd launchers in linear time and fails closed past the cap", () => {
+  it("scans deeply nested cmd launchers in linear time and still judges the innermost command", () => {
     const started = Date.now();
-    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(60)}type ${kill}`)).toBe(true);
-    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(200)}echo x > ${kill}`)).toBe(true);
+    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(300)}type ${kill}`)).toBe(false);
+    expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(300)}echo x > ${kill}`)).toBe(true);
     expect(Date.now() - started).toBeLessThan(2000);
     expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(3)}type ${kill}`)).toBe(false);
     expect(hasKillSwitchShellWrite(`${"cmd /c ".repeat(3)}echo x > ${kill}`)).toBe(true);

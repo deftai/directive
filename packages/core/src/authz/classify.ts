@@ -4458,14 +4458,24 @@ function stageMentionsSettingsStore(stage: string): boolean {
   return words.some((w) => pathishIsSettingsStoreDir(pathishToken(unwrapQuotedPayload(w))));
 }
 
-/** Deepest `cmd /c` nesting that is scanned; past it the command fails closed. */
-const MAX_CMD_LAUNCHER_DEPTH = 8;
+/**
+ * `cmd /c "<payload>"`: the first launcher's payload is the rest of the line, so it holds
+ * every nested launcher. Walk the payload chain in a loop, one pass per level (linear in
+ * the nesting, no recursion depth to cap) (#6681).
+ */
+function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
+  let current = command;
+  let currentTokens = tokens;
+  for (;;) {
+    if (killSwitchShellWriteInLine(current, currentTokens)) return true;
+    const next = cmdLauncherPayloads(current)[0];
+    if (next === undefined) return false;
+    current = next;
+    currentTokens = shellTokens(next);
+  }
+}
 
-function hasKillSwitchShellWriteInner(
-  command: string,
-  tokens: readonly string[],
-  depth = 0,
-): boolean {
+function killSwitchShellWriteInLine(command: string, tokens: readonly string[]): boolean {
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Quote-stripped form so `'.deft'-directive-disable`-class splits still match (#3213).
   const stripped = lower.replace(/['"]/g, "");
@@ -4489,13 +4499,6 @@ function hasKillSwitchShellWriteInner(
   // Same-segment redirect operand, including noclobber `>!` / `>|` / `>&` (#6188 / #4199).
   // A later read argument after `2>/dev/null` is not the operand.
   if (quoteAwareRedirectPlantsKillSwitch(command)) return true;
-
-  // `cmd /c "<payload>"`: the quoted payload is a command line of its own (#6681).
-  for (const payload of cmdLauncherPayloads(command)) {
-    // The command names a kill-switch file and nests launchers past the cap: fail closed.
-    if (depth >= MAX_CMD_LAUNCHER_DEPTH) return true;
-    if (hasKillSwitchShellWriteInner(payload, shellTokens(payload), depth + 1)) return true;
-  }
 
   // `echo <name> | xargs touch`: the name reaches the writer through the pipe (#6681).
   if (pipelineFeedsXargsWriter(command, textMentionsKillSwitch)) return true;
