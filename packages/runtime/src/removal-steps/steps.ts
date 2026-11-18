@@ -414,6 +414,16 @@ export function removeSoleAuthorHusks(root: string): string[] {
   const removed: string[] = [];
   const pushRemove = contained(root, removed);
 
+  // A near-empty lockfile with no package.json is residue the package
+  // manager cannot use anyway; with a manifest present, lockfiles wait for
+  // the launcher (removeSoleAuthorManifest after the package-manager remove).
+  if (!existsSync(join(root, "package.json"))) {
+    for (const lock of ["package-lock.json", "pnpm-lock.yaml"] as const) {
+      const abs = join(root, lock);
+      if (existsSync(abs) && isNearEmptyLockfile(abs)) pushRemove(lock);
+    }
+  }
+
   for (const rel of HOST_HOOK_RELS) {
     const abs = join(root, rel);
     if (!existsSync(abs)) continue;

@@ -126,6 +126,16 @@ describe("removeSoleAuthorHusks (C5 / F-013)", () => {
     expect(JSON.parse(readFileSync(join(root, "real-pkg.json"), "utf8")).name).toBe("app");
   });
 
+  it("removes a near-empty lockfile left with no package.json", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "package-lock.json"),
+      `${JSON.stringify({ name: "t", lockfileVersion: 3, requires: true, packages: { "": {} } }, null, 2)}\n`,
+    );
+    expect(removeSoleAuthorHusks(root)).toContain("package-lock.json");
+    expect(existsSync(join(root, "package-lock.json"))).toBe(false);
+  });
+
   it("removes install-seeded AGENTS stub but preserves user body", () => {
     const root = tempRoot();
     writeFileSync(join(root, "AGENTS.md"), `${renderConsumerHeader()}\n`);

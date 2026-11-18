@@ -963,7 +963,7 @@ function writeHooksPathOutcome(io: PresentIo, outcome: UninstallHooksPathOutcome
           : "another worktree still uses Directive hooks";
       writeHumanParagraph(
         io,
-        `Kept core.hooksPath=.githooks: ${who}. Git hooks in this worktree are off until you run: git config --unset core.hooksPath`,
+        `Kept core.hooksPath=.githooks: ${who}. Git hooks in this worktree stay off while it is set. To turn them back on, run: git config --unset core.hooksPath (this also turns off Directive hooks in those other worktrees).`,
       );
       return;
     }

@@ -135,6 +135,19 @@ describe("Directive-written lines in shared files (#6007)", () => {
     );
   });
 
+  it("keeps paths-ignore when a column-0 comment sits before a user item", () => {
+    const body =
+      "name: Analysis\npaths-ignore:\n  - '.deft/core/**'\n# Generated files\n  - 'dist/**'\n";
+    expect(stripCodeqlConfig(body).next).toBe(
+      "name: Analysis\npaths-ignore:\n# Generated files\n  - 'dist/**'\n",
+    );
+  });
+
+  it("keeps paths-ignore for an unindented user list item", () => {
+    const body = "paths-ignore:\n- '.deft/core/**'\n- 'dist/**'\nqueries: []\n";
+    expect(stripCodeqlConfig(body).next).toBe("paths-ignore:\n- 'dist/**'\nqueries: []\n");
+  });
+
   it("keeps the kept line's own newline when the removed last line had none", () => {
     const body = "a.png binary\n.githooks/** text=auto eol=lf";
     expect(stripDirectiveLines(body, DIRECTIVE_WRITTEN_LINES[".gitattributes"]).next).toBe(

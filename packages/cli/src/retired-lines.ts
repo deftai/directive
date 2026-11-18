@@ -209,14 +209,17 @@ export function stripCodeqlConfig(body: string): { next: string; removed: boolea
     let j = i + 1;
     let ours = 0;
     let others = 0;
-    // The block ends at the next line that starts at column 0 (a new top-level key).
+    // The block ends at the next top-level key: a non-blank line at column 0
+    // that is neither a comment nor a `- ` list item (YAML allows both there).
     while (j < texts.length) {
       const line = texts[j] ?? "";
-      if (line.length > 0 && line[0] !== " " && line[0] !== "\t") break;
-      if (CODEQL_RETIRED_ITEMS.has(line.trim())) {
+      const t = line.trim();
+      const topLevel = line.length > 0 && line[0] !== " " && line[0] !== "\t";
+      if (topLevel && !t.startsWith("#") && !t.startsWith("- ") && t !== "-") break;
+      if (CODEQL_RETIRED_ITEMS.has(t)) {
         marked[j] = true;
         ours += 1;
-      } else if (line.trim() !== "") {
+      } else if (t !== "" && !t.startsWith("#")) {
         others += 1;
       }
       j += 1;
