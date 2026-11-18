@@ -1,5 +1,5 @@
 /**
- * No-agent lifecycle fixture (#6614). Packs the launcher and runtime from this
+ * No-agent lifecycle harness, #6614. Packs the launcher and runtime from this
  * workspace, installs them into throwaway projects, and runs the hook commands
  * each host config registers exactly as a host would (`sh -c` in the project,
  * JSON payload on stdin). No agent, no LLM, no network beyond the workspace's
