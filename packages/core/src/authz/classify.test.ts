@@ -2821,3 +2821,102 @@ describe("kill-switch read is not a plant (#6188)", () => {
     expect(classifyShellAuthzOps(`convert ${kill} /tmp/out`)).toEqual([]);
   });
 });
+
+describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)", () => {
+  const kill = ".deft-directive-disable";
+  const opt = ".no-deft-directive";
+  const authz = ".deft/authz/state.json";
+  const scope = ".deft/approved-scope/x.json";
+
+  function expectPlant(command: string): void {
+    expect(hasKillSwitchShellWrite(command), command).toBe(true);
+    expect(classifyShellAuthzOps(command), command).toContain("settings");
+  }
+
+  function expectStoreWrite(command: string): void {
+    expect(classifyShellAuthzOps(command), command).toContain("settings");
+  }
+
+  function expectNoPlant(command: string): void {
+    expect(hasKillSwitchShellWrite(command), command).toBe(false);
+    expect(classifyShellAuthzOps(command), command).not.toContain("settings");
+  }
+
+  it("denies a cmd launcher whose quoted payload redirects into the kill switch", () => {
+    for (const command of [
+      `cmd /c "echo x > ${kill}"`,
+      `cmd /c "type nul > ${kill}"`,
+      `cmd.exe /c "echo x > ${opt}"`,
+      `cmd /c 'type nul > ${kill}'`,
+      `cmd /d /c "echo x > ${kill}"`,
+      `C:\\Windows\\System32\\cmd.exe /c "echo x > ${kill}"`,
+      `cmd /c "echo x >> ${kill}"`,
+      `cmd /c "touch ${kill}"`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("denies a pipeline that feeds the kill-switch name to a writer through xargs", () => {
+    for (const command of [
+      `echo ${kill} | xargs touch`,
+      `printf '%s' ${kill} | xargs -I{} touch {}`,
+      `echo ${opt} | xargs -n1 touch`,
+      `echo ${kill} | tr -d x | xargs touch`,
+      `echo ${kill}|xargs touch`,
+      `echo ${kill} | xargs sh -c 'touch "$0"'`,
+      `echo ${kill} | xargs -I{} cp /tmp/x {}`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("denies the same xargs pipeline aimed at the protected stores", () => {
+    for (const command of [
+      `echo ${authz} | xargs touch`,
+      `echo ${scope} | xargs touch`,
+      `printf '%s' ${authz} | xargs -I{} touch {}`,
+      `printf '%s' ${scope} | xargs -I{} touch {}`,
+    ]) {
+      expectStoreWrite(command);
+    }
+  });
+
+  it("still denies the forms that were denied before #6580", () => {
+    for (const command of [
+      `powershell -c "New-Item ${kill}"`,
+      `bash -c "touch ${kill}"`,
+      `find . -exec touch ${kill} \\;`,
+      `touch ${kill}`,
+      `echo x > ${kill}`,
+    ]) {
+      expectPlant(command);
+    }
+    for (const command of [
+      `cmd /c "echo x > ${authz}"`,
+      `cmd /c "echo x > ${scope}"`,
+      `cmd.exe /c "type nul > ${authz}"`,
+    ]) {
+      expect(classifyShellAuthzOps(command), command).not.toEqual([]);
+    }
+  });
+
+  it("keeps read-only mentions allowed", () => {
+    for (const command of [
+      `git commit -m "mention ${kill}"`,
+      `git commit -m "echo x > ${kill}"`,
+      `cmd /c "type ${kill}"`,
+      `cmd /c "dir ${kill} 2>nul"`,
+      `cmd /c "echo ok"`,
+      `echo ${kill} | xargs cat`,
+      `echo ${kill} | xargs ls -la`,
+      `echo ${kill} | wc -c`,
+      `ls ${kill}; echo x | xargs touch /tmp/ordinary`,
+      `ls ${kill} || echo x | xargs touch /tmp/ordinary`,
+      `echo x | xargs touch /tmp/ordinary`,
+    ]) {
+      expectNoPlant(command);
+    }
+    expect(classifyShellAuthzOps(`echo ${authz} | xargs cat`)).not.toContain("settings");
+  });
+});

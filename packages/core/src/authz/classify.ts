@@ -4070,6 +4070,122 @@ function tokenPlantsKillSwitch(token: string): boolean {
   return false;
 }
 
+/**
+ * #6681: `cmd /c "<payload>"` runs the payload as a command line, so a redirect inside
+ * those quotes is a real write. The quote-aware redirect scan skips `>` inside quotes
+ * (a mention such as `git commit -m "x > name"` stays allowed), so a `cmd` launcher
+ * payload is unwrapped and scanned as a command of its own. Rest of line, as cmd reads it.
+ */
+const CMD_LAUNCHER_PAYLOAD_RE =
+  /(?:^|[\s;&|(])(?:[^\s"';&|()]*[\\/])?cmd(?:\.exe)?\s+(?:\/[a-z]\s+)*\/[ckr]\s+([\s\S]*)$/gim;
+
+function cmdLauncherPayloads(command: string): string[] {
+  const out: string[] = [];
+  for (const match of command.matchAll(CMD_LAUNCHER_PAYLOAD_RE)) {
+    let payload = (match[1] as string).trim();
+    const q = payload[0];
+    if (q === '"' || q === "'") {
+      payload = payload.slice(1);
+      if (payload.endsWith(q)) payload = payload.slice(0, -1);
+    }
+    if (payload.length > 0) out.push(payload);
+  }
+  return out;
+}
+
+/** Pipelines: stages joined by a bare `|`; `||`, `;`, `&`, `&&`, newlines end the chain. */
+function splitUnquotedPipeChains(text: string): string[][] {
+  const chains: string[][] = [];
+  let stages: string[] = [];
+  let cur = "";
+  let quote: "'" | '"' | null = null;
+  const endChain = (): void => {
+    stages.push(cur);
+    chains.push(stages);
+    stages = [];
+    cur = "";
+  };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i] as string;
+    if (c === "\\" && quote !== "'" && i + 1 < text.length) {
+      cur += c + (text[i + 1] as string);
+      i++;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      if (quote === null) quote = c;
+      else if (quote === c) quote = null;
+      cur += c;
+      continue;
+    }
+    if (quote !== null) {
+      cur += c;
+      continue;
+    }
+    const prev = i > 0 ? (text[i - 1] as string) : "";
+    if (c === "|") {
+      if (prev === ">") {
+        cur += c;
+      } else if (text[i + 1] === "|") {
+        endChain();
+        i++;
+      } else {
+        stages.push(cur);
+        cur = "";
+      }
+      continue;
+    }
+    if (c === ";" || c === "\n" || c === "\r" || (c === "&" && prev !== ">" && prev !== "<")) {
+      endChain();
+      continue;
+    }
+    cur += c;
+  }
+  endChain();
+  return chains;
+}
+
+const XARGS_SHELL_LAUNCHERS = new Set(["sh", "bash", "zsh", "dash", "ksh", "ash", "fish", "cmd"]);
+
+/** True when a word (or a word inside a quoted payload) is a write bin or shell launcher. */
+function wordIsXargsWriter(word: string): boolean {
+  for (const part of unwrapQuotedPayload(word).split(/[\s;&|()]+/)) {
+    if (part.length === 0) continue;
+    if (killSwitchWriteBinToken(part)) return true;
+    if (isProgrammaticWriteBinToken(part)) return true;
+    if (XARGS_SHELL_LAUNCHERS.has(writeBinName(part))) return true;
+  }
+  return false;
+}
+
+/**
+ * #6681: a pipeline stage that names a protected file, feeding a later `xargs` stage
+ * whose command is a writer (`echo <name> | xargs touch`). The name never shares a
+ * segment with the writer, so the same-segment scans miss it. Reads stay allowed
+ * (`echo <name> | xargs cat`).
+ */
+function pipelineFeedsXargsWriter(
+  command: string,
+  stageMentions: (stage: string) => boolean,
+): boolean {
+  const text = shellWithoutHereDocBodies(command);
+  for (const chain of splitUnquotedPipeChains(text)) {
+    for (let k = 1; k < chain.length; k++) {
+      const words = zipShellWords(chain[k] as string) ?? (chain[k] as string).split(/\s+/);
+      const xi = words.findIndex((w) => writeBinName(w) === "xargs");
+      if (xi < 0) continue;
+      if (!chain.slice(0, k).some(stageMentions)) continue;
+      if (words.slice(xi + 1).some(wordIsXargsWriter)) return true;
+    }
+  }
+  return false;
+}
+
+function stageMentionsSettingsStore(stage: string): boolean {
+  const words = zipShellWords(stage) ?? stage.split(/\s+/);
+  return words.some((w) => pathishIsSettingsStoreDir(pathishToken(unwrapQuotedPayload(w))));
+}
+
 function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Quote-stripped form so `'.deft'-directive-disable`-class splits still match (#3213).
@@ -4094,6 +4210,14 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
   // Same-segment redirect operand, including noclobber `>!` / `>|` / `>&` (#6188 / #4199).
   // A later read argument after `2>/dev/null` is not the operand.
   if (quoteAwareRedirectPlantsKillSwitch(command)) return true;
+
+  // `cmd /c "<payload>"`: the quoted payload is a command line of its own (#6681).
+  for (const payload of cmdLauncherPayloads(command)) {
+    if (hasKillSwitchShellWriteInner(payload, shellTokens(payload))) return true;
+  }
+
+  // `echo <name> | xargs touch`: the name reaches the writer through the pipe (#6681).
+  if (pipelineFeedsXargsWriter(command, textMentionsKillSwitch)) return true;
 
   // Downloader/decoder destinations: curl -o .deft-directive-disable, scp, … (#3206 / #3213).
   for (const dest of downloaderDecoderDestinations(tokens)) {
@@ -5119,6 +5243,8 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
     }
   }
   if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
+  // #6681: a protected-store path piped into `xargs <writer>`.
+  if (pipelineFeedsXargsWriter(cmd, stageMentionsSettingsStore)) found.add("settings");
   // #3186: programmatic write/obfuscated-path shells fail closed as settings (not unclassifiable allow).
   // Always merge settings even when other ops already matched (e.g. `pytest && python -c '…write…'`)
   // so a compound safe prefix cannot hide a write-capable residual (SLizard residual).
