@@ -33,8 +33,11 @@ export function resetSelfCompleteGitHookDisclosureForTests(): void {
   emittedGitHookLines.clear();
 }
 
-/** Automatic setup needs no approval, so it names each git hook it replaced (D-023). */
-function discloseGitHookUpdates(
+/**
+ * Automatic setup needs no approval, so it names each git hook it replaced
+ * (D-023) and each file it kept, once per process.
+ */
+function discloseOnce(
   lines: readonly string[] | undefined,
   writeErr: (text: string) => void,
 ): void {
@@ -165,6 +168,8 @@ export function maybeSelfCompleteSetup(
     from: version,
     root: projectRoot,
   });
-  discloseGitHookUpdates(setup.gitHookUpdates, writeErr);
+  discloseOnce(setup.gitHookUpdates, writeErr);
+  // Kept files (e.g. a user-edited retired core-guard workflow, #5835).
+  discloseOnce(setup.preserved, writeErr);
   return { ran: true, skipReason: null, setup };
 }

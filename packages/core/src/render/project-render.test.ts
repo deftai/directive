@@ -117,7 +117,8 @@ describe("project-render decompose round-trip", () => {
       now: new Date("2026-06-24T12:00:00Z"),
     });
     expect(ok).toBe(true);
-    expect(message).toContain("3 scope items");
+    // Finished scopes (cancelled umbrella + completed stories) are not registry rows (#6648).
+    expect(message).toContain("0 scope items");
 
     const parsed: unknown = JSON.parse(
       readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"),
@@ -126,22 +127,7 @@ describe("project-render decompose round-trip", () => {
     const projectDef = parsed as {
       plan: { items: Array<{ metadata?: { references?: unknown[] } }> };
     };
-
-    const umbrella = projectDef.plan.items.find(
-      (item) =>
-        (item as { metadata?: { source_path?: string } }).metadata?.source_path ===
-        "cancelled/2026-06-16-umbrella.xbrief.json",
-    );
-    expect(umbrella).toBeDefined();
-    const umbrellaRefs = (umbrella as { metadata?: { references?: unknown[] } }).metadata
-      ?.references;
-    expect(Array.isArray(umbrellaRefs)).toBe(true);
-    expect(umbrellaRefs?.some((ref) => (ref as { type?: string }).type === "x-vbrief/plan")).toBe(
-      false,
-    );
-    expect(
-      umbrellaRefs?.some((ref) => (ref as { type?: string }).type === "x-vbrief/github-issue"),
-    ).toBe(true);
+    expect(projectDef.plan.items).toEqual([]);
 
     const errors = validateProjectDefinition(
       "xbrief/PROJECT-DEFINITION.xbrief.json",
@@ -245,6 +231,82 @@ describe("project-render staleness acknowledgement (#640)", () => {
     expect(flags.some((f) => f.includes("Architecture migration story"))).toBe(false);
 
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("project-render open-only registry and bounded flags (#6648)", () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  function makeRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-6648-"));
+    dirs.push(root);
+    const vbrief = join(root, "xbrief");
+    mkdirSync(vbrief, { recursive: true });
+    return vbrief;
+  }
+
+  function readPlan(vbrief: string): {
+    items: Array<{ metadata: { source_path: string } }>;
+    metadata: { staleness_flags: string[] };
+  } {
+    return readJsonObject(join(vbrief, "PROJECT-DEFINITION.xbrief.json")).plan as never;
+  }
+
+  it("plan.items holds exactly the proposed, pending and active briefs", () => {
+    const vbrief = makeRoot();
+    const folders = ["proposed", "pending", "active", "completed", "cancelled"];
+    for (const folder of folders) {
+      writeScope(vbrief, folder, `2026-06-01-${folder}.xbrief.json`, {
+        title: `Scope in ${folder}`,
+        status: folder === "completed" ? "completed" : "pending",
+        items: [],
+      });
+    }
+    writeProjectDefinition(vbrief);
+    renderProjectDefinition(vbrief, { now: new Date("2026-06-28T12:00:00Z") });
+    expect(
+      readPlan(vbrief)
+        .items.map((i) => i.metadata.source_path)
+        .sort(),
+    ).toEqual([
+      "active/2026-06-01-active.xbrief.json",
+      "pending/2026-06-01-pending.xbrief.json",
+      "proposed/2026-06-01-proposed.xbrief.json",
+    ]);
+  });
+
+  it("emits one flag line for a narrative shared by 50 unacknowledged completed scopes", () => {
+    const vbrief = makeRoot();
+    for (let n = 0; n < 50; n += 1) {
+      writeScope(vbrief, "completed", `2026-06-01-arch-${n}.xbrief.json`, {
+        title: `Architecture change ${n}`,
+        status: "completed",
+        items: [],
+      });
+    }
+    writeProjectDefinition(vbrief);
+    renderProjectDefinition(vbrief, { now: new Date("2026-06-28T12:00:00Z") });
+    const flags = readPlan(vbrief).metadata.staleness_flags;
+    expect(flags.filter((f) => f.includes("'Architecture'"))).toHaveLength(1);
+    expect(flags.find((f) => f.includes("'Architecture'"))).toContain("50 completed scope(s)");
+    expect(flags.length).toBeLessThanOrEqual(2);
+  });
+
+  it("does not flag scopes already in the staleness_review id list", () => {
+    const vbrief = makeRoot();
+    writeScope(vbrief, "completed", "2026-06-01-arch-old.xbrief.json", {
+      title: "Architecture old",
+      status: "completed",
+      items: [],
+    });
+    writeProjectDefinition(vbrief);
+    renderProjectDefinition(vbrief, { now: new Date("2026-06-28T12:00:00Z") });
+    acknowledgeProjectDefinitionStaleness(vbrief, { now: new Date("2026-06-28T12:30:00Z") });
+    renderProjectDefinition(vbrief, { now: new Date("2026-06-28T13:00:00Z") });
+    expect(readPlan(vbrief).metadata.staleness_flags).toEqual([]);
   });
 });
 
@@ -584,7 +646,8 @@ describe("project-render D3 registry-status round-trip (#1715)", () => {
       now: new Date("2026-06-18T12:00:00Z"),
     });
     expect(ok).toBe(true);
-    expect(message).toContain("5 scope items");
+    // Only the open umbrella is a row; its four completed children are not (#6648).
+    expect(message).toContain("1 scope items");
 
     const projectDef = readJsonObject(join(xbrief, "PROJECT-DEFINITION.xbrief.json"));
     const errors = validateProjectDefinition(

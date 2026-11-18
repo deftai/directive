@@ -3,7 +3,7 @@
  * Wave 3g: F-009 plain shop English, F-011 TTY word-wrap, F-014 uninstall summaries.
  * Default stdout is prose + labels; keyed machine dumps stay behind verbosity ≥1.
  */
-import { existsSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PackageManager } from "./pm.js";
 import { INSTALL_SCRIPT_POLICY_PLAN_LINE } from "./pm.js";
@@ -157,7 +157,107 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly oldStyle: boolean;
   /** WAVE3-V2 convert-via-removals shape id when upgrading a historical layout. */
   readonly convertShapeId?: string | null;
+  /**
+   * Paths Git reports as modified or untracked under `.deft/core` (AC10.6 /
+   * RC-03, #6002). Listed in the conversion plan before removal; no prompt.
+   */
+  readonly deftCoreGitEdits?: readonly string[] | null;
 }
+
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point.
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/;
+
+/**
+ * Quote a path that holds C0 or C1 control characters, escaping each one as
+ * `\uXXXX`, so it cannot rewrite the terminal.
+ */
+function printablePath(path: string): string {
+  if (!CONTROL_CHARS.test(path)) return path;
+  let out = "";
+  for (const ch of path) {
+    if (ch === '"' || ch === "\\") out += `\\${ch}`;
+    else if (CONTROL_CHARS.test(ch)) out += `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
+    else out += ch;
+  }
+  return `"${out}"`;
+}
+
+/** Most `.deft/core` edit paths the upgrade plan lists before a count (AC10.6). */
+export const DEFT_CORE_EDIT_LIST_LIMIT = 20;
+
+/**
+ * List Git-reported edits under `.deft/core` that conversion removes (AC10.6 /
+ * RC-03, #6002). Information only: no prompt, no refusal.
+ */
+export function writeDeftCoreGitEdits(
+  io: PresentIo,
+  paths: readonly string[] | null | undefined,
+): void {
+  if (!paths || paths.length === 0) return;
+  const count = paths.length;
+  writeHumanParagraph(
+    io,
+    `Git reports ${count} modified or untracked ${count === 1 ? "file" : "files"} under .deft/core. ` +
+      "They are removed with it. Save any you need before you approve:",
+  );
+  for (const path of paths.slice(0, DEFT_CORE_EDIT_LIST_LIMIT)) {
+    io.writeOut(`    ${printablePath(path)}\n`);
+  }
+  if (count > DEFT_CORE_EDIT_LIST_LIMIT) {
+    io.writeOut(`    ...and ${count - DEFT_CORE_EDIT_LIST_LIMIT} more\n`);
+  }
+  writeBlank(io);
+}
+
+/** Path of the retired copy-model CI guard workflow old Directive wrote (#5835). */
+export const RETIRED_CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
+
+/**
+ * Retired deft-core-guard workflow found at plan time (#5835): `managed` is
+ * removed by upgrade setup; `kept` does not look like Directive's file and stays.
+ */
+export type RetiredCoreGuardState = "managed" | "kept";
+
+/**
+ * Plan-time probe for the retired deft-core-guard workflow (#5835). Mirrors the
+ * runtime removal step's ownership test (regular file with `name: deft-core-guard`)
+ * so the plan says what setup will do. Read-only.
+ */
+export function detectRetiredCoreGuard(projectRoot: string): RetiredCoreGuardState | null {
+  const abs = join(projectRoot, RETIRED_CORE_GUARD_WORKFLOW_REL);
+  try {
+    if (!lstatSync(abs).isFile()) return null;
+    return readFileSync(abs, "utf8").includes("name: deft-core-guard") ? "managed" : "kept";
+  } catch {
+    return null;
+  }
+}
+
+/** Success-output line after setup removed the retired guard (#5835). */
+export const RETIRED_CORE_GUARD_REMOVED_LINE =
+  "Removed the retired deft-core-guard workflow. If deft-core-guard is a required " +
+  "status check in branch protection, remove it there, or this PR cannot merge.";
+
+/**
+ * Report what setup did with the retired guard (#5835): listed as deleted plus the
+ * branch-protection step, or named as kept. Writes nothing when it was not there.
+ * Called right after the "Review and commit:" list.
+ */
+function writeRetiredCoreGuardOutcome(io: PresentIo, summary: SetupSummary | null): void {
+  if (summary?.removed.includes(RETIRED_CORE_GUARD_WORKFLOW_REL)) {
+    io.writeOut(`  ${RETIRED_CORE_GUARD_WORKFLOW_REL} (deleted)\n`);
+    writeBlank(io);
+    writeHumanParagraph(io, RETIRED_CORE_GUARD_REMOVED_LINE);
+  } else if (summary?.preserved?.includes(RETIRED_CORE_GUARD_WORKFLOW_REL)) {
+    writeBlank(io);
+    writeHumanParagraph(io, RETIRED_CORE_GUARD_KEPT_LINE);
+  }
+}
+
+/** Success-output line when a user-edited file at the guard path was left alone (#5835). */
+export const RETIRED_CORE_GUARD_KEPT_LINE =
+  `Kept ${RETIRED_CORE_GUARD_WORKFLOW_REL}: it does not look like the file Directive ` +
+  "wrote, so it was not removed. Delete it yourself if you no longer need it.";
 
 export interface UninstallRemovalSummary {
   readonly skillPointers: number;
@@ -181,6 +281,41 @@ export interface UninstallPlanFields {
   readonly removal?: UninstallRemovalSummary | null;
   /** @deprecated Prefer removal summary; kept for callers that still pass prose lines at -v. */
   readonly extraHumanLines?: readonly string[];
+  /** Shared files that hold lines Directive wrote (`.gitattributes`, `greptile.json`, …). */
+  readonly directiveLineFiles?: readonly string[];
+  /** Directive data uninstall keeps (D-025). */
+  readonly keptData?: readonly string[];
+  /** Registered git worktrees inside the project folder (#6007 / D-025). */
+  readonly worktrees?: readonly string[];
+}
+
+/** core.hooksPath outcome for the uninstall report (AC11.6 / #6007). */
+export interface UninstallHooksPathOutcome {
+  readonly result: "unset" | "preserved-sibling" | "preserved-foreign" | "absent" | "unchanged";
+  /** Other worktrees that still use Directive hooks (for `preserved-sibling`). */
+  readonly siblings?: readonly string[];
+}
+
+/** "a, b, c and 4 more" (keeps long lists readable). */
+function formatShortList(items: readonly string[], max = 8): string {
+  if (items.length <= max) return items.join(", ");
+  return `${items.slice(0, max).join(", ")} and ${items.length - max} more`;
+}
+
+const SCRATCH_DIR = ".deft-scratch/";
+
+function writeWorktreeNames(io: PresentIo, worktrees: readonly string[]): void {
+  writeHumanParagraph(
+    io,
+    `Uninstall does not touch these ${worktrees.length} registered Git worktree${worktrees.length === 1 ? "" : "s"} inside this project. They may hold uncommitted work:`,
+  );
+  for (const wt of worktrees) io.writeOut(`  ${wt}\n`);
+  if (worktrees.some((wt) => wt.startsWith(SCRATCH_DIR))) {
+    writeHumanParagraph(
+      io,
+      "Don't delete .deft-scratch/ while these worktrees are registered. Remove a worktree with: git worktree remove <path>",
+    );
+  }
 }
 
 function writeBlank(io: PresentIo): void {
@@ -436,6 +571,8 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
 /** §C9 Example C — upgrade plan (wave 4g). */
 export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): void {
   const lock = lockfileNameFor(fields.pm);
+  // #5835: upgrade setup deletes the retired guard; say so whenever setup runs.
+  const retiredCoreGuard = fields.needSetup ? detectRetiredCoreGuard(fields.projectRoot) : null;
   io.writeOut("Upgrade Directive\n");
   writeBlank(io);
   writeLabeled(io, "Project:", fields.projectRoot);
@@ -461,6 +598,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     writeBullet(io, "run setup and any needed data updates for that version");
     writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
+    writeDeftCoreGitEdits(io, fields.deftCoreGitEdits);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
     writeHumanParagraph(io, "Your notes and briefs under xbrief/ stay as they are.");
   } else if (fields.versionChange) {
@@ -481,6 +619,17 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     if (fields.needSetup) writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
+  }
+  if (retiredCoreGuard === "managed") {
+    writeHumanParagraph(
+      io,
+      `Directive will also remove the retired ${RETIRED_CORE_GUARD_WORKFLOW_REL} workflow.`,
+    );
+  } else if (retiredCoreGuard === "kept") {
+    writeHumanParagraph(
+      io,
+      `${RETIRED_CORE_GUARD_WORKFLOW_REL} does not look like the file Directive wrote, so it stays.`,
+    );
   }
   writeBlank(io);
   writeDisclosures(io, fields);
@@ -519,6 +668,15 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
         `remove: .deft/core (copied content tree, even if edited)`,
         `replace: @deftai/directive pin → @deftai/directive-runtime@${fields.targetVersion}`,
       );
+      const edits = fields.deftCoreGitEdits?.length ?? 0;
+      if (edits > 0) {
+        keyed.splice(7, 0, `.deft/core Git edits: ${edits} (listed above; removed with it)`);
+      }
+    }
+    if (retiredCoreGuard === "managed") {
+      keyed.push(`remove: ${RETIRED_CORE_GUARD_WORKFLOW_REL} (retired workflow)`);
+    } else if (retiredCoreGuard === "kept") {
+      keyed.push(`keep: ${RETIRED_CORE_GUARD_WORKFLOW_REL} (not Directive's file)`);
     }
     if (fields.gitHooksInactive) {
       keyed.push(
@@ -689,6 +847,12 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
 
   if (fields.removal) {
     writeUninstallActionBullets(io, fields.removal, fields.pm);
+    if (fields.directiveLineFiles && fields.directiveLineFiles.length > 0) {
+      writeBullet(
+        io,
+        `remove the lines Directive wrote in ${fields.directiveLineFiles.join(", ")} (the files stay)`,
+      );
+    }
     writeBlank(io);
     const keep =
       fields.removal.preserveLabels.length > 0
@@ -700,6 +864,16 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
       io,
       "I'll remove Directive-owned wiring and the runtime pin from this project. Your xbrief/ project data and unrelated files stay in place.",
     );
+  }
+  if (fields.keptData && fields.keptData.length > 0) {
+    writeHumanParagraph(
+      io,
+      `Kept (Directive data that uninstall does not delete): ${formatShortList(fields.keptData)}.`,
+    );
+  }
+  if (fields.worktrees && fields.worktrees.length > 0) {
+    writeBlank(io);
+    writeWorktreeNames(io, fields.worktrees);
   }
   writeBlank(io);
   writePmCommandVerbose(io, PM_WILL_RUN_LABEL, fields.pmCommand, fields.verbosity);
@@ -748,6 +922,8 @@ export interface SetupSummary {
   readonly conflicts?: readonly string[];
   /** One line per existing Directive git hook setup replaced or removed (D-023). */
   readonly gitHookUpdates?: readonly string[];
+  /** Files setup kept in place (non-failure). */
+  readonly preserved?: readonly string[];
   readonly message?: string;
 }
 
@@ -855,6 +1031,8 @@ export function presentInstallSuccess(
   for (const p of review) {
     io.writeOut(`  ${p}\n`);
   }
+  // Install can convert an old layout; say what happened to the retired guard (#5835).
+  writeRetiredCoreGuardOutcome(io, opts.summary);
   writeBlank(io);
   writeHumanParagraph(io, "Commands in this project use its pinned Directive version.");
   writeHumanParagraph(io, "Updating the global launcher will not upgrade this project.");
@@ -960,12 +1138,61 @@ export function presentUpgradeSuccess(
     seen.add(p);
     io.writeOut(`  ${p}\n`);
   }
+  writeRetiredCoreGuardOutcome(io, opts.summary);
   if (opts.verbosity >= 1) {
     writeBlank(io);
     if (opts.summary) presentPathSummary(io, "setup upgrade", opts.summary, opts.verbosity);
     if (opts.migrateSummary) {
       presentPathSummary(io, "migrate", opts.migrateSummary, opts.verbosity);
     }
+  }
+}
+
+/** Folders that hold the worktrees, with counts: ".deft-scratch/worktrees/ (60)". */
+function worktreeFolders(worktrees: readonly string[]): string {
+  const counts = new Map<string, number>();
+  for (const wt of worktrees) {
+    const slash = wt.lastIndexOf("/");
+    const parent = slash > 0 ? `${wt.slice(0, slash)}/` : "./";
+    counts.set(parent, (counts.get(parent) ?? 0) + 1);
+  }
+  return [...counts].map(([dir, n]) => `${dir} (${n})`).join(", ");
+}
+
+function writeHooksPathOutcome(io: PresentIo, outcome: UninstallHooksPathOutcome): void {
+  switch (outcome.result) {
+    case "unset":
+      writeHumanParagraph(io, "Unset core.hooksPath (it pointed at Directive's .githooks).");
+      return;
+    case "preserved-sibling": {
+      const siblings = outcome.siblings ?? [];
+      const n = siblings.length;
+      // D-045: say what was kept and why; no unset advice (it would also
+      // turn off Directive hooks in the other worktrees).
+      const who =
+        n > 0
+          ? `${n} other worktree${n === 1 ? " still uses" : "s still use"} Directive (${formatShortList(siblings, 3)})`
+          : "another worktree still uses Directive";
+      writeHumanParagraph(
+        io,
+        `Kept the shared Git hooks setting because ${who}. Nothing else to do.`,
+      );
+      return;
+    }
+    case "preserved-foreign":
+      writeHumanParagraph(
+        io,
+        "Left core.hooksPath as it is: it does not point at Directive's .githooks.",
+      );
+      return;
+    case "unchanged":
+      writeHumanParagraph(
+        io,
+        "Could not unset core.hooksPath. Run: git config --unset core.hooksPath",
+      );
+      return;
+    case "absent":
+      return;
   }
 }
 
@@ -979,6 +1206,15 @@ export function presentUninstallSuccess(
     removedPaths?: readonly string[];
     preserved?: readonly string[];
     leftovers?: readonly string[];
+    /** Launcher-cleanup uncertainty (AC11.11). */
+    uncertainty?: readonly string[];
+    /** Actual package-manager result; overrides the plan's `removal.willRemovePin` (#5999). */
+    pinRemoved?: boolean;
+    /** Shared files whose Directive lines were removed. */
+    directiveLineFiles?: readonly string[];
+    hooksPath?: UninstallHooksPathOutcome;
+    keptData?: readonly string[];
+    worktrees?: readonly string[];
     verbosity: Verbosity;
   },
 ): void {
@@ -995,13 +1231,19 @@ export function presentUninstallSuccess(
     if (opts.removal.hostHooks > 0) parts.push("host hooks");
     if (opts.removal.gitHooks > 0 || opts.removal.projectWiring > 0) parts.push("project wiring");
     if (opts.removal.legacyCore) parts.push("legacy core");
-    if (opts.removal.willRemovePin) parts.push("the Directive version from development tools");
+  }
+  if (opts.directiveLineFiles && opts.directiveLineFiles.length > 0) {
+    parts.push(`Directive lines in ${opts.directiveLineFiles.join(", ")}`);
+  }
+  if (opts.pinRemoved ?? opts.removal?.willRemovePin ?? false) {
+    parts.push("the Directive version from development tools");
   }
   if (parts.length > 0) {
     writeHumanParagraph(io, `Removed ${parts.join(", ")}.`);
   } else {
     writeHumanParagraph(io, "Removed Directive-owned wiring from this project.");
   }
+  if (opts.hooksPath) writeHooksPathOutcome(io, opts.hooksPath);
 
   const preserved = opts.preserved ?? opts.removal?.preserveLabels ?? [];
   if (preserved.length > 0) {
@@ -1009,10 +1251,26 @@ export function presentUninstallSuccess(
   } else {
     writeHumanParagraph(io, "Preserved xbrief/ project data and unrelated files.");
   }
+  if (opts.keptData && opts.keptData.length > 0) {
+    writeHumanParagraph(
+      io,
+      `Kept (Directive data that uninstall does not delete): ${formatShortList(opts.keptData)}.`,
+    );
+  }
+  if (opts.worktrees && opts.worktrees.length > 0) {
+    const n = opts.worktrees.length;
+    writeHumanParagraph(
+      io,
+      `Not touched: ${n} registered Git worktree${n === 1 ? "" : "s"} in ${worktreeFolders(opts.worktrees)}. They may hold uncommitted work; remove them with git worktree remove, not by deleting the folder.`,
+    );
+  }
 
-  if (!opts.complete && opts.leftovers && opts.leftovers.length > 0) {
+  if (opts.leftovers && opts.leftovers.length > 0) {
     writeBlank(io);
     writeHumanParagraph(io, `Known leftovers: ${opts.leftovers.join(", ")}.`);
+  }
+  if (opts.uncertainty && opts.uncertainty.length > 0) {
+    writeHumanParagraph(io, `Not certain: ${opts.uncertainty.join("; ")}.`);
   }
 
   writeBlank(io);
@@ -1200,6 +1458,7 @@ export function tryParseSetupSummary(stdout: string): SetupSummary | null {
       gitHookUpdates: Array.isArray(rec.gitHookUpdates)
         ? (rec.gitHookUpdates as string[])
         : undefined,
+      preserved: Array.isArray(rec.preserved) ? (rec.preserved as string[]) : undefined,
       message: typeof rec.message === "string" ? rec.message : undefined,
     };
   } catch {

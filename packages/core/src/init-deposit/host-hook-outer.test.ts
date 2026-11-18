@@ -17,6 +17,12 @@ type Host = "grok" | "claude" | "cursor" | "codex";
 
 const HOSTS: Host[] = ["grok", "claude", "cursor", "codex"];
 
+/** The outer's missing-runtime text in a project with no lockfile (#6620). */
+const MISSING_NO_LOCKFILE = HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE.replace(
+  "{install}",
+  "`npm install` (or `pnpm install --frozen-lockfile`)",
+);
+
 function gitInit(root: string): void {
   const r = spawnSync("git", ["init"], { cwd: root, encoding: "utf8" });
   expect(r.status).toBe(0);
@@ -80,13 +86,13 @@ type ReasonKind = "missing-pin" | "nondecision";
 
 function expectReason(text: string, kind: ReasonKind): void {
   if (kind === "missing-pin") {
-    expect(text).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(text).toContain(MISSING_NO_LOCKFILE);
     expect(text).not.toContain(HOST_HOOK_NONDECISION_REASON);
     expect(text).not.toContain("npm i -g");
     expect(text).not.toContain("install --repair");
   } else {
     expect(text).toContain(HOST_HOOK_NONDECISION_REASON);
-    expect(text).not.toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(text).not.toContain(MISSING_NO_LOCKFILE);
   }
 }
 
@@ -161,7 +167,7 @@ describe("host-hook-outer (#5994)", () => {
       writeFileSync(join(root, "package.json"), "{}\n");
       const r = runOuter(root, "grok");
       expect(r.status).toBe(0);
-      expect(r.stdout).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+      expect(r.stdout).toContain(MISSING_NO_LOCKFILE);
       expect(r.stdout).not.toContain("npm i -g @deftai/directive");
       expect(r.stdout).not.toContain("directive install --repair");
     } finally {
@@ -322,7 +328,38 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // The outer `.mjs` bytes must not churn consumer hook paths; outer-byte
     // changes belong to their own issues. #6201 changed the bytes on purpose
     // (block the tool call when the hook cannot decide): a598056e -> 8edf26e9.
-    expect(hostHookOuterSha8()).toBe("8edf26e9");
+    // #6620 changed them on purpose (shared message table, install named by
+    // lockfile): 8edf26e9 -> 8149fb11.
+    expect(hostHookOuterSha8()).toBe("8149fb11");
+  });
+});
+
+describe("host-hook-outer names the project install from the lockfile (#6620)", () => {
+  it.each([
+    ["pnpm-lock.yaml", "`pnpm install --frozen-lockfile`"],
+    ["package-lock.json", "`npm install`"],
+  ])("with %s, the missing-runtime block names %s and that a person runs it", (lockfile, command) => {
+    const root = mkdtempSync(join(tmpdir(), "outer-6620-lock-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      writeFileSync(join(root, lockfile), "");
+      const r = runOuter(root, "claude");
+      expect(r.status).toBe(2);
+      const stderr = String(r.stderr);
+      expect(stderr).toContain(
+        `Directive can't run: @deftai/directive-runtime is not installed in this project. Run ${command} in a terminal in this project.`,
+      );
+      expect(stderr).toContain("Agent tool calls stay blocked until a person runs it.");
+      expect(stderr).not.toMatch(/yarn|npm i -g|install --repair/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("names no Yarn and no global install anywhere in the outer source", () => {
+    const source = hostHookOuterSource();
+    expect(source).not.toContain("(or yarn)");
+    expect(source).not.toContain("npm i -g @deftai/directive, then");
   });
 });
 
@@ -450,7 +487,7 @@ describe("host-hook-outer blocks the tool call when it cannot decide (#6201 / #6
       expect(r.status).toBe(0);
       expect(JSON.parse(String(r.stdout))).toEqual({
         decision: "deny",
-        reason: HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+        reason: MISSING_NO_LOCKFILE,
       });
     });
   });

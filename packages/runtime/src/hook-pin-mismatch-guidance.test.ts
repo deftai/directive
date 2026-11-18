@@ -15,7 +15,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./hook-dispatch.js";
 
-const PIN_LINE = "Directive hook refuse: pinned runtime does not match the installed runtime";
+const PIN_LINE = "Directive can't run: the installed @deftai/directive-runtime";
 const OVERLAY_LINE = "Directive hook refuse: materialize-runtime overlay is present";
 const OVERLAY_RECOVERY =
   "Overlay present at .deft-scratch/materialize-runtime-overlay.json. Outside the blocked hook, run `pnpm install --frozen-lockfile` (or equivalent exact restore) to restore the published pin, then retire that overlay before identity may pass.";
@@ -112,7 +112,7 @@ describe("dispatcher: Codex pin-mismatch-only refusal text (#6375)", () => {
     const lines = codexSessionOnly(root, "echo hi").message.split("\n");
     expect(lines).toContain(`${PIN_MISMATCH_ROOT_LABEL} ${resolve(root)}`);
     expect(lines).toContain(PIN_MISMATCH_TERMINAL_LINE);
-    expect(lines).toContain("Run: `pnpm install`");
+    expect(lines).toContain("Run: `pnpm install --frozen-lockfile`");
     expect(lines).toContain(PIN_MISMATCH_RETRY_LINE);
     expect(lines.join("\n")).not.toMatch(/(^|[^\w-])npm\s+(install|ci|i)\b/);
   });

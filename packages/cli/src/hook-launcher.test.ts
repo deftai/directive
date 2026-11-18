@@ -22,7 +22,16 @@ import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE, PRE_OVPR_LAYOUT_MESSAGE } from "./constants.js";
+import { PRE_OVPR_LAYOUT_MESSAGE } from "./constants.js";
+import {
+  DISABLE_FLAG_NAME,
+  DISABLE_ONE_LINE,
+  ENTRY_GUARD_PERSON_RUNS_INSTALL,
+} from "./entry-guard.js";
+
+/** `runtime-missing` row with no lockfile in the fixture (#6620). */
+const RUNTIME_MISSING_NO_LOCKFILE =
+  "Directive can't run: @deftai/directive-runtime is not installed in this project. Run `npm install` (or `pnpm install --frozen-lockfile`) in a terminal in this project.";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI_ROOT = join(HERE, "..");
@@ -315,17 +324,104 @@ describe("runtime-pinned project (AC10.11)", () => {
     const result = run(newRepo(false), toolBefore(host));
     expect(result.status).toBe(code);
     const out = `${result.stdout}${result.stderr}`;
-    expect(out).toContain(HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(out).toContain(RUNTIME_MISSING_NO_LOCKFILE);
+    expect(out).toContain(ENTRY_GUARD_PERSON_RUNS_INSTALL);
     expect(out).not.toContain("npm i -g @deftai/directive");
     expect(out).not.toContain("install --repair");
+    expect(out).not.toContain("or yarn");
   });
 
-  it("runtime at another version than the pin: blocks with project install text", () => {
-    const root = newRepo(true, "0.129.13");
+  it.each([
+    ["pnpm-lock.yaml", "`pnpm install --frozen-lockfile`"],
+    ["package-lock.json", "`npm install`"],
+  ])("runtime missing with %s: names %s (#6620)", (lockfile, command) => {
+    const root = newRepo(false);
+    writeFileSync(join(root, lockfile), "");
     const result = run(root, toolBefore("claude"));
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain(HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(result.stderr).toContain(`Run ${command} in a terminal in this project.`);
+  });
+
+  it("runtime at another version than the pin: blocks with the pin-mismatch row", () => {
+    const root = newRepo(true, "0.129.13");
+    writeFileSync(join(root, "pnpm-lock.yaml"), "");
+    const result = run(root, toolBefore("claude"));
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(
+      "Directive can't run: the installed @deftai/directive-runtime 0.129.13 is not the pinned 0.129.14. Run `pnpm install --frozen-lockfile` in a terminal in this project.",
+    );
     expect(marker(root, "runtime")).toBeNull();
+  });
+
+  it("no runtime pin and no old layout: blocks with the no-project row", () => {
+    const root = fixture({ "package.json": JSON.stringify({ dependencies: {} }) });
+    const result = run(root, toolBefore("claude"));
+    expect(result.status).toBe(2);
+    expect(result.stderr.trim()).toBe(
+      "deft-hook: No Directive project here. Run `directive install`.",
+    );
+  });
+
+  it("a range runtime pin: blocks with the fix-the-pin row (D-042)", () => {
+    const root = fixture({
+      "package.json": JSON.stringify({
+        devDependencies: { "@deftai/directive-runtime": "^0.129.0" },
+      }),
+    });
+    const result = run(root, toolBefore("claude"));
+    expect(result.status).toBe(2);
+    expect(result.stderr.trim()).toBe(
+      'deft-hook: package.json must name one exact Directive version, like `"@deftai/directive-runtime": "0.129.0"`. It currently says `^0.129.0`. Change it to an exact version, then run `npm install` (or `pnpm install`).',
+    );
+  });
+
+  describe("untracked disable flag comes first (AC9.12 step 1, #6620)", () => {
+    function disable(root: string): void {
+      expect(spawnSync("git", ["init", "-q"], { cwd: root }).status).toBe(0);
+      writeFileSync(join(root, DISABLE_FLAG_NAME), "1\n");
+    }
+
+    it("deft-hook: pin mismatch + flag → exit 0, no output, runtime never started", () => {
+      const root = newRepo(true, "0.129.13");
+      disable(root);
+      const result = run(root, toolBefore("claude"));
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe("");
+      nothingElseRan(root);
+    });
+
+    it("deft-hook: old layout + flag → exit 0, the old copy never runs", () => {
+      const root = oldRepo(true);
+      disable(root);
+      const result = run(root, toolBefore("grok"));
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(marker(root, "copy-hook")).toBeNull();
+      nothingElseRan(root);
+    });
+
+    it("deft-hook: runtime missing + flag → exit 0", () => {
+      const root = newRepo(false);
+      disable(root);
+      expect(run(root, toolBefore("claude")).status).toBe(0);
+    });
+
+    it("deft <command>: pin mismatch + flag → exit 0 with the disabled notice", () => {
+      const root = newRepo(true, "0.129.13");
+      disable(root);
+      const result = run(root, ["verify:branch"], { entry: "deft" });
+      expect(result.status).toBe(0);
+      expect(result.stderr.trim()).toBe(DISABLE_ONE_LINE);
+      nothingElseRan(root);
+    });
+
+    it("a tracked flag does not stop anything", () => {
+      const root = newRepo(false);
+      disable(root);
+      spawnSync("git", ["add", DISABLE_FLAG_NAME], { cwd: root });
+      expect(run(root, toolBefore("claude")).status).toBe(2);
+    });
   });
 
   it("runtime present, child exits 0: output passes through unchanged (AC 4)", () => {

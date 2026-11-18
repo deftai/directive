@@ -30,6 +30,7 @@ export type RemovalStepId =
   | "stripLegacyLauncherPin"
   | "removeOrphanDeftVersion"
   | "removeLegacyBareVersionMarkers"
+  | "removeRetiredCoreGuardWorkflow"
   | "normalizeGitmodules";
 
 export interface StepContext {
@@ -358,16 +359,8 @@ function isSoleAuthorGitignore(body: string): boolean {
   return lines.every((l) => GITIGNORE_SEED_LINES.has(l));
 }
 
-/**
- * Remove sole-author Directive residue: `{ "private": true }`-only package.json
- * we created, empty `{}` host hooks we created, install-seeded AGENTS stubs
- * with no user body (C5 / F-013). Callers may also prune via pruneEmptyAncestors.
- * @returns relative paths removed
- */
-export function removeSoleAuthorHusks(root: string): string[] {
-  const removed: string[] = [];
-
-  const pushRemove = (rel: string): void => {
+function contained(root: string, removed: string[]): (rel: string) => void {
+  return (rel: string): void => {
     if (safeContainedRemove(root, rel)) {
       removed.push(toPosix(rel));
       for (const parent of pruneEmptyAncestors(root, rel)) {
@@ -375,6 +368,19 @@ export function removeSoleAuthorHusks(root: string): string[] {
       }
     }
   };
+}
+
+/**
+ * Remove a sole-author `package.json` (`{ "private": true }`, optionally with
+ * only Directive pins) and its lockfiles, or a near-empty lockfile left with
+ * no manifest (C5 / F-013). Only the launcher calls this, after the package
+ * manager has removed the runtime: deleting the manifest first makes npm
+ * recreate `{}` and pnpm fail (#5999).
+ * @returns relative paths removed
+ */
+export function removeSoleAuthorManifest(root: string): string[] {
+  const removed: string[] = [];
+  const pushRemove = contained(root, removed);
 
   const pkgAbs = join(root, "package.json");
   const pkg = existsSync(pkgAbs) ? readJsonObject(pkgAbs) : null;
@@ -392,6 +398,30 @@ export function removeSoleAuthorHusks(root: string): string[] {
     }
     if (!existsSync(pkgAbs) && isNearEmptyLockfile(abs)) {
       pushRemove(lock);
+    }
+  }
+  return [...new Set(removed)];
+}
+
+/**
+ * Remove sole-author Directive residue: empty `{}` host hooks we created,
+ * install-seeded AGENTS stubs with no user body, a sole-author Taskfile and
+ * `.gitignore` (C5 / F-013). Leaves `package.json` and lockfiles alone: the
+ * package manager still needs them to remove the runtime (#5999); see
+ * {@link removeSoleAuthorManifest}. Callers may also prune via pruneEmptyAncestors.
+ * @returns relative paths removed
+ */
+export function removeSoleAuthorHusks(root: string): string[] {
+  const removed: string[] = [];
+  const pushRemove = contained(root, removed);
+
+  // A near-empty lockfile with no package.json is residue the package
+  // manager cannot use anyway; with a manifest present, lockfiles wait for
+  // the launcher (removeSoleAuthorManifest after the package-manager remove).
+  if (!existsSync(join(root, "package.json"))) {
+    for (const lock of ["package-lock.json", "pnpm-lock.yaml"] as const) {
+      const abs = join(root, lock);
+      if (existsSync(abs) && isNearEmptyLockfile(abs)) pushRemove(lock);
     }
   }
 
@@ -682,6 +712,45 @@ export function removeLegacyBareVersionMarkers(root: string): string[] {
   return removed;
 }
 
+/** Retired copy-model CI guard workflow old Directive wrote into projects (#5835). */
+export const RETIRED_CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
+
+/** Ownership line the old emitter wrote and checked before refreshing the file. */
+const RETIRED_CORE_GUARD_NAME_LINE = "name: deft-core-guard";
+
+export interface RetiredCoreGuardRemoval {
+  /** Paths removed (the workflow file only). */
+  readonly removed: readonly string[];
+  /** Paths left in place because they do not look like Directive's file. */
+  readonly kept: readonly string[];
+  /** Paths that could not be read or deleted (an error, not an ownership mismatch). */
+  readonly failed: readonly string[];
+}
+
+/**
+ * Remove the retired `deft-core-guard` workflow (#5835 / AC8.10). Same ownership
+ * test the old emitter used: a regular file containing `name: deft-core-guard`.
+ * A file at that path without the line looks user-edited and is kept (and named
+ * in `kept`). A file that cannot be read or deleted is named in `failed`.
+ * No other workflow is touched. Upgrade and convert only.
+ */
+export function removeRetiredCoreGuardWorkflow(root: string): RetiredCoreGuardRemoval {
+  const rel = RETIRED_CORE_GUARD_WORKFLOW_REL;
+  const abs = join(root, rel);
+  const none = { removed: [], kept: [], failed: [] };
+  try {
+    if (!lstatSync(abs).isFile()) return none;
+  } catch {
+    return none;
+  }
+  const body = readText(abs);
+  if (body === null) return { removed: [], kept: [], failed: [rel] };
+  if (!body.includes(RETIRED_CORE_GUARD_NAME_LINE)) return { removed: [], kept: [rel], failed: [] };
+  return safeContainedRemove(root, rel)
+    ? { removed: [rel], kept: [], failed: [] }
+    : { removed: [], kept: [], failed: [rel] };
+}
+
 /**
  * Normalize `.gitmodules` / leftover submodule metadata after deft/ removal.
  * Fail closed when parent index still has a gitlink (mode 160000) — caller must
@@ -767,6 +836,13 @@ export function runStep(stepId: RemovalStepId, ctx: StepContext): StepResult {
     }
     case "removeLegacyBareVersionMarkers": {
       return { stepId, removed: removeLegacyBareVersionMarkers(ctx.root), modified: [] };
+    }
+    case "removeRetiredCoreGuardWorkflow": {
+      return {
+        stepId,
+        removed: [...removeRetiredCoreGuardWorkflow(ctx.root).removed],
+        modified: [],
+      };
     }
     case "normalizeGitmodules": {
       return normalizeGitmodules(ctx.root);

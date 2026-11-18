@@ -410,7 +410,8 @@ describe("scope branch coverage", () => {
       "completed",
     );
     const pd = JSON.parse(readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
-    expect(pd.plan.items[0].status).toBe("completed");
+    // The finished scope's row is removed (#6648); plan references still follow the move.
+    expect(pd.plan.items).toEqual([]);
     expect(pd.plan.references[0].uri).toContain("completed/");
   });
 

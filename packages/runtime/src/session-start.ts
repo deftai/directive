@@ -577,6 +577,7 @@ export function run(argv: readonly string[]): number {
       occupant: args.occupant ?? undefined,
       primaryClaimException: args.primaryClaimException ?? undefined,
       sessionId: args.sessionId ?? undefined,
+      invocation: { verb: "session:start", args: [...argv] },
       deferOwedReason: args.deferOwedReason,
       ...(args.ceremonyDepthOverride !== null
         ? {
