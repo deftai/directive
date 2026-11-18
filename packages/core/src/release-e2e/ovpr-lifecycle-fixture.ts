@@ -21,6 +21,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -1252,7 +1253,10 @@ export function runLifecycleFixture(
       if (npm === null) {
         setupFailure = "npm not on PATH";
       } else {
-        work = mkdtempSync(join(tmpdir(), "deft-lifecycle-fixture-"));
+        // Long path form: on Windows runners TMP is an 8.3 short path
+        // (RUNNER~1), which `install --repair --repo-root` compares against
+        // Git's long top-level path and refuses.
+        work = realpathSync.native(mkdtempSync(join(tmpdir(), "deft-lifecycle-fixture-")));
         const packDir = join(work, "packs");
         const npmPrefix = join(work, "npm-prefix");
         mkdirSync(packDir, { recursive: true });
