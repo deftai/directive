@@ -254,7 +254,12 @@ export function runRegisteredHook(
   const toolName = typeof payload.tool_name === "string" ? payload.tool_name : "";
   const lookup = registeredHookCommand(fixtureDir, host, event, toolName);
   if (!lookup.ok) return lookup;
-  const result = spawnSync(hookShell(), ["-c", lookup.command], {
+  // Grok on Windows starts the command directly, with no shell (#5955), so the
+  // harness does the same there; every other host runs it through `sh -c`.
+  const direct = process.platform === "win32" && host === "grok";
+  const argv = direct ? lookup.command.trim().split(/\s+/) : [hookShell(), "-c", lookup.command];
+  const [file = "", ...args] = argv;
+  const result = spawnSync(file, args, {
     cwd: fixtureDir,
     env,
     input: JSON.stringify(payload),
@@ -399,8 +404,28 @@ export function expectAllowed(
       detail: `${host}: expected exit 0 (allow), got ${result.status}: "${short(result.stderr || result.stdout)}"`,
     };
   }
-  const objects = stdoutObjects(result.stdout) ?? [];
-  if (objects.some((o) => isDenyObject(host, o))) {
+  const objects = stdoutObjects(result.stdout);
+  // Cursor and Grok read stdout as their decision: output that is not clean
+  // JSON is not an allow. Claude/Codex show plain stdout, so check line by line.
+  if (objects === null && (host === "cursor" || host === "grok")) {
+    return {
+      ok: false,
+      detail: `${host}: exit 0 but stdout is not a JSON decision: "${short(result.stdout)}"`,
+    };
+  }
+  const lineObjects =
+    objects ??
+    result.stdout
+      .split(/\r?\n/)
+      .map((line) => {
+        try {
+          return asObject(JSON.parse(line.trim()));
+        } catch {
+          return null;
+        }
+      })
+      .filter((o): o is Record<string, unknown> => o !== null);
+  if (lineObjects.some((o) => isDenyObject(host, o))) {
     return {
       ok: false,
       detail: `${host}: allowed exit but stdout denies: "${short(result.stdout)}"`,

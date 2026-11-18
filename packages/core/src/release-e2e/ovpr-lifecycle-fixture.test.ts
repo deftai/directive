@@ -203,6 +203,17 @@ describe("expectAllowed (step 4 sanity)", () => {
       expectAllowed("grok", { status: 0, stdout: '{"decision":"allow"}', stderr: "" }).ok,
     ).toBe(true);
   });
+
+  it("does not read malformed or mixed stdout as an allow", () => {
+    const mixed = 'log line\n{"permission":"deny"}';
+    expect(expectAllowed("cursor", { status: 0, stdout: mixed, stderr: "" }).ok).toBe(false);
+    expect(expectAllowed("grok", { status: 0, stdout: "not json", stderr: "" }).ok).toBe(false);
+    const deny = JSON.stringify({ hookSpecificOutput: { permissionDecision: "deny" } });
+    expect(expectAllowed("claude", { status: 0, stdout: `note\n${deny}`, stderr: "" }).ok).toBe(
+      false,
+    );
+    expect(expectAllowed("claude", { status: 0, stdout: "plain note", stderr: "" }).ok).toBe(true);
+  });
 });
 
 describe("registeredHookCommand (host config parsing)", () => {
