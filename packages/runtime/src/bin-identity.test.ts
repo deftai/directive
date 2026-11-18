@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   isIdentityExempt,
@@ -112,7 +112,7 @@ describe("runtime pin check (AC2.6)", () => {
         "/x",
         "/",
       ),
-    ).toBe("/b");
+    ).toBe(resolve("/", "/b"));
   });
 
   it("checks the project named by --project-root, not the working directory", () => {
