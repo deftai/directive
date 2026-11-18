@@ -351,7 +351,9 @@ function normalizeEol(text: string): string {
  * another command (`&&`, `;`, `|`), does not count.
  */
 export function isDirectiveHookCommand(command: string): boolean {
-  const tokens = command.trim().split(/\s+/);
+  // A newline starts another shell command.
+  if (/[\r\n]/.test(command)) return false;
+  const tokens = command.trim().split(/[ \t]+/);
   let args: string[];
   if (tokens[0] === "node" && tokens[1] !== undefined) {
     const target = tokens[1];
@@ -373,7 +375,17 @@ export function isDirectiveHookCommand(command: string): boolean {
   } else {
     return false;
   }
-  return args.every((arg) => PLAIN_ARG_TOKEN_RE.test(arg));
+  // Only `--flag` or `--flag value` pairs: a bare word would be another command.
+  for (let i = 0; i < args.length; i++) {
+    const flag = args[i] ?? "";
+    if (!flag.startsWith("--") || !PLAIN_ARG_TOKEN_RE.test(flag)) return false;
+    const value = args[i + 1];
+    if (value !== undefined && !value.startsWith("-")) {
+      if (!PLAIN_ARG_TOKEN_RE.test(value)) return false;
+      i++;
+    }
+  }
+  return true;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
