@@ -12,8 +12,7 @@ const PACKAGES = join(REPO_ROOT, "packages");
 const ALLOWED = new Set(["packages/core/src/fs/glob-sync.ts"]);
 
 /** `import { …globSync… } from "node:fs"` or `"fs"`, aliased or not. */
-const STATIC_GLOBSYNC_IMPORT =
-  /import\s*\{[^}]*\bglobSync\b[^}]*\}\s*from\s*["'](?:node:)?fs["']/;
+const STATIC_GLOBSYNC_IMPORT = /import\s*\{[^}]*\bglobSync\b[^}]*\}\s*from\s*["'](?:node:)?fs["']/;
 
 function productionSources(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
