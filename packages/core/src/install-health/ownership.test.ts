@@ -321,3 +321,42 @@ describe("read/write helpers pure over project root", () => {
     expect(after).toBe(before);
   });
 });
+
+describe("generation key carried forward (#6012 / AC10.9)", () => {
+  function readGenerationKey(root: string): unknown {
+    return (JSON.parse(readFileSync(generationPath(root), "utf8")) as { generation?: unknown })
+      .generation;
+  }
+
+  it("keeps an existing generation when a changed record is rewritten", () => {
+    const root = tempProject();
+    writeOwnershipRecord(root, sampleRecord({ runtimeVersion: "1.2.3" }), { generation: 13 });
+    expect(readGenerationKey(root)).toBe(13);
+
+    writeOwnershipRecord(root, sampleRecord({ runtimeVersion: "1.3.0" }));
+    expect(readOwnershipRecord(root)?.runtimeVersion).toBe("1.3.0");
+    expect(readGenerationKey(root)).toBe(13);
+  });
+
+  it("does not add a generation key when the prior file had none", () => {
+    const root = tempProject();
+    writeOwnershipRecord(root, sampleRecord({ runtimeVersion: "1.2.3" }));
+    writeOwnershipRecord(root, sampleRecord({ runtimeVersion: "1.3.0" }));
+    expect(readGenerationKey(root)).toBeUndefined();
+  });
+
+  it("an explicit generation still wins over the carried value", () => {
+    const root = tempProject();
+    writeOwnershipRecord(root, sampleRecord(), { generation: 13 });
+    writeOwnershipRecord(root, sampleRecord({ runtimeVersion: "1.3.0" }), { generation: 14 });
+    expect(readGenerationKey(root)).toBe(14);
+  });
+
+  it("an unchanged record with a carried generation is not rewritten (AC13.2)", () => {
+    const root = tempProject();
+    writeOwnershipRecord(root, sampleRecord(), { generation: 13 });
+    const before = readFileSync(generationPath(root), "utf8");
+    writeOwnershipRecord(root, sampleRecord());
+    expect(readFileSync(generationPath(root), "utf8")).toBe(before);
+  });
+});

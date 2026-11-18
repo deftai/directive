@@ -382,8 +382,16 @@ export interface OccupancyDecision {
   readonly code: number;
 }
 
+/** The verb and arguments a caller invoked, for a copy-paste re-run line (#6647). */
+export interface OccupancyInvocation {
+  readonly verb: string;
+  readonly args: readonly string[];
+}
+
 export interface ApplyOccupancyInput {
   readonly sessionId?: string;
+  /** Invoked verb and argv, used only to print the full re-run command (#6647). */
+  readonly invocation?: OccupancyInvocation;
   readonly env?: NodeJS.ProcessEnv;
   readonly now?: Date;
   readonly intent?: OccupancyIntent;
@@ -1578,19 +1586,85 @@ function uniquePrintCompanion(
   return printed.length === 1 ? (printed[0] as string) : null;
 }
 
+/** Quote one argument for the detected shell (#6647). Safe tokens stay bare. */
+export function quoteShellArg(arg: string, platform: NodeJS.Platform = process.platform): string {
+  if (/^[A-Za-z0-9_@%+=:,./\\-]+$/.test(arg)) return arg;
+  if (platform === "win32") {
+    // Windows argv rules: a backslash run before a quote (or the closing quote) doubles.
+    // One linear pass (no backtracking regex): count a backslash run, double it when a
+    // quote or the end of the string follows.
+    let escaped = "";
+    let run = 0;
+    for (const ch of arg) {
+      if (ch === "\\") {
+        run += 1;
+        continue;
+      }
+      escaped += ch === '"' ? `${"\\".repeat(run * 2)}\\"` : `${"\\".repeat(run)}${ch}`;
+      run = 0;
+    }
+    return `"${escaped}${"\\".repeat(run * 2)}"`;
+  }
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * One full copy-paste command: `deft <verb> <args minus --session-id> --session-id=<id>`
+ * with every argument quoted for the shell (#6647). The id is not quoted: it is either
+ * shell-safe or a marked `<template>`.
+ */
+export function formatRerunCommand(
+  invocation: OccupancyInvocation,
+  sessionIdArg: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  const kept: string[] = [];
+  for (let i = 0; i < invocation.args.length; i += 1) {
+    const arg = invocation.args[i] as string;
+    if (arg === "--session-id") {
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith("--session-id=")) continue;
+    kept.push(quoteShellArg(arg, platform));
+  }
+  return ["deft", invocation.verb, ...kept, `--session-id=${sessionIdArg}`].join(" ");
+}
+
+/**
+ * #6647: the exact release command for the CALLER's own session. The id is the caller's
+ * presented id, or the marked `<your-session-id>` template when none was presented; the
+ * lease file's session id is never filled in (#3954). Only the owner's id releases a lease.
+ */
+export function formatReleaseRerunLine(caller: string): string {
+  const arg = commandSessionId(caller, "<your-session-id>");
+  const command = `deft occupancy:release --session-id=${arg}`;
+  return arg === "<your-session-id>"
+    ? `\nRelease command (template: no session id was presented; replace <your-session-id> with your own, only the lease owner can release): \`${command}\``
+    : `\nRelease command for your session (only the lease owner can release): \`${command}\``;
+}
+
 export function formatOccupancyMintRefusal(input: {
   readonly hosts: readonly HookHostIdentityProvider[];
   readonly suggestedSessionId: string | null;
+  readonly invocation?: OccupancyInvocation;
 }): string {
   const hostList = input.hosts.join(", ");
   const named =
     input.suggestedSessionId === null
       ? null
       : commandSessionId(input.suggestedSessionId, "<host-published-id>");
-  const reRun =
+  let reRun =
     named === null
       ? "Re-run with `--session-id=<host-published-id>` from a session that has a Directive hook registered."
       : `Re-run with \`--session-id=${named}\`.`;
+  if (input.invocation !== undefined) {
+    const known = named !== null && named !== "<host-published-id>";
+    const command = formatRerunCommand(input.invocation, known ? named : "<host-published-id>");
+    reRun = known
+      ? `Re-run: \`${command}\``
+      : `Re-run (template: no host-published id is known; replace <host-published-id> with the id from a session that has a Directive hook registered): \`${command}\``;
+  }
   return (
     `occupancy refuses to mint an owner on host ${hostList}: this host has a declared ` +
     "identity contract, and minting binds the lease to an id no later hook can present. " +
@@ -1773,7 +1847,11 @@ export function resolveOccupancySessionClaim(
   const hosts = detectDeclaredIdentityHosts(env);
   if (hosts.length > 0) {
     const suggested = uniquePrintCompanion(hosts, env);
-    const message = formatOccupancyMintRefusal({ hosts, suggestedSessionId: suggested });
+    const message = formatOccupancyMintRefusal({
+      hosts,
+      suggestedSessionId: suggested,
+      invocation: input.invocation,
+    });
     return {
       status: "refuse-mint",
       sessionId: "",
@@ -2605,7 +2683,8 @@ export function releaseOccupancy(
           message:
             membershipOwnerDenial(existing, caller, now, "occupancy:release", root) +
             split +
-            leaseNote,
+            leaseNote +
+            formatReleaseRerunLine(caller),
           code: 1,
         };
       }

@@ -368,7 +368,9 @@ export function readEvidenceGenerationNumber(projectRoot: string): number {
  * Write the stable ownership record (AC13.2 fields). Idempotent when the
  * on-disk ownership fingerprint already matches — avoids dirty trees.
  * Optional `generation` is written for AC10.9 old-CLI defence on conversion;
- * it is not part of the stable ownership fingerprint.
+ * it is not part of the stable ownership fingerprint. When no `generation` is
+ * given, an existing on-disk `generation` is carried forward unchanged, so a
+ * later upgrade or repair never drops the number conversion raised (#6012).
  */
 export function writeOwnershipRecord(
   projectRoot: string,
@@ -378,6 +380,13 @@ export function writeOwnershipRecord(
   const root = resolve(projectRoot);
   const target = generationPath(projectRoot);
   const stable = buildOwnershipRecord(record);
+  const explicitGeneration =
+    options?.generation !== undefined &&
+    Number.isSafeInteger(options.generation) &&
+    options.generation >= 1
+      ? options.generation
+      : undefined;
+  const generation = explicitGeneration ?? readEvidenceGenerationNumber(projectRoot);
   const payload: Record<string, unknown> = {
     schemaVersion: stable.schemaVersion,
     runtimeVersion: stable.runtimeVersion,
@@ -393,21 +402,15 @@ export function writeOwnershipRecord(
       return entry;
     }),
   };
-  if (
-    options?.generation !== undefined &&
-    Number.isSafeInteger(options.generation) &&
-    options.generation >= 1
-  ) {
-    payload.generation = options.generation;
+  if (generation >= 1) {
+    payload.generation = generation;
   }
   const body = `${JSON.stringify(payload, null, 2)}\n`;
 
   const prior = readOwnershipRecord(projectRoot);
   const forceGeneration =
-    options?.generation !== undefined &&
-    Number.isSafeInteger(options.generation) &&
-    options.generation >= 1 &&
-    readEvidenceGenerationNumber(projectRoot) !== options.generation;
+    explicitGeneration !== undefined &&
+    readEvidenceGenerationNumber(projectRoot) !== explicitGeneration;
   if (prior !== null && ownershipRecordsEqual(prior, stable) && !forceGeneration) {
     // Already current: do not rewrite (AC13.2 + dirty-tree avoidance).
     return target;

@@ -449,12 +449,15 @@ export function relabelVerifyAcPassLead(input: {
   readonly clauseOutcomes?: readonly { readonly outcome: string }[];
   readonly servedFrom?: string;
   readonly runs?: readonly { readonly ok: boolean }[];
+  /** Clauses a grant stamped this run, left out of the counts (#6644). */
+  readonly clauseGranted?: number;
 }): string {
   if (!input.ok) {
     return input.message;
   }
   const outcomes = input.clauseOutcomes ?? [];
-  if (outcomes.length === 0) {
+  const granted = input.clauseGranted ?? 0;
+  if (outcomes.length === 0 && granted === 0) {
     return input.message;
   }
   const provenance =
@@ -467,7 +470,8 @@ export function relabelVerifyAcPassLead(input: {
       ? VERIFY_AC_NO_EVIDENCE_LEAD
       : VERIFY_AC_PASSED_LEAD;
   const lead =
-    `${head}${provenance} (${formatPassLeadClauseCounts(outcomes)}) ` +
+    `${head}${provenance} (${formatPassLeadClauseCounts(outcomes)}` +
+    `${granted > 0 ? `, ${granted} granted` : ""}) ` +
     `[rung=${input.sourceRung}]`;
   const restLines = input.message.split("\n").filter((line) => !PASS_LINE.test(line));
   while (restLines[0] === "") {

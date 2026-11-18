@@ -1,0 +1,2 @@
+section: Changed
+- `PROJECT-DEFINITION.xbrief.json` `plan.items` now lists open scopes only. `project:render` stops copying completed and cancelled briefs, the lifecycle-move sync removes a row when its scope finishes (matched by `source_path` or filename stem, never by title) and adds or updates one on a move into an open folder, and narrative staleness flags are one line per narrative. The file drops from about 1.09 MB to well under 1 MiB. Refs #6648.
