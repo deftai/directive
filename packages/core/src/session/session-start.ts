@@ -119,6 +119,7 @@ import {
   liveOccupant,
   type OccupancyDecision,
   type OccupancyIdentityProvenance,
+  type OccupancyInvocation,
   type PrimaryClaimException,
   resolveOccupancySessionClaim,
   rollbackAcquiredOccupancy,
@@ -529,6 +530,8 @@ export interface SessionStartOptions {
   /** Explicit lifecycle owner resolved by the host/session bridge (#3611). */
   readonly sessionId?: string;
   readonly newSessionId?: () => string;
+  /** Invoked verb and argv, used only to print the full re-run command (#6647). */
+  readonly invocation?: OccupancyInvocation;
   /** #3433: steal the worktree occupancy lease. Requires confirm + occupant. */
   readonly steal?: boolean;
   readonly confirm?: boolean;
@@ -1804,6 +1807,7 @@ function runRequirementsSessionStart(
     sessionId: options.sessionId,
     env: options.env,
     newSessionId: options.newSessionId,
+    invocation: options.invocation,
   });
   if (claim.status === "refuse-mint") {
     return {
@@ -2419,6 +2423,7 @@ export function runSessionStart(
     sessionId: options.sessionId,
     env: options.env,
     newSessionId: options.newSessionId,
+    invocation: options.invocation,
   });
   if (claim.status === "refuse-mint") {
     return {
