@@ -23,10 +23,7 @@
  * Keep the exported names and result values stable.
  */
 
-import {
-  GROK_PRETOOLUSE_WRAPPER_REL_PATH,
-  isGrokWrapperCommand,
-} from "../init-deposit/agent-hooks.js";
+import { GROK_PRETOOLUSE_WRAPPER_REL_PATH } from "../init-deposit/agent-hooks.js";
 import {
   isDirectiveDependencyKey,
   isUpgradePinPathContentAllowed,
@@ -192,13 +189,26 @@ const SKILL_POINTER_PATTERN = new RegExp(
   `^(?:${SKILL_POINTER_HOST_ROOTS.map(escapeRe).join("|")})/deft(?:-[a-z0-9-]+)?/SKILL\\.md$`,
 );
 
-const OUTER_COMMAND_RE = new RegExp(
-  `^node\\s+(?:\\./)?(?:${HOST_HOOK_OUTER_DIRS.map(escapeRe).join("|")})/${OUTER_FILE_RE}(?:\\s|$)`,
+/** The `.mjs` outer path token in a registered command (AC9.1). */
+const OUTER_PATH_TOKEN_RE = new RegExp(
+  `^(?:\\./)?(?:${HOST_HOOK_OUTER_DIRS.map(escapeRe).join("|")})/${OUTER_FILE_RE}$`,
 );
 
-const HOOK_BIN_COMMAND_RE = new RegExp(
-  `^node\\s+(?:\\./)?${escapeRe(RUNTIME_PACKAGE_PATH_PREFIX)}dist/hook-bin\\.js(?:\\s|$)`,
-);
+const HOOK_BIN_PATH_TOKEN = `${RUNTIME_PACKAGE_PATH_PREFIX}dist/hook-bin.js`;
+
+/** Retired Grok `.sh` wrapper path token (`./deft-pretooluse-wrapper.sh` or the full deposit path). */
+const GROK_WRAPPER_TOKEN_RE = /^(?:\.\/)?(?:\.grok\/hooks\/)?deft-pretooluse-wrapper\.sh$/;
+
+/** A plain argument token: flags and values only, no shell syntax (`&&`, `;`, `|`, quotes, `$`). */
+const PLAIN_ARG_TOKEN_RE = /^[A-Za-z0-9_.:=-]+$/;
+
+/** Taskfile include targets Directive writes or wrote (`includes.deft`). */
+const DIRECTIVE_TASKFILE_TARGETS: ReadonlySet<string> = new Set([
+  `./${RUNTIME_PACKAGE_PATH_PREFIX}Taskfile.yml`,
+  `${RUNTIME_PACKAGE_PATH_PREFIX}Taskfile.yml`,
+  "./.deft/core/Taskfile.yml",
+  ".deft/core/Taskfile.yml",
+]);
 
 function known(
   path: string,
@@ -336,19 +346,34 @@ function normalizeEol(text: string): string {
 /**
  * True when a registered host hook command is one Directive writes or wrote:
  * the `.mjs` outer in a host directory, pin `hook-bin.js`, bare `deft-hook`,
- * `deft hook:dispatch`, or the retired Grok `.sh` wrapper. Anchored at the
- * start of the command, so a user command that only mentions these does not
- * count.
+ * `deft hook:dispatch`, or the retired Grok `.sh` wrapper, followed only by
+ * plain flag/value arguments. A command that only mentions these, or chains
+ * another command (`&&`, `;`, `|`), does not count.
  */
 export function isDirectiveHookCommand(command: string): boolean {
-  const cmd = command.trim();
-  return (
-    OUTER_COMMAND_RE.test(cmd) ||
-    HOOK_BIN_COMMAND_RE.test(cmd) ||
-    /^deft-hook(?:\s|$)/.test(cmd) ||
-    /^deft\s+hook:dispatch(?:\s|$)/.test(cmd) ||
-    isGrokWrapperCommand(cmd)
-  );
+  const tokens = command.trim().split(/\s+/);
+  let args: string[];
+  if (tokens[0] === "node" && tokens[1] !== undefined) {
+    const target = tokens[1];
+    const bin = target.startsWith("./") ? target.slice(2) : target;
+    if (!OUTER_PATH_TOKEN_RE.test(target) && bin !== HOOK_BIN_PATH_TOKEN) return false;
+    args = tokens.slice(2);
+  } else if (tokens[0] === "deft-hook") {
+    args = tokens.slice(1);
+  } else if (tokens[0] === "deft" && tokens[1] === "hook:dispatch") {
+    args = tokens.slice(2);
+  } else if (
+    tokens[0] === "sh" &&
+    tokens[1] !== undefined &&
+    GROK_WRAPPER_TOKEN_RE.test(tokens[1])
+  ) {
+    args = tokens.slice(2);
+  } else if (tokens[0] !== undefined && GROK_WRAPPER_TOKEN_RE.test(tokens[0])) {
+    args = tokens.slice(1);
+  } else {
+    return false;
+  }
+  return args.every((arg) => PLAIN_ARG_TOKEN_RE.test(arg));
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -484,15 +509,60 @@ function classifyAgentsMd(before: string | null, after: string | null): Directiv
   return a === b ? "directive-only" : "mixed";
 }
 
+function leadingWhitespace(line: string): number {
+  return line.length - line.trimStart().length;
+}
+
+/** `key:` with an optional trailing `# comment`, nothing else. */
+function isBareYamlKey(trimmed: string, key: string): boolean {
+  if (!trimmed.startsWith(`${key}:`)) return false;
+  const rest = trimmed.slice(key.length + 1).trim();
+  return rest === "" || rest.startsWith("#");
+}
+
+function unquote(value: string): string {
+  const v = value.trim();
+  if (v.length >= 2 && (v[0] === "'" || v[0] === '"') && v[v.length - 1] === v[0]) {
+    return v.slice(1, -1);
+  }
+  return v;
+}
+
 /**
- * Remove the `deft:` include block (the uninstall rule). Exported so the
- * runtime uninstaller and this API share one copy.
+ * Remove Directive's `deft:` child of the top-level `includes:` map: only when
+ * its `taskfile:` points at Directive's Taskfile (runtime package, or the
+ * retired `.deft/core` copy). A user `tasks.deft` or a custom `includes.deft`
+ * target stays. Line-based (no backtracking regex). Exported so the runtime
+ * uninstaller and this API share one copy.
  */
 export function stripTaskfileDeftInclude(body: string): { next: string; removed: boolean } {
-  const blockRe = /(^|\n)([ \t]*)deft:\s*(?:#.*)?\n(?:\2[ \t]+[^\n]*\n)*/;
-  if (blockRe.test(body)) {
-    const next = body.replace(blockRe, "$1");
-    return { next: next.replace(/\n{3,}/g, "\n\n"), removed: next !== body };
+  const lines = body.split("\n");
+  let inIncludes = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    const trimmed = line.trim();
+    const indent = leadingWhitespace(line);
+    if (indent === 0 && trimmed !== "" && !trimmed.startsWith("#")) {
+      inIncludes = isBareYamlKey(trimmed, "includes");
+      continue;
+    }
+    if (!inIncludes || indent === 0 || !isBareYamlKey(trimmed, "deft")) continue;
+    let end = i + 1;
+    let directiveTarget = false;
+    while (end < lines.length) {
+      const child = lines[end] ?? "";
+      if (child.trim() === "" || leadingWhitespace(child) <= indent) break;
+      const childTrimmed = child.trim();
+      if (childTrimmed.startsWith("taskfile:")) {
+        const value = unquote(childTrimmed.slice("taskfile:".length).split(" #")[0] ?? "");
+        directiveTarget = DIRECTIVE_TASKFILE_TARGETS.has(value);
+      }
+      end++;
+    }
+    if (!directiveTarget) continue;
+    lines.splice(i, end - i);
+    const next = lines.join("\n").replace(/\n{3,}/g, "\n\n");
+    return { next, removed: true };
   }
   return { next: body, removed: false };
 }
@@ -556,14 +626,14 @@ function directiveLinesFor(rel: ManagedLineRel): ReadonlySet<string> {
   }
 }
 
-/** Sorted non-blank lines that are not Directive's (a multiset as a sorted list). */
+/** Non-blank lines that are not Directive's, in file order. */
 function userLines(text: string | null, directive: ReadonlySet<string>): string[] {
   if (text === null) return [];
+  // Keep the user's order: ignore and attribute rules depend on it (`!` negation, later lines win).
   return normalizeEol(text)
     .split("\n")
     .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !directive.has(l))
-    .sort();
+    .filter((l) => l.length > 0 && !directive.has(l));
 }
 
 function classifyManagedLines(
@@ -619,9 +689,44 @@ function classifyLockfile(
   after: string | null,
 ): DirectiveOwnedChange {
   const empty = rel === "package-lock.json" ? "{}" : "";
-  return isUpgradePinPathContentAllowed(rel, before ?? empty, after ?? empty)
-    ? "directive-only"
-    : "mixed";
+  if (!isUpgradePinPathContentAllowed(rel, before ?? empty, after ?? empty)) return "mixed";
+  if (rel === "package-lock.json" && before !== null && after !== null) {
+    return npmLockAppMetadataEqual(before, after) ? "directive-only" : "mixed";
+  }
+  return "directive-only";
+}
+
+/** Dependency maps in a package-lock root entry; everything else there is app metadata. */
+const NPM_LOCK_ROOT_DEP_FIELDS: ReadonlySet<string> = new Set([
+  ...PACKAGE_JSON_DEP_FIELDS,
+  "bundleDependencies",
+  "bundledDependencies",
+]);
+
+/**
+ * The pin follow-through check looks only at dependencies. The app's own
+ * fields (top-level `name` / `version`, and the root `packages[""]` entry
+ * apart from its dependency maps) must also be unchanged. `lockfileVersion`
+ * and `requires` may move with the package manager.
+ */
+function npmLockAppMetadataEqual(beforeRaw: string, afterRaw: string): boolean {
+  const b = parseJsonObjectOrEmpty(beforeRaw);
+  const a = parseJsonObjectOrEmpty(afterRaw);
+  if (b === undefined || a === undefined) return false;
+  const topLevel = (lock: Record<string, unknown>): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(lock).filter(
+        ([k]) => !["packages", "dependencies", "lockfileVersion", "requires"].includes(k),
+      ),
+    );
+  const rootEntry = (lock: Record<string, unknown>): Record<string, unknown> => {
+    const root = isPlainObject(lock.packages) ? lock.packages[""] : undefined;
+    if (!isPlainObject(root)) return {};
+    return Object.fromEntries(
+      Object.entries(root).filter(([k]) => !NPM_LOCK_ROOT_DEP_FIELDS.has(k)),
+    );
+  };
+  return deepEqual(topLevel(b), topLevel(a)) && deepEqual(rootEntry(b), rootEntry(a));
 }
 
 /**

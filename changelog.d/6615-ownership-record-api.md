@@ -1,2 +1,2 @@
 section: Added
-- One read-only API for what Directive owns in a project: `listDirectiveOwnedPaths` (the committed `.deft/GENERATION.json` record joined with the known Directive path classes) and `classifyDirectiveOwnedChange` (is one file's change made only of Directive's own material?). Pure reads; record entries outside the known classes are ignored and reported. For the commit gate (P4-U1) and doctor. Refs #6615.
+- Directive can now tell, for any file in a project, whether a change to it is made only of Directive's own material, using one shared list of what Directive owns. This lets later fixes let Directive's own refreshed files through without a planning brief. Refs #6615.
