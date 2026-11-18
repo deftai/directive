@@ -4,17 +4,22 @@
  */
 
 import { mkdirSync } from "node:fs";
+import { basename } from "node:path";
 import { runDoctorStub, runInstall, runUninstall, runUpgrade } from "./bookends.js";
 import {
   EXIT_CODES,
   INSTALL_ALIASES,
   INSTALL_MANAGEMENT_COMMANDS,
+  OLD_STYLE_LAUNCHER_COMMANDS,
+  PRE_OVPR_LAYOUT_MESSAGE,
   RECOVERY_GUIDANCE,
   RETIRED_INSTALL_VERBS,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
 import { invokeRuntime } from "./contract-invoke.js";
 import { discoverProject, takeRootFlag } from "./discover.js";
+import { runHookLauncher, runProjectLocalCopy } from "./hook-launcher.js";
+import { type ProjectLocalCopy, recognisePreOvprLayout } from "./legacy-shapes/pre-ovpr.js";
 import { checkNodeVersion } from "./node-check.js";
 import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
 import { readLauncherVersion } from "./version.js";
@@ -102,6 +107,14 @@ function printVersion(
     status = "installed (metadata verified)";
   }
   io.writeOut(`launcher ${launcherVersion} · project pins ${pin} (${status})\n`);
+}
+
+/** The old copy's bin matching how the launcher was called (`directive` or `deft`). */
+function invokedBinName(copy: ProjectLocalCopy): string {
+  const called = basename((process.argv[1] ?? "").replace(/\\/g, "/")).toLowerCase();
+  const preferred = called.startsWith("directive") ? "directive" : "deft";
+  if (copy.bins[preferred] !== undefined) return preferred;
+  return preferred === "deft" ? "directive" : "deft";
 }
 
 function resolveCommand(raw: string | undefined): string | null {
@@ -221,6 +234,26 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
     return EXIT_CODES.SUCCESS;
   }
 
+  // --- Old-style project (§A6.7 / AC10.2, RC-12): every command except
+  // upgrade / uninstall (and --version / --help, handled above) runs the
+  // project's own installed pre-split copy, or stops when none is installed.
+  if (projectRoot !== null && !OLD_STYLE_LAUNCHER_COMMANDS.has(cmd)) {
+    if (rawCmd === "hook:dispatch") {
+      // Old registrations call `deft hook:dispatch`: same path as `deft-hook`
+      // (hand-off, or the host's blocking form); `--root` is honoured.
+      return runHookLauncher(cmdArgv, projectRoot, "hook:dispatch");
+    }
+    const old = recognisePreOvprLayout(projectRoot);
+    if (old !== null) {
+      if (old.localCopy !== null) {
+        const code = runProjectLocalCopy(old.localCopy, invokedBinName(old.localCopy), argv);
+        if (code !== null) return code;
+      }
+      io.writeErr(`${PRE_OVPR_LAYOUT_MESSAGE}\n`);
+      return EXIT_CODES.FAILURE;
+    }
+  }
+
   if (
     RETIRED_INSTALL_VERBS.has(cmd) ||
     (rawCmd !== undefined && RETIRED_INSTALL_VERBS.has(rawCmd))
@@ -276,16 +309,6 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
     }
     io.writeErr(`No Directive project here. Run \`directive install\` inside a repository.\n`);
     return EXIT_CODES.FAILURE;
-  }
-
-  // --- Old-style layout (§A6.7 / AC10.2): only upgrade / uninstall ---
-  // --version / --help already returned above.
-  if (state.oldStyle) {
-    const oldStyleAllowed = new Set(["upgrade", "uninstall"]);
-    if (!oldStyleAllowed.has(cmd)) {
-      io.writeErr("This project uses an older Directive layout. Run `directive upgrade`.\n");
-      return EXIT_CODES.FAILURE;
-    }
   }
 
   // --- Contract too new (AC4.7): stop delegation; uninstall keeps launcher fallback ---

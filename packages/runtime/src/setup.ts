@@ -37,6 +37,7 @@ import {
 import { assertInventoryCompleteness } from "./installer-output-inventory.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { isConvertStrategyFrom, runStrategy } from "./removal-steps/index.js";
+import { removeLegacyBareVersionMarkers } from "./removal-steps/steps.js";
 import {
   ensureAgentsManagedSection,
   ensureGitHooks,
@@ -430,6 +431,13 @@ export function runSetup(options: {
         recursive: true,
       });
       if (rem.removed) removed.push(".deft/core");
+    }
+
+    // D-022 / #6001: old-layout upgrade removes version-only `.deft-version`
+    // markers (AC1.6 / AC8.10) and lists them in `removed` (upgrade report).
+    // Upgrade only: never install, repair, uninstall or doctor.
+    if (operation === "upgrade" && (legacyConversion || convertViaRemovals)) {
+      removed.push(...removeLegacyBareVersionMarkers(root));
     }
 
     // AC8.10: inventory completeness is load-time evidence (throws if incomplete).

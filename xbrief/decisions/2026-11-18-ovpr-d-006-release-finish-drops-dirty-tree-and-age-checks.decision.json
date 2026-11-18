@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-006-release-finish-drops-dirty-tree-and-age-checks",
+  "decision": "D-006: P3-U1a rewrites task release:local-update to pull, install, confirm the installed version equals the pin. (a) The refusal to start on uncommitted changes is dropped (git pull --ff-only already refuses to overwrite local changes; refreshed hook files are normal under Rule 1). (b) The release-age check on pnpm-workspace.yaml is removed (pnpm reports age problems itself). Release tooling only; no OVPR text change.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-16, was O-26ab (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-006)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the dirty-tree refusal",
+      "whyNot": null
+    },
+    {
+      "option": "Keep the release-age check",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Both checks fail on normal Rule 1 states; git and pnpm already guard the real risks.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:24Z",
+  "revisitTrigger": "A release finish step overwrites local work or installs a too-new package unreported",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "release"
+  ],
+  "relatedIssues": [
+    6613
+  ]
+}

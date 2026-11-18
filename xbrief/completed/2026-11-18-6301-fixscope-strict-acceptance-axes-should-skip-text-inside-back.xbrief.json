@@ -1,0 +1,915 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6301",
+    "updated": "2026-11-18T18:01:32Z"
+  },
+  "plan": {
+    "title": "fix(scope): strict acceptance axes should skip text inside backticks and code fences",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(scope): strict acceptance axes should skip text inside backticks and code fences",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6301",
+      "Overview": "\n\n1. Keep matching deploy, smoke, and UAT inside code spans and fenced blocks in inferRequiredStrictAxes. Ship no strip, no filter, and no new code-span or fence scanner. Issue AC1 to AC4 and AC7 as written are withdrawn.\n2. Add tests beside acceptance-evidence.ts that each of these code-span claims keeps its axis: \"`npm run deploy` succeeds\" (deploy), \"`vercel deploy --prod` succeeds\" (deploy), \"`Deploy to staging` and confirm the site serves the new build\" (deploy), \"the `deploy` job ran against staging and the site serves the new build\" (deploy), \"`pnpm smoke` passes on staging\" (smoke), \"`playwright test --grep smoke` passes against staging\" (smoke), \"requires `smoke` evidence; the lint job is green\" (smoke), \"record `uat` evidence from the staging walkthrough; update the workflow\" (uat).\n3. Add tests that a fenced block whose body is \"npm run deploy -- --env staging\" or \"flyctl deploy --app api-staging\" keeps deploy, with and without a blockquote prefix on each fence line.\n4. Add tests that an unclosed delimiter keeps the axis of later text: an unclosed fence followed by \"smoke test passes\" returns smoke; \"Escape the ` character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run `x` again\" returns deploy; an unclosed fence in Description and a Test field \"Smoke tests pass on staging\" returns smoke.\n5. Add a test that wrapping a prose claim in backticks changes neither the inferred axes nor the listStrictAxisRequirements row: \"Deploy to staging and run the smoke test\" and \"`Deploy to staging` and `run the smoke test`\" return the same axes.\n6. Keep observed_behavior matching on the same raw text as other axes, and keep the existing backtick fixture for it.\n7. Write every fixture as the literal clause text, with no backslash escapes inside code spans.\n8. Add a comment on inferRequiredStrictAxes that code formatting is not a name signal, and that the way to clear a name-only axis is to reword the clause or declare x-directive/requires.\n9. npx vitest run packages/core/src/scope/acceptance-evidence.test.ts passes.\n\nrelieves: P2\nrelieves: P3\noperator-deferred: P1 #6591\n\n",
+      "Labels": "bug, consumer-example, design-critique:ingest-ready, framework-gap, promise:gates, leftover"
+    },
+    "items": [
+      {
+        "title": "Keep matching deploy, smoke, and UAT inside code spans and fenced blocks in inferRequiredStrictAxes. Ship no strip, no filter, and no new code-span or fence scanner. Issue AC1 to AC4 and AC7 as written are withdrawn.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Add tests beside acceptance-evidence.ts that each of these code-span claims keeps its axis: \"`npm run deploy` succeeds\" (deploy), \"`vercel deploy --prod` succeeds\" (deploy), \"`Deploy to staging` and confirm the site serves the new build\" (deploy), \"the `deploy` job ran against staging and the site serves the new build\" (deploy), \"`pnpm smoke` passes on staging\" (smoke), \"`playwright test --grep smoke` passes against staging\" (smoke), \"requires `smoke` evidence; the lint job is green\" (smoke), \"record `uat` evidence from the staging walkthrough; update the workflow\" (uat).",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Add tests that a fenced block whose body is \"npm run deploy -- --env staging\" or \"flyctl deploy --app api-staging\" keeps deploy, with and without a blockquote prefix on each fence line.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Add tests that an unclosed delimiter keeps the axis of later text: an unclosed fence followed by \"smoke test passes\" returns smoke; \"Escape the ` character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run `x` again\" returns deploy; an unclosed fence in Description and a Test field \"Smoke tests pass on staging\" returns smoke.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Add a test that wrapping a prose claim in backticks changes neither the inferred axes nor the listStrictAxisRequirements row: \"Deploy to staging and run the smoke test\" and \"`Deploy to staging` and `run the smoke test`\" return the same axes.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Keep observed_behavior matching on the same raw text as other axes, and keep the existing backtick fixture for it.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Write every fixture as the literal clause text, with no backslash escapes inside code spans.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Add a comment on inferRequiredStrictAxes that code formatting is not a name signal, and that the way to clear a name-only axis is to reword the clause or declare x-directive/requires.",
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts passes.",
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+          "recorded_at": "2026-11-18T18:01:32Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "consumer-example",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "promise:gates",
+      "leftover"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6301",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6301: fix(scope): strict acceptance axes should skip text inside backticks and code fences"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "npm run deploy",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "vercel deploy --prod",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "pnpm smoke",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "playwright test --grep smoke",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "run the smoke test",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "changelog.d/6301-strict-axes-match-inside-code.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "strict-axis-classifier",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts"
+        ],
+        "expected_outputs": [
+          "inferRequiredStrictAxes keeps matching deploy, smoke and UAT inside code spans and fenced blocks; no strip, filter or scanner ships",
+          "regression tests beside acceptance-evidence.ts for the code-span, fenced-block (with and without a blockquote prefix), unclosed-delimiter and wrap-in-backticks fixtures, written as literal clause text",
+          "observed_behavior keeps matching on the same raw text, and its existing backtick fixture stays",
+          "a comment on inferRequiredStrictAxes that code formatting is not a name signal, naming reword or x-directive/requires as the way to clear a name-only axis",
+          "changelog fragment changelog.d/6301-strict-axes-match-inside-code.md"
+        ],
+        "Traces": [
+          "#6301",
+          "#6270",
+          "#6591"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "changelog.d/6301-strict-axes-match-inside-code.md"
+        ],
+        "module_boundary": "packages/core/src/scope (acceptance-evidence.ts keeps owning strict-axis inference; this story adds a comment and tests only, no behaviour change)",
+        "cohesion_exemption": "packages/core/src/scope/acceptance-evidence.ts (about 2100 lines) keeps owning strict-axis inference; this story changes no behaviour there and adds only the bound comment on inferRequiredStrictAxes. The regression tests go in packages/core/src/scope/acceptance-evidence.test.ts, the existing home of the strict-axis fixtures that clause 9 names. No split of either file is in scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because leftover of #6270 backtick/fence skipping was cut after regex over-erase, and inferRequiredStrictAxes at pin 4bdfb7e54b19 still matches deploy/smoke/UAT inside code spans and fences.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6301-dc\norigin-ref: origin/HEAD\ndispatch-sha: 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81\ndest-wo leftover-complete\nverification-path: pin-read git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:; dest cwd-without-occupy\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption that a regex is the wrong tool and that a CommonMark-aware scan (or the shipped Markdown parser) must drop code content before the #6270 prose-boundary patterns\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: specified leftover with closed AC; Stop 2 panel permission does not apply\n\npain: P1, P2, P3\n\nP1. Code-span and fenced-block contents still match deploy/smoke/UAT as prose, so identifier-like examples demand runtime axes.\nP2. A stripping design that over-erases hides real deploy/smoke/UAT claims (the worse failure that cut the regex).\nP3. observed_behavior matching must stay on unstripped text.\n\nDual-stop cap: 6 posts\n\nrefutation-target: inferRequiredStrictAxes may keep matching deploy/smoke/UAT inside backticks and fences, or keep a regex strip, instead of a CommonMark-aware scan that respects containers.\n\ntarget: #6301\ntarget-shape: single-issue\ntarget-kind: issue\naudit-targets: none\n\n",
+          "id": 6958481726,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6958481726",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:24:01Z",
+          "updated_at": "2026-11-17T19:24:01Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 critic. Refutation charter, N=1. Input ceiling: write-back 6958481726, the only comment at dispatch. Every tree read is pinned to `git show 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81:<path>`. The blob ids match the envelope (`acceptance-evidence.ts` c5992490, test file 17322d19). Verification path: pin-read, plus a local Node probe over pin-read bytes in a temp dir. The probe copies the inference regexes verbatim from the pin and adds a CommonMark-subset mask for code spans and fences. No repo tests run, no dest writes.\n\n### Verdict on the refutation target\n\nSplit.\n\n- \"keep a regex strip\": refuted. I agree with the issue. The strip helper that ships (`stripCodeBlocks` in `intake/markdown-scanners.ts`) fails the issue's own cases: AC2 still returns deploy, and AC5 and AC6 return `[]` where smoke is wanted.\n- \"keep matching deploy/smoke/UAT inside backticks and fences\": not refuted. After #6270 (PR #6289, an ancestor of the pin), a strip removes only bare axis words inside code, and that set holds real claims as well as names. By the issue's own priority (over-erase is the worse failure), keep-matching is the safer default. The premise \"drop only the code content\" does not survive P2.\n\nCensus: 2 blocks-the-design, 3 sharpens-framing, 2 footnote.\n\n### F1 — blocks-the-design — after #6270, code is not a name signal (P1, P2)\n\nEvidence (probe at pin, item `{ title }`, pin result → result after the issue's strip):\n\n- Name shapes already return `[]` at pin, with or without backticks: `deploy-dev` job, `deploy.yml`, `smoke-test.ts`, `scripts/smoke.sh`, `./deploy.sh`.\n- So the strip only changes bare axis words in code. Those have the same shape whether they are names or claims:\n  - name: \"the `deploy` job is green\": `[\"deploy\"]` → `[]` (AC1)\n  - claim: \"`npm run deploy` succeeds\", \"`task deploy:staging` succeeds\", \"`make deploy` exits 0\", \"`gh workflow run deploy` completes\": each `[\"deploy\"]` → `[]`\n  - claim: \"`pnpm smoke` passes on staging\": `[\"smoke\"]` → `[]`\n  - evidence-kind request: \"requires `smoke` evidence\", \"record `uat` evidence from the staging walkthrough\": → `[]`. Briefs in this repo write evidence kinds in backticks, and the pinned test \"Verify `observed_behavior` in production\" uses the same idiom.\n  - fenced command: \"Run against staging:\" followed by a fenced `npm run deploy -- --env staging`: `[\"deploy\"]` → `[]`\n- Census over every brief at the pin: 2,169 files, 10,528 plan items, 114 with an inferred strict axis. The issue's strip changes the axes of 0 of them. The P1 payoff on this corpus measures zero, and #6301 cites no consumer case after #6270.\n\nFailure mode: when a claim drops to `[]`, an agent that runs `scope:stamp-evidence` passes the strict-axis skip in `stampMatchAnyFileEvidence`. If the clause has an allowed artifact pointer, the verb writes `kind: test` or `kind: review` evidence. `isEvidenceKindSuitable(\"test\", [])` is true, so `scope:complete` closes the item with no runtime proof. Today the only way to waive a strict axis is a disposition, and dispositions need human origin (#2944). The same skip is in `stampDeclaredTestEvidence` and `stampDeclaredMergeEvidence`.\n\nDisposition consequence: the lean cannot bind \"drop code content, then match\" as a general rule. It can keep matching inside code (defer or close #6301 under the flip condition below). Or it can bind stripping only for a class shown to hold names only. No syntactic test separates \"the `deploy` job\" from \"`npm run deploy`\".\n\n### F2 — blocks-the-design — AC7 picks the over-erase that the issue calls worse (P2)\n\nEvidence: the AC7 case (an unclosed fence, then \"smoke test passes\") returns `[\"smoke\"]` at pin and `[]` under the CommonMark rule that the AC names (\"the fence runs to the end of its container\"). The shipped `classifyPosition` also puts that smoke hit in `code-fence`.\n\nFailure mode: an author leaves a fence unclosed, or the text gets cut off. Every requirement after the fence loses its axis, and the F1 stamp path closes the items. Narrative fields are JSON strings, not rendered pages, so matching the renderer gains nothing here.\n\nDisposition consequence: if any fence stripping survives, an unclosed fence keeps its text. Recut AC7 to \"returns smoke\".\n\n### F3 — sharpens-framing — the container is the field, not the joined text (P2)\n\nEvidence: `inferRequiredStrictAxes` joins title, id, and narrative Acceptance/Description/Test with \"\\n\" before it matches. A scan over that joined text reads separate fields as one paragraph:\n\n- Title \"Fix the ` escaping bug\" with Acceptance \"Deploy to prod; then run `x` again\": scanned per field `[\"deploy\"]`, scanned joined `[]`. The stray backtick in the title pairs with the one in Acceptance and erases the claim between them.\n- Description \"Example:\", a fence opener, \"ok\" (never closed), with Test \"Smoke tests pass on staging\": per field `[\"smoke\"]`, joined `[]`.\n\nFailure mode: markup in one field erases a claim in another field. No AC covers this.\n\nDisposition consequence: any strip that survives scans each field as its own document. Add a cross-field fixture.\n\n### F4 — sharpens-framing — inventory: no Markdown parser ships, and one existing scanner already answers most ACs\n\nEvidence:\n\n- Neither `package.json` nor `packages/core/package.json` lists a Markdown parser (`parse5` parses HTML). The Proposal's \"the Markdown parser the repo already ships\" has nothing to point at.\n- The nearest strip that ships, `stripCodeBlocks`, is the defective regex (see the verdict above).\n- `classifyPosition` in `design-critique/citation-grammar.ts` (already imported by `markdown-scanners.ts`) classifies hit offsets. Measured at pin: AC1 and AC2 `inline-code`, AC3 `code-fence`, the smoke hits in AC5 and AC6 `null` (prose). AC4 returns `blockquote`, not `code-fence`, and the module's docstring says a `>`-marked fence is not a fence there. AC7 returns `code-fence` (see F2).\n- The contract's citation grammar made the same choice for the same scanner: classify the position, do not strip the span.\n\nFailure mode: either a fifth fence and span scanner, beside `stripCodeBlocks`, `classifyPosition`, `isInsideCodeFence` (`pr-closing-keywords/detect.ts`) and `fenceBodyMask` (`literal-acceptance/capture.ts`), drifts from the other four, or an implementer reaches for the shipped strip and brings back defects 1, 2 and 4.\n\nDisposition consequence: if stripping survives, drop only the hits that `classifyPosition`, run per field, puts in `inline-code` or `code-fence`. Keep hits it classes as `blockquote`, `strikethrough` or `negation`: \"> Smoke tests pass\" is a quoted claim, and the probe classes \"do not deploy to prod\" as `negation`. AC4 (a quoted fence) is the one gap to add there.\n\n### F5 — sharpens-framing — injection / swarm lens: formatting becomes a silent waiver\n\nEvidence: agents can write brief prose. Wrapping a requirement in backticks or a fence leaves every word visible to a human who reviews the brief or its activation PR, but removes the axis for the gate. The #6272 listing (`listStrictAxisRequirements`) calls the same `inferRequiredStrictAxes`, so the item also drops out of the strict-axis listing at activation, promote, and preflight.\n\nFailure mode: an agent edits \"Deploy to staging and smoke-test it\" to \"`Deploy to staging` and `smoke-test it`\". The diff reads as the same claim. The axes go to `[]`, the listing omits the item, and `scope:stamp-evidence` writes test evidence. No human-origin step occurs.\n\nDisposition consequence: if any strip survives, it needs two guards:\n\n- The three stamp functions keep their skip on the unstripped axes, so a hit that is only in code still blocks machine stamping.\n- `listStrictAxisRequirements` shows code-only hits as dropped, not as absent.\n\nUnder the F1 keep-matching option, this channel does not exist.\n\n### F6 — footnote — P3 is consistent only under keep-matching\n\nThe pinned test keeps `observed_behavior` inside backticks (\"Verify `observed_behavior` in production\"). The issue keeps that axis on raw text, but \"Verify `smoke` in production\" would lose smoke. P3 itself concedes that a backticked axis word can be a request, which supports F1. Under keep-matching, P3 holds with no extra rule.\n\n### F7 — footnote — the AC5 fixture string is not the rendered text\n\nThe AC5 line puts backslash escapes inside a code span. GFM does not process escapes there, so the line renders garbled, and a literal harvest copies the backslashes. Take the fixture from Summary item 2 or from the #6289 test, not from the AC line.\n\n### Steelman and flip condition\n\nSteelman for stripping: the #6270 consumer lost 44+ minutes to name-only matches, and the classifier refused the agent's disposition write. Job names in backticks are common in CI-heavy briefs, and each false positive costs a human disposition after merge.\n\nWhat would flip F1: a census of consumer refusals after #6270 in which the code-only hits are names, with no commands and no evidence-kind requests. A deterministic test that separates \"the `deploy` job\" from \"`npm run deploy`\" would also flip it.\n\nRoad not taken: a list of head nouns after the span (\"job\", \"workflow\", \"check\"). I rejected it because the list is open-ended, and \"the `deploy` job ran against staging and the site serves the new build\" is a deploy claim that such a rule would drop.",
+          "id": 6958828033,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6958828033",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:38:18Z",
+          "updated_at": "2026-11-17T19:38:18Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover #6270 still matches deploy, smoke, and UAT inside backticks and fences. A regex strip would also drop real claims that use those same words as commands or evidence kinds.\n\nThe accepted design keeps matching those words in code, recuts the leftover so an unclosed fence does not erase later prose, and does not ship a strip.\n\n**Lean:** bind keep-matching.\n\nSpec-path: Bound remedy on this lean\n\nTarget-digest: sha256:2c6d414fb1af7dbbc5014cdcd86cfd52e8214cc8404e3ea84b3801aaa55a3878\n\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6301-dc\ndispatch-sha: 4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81\narc-mode: no-ingest\nDual-stop cap: 6 posts\nRound 1 sibling count: 1\nCited critic: 6958828033\nSupersedes Stop 1 6958481726 as the disposition map.\n\nNon-self-arbitration: the same parent authored Stop 1 6958481726 and these proposed takes. Confirming binds them.\n\n## Parent-side substantiation\n\nblocks-the-design: F1 after #6270, code is not a name signal\naccept-into-contract\n\nblocks-the-design: F2 AC7 picks the over-erase that the issue calls worse\naccept-into-contract\n\nsharpens-framing: F3 the container is the field, not the joined text\naccept-into-contract\n\nsharpens-framing: F4 no Markdown parser ships; classifyPosition already answers most ACs\naccept-into-contract\n\nsharpens-framing: F5 formatting becomes a silent waiver\naccept-into-contract\n\nfootnote: F6 P3 is consistent only under keep-matching\naccept-into-contract\n\nfootnote: F7 the AC5 fixture string is not the rendered text\naccept-into-contract\n\n## Bound remedy\n\n1. Keep matching axis words inside code spans and fences in inferRequiredStrictAxes.\n2. Recut AC7 so an unclosed fence keeps following prose and still returns smoke.\n3. Keep observed_behavior matching on the same raw text as other axes.\n\nrelieves: P2\nrelieves: P3\ndoes-not-relieve: P1\n\nLeftover-pain: P1 remainder stays on this leftover (Dual-stop raise over a nested leftover-split). A later name-only census could flip F1; that census is not this Bound remedy.\n\n",
+          "id": 6958923396,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6958923396",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:42:23Z",
+          "updated_at": "2026-11-17T19:42:23Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nHandoff\n\nopen-question: Should P1 remainder stay on this leftover under a Dual-stop raise?\n\nYolo leftover-pain: lean 6958923396 cites does-not-relieve P1 with Spec-path. Recommended leftover path is Dual-stop raise on this leftover of #6270, not a nested leftover-split. Yolo does not confirm leftover-split.\n\nAsserted coverage P2 and P3 still go to pain-audit. This comment is not a successor lean.\n\n",
+          "id": 6958954434,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6958954434",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:43:42Z",
+          "updated_at": "2026-11-17T19:43:42Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:3ea59f0ccd0cbf0037e1a5853f5787b53726401a8f247aabdea3b38558e3df09\n\nPain-audit of successor lean 6958923396 ([Bound remedy](https://github.com/deftai/directive/issues/6301#issuecomment-6958923396)). Input ceiling: that comment, inclusive. Tree pin: `4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81`.\n\n**Verdict:** the asserted P2 and P3 relief holds for the keep-matching remedy. No findings and no mechanism change.\n\n### P2 — over-erase\n\nThe pinned [inference function](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/scope/acceptance-evidence.ts#L366-L453) joins the selected fields, lowercases them, and matches without removing Markdown content. Its only deploy/smoke/UAT preprocessing separates slash alternations. Keeping this path therefore preserves the requirements that a strip could erase.\n\nDirect probes returned:\n\n| Case | Required axes |\n| --- | --- |\n| Backticked `npm run deploy` succeeds | deploy |\n| Request for backticked smoke evidence | smoke |\n| Fenced staging deploy command | deploy |\n| Triple backticks inside double-backtick spans, with intervening smoke prose | smoke |\n| Quoted opener, quote ends, smoke prose, then unquoted fence | smoke |\n| Unclosed backtick or tilde fence followed by smoke prose | smoke |\n| Stray title backtick paired with a backtick after Acceptance's deploy claim | deploy |\n| Unclosed Description fence followed by Test's smoke claim | smoke |\n\nThe proposed AC7 recut matches behavior already present at this pin. No container scanner is needed to preserve these hits when nothing is stripped.\n\n### P3 — observed_behavior on raw text\n\nThe [observed-behavior branch](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/scope/acceptance-evidence.ts#L396-L408) tests `raw`, separately from slash preprocessing. Single and double backticks, closed fences, an unclosed quoted fence, and narrative-field fences all retained `observed_behavior`. The existing [backtick regression fixture](https://github.com/deftai/directive/blob/4bdfb7e54b19bfd1cd2ffb5e62a83d362b21da81/packages/core/src/scope/acceptance-evidence.test.ts#L261-L263) agrees. The remedy preserves that branch.\n\n### Authority and verification\n\nFormatting alone did not waive runtime evidence in the probes. `listStrictAxisRequirements` retained every inferred axis; `isEvidenceKindSuitable` rejected both test and review evidence for all 20 nonempty-axis cases. Pin reads also confirm the strict-axis checks remain in the three stamp helpers. Keeping the existing pure inference path adds no shared-state mechanism.\n\nMethod: read the issue and bounded comments via REST; extracted exact function/constant slices from the pinned source with `git show`; executed them in memory under Node 24.20.0 after built-in TypeScript type erasure. All 21 inference assertions, 21 listing assertions, and 40 suitability assertions passed. Controls retained identifier exclusions and explicit-requirement precedence. These were isolated function probes; the repository Vitest suite was not run because this process-only dest lacks its runtime installation.\n\nP1 remains outside this audit. This is the P2/P3 verification handback, not a synthesis or ingest-clearance record.\n\n",
+          "id": 6959034162,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6959034162",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T19:46:54Z",
+          "updated_at": "2026-11-17T19:46:54Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nDual-stop raise: numbered cap 7 posts (was 6). Leftover-pain raise after Handoff 6958954434 (does-not-relieve P1 on keep-matching lean 6958923396). Critic posts used: 2. Remaining numbered posts: 5 of 7. Purpose: pain-audit of the recut that delivers P1. N=1 has no reserved pain-audit slot; that slot is not refilled.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6301-dc\norigin-ref: origin/HEAD\ndispatch-sha: a33cffa4171a6e557e08536e36d2adeb3d80393d\ndest-wo: leftover-complete\n\n",
+          "id": 6959484042,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6959484042",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T20:05:50Z",
+          "updated_at": "2026-11-17T20:05:50Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover #6270 still matches deploy, smoke, and UAT inside backticks when those words are names, and a blanket strip would also drop real commands and evidence kinds.\n\nThe accepted design scans each field on its own, keeps a code-span or fence hit only when that span holds a closed command token or the word evidence, and still matches those words in ordinary prose.\n\n**Lean:** recut P1 command-span keep.\n**Recut-supersedes:** 6958923396\n\nSpec-path: Bound remedy on this lean\n\nTarget-digest: sha256:2c6d414fb1af7dbbc5014cdcd86cfd52e8214cc8404e3ea84b3801aaa55a3878\n\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6301-dc\ndispatch-sha: a33cffa4171a6e557e08536e36d2adeb3d80393d\narc-mode: no-ingest\nDual-stop cap: 7 posts\nRound 1 sibling count: 1\nCited critic: 6958828033\nCited Handoff: 6958954434\nCited Dual-stop raise: 6959484042\n\nNon-self-arbitration: the same parent authored Stop 1 6958481726, lean 6958923396, Handoff 6958954434, and these recut takes. A later critic of pain-P1 is the independent check.\n\n## Parent-side substantiation\n\nblocks-the-design: F1 after #6270, code is not a name signal\naccept-into-contract\n\nblocks-the-design: F2 AC7 picks the over-erase that the issue calls worse\naccept-into-contract\n\nsharpens-framing: F3 the container is the field, not the joined text\naccept-into-contract\n\nsharpens-framing: F4 no Markdown parser ships; classifyPosition already answers most ACs\naccept-into-contract\n\nsharpens-framing: F5 formatting becomes a silent waiver\naccept-into-contract\n\nfootnote: F6 P3 is consistent only under keep-matching\naccept-into-contract\n\nfootnote: F7 the AC5 fixture string is not the rendered text\naccept-into-contract\n\nF1 keep-matching rest from lean 6958923396 is recut. The closed command-token test is the F1 flip (separate `the deploy job` from `npm run deploy`) without the blanket strip F1 blocked.\n\n## Bound remedy\n\n1. Scan each title, id, and narrative field as its own document.\n2. For a deploy, smoke, or UAT hit whose classifyPosition is inline-code or code-fence, keep the hit only when the containing span includes a closed command token (npm, pnpm, yarn, bun, npx, task, make, cargo, go, gh, pytest, python, node) or the word evidence.\n3. Keep hits in prose, blockquote, strikethrough, and negation.\n4. An unclosed fence does not erase following prose in that field (AC7 returns smoke).\n5. Stamp skip and listStrictAxisRequirements use the unstripped axes so a code-only name cannot machine-stamp.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nLeftover-pain: extra command tokens stay outside this Bound remedy. observed_behavior stays on raw text.\n\n",
+          "id": 6959488185,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6959488185",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T20:06:01Z",
+          "updated_at": "2026-11-17T20:06:01Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\nharvest-digest: sha256:7488ef3859b56606fe45c9d482187c8d715d90e71d97612b960805ae21befdf5\n\nPain-audit of recut lean 6959488185 (Bound remedy items 1–5). Input ceiling: that comment, inclusive. Tree pin: `a33cffa4171a6e557e08536e36d2adeb3d80393d`. The scope, design-critique and intake sources are unchanged from the earlier pin `4bdfb7e5`. The harvest-digest above equals `hashHarvestIdentity` of the recut, computed at the pin. The recut's Target-digest matches the current issue body.\n\nDecorrelation note: this seat is the same model family as round-1 critic 6958828033. I re-derived everything from the pin, and B2 corrects that post's F5 guard.\n\n**Verdict**\n\n- P1: not relieved on the agent path. Blocking (B1).\n- P2: not relieved at the completion gate. Blocking (B2).\n- P3: holds. Footnote (N1).\n\nCensus: 2 blocks-the-design, 1 sharpens-framing, 1 footnote.\n\n### B1 — blocks-the-design — item 5 keeps the P1 refusal on the agent path (P1)\n\nEvidence, executed at the pin: a clause-keyed item \"the `deploy` job is green\" with an in-scope test pointer. `stampMatchAnyFileEvidence`, the function behind `scope:stamp-evidence`, skips it with reason `strict-axis`. The completion gate then reports `missing`, and `scope:complete` refuses. The control item \"unit tests are green\" stamps `kind: test` and passes.\n\nItem 5 keeps that stamp skip on the unstripped axes, so the result is the same after the recut. `listStrictAxisRequirements` also still names `deploy` at activation, promote and preflight. Its docstring (`acceptance-evidence.ts:470`) says the listing \"cannot drift from completion\". Item 5 makes it drift by design.\n\nFailure mode: the #6270 consumer class (an agent that stamps, then completes) sees no change. The only new route is a hand-written evidence record, and B2 shows that route also accepts over-erased claims.\n\nDisposition consequence: `relieves: P1` cannot bind with item 5 as written. To relieve P1 on the agent path, the stamp verbs must read the gate's axes. That puts the whole safety case on item 2, which B2 refutes.\n\n### B2 — blocks-the-design — item 2 over-erases real claims at the gate (P2)\n\nThe issue defines P2 at the gate: \"the gate accepts test or review evidence without runtime proof\". I ran a model of items 1–4 (per-field scan, `classifyPosition`, closed tokens as whole words, item 4 as an override) beside the pinned `inferRequiredStrictAxes`. Every row is a real claim:\n\n| Claim | Pin axes | Recut gate axes | Hand-written kind:test, pin → recut |\n|---|---|---|---|\n| requires `smoke` evidence | smoke | none | refuse → accept |\n| record `uat` evidence from the staging walkthrough | uat | none | refuse → accept |\n| Verify `smoke` in production | smoke | none | refuse → accept |\n| `vercel deploy --prod` succeeds | deploy | none | refuse → accept |\n| `fly deploy`, `gcloud app deploy`, `firebase deploy --only hosting` | deploy | none | refuse → accept |\n| `playwright test --grep smoke` passes against staging | smoke | none | refuse → accept |\n| `Deploy to staging` and confirm the site serves the new build | deploy | none | refuse → accept |\n| fenced `flyctl deploy --app api-staging` | deploy | none | refuse → accept |\n| lone-backtick line (below) | smoke | none | refuse → accept |\n| lone-backtick paragraph (below) | deploy | none | refuse → accept |\n\nLone-backtick rows: `` Escape the ` character in titles; smoke tests pass on staging. `` and `` Handle a lone ` in input. `` followed on the next line by \"Deploy to staging and confirm the site serves the build.\"\n\n- The first two rows are round-1 F1's own evidence-kind cases, which the lean marks `accept-into-contract`. Item 2 looks for \"evidence\" inside the span, but in both cases the word is outside it.\n- The lone-backtick rows come from `classifyPosition`. Its inline-code test (`citation-grammar.ts:164-182`) treats an unmatched backtick as a span that runs to the paragraph end. CommonMark treats it as a literal backtick. This is the issue's own defect class (Summary items 2 and 4) inside one field, so item 1 does not reach it.\n- Controls keep their axes: `npm run deploy`, `make deploy`, a fenced `npm run deploy`, AC7 (an unclosed fence, then smoke prose), and `observed_behavior`.\n\nInjection / swarm lens (the target changes what evidence the gate admits): `parseEvidence` (`acceptance-evidence.ts:570`) checks shape only. `parseDisposition` requires human origin (line 682); evidence does not. So item 5 closes the verb, not the gate. Wrap \"Deploy to staging\" in backticks, and the gate stops naming the axis. Any hand-written `kind: test` record then completes the item. Round-1 F5's guard (stamp verbs on unstripped axes) is not enough as written.\n\nSteelman: at the pin, deploy and smoke pointers have no shape rule, so a dishonest hand-written `kind: deploy` record already passes. The P2 harm here is not forgery. The gate stops asking, so an honest agent records test evidence for a real deploy claim. That is the failure the issue calls worse.\n\nDisposition consequence: `relieves: P2` cannot bind with item 2 as written. The lean's own line \"extra command tokens stay outside this Bound remedy\" concedes part of P2 while it cites relief. In the first three rows the whole span is a bare axis word, the same shape as P1's \"the `deploy` job\". This repeats round-1 F1: no syntactic test separates the two, so one axis set cannot relieve P1 and P2 together.\n\n### S1 — sharpens-framing — items 2 and 4 conflict, and item 2 leaves span and token boundaries open (P1, P2)\n\n- `classifyPosition` returns `code-fence` for all text after an unclosed fence (`blockPosition`, `citation-grammar.ts:295`). Item 2 binds that classifier, and item 4 needs the opposite result. No bullet says which wins. No bullet covers an unclosed backtick (B2's last two rows).\n- Item 2 does not say whether tokens match as whole words. As substrings, `bun` matches inside `ubuntu-latest` and `gh` inside `playwright`. A name-only workflow fence with `runs-on: ubuntu-latest` then keeps deploy.\n- For a fence, \"containing span\" is the whole fence. A name-only workflow example (`jobs:`, `deploy:`, `run: npm ci`) keeps deploy because of an unrelated step. A blockquoted fence classes as `blockquote`, so item 3 keeps its names.\n- Under Spec-path these bullets replace issue AC3 and AC4 (both \"returns no axis\"). The recut returns deploy for both and does not say so.\n\nDisposition consequence: if any filter survives, state the token boundary, the span unit inside a fence, and one unclosed-delimiter rule that covers fences and backticks.\n\n### N1 — footnote — P3 holds, but its bullet left the harvest (P3)\n\nItem 2 filters only deploy, smoke and UAT, and every probe kept `observed_behavior`. `extractBoundRemedyHarvest` on the recut returns five items. \"observed_behavior stays on raw text\" is in a non-list paragraph, so the harvested plan has no P3 item. The prior lean's item 3 carried it. Restore it as a list item in any recut.\n\n### What would change this audit\n\n- B1: the stamp verbs, the gate and the listing read one axis set. Or the lean cites P1 as `does-not-relieve` or `operator-deferred` to a split issue.\n- B2: every claim row above keeps its axis under the filter, while \"the `deploy` job\" returns none.\n- Bindable form: the keep-matching remedy of lean 6958923396 (audit 6959034162 found nothing on P2 and P3), with P1 `operator-deferred` to a split issue. In that issue, a census of name-only refusals after #6270 can flip round-1 F1.\n\nMethod: REST reads of the issue and comments through 6959488185. Pin reads with `git show a33cffa4…:`. I ran the pinned `stampMatchAnyFileEvidence`, `evaluateAcceptanceEvidenceGate`, `inferRequiredStrictAxes`, `isEvidenceKindSuitable`, `listStrictAxisRequirements`, `classifyPosition`, `hashHarvestIdentity` and `extractBoundRemedyHarvest` from a `git archive` of the pin, under Node 24.20.0 type stripping, with parse5 stubbed (these paths do not use it). The recut filter is my model of items 1–4, not shipped code. I ran no repo tests and wrote nothing to the dest.",
+          "id": 6959736611,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6959736611",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T20:16:03Z",
+          "updated_at": "2026-11-17T20:16:03Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe recut's command-span keep does not relieve P1 on the stamp path and over-erases real claims at the gate, so that Bound remedy cannot bind.\n\nThe keep-matching design on successor lean 6958923396 still holds for P2 and P3.\n\n**Lean:** retract.\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\nrelieves: P3\n\nSupersedes 6959488185.\n\nCited blocking pain-audit: 6959736611\narc-mode: no-ingest\ndispatch-sha: a33cffa4171a6e557e08536e36d2adeb3d80393d\nDual-stop cap: 7 posts\n\n",
+          "id": 6959760832,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6959760832",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T20:16:56Z",
+          "updated_at": "2026-11-17T20:16:56Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nHandoff\n\nopen-question: Dual-stop raise again on this leftover of #6270, or leftover-split P1?\n\nYolo leftover-pain: recut 6959488185 retracted after blocking pain-audit 6959736611. Keep-matching lean 6958923396 remains bindable for P2 and P3. Nested leftover-split of leftover #6270 is dispreferred. Dual-stop cap 7 posts, critic posts used 3, remaining 4. This comment is not a successor lean.\n\n",
+          "id": 6959761275,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6959761275",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T20:16:57Z",
+          "updated_at": "2026-11-17T20:16:57Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nDual-stop raise: numbered cap 8 posts (was 7). Leftover-pain raise after Handoff 6959761275 (blocking pain-audit 6959736611 retracted recut 6959488185). Critic posts used: 3. Remaining numbered posts: 5 of 8. Purpose: pain-audit of the recut that answers B1/B2/N1. N=1 has no reserved pain-audit slot; that slot is not refilled.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6301-dc\norigin-ref: origin/HEAD\ndispatch-sha: 1616bcc1d88555906bddae04437aa465bac01ea9\ndest-wo: leftover-complete\n\n",
+          "id": 6962772429,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6962772429",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T22:24:48Z",
+          "updated_at": "2026-11-17T22:24:48Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA command-span keep still skipped names on the stamp path and dropped real claims at the gate, so one filter cannot be a small command list.\n\nThe accepted design uses one axis set for stamp, gate, and listing. It drops a code-span hit only when that span is a lone deploy/smoke/UAT word and the same field names a job or workflow. Everything else still matches, including fences and evidence-kind phrases.\n\n**Lean:** recut one-axis-set name-context drop.\n**Recut-supersedes:** 6959760832\n\nSpec-path: Bound remedy on this lean\n\nTarget-digest: sha256:2c6d414fb1af7dbbc5014cdcd86cfd52e8214cc8404e3ea84b3801aaa55a3878\n\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-6301-dc\ndispatch-sha: 1616bcc1d88555906bddae04437aa465bac01ea9\narc-mode: no-ingest\nDual-stop cap: 8 posts\nCited critic: 6959736611\nCited Dual-stop raise: 6962772429\nCited retracted recut: 6959488185\n\nNon-self-arbitration: the same parent authored the retracted recut and these takes. A later critic of pain-P1, pain-P2, and pain-P3 is the independent check.\n\n## Parent-side substantiation\n\nblocks-the-design: B1 item 5 keeps the P1 refusal on the agent path\naccept-into-contract\n\nblocks-the-design: B2 item 2 over-erases real claims at the gate\naccept-into-contract\n\nsharpens-framing: S1 items 2 and 4 conflict, span and token boundaries open\naccept-into-contract\n\nfootnote: N1 P3 holds, but its bullet left the harvest\naccept-into-contract\n\n## Bound remedy\n\n1. Stamp verbs, inferRequiredStrictAxes, and listStrictAxisRequirements read one axis set.\n2. Scan each title, id, and narrative field as its own document.\n3. Drop a deploy, smoke, or UAT hit only when classifyPosition is inline-code, the span is a lone axis word, and the same field has a whole-word name-context token (job, jobs, workflow, yaml, yml).\n4. Keep all other hits, including fences, commands, evidence-kind phrases, and prose.\n5. An unclosed fence or unclosed backtick does not extend the code class past that delimiter's CommonMark end; following prose in the field still matches (AC7 returns smoke).\n6. Keep observed_behavior matching on the same raw text as other axes.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n",
+          "id": 6962776085,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6962776085",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T22:24:59Z",
+          "updated_at": "2026-11-17T22:24:59Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking\nharvest-changed: true\nharvest-digest: sha256:9f6a73d52861208ff7086fa4483e959c6a00ca777537e16abd50b503e4b85832\n\nPain-audit of [recut 6962776085](https://github.com/deftai/directive/issues/6301#issuecomment-6962776085), which is also the inclusive input ceiling. Tree pin: `1616bcc1d88555906bddae04437aa465bac01ea9`.\n\n**Verdict:** P1 is partly relieved; P2 is not relieved; P3 holds. Two blocking findings. The Bound remedy cannot bind as written.\n\n### PA1 — blocks-the-design — field-wide name context still drops real claims (P2)\n\nItem 3 requires only an inline-code position, a lone axis word, and a name-context token anywhere in that field. None establishes that the hit is merely a name. Using the pinned classifier and inference with a literal model of that drop rule:\n\n| Field text | Pin axes | Recut model axes |\n| --- | --- | --- |\n| requires `smoke` evidence; the lint job is green | smoke | none |\n| record `uat` evidence from the staging walkthrough; update the workflow | uat | none |\n| requires `deploy` evidence; validate YAML syntax | deploy | none |\n| the `deploy` job ran against staging and the site serves the new build | deploy | none |\n| `smoke` passes against the staging URL; lint job stays green | smoke | none |\n| `uat` passed with the customer; lint job stays green | uat | none |\n\nAll six change the pinned item evaluator's result for a structurally valid `kind: test` record from `invalid` to `evidence`. The listing also loses the required axis. Evidence: [inference](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/scope/acceptance-evidence.ts#L366-L453), [classifier](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/design-critique/citation-grammar.ts#L312-L325), and [item evaluation](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/scope/acceptance-evidence.ts#L1766-L1795).\n\nItem 4's promise to keep evidence-kind phrases does not resolve this: those hits already satisfy item 3, so they are not “all other hits.” If that promise is intended as an override, the exception and its deterministic predicate are missing. The last three rows also fail without an evidence-kind phrase.\n\nFailure mode / injection lens: adding an unrelated “lint job stays green” sentence removes a runtime obligation without changing the claim. Item 1 correctly unifies the consumers, but consequently propagates this mistake to stamping, listing and completion. The three stamp helpers already consult inference at [lines 954, 1058 and 1178](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/scope/acceptance-evidence.ts#L954). No human disposition is needed when inference returns no axes.\n\nDisposition consequence: change the drop mechanism before asserting P2 relief. A field-wide keyword is not sufficient authority to remove a runtime requirement. Keep ambiguous hits unless a bounded rule can retain these claims while removing the intended name-only cases. Merely adding more context words or asking reviewers to distinguish them does not fix this.\n\n### PA2 — blocks-the-design — fenced name examples remain a P1 remainder\n\nThe [Stop 1 P1 definition](https://github.com/deftai/directive/issues/6301#issuecomment-6958481726) includes code spans **and fenced blocks**. Item 4 expressly retains fences. These name-only examples return deploy both at the pin and under the recut model:\n\n- A fenced YAML example containing `jobs:`, `deploy:`, and `run: echo example`.\n- The same example inside a blockquote.\n\nTheir test-evidence result remains `invalid`, and the listing still reports deploy. The original fenced `npm run deploy` examples also remain matched by design.\n\nThe earlier stamp/gate mismatch is fixed for the intended inline subset: single- and double-backticked “the deploy job is green” lose the axis, and the item evaluator admits test evidence. That does not cover the retained fenced-name cases.\n\nFailure mode: a consumer whose false requirement comes from a fenced job example still faces the same runtime-evidence refusal. This is a behavioral remainder, not a request to rename or polish the lean.\n\nDisposition consequence: full P1 relief needs a mechanism covering that remainder without reintroducing PA1, or an explicit disposition of the unmet scope. Keeping fences may be the safer design, but it is partial relief. This finding does not recommend blanket fence stripping.\n\n### P3 and verification\n\nItem 6 restores P3 to the harvested list. All five observed-behavior fixtures retained `observed_behavior`: inline code, closed fence, unclosed fence, blockquote, and a separate narrative field. No P3 change is needed.\n\nMethod: REST issue/body and comments through the ceiling only; every repository read used `git show` at the recorded SHA. Node 24.20.0 type erasure ran pinned inference, classifier, listing, evidence parsing and the item evaluator. The proposed filter was an audit model of item 3 on balanced fixture spans, **not shipped code**. It preserved the raw observed-behavior branch. Across 28 fixtures, 168 assertions passed; these assert the reported outcomes, including the counterexamples, not design correctness. Controls retained commands, prose, unclosed-delimiter claims, cross-field isolation, identifier exclusions and explicit declarations. Stamp paths were inspected, not executed. No repository Vitest suite ran; the checkout runtime pin is absent. No implementation, ingest or occupancy mutation occurred.\n\nSteelman: one shared axis set removes the previous consumer mismatch, and restricting drops to lone words avoids dropping whole command spans. Those improvements hold. The verdict would change when a bounded mechanism preserves the runtime claims above and the remaining P1 scope has an honest disposition.\n\n",
+          "id": 6962866468,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6962866468",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T22:29:13Z",
+          "updated_at": "2026-11-17T22:29:13Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nField-wide name-context still drops real claims at the gate, and fenced job examples still match, so this recut cannot bind P1 and P2 together.\n\nKeep-matching on successor lean 6958923396 still holds for P2 and P3.\n\n**Lean:** retract.\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\nrelieves: P3\n\nSupersedes 6962776085.\n\nCited blocking pain-audit: 6962866468\narc-mode: no-ingest\ndispatch-sha: 1616bcc1d88555906bddae04437aa465bac01ea9\nDual-stop cap: 8 posts\n\n",
+          "id": 6962880055,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6962880055",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T22:29:54Z",
+          "updated_at": "2026-11-17T22:29:54Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nHandoff\n\nopen-question: Dual-stop raise again on this leftover of #6270, leftover-split P1, or bind keep-matching with does-not-relieve P1?\n\nYolo leftover-pain: recut 6962776085 retracted after blocking pain-audit 6962866468. Keep-matching lean 6958923396 remains bindable for P2 and P3. Nested leftover-split of leftover #6270 is dispreferred. Dual-stop cap 8 posts, critic posts used 4, remaining 4. This comment is not a successor lean.\n\n",
+          "id": 6962880397,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6962880397",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T22:29:55Z",
+          "updated_at": "2026-11-17T22:29:55Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWords like deploy inside backticks or a code fence can be the name of a job or a real claim that something was deployed. Three audits showed that no text rule tells the two apart, so every filter that skipped the names also skipped real claims.\n\nThe accepted design keeps matching those words inside code and ships no strip or filter. It adds tests that hold that behaviour in place. The relief for clauses that only name a job moves to its own issue, which uses an explicit declaration, not inference.\n\n**Lean:** bind keep-matching with regression tests.\n\nSpec-path: Bound remedy on this lean\n\nTarget-digest: sha256:2c6d414fb1af7dbbc5014cdcd86cfd52e8214cc8404e3ea84b3801aaa55a3878\n\ndispatch-sha: 1616bcc1d88555906bddae04437aa465bac01ea9\narc-mode: no-ingest\nDual-stop cap: 8 posts\nFollows retraction map 6962880055 and Handoff 6962880397.\nCited critics: 6958828033, 6959034162, 6959736611, 6962866468\n\nOperator decision on Handoff 6962880397: bind keep-matching and split the unmet part to #6591. The operator confirmed that split as a live turn, and #6591 is the number from the issue-create output.\n\nNon-self-arbitration: this parent seat did not author Stop 1 6958481726 or the earlier leans. It authored these takes. A later critic of all three pain markers is the independent check.\n\n## Parent-side substantiation\n\nblocks-the-design: F1 after #6270, code is not a name signal\naccept-into-contract\n\nblocks-the-design: F2 AC7 picks the over-erase that the issue calls worse\naccept-into-contract\n\nsharpens-framing: F3 the container is the field, not the joined text\naccept-into-contract\n\nsharpens-framing: F4 no Markdown parser ships; classifyPosition already answers most ACs\naccept-into-contract\n\nsharpens-framing: F5 formatting becomes a silent waiver\naccept-into-contract\n\nfootnote: F6 P3 is consistent only under keep-matching\naccept-into-contract\n\nfootnote: F7 the AC5 fixture string is not the rendered text\naccept-into-contract\n\nblocks-the-design: B1 item 5 keeps the P1 refusal on the agent path\naccept-into-contract\n\nblocks-the-design: B2 item 2 over-erases real claims at the gate\naccept-into-contract\n\nsharpens-framing: S1 items 2 and 4 conflict, span and token boundaries open\naccept-into-contract\n\nfootnote: N1 P3 holds, but its bullet left the harvest\naccept-into-contract\n\nblocks-the-design: PA1 field-wide name context still drops real claims\naccept-into-contract\n\nblocks-the-design: PA2 fenced name examples remain a P1 remainder\naccept-into-contract\n\nWhere each take lands: F1, B2 and PA1 are item 1 (no filter ships) and items 2 and 3 (their claim rows as tests). F2 and F3 are item 4. F4 and S1 are item 1 (no scanner and no filter to specify). F5 is item 5. F6 and N1 are item 6. F7 is item 7. B1 and PA2 are the deferred cite below: one axis set stays in force because nothing is filtered, and the name-only remainder, fences included, goes to #6591.\n\n## Bound remedy\n\n1. Keep matching deploy, smoke, and UAT inside code spans and fenced blocks in inferRequiredStrictAxes. Ship no strip, no filter, and no new code-span or fence scanner. Issue AC1 to AC4 and AC7 as written are withdrawn.\n2. Add tests beside acceptance-evidence.ts that each of these code-span claims keeps its axis: \"`npm run deploy` succeeds\" (deploy), \"`vercel deploy --prod` succeeds\" (deploy), \"`Deploy to staging` and confirm the site serves the new build\" (deploy), \"the `deploy` job ran against staging and the site serves the new build\" (deploy), \"`pnpm smoke` passes on staging\" (smoke), \"`playwright test --grep smoke` passes against staging\" (smoke), \"requires `smoke` evidence; the lint job is green\" (smoke), \"record `uat` evidence from the staging walkthrough; update the workflow\" (uat).\n3. Add tests that a fenced block whose body is \"npm run deploy -- --env staging\" or \"flyctl deploy --app api-staging\" keeps deploy, with and without a blockquote prefix on each fence line.\n4. Add tests that an unclosed delimiter keeps the axis of later text: an unclosed fence followed by \"smoke test passes\" returns smoke; \"Escape the ` character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run `x` again\" returns deploy; an unclosed fence in Description and a Test field \"Smoke tests pass on staging\" returns smoke.\n5. Add a test that wrapping a prose claim in backticks changes neither the inferred axes nor the listStrictAxisRequirements row: \"Deploy to staging and run the smoke test\" and \"`Deploy to staging` and `run the smoke test`\" return the same axes.\n6. Keep observed_behavior matching on the same raw text as other axes, and keep the existing backtick fixture for it.\n7. Write every fixture as the literal clause text, with no backslash escapes inside code spans.\n8. Add a comment on inferRequiredStrictAxes that code formatting is not a name signal, and that the way to clear a name-only axis is to reword the clause or declare x-directive/requires.\n9. npx vitest run packages/core/src/scope/acceptance-evidence.test.ts passes.\n\nrelieves: P2\nrelieves: P3\noperator-deferred: P1 #6591\n\n",
+          "id": 6963747188,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6963747188",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T23:12:17Z",
+          "updated_at": "2026-11-17T23:12:17Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:39146a1e613d265982150440a536c928a8f5d377edbbe358add350e4534683c6\n\nPain-audit of [bind lean 6963747188](https://github.com/deftai/directive/issues/6301#issuecomment-6963747188), the inclusive input ceiling. Tree pin: `1616bcc1d88555906bddae04437aa465bac01ea9`.\n\n**Verdict:** P1 remains unmet and is honestly deferred to #6591. The asserted P2 and P3 coverage holds. Every fixture's stated axis expectation in Bound remedy items 2–6 matches the pin. No findings; no mechanism change required.\n\n### P1 — honest deferral\n\nThe [Stop 1 definition](https://github.com/deftai/directive/issues/6301#issuecomment-6958481726) includes names in both code spans and fences. Single- and double-backticked “the deploy job is green,” plus a fenced YAML job example containing `jobs:`, `deploy:`, and `run: echo example`, all still return `deploy`. The blockquoted version also returns `deploy`. Their listing rows remain, and test/review evidence is unsuitable.\n\nThat remainder agrees with the lean's `operator-deferred: P1 #6591`. Item 1 withdraws the original no-axis AC1–4; no Bound remedy item claims to remove these name-only matches. Item 8 documents existing rewording/declaration options: the pinned `x-directive/requires: merge` control returns no strict axes, while an explicit strict-axis declaration still wins. It introduces no name detector or P1 relief claim.\n\nThe envelope supplies the operator's split decision. This audit verifies the disposition against the current remedy; #6591's contents and eventual implementation are outside the audit.\n\n### P2 — claims survive formatting and delimiters\n\nThe pinned [inference function](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/scope/acceptance-evidence.ts#L366-L453) retains Markdown content and applies the existing prose-boundary patterns. Keeping that mechanism preserves the claims that the rejected filters erased.\n\nAll eight item 2 fixtures returned their stated axis:\n\n| Literal clause | Axes |\n| --- | --- |\n| “`npm run deploy` succeeds” | deploy |\n| “`vercel deploy --prod` succeeds” | deploy |\n| “`Deploy to staging` and confirm the site serves the new build” | deploy |\n| “the `deploy` job ran against staging and the site serves the new build” | deploy |\n| “`pnpm smoke` passes on staging” | smoke |\n| “`playwright test --grep smoke` passes against staging” | smoke |\n| “requires `smoke` evidence; the lint job is green” | smoke |\n| “record `uat` evidence from the staging walkthrough; update the workflow” | uat |\n\nThe remaining specified fixtures also passed:\n\n- **Item 3:** fences containing either `npm run deploy -- --env staging` or `flyctl deploy --app api-staging` returned `deploy`, both with and without a blockquote prefix on every fence line: four cases.\n- **Item 4:** an unclosed fence followed by smoke prose returned `smoke`; the literal “Escape the ` character…” clause returned `smoke`; a lone title backtick plus the stated Acceptance field returned `deploy`; an unclosed Description fence plus the stated Test field returned `smoke`.\n- **Item 5:** the prose and backticked forms both returned `[smoke, deploy]`, with identical `listStrictAxisRequirements` rows, including path and id.\n\nThe literal original AC5 nested-backtick example and AC6 quoted/unquoted-fence example also retained `smoke`. Fixtures used actual clause text without backslash escapes inside spans, as item 7 requires.\n\nFor the authority check, formatting did not remove an evidence obligation. The [listing](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/scope/acceptance-evidence.ts#L472-L494) retained every inferred axis, and the pinned suitability function rejected test and review evidence for every nonempty-axis probe. Source inspection confirms the stamp helpers and completion evaluator still consult the same inference function. P2 is preserved through the existing shared path and the proposed regression tests.\n\n### P3 — raw-text matching retained\n\nItem 6 preserves the [raw-text branch](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/scope/acceptance-evidence.ts#L396-L408) and the [existing backtick test](https://github.com/deftai/directive/blob/1616bcc1d88555906bddae04437aa465bac01ea9/packages/core/src/scope/acceptance-evidence.test.ts#L261-L263). The existing fixture, double backticks, a closed fence, an unclosed quoted fence, and a separate narrative field all returned `observed_behavior`.\n\n### Verification limits\n\nI read the supplied issue and comments locally through the ceiling, then extracted exact function/constant slices using `git show` at the recorded SHA. Node 24.20.0 TypeScript erasure executed inference, listing and evidence suitability in memory: **34 fixtures, 133 assertions passed**. Identifier exclusions and explicit-declaration precedence were controls. Stamp and completion paths were inspected, not executed. No Markdown-filter model was substituted for the pinned inference.\n\nItem 9's Vitest command was not run; that remains an implementation validation requirement. This is a design audit of the stated expectations, not a claim that the proposed regression tests have shipped. No network, ingest, occupancy claim, mutation session, or product edit occurred.\n\n",
+          "id": 6965164359,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6965164359",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T00:28:30Z",
+          "updated_at": "2026-11-18T00:28:30Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nNon-self-arbitration: this seat authored bind lean 6963747188 and its takes. Rows marked verified were re-derived from the pin by this seat, by a cross-family critic, or both.\n\n| Claim | Method | Status |\n| --- | --- | --- |\n| No text rule separates a name from a claim in a lone-word code span | Executed counterexample pairs at the pin in audits 6959736611 (claude-opus-5-5) and 6962866468 (gpt-6); this seat re-ran \"the `deploy` job ran against staging and the site serves the new build\" against `inferRequiredStrictAxes` at 1616bcc and got deploy | verified |\n| Keep-matching returns the stated axis for every fixture in Bound remedy items 2 to 5 | This seat ran the fixtures against `inferRequiredStrictAxes` at 1616bcc; audit 6965164359 (gpt-6) ran 34 fixtures, 133 assertions, from `git show` slices | verified |\n| `observed_behavior` matches on raw text inside spans and fences | Pinned-source probes in audits 6959034162 and 6965164359 (gpt-6); not re-run by this seat | verified, single family |\n| Name-only clauses, fences included, still return deploy | Probes in audit 6965164359; this seat ran \"the `deploy` job is green\" at 1616bcc | verified; deferred to #6591 |\n| Removing code content changes the axes of 0 of 114 axis-bearing items in this repo | Census in critic post 6958828033 only; not reproduced | endorsed, not verified |\n| The regression tests in items 2 to 6 pass under Vitest | Not run; the tests do not exist yet | not verified; implementation |\n\n",
+          "id": 6965222047,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6965222047",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T00:31:43Z",
+          "updated_at": "2026-11-18T00:31:43Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe issue asked the gate to ignore deploy, smoke and UAT when they appear inside backticks or a code fence. Three audits showed that the same formatting holds both job names and real claims, so every rule that skipped the names also let real deploy claims pass without runtime proof.\n\nThe accepted solution leaves the matching as it is, adds tests so a later change cannot quietly drop those claims, and moves the name-only case to #6591, where it can be solved by an explicit declaration.\n\ndesign-critique: synthesis accepted, because the operator explicitly chose accept synthesis after clean pain-audit 6965164359.\n\nBound contract: successor lean 6963747188.\nRecord: verified-claims table 6965222047.\n\n",
+          "id": 6965222366,
+          "html_url": "https://github.com/deftai/directive/issues/6301#issuecomment-6965222366",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T00:31:44Z",
+          "updated_at": "2026-11-18T00:31:44Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\n#6270 changed `inferRequiredStrictAxes` (`packages/core/src/scope/acceptance-evidence.ts`) so that deploy, smoke and UAT match as prose, not inside file, job or workflow names. The issue also asked to skip text inside backticks. That part was cut from PR #6289 after four review rounds found ways for the stripping to go wrong:\n\n1. Double-backtick spans (``deploy``) were not stripped.\n2. Triple backticks inside two inline spans opened a \"fence\" and erased the prose between them (for example \"Render `` ``` `` fences correctly; smoke tests pass; preserve `` ``` `` output\" lost the smoke axis).\n3. Line-anchored fences missed blockquoted fences (`> ```), so a quoted deploy example demanded deploy evidence.\n4. Allowing blockquote prefixes let a quoted opening fence pair with a later unquoted closing fence, which erased real requirements in between.\n\nA regex is the wrong tool here. Stripping that removes too much hides real deploy, smoke or UAT claims, so the gate accepts test or review evidence without runtime proof. That is the worse failure.\n\n## Proposal\n\nUse a small CommonMark-aware scan, or the Markdown parser the repo already ships if there is one, to find code spans and fenced blocks. Line structure and blockquote containers must be respected: a fence closes only inside the same container that opened it, and an unclosed fence runs to the end of its container. Drop only the code content, then run the prose-boundary axis patterns from #6270 on what remains.\n\n## Acceptance Criteria\n\n- Given `the \\`deploy\\` job is green`, when `inferRequiredStrictAxes` runs, then it returns no deploy axis.\n- Given ``the ``deploy`` job is green`` (double-backtick span), then it returns no deploy axis.\n- Given a fenced block whose body says `npm run deploy`, followed by `unit tests green`, then it returns no axis.\n- Given a blockquoted fence (`> ```` … `> ````) whose body says `npm run deploy`, then it returns no axis.\n- Given `Render \\`\\` \\`\\`\\` \\`\\` fences correctly; smoke tests pass; preserve \\`\\` \\`\\`\\` \\`\\` output`, then it returns smoke.\n- Given a quoted opening fence, a quote that ends without a closing fence, then prose `Smoke tests pass`, then an unquoted fenced block, then it returns smoke.\n- Given an unclosed fence followed by `smoke test passes`, the behaviour is defined and tested (CommonMark: the fence runs to the end of its container).\n- `observed_behavior` matching is unchanged by stripping.\n- Tests live beside `acceptance-evidence.ts`, and `npx vitest run packages/core/src/scope/acceptance-evidence.test.ts` passes.\n\nRefs #6270, #3240.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6376468589,
+        "origin": "deftai/directive#6301",
+        "id": "github.issue.6376468589"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2c6d414fb1af7dbbc5014cdcd86cfd52e8214cc8404e3ea84b3801aaa55a3878"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6301,
+        "leanCommentId": 6963747188,
+        "harvestDigest": "39146a1e613d265982150440a536c928a8f5d377edbbe358add350e4534683c6",
+        "slice": null
+      },
+      "kind": "story",
+      "productPullRequest": 6667,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ef26c721a115fed851b7188722dcb270f44e6d0e",
+        "prNumber": 6667,
+        "prBase": "master",
+        "mergeCommit": "36fcb5048f2a73eec1f0f0508062ab1320269a9d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "41fcd4b57753ee1e00322ea2bc2ae964b550b4a4",
+        "verifiedAt": "2026-11-18T18:01:32Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:N2Y4YjdkMjUtOWQ5My00OGU2LTgzMTMtZWI0NjFkNzA4ZjYw",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-18T18:01:32Z",
+      "completedSessionId": "host:claude:v1:N2Y4YjdkMjUtOWQ5My00OGU2LTgzMTMtZWI0NjFkNzA4ZjYw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-18T18:01:32Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (9), in list order (#6333)",
+      "sentences": [
+        "Keep matching deploy, smoke, and UAT inside code spans and fenced blocks in inferRequiredStrictAxes. Ship no strip, no filter, and no new code-span or fence scanner. Issue AC1 to AC4 and AC7 as written are withdrawn.",
+        "Add tests beside acceptance-evidence.ts that each of these code-span claims keeps its axis: \"`npm run deploy` succeeds\" (deploy), \"`vercel deploy --prod` succeeds\" (deploy), \"`Deploy to staging` and confirm the site serves the new build\" (deploy), \"the `deploy` job ran against staging and the site serves the new build\" (deploy), \"`pnpm smoke` passes on staging\" (smoke), \"`playwright test --grep smoke` passes against staging\" (smoke), \"requires `smoke` evidence; the lint job is green\" (smoke), \"record `uat` evidence from the staging walkthrough; update the workflow\" (uat).",
+        "Add tests that a fenced block whose body is \"npm run deploy -- --env staging\" or \"flyctl deploy --app api-staging\" keeps deploy, with and without a blockquote prefix on each fence line.",
+        "Add tests that an unclosed delimiter keeps the axis of later text: an unclosed fence followed by \"smoke test passes\" returns smoke; \"Escape the ` character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run `x` again\" returns deploy; an unclosed fence in Description and a Test field \"Smoke tests pass on staging\" returns smoke.",
+        "Add a test that wrapping a prose claim in backticks changes neither the inferred axes nor the listStrictAxisRequirements row: \"Deploy to staging and run the smoke test\" and \"`Deploy to staging` and `run the smoke test`\" return the same axes.",
+        "Keep observed_behavior matching on the same raw text as other axes, and keep the existing backtick fixture for it.",
+        "Write every fixture as the literal clause text, with no backslash escapes inside code spans.",
+        "Add a comment on inferRequiredStrictAxes that code formatting is not a name signal, and that the way to clear a name-only axis is to reword the clause or declare x-directive/requires.",
+        "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts passes."
+      ],
+      "admitted_source_sentences": [
+        "Keep matching deploy, smoke, and UAT inside code spans and fenced blocks in inferRequiredStrictAxes. Ship no strip, no filter, and no new code-span or fence scanner. Issue AC1 to AC4 and AC7 as written are withdrawn.",
+        "Add tests beside acceptance-evidence.ts that each of these code-span claims keeps its axis: \"`npm run deploy` succeeds\" (deploy), \"`vercel deploy --prod` succeeds\" (deploy), \"`Deploy to staging` and confirm the site serves the new build\" (deploy), \"the `deploy` job ran against staging and the site serves the new build\" (deploy), \"`pnpm smoke` passes on staging\" (smoke), \"`playwright test --grep smoke` passes against staging\" (smoke), \"requires `smoke` evidence; the lint job is green\" (smoke), \"record `uat` evidence from the staging walkthrough; update the workflow\" (uat).",
+        "Add tests that a fenced block whose body is \"npm run deploy -- --env staging\" or \"flyctl deploy --app api-staging\" keeps deploy, with and without a blockquote prefix on each fence line.",
+        "Add tests that an unclosed delimiter keeps the axis of later text: an unclosed fence followed by \"smoke test passes\" returns smoke; \"Escape the ` character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run `x` again\" returns deploy; an unclosed fence in Description and a Test field \"Smoke tests pass on staging\" returns smoke.",
+        "Add a test that wrapping a prose claim in backticks changes neither the inferred axes nor the listStrictAxisRequirements row: \"Deploy to staging and run the smoke test\" and \"`Deploy to staging` and `run the smoke test`\" return the same axes.",
+        "Keep observed_behavior matching on the same raw text as other axes, and keep the existing backtick fixture for it.",
+        "Write every fixture as the literal clause text, with no backslash escapes inside code spans.",
+        "Add a comment on inferRequiredStrictAxes that code formatting is not a name signal, and that the way to clear a name-only axis is to reword the clause or declare x-directive/requires.",
+        "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts passes."
+      ],
+      "admitted_source_digest": "39146a1e613d265982150440a536c928a8f5d377edbbe358add350e4534683c6",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep matching deploy, smoke, and UAT inside code spans and fenced blocks in inferRequiredStrictAxes. Ship no strip, no filter, and no new code-span or fence scanner. Issue AC1 to AC4 and AC7 as written are withdrawn.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Add tests beside acceptance-evidence.ts that each of these code-span claims keeps its axis: \"`npm run deploy` succeeds\" (deploy), \"`vercel deploy --prod` succeeds\" (deploy), \"`Deploy to staging` and confirm the site serves the new build\" (deploy), \"the `deploy` job ran against staging and the site serves the new build\" (deploy), \"`pnpm smoke` passes on staging\" (smoke), \"`playwright test --grep smoke` passes against staging\" (smoke), \"requires `smoke` evidence; the lint job is green\" (smoke), \"record `uat` evidence from the staging walkthrough; update the workflow\" (uat).",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Add tests that a fenced block whose body is \"npm run deploy -- --env staging\" or \"flyctl deploy --app api-staging\" keeps deploy, with and without a blockquote prefix on each fence line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Add tests that an unclosed delimiter keeps the axis of later text: an unclosed fence followed by \"smoke test passes\" returns smoke; \"Escape the ` character in titles; smoke tests pass on staging.\" returns smoke; a title with a lone backtick and an Acceptance field \"Deploy to prod; then run `x` again\" returns deploy; an unclosed fence in Description and a Test field \"Smoke tests pass on staging\" returns smoke.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Add a test that wrapping a prose claim in backticks changes neither the inferred axes nor the listStrictAxisRequirements row: \"Deploy to staging and run the smoke test\" and \"`Deploy to staging` and `run the smoke test`\" return the same axes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep observed_behavior matching on the same raw text as other axes, and keep the existing backtick fixture for it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Write every fixture as the literal clause text, with no backslash escapes inside code spans.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Add a comment on inferRequiredStrictAxes that code formatting is not a name signal, and that the way to clear a name-only axis is to reword the clause or declare x-directive/requires.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts passes.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6376468589",
+    "updated": "2026-11-18T18:01:32Z"
+  }
+}

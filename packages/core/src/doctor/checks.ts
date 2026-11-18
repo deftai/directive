@@ -24,6 +24,7 @@ import {
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
 } from "../init-deposit/migrate.js";
+import { readRuntimePin } from "../install-health/readers.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
 import { scanCompletedWriteCorpus } from "../lifecycle/completed-write-guard.js";
@@ -1005,6 +1006,26 @@ export function checkManifestAgreement(
   installRoot: string | null,
   seams: CheckSeams = {},
 ): CheckResult {
+  // #6001 / D-022: an OVPR project (runtime pin in package.json, no .deft/core)
+  // has one version authority, the pin (AC1.6). Leftover bare .deft-version
+  // markers are old evidence, not a manifest: skip, read-only, no update advice.
+  const pinRead = readRuntimePin(projectRoot, { isFile: seams.isFile, readText: seams.readText });
+  if (pinRead.rawSpec !== null && !isDirectoryPath(join(projectRoot, ".deft", "core"), seams)) {
+    const markerIsFile = seams.isFile ?? ((p: string) => readText(p, seams) !== null);
+    const legacyMarkers = bareVersionMarkerTargets(projectRoot).filter((p) => markerIsFile(p));
+    return {
+      name: "manifest-agreement",
+      status: "skip",
+      detail:
+        legacyMarkers.length > 0
+          ? `OVPR project: the version authority is the package.json pin (AC1.6). Legacy marker(s) ${legacyMarkers.join(", ")} are not used and may be deleted.`
+          : "OVPR project: the version authority is the package.json pin (AC1.6); no install manifest to reconcile.",
+      data: {
+        ovpr_pin: pinRead.rawSpec,
+        legacy_markers: legacyMarkers,
+      },
+    };
+  }
   const coreManifest = join(projectRoot, ".deft", "core", "VERSION");
   const legacyManifest = join(projectRoot, ".deft", "VERSION");
   const coreDualText = readText(coreManifest, seams);

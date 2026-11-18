@@ -2498,13 +2498,47 @@ describe("finalizeCohort", () => {
     expect(
       result.result.errors.some(
         (e) =>
-          e.includes("failed to stamp productPullRequest=42") && e.includes("brief left active"),
+          e.includes("failed to stamp productPullRequest=42") &&
+          e.includes("brief is already bound to productPullRequest=9999; pass --pr 9999") &&
+          e.includes("brief left active"),
       ),
     ).toBe(true);
     expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     expect(ghCalls.some((c) => c.includes("PATCH"))).toBe(false);
     expect(existsSync(storyPath)).toBe(true);
     expect(readFileSync(storyPath, "utf8")).toBe(before);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("names a read/parse/write failure distinctly from an already-bound brief (#6601)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-stamp-unwritable-"));
+    const storyPath = writeActiveStory(project, "story-6601", 6601);
+    // Brief with no plan object: the stamp cannot proceed, and no PR binding exists.
+    const data = JSON.parse(readFileSync(storyPath, "utf8")) as Record<string, unknown>;
+    data.plan = null;
+    writeFileSync(storyPath, `${JSON.stringify(data)}\n`, "utf8");
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh(
+        { 42: { merged: true, closingIssues: [], baseRef: "master" } },
+        { 6601: "open" },
+      ),
+      runGit: mockRunGit(),
+    });
+    const stampErrors = result.result.errors.filter((e) =>
+      e.includes("failed to stamp productPullRequest=42"),
+    );
+    expect(stampErrors.length).toBeGreaterThan(0);
+    for (const e of stampErrors) {
+      expect(e).toContain("brief could not be read, parsed, or written");
+      expect(e).not.toContain("already bound");
+    }
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     rmSync(project, { recursive: true, force: true });
   });
 

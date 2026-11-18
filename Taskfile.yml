@@ -854,12 +854,14 @@ tasks:
         vars:
           ENGINE_CMD: 'release-wait-npm {{.CLI_ARGS}}'
 
-  # Phase 7 maintainer primary checkout closeout (#5953 Prefer-A Bound 6430511888).
+  # Phase 7 maintainer primary checkout update (#5953 / #6613): pull, install,
+  # confirm installed = pin. Hook files refresh on the next hook run (AC8.6);
+  # a later `directive upgrade` diff is normal and is not part of the release.
   # Inline cmds only — no engine:invoke / no deps:[ts:build] so the post-install
   # payload can replace the N-1 runtime the cut was using. Never reset/force-push/
   # commit / npm i -g.
   release:local-update:
-    desc: "Phase 7 fail-closed maintainer checkout update (#5953) -- task release:local-update -- <version> --checkout <primary-occupancy-root>"
+    desc: "Phase 7 maintainer checkout update: pull, install, confirm installed = pin (#5953 / #6613) -- task release:local-update -- <version> --checkout <primary-occupancy-root>"
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
@@ -953,13 +955,6 @@ tasks:
             exit 1
             ;;
         esac
-        print_deposit_recovery() {
-          echo "Phase 7 local closeout INCOMPLETE (#5953 / #6163 Prefer-A Bound 6772886751)." >&2
-          echo "Recovery: on the pin candidate, repair/write agent-hook deposit then force-add tip-required Cursor paths (.cursor/hooks.json + .cursor/hooks/deft-hook-<sha8>.mjs) so they co-travel with the pin (preparePinCandidateCursorDeposit / git add -f bounded set); merge that pin+deposit tip, then re-run:" >&2
-          echo "  task release:local-update -- $VERSION --checkout $CHECKOUT" >&2
-          echo "Expected managed deposit paths include: .grok/hooks/ .cursor/hooks.json .cursor/hooks/deft-hook-<sha8>.mjs .claude/settings.json .codex/ (and related deposit files)." >&2
-          echo "Do not auto-commit deposit bytes inside the release flow; do not npm i -g." >&2
-        }
         OCC_FILE="$CHECKOUT/.deft/occupancy.json"
         if [ -f "$OCC_FILE" ]; then
           node -e '
@@ -1019,11 +1014,6 @@ tasks:
           echo "release:local-update: not a git work tree: $CHECKOUT" >&2
           exit 1
         fi
-        if [ -n "$(git status --porcelain)" ]; then
-          echo "release:local-update: refuse dirty tree at $CHECKOUT" >&2
-          git status --short >&2
-          exit 1
-        fi
         # #6164: shell parameter expansion strip (zero sed/awk/cut/grep); then git verify.
         ORIGIN_HEAD="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
         DEFAULT_BRANCH="${ORIGIN_HEAD#refs/remotes/origin/}"
@@ -1041,54 +1031,6 @@ tasks:
         fi
         echo "release:local-update: ff-only pull on $DEFAULT_BRANCH at $CHECKOUT"
         git pull --ff-only
-        # #6164: unconditional dependency-free AgeExclude gate (exact list-item; fail closed; no soft-skip).
-        node -e '
-          const fs = require("fs");
-          const version = process.argv[1] || "";
-          const want = "@deftai/directive-runtime@" + version;
-          let text;
-          try {
-            text = fs.readFileSync("pnpm-workspace.yaml", "utf8");
-          } catch (err) {
-            const detail = err && err.message ? err.message : String(err);
-            console.error("release:local-update: AgeExclude cannot read pnpm-workspace.yaml before frozen install (#6164): " + detail);
-            process.exit(1);
-          }
-          const lines = text.split(/\r?\n/);
-          const KEY_RE = /^(\s*)minimumReleaseAgeExclude:\s*(#.*)?$/;
-          const ITEM_RE = /^(\s*)-\s+(.*)$/;
-          const keyIdx = lines.findIndex((l) => KEY_RE.test(l));
-          if (keyIdx < 0) process.exit(0);
-          const keyLine = lines[keyIdx];
-          const keyIndent = keyLine.length - keyLine.trimStart().length;
-          const itemValue = (raw) => {
-            let v = String(raw || "").trim();
-            const SQ = String.fromCharCode(39);
-            const DQ = String.fromCharCode(34);
-            if (v.startsWith(SQ) || v.startsWith(DQ)) {
-              const q = v[0];
-              const end = v.indexOf(q, 1);
-              return end > 0 ? v.slice(1, end) : v;
-            }
-            const hash = v.search(/\s#/);
-            if (hash >= 0) v = v.slice(0, hash);
-            return v.trim();
-          };
-          let found = false;
-          for (let i = keyIdx + 1; i < lines.length; i++) {
-            const line = lines[i];
-            const trimmed = line.trim();
-            if (trimmed === "" || trimmed.startsWith("#")) continue;
-            const m = ITEM_RE.exec(line);
-            const indent = line.length - line.trimStart().length;
-            if (m === null || indent < keyIndent) break;
-            if (itemValue(m[2]) === want) { found = true; break; }
-          }
-          if (!found) {
-            console.error("release:local-update: AgeExclude missing " + want + " before frozen install (#5953 footnote / #6164)");
-            process.exit(1);
-          }
-        ' "$VERSION"
         echo "release:local-update: pnpm install --frozen-lockfile"
         pnpm install --frozen-lockfile
         PIN_PKG="$(node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); const v=(p.dependencies||{})["@deftai/directive-runtime"]||(p.devDependencies||{})["@deftai/directive-runtime"]||""; console.log(String(v).replace(/^[^0-9]*/, ""));')"
@@ -1098,77 +1040,7 @@ tasks:
           exit 1
         fi
         echo "release:local-update: tip-pin-equals-released ok ($VERSION)"
-        RUNTIME_BIN="node_modules/@deftai/directive-runtime/dist/bin.js"
-        if [ ! -f "$RUNTIME_BIN" ]; then
-          echo "release:local-update: missing checkout runtime bin $RUNTIME_BIN" >&2
-          exit 1
-        fi
-        echo "release:local-update: require version-matched agent-hook deposit already on tip"
-        if ! DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 node "$RUNTIME_BIN" verify:hooks-installed --project-root "$CHECKOUT" --scope=agent; then
-          print_deposit_recovery
-          exit 1
-        fi
-        # #6163 Prefer-A Bound 6772886751: committed-byte HEAD association (no repair/staging).
-        echo "release:local-update: require committed Cursor deposit association on HEAD"
-        if ! node --input-type=module -e '
-          import { pathToFileURL } from "node:url";
-          import { join, resolve } from "node:path";
-          const checkout = process.argv[1];
-          const vendor = join(
-            checkout,
-            "node_modules/@deftai/directive-runtime/vendor/directive-core/dist/init-deposit/agent-hooks.js",
-          );
-          let validate;
-          try {
-            ({ validateCursorDepositAssociation: validate } = await import(pathToFileURL(resolve(vendor)).href));
-          } catch (err) {
-            const detail = err && err.message ? err.message : String(err);
-            console.error("release:local-update: cannot load validateCursorDepositAssociation from installed runtime (#6163): " + detail);
-            process.exit(1);
-          }
-          if (typeof validate !== "function") {
-            console.error("release:local-update: installed runtime lacks validateCursorDepositAssociation (#6163); pin must co-travel the Bound helper");
-            process.exit(1);
-          }
-          const result = validate(checkout, { source: "HEAD" });
-          if (!result || result.ok !== true) {
-            console.error("release:local-update: committed Cursor deposit association FAILED on HEAD (#6163)");
-            console.error(result && result.detail ? result.detail : "unknown association failure");
-            process.exit(1);
-          }
-          console.log("release:local-update: committed Cursor deposit association ok (" + result.sha8 + ")");
-        ' "$CHECKOUT"; then
-          print_deposit_recovery
-          exit 1
-        fi
-        UPGRADE_BIN=""
-        if [ -x "node_modules/.bin/directive" ]; then
-          UPGRADE_BIN="node_modules/.bin/directive"
-        elif [ -f "node_modules/@deftai/directive/dist/bin.js" ]; then
-          UPGRADE_BIN="node node_modules/@deftai/directive/dist/bin.js"
-        elif command -v directive >/dev/null 2>&1; then
-          UPGRADE_BIN="directive"
-        else
-          echo "release:local-update: cannot resolve directive upgrade binary after frozen install" >&2
-          exit 1
-        fi
-        echo "release:local-update: $UPGRADE_BIN upgrade --target-version $VERSION --yes --root $CHECKOUT"
-        $UPGRADE_BIN upgrade --target-version "$VERSION" --yes --root "$CHECKOUT"
-        if [ -n "$(git status --porcelain)" ]; then
-          echo "release:local-update: tracked-file diff after upgrade; closeout non-zero/incomplete (#5953)" >&2
-          git status --short >&2
-          print_deposit_recovery
-          exit 1
-        fi
-        echo "release:local-update: verify:hooks-installed --project-root --scope=all"
-        DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 node "$RUNTIME_BIN" verify:hooks-installed --project-root "$CHECKOUT" --scope=all
-        INST_PKG2="$(node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("node_modules/@deftai/directive-runtime/package.json","utf8")); console.log(p.version);')"
-        if [ "$INST_PKG2" != "$VERSION" ]; then
-          echo "release:local-update: post-upgrade runtime $INST_PKG2 != $VERSION" >&2
-          exit 1
-        fi
-        echo "release:local-update COMPLETE; checkout=$CHECKOUT version=$INST_PKG2 hooks=verify:hooks-installed --scope=all green"
-        echo "global npm i -g was NOT run (report-only drift remains Phase 7 step 2)."
+        echo "release:local-update COMPLETE; checkout=$CHECKOUT version=$VERSION. Hook files refresh on the next hook run (AC8.6). Run 'directive upgrade' and commit when you choose."
 
 
   # ------------------------------------------------------------------

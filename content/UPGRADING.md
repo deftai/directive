@@ -78,7 +78,14 @@ npm install -g --allow-scripts=<pkg,...> <package>
 
 ### Framework monorepo contributors
 
-Install source of truth for this repo is **pnpm** (`packageManager` field; CI uses `pnpm install --frozen-lockfile`). Install-script builds are gated by `pnpm-workspace.yaml` **`allowBuilds`** (currently `esbuild: true` where needed). **`allowBuilds` is PM-owned**: Directive install/upgrade uses the package manager for `package.json` / lockfile pin ops and does **not** hand-edit `allowBuilds`. If pnpm fails with `ERR_PNPM_IGNORED_BUILDS`, recover with `pnpm approve-builds` or set a real `true`/`false` under `allowBuilds` — do **not** commit pnpm's interactive placeholder text. Pin/add paths already pass `--ignore-scripts` so ordinary consumer upgrades should not need a runtime `allowBuilds` entry. Do **not** treat `npm approve-scripts` under the pnpm virtual store as monorepo SoT.
+Install source of truth for this repo is **pnpm** (`packageManager` field; CI uses `pnpm install --frozen-lockfile`). Install-script builds are gated by `pnpm-workspace.yaml` **`allowBuilds`** (currently `esbuild: true` where needed). **`pnpm-workspace.yaml` is PM-owned as a whole** (including `allowBuilds` and the release-age settings `minimumReleaseAge` / `minimumReleaseAgeExclude`): Directive install, upgrade and repair use the package manager for `package.json` / lockfile pin ops and do **not** edit this file. When pnpm itself changes it during the add, Directive lists it under "Review and commit". If pnpm fails with `ERR_PNPM_IGNORED_BUILDS`, recover with `pnpm approve-builds` or set a real `true`/`false` under `allowBuilds` — do **not** commit pnpm's interactive placeholder text. Pin/add paths already pass `--ignore-scripts` so ordinary consumer upgrades should not need a runtime `allowBuilds` entry. Do **not** treat `npm approve-scripts` under the pnpm virtual store as monorepo SoT.
+
+**pnpm release-age refusals.** If your project sets `minimumReleaseAge`, pnpm may refuse a runtime version published that day (`ERR_PNPM_NO_MATURE_MATCHING_VERSION` or `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`). That is your project's supply-chain setting; Directive does not change it. Recover, then run the same command again:
+
+- wait until the version is old enough, or
+- add `'@deftai/directive-runtime@<version>'` under `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` (or extend your existing runtime row with `|| <version>`).
+
+Commit `pnpm-workspace.yaml` when it changes. On older pnpm 11 releases, CI `pnpm install --frozen-lockfile` may still fail for up to 24 hours after a release; the same recovery applies.
 
 ### Git / remote package sources and publish
 
@@ -226,7 +233,9 @@ If either effective value is not
 corporate policy:
 
 - **Leave the project directory** so the project `.npmrc` is not loaded
-  (for example `$HOME`), then install:
+  (for example `$HOME`), then install the global launcher. This helps the
+  global launcher only: the project pin (`@deftai/directive-runtime`) must
+  install inside the project.
 
   ```bash
   cd "$HOME" && npm i -g @deftai/directive@<version>
@@ -238,16 +247,59 @@ corporate policy:
   that file. `--userconfig` does not beat a project `.npmrc` `@deftai:registry`.
 
 - **Durable scoped routing:** add this line to the user or project `.npmrc` so
-  only the `@deftai` scope bypasses the default mirror:
+  only the `@deftai` scope bypasses the default mirror. Do not use this if the
+  project has other `@deftai` packages on a private registry (see "Split
+  scope" below):
 
   ```ini
   @deftai:registry=https://registry.npmjs.org/
   ```
 
 If direct public-registry access is prohibited, do not bypass the policy. Ask
-IT or the registry administrator to synchronize all Directive packages:
-`@deftai/directive`, `@deftai/directive-core`,
-`@deftai/directive-content`, and `@deftai/directive-types`.
+IT or the registry administrator to synchronize Directive's two published
+packages: `@deftai/directive` and `@deftai/directive-runtime`. The older
+`@deftai/directive-core`, `@deftai/directive-content` and
+`@deftai/directive-types` packages are no longer published and do not need
+syncing.
+
+**Split scope.** Some projects route `@deftai` to a private registry (for
+example GitHub Packages) for their own `@deftai/*` packages. npm and pnpm send
+a whole scope to one registry, so Directive's two packages, which are
+published only on `https://registry.npmjs.org/`, return `E404` there. Do not
+remap the whole `@deftai` scope in `.npmrc`; that breaks your other `@deftai`
+packages. Instead:
+
+- npm: if `package-lock.json` already records the runtime's npmjs URL,
+  `npm ci` reinstalls from it; then run `directive install --repair`.
+  pnpm lockfiles do not record that URL, so a pnpm install routes through
+  `@deftai:registry` again; use the override below.
+- To install, upgrade or repair Directive for one run, override the scope in
+  the environment only. Nothing is written to config. With npm, the lockfile
+  then records public npm URLs, so later `npm ci` works. Add the same flags
+  you would normally use:
+
+  ```bash
+  env 'npm_config_@deftai:registry=https://registry.npmjs.org/' directive upgrade
+  ```
+
+  ```powershell
+  ${env:npm_config_@deftai:registry}='https://registry.npmjs.org/'; directive upgrade; Remove-Item 'env:npm_config_@deftai:registry'
+  ```
+
+  The override sends every `@deftai` package to public npm for that run. It
+  works only when your other `@deftai` packages do not need the private
+  registry during that run (for example npm with their lockfile URLs already
+  recorded). Otherwise use the durable fix below.
+
+- For a durable fix, your registry needs to serve the two Directive packages
+  (for example a proxy registry with an upstream to npmjs), or the internal
+  packages need a different scope.
+
+`directive install`, `directive upgrade` (including `--dry-run`) and
+`directive install --repair` print this hint when a Directive package misses
+under a non-public `@deftai:registry`. Doctor reports a `split-scope` finding
+when `@deftai:registry` is non-public and `package.json` or the lockfile uses
+other `@deftai` packages.
 
 `directive doctor` checks this routing with offline `npm config get` reads. A
 non-public effective registry produces an advisory warning but does not make
@@ -583,7 +635,7 @@ Do not teach `npx` / `pnpm exec` / `deft-install` as ongoing identity.
 
 1. Find the bucket for the version you are upgrading **from** (your current `.deft-version`, or the `tag` field in `<install>/VERSION`).
 2. Apply the listed transitions in **apply-order: oldest applicable first**, working forward to the newest. Because the sections in this file are ordered newest-first, that means working **bottom-up** through the file.
-3. Each bucket is flagged **auto-handled** (the canonical installer / `task doctor` / `task upgrade` does it for you) or **manual** (you run a migration / relocate / cache step yourself).
+3. Each bucket is flagged **auto-handled** (the canonical installer / `task doctor` / `directive upgrade` does it for you) or **manual** (you run a migration / relocate / cache step yourself).
 
 **Version-range buckets (apply-order, oldest applicable first):**
 
@@ -718,6 +770,8 @@ This manual exclude is harmless to keep on historical branches. On current OVPR 
 <!-- 1046-prb: From v0.27.x -> v0.28 install-manifest transition BEGIN -->
 ## From v0.27.x -> v0.28 (canonical install manifest at `<install>/VERSION`)
 
+> **Retired (#6022):** `task upgrade` (`task deft:upgrade` in a consumer) is retired and only prints the replacement. Run `directive upgrade`. This section is history.
+
 - **Applies when:** any project on deft v0.27.0, v0.27.1, or v0.27.2 that has an existing `./.deft-version` marker but no `<install>/VERSION` YAML provenance manifest at the install root (`./.deft/core/VERSION` for canonical installs, `./deft/VERSION` for legacy state-A installs). Detection: `task framework:doctor` reports the `manifest-agreement` check as FAIL with `missing-manifest`; the upgrade gate emits a one-line advisory (`[deft framework:doctor] 1 check(s) drifted (manifest-agreement). Run \`task framework:doctor\` for the full report. Refs #1046.`) on every CLI invocation. Pre-v0.27 projects skip this section -- they pick up the manifest on first `task upgrade` after landing v0.28.
 - **Safe to auto-run:** Yes. The transition is fully automatic on first `task upgrade` (or `run upgrade`, or `run install --force`) post-v0.28 install. `cmd_upgrade` / `cmd_install` write the canonical YAML manifest at the install root with `fetched_by: run-upgrade` / `run-install`, current framework VERSION as `tag`, resolved git SHA as `sha`, and UTC `fetched_at`. The bare `.deft-version` is regenerated from the manifest's `tag` field (matching the v0.27 single-string format). No operator action required -- the gate advisory is purely informational and never blocks the CLI invocation.
 - **Restart required:** No -- the manifest is structural state on disk; the agent's in-memory context does not depend on it. Future `task framework:doctor` invocations transition the `manifest-agreement` check from FAIL to PASS without a session restart.
@@ -760,6 +814,8 @@ The transition is one-way -- v0.28 has no shim back to the bare-only marker. To 
 
 <!-- 1061: AGENTS.md drift repair via task upgrade BEGIN -->
 ## From drifted AGENTS.md -> current install (`task upgrade` repair path, #1061)
+
+> **Retired (#6022):** `task upgrade` (`task deft:upgrade` in a consumer) is retired and only prints the replacement. Run `directive upgrade`. This section is history.
 
 > **Consolidation note (#2064):** `deft install-upgrade` and its `task upgrade` maintainer alias now delegate to the single canonical `deft update` path (see [Canonical upgrade — npm](#canonical-upgrade--npm-v0551)). The legacy `.deft/VERSION` retirement described below (backed up as `.deft/VERSION.premigrate`) is folded into `deft update`, so the drift-repair steps here still apply verbatim — the doctor now names `deft update` as the fix.
 
@@ -1055,7 +1111,7 @@ The contract is byte-stable by construction:
 - **Commands (on pinned v0.59.0 payload):**
   - `task migrate:vbrief -- --dry-run` (preview)
   - `task migrate:vbrief` (apply)
-  - `deft upgrade` or `task upgrade` (record framework version + refresh AGENTS.md managed section)
+  - `directive upgrade` (record framework version + refresh AGENTS.md managed section; `task upgrade` is retired, #6022)
   - `task roadmap:render` / `task project:render` / `task prd:render -- --force` (regenerate exports)
   - `deft check` or `task check` (verify)
 

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-005-polfer-claims-6201",
+  "decision": "D-005: Assign #6201 (Claude and Codex don't block when the Directive hook fails) to polfer. It is the host hook file, polfer's area, and the primary ticket for P1-U1. The orchestrator makes the assignment at launch.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-16, was O-03 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-005)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Leave #6201 unassigned or with Scott",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "The host hook file is polfer's area.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:24Z",
+  "revisitTrigger": "Ownership of the host hook file changes",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "ownership"
+  ],
+  "relatedIssues": [
+    6201
+  ]
+}

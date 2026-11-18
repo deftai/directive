@@ -10,9 +10,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- chore(dogfood): pin Directive to 0.129.14.
+- chore(dogfood): pin Directive to 0.129.15.
 
 ### Fixed
+
+### Removed
+
+## [0.129.15] - 2026-11-18
+
+> Write fence reads a large PROJECT-DEFINITION (one-PR path works again), finalize commits brief moves from its sweep checkout, root-mismatch refusals admit their own recovery, and one budgeted extra-path admission (warn-first).
+
+### Added
+
+- `scope:complete` now warns on stderr when a clone has more than 25 live linked worktrees (Directive's primary-checkout write checks slow down as they grow, #5920) or more than 100 local branches, and names the manual cleanup. Warn only: no exit code change, no refusal, no cleanup. Refs #5988.
+- Escalation: when `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal wins), an `authz-grant-*` hook deny or an agent-shell mint refusal records an operator-only stop with the exact command and worktree, and one desktop notification lists every waiting step (mints one per line, other commands as one script). `deft escalation:file` takes a repeated `--command` for other operator steps. The notifier only tells; it changes no gate and writes nothing while off (#6275).
+- New consumer-visible refusals are declared in one table and ship warn-only for a release unless a named exception says why not; each declared refusal prints its gate id and a remedy that a test runs as printed. Release Check 5 also lists new or changed declared refusals against the previous release and still never blocks the cut. The `task setup` hook-file refusal now looks for `_directive-run.sh`, and it and `verify:hooks-installed` name `directive install --repair --yes` (keeps the pin) instead of `deft update`. New page: `content/docs/gate-walkthrough.md`. Refs #6281.
+- Check: `deft check --no-suite` (and `task check -- --no-suite`) runs CI's merge-gate list locally at full strength, with the TypeScript lane's lint and build but not its tests. It runs every gate and reports every failure, fetches `origin/master` (and the PR's base branch) as CI does, and gives the gates CI's inputs: no worker pin, and the PR context when the head has one open PR. `ts:check-lane` accepts `--no-test`, the local gate list gains CI's two `--enforce` arguments, a unit test keeps it equal to the Taskfile list, and the pre-PR skill runs the command once before push (#6469).
+
+### Changed
+- chore(dogfood): pin Directive to 0.129.14.
+- Minted the intent-constraint record for the #5988 checkout hygiene warning (25 linked worktrees, 100 local branches). Refs #5988.
+- **Fence parity for extra paths**: the story write fence, membership and the Path-independent `verify:scope-provenance` check now share one extra-path rule under one allowlist authority (the merge-base mint when present, else the brief's concrete `file_scope`). Undeclared source, test and fixture paths spend one allowance (floor 2, cap 5), so a fenced agent can fix an existing test outside `file_scope` without a widen PR. Test and fixture extras are admitted only as modifies of a path on the base. Glob entries in a brief without a mint no longer admit on their own: a matching path spends the allowance. The new refusals warn for one release, with no immediate-enforcement exception: the declared rows `extra-path-not-admitted` (a test or fixture add, delete or rename outside `file_scope`) and `extra-paths-over-budget` (test or fixture extras past the allowance) print their declared line and remedy at the write fence, the staged scope-cover and the Path-independent check, and let the work proceed; they refuse from a later release. Membership, and production extras past the allowance on the Path-independent check, refuse as before. Undeclared paths that are neither source, test nor fixture are still ignored on the Path-independent check (named residual). On success the check lists each extra path with its class and spend (#6221).
+- Minted the intent-constraint record for the #6275 operator notifier send timeout (15000 ms). Refs #6275.
+- Release: `task release` now runs on a fresh `release/vX.Y.Z` branch and opens a release PR that merges through the merge queue; `task release -- --finish X.Y.Z` tags the merged commit by SHA and pushes only the tag after its checks and the release grant. The release writes `- [release-line] vX.Y.Z` under `[Unreleased]`, so master stays green after a cut and the next PR needs no `hotfix` label; `verify:changelog-unreleased` judges a change set that adds that line by a release rule and skips merge-queue runs. The policy switch and direct pushes leave the normal path; `--break-glass` keeps the old base-branch run (#6296).
+- Strict acceptance axes keep matching deploy, smoke and UAT inside backticks and code fences, because the same formatting holds real claims as well as names. Regression tests now hold this in place, and the `inferRequiredStrictAxes` comment says how to clear a name-only axis: reword the clause or declare `x-directive/requires`. Relief for name-only clauses moves to #6591. Refs #6301.
+- Hooks: a repository can name its merge-gate check in `plan.policy.mergeGateContext`. When GitHub's copy of that name at the delivery-branch head matches and the branch lists the check as required, five local refusals warn instead of refuse (stale ritual, not-ready scope without a binding refusal, missing positive `file_scope` allow, commit staged paths outside `file_scope`, direct write outside the story `file_scope`); a later check can still refuse. Everything else, and any repository without the live signal, refuses as before (#6535, #5920).
+- Minted the intent-constraint record for the #6535 merge-gate signal read budget (10 seconds). Refs #6535.
+- Minted the intent-constraint record for the #6602 write-fence policy-read reason cap (300 characters). Refs #6602.
+- `task release:local-update` now only pulls, installs and confirms the installed runtime equals the pin. It no longer requires refreshed hook files on `master`, refuses a dirty tree, checks the AgeExclude row, runs `directive upgrade`, or fails on a post-upgrade diff. Hook files refresh on the next hook run; commit a later `directive upgrade` when you choose. The release skill's Phase 7 step 8 says the same and names the pin-bump PR step. Refs #6613.
+- Removed the release-only Cursor deposit helpers added by #6184 (`validateCursorDepositAssociation`, `stageTipRequiredCursorDeposit`, `preparePinCandidateCursorDeposit` and related exports) that shipped inside the runtime. The deposited hook file bytes are unchanged. Refs #6613.
+- Planning: recorded the OVPR fix plan decisions D-001 to D-030 and the approvals of requirements changes RC-01 to RC-07 in `xbrief/decisions/`, and loaded the ordered plan `ovpr-fix-2026-11` in `.deft/plan-sequence.json` (#6625).
+- OVPR docs revision **v261118**: new old-repo message ("This repo uses pre-OVPR Directive. Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`."); pre-OVPR layouts recognised for that message only; `deft-hook` blocks with it.
+- OVPR docs revision **v261118**: with no runtime pin, launcher entry points check for a pre-OVPR layout before giving an install message (AC9.12).
+- OVPR docs revision **v261118**: the launcher's `deft-hook` may know each host's blocking response, so a `deft-hook` failure blocks (AC3.3).
+- OVPR docs revision **v261118**: conversion lists Git-reported edits under `.deft/core` before removing it; no prompt, no refusal (AC10.6).
+- OVPR docs revision **v261118**: setup may add a short, named list of per-checkout runtime files to `.gitignore`, including the pre-PR signing secret (AC8.5).
+- OVPR docs revision **v261118**: one `.prettierignore` line for the committed host hook files, only when that file already exists (AC13.3).
+- OVPR docs revision **v261118**: one recovery table — project install for a missing or mismatched runtime, `directive install --repair` for wiring, `directive upgrade` for data and old layouts.
+
+### Fixed
+
+- Install, repair and upgrade now write the `deft-directive-tutorial` and `deft-directive-feedback` skill pointers again (12 pointers, as in 0.126). Upgrades rewrite the old ones that pointed at the deleted `.deft/core/skills/` folder, and uninstall removes them (#5838).
+- The `deft-directive-refinement` skill pointer now has valid YAML front matter: its description is quoted because it contains `: `. The other pointers keep the same bytes (#6165).
+- `task upgrade` and `task uninstall` (`task deft:upgrade` / `task deft:uninstall` in a consumer) no longer call retired commands that always failed. They now exit 1 and name the command to run: `directive upgrade` or `directive uninstall`. The runtime's reply to `upgrade` now says it is a launcher command and names `directive upgrade`. The docs no longer send people to `task upgrade`. Refs #6022.
+- Hooks and doctor: when a checkout's Directive runtime is linked in from another checkout (a junctioned `node_modules` or runtime folder, nested worker worktrees included), the refusal now says `foreign-runtime-link` with a recovery that clears it (remove the link, install the runtime in this checkout, from a terminal outside the locked session) instead of the host-root advice that could not help. `deft doctor` and `session:start` check the one known runtime path for the same link before work begins. The root check is as strict as before; the launcher path only picks the wording (#6185).
+- Authz: a read-only check of the kill-switch file is allowed, including ls, test, stat, and cat, a stderr redirect, and a literal-only console.log or print of the name. touch, redirection onto the file, and cp or mv onto it stay denied. A destination with a separator attached, and a redirect that hides the name inside command substitution, backticks, or ${} expansion, stay denied (#6188).
+- Lifecycle: `xbrief:activate` (`vbrief:activate`) now runs the small-change lane gate and its #4768 ingress waiver through the same helper as `scope:activate`. It admits a thin lane brief that `scope:activate` admits, and it refuses a crossed, over-bound or incompletely escalated lane brief before any move, from `pending/` and from `active/` (#6264, #6204).
+- Hooks: the commit gate now refuses, as an unresolvable target, a commit after `cd <path> &`, inside a `( … )` subshell, in a `sh -c` / `bash -c` string or `eval`, or behind a wrapper such as `env`, `timeout` or `xargs`, and a `-c` / `eval` string or command word that holds a variable. A visible commit elsewhere in the call does not lift the refusal, and `(cd /r/wt) && git commit` is still judged at the hook root (#6362, #6278).
+- Hooks: the #5656 commit-shape check no longer reads `2>&1 | tail -N` or other pipes and redirections after a commit as file names, reads short option clusters like `-qm` as git does, and keeps a `cd` joined to the commit by a pipe unresolvable. Real `-a`, `-am` and trailing file names are still refused, and the refusal now names the word that tripped it (#6471, #5656).
+- The hook's root-mismatch refusal no longer blocks its own recovery: `directive --version`, `deft --version`, `directive doctor` and `directive policy:disable-host-hooks --host <this host> --confirm` (also the `deft` form) now run as exact simple commands, and the refusal text lists them. Chained or extended forms and other tools stay refused, and the foreign-runtime-link refusal is unchanged. Refs #6599.
+- `swarm:finalize-cohort` no longer refuses its own lifecycle commit with an R7 "unrelated xBRIEF path" error when the sweep runs in a temporary checkout; unrelated xBRIEF paths are still refused. Refs #6601.
+- `swarm:finalize-cohort` productPullRequest stamp refusals now say whether the brief is already bound to another PR (naming it) or could not be read or written. Refs #6601.
+- The write fence no longer refuses every one-PR story once `PROJECT-DEFINITION` passes 1 MiB (its merge-base read now uses the shared 64 MiB ceiling), and a failed policy read now refuses the write with the reason instead of passing as an empty fence. Refs #6602.
 
 ### Removed
 
@@ -8160,7 +8209,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.14...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.15...HEAD
+[0.129.15]: https://github.com/deftai/directive/compare/v0.129.14...v0.129.15
 [0.129.14]: https://github.com/deftai/directive/compare/v0.129.13...v0.129.14
 [0.129.13]: https://github.com/deftai/directive/compare/v0.129.12...v0.129.13
 [0.129.12]: https://github.com/deftai/directive/compare/v0.129.11...v0.129.12

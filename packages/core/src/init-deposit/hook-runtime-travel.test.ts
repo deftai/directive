@@ -218,21 +218,28 @@ describe("inspectHookRuntimeTravel", () => {
     expect(result.warning).toBeNull();
   });
 
-  it("warns with silent gate loss when only fail-open hosts travel (#5656)", () => {
+  it("treats Claude as fail-closed: no silent gate loss warning (#6201)", () => {
     const result = inspect([CLAUDE_REGISTRATION], NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([CLAUDE_REGISTRATION]);
-    expect(result.failClosedRegistrations).toEqual([]);
-    expect(result.silentGateLossRegistrations).toEqual([CLAUDE_REGISTRATION]);
-    expect(result.warning).toContain(CLAUDE_REGISTRATION);
-    expect(result.warning).toContain("Silent gate loss");
-    expect(result.warning).toContain("hook-gate-off.json");
-    expect(result.warning).not.toContain("(fail-closed)");
-    expect(result.warning).not.toContain("policy:disable-host-hooks");
+    expect(result.failClosedRegistrations).toEqual([CLAUDE_REGISTRATION]);
+    expect(result.silentGateLossRegistrations).toEqual([]);
+    expect(result.warning).toContain(`${CLAUDE_REGISTRATION} (fail-closed)`);
+    expect(result.warning).not.toContain("Silent gate loss");
+    expect(result.warning).not.toContain("hook-gate-off.json");
   });
 
-  it("classifies cursor and grok as fail-closed / wrapper-mediated hosts (#5656)", () => {
-    expect([...FAIL_CLOSED_HOOK_HOSTS]).toEqual(["cursor", "grok"]);
+  it("treats Codex as fail-closed: no silent gate loss warning (#6201)", () => {
+    const codex = ".codex/hooks.json";
+    const result = inspect([codex], NO_PIN, null, [{ host: "codex", path: codex }]);
+
+    expect(result.failClosedRegistrations).toEqual([codex]);
+    expect(result.silentGateLossRegistrations).toEqual([]);
+    expect(result.warning).not.toContain("Silent gate loss");
+  });
+
+  it("classifies every deposited host as fail-closed (#5656 / #6201)", () => {
+    expect([...FAIL_CLOSED_HOOK_HOSTS]).toEqual(["claude", "codex", "cursor", "grok"]);
   });
 });
 

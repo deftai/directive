@@ -312,7 +312,12 @@ export function evidencePointerShapeError(
   return null;
 }
 
-function readExplicitAcceptanceRequirementFields(
+/**
+ * The values of the eight declaration fields, in this fixed order (#5105).
+ * This is the one field list; other modules compare these values instead of
+ * naming the fields again (#6591).
+ */
+export function readExplicitAcceptanceRequirementFields(
   item: Record<string, unknown>,
 ): readonly unknown[] {
   return [
@@ -362,6 +367,13 @@ export function isAcceptanceDispositionKind(value: unknown): value is Acceptance
  * Merge-only declaration short-circuits free-text to [] (#5105). When merge AND a
  * strict axis are both declared (e.g. requires=merge + acceptanceAxis=smoke), keep
  * the strict axis — do not hide it behind the merge short-circuit (Greptile P1).
+ *
+ * Code formatting is not a name signal (#6301). Deploy, smoke and UAT also match
+ * inside code spans and fenced blocks, because the same formatting holds real
+ * claims ("`npm run deploy` succeeds") as well as names ("the `deploy` job").
+ * No strip or filter runs on code. To clear an axis that a clause only names,
+ * reword the clause or declare x-directive/requires on the item (merge, or the
+ * one axis the clause does need).
  */
 export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
   let sawMerge = false;
@@ -383,7 +395,25 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
   if (sawMerge) {
     return [];
   }
+  return inferTextStrictAxes(item);
+}
 
+/**
+ * Axes the item's declaration hides (#6591): the axes inferred with the eight
+ * declaration fields ignored, minus the axes inferred as written. Empty when
+ * no declaration hides a text-inferred axis.
+ */
+export function inferHiddenStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
+  // No string declaration: the as-written axes are the text axes, so none hide.
+  if (!readExplicitAcceptanceRequirementFields(item).some((raw) => typeof raw === "string")) {
+    return [];
+  }
+  const written = inferRequiredStrictAxes(item);
+  return inferTextStrictAxes(item).filter((axis) => !written.includes(axis));
+}
+
+/** Axes from title, id and narrative text alone; no declaration field is read. */
+function inferTextStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
   const narrative = asRecord(item.narrative);
   const parts: string[] = [];
   if (typeof item.title === "string") parts.push(item.title);
@@ -459,18 +489,26 @@ export interface StrictAxisRequirement {
   /** Item id when it is a non-empty string, else null. */
   readonly id: string | null;
   readonly axes: readonly StrictAcceptanceAxis[];
+  /**
+   * True on a declared row (#6591): `axes` are the text axes the item's
+   * declaration hides, and scope:complete does not hold the item to them.
+   */
+  readonly declared?: true;
+}
+
+/** Item id when it is a non-empty string (trimmed), else null. */
+export function strictAxisItemId(item: Record<string, unknown>): string | null {
+  return typeof item.id === "string" && item.id.trim().length > 0 ? item.id.trim() : null;
 }
 
 /**
- * List the plan items that scope:complete will hold to strict-axis evidence (#6272).
- *
- * Pure function of the brief text: no git, network or evidence input. It walks
- * the same item tree as the completion gate (items, subItems, nested items) and
- * calls inferRequiredStrictAxes, the function the gate calls, so the listing at
- * activation, promote and preflight cannot drift from completion.
+ * Visit each plan item in the completion gate's tree order (items, subItems,
+ * nested items) with its JSON path, e.g. `plan.items[2].subItems[0]`.
  */
-export function listStrictAxisRequirements(plan: unknown): StrictAxisRequirement[] {
-  const found: StrictAxisRequirement[] = [];
+export function forEachStrictAxisItem(
+  plan: unknown,
+  visit: (item: Record<string, unknown>, path: string) => void,
+): void {
   const walk = (items: unknown, prefix: string): void => {
     if (!Array.isArray(items)) {
       return;
@@ -481,49 +519,99 @@ export function listStrictAxisRequirements(plan: unknown): StrictAxisRequirement
         return;
       }
       const path = `${prefix}[${index}]`;
-      const axes = inferRequiredStrictAxes(item);
-      if (axes.length > 0) {
-        const id = typeof item.id === "string" && item.id.trim().length > 0 ? item.id.trim() : null;
-        found.push({ path, id, axes });
-      }
+      visit(item, path);
       walk(item.subItems, `${path}.subItems`);
       walk(item.items, `${path}.items`);
     });
   };
   walk(asRecord(plan)?.items, "plan.items");
-  return found;
 }
 
 /**
- * Advisory lines for listStrictAxisRequirements (#6272). Empty when no item
- * needs a strict axis. Callers print these; they never change an exit code.
+ * List the plan items that scope:complete will hold to strict-axis evidence (#6272).
+ *
+ * Pure function of the brief text: no git, network or evidence input. It walks
+ * the same item tree as the completion gate (items, subItems, nested items) and
+ * calls inferRequiredStrictAxes, the function the gate calls, so the listing at
+ * activation, promote and preflight cannot drift from completion.
+ *
+ * An item whose declaration hides text axes also gets a row marked `declared`
+ * with those axes (#6591). Only rows that are not declared match the gate.
  */
-export function formatStrictAxisAdvisory(requirements: readonly StrictAxisRequirement[]): string[] {
+export function listStrictAxisRequirements(plan: unknown): StrictAxisRequirement[] {
+  const found: StrictAxisRequirement[] = [];
+  forEachStrictAxisItem(plan, (item, path) => {
+    const id = strictAxisItemId(item);
+    const axes = inferRequiredStrictAxes(item);
+    if (axes.length > 0) {
+      found.push({ path, id, axes });
+    }
+    const hidden = inferHiddenStrictAxes(item);
+    if (hidden.length > 0) {
+      found.push({ path, id, axes: hidden, declared: true });
+    }
+  });
+  return found;
+}
+
+/** The verb that prints the strict-axis advisory (#6591 item 6). */
+export type StrictAxisAdvisoryVerb = "scope:promote" | "scope:activate" | "xbrief:preflight";
+
+/**
+ * Advisory lines for listStrictAxisRequirements (#6272). Empty when no item
+ * has a row. Callers print these; they never change an exit code.
+ *
+ * The count in the first line covers only rows that are not declared, the
+ * items the completion gate holds. Declared rows follow, marked (#6591). At
+ * promote and activate the last line says how to change the list, including
+ * a declaration; at xbrief:preflight (an active brief) it does not suggest
+ * a declaration.
+ */
+export function formatStrictAxisAdvisory(
+  requirements: readonly StrictAxisRequirement[],
+  verb: StrictAxisAdvisoryVerb,
+): string[] {
   if (requirements.length === 0) {
     return [];
   }
+  const required = requirements.filter((req) => req.declared !== true);
+  const declared = requirements.filter((req) => req.declared === true);
   const lines = [
-    `[deft scope] advisory: ${requirements.length} clause(s) will need strict-axis evidence ` +
+    `[deft scope] advisory: ${required.length} clause(s) will need strict-axis evidence ` +
       "at scope:complete (#6272):",
   ];
-  for (const req of requirements) {
+  for (const req of required) {
     lines.push(`  ${req.id ?? req.path}: ${req.axes.join(", ")}`);
   }
+  if (declared.length > 0) {
+    lines.push(
+      `  ${declared.length} declared clause(s): the item's declaration hides these text axes, ` +
+        "so scope:complete does not require them (#6591):",
+    );
+    for (const req of declared) {
+      lines.push(`  ${req.id ?? req.path}: ${req.axes.join(", ")} (declared)`);
+    }
+  }
   lines.push(
-    `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} ` +
-      `(${MERGE_ACCEPTANCE_REQUIREMENT} or one axis) on the item. Advisory only; exit code unchanged.`,
+    verb === "xbrief:preflight"
+      ? "  Advisory only; exit code unchanged."
+      : `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} ` +
+          `(${MERGE_ACCEPTANCE_REQUIREMENT} or one axis) on the item. Advisory only; exit code unchanged.`,
   );
   return lines;
 }
 
 /** Advisory lines for a parsed brief (`{ plan }`) or a bare plan object (#6272). */
-export function strictAxisAdvisoryLines(briefOrPlan: unknown): string[] {
+export function strictAxisAdvisoryLines(
+  briefOrPlan: unknown,
+  verb: StrictAxisAdvisoryVerb,
+): string[] {
   const record = asRecord(briefOrPlan);
   if (record === null) {
     return [];
   }
   const plan = "plan" in record ? record.plan : record;
-  return formatStrictAxisAdvisory(listStrictAxisRequirements(plan));
+  return formatStrictAxisAdvisory(listStrictAxisRequirements(plan), verb);
 }
 
 /**

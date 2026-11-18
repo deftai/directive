@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-020-fixture-test-advisory-then-merge-gate",
+  "decision": "D-020 (option B; was O-09): The no-agent fixture test runs on every PR as an advisory job in ci.yml through Phase 4. At Phase 4 exit it joins the existing required Merge gate (task check) result through a reviewed ci.yml PR (merge-gate aggregator), with no repository setting change (D-007); a deliberate reviewed gate change (#3156). Windows (AC15.1): a follow-up ticket for a windows-latest leg is filed now.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-020)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Make it a new required check",
+      "whyNot": "Repository settings change, conflicts with D-007"
+    }
+  ],
+  "whyWinner": "Gets enforcement without changing repository settings.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:28Z",
+  "revisitTrigger": "The fixture test is flaky in advisory mode",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "ci"
+  ],
+  "relatedIssues": [
+    6614,
+    6621,
+    3156
+  ]
+}

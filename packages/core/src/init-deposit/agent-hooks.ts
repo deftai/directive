@@ -26,23 +26,7 @@ import {
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
-  stageTipRequiredCursorDeposit,
-  tipRequiredCursorDepositPaths,
-  validateCursorDepositAssociation as validateCursorDepositAssociationRaw,
 } from "./host-hook-outer.js";
-
-/** Phase 7 / pin prep association: honor Cursor hostHooks opt-out (#6163 Greptile P1). */
-export function validateCursorDepositAssociation(
-  projectRoot: string,
-  options: {
-    readonly source?: "HEAD" | "index";
-    readonly outerSource?: string;
-    readonly readTreeFile?: import("./host-hook-outer.js").CursorDepositTreeFileReader;
-    readonly hostHooksPolicy?: HostHooksPolicy;
-  } = {},
-): ReturnType<typeof validateCursorDepositAssociationRaw> {
-  return resolveCursorDepositAssociationForCloseout(projectRoot, options);
-}
 
 export {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -51,11 +35,6 @@ export {
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
 export {
-  CURSOR_HOOKS_JSON_REL,
-  type CursorDepositAssociationResult,
-  type CursorDepositGitAdd,
-  type CursorDepositTreeFileReader,
-  type CursorDepositTreeSource,
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
   hostHookOuterCommand,
@@ -64,9 +43,6 @@ export {
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
-  type StageTipRequiredCursorDepositResult,
-  stageTipRequiredCursorDeposit,
-  tipRequiredCursorDepositPaths,
 } from "./host-hook-outer.js";
 /** Legacy bare PATH marker — rewritten to PACKAGE_RELATIVE_HOOK_BIN on deposit (AC9.2). */
 export const DEFT_HOOK_COMMAND_MARKER = "deft-hook";
@@ -683,68 +659,6 @@ function writeJsonIfChanged(
     throw err;
   }
   return true;
-}
-
-/**
- * Pin-candidate prep (#6163 Prefer-A Bound 6772886751): repair/write deposit,
- * force-add tip-required Cursor paths, validate index association before pin land.
- * Stage-only — never commits. Phase 7 uses validateCursorDepositAssociation(HEAD).
- */
-export function preparePinCandidateCursorDeposit(
-  projectRoot: string,
-  io: InitDepositIo = { printf: () => undefined },
-  hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
-  travelSeams: HookRuntimeTravelSeams = {},
-): {
-  readonly written: AgentHookDepositResult;
-  readonly staged: ReturnType<typeof stageTipRequiredCursorDeposit>;
-  readonly association: ReturnType<typeof validateCursorDepositAssociation>;
-} {
-  const written = writeAgentHookDeposit(projectRoot, io, hostHooksPolicy, travelSeams);
-  // Opted-out Cursor hostHooks must not force-add or fail association (#6163 Greptile P1).
-  if (!isHostHookDepositEnabled("cursor", hostHooksPolicy)) {
-    const sha8 = hostHookOuterSha8();
-    const paths = tipRequiredCursorDepositPaths(sha8);
-    return {
-      written,
-      staged: { staged: [], sha8, paths },
-      association: {
-        ok: true,
-        sha8,
-        paths,
-        detail: "cursor hostHooks opted out; Cursor deposit not required (#6163)",
-      },
-    };
-  }
-  const staged = stageTipRequiredCursorDeposit(projectRoot);
-  const association = validateCursorDepositAssociationRaw(projectRoot, { source: "index" });
-  return { written, staged, association };
-}
-
-/**
- * Phase 7 / closeout association: honor Cursor hostHooks opt-out (#6163 Greptile P1).
- */
-export function resolveCursorDepositAssociationForCloseout(
-  projectRoot: string,
-  options: {
-    readonly source?: "HEAD" | "index";
-    readonly hostHooksPolicy?: HostHooksPolicy;
-  } = {},
-): ReturnType<typeof validateCursorDepositAssociationRaw> {
-  const policy = options.hostHooksPolicy ?? loadHostHooksPolicyFromProject(projectRoot);
-  if (!isHostHookDepositEnabled("cursor", policy)) {
-    const sha8 = hostHookOuterSha8();
-    const paths = tipRequiredCursorDepositPaths(sha8);
-    return {
-      ok: true,
-      sha8,
-      paths,
-      detail: "cursor hostHooks opted out; Cursor deposit association not required (#6163)",
-    };
-  }
-  return validateCursorDepositAssociationRaw(projectRoot, {
-    source: options.source ?? "HEAD",
-  });
 }
 
 /**

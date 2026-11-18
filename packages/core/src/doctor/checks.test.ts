@@ -1,5 +1,14 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -574,6 +583,96 @@ describe("checks", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  describe("manifest-agreement in OVPR projects (#6001 / D-022)", () => {
+    const writePin = (root: string) =>
+      writeFileSync(
+        join(root, "package.json"),
+        JSON.stringify({ devDependencies: { "@deftai/directive-runtime": "0.130.0" } }),
+        "utf8",
+      );
+    const snapshot = (root: string): Record<string, string> => {
+      const out: Record<string, string> = {};
+      const walk = (dir: string) => {
+        for (const name of readdirSync(dir)) {
+          const abs = join(dir, name);
+          if (statSync(abs).isDirectory()) walk(abs);
+          else out[abs] = readFileSync(abs, "utf8");
+        }
+      };
+      walk(root);
+      return out;
+    };
+
+    it("skips a leftover xbrief/.deft-version and names no update command", () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-doc-6001-"));
+      try {
+        writePin(root);
+        mkdirSync(join(root, "xbrief"), { recursive: true });
+        writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\n", "utf8");
+        writeFileSync(join(root, ".deft-version"), "0.126.2\n", "utf8");
+        const before = snapshot(root);
+        const result = checkManifestAgreement(root, null);
+        expect(result.status).toBe("skip");
+        expect(result.detail).toContain("package.json pin");
+        expect(result.detail).not.toMatch(/deft update|directive update|install --repair/);
+        expect(result.data?.suggested_fix).toBeUndefined();
+        const markers = result.data?.legacy_markers as string[];
+        expect(markers).toHaveLength(2);
+        expect(markers.some((p) => p.endsWith("xbrief/.deft-version"))).toBe(true);
+        expect(deriveExitCode([result], [])).toBe(0);
+        // Doctor is read-only (AC12.1): nothing written or removed.
+        expect(snapshot(root)).toEqual(before);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it("skips with no markers in an OVPR project", () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-doc-6001-clean-"));
+      try {
+        writePin(root);
+        const result = checkManifestAgreement(root, null);
+        expect(result.status).toBe("skip");
+        expect(result.data?.legacy_markers).toEqual([]);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it("keeps today's failure while .deft/core still exists", () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-doc-6001-core-"));
+      try {
+        writePin(root);
+        mkdirSync(join(root, ".deft", "core"), { recursive: true });
+        mkdirSync(join(root, "xbrief"), { recursive: true });
+        writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\n", "utf8");
+        const result = checkManifestAgreement(root, null, {
+          isLinkedWorktree: () => false,
+        });
+        expect(result.status).toBe("fail");
+        expect(result.detail).toContain("Bare .deft-version exists");
+        expect(result.data?.suggested_fix).toBe("deft update");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it("keeps today's failure without a runtime pin", () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-doc-6001-nopin-"));
+      try {
+        mkdirSync(join(root, "xbrief"), { recursive: true });
+        writeFileSync(join(root, "xbrief", ".deft-version"), "0.126.2\n", "utf8");
+        const result = checkManifestAgreement(root, null, {
+          isLinkedWorktree: () => false,
+        });
+        expect(result.status).toBe("fail");
+        expect(result.data?.suggested_fix).toBe("deft update");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 
   it("runChecks missing AGENTS.md", () => {

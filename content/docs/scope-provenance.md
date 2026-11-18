@@ -58,6 +58,24 @@ Free paths never spend: `CHANGELOG.md` and changelog fragments, the bound brief 
 
 **Shell writes.** The write fence sees Write and Edit and the shell forms the hook recognizes. A shell delete, `git apply` or `sed -i` it does not see is caught by the PR check only.
 
+### Declaration hides a strict axis (#6591)
+
+`x-directive/requires` and its seven aliases (the eight declaration fields `inferRequiredStrictAxes` reads) can turn off an axis the clause text infers. For example, `"x-directive/requires": "merge"` on "Deploy to staging and confirm the site serves the new build" empties the axis set, so `scope:complete` accepts `kind: test` or `kind: review` evidence for a deploy clause.
+
+**What it compares.** For each brief modified in the change set, the check reads the merge-base copy through the same continuity and pre-move resolution as the production fence, so a head brief under `completed/` or `cancelled/` is compared with its pre-move copy. It prints one line for a head item when all three hold:
+
+1. The resolved merge-base copy of the brief is under `xbrief/active/`.
+2. The item is not on that copy, or one of the eight declaration fields has a different value on the base item. Items match by `id`; an item with no `id` matches by its position in the item tree.
+3. The head item hides an axis that the base item does not hide. An item hides the axes its text infers with the declaration fields ignored, minus the axes it infers as written. An item that is not on the base hides none there.
+
+An activation (`pending/` to `active/`) does not print: its merge-base copy is under `pending/`. A title edit under an unchanged declaration, an evidence-only edit, and `x-directive/requires: deploy` on text that infers only deploy do not print. Code: `packages/core/src/scope-provenance/declaration-hides-axis.ts`.
+
+**Warn only (#6281).** The declared row `declaration-hides-axis` ships in `warn` mode. The line prints with the success report; the exit code does not change and the line is not an intent-pin finding. This row has no `enforce` mode yet, and no new `x-directive/requires` value ships with it. The fix is a brief edit in the same change: remove the added declaration (this clears the line), or record the evidence the clause requires (the line still prints while the declaration stays). The printed `deft verify:scope-provenance` only re-checks.
+
+**Authority.** A declaration that is already on the merge-base active brief is agent precommitment reviewed at activation, not human authorization. The row stays quiet on it and does not read it as consent. When the brief has an intent pin, the same edit already fails as `intent-drift` / `unclassified-key`; this row covers the unpinned path. Rewording the clause text with no declaration change is not covered here; it stays on the general warn-only `legacy-intent-edit` finding.
+
+**Advisory.** The strict-axis advisory (#6272) lists an item whose declaration hides a text axis as a declared row, after the count; the count stays on the axes `scope:complete` holds. At `scope:promote` and `scope:activate` it names `x-directive/requires`; at `xbrief:preflight` (an active brief) it does not suggest a declaration.
+
 ### Membership (#4774 / #5192)
 
 When the bound story is in the change set:

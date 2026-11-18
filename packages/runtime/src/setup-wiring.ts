@@ -144,6 +144,23 @@ export function resolveDeftSkillTargetRel(): string {
   return "SKILL.md";
 }
 
+/**
+ * Render a one-line front-matter value as valid YAML (#6165). Plain text stays
+ * unquoted so existing pointers keep the same bytes; text that YAML would
+ * misread (`: `, ` #`, a leading indicator character, edge spaces) becomes a
+ * JSON string, which is a valid YAML double-quoted scalar.
+ */
+export function yamlScalar(value: string): string {
+  const needsQuotes =
+    value.length === 0 ||
+    value.includes(": ") ||
+    value.endsWith(":") ||
+    value.includes(" #") ||
+    /^[-?:,[\]{}#&*!|>'"%@`]/.test(value) ||
+    value !== value.trim();
+  return needsQuotes ? JSON.stringify(value) : value;
+}
+
 function thinSkillPointer(
   dir: string,
   description: string,
@@ -156,7 +173,7 @@ function thinSkillPointer(
     dir,
     body: `---
 name: ${dir}
-description: ${description}
+description: ${yamlScalar(description)}
 ---
 
 Read and follow: ${RUNTIME_PREFIX}${targetRel}
@@ -167,7 +184,8 @@ Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
 }
 
 /**
- * Thin skill pointer inventory (AC9.6) — prior consumer discovery set + always-pins.
+ * Thin skill pointer inventory (AC9.6) — the 12-pointer 0.126 consumer discovery set
+ * (includes the always-pins).
  * No versions; package-relative only. Includes pre-pr + review-cycle (AC9.6 / #2508).
  */
 export const SKILL_POINTER_INVENTORY: ReadonlyArray<{ dir: string; body: string }> = [
@@ -220,6 +238,18 @@ export const SKILL_POINTER_INVENTORY: ReadonlyArray<{ dir: string; body: string 
     "deft-directive-sync",
     "Session-start framework sync and alignment check.",
     "skills/deft-directive-sync/SKILL.md",
+  ),
+  // #5838: 0.126 also deposited these two; keep them so upgrades rewrite the
+  // old `.deft/core/skills/...` pointers and fresh installs keep the feature.
+  thinSkillPointer(
+    "deft-directive-tutorial",
+    "Runs the Directive Tutorial inside the current session (Signal, Postcard, or Echo).",
+    "skills/deft-directive-tutorial/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-feedback",
+    "Mid-session and session-end framework-gap escalation for directive consumers.",
+    "skills/deft-directive-feedback/SKILL.md",
   ),
 ];
 

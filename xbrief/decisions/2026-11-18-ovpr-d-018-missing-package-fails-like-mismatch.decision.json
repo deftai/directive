@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-018-missing-package-fails-like-mismatch",
+  "decision": "D-018 (option A; was O-05): When the pin package is missing, the host hook file sends the host's block signal only before a tool runs. Session start, compaction, session end and prompt submit show the install message and carry on, matching the engine (dispatcher.ts). Known differences: the install itself is not let through (D-013); Grok unchanged (deny on every event); no session bookkeeping. If O-06 adds Claude's block-on-failure setting, it goes on the pre-tool hook only. Recorded as an interpretation, not an RC.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-018; requirements line 436, AC9.4, AC9.12, AC14.3)",
+    "path": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Block on every event when the package is missing",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Matches what the working engine already does on every event.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:28Z",
+  "revisitTrigger": "A host needs a different event to block",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "hooks"
+  ],
+  "relatedIssues": [
+    6201
+  ]
+}

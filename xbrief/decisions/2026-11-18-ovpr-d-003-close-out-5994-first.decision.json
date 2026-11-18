@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-003-close-out-5994-first",
+  "decision": "D-003: Close out #5994 first, in Phase 0, as one small lifecycle PR before any Phase 1 unit (steps: first line of units/P5-U4). #5994 shipped in v0.129.2 but its brief was never closed out; since #6409 shipped it still shows as a blocking owed item.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-16, was O-01 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-003)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Close it out later with the other close-outs (P5-U4)",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "The open brief blocks or clutters every write session until closed.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:23Z",
+  "revisitTrigger": "#5994 close-out fails or is no longer owed",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "lifecycle"
+  ],
+  "relatedIssues": [
+    5994,
+    6409
+  ]
+}

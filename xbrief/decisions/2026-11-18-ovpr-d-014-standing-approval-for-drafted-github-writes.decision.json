@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "ovpr-d-014-standing-approval-for-drafted-github-writes",
+  "decision": "D-014 (option B): Non-PR GitHub writes that use a draft already in the planning folder, exactly as drafted, at the point the plan says, are pre-approved (filing NEW tickets, close-out and status comments, label changes, named reassignments, assigning #6201, the note to Scott). Only PR links, merge SHAs and new ticket numbers are filled in. Still stops for polfer: a write with no draft, any change to a draft's substance, a close the outcome doesn't support, any deletion, anything touching repository settings. polfer still OKs each phase exit and merges every PR.",
+  "governingRule": {
+    "description": "polfer decision 2026-11-17 (OVPR fix plan, DECISIONS.md (directive-ovpr-planning-202611) D-014)",
+    "path": null,
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Ask polfer for every GitHub write",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Lets the launch run without mid-run stops for already-approved text.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-18T02:58:27Z",
+  "revisitTrigger": "A drafted write turns out wrong once made",
+  "tags": [
+    "ovpr",
+    "ovpr-plan",
+    "process"
+  ],
+  "relatedIssues": [
+    6201
+  ]
+}

@@ -24,6 +24,7 @@ import {
 import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
 import { evaluateXbriefDrift } from "./drift-gate.js";
 import {
+  classifyLegacyMigrationFile,
   convergeLegacyVbriefRoot,
   emitXbriefMigration,
   legacyInfoIsRedundantWithCanonical,
@@ -789,7 +790,7 @@ describe("runXbriefMigration convergence (#2270)", () => {
     expect(detectXbriefConvergence(project).state).toBe("xbrief-marker");
   });
 
-  it("marks a populated legacy vbrief/ deprecated when a canonical xbrief/ already has content [a4]", () => {
+  it("--keep-legacy marks a populated legacy vbrief/ deprecated when xbrief/ already has content [a4]", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-converge-dual-"));
     temps.push(base);
     const project = scaffoldCanonicalXbrief(base);
@@ -800,7 +801,7 @@ describe("runXbriefMigration convergence (#2270)", () => {
       "utf8",
     );
 
-    const outcome = runXbriefMigration({ projectRoot: project }, SILENT_IO);
+    const outcome = runXbriefMigration({ projectRoot: project, keepLegacy: true }, SILENT_IO);
     expect(outcome.kind).toBe("converged");
     if (outcome.kind === "converged") {
       expect(outcome.action).toBe("marker");
@@ -888,9 +889,21 @@ describe("runXbriefMigration convergence (#2270)", () => {
     expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
       true,
     );
-    // Rerun converges to the idempotent already-marked no-op.
+    // Rerun with --keep-legacy stays the idempotent already-marked no-op.
+    const kept = runXbriefMigration(
+      { projectRoot: project, force: true, keepLegacy: true },
+      SILENT_IO,
+    );
+    expect(kept.kind).toBe("converged");
+    // Rerun without it finishes the move: everything is already present, vbrief/ goes (#6571).
     const rerun = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
-    expect(rerun.kind).toBe("converged");
+    expect(rerun.kind).toBe("migrated");
+    if (rerun.kind === "migrated") {
+      expect(rerun.migratedPaths).toEqual([]);
+      expect(rerun.archivedPaths).toEqual([]);
+      expect(rerun.alreadyPresentPaths).toEqual(["xbrief/active/story.xbrief.json"]);
+    }
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
   });
 
   it("returns a noop (not exit 2) when only a stale deposited schema remains (#2368)", () => {
@@ -974,7 +987,7 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
     expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
   });
 
-  it("rewrites residual xBRIEFInfo@0.6 under xbrief/ when vbrief/ is retained behind a marker", () => {
+  it("rewrites residual xBRIEFInfo@0.6 under xbrief/ and removes a marker-only vbrief/ (#6571)", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-hybrid-marker-"));
     temps.push(base);
     const project = scaffoldHybridXbriefOnly(base);
@@ -993,9 +1006,7 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
       expect(outcome.message).toMatch(/xBRIEFInfo@0\.8/);
     }
     expect(JSON.parse(readFileSync(artifact, "utf8")).xBRIEFInfo.version).toBe("0.8");
-    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
-      true,
-    );
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
   });
 
   it("thin-rewrites orphan xBRIEFInfo@0.7 envelopes on an xbrief-only tree", () => {
@@ -1116,6 +1127,470 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
         readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"), "utf8"),
       ).xBRIEFInfo.version,
     ).toBe("0.6");
+  });
+});
+
+const LEGACY_V06 = {
+  vBRIEFInfo: {
+    version: "0.6",
+    description: "legacy",
+    created: "2026-06-30T00:00:00Z",
+    updated: "2026-06-30T00:00:00Z",
+  },
+  plan: {
+    title: "Legacy only",
+    status: "running",
+    items: [],
+    references: [{ uri: "vbrief/active/x.vbrief.json", type: "x-vbrief/plan", title: "X" }],
+  },
+} as const;
+
+/** Canonical xbrief/ with content plus a legacy vbrief/ with content, as a git repo (#6571). */
+function scaffoldDualPopulated(base: string): string {
+  const project = scaffoldCanonicalXbrief(base);
+  mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+  writeFileSync(
+    join(project, LEGACY_ARTIFACT_DIR, "active", "only-legacy.vbrief.json"),
+    `${JSON.stringify(LEGACY_V06, null, 2)}\n`,
+    "utf8",
+  );
+  writeFileSync(join(project, LEGACY_ARTIFACT_DIR, "notes.md"), "legacy notes\n", "utf8");
+  gitQuiet(project, ["init", "-q"]);
+  return project;
+}
+
+function legacyStoryWithTitle(title: string): string {
+  return `${JSON.stringify(
+    {
+      vBRIEFInfo: { version: "0.6", description: "fixture" },
+      plan: { title, status: "running", items: [] },
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+function markLegacyRoot(project: string): void {
+  mkdirSync(join(project, LEGACY_ARTIFACT_DIR), { recursive: true });
+  writeFileSync(
+    join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME),
+    VBRIEF_DEPRECATION_MARKER_BODY,
+    "utf8",
+  );
+}
+
+describe("runXbriefMigration finishes the vbrief move (#6571 / D-012)", () => {
+  it("dual-populated, no overlap: every legacy file lands in xbrief/ and vbrief/ is removed", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-free-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    const canonical = join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json");
+    const canonicalBefore = readFileSync(canonical, "utf8");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect([...outcome.migratedPaths].sort()).toEqual([
+        "xbrief/active/only-legacy.xbrief.json",
+        "xbrief/notes.md",
+      ]);
+      expect(outcome.archivedPaths).toEqual([]);
+      expect(outcome.alreadyPresentPaths).toEqual([]);
+      expect(existsSync(join(outcome.backupDir, LEGACY_ARTIFACT_DIR, "notes.md"))).toBe(true);
+    }
+    const moved = JSON.parse(
+      readFileSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "active", "only-legacy.xbrief.json"),
+        "utf8",
+      ),
+    );
+    expect(moved.xBRIEFInfo.version).toBe("0.8");
+    expect(moved).not.toHaveProperty("vBRIEFInfo");
+    expect(readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "notes.md"), "utf8")).toBe(
+      "legacy notes\n",
+    );
+    expect(readFileSync(canonical, "utf8")).toBe(canonicalBefore);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+    expect(detectXbriefConvergence(project).state).toBe("xbrief-only");
+  });
+
+  it("dual-populated, same destination with identical converted content: nothing archived", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-same-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    gitQuiet(project, ["init", "-q"]);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    // Same envelope as xbrief/active/story.xbrief.json, written compact by an older tool.
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "story.vbrief.json"),
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"), "utf8"),
+      "utf8",
+    );
+    // A completed record migrated earlier: same content, older migration stamp, CRLF.
+    const legacyDone = join(project, LEGACY_ARTIFACT_DIR, "completed", "done.vbrief.json");
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "completed"), { recursive: true });
+    writeFileSync(legacyDone, legacyStoryWithTitle("Done"), "utf8");
+    const earlier = classifyLegacyMigrationFile(legacyDone, readFileSync(legacyDone, "utf8"));
+    expect(earlier.kind).toBe("migrate");
+    if (earlier.kind !== "migrate") return;
+    const earlierDoc = JSON.parse(earlier.body);
+    earlierDoc.plan.metadata.lifecycleWrite.writtenAt = "2020-01-01T00:00:00.000Z";
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "completed"), { recursive: true });
+    const canonicalDone = join(project, MIGRATED_ARTIFACT_DIR, "completed", "done.xbrief.json");
+    writeFileSync(
+      canonicalDone,
+      `${JSON.stringify(earlierDoc, null, 2)}\n`.replace(/\n/g, "\r\n"),
+      "utf8",
+    );
+    const doneBefore = readFileSync(canonicalDone, "utf8");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.migratedPaths).toEqual([]);
+      expect(outcome.archivedPaths).toEqual([]);
+      expect([...(outcome.alreadyPresentPaths ?? [])].sort()).toEqual([
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/done.xbrief.json",
+      ]);
+    }
+    expect(readFileSync(canonicalDone, "utf8")).toBe(doneBefore);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive"))).toBe(false);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("dual-populated, same destination with different content: xbrief/ kept, raw legacy copy archived", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-differ-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    gitQuiet(project, ["init", "-q"]);
+    const canonical = join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json");
+    const canonicalBefore = readFileSync(canonical, "utf8");
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    const legacyRaw = legacyStoryWithTitle("Edited after the first migration");
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "story.vbrief.json"),
+      legacyRaw,
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.migratedPaths).toEqual([]);
+      expect(outcome.archivedPaths).toEqual(["xbrief/archive/active/story.legacy.json"]);
+      expect(outcome.collisionArchivedPaths).toEqual(["xbrief/archive/active/story.legacy.json"]);
+    }
+    expect(readFileSync(canonical, "utf8")).toBe(canonicalBefore);
+    expect(
+      readFileSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "story.legacy.json"),
+        "utf8",
+      ),
+    ).toBe(legacyRaw);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "README.md"))).toBe(true);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("archives an unconvertible legacy file under xbrief/archive/ like the normal path", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-unknowable-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "broken.vbrief.json"),
+      "{not json",
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.archivedPaths).toEqual(["xbrief/archive/active/broken.xbrief.json"]);
+      expect(outcome.collisionArchivedPaths).toEqual([]);
+    }
+    expect(
+      readFileSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "broken.xbrief.json"),
+        "utf8",
+      ),
+    ).toBe("{not json");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("fails closed without writing when the archive path holds different content", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-archive-taken-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    gitQuiet(project, ["init", "-q"]);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "story.vbrief.json"),
+      legacyStoryWithTitle("Differs"),
+      "utf8",
+    );
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "free.vbrief.json"),
+      legacyStoryWithTitle("Free"),
+      "utf8",
+    );
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "active"), { recursive: true });
+    writeFileSync(
+      join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "story.legacy.json"),
+      "something else\n",
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("config");
+    if (outcome.kind === "config") {
+      expect(outcome.message).toMatch(/migration destination collision/);
+    }
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "free.xbrief.json"))).toBe(
+      false,
+    );
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "active", "story.vbrief.json"))).toBe(
+      true,
+    );
+    expect(existsSync(join(project, ".deft"))).toBe(false);
+  });
+
+  it("already-marked repo converges the same way and DEPRECATED.md is gone", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-marked-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    markLegacyRoot(project);
+    expect(detectXbriefConvergence(project).state).toBe("xbrief-marker");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.migratedPaths).toContain("xbrief/active/only-legacy.xbrief.json");
+      expect(
+        outcome.migratedPaths.some((p) => p.endsWith(VBRIEF_DEPRECATION_MARKER_FILENAME)),
+      ).toBe(false);
+    }
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME)),
+    ).toBe(false);
+    expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe("noop");
+  });
+
+  it("marker-only vbrief/ is removed as a converge", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-marker-only-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    gitQuiet(project, ["init", "-q"]);
+    markLegacyRoot(project);
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("converged");
+    if (outcome.kind === "converged") {
+      expect(outcome.action).toBe("removed");
+      expect(outcome.already).toBe(false);
+    }
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("--keep-legacy on a direct run keeps the marker for dual-populated and marked repos", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-keep-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+
+    const first = runXbriefMigration(
+      { projectRoot: project, force: true, keepLegacy: true },
+      SILENT_IO,
+    );
+    expect(first.kind).toBe("converged");
+    if (first.kind === "converged") expect(first.action).toBe("marker");
+    const second = runXbriefMigration(
+      { projectRoot: project, force: true, keepLegacy: true },
+      SILENT_IO,
+    );
+    expect(second.kind).toBe("converged");
+    if (second.kind === "converged") expect(second.already).toBe(true);
+    expect(
+      existsSync(join(project, LEGACY_ARTIFACT_DIR, "active", "only-legacy.vbrief.json")),
+    ).toBe(true);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
+      true,
+    );
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "only-legacy.xbrief.json")),
+    ).toBe(false);
+  });
+
+  it("refuses a dirty dual-populated tree unless force is passed, and writes nothing", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-dirty-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+
+    const outcome = runXbriefMigration({ projectRoot: project }, SILENT_IO);
+    expect(outcome.kind).toBe("refused");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "notes.md"))).toBe(true);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "notes.md"))).toBe(false);
+  });
+
+  it("reports already-present and collision counts on stdout", () => {
+    const lines: string[] = [];
+    const code = emitXbriefMigration(
+      {
+        kind: "migrated",
+        backupDir: "/tmp/backup",
+        files: 4,
+        migratedPaths: ["xbrief/a.xbrief.json"],
+        archivedPaths: ["xbrief/archive/b.xbrief.json", "xbrief/archive/c.legacy.json"],
+        alreadyPresentPaths: ["xbrief/d.xbrief.json"],
+        collisionArchivedPaths: ["xbrief/archive/c.legacy.json"],
+      },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+    );
+    expect(code).toBe(0);
+    const text = lines.join("");
+    expect(text).toContain("Migrated 1 file(s)");
+    expect(text).toContain("1 already present");
+    expect(text).toContain("archived 1 unknowable file(s)");
+    expect(text).toContain("archived 1 file(s) that differ from xbrief/");
+  });
+
+  it("removes a file left by a write that throws after creating it, and keeps vbrief/", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-partial-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    const realWrite = containedWriteMod.containedWrite;
+    let calls = 0;
+    vi.spyOn(containedWriteMod, "containedWrite").mockImplementation((input) => {
+      calls += 1;
+      if (calls === 2) {
+        // Create the target, then fail as a mid-write I/O error would.
+        writeFileSync(String(input.target), "partial", "utf8");
+        throw Object.assign(new Error("EIO: input/output error"), { code: "EIO" });
+      }
+      return realWrite(input);
+    });
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("config");
+    vi.restoreAllMocks();
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "notes.md"))).toBe(false);
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "only-legacy.xbrief.json")),
+    ).toBe(false);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "notes.md"))).toBe(true);
+    // A retry is not confused by leftovers: everything moves cleanly.
+    const retry = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(retry.kind).toBe("migrated");
+    if (retry.kind === "migrated") expect(retry.archivedPaths).toEqual([]);
+  });
+
+  it("never removes a target another writer created while this run was writing", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-race-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    const realWrite = containedWriteMod.containedWrite;
+    let calls = 0;
+    let raced = "";
+    vi.spyOn(containedWriteMod, "containedWrite").mockImplementation((input) => {
+      calls += 1;
+      if (calls === 2) {
+        raced = String(input.target);
+        writeFileSync(raced, "other writer\n", "utf8");
+      }
+      return realWrite(input);
+    });
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    vi.restoreAllMocks();
+    expect(outcome.kind).toBe("config");
+    expect(readFileSync(raced, "utf8")).toBe("other writer\n");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "notes.md"))).toBe(true);
+  });
+
+  itSymlink("refuses a marked vbrief/ that holds only symlinks instead of deleting it", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-link-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    gitQuiet(project, ["init", "-q"]);
+    markLegacyRoot(project);
+    const outside = mkdtempSync(join(tmpdir(), "xbrief-finish-link-target-"));
+    temps.push(outside);
+    writeFileSync(join(outside, "real.vbrief.json"), legacyStoryWithTitle("Linked"), "utf8");
+    symlinkSync(
+      join(outside, "real.vbrief.json"),
+      join(project, LEGACY_ARTIFACT_DIR, "linked.vbrief.json"),
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("config");
+    if (outcome.kind === "config") expect(outcome.message).toMatch(/symlink/);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
+      true,
+    );
+    expect(readFileSync(join(outside, "real.vbrief.json"), "utf8")).toBe(
+      legacyStoryWithTitle("Linked"),
+    );
+  });
+
+  it("a tracked marked vbrief/ does not block the leftover-envelope strip; both land", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-strip-"));
+    temps.push(base);
+    const project = scaffoldDualEnvelopeXbriefOnly(base, { track: true });
+    markLegacyRoot(project);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "old.vbrief.json"),
+      legacyStoryWithTitle("Old"),
+      "utf8",
+    );
+    writeFileSync(join(project, ".gitignore"), ".deft/xbrief-migrate-backup-*/\n", "utf8");
+    gitQuiet(project, ["add", "-A"]);
+    const spec = join(project, MIGRATED_ARTIFACT_DIR, "specification.xbrief.json");
+    expect(JSON.parse(readFileSync(spec, "utf8"))).toHaveProperty("vBRIEFInfo");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.residualMessage).toMatch(/Stripped 1 redundant/);
+      expect(outcome.migratedPaths).toEqual(["xbrief/active/old.xbrief.json"]);
+    }
+    expect(JSON.parse(readFileSync(spec, "utf8"))).not.toHaveProperty("vBRIEFInfo");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+    gitQuiet(project, ["add", "-A"]);
+    expect(evaluateXbriefDrift(project).findings).toEqual([]);
+  });
+
+  it("end to end: the upgrade-style run on a dual-populated repo passes verify:xbrief-drift --staged", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-finish-e2e-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "story.vbrief.json"),
+      legacyStoryWithTitle("Differs from xbrief/"),
+      "utf8",
+    );
+    markLegacyRoot(project);
+    writeFileSync(join(project, ".gitignore"), ".deft/xbrief-migrate-backup-*/\n", "utf8");
+    gitQuiet(project, ["add", "-A"]);
+    gitQuiet(project, [
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@example.invalid",
+      "commit",
+      "-q",
+      "--no-verify",
+      "-m",
+      "dual-populated fixture",
+    ]);
+
+    // Upgrade calls the migration with force and without keepLegacy.
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    gitQuiet(project, ["add", "-A"]);
+    const drift = evaluateXbriefDrift(project, { mode: "staged" });
+    expect(drift.findings).toEqual([]);
+    expect(drift.code).toBe(0);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
   });
 });
 

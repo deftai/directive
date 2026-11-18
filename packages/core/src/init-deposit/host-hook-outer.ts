@@ -9,12 +9,8 @@
  * validated eligible (lstat regular-file + successful untracked `git ls-files`
  * listing with usable captured output). Tracked / wrong kind / indeterminate
  * never select the override.
- *
- * #6163 Prefer-A Bound 6772886751: tip-required Cursor deposit paths + stage-only
- * force-add + committed/index association bookend (Cursor-at-minimum).
  */
 
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import type { HookHost } from "../hooks/dispatcher.js";
 
@@ -25,9 +21,6 @@ export const HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE =
 
 export const HOST_HOOK_OUTER_PIN_HOOK_BIN_REL =
   "node_modules/@deftai/directive-runtime/dist/hook-bin.js";
-
-/** Tip-tracked Cursor hooks registration (#6163). */
-export const CURSOR_HOOKS_JSON_REL = ".cursor/hooks.json";
 
 /** Filename stem + content-hash suffix (AC9.1). */
 export function hostHookOuterFileName(sha8: string): string {
@@ -68,202 +61,35 @@ export function isHostHookOuterCommand(commandText: string): boolean {
 }
 
 /**
- * Exact tip-required Cursor paths for the installed outer hash (#6163).
- * New-hash shim path is enumerated explicitly — "already tracked" under
- * `.cursor/` is not exact-path membership for the new hash.
+ * Reason the outer gives when the pin exists but hook-bin reached no decision
+ * (spawn error, signal / null status, non-zero exit, stdout capture failure,
+ * or malformed Grok output). Placeholder wording; P4-U3a moves it into the
+ * shared message table (#6201 / #6166).
  */
-export function tipRequiredCursorDepositPaths(
-  sha8: string = hostHookOuterSha8(),
-): readonly [typeof CURSOR_HOOKS_JSON_REL, string] {
-  return [CURSOR_HOOKS_JSON_REL, hostHookOuterRelPath("cursor", sha8)];
-}
-
-/** Tree source for Cursor deposit association (#6163). */
-export type CursorDepositTreeSource = "HEAD" | "index";
-
-export interface CursorDepositAssociationResult {
-  readonly ok: boolean;
-  readonly sha8: string;
-  readonly paths: readonly string[];
-  readonly detail: string;
-}
-
-export interface StageTipRequiredCursorDepositResult {
-  readonly staged: readonly string[];
-  readonly sha8: string;
-  readonly paths: readonly string[];
-}
-
-export type CursorDepositTreeFileReader = (
-  projectRoot: string,
-  relPath: string,
-  source: CursorDepositTreeSource,
-) => string | null;
-
-export type CursorDepositGitAdd = (projectRoot: string, paths: readonly string[]) => void;
-
-function defaultReadTreeFile(
-  projectRoot: string,
-  relPath: string,
-  source: CursorDepositTreeSource,
-): string | null {
-  try {
-    // `HEAD:./<path>` / `:./<path>` resolve relative to projectRoot so a
-    // nested project reads its own deposit, not the repository parent's
-    // (same pattern as defaultReadCommittedFile — #6163 Greptile P1).
-    const spec = source === "HEAD" ? `HEAD:./${relPath}` : `:./${relPath}`;
-    return execFileSync("git", ["show", spec], {
-      cwd: projectRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      windowsHide: true,
-    });
-  } catch {
-    return null;
-  }
-}
-
-/** True when hooks.json registers the expected outer via a command field. */
-function hooksJsonRegistersOuter(
-  hooksJson: string,
-  expectedCmd: string,
-  shimRelPath: string,
-): boolean {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(hooksJson);
-  } catch {
-    return false;
-  }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
-  const hooks = (parsed as Record<string, unknown>).hooks;
-  if (typeof hooks !== "object" || hooks === null || Array.isArray(hooks)) return false;
-  for (const value of Object.values(hooks as Record<string, unknown>)) {
-    if (!Array.isArray(value)) continue;
-    for (const entry of value) {
-      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
-      const command = (entry as Record<string, unknown>).command;
-      if (typeof command !== "string") continue;
-      // Exact deposit command only — substring/filename matches are not association.
-      if (command === expectedCmd) return true;
-      const m = command.trim().match(/^(?:node(?:\.exe)?)\s+(\S+)/i);
-      const invokedPath = m?.[1];
-      if (!invokedPath) continue;
-      const invoked = invokedPath.replace(/\\/g, "/");
-      if (invoked === shimRelPath || invoked === `./${shimRelPath}`) return true;
-    }
-  }
-  return false;
-}
-
-function defaultGitAddForce(projectRoot: string, paths: readonly string[]): void {
-  // Bounded path list only — never `git add -f .cursor/` (#6163).
-  execFileSync("git", ["add", "-f", "--", ...paths], {
-    cwd: projectRoot,
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
-}
-
-/**
- * Stage-only force-add of tip-required Cursor paths despite local exclude
- * `.cursor/` (#6163 Prefer-A Bound 6772886751). Never commits.
- */
-export function stageTipRequiredCursorDeposit(
-  projectRoot: string,
-  options: {
-    readonly sha8?: string;
-    readonly gitAdd?: CursorDepositGitAdd;
-  } = {},
-): StageTipRequiredCursorDepositResult {
-  const sha8 = options.sha8 ?? hostHookOuterSha8();
-  const paths = tipRequiredCursorDepositPaths(sha8);
-  const gitAdd = options.gitAdd ?? defaultGitAddForce;
-  gitAdd(projectRoot, paths);
-  return { staged: [...paths], sha8, paths };
-}
-
-/**
- * Committed-byte / index association bookend for installed outer hash (#6163).
- * Working-tree inspectAgentHookDeposit green alone is not sufficient.
- */
-export function validateCursorDepositAssociation(
-  projectRoot: string,
-  options: {
-    readonly source?: CursorDepositTreeSource;
-    readonly outerSource?: string;
-    readonly readTreeFile?: CursorDepositTreeFileReader;
-  } = {},
-): CursorDepositAssociationResult {
-  const outerSource = options.outerSource ?? hostHookOuterSource();
-  const sha8 = hostHookOuterSha8(outerSource);
-  const paths = tipRequiredCursorDepositPaths(sha8);
-  const source = options.source ?? "HEAD";
-  const read = options.readTreeFile ?? defaultReadTreeFile;
-  const hooksJson = read(projectRoot, paths[0], source);
-  if (hooksJson === null) {
-    return {
-      ok: false,
-      sha8,
-      paths,
-      detail: `missing ${paths[0]} in ${source} tree (#6163)`,
-    };
-  }
-  const expectedCmd = hostHookOuterCommand("cursor", sha8);
-  const shimToken = hostHookOuterFileName(sha8);
-  if (!hooksJsonRegistersOuter(hooksJson, expectedCmd, paths[1])) {
-    return {
-      ok: false,
-      sha8,
-      paths,
-      detail: `${paths[0]} in ${source} does not register command for ${expectedCmd} (#6163)`,
-    };
-  }
-  const shim = read(projectRoot, paths[1], source);
-  if (shim === null) {
-    return {
-      ok: false,
-      sha8,
-      paths,
-      detail: `missing ${paths[1]} in ${source} tree (#6163)`,
-    };
-  }
-  if (shim !== outerSource) {
-    return {
-      ok: false,
-      sha8,
-      paths,
-      detail: `${paths[1]} bytes do not match installed hostHookOuterSource (#6163)`,
-    };
-  }
-  if (hostHookOuterSha8(shim) !== sha8) {
-    return {
-      ok: false,
-      sha8,
-      paths,
-      detail: `shim content hash mismatch for ${paths[1]} (#6163)`,
-    };
-  }
-  return {
-    ok: true,
-    sha8,
-    paths,
-    detail: `Cursor deposit associated in ${source} for ${shimToken}`,
-  };
-}
+export const HOST_HOOK_NONDECISION_REASON =
+  "Directive hooks: the hook could not reach a decision. " +
+  "Run directive doctor in this project to see the fix.";
 
 /**
  * Pure ESM outer source deposited under each host dir.
  * Keep this string the SoT for sha8; tests assert F1 order + messaging.
+ *
+ * #6201 / #6166: every failure path goes through `blockToolCall`. On
+ * `tool.before` it uses the host's blocking form (Claude/Codex exit 2,
+ * Cursor and Grok one deny JSON on exit 0). Other events keep today's exit
+ * codes (D-018). Child stdout is captured so a failed run never leaks a
+ * partial decision, and Grok output must be one decision or empty.
  */
 export function hostHookOuterSource(): string {
   const guidance = HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE;
+  const nondecision = HOST_HOOK_NONDECISION_REASON;
   const pinRel = HOST_HOOK_OUTER_PIN_HOOK_BIN_REL;
   return `#!/usr/bin/env node
 /**
- * Directive host-hook outer (v261027 / #5994 / #6122). Node built-ins only until guards pass.
+ * Directive host-hook outer (v261027 / #5994 / #6122 / #6201). Node built-ins only.
  * F1 order: eligible disable → missing pin (project PM) → spawn pin hook-bin.js.
  * Eligible = lstat regular-file + successful untracked git ls-files listing.
+ * Any failure on tool.before blocks the tool call in the host's own form.
  */
 import { existsSync, lstatSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -271,6 +97,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const GUIDANCE = ${JSON.stringify(guidance)};
+const NONDECISION = ${JSON.stringify(nondecision)};
 const PIN_REL = ${JSON.stringify(pinRel)};
 const FLAG = ".deft-directive-disable";
 
@@ -288,9 +115,10 @@ function findProjectRoot(start) {
   }
 }
 
-function parseHost(argv) {
+function parseArg(argv, name) {
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--host" && argv[i + 1]) return argv[i + 1];
+    if (argv[i] === name && argv[i + 1]) return argv[i + 1];
+    if (argv[i].startsWith(name + "=")) return argv[i].slice(name.length + 1);
   }
   return "";
 }
@@ -321,21 +149,48 @@ function quietAllow() {
   process.exit(0);
 }
 
-function failClosedUnusablePin(host, detail) {
-  if (detail) {
-    process.stderr.write(detail + "\\n");
-  }
+/**
+ * The single failure exit (#6201). tool.before blocks: Claude/Codex/unknown
+ * exit 2, Cursor and Grok one deny JSON on exit 0. Other events: Grok deny
+ * JSON on exit 0, every other host stderr + exit 1 (no compaction or prompt
+ * blocks, D-018).
+ */
+function blockToolCall(host, event, reason) {
   if (host === "grok") {
-    process.stdout.write(JSON.stringify({ decision: "deny", reason: GUIDANCE }) + "\\n");
+    process.stdout.write(JSON.stringify({ decision: "deny", reason }) + "\\n");
     process.exit(0);
   }
-  process.stderr.write(GUIDANCE + "\\n");
-  process.exit(1);
+  if (event === "tool.before" && host === "cursor") {
+    process.stdout.write(
+      JSON.stringify({ permission: "deny", user_message: reason, agent_message: reason }) + "\\n",
+    );
+    process.exit(0);
+  }
+  process.stderr.write(reason + "\\n");
+  process.exit(event === "tool.before" ? 2 : 1);
+}
+
+function nonDecision(detail) {
+  return NONDECISION + " (" + detail + ")";
+}
+
+/** Grok success output: empty, or exactly one object with decision allow|deny (#6166). */
+function grokOutputIsDecision(text) {
+  if (text.trim().length === 0) return true;
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
+  return parsed.decision === "allow" || parsed.decision === "deny";
 }
 
 const root = findProjectRoot(here);
 const argv = process.argv.slice(2);
-const host = parseHost(argv);
+const host = parseArg(argv, "--host");
+const event = parseArg(argv, "--event");
 
 const killPath = join(root, FLAG);
 if (isRegularFile(killPath) && gitTrackListing(root, FLAG) === "untracked") {
@@ -344,31 +199,35 @@ if (isRegularFile(killPath) && gitTrackListing(root, FLAG) === "untracked") {
 
 const pin = join(root, PIN_REL);
 if (!existsSync(pin)) {
-  failClosedUnusablePin(host, "");
+  blockToolCall(host, event, GUIDANCE);
 }
 
 const child = spawnSync(process.execPath, [pin, ...argv], {
   cwd: root,
   env: process.env,
-  stdio: "inherit",
+  stdio: ["inherit", "pipe", "inherit"],
+  maxBuffer: 16 * 1024 * 1024,
 });
 if (child.error) {
-  failClosedUnusablePin(
-    host,
-    "Directive hooks: failed to spawn pin hook-bin: " + child.error.message,
-  );
+  blockToolCall(host, event, nonDecision("failed to run pin hook-bin: " + child.error.message));
 }
 if (child.status === null) {
-  failClosedUnusablePin(
-    host,
-    "Directive hooks: pin hook-bin terminated without an exit status",
-  );
+  const signal = child.signal ? ", signal " + child.signal : "";
+  blockToolCall(host, event, nonDecision("pin hook-bin ended without an exit status" + signal));
 }
 if (child.status !== 0) {
-  // Exists-but-unusable (e.g. broken import): Grok needs an explicit deny JSON
-  // when the child did not emit a decision (#5994 / Greptile P1).
-  failClosedUnusablePin(host, "");
+  blockToolCall(host, event, nonDecision("pin hook-bin exited " + child.status));
 }
-process.exit(0);
+if (!Buffer.isBuffer(child.stdout)) {
+  blockToolCall(host, event, nonDecision("pin hook-bin output was not captured"));
+}
+const text = child.stdout.toString("utf8");
+if (host === "grok") {
+  if (!grokOutputIsDecision(text)) {
+    blockToolCall(host, event, nonDecision("pin hook-bin output is not one Grok decision"));
+  }
+  if (text.trim().length === 0) process.exit(0);
+}
+process.stdout.write(child.stdout);
 `;
 }

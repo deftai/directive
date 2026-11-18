@@ -333,6 +333,23 @@ describe("strict-axis advisory at preflight (#6272)", () => {
     expect(result.stderr).toContain("clause.1: smoke, deploy");
     expect(strictAxisAdvisoryForBrief(join(tmpdir(), "missing-6272.xbrief.json"))).toEqual([]);
   });
+
+  it("#6591: on an active brief the advisory lists rows and does not suggest a declaration", () => {
+    const declared = {
+      id: "clause.3",
+      title: "Deploy the docs site.",
+      status: "pending",
+      "x-directive/requires": "merge",
+    };
+    const path = briefWith({ items: [...items, declared] });
+    const result = capture(["--vbrief-path", path]);
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout).toContain("  clause.1: smoke, deploy\n");
+    expect(result.stdout).toContain("  clause.3: deploy (declared)\n");
+    expect(result.stdout).toContain("  Advisory only; exit code unchanged.\n");
+    expect(result.stdout).not.toContain("x-directive/requires");
+    expect(result.stdout).not.toMatch(/reword the clause or declare/);
+  });
 });
 
 describe("vbrief-preflight-parity helpers", () => {
