@@ -24,6 +24,21 @@ Two packages: global `@deftai/directive` (launcher) and project-pinned `@deftai/
 
 Do not teach `npx`/`pnpm exec` as ongoing identity. Retired verbs (`migrate`, `bootstrap`, …) are unknown commands.
 
+### After converting an old `.deft/core` project
+
+`directive upgrade` removes the `.deft/core` lines Directive wrote in `.gitattributes`, `.prettierignore`, `greptile.json` and `.github/codeql/codeql-config.yml`, and lists those files for review. It does not edit files you wrote yourself. After converting:
+
+- Run `git grep .deft/core` and update any hits in your own files (README, docs, scripts).
+- Check your CI workflows for conditions that test for `.deft/core` files, such as `if: hashFiles('.deft/core/Taskfile.yml') != ''`. The folder is gone, so those steps now skip without failing.
+
+### Formatter and linter checks on the hook files
+
+Directive commits one hook file per host (`deft-hook-<hash>.mjs` under `.claude/`, `.codex/`, `.cursor/hooks/` and `.grok/hooks/`). If your project already has a `.prettierignore`, setup adds `**/deft-hook-*.mjs` to it. Setup does not create `.prettierignore` and does not edit ESLint config. If ESLint checks these files (for example typescript-eslint `projectService`), add this to your flat config:
+
+```js
+{ ignores: ["**/deft-hook-*.mjs"] }
+```
+
 Walkthrough history below keeps existing `UPGRADING.md#` anchors. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
 
 ---

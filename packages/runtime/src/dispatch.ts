@@ -3518,6 +3518,24 @@ const RETIRED_INSTALL_DISPATCH_VERBS = new Set([
   "install-uninstall",
 ]);
 
+/**
+ * #6647: drop one leading lone `--` for a `verify:` / `verify-` verb (invoked name or its
+ * canonical handler name). Later `--` tokens and other verbs are untouched.
+ */
+export function dropLeadingDoubleDashForVerify(
+  verb: string | undefined,
+  args: readonly string[],
+): string[] {
+  if (verb === undefined || args[0] !== "--") {
+    return [...args];
+  }
+  const canonical = resolveCanonicalVerb(verb);
+  const isVerify = [verb, canonical ?? ""].some(
+    (name) => name.startsWith("verify:") || name.startsWith("verify-"),
+  );
+  return isVerify ? args.slice(1) : [...args];
+}
+
 export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Promise<number> {
   if (argv[0] === "--version" || argv[0] === "-V") {
     io.writeOut(versionBanner());
@@ -3529,7 +3547,9 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     return 0;
   }
 
-  const [verb, ...rest] = argv;
+  const [verb, ...rawRest] = argv;
+  // #6647: `task verify:<name> -- <args>` and `deft verify:<name> -- <args>` take the same args.
+  const rest = dropLeadingDoubleDashForVerify(verb, rawRest);
 
   if (verb !== undefined && RETIRED_INSTALL_DISPATCH_VERBS.has(verb)) {
     const suggestion =

@@ -4,6 +4,7 @@ export * from "./audit-log.js";
 export * from "./batch-promote.js";
 export * from "./bind-clause.js";
 export * from "./clause-file-scope-bind.js";
+export * from "./confess.js";
 export * from "./constants.js";
 export * from "./coverage-map.js";
 export * from "./decomposed-refs.js";

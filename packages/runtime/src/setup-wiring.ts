@@ -34,7 +34,7 @@ import {
 import {
   DESIRED_GITATTRIBUTES_LINES,
   ensureGitattributes,
-  LEGACY_CORE_TEXT_EOL_LF,
+  RETIRED_GITATTRIBUTES_LINES,
 } from "@deftai/directive-core/dist/init-deposit/scaffold.js";
 import {
   INSTALLATION_RECOVERY_GUIDANCE,
@@ -450,13 +450,13 @@ export const GITATTRIBUTES_STAGING_SKIPPED_DIRTY =
   ".gitattributes had unstaged local edits; LF pins were written but left unstaged so install/upgrade does not git add unrelated user changes (#6151 P1)";
 
 const DESIRED_GITATTRIBUTES_LINE_SET = new Set<string>([
-  ...(DESIRED_GITATTRIBUTES_LINES as readonly string[]),
-  LEGACY_CORE_TEXT_EOL_LF,
+  ...DESIRED_GITATTRIBUTES_LINES,
+  ...RETIRED_GITATTRIBUTES_LINES,
 ]);
 
 /**
- * True when every attribute line is a known Directive core/managed marker (or
- * Deft deposit comment). Foreign rules mean the file is not pure Directive-owned
+ * True when every attribute line is a known Directive managed line, a retired
+ * `.deft/core` line, or a Deft deposit comment. Foreign rules mean the file is not pure Directive-owned
  * (#6151 P1 dirty-skip heuristic).
  */
 export function isDirectiveManagedGitattributes(content: string): boolean {
@@ -502,8 +502,8 @@ function pathIsUntrackedInRepo(projectRoot: string, rel: string): boolean {
 }
 
 /**
- * Deposit narrow LF .gitattributes for managed wiring paths (#5995).
- * Reuses scaffold ensureGitattributes (core markers + managed wiring lines).
+ * Deposit narrow LF .gitattributes for managed wiring paths (#5995) and strip
+ * the retired `.deft/core` lines (#5961). Reuses scaffold ensureGitattributes.
  * Reports created/modified so install/upgrade staging commits the pins (#6151 P1).
  * When the path already has unstaged user edits (or an untracked foreign file),
  * still appends missing pins but does not report modified (avoids staging WIP).

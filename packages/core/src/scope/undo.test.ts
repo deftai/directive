@@ -161,6 +161,72 @@ describe("undo", () => {
     expect(existsSync(join(root, "xbrief", "pending", "c.xbrief.json"))).toBe(true);
   });
 
+  it("cancel then undo puts the scope back into PROJECT-DEFINITION plan.items (#6648)", () => {
+    root = mkdtempSync(join(tmpdir(), "undo-pd-"));
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    // The cancel already removed the row, so PD lists no scope.
+    writeFileSync(
+      pdPath,
+      formatBriefJson({ plan: { title: "P", status: "running", items: [], references: [] } }),
+      "utf8",
+    );
+    const logPath = canonicalLogPath(root);
+    writeFileSync(
+      join(root, "xbrief", "cancelled", "2026-05-01-c.xbrief.json"),
+      formatBriefJson({ plan: { title: "Cancelled scope", status: "cancelled", items: [] } }),
+      "utf8",
+    );
+    const entry = {
+      decision_id: newDecisionId(),
+      timestamp: "2026-05-18T20:00:00Z",
+      action: "cancel",
+      vbrief_path: "xbrief/cancelled/2026-05-01-c.xbrief.json",
+      from_status: "pending",
+      to_status: "cancelled",
+      actor: "operator",
+    };
+    append(entry, logPath);
+    const result = undoOne(entry, root, { logPath });
+    expect(result.ok).toBe(true);
+    expect(result.message).not.toContain("PROJECT-DEFINITION sync failed");
+    const items = JSON.parse(readFileSync(pdPath, "utf8")).plan.items;
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: "2026-05-01-c",
+      title: "Cancelled scope",
+      metadata: { source_path: "pending/2026-05-01-c.xbrief.json", lifecycle_folder: "pending" },
+    });
+  });
+
+  it("reports a PROJECT-DEFINITION sync failure without failing the undo (#6648)", () => {
+    root = mkdtempSync(join(tmpdir(), "undo-pd-bad-"));
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{", "utf8");
+    const logPath = canonicalLogPath(root);
+    writeFileSync(
+      join(root, "xbrief", "cancelled", "b.xbrief.json"),
+      formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+      "utf8",
+    );
+    const entry = {
+      decision_id: newDecisionId(),
+      timestamp: "2026-05-18T20:00:00Z",
+      action: "cancel",
+      vbrief_path: "xbrief/cancelled/b.xbrief.json",
+      from_status: "pending",
+      to_status: "cancelled",
+      actor: "operator",
+    };
+    append(entry, logPath);
+    const result = undoOne(entry, root, { logPath });
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("PROJECT-DEFINITION sync failed");
+    expect(existsSync(join(root, "xbrief", "pending", "b.xbrief.json"))).toBe(true);
+  });
+
   it("undoes undo-of-restore back to cancelled", () => {
     root = mkdtempSync(join(tmpdir(), "undo-chain-"));
     mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });

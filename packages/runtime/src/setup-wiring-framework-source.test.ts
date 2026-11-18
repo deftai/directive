@@ -71,28 +71,26 @@ function linkedFrameworkWorktree(): string {
   return worktree;
 }
 
-describe("setup repair path in a framework source worktree (#6337)", () => {
-  it("ensureManagedPathGitattributes writes nothing in a linked worktree", () => {
+describe("setup repair path in a framework source worktree (#6256 / D-029)", () => {
+  it("writes the managed block once; after the one-time commit, repair leaves .gitattributes unchanged", () => {
     const worktree = linkedFrameworkWorktree();
-    const before = readFileSync(join(worktree, ".gitattributes"), "utf8");
 
-    expect(ensureManagedPathGitattributes(worktree)).toEqual({
-      created: false,
-      modified: false,
-      wrote: false,
-    });
-    expect(readFileSync(join(worktree, ".gitattributes"), "utf8")).toBe(before);
-  });
+    const first = ensureManagedPathGitattributes(worktree);
+    expect(first.wrote).toBe(true);
+    const attrs = readFileSync(join(worktree, ".gitattributes"), "utf8");
+    expect(attrs).toContain(".claude/deft-hook-*.mjs text=auto eol=lf");
+    expect(attrs).not.toContain(".deft/core");
 
-  it("runSetup repair leaves .gitattributes unchanged in a linked worktree", () => {
-    const worktree = linkedFrameworkWorktree();
+    git(worktree, ["add", ".gitattributes"]);
+    git(worktree, ["-c", "commit.gpgsign=false", "commit", "-q", "-m", "managed block"]);
     const before = readFileSync(join(worktree, ".gitattributes"), "utf8");
 
     const result = runSetup({ operation: "repair", from: "0.0.0", root: worktree });
 
     expect(readFileSync(join(worktree, ".gitattributes"), "utf8")).toBe(before);
     expect(git(worktree, ["status", "--porcelain", "--", ".gitattributes"])).toBe("");
-    expect(JSON.stringify(result)).not.toContain(".gitattributes");
+    expect(result.created).not.toContain(".gitattributes");
+    expect(result.modified).not.toContain(".gitattributes");
   });
 
   it("a consumer repository still gets the managed-path pins", () => {

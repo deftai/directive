@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
+import { syncRegistryArtifactAfterScopeMove } from "./registry-artifact-sync.js";
 import { formatBriefJson } from "./vbrief-json.js";
 
 describe("project-definition-sync branches", () => {
@@ -22,7 +23,7 @@ describe("project-definition-sync branches", () => {
     return vbrief;
   }
 
-  it("matches items via references, metadata refs, source_path, id, and title", () => {
+  it("matches rows by source_path or filename stem only; references and title never match", () => {
     const vbrief = setupProjectDef({
       plan: {
         items: [
@@ -82,7 +83,9 @@ describe("project-definition-sync branches", () => {
     );
 
     const pd = JSON.parse(readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
-    expect(pd.plan.items.every((i: { status: string }) => i.status === "completed")).toBe(true);
+    // source_path row and filename-stem row are removed; the references-only row stays (#6648).
+    expect(pd.plan.items.map((i: { id: string }) => i.id)).toEqual(["other-id"]);
+    expect(pd.plan.items[0].status).toBe("running");
   });
 
   // #2213: on a migrated xbrief/ tree the sync MUST resolve PROJECT-DEFINITION
@@ -189,7 +192,7 @@ describe("project-definition-sync branches", () => {
     ).toBeNull();
   });
 
-  it("sync creates metadata when item matches by title only", () => {
+  it("a row that matches by title only is left alone", () => {
     const vbrief = setupProjectDef({
       plan: {
         items: [{ id: "unrelated", title: "Only title match", status: "running" }],
@@ -209,10 +212,12 @@ describe("project-definition-sync branches", () => {
       "completed",
     );
     const pd = JSON.parse(readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
-    expect(pd.plan.items[0].metadata.source_path).toContain("completed/");
+    expect(pd.plan.items).toHaveLength(1);
+    expect(pd.plan.items[0].status).toBe("running");
+    expect(pd.plan.items[0].metadata).toBeUndefined();
   });
 
-  it("creates metadata object when missing and skips unchanged uri", () => {
+  it("removes the row when a completed scope is synced again", () => {
     const vbrief = setupProjectDef({
       plan: {
         items: [
@@ -235,6 +240,181 @@ describe("project-definition-sync branches", () => {
     const data = JSON.parse(readFileSync(completed, "utf8"));
     syncProjectDefinitionAfterScopeMove(data, completed, completed, vbrief, "completed");
     const pd = JSON.parse(readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
-    expect(pd.plan.items[0].metadata.lifecycle_folder).toBe("completed");
+    expect(pd.plan.items).toEqual([]);
+  });
+});
+
+describe("project-definition-sync open-only rows (#6648)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  const row = (id: string, title: string, folder: string, file = `${id}.xbrief.json`) => ({
+    id,
+    title,
+    status: folder === "proposed" ? "proposed" : "running",
+    metadata: { source_path: `${folder}/${file}`, lifecycle_folder: folder },
+  });
+
+  function setup(items: unknown[], files: Array<[string, string, Record<string, unknown>]>) {
+    root = mkdtempSync(join(tmpdir(), "pd-open-"));
+    const vbrief = join(root, "xbrief");
+    for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(vbrief, f), { recursive: true });
+    }
+    for (const [folder, name, plan] of files) {
+      writeFileSync(join(vbrief, folder, name), formatBriefJson({ plan }));
+    }
+    writeFileSync(
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
+      formatBriefJson({ plan: { title: "P", status: "running", items, references: [] } }),
+    );
+    return vbrief;
+  }
+
+  const readPd = (vbrief: string) =>
+    JSON.parse(readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
+
+  it("scope:complete removes only the moved scope's row", () => {
+    const vbrief = setup(
+      [row("2026-01-01-a", "A", "active"), row("2026-01-01-b", "B", "active")],
+      [["completed", "2026-01-01-a.xbrief.json", { title: "A", status: "completed" }]],
+    );
+    const before = readPd(vbrief).plan.items[1];
+    syncProjectDefinitionAfterScopeMove(
+      { plan: { title: "A" } },
+      join(vbrief, "active", "2026-01-01-a.xbrief.json"),
+      join(vbrief, "completed", "2026-01-01-a.xbrief.json"),
+      vbrief,
+      "completed",
+    );
+    expect(readPd(vbrief).plan.items).toEqual([before]);
+  });
+
+  it("removes only the row for the moved file when two rows share a title", () => {
+    for (const [folder, status] of [
+      ["completed", "completed"],
+      ["cancelled", "cancelled"],
+    ] as const) {
+      const vbrief = setup(
+        [row("2026-01-01-one", "Same", "active"), row("2026-01-01-two", "Same", "active")],
+        [[folder, "2026-01-01-one.xbrief.json", { title: "Same", status }]],
+      );
+      syncProjectDefinitionAfterScopeMove(
+        { plan: { title: "Same" } },
+        join(vbrief, "active", "2026-01-01-one.xbrief.json"),
+        join(vbrief, folder, "2026-01-01-one.xbrief.json"),
+        vbrief,
+        status,
+      );
+      expect(readPd(vbrief).plan.items.map((i: { id: string }) => i.id)).toEqual([
+        "2026-01-01-two",
+      ]);
+      rmSync(root, { recursive: true, force: true });
+    }
+    root = "";
+  });
+
+  it("restore inserts one row equal to the row render builds", () => {
+    const vbrief = setup(
+      [],
+      [["proposed", "2026-01-01-r.xbrief.json", { title: "Restored", status: "proposed" }]],
+    );
+    syncProjectDefinitionAfterScopeMove(
+      { plan: { title: "Restored" } },
+      join(vbrief, "cancelled", "2026-01-01-r.xbrief.json"),
+      join(vbrief, "proposed", "2026-01-01-r.xbrief.json"),
+      vbrief,
+      "proposed",
+    );
+    const items = readPd(vbrief).plan.items;
+    expect(items).toHaveLength(1);
+    expect(items[0]).toEqual({
+      id: "2026-01-01-r",
+      title: "Restored",
+      status: "proposed",
+      metadata: {
+        source_path: "proposed/2026-01-01-r.xbrief.json",
+        lifecycle_folder: "proposed",
+      },
+    });
+  });
+
+  it("promote patches the matched row and adds none", () => {
+    const vbrief = setup(
+      [row("2026-01-01-p", "P", "proposed")],
+      [["pending", "2026-01-01-p.xbrief.json", { title: "P", status: "pending" }]],
+    );
+    syncProjectDefinitionAfterScopeMove(
+      { plan: { title: "P" } },
+      join(vbrief, "proposed", "2026-01-01-p.xbrief.json"),
+      join(vbrief, "pending", "2026-01-01-p.xbrief.json"),
+      vbrief,
+      "pending",
+    );
+    const items = readPd(vbrief).plan.items;
+    expect(items).toHaveLength(1);
+    expect(items[0].status).toBe("pending");
+    expect(items[0].metadata).toEqual({
+      source_path: "pending/2026-01-01-p.xbrief.json",
+      lifecycle_folder: "pending",
+    });
+  });
+
+  it("does not remove a row whose id is the dateless remainder and has another source_path", () => {
+    const vbrief = setup(
+      [row("slug", "Other scope", "active", "2026-02-02-other.xbrief.json")],
+      [["completed", "2026-01-01-slug.xbrief.json", { title: "Slug", status: "completed" }]],
+    );
+    syncProjectDefinitionAfterScopeMove(
+      { plan: { title: "Slug" } },
+      join(vbrief, "active", "2026-01-01-slug.xbrief.json"),
+      join(vbrief, "completed", "2026-01-01-slug.xbrief.json"),
+      vbrief,
+      "completed",
+    );
+    expect(readPd(vbrief).plan.items.map((i: { id: string }) => i.id)).toEqual(["slug"]);
+  });
+
+  it("an open move with no matching row and no file on disk inserts nothing", () => {
+    const vbrief = setup([], []);
+    syncProjectDefinitionAfterScopeMove(
+      { plan: { title: "Ghost" } },
+      join(vbrief, "proposed", "ghost.xbrief.json"),
+      join(vbrief, "pending", "ghost.xbrief.json"),
+      vbrief,
+      "pending",
+    );
+    expect(readPd(vbrief).plan.items).toEqual([]);
+  });
+
+  it("the specification registry sync still patches rows and never removes or inserts", () => {
+    const vbrief = setup([], []);
+    const specPath = join(vbrief, "specification.xbrief.json");
+    const spec = {
+      plan: {
+        title: "S",
+        items: [
+          { id: "2026-01-01-s", title: "S", status: "running", metadata: {} },
+          { id: "other", title: "Move me", status: "running" },
+        ],
+      },
+    };
+    writeFileSync(specPath, formatBriefJson(spec));
+    syncRegistryArtifactAfterScopeMove(
+      specPath,
+      { plan: { title: "Move me" } },
+      join(vbrief, "active", "2026-01-01-s.xbrief.json"),
+      join(vbrief, "completed", "2026-01-01-s.xbrief.json"),
+      vbrief,
+      "completed",
+    );
+    const items = JSON.parse(readFileSync(specPath, "utf8")).plan.items;
+    expect(items).toHaveLength(2);
+    expect(items.map((i: { status: string }) => i.status)).toEqual(["completed", "completed"]);
   });
 });
