@@ -706,7 +706,7 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
   });
 
   it("stops before gh pr create when the PR body check fails (#6643)", () => {
-    const { bound, ghCalls, seams } = setup();
+    const { bound, ghCalls, gitCalls, seams } = setup();
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = run(
@@ -725,6 +725,7 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
     );
     expect(code).toBe(1);
     expect(ghCalls).toEqual([]);
+    expect(gitCalls.some((c) => c[1] === "push")).toBe(false);
   });
 
   it("writes the widened file_scope once per path with existing entries kept", () => {
@@ -853,6 +854,7 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
     sh(work, ["remote", "add", "origin", remote]);
     sh(work, ["push", "-q", "origin", "master"]);
 
+    const ghArgs: string[][] = [];
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = run(
@@ -868,11 +870,15 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
       ],
       operatorSeams(),
       {
-        gh: () => ({ status: 0, stdout: "https://example.test/pull/1\n", stderr: "" }),
-        verifyBody: () => 0,
+        // Only gh is stubbed: the real git and the real PR body check both run.
+        gh: (_cwd: string, args: string[]) => {
+          ghArgs.push(args);
+          return { status: 0, stdout: "https://example.test/pull/1\n", stderr: "" };
+        },
       },
     );
     expect(code).toBe(0);
+    expect(ghArgs[0]?.slice(0, 2)).toEqual(["pr", "create"]);
 
     const pushed = sh(remote, ["branch", "--list", "widen/*"])
       .trim()

@@ -254,6 +254,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
+/** Local ref in the temporary clone that names the fetched delivery tip. */
+const WIDEN_BASE_REF = "refs/deft/widen-base";
+
 /** Process seams for the `--add-path` widen flow (#6643); tests inject fakes. */
 export interface WidenSeams {
   git?: (cwd: string, args: string[]) => ToolResult;
@@ -365,6 +368,8 @@ function runWiden(input: {
       // Fully qualified ref: a tag of the same name cannot be selected.
       ["fetch", "--quiet", "--", "origin", `refs/heads/${delivery}`],
       ["checkout", "--quiet", "--detach", "FETCH_HEAD"],
+      // A ref the body check can resolve in this clone (FETCH_HEAD is not one it accepts).
+      ["update-ref", WIDEN_BASE_REF, "FETCH_HEAD"],
     ]) {
       const r = git(tmp, args);
       if (r.status !== 0) return fail(`git ${args[0]} failed (${r.stderr.trim()})`);
@@ -430,7 +435,6 @@ function runWiden(input: {
       ["checkout", "--quiet", "-b", branch],
       ["add", "-f", "--", ...staged],
       [...identityArgs, "commit", "--quiet", "-m", `${title}\n\nAdds: ${added.join(", ")}`],
-      ["push", "--quiet", "--", "origin", `HEAD:refs/heads/${branch}`],
     ]) {
       const r = git(tmp, args);
       if (r.status !== 0) {
@@ -461,12 +465,14 @@ function runWiden(input: {
       input.seams.verifyBody ??
       ((file: string, root: string, baseRef: string) =>
         verifyDocsImpactBodyFile(file, root, { baseRef }));
-    const bodyCode = verifyBody(bodyPath, tmp, "FETCH_HEAD");
+    const bodyCode = verifyBody(bodyPath, tmp, WIDEN_BASE_REF);
     if (bodyCode !== 0) {
       return fail(
-        `verify:docs-impact --body-file failed (exit ${String(bodyCode)}); branch ${branch} was pushed`,
+        `verify:docs-impact --body-file failed (exit ${String(bodyCode)}); nothing was pushed`,
       );
     }
+    const pushed = git(tmp, ["push", "--quiet", "--", "origin", `HEAD:refs/heads/${branch}`]);
+    if (pushed.status !== 0) return fail(`git push failed (${pushed.stderr.trim()})`);
     const pr = gh(tmp, [
       "pr",
       "create",
