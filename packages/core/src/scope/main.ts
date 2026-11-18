@@ -9,7 +9,7 @@ import { releaseWorkClaimForBrief } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { interceptHelp } from "../triage/help/index.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
-import { strictAxisAdvisoryLines } from "./acceptance-evidence.js";
+import { type StrictAxisAdvisoryVerb, strictAxisAdvisoryLines } from "./acceptance-evidence.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
 import { BIND_CLAUSE_ACTION, bindClauseOnBrief } from "./bind-clause.js";
@@ -94,11 +94,15 @@ export interface UndoArgs {
 
 /**
  * Strict-axis advisory for a brief on disk (#6272). Best-effort: an unreadable
- * or malformed brief yields no lines. Never changes an exit code.
+ * or malformed brief yields no lines. Never changes an exit code. The verb
+ * picks the last line (#6591).
  */
-function briefStrictAxisAdvisory(path: string): string[] {
+function briefStrictAxisAdvisory(
+  path: string,
+  verb: Exclude<StrictAxisAdvisoryVerb, "xbrief:preflight">,
+): string[] {
   try {
-    return strictAxisAdvisoryLines(JSON.parse(readFileSync(path, "utf8")) as unknown);
+    return strictAxisAdvisoryLines(JSON.parse(readFileSync(path, "utf8")) as unknown, verb);
   } catch {
     return [];
   }
@@ -521,7 +525,7 @@ export function lifecycleMain(argv: string[]): number {
         );
       }
       // #6272: advisory only; read the promoted brief (promote may stamp clauses).
-      writeLines(briefStrictAxisAdvisory(promoteResult.destPath ?? filePath));
+      writeLines(briefStrictAxisAdvisory(promoteResult.destPath ?? filePath, "scope:promote"));
       return 0;
     }
     process.stderr.write(
@@ -573,7 +577,8 @@ export function lifecycleMain(argv: string[]): number {
     ...(inPr === true ? { inPr: true } : {}),
   };
   // #6272: read before the move; activate does not change item text.
-  const activateAdvisory = action === "activate" ? briefStrictAxisAdvisory(filePath) : [];
+  const activateAdvisory =
+    action === "activate" ? briefStrictAxisAdvisory(filePath, "scope:activate") : [];
   const result = runTransition(action, filePath, new Date(), transitionOptions);
   if (result.ok) {
     process.stdout.write(`${result.message}\n`);

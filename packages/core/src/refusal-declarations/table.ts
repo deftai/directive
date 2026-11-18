@@ -92,6 +92,12 @@ export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* ref
     "gate": "extra-path budget: undeclared extra paths past the allowance (#6221)",
     "remedy": ["deft verify:scope-provenance"],
     "deferred": "the fix is a brief edit (split the extra paths to a follow-up story, or land a widened brief on the base); no printed command can make it for you; owned by #6221"
+  },
+  {
+    "id": "declaration-hides-axis",
+    "gate": "verify:scope-provenance: a declaration changed after activation hides a strict acceptance axis (#6591)",
+    "remedy": ["deft verify:scope-provenance"],
+    "deferred": "the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591"
   }
 ] /* refusal-declarations:end */;
 

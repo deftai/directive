@@ -1,0 +1,2 @@
+section: Added
+- Scope provenance: `verify:scope-provenance` prints the declared row `declaration-hides-axis` when a declaration changed after activation (`x-directive/requires` or one of its seven aliases) hides a strict axis the clause text infers, including in the change that moves the brief to `completed/`. The row ships in `warn` mode: the line prints and the exit code does not change. The strict-axis advisory lists such items as declared, and `xbrief:preflight` no longer suggests adding a declaration. Refs #6591.

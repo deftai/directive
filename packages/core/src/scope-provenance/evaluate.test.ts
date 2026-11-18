@@ -2583,3 +2583,50 @@ describe("one-PR mint level same-PR record admit (#6273)", () => {
     expectRefused(evaluate({ basePolicy: { requireHumanMerge: false } }), null);
   });
 });
+
+describe("declaration-hides-axis rides with legacy-intent-edit warnings (#6591 item 4)", () => {
+  const REL = "xbrief/active/2026-11-18-hides.xbrief.json";
+  const withItems = (items: Record<string, unknown>[]): string =>
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "story-hides",
+        status: "running",
+        items,
+        metadata: { swarm: { file_scope: ["packages/core/src/a.ts"] } },
+      },
+    });
+  const run = (title: string) =>
+    evaluateScopeProvenance("/tmp/proj-6591", {
+      changedFiles: [REL],
+      activeXbriefs: new Map([
+        [REL, withItems([{ id: "clause.1", title, "x-directive/requires": "merge" }])],
+      ]),
+      baseXbriefs: new Map([[REL, withItems([{ id: "clause.1", title }])]]),
+      approvedRecords: [],
+      baseApprovedRecords: new Map(),
+    });
+
+  it("prints the declared line beside the soft findings; exit code and WARN count unchanged", () => {
+    // Control: the same declaration edit on text that infers no axis.
+    const control = run("Unit tests cover the parser.");
+    const hides = run("Deploy to staging and confirm the site serves the new build");
+    // The edit's legacy-intent-edit findings are warn-only soft findings, not
+    // hard findings, so the extra-path channel is still returned.
+    expect(control.exitCode).toBe(0);
+    expect(hides.exitCode).toBe(0);
+    expect(hides.findings.length).toBeGreaterThan(0);
+    expect(hides.findings.map((f) => f.kind)).toEqual(control.findings.map((f) => f.kind));
+    expect(hides.findings.every((f) => f.kind === "legacy-intent-edit")).toBe(true);
+    const count = `WARN ${hides.findings.length} intent-pin finding(s)`;
+    expect(control.message).toContain(count);
+    expect(hides.message).toContain(count);
+    expect(hides.message).not.toContain("declaration-hides-axis");
+    expect(control.extraPathReport).toBeUndefined();
+    expect(hides.extraPathReport).toHaveLength(1);
+    expect(hides.extraPathReport?.[0]).toContain("deft gate declaration-hides-axis ");
+    expect(hides.extraPathReport?.[0]).toContain(
+      `${REL} item clause.1: its declaration hides deploy`,
+    );
+  });
+});
