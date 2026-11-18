@@ -128,14 +128,17 @@ const HELP_FLAGS: ReadonlySet<string> = new Set(["--help", "-h"]);
 
 /**
  * The project a runtime command acts on, for the pin check: an explicit
- * `--project-root <path>` (or `=path`) wins, resolved against `cwd`; else
- * `fallback` (`DIRECTIVE_PROJECT_ROOT` or the working directory).
+ * `--project-root <path>` (or `=path`) wins, resolved against `cwd`; when it
+ * is repeated, the last one wins, as in the command handlers (task wrappers
+ * prepend one before the caller's own). Else `fallback`
+ * (`DIRECTIVE_PROJECT_ROOT` or the working directory).
  */
 export function runtimeCommandProjectRoot(
   argv: readonly string[],
   fallback: string,
   cwd: string = process.cwd(),
 ): string {
+  let found: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] ?? "";
     const value =
@@ -144,21 +147,29 @@ export function runtimeCommandProjectRoot(
         : arg.startsWith("--project-root=")
           ? arg.slice("--project-root=".length)
           : undefined;
-    if (value !== undefined && value.length > 0) return resolve(cwd, value);
+    if (value !== undefined && value.length > 0) found = value;
   }
-  return fallback;
+  return found === null ? fallback : resolve(cwd, found);
 }
 
 /**
- * True when `argv` runs a command the identity check leaves alone. Only the
- * first token decides, as in the router (`route-argv.ts`), plus a bare
- * `<verb> --help`; a flag value elsewhere (`--note --version`) never exempts.
+ * True when `argv` runs a command the identity check leaves alone. The first
+ * token decides, as in the router (`route-argv.ts`). A later `--help` / `-h`
+ * also exempts when it is a flag of its own: right after the verb, after an
+ * option's value, or after an `--option=value`; never as the value of a
+ * preceding bare option (`--note --help`), and `--version` never exempts
+ * after the first token.
  */
 export function isIdentityExempt(argv: readonly string[]): boolean {
   const first = argv[0];
   if (first === undefined) return true;
   if (EXEMPT_VERBS.has(first)) return true;
-  return argv.length === 2 && HELP_FLAGS.has(argv[1] ?? "");
+  for (let i = 1; i < argv.length; i++) {
+    if (!HELP_FLAGS.has(argv[i] ?? "")) continue;
+    const previous = argv[i - 1] ?? "";
+    if (i === 1 || !previous.startsWith("-") || previous.includes("=")) return true;
+  }
+  return false;
 }
 
 /**

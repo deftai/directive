@@ -97,7 +97,22 @@ describe("runtime pin check (AC2.6)", () => {
     expect(isIdentityExempt(["pre-pr:run", "--push-admit"])).toBe(false);
     // A flag value elsewhere never exempts (only the first token, as the router).
     expect(isIdentityExempt(["policy:allow-direct-commits", "--note", "--version"])).toBe(false);
-    expect(isIdentityExempt(["verify:encoding", "--staged", "--help"])).toBe(false);
+    expect(isIdentityExempt(["policy:allow-direct-commits", "--note", "--help"])).toBe(false);
+    // A help flag of its own still exempts, also after an option and its value.
+    expect(isIdentityExempt(["verify:story-ready", "--project-root", "/repo", "--help"])).toBe(
+      true,
+    );
+    expect(isIdentityExempt(["verify:story-ready", "--project-root=/repo", "-h"])).toBe(true);
+  });
+
+  it("uses the last --project-root, as the command handlers do", () => {
+    expect(
+      runtimeCommandProjectRoot(
+        ["verify:wip-cap", "--project-root", "/a", "--project-root", "/b"],
+        "/x",
+        "/",
+      ),
+    ).toBe("/b");
   });
 
   it("checks the project named by --project-root, not the working directory", () => {
