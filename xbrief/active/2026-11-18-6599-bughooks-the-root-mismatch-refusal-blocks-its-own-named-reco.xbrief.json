@@ -107,8 +107,8 @@
       }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": ["pnpm exec vitest run packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts packages/core/src/install-health/recovery-admit.test.ts"],
+      "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "one clause per sentence-list entry (29), in order (#6333)",
       "sentences": [
