@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6616,
+  "issue": 6022,
   "surfaces": [
-    "packages/core/src/class-checks/evaluate.ts",
-    "packages/core/src/class-checks/evaluate.test.ts",
+    "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6616 (polfer decision D-026): verify:class-checks class 4 now counts Directive's own wiring files (.githooks/**, .cursor/hooks.json, .cursor/hooks/**) only by committed changes (merge base to HEAD), when classifyDirectiveOwnedChange says the uncommitted change is Directive's own. Automatic setup rewrites these files in CI; those rewrites no longer fail story PRs. The report names each file it did not count. DEFAULT_PROTECTED_GLOBS and the rule for every other path are unchanged. Deliberate, reviewed gate change (#3156); disclosure only. Refs #6616."
+  "note": "Disclosure for #6022: in the root Taskfile.yml, the `upgrade` and `uninstall` alias descriptions now say the task is retired and name `directive upgrade` / `directive uninstall` (matching tasks/install.yml after #6661). The stale comment above `upgrade` that named `install-upgrade` is removed. The aliases still run the retired install:upgrade / install:uninstall tasks; no command, verifier or threshold changes. Disclosure only; not #3164 authorization. Refs #6022."
 }

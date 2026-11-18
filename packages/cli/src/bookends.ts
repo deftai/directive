@@ -1,6 +1,7 @@
 /**
  * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -146,8 +147,46 @@ export interface InstallDeps {
   readonly readScopedRegistry?: (projectRoot: string, env: NodeJS.ProcessEnv) => string | null;
 }
 
+/**
+ * Read-only: paths Git reports as modified or untracked under `.deft/core`
+ * (AC10.6 / RC-03, #6002). Empty when there is no Git repo, Git is missing,
+ * or `.deft/core` is ignored or clean. Never blocks the upgrade.
+ */
+export function listDeftCoreGitEdits(projectRoot: string): string[] {
+  if (!existsSync(join(projectRoot, ".deft", "core"))) return [];
+  const result = spawnSync(
+    "git",
+    [
+      "-C",
+      projectRoot,
+      "status",
+      "--porcelain=v1",
+      "-z",
+      "--untracked-files=all",
+      "--",
+      ".deft/core",
+    ],
+    // Read-only: no optional index refresh writes; bounded so a slow Git never stalls the plan.
+    { encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" }, timeout: 5000 },
+  );
+  if (result.error || result.status !== 0 || typeof result.stdout !== "string") return [];
+  const tokens = result.stdout.split("\0");
+  const paths: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const entry = tokens[i] ?? "";
+    if (entry.length < 4) continue;
+    const xy = entry.slice(0, 2);
+    paths.push(entry.slice(3));
+    // Rename / copy entries carry the original path as the next token.
+    if (xy.includes("R") || xy.includes("C")) i++;
+  }
+  return paths;
+}
+
 /** Testable seams for upgrade (extends install seams). */
 export interface UpgradeDeps extends InstallDeps {
+  /** Override the read-only `.deft/core` Git edit listing (#6002 tests). */
+  readonly listDeftCoreGitEdits?: (projectRoot: string) => readonly string[];
   readonly resolvePublishedContract?: (
     version: string,
   ) => { ok: true; contract: number } | { ok: false; message: string };
@@ -1243,6 +1282,10 @@ export function runUpgrade(
     needMigrate,
     oldStyle: state.oldStyle,
     convertShapeId: convertViaRemovals ? upgradeShape?.shapeId : null,
+    deftCoreGitEdits:
+      state.oldStyle || convertViaRemovals
+        ? (deps.listDeftCoreGitEdits ?? listDeftCoreGitEdits)(projectRoot)
+        : null,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
