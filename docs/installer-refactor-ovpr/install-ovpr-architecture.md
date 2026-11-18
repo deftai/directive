@@ -1,6 +1,6 @@
 # Install OVPR — Architecture (active)
 
-**Document revision:** **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text.
+**Document revision:** **v261118** (2026-11-18) — launcher entry order for pre-OVPR layouts. **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text; each carries the tag of the revision that last changed it.
 
 Compact map of the One Version Per Repo installer. Normative detail lives in [install-ovpr-requirements.md](./install-ovpr-requirements.md).
 
@@ -63,6 +63,7 @@ Install / upgrade / uninstall use one bounded launcher plan and a single approva
 
 - **Latest legacy (L0):** exact pre-split `@deftai/directive` pin + copied `.deft/core` → `directive upgrade` converts in place (strip triad + lockfile purge, pin runtime, setup, migrate).
 - **Older shapes (Wave 3):** detect → removal-step strategies or honest unsupported; see requirements AC10 / AC14 and history file.
+- **(v261118) Launcher entry order:** disable flag → no runtime pin and a pre-OVPR layout → old-layout message; otherwise the AC9.12 order. The host `.mjs` outer exists only in OVPR repos and never checks for an old layout.
 
 ## Self-hosting (`deftai/directive` itself)
 
