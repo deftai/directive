@@ -694,29 +694,32 @@ export interface RetiredCoreGuardRemoval {
   readonly removed: readonly string[];
   /** Paths left in place because they do not look like Directive's file. */
   readonly kept: readonly string[];
+  /** Paths that could not be read or deleted (an error, not an ownership mismatch). */
+  readonly failed: readonly string[];
 }
 
 /**
  * Remove the retired `deft-core-guard` workflow (#5835 / AC8.10). Same ownership
  * test the old emitter used: a regular file containing `name: deft-core-guard`.
  * A file at that path without the line looks user-edited and is kept (and named
- * in `kept`). No other workflow is touched. Upgrade and convert only.
+ * in `kept`). A file that cannot be read or deleted is named in `failed`.
+ * No other workflow is touched. Upgrade and convert only.
  */
 export function removeRetiredCoreGuardWorkflow(root: string): RetiredCoreGuardRemoval {
   const rel = RETIRED_CORE_GUARD_WORKFLOW_REL;
   const abs = join(root, rel);
+  const none = { removed: [], kept: [], failed: [] };
   try {
-    if (!lstatSync(abs).isFile()) return { removed: [], kept: [] };
+    if (!lstatSync(abs).isFile()) return none;
   } catch {
-    return { removed: [], kept: [] };
+    return none;
   }
   const body = readText(abs);
-  if (body === null || !body.includes(RETIRED_CORE_GUARD_NAME_LINE)) {
-    return { removed: [], kept: [rel] };
-  }
+  if (body === null) return { removed: [], kept: [], failed: [rel] };
+  if (!body.includes(RETIRED_CORE_GUARD_NAME_LINE)) return { removed: [], kept: [rel], failed: [] };
   return safeContainedRemove(root, rel)
-    ? { removed: [rel], kept: [] }
-    : { removed: [], kept: [rel] };
+    ? { removed: [rel], kept: [], failed: [] }
+    : { removed: [], kept: [], failed: [rel] };
 }
 
 /**

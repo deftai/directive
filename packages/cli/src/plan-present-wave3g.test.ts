@@ -372,6 +372,19 @@ describe("retired deft-core-guard workflow in upgrade output (#5835)", () => {
     expect(c.out()).not.toContain(RETIRED_CORE_GUARD_REMOVED_LINE);
   });
 
+  it("install success (old-layout conversion) shows the same removal notice", () => {
+    const c = capture();
+    presentInstallSuccess(c.io, {
+      version: "1.3.0",
+      projectRoot: "/tmp/shop",
+      pm: "npm",
+      summary: { created: [], modified: [], removed: [RETIRED_CORE_GUARD_WORKFLOW_REL] },
+      verbosity: 0,
+    });
+    expect(c.out()).toContain(`${RETIRED_CORE_GUARD_WORKFLOW_REL} (deleted)`);
+    expect(c.out()).toContain(RETIRED_CORE_GUARD_REMOVED_LINE);
+  });
+
   it("detectRetiredCoreGuard uses the same ownership test as the removal step", () => {
     const root = mkdtempSync(join(tmpdir(), "p2u4-detect-"));
     try {

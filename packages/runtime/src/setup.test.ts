@@ -574,6 +574,28 @@ describe("retired deft-core-guard workflow on upgrade (#5835)", () => {
     expect(readFileSync(join(root, guardRel), "utf8")).toBe("name: team-guard\n");
   });
 
+  it("install that converts an old layout also removes Directive's guard or names a kept one", () => {
+    const managed = tempRoot();
+    mkdirSync(join(managed, ".deft", "core"), { recursive: true });
+    writeFileSync(join(managed, ".deft", "core", "main.md"), "# c\n");
+    writeGuard(managed, "name: deft-core-guard\n");
+    const removedResult = runSetup({
+      operation: "install",
+      from: "vendored-core-go",
+      root: managed,
+    });
+    expect(removedResult.removed).toContain(guardRel);
+    expect(existsSync(join(managed, guardRel))).toBe(false);
+
+    const kept = tempRoot();
+    mkdirSync(join(kept, ".deft", "core"), { recursive: true });
+    writeFileSync(join(kept, ".deft", "core", "main.md"), "# c\n");
+    writeGuard(kept, "name: team-guard\n");
+    const keptResult = runSetup({ operation: "install", from: "vendored-core-go", root: kept });
+    expect(keptResult.preserved).toContain(guardRel);
+    expect(existsSync(join(kept, guardRel))).toBe(true);
+  });
+
   it("install and repair leave the guard in place", () => {
     for (const operation of ["install", "repair"] as const) {
       const root = tempRoot();

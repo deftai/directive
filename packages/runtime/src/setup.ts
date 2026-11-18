@@ -431,13 +431,17 @@ export function runSetup(options: {
       removed.push(...removeLegacyBareVersionMarkers(root));
     }
 
-    // #5835 / AC8.10: upgrade (any `from`) deletes the retired deft-core-guard
-    // workflow when it is Directive's file; a user-edited one is kept and named.
-    // Upgrade only: never install, repair, automatic setup or doctor.
-    if (operation === "upgrade") {
+    // #5835 / AC8.10: upgrade (any `from`) and convert delete the retired
+    // deft-core-guard workflow when it is Directive's file; a user-edited one is
+    // kept and named; a failed read/delete is a named conflict. Never ordinary
+    // install, repair, automatic setup or doctor.
+    if (operation === "upgrade" || convertViaRemovals) {
       const guard = removeRetiredCoreGuardWorkflow(root);
       removed.push(...guard.removed);
       keptRetired.push(...guard.kept);
+      for (const rel of guard.failed) {
+        conflicts.push(`${rel}: could not remove the retired deft-core-guard workflow`);
+      }
     }
 
     // AC8.10: inventory completeness is load-time evidence (throws if incomplete).
