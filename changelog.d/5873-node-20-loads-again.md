@@ -1,2 +1,2 @@
 section: Fixed
-- The runtime loads on Node 20 again (best effort, AC16). Five files imported `globSync` from `node:fs`, which Node 20 lacks, so every hook and `deft` command crashed at load. They now use a helper that calls `fs.globSync` on Node 22+ and a matching fallback on Node 20. `engines` stays `>=20`. Refs #5873.
+- The runtime loads on Node 20 again (best effort, AC16). Five files imported `globSync` from `node:fs`, which Node 20 lacks, so every hook and `deft` command crashed at load. They now use a helper that calls `fs.globSync` on Node 22+ and a matching fallback on Node 20. `engines` stays `>=20`. A non-blocking CI job now loads the runtime under Node 20, and three `import.meta.dirname` uses were replaced so Node 20.0-20.10 also work. Refs #5873.

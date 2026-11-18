@@ -259,7 +259,7 @@ export function resolveFrameworkRoot(): string {
   if (process.env.DEFT_ROOT && process.env.DEFT_ROOT.length > 0) {
     return resolve(process.env.DEFT_ROOT);
   }
-  return resolve(import.meta.dirname, "..", "..", "..", "..");
+  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 }
 
 function argvForSpec(
