@@ -33,6 +33,25 @@ export const NODE_EOL_NOTE =
 
 export const RECOVERY_GUIDANCE = "npm i -g @deftai/directive, then directive install --repair";
 
+/** Last launcher version that still shipped the pre-OVPR (pre-split) CLI. */
+export const LAST_PRE_OVPR_LAUNCHER_VERSION = "0.126.2";
+
+/**
+ * Old-repo message (RC-01, §A6.7 / AC10.2). Shown when a repo with no
+ * runtime pin is recognised as pre-OVPR (`recognisePreOvprLayout`).
+ */
+export const PRE_OVPR_LAYOUT_MESSAGE =
+  "This repo uses pre-OVPR Directive. Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`.";
+
+/**
+ * `deft-hook` when the runtime pin package is not installed (AC9.12 step 2).
+ * Same text as core `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE`; the launcher
+ * cannot import core (AC3.1).
+ */
+export const HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE =
+  "Directive hooks: missing node_modules/@deftai/directive-runtime. " +
+  "Run npm install or pnpm install (or yarn) in this project.";
+
 /** Env vars passed when spawning the runtime (AC4.2). */
 export const ENV_PROJECT_ROOT = "DIRECTIVE_PROJECT_ROOT";
 export const ENV_LAUNCHER_VERSION = "DIRECTIVE_LAUNCHER_VERSION";

@@ -15,6 +15,7 @@ import {
 } from "./constants.js";
 import { invokeRuntime } from "./contract-invoke.js";
 import { discoverProject, takeRootFlag } from "./discover.js";
+import { runHookLauncher } from "./hook-launcher.js";
 import { checkNodeVersion } from "./node-check.js";
 import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
 import { readLauncherVersion } from "./version.js";
@@ -277,6 +278,9 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
     io.writeErr(`No Directive project here. Run \`directive install\` inside a repository.\n`);
     return EXIT_CODES.FAILURE;
   }
+
+  // Old registrations call `deft hook:dispatch`: same path as `deft-hook` (#5960).
+  if (rawCmd === "hook:dispatch") return runHookLauncher(cmdArgv);
 
   // --- Old-style layout (§A6.7 / AC10.2): only upgrade / uninstall ---
   // --version / --help already returned above.
