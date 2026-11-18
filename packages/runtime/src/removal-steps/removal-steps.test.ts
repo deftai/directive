@@ -332,6 +332,22 @@ describe("runStrategy (ordered convert)", () => {
     expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("ok\n");
   });
 
+  it("#5838: vendored-core-go removes a 0.126 tutorial pointer that targets .deft/core", () => {
+    const root = tempRoot("p2u3-strat-ptr");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# c\n");
+    const rel = join(".claude", "skills", "deft-directive-tutorial", "SKILL.md");
+    mkdirSync(join(root, ".claude", "skills", "deft-directive-tutorial"), { recursive: true });
+    writeFileSync(
+      join(root, rel),
+      "---\nname: deft-directive-tutorial\n---\n\nRead and follow: .deft/core/skills/deft-directive-tutorial/SKILL.md\n",
+    );
+    const result = runStrategy("vendored-core-go", root);
+    expect(result.ok).toBe(true);
+    expect(result.removed).toContain(".claude/skills/deft-directive-tutorial/SKILL.md");
+    expect(existsSync(join(root, rel))).toBe(false);
+  });
+
   it("F-016: vendored-core-go keeps ensurePackageJson + runtime pin package.json", () => {
     // Bookend ensurePackageJson writes {private:true}; PM add pins runtime.
     // isSoleAuthorPackageJson would treat that as a husk — convert must not delete it.
