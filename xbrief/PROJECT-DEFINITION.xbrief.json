@@ -851,53 +851,6 @@
         }
       },
       {
-        "id": "2026-11-18-ovpr-p2-u11",
-        "title": "Drop Node 20 from supported engines (runtime needs Node 22+)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-11-18-ovpr-p2-u11.xbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/5873",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #5873: Drop Node 20 from supported engines (runtime needs Node 22+)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-11-18-ovpr-p2-u9",
-        "title": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-11-18-ovpr-p2-u9.xbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/5854",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #5854: directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6006",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6006"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/5860",
-              "type": "x-xbrief/refs",
-              "title": "Issue #5860"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/5797",
-              "type": "x-xbrief/refs",
-              "title": "Issue #5797"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-11-18-ovpr-p3-u1a",
         "title": "P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill)",
         "status": "running",

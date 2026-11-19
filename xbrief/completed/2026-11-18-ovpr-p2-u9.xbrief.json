@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5854",
-    "updated": "2026-11-18T14:47:23Z"
+    "updated": "2026-11-19T17:17:35Z"
   },
   "plan": {
     "title": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "OVPR fix plan unit P2-U9 (story id ovpr-p2-u9), spec units/P2-U9-pnpm-config-ownership.md (Outcome B), issue #5854, decision D-027. Since v0.129.0 (#5860) `directive install`, `upgrade` and `install --repair` rewrite the runtime row in pnpm's `minimumReleaseAgeExclude`, which can silently widen a strict release-age policy; pnpm owns that file (ledger Problem 13). This unit removes those writes, prints pnpm's own recovery when pnpm refuses an install as too new, and lists `pnpm-workspace.yaml` under 'Review and commit' when pnpm itself changed it. This brief was ingested for #5860 and parked; it is now rewritten for the Outcome B reversal.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5854",
@@ -24,42 +24,113 @@
     "items": [
       {
         "title": "`directive install`, `directive upgrade` and `directive install --repair` never write `pnpm-workspace.yaml`. A byte-compare test proves it for all three, including repair with no PM restore.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.1",
         "narrative": {
           "Acceptance": "Given a pnpm project with a `pnpm-workspace.yaml`, when `directive install`, `directive upgrade` or `directive install --repair` (including repair with no PM restore) runs with a stubbed package manager, then the file is byte-identical afterwards."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "When pnpm fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION` or `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`, the launcher prints the PM-shaped recovery naming the exact version and exits non-zero.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.2",
         "narrative": {
           "Acceptance": "Given a pnpm add that fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION` or `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`, when install, upgrade or repair runs, then the launcher prints the release-age recovery naming the exact runtime version and exits non-zero."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "When pnpm itself changed `pnpm-workspace.yaml` during the command, the post-op \"Review and commit\" list names it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.3",
         "narrative": {
           "Acceptance": "Given a pnpm add stub that rewrites `pnpm-workspace.yaml`, when the command finishes, then the \"Review and commit\" list names `pnpm-workspace.yaml`; given a stub that leaves it unchanged, then the list does not name it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The #5797 invariant test fails if any product code writes `pnpm-workspace.yaml`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.4",
         "narrative": {
           "Acceptance": "Given product code that writes `pnpm-workspace.yaml`, when the #5797 invariant test in `pm-ignored-builds.test.ts` runs, then it fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`UPGRADING.md` says the whole file is PM-owned and shows the recovery.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.5",
         "narrative": {
           "Acceptance": "Given `content/UPGRADING.md`, when its pnpm section is read, then it says the whole `pnpm-workspace.yaml` is owned by pnpm, including release-age settings, and shows the release-age recovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+          "recorded_at": "2026-11-19T17:17:35Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -703,9 +774,38 @@
         "acceptance_criteria_justification": "Five items: the five Outcome B acceptance criteria of unit spec P2-U9, one each (D-027)."
       },
       "kind": "story",
-      "productPullRequest": 6664
+      "productPullRequest": 6664,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "97d2c159655c40a6b852f13c1c3ce0139b6f63d1",
+        "prNumber": 6664,
+        "prBase": "master",
+        "mergeCommit": "691e8b81cc400442070c37ceaaa76b0a3c897c0a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8a4c6bcd605cd710798c06920b1efc156feef6d6",
+        "verifiedAt": "2026-11-19T17:17:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MGI1YzNiYWMtNzljZS00OWFmLWJjYzEtMjQ3MDA4NjM3M2Nl",
+        "identityBasis": "merge-time-mark",
+        "competingMarkedPrs": [
+          5860
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T17:17:35Z",
+      "completedSessionId": "host:claude:v1:MGI1YzNiYWMtNzljZS00OWFmLWJjYzEtMjQ3MDA4NjM3M2Nl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T17:17:35Z"
+      }
     },
     "id": "github.issue.5991776980",
-    "updated": "2026-11-18T14:47:23Z"
+    "updated": "2026-11-19T17:17:35Z"
   }
 }
