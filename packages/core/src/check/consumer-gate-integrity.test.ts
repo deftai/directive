@@ -161,7 +161,8 @@ tasks:
     expect(result.recovery).toBe(CONSUMER_GATE_INTEGRITY_RECOVERY);
     const formatted = formatConsumerGateIntegrityFailure(result);
     expect(formatted).toContain("consumer gate integrity failed");
-    expect(formatted).toContain("deft update");
+    expect(formatted).toContain("directive install --repair");
+    expect(formatted).not.toContain("deft update");
     expect(formatted).not.toMatch(/exit status 20[01]/);
   });
 

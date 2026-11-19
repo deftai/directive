@@ -205,8 +205,8 @@ export function upgradeCommandFor(pm: PackageManager = "npm"): string {
   return renderGlobalInstall(pm, `${ENGINE_PACKAGE}@latest`);
 }
 
-/** Vendored npm-managed deposit: global bump plus in-place `.deft/core/` refresh (#2115). */
-export const VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND = `${CANONICAL_UPGRADE_COMMAND} && deft update`;
+/** Vendored `.deft/core/` deposit (older layout): update the launcher, then convert with `directive upgrade` (#2115 / #5977). */
+export const VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND = `${CANONICAL_UPGRADE_COMMAND} && directive upgrade`;
 
 export const CLEAN_WINDOW_HOURS = 24;
 export const DIRTY_WINDOW_HOURS = 4;

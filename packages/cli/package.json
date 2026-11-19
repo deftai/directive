@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Directive launcher \u2014 finds the project pin and hands off to @deftai/directive-runtime.",
   "license": "MIT",
-  "homepage": "https://deftai.github.io/directive/",
+  "homepage": "https://github.com/deftai/directive#readme",
   "type": "module",
   "main": "./dist/bin.js",
   "bin": {

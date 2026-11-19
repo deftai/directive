@@ -1,39 +1,49 @@
 # Hook runtime unavailable
 
-Current Directive hooks invoke `node node_modules/@deftai/directive-runtime/dist/hook-bin.js …` (AC9.1 — not bare `deft-hook` on PATH). When the runtime package is absent, Node reports `Cannot find module '…/directive-runtime/dist/hook-bin.js'`. When that package-relative hook-bin cannot run, every host blocks the tool call, each in its own form: Cursor and Grok deny, and Claude and Codex block with exit 2 from the committed outer (#6201).
+Directive registers each agent hook as `node <host dir>/deft-hook-<sha8>.mjs --host <host> --event <event>` (AC9.1). That small committed file uses only Node built-ins. It checks, in this order (AC9.12):
 
-Tracker: [#3785](https://github.com/deftai/directive/issues/3785), [#5656](https://github.com/deftai/directive/issues/5656). Related: [#3736](https://github.com/deftai/directive/issues/3736) (timeout), [#3571](https://github.com/deftai/directive/issues/3571) (unused-host recovery), [#2752](https://github.com/deftai/directive/issues/2752) (per-host toggles).
+1. **Kill switch.** An untracked kill-switch file at the project root ([deft-directive-disable.md](./deft-directive-disable.md)): the hook allows the call and loads nothing else.
+2. **Runtime missing.** No `node_modules/@deftai/directive-runtime/dist/hook-bin.js`: the hook blocks the tool call and names the project install.
+3. **Otherwise** it runs the pinned runtime, which checks that the installed version matches the pin and then decides.
 
-## Per-host authority (#5656)
+Hooks never call `deft-hook` on `PATH`, a shell `.sh` wrapper, or `hook-bin.js` directly.
 
-| Host | Missing / non-decision package-relative hook-bin | Mechanism |
-| --- | --- | --- |
-| Cursor | Deny (opaque non-zero / Node cannot-find-module) | Schema `failClosed: true` on `preToolUse` |
-| Grok | Deny when the deposited wrapper starts | `.grok/hooks/deft-pretooluse-wrapper.sh` emits `{"decision":"deny",...}` when `node_modules/@deftai/directive-runtime/dist/hook-bin.js` is missing, node cannot run it, the child crashes, or stdout is malformed. Empty stdout + exit 0 stays Grok allow wire. **Residual:** wrapper-never-starts (missing `sh` / host timeout with no decision) is host-contract, not closed by Directive. |
-| Claude / Codex | **Blocks the tool call (exit 2)** | The committed outer `deft-hook-<sha8>.mjs` exits 2 on `tool.before` when the pin is missing or cannot decide (#6201). Other events keep exit 1, so they never block. |
+Tracker: [#3785](https://github.com/deftai/directive/issues/3785), [#5656](https://github.com/deftai/directive/issues/5656), [#5869](https://github.com/deftai/directive/issues/5869). Related: [#3736](https://github.com/deftai/directive/issues/3736) (timeout), [#3571](https://github.com/deftai/directive/issues/3571) (unused-host recovery), [#2752](https://github.com/deftai/directive/issues/2752) (per-host toggles).
 
-⊗ Do not read Cursor-only fail-closed prose as host-universal. ⊗ Do not treat a missing package-relative hook-bin as permission to edit on Grok — when the wrapper starts, missing runtime is a deny. ⊗ Do not teach or deposit bare `deft-hook` on PATH for current-path hooks (AC9.1).
+## What each host does
 
-When story-start (`scope:promote` / `scope:activate` / `xbrief:preflight`) is only prose+CLI because the hook never starts, that is the hook-absent case: closed for Grok by the outer deny + durable gate-off record + this naming (#5656 P3→P1).
+| Situation | Claude Code / Codex | Cursor | Grok |
+| --- | --- | --- | --- |
+| Runtime missing, or the runtime can't reach a decision | Blocks the tool call (exit 2) | Blocks (deny) | Blocks (deny) |
+| Installed runtime is not the pinned version | Blocks the tool call and names the project install. The exact install command may be let through when the hook can see the command's working folder; Codex often can't, so run it in a terminal outside the agent | Same | Same |
+| The hook never starts (Node missing, hook file not found, host timeout) | Carries on with a hook error; Directive never ran | Blocks (`failClosed: true`) | Host behaviour |
+
+Events other than a tool call (session start, compaction) never block (#6201).
+
+When the hook never starts, nothing from Directive runs, so the only signal left is the managed `AGENTS.md` text. It tells the agent to say once that Directive is not protecting the session, then continue, and never to install anything itself.
+
+Codex and Grok run hooks from the agent's current folder, and the registered path is relative to the project root. If the agent works in a subfolder, Node can't find the hook file and the hook never starts. Start the session at the project root and keep it there. See [known-limitations.md](./known-limitations.md).
 
 ## Who hits this
 
-Hook registrations are committed; `node_modules` is not. Fresh clones, new worktrees, cloud agent VMs, and CI images that skip the project package install inherit the fence without the package:
+Hook registrations are committed; `node_modules` is not. Anything that skips the project install inherits the hooks without the runtime:
 
-- cloud agent VMs whose image has no Node and no project `npm install`
-- CI runners and containers that never install `@deftai/directive-runtime`
-- a fresh clone on a new workstation before `npm install` / `directive install --repair`
+- a fresh clone or new worktree before `npm install` / `pnpm install --frozen-lockfile`
+- cloud agent VMs whose image has no Node or never runs the project install
+- CI runners and containers that never install the project packages
 
-## Preferred recovery (AC9.7)
+## Recovery
 
-```bash
-npm i -g @deftai/directive
-# in the project (after pull/clone):
-npm install   # or pnpm install
-directive install --repair
-```
+A person runs the fix in a terminal. The agent's own shell is blocked, and agents must not install anything themselves.
 
-CI / swarm images may use `directive install --repair --yes` with a valid exact pin.
+| What is wrong | Command |
+| --- | --- |
+| Runtime missing, or not the pinned version | `npm install`, or `pnpm install --frozen-lockfile` for pnpm |
+| Node missing | Install Node, then the project install |
+| Wiring damaged with the right runtime installed | `directive install --repair` |
+| `directive` command missing | `npm i -g @deftai/directive` |
+
+CI and swarm images may use `directive install --repair --yes` with a valid exact pin.
 
 ## Out-of-band escape (disable host hooks)
 
@@ -47,18 +57,18 @@ directive policy:disable-host-hooks --host codex --confirm
 directive install --repair   # or directive upgrade — refresh owned hook wiring
 ```
 
-That sets `plan.policy.hostHooks.<host> = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next repair/upgrade strips that host's registration (and the Grok wrapper deposit). Commit and push; the locked-out environment clears on its next pull or fresh clone.
+That sets `plan.policy.hostHooks.<host> = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next repair or upgrade removes that host's registration and hook file. Commit and push; the locked-out environment clears on its next pull or fresh clone.
 
-If the goal is to remove Directive entirely, follow the [full-stop recipe](./full-stop.md) before uninstalling — leftover `.cursor/hooks.json` can remain failClosed authority, and leftover Grok wrapper + registration can still deny when the host starts the wrapper.
+If the goal is to remove Directive entirely, follow the [full-stop recipe](./full-stop.md) before uninstalling — a leftover `.cursor/hooks.json` can still block, and a leftover registration on any host still runs the hook file.
 
-⚠ Capability cost: disabling `hostHooks` for a host removes package-relative hook-bin pre-execution guardrails for anyone who later opens this repo in that host. The change is tracked and recorded to `meta/policy-changes.log`. Inspect with `directive policy:show --field=hostHooks`; reverse by setting the host back to `true` and running `directive install --repair`.
+⚠ Capability cost: disabling `hostHooks` for a host removes Directive's checks before each tool call for anyone who later opens this repo in that host. The change is tracked and recorded to `meta/policy-changes.log`. Inspect with `directive policy:show --field=hostHooks`; reverse by setting the host back to `true` and running `directive install --repair`.
 
 ## Preferred fix: make the runtime travel with the registration
 
 If Cursor or Grok is a host you rely on, restore the runtime rather than removing the fence. Either:
 
 - commit a `package.json` dependency on `@deftai/directive-runtime` (or the launcher pin that installs it) — a published version or another spec a clone can fetch, since a location spec (`file:`, `link:`, `../directive`, an absolute path) resolves only on the machine that wrote it — and run `npm install` in the image or clone, which places `node_modules/@deftai/directive-runtime/dist/hook-bin.js`; or
-- ensure CI/images run `npm install` (or `directive install --repair`) so the package-relative hook-bin exists.
+- make sure CI and images run the project install (`npm install`, or `pnpm install --frozen-lockfile`) so the runtime exists.
 
 `directive install` / repair warn when a hook registration travels with the repository — already committed, or merely untracked and not ignored, so the next `git add` carries it — while neither anchor is present. The warning names the affected file and this document. For non-fail-closed travelers it also names **silent gate loss** and writes `.deft/hook-gate-off.json`.
 
@@ -66,21 +76,21 @@ See also [launcher.md](./launcher.md) and [known-limitations.md](./known-limitat
 
 ## ⊗ Do not hand-edit `failClosed` in the deposited hook file
 
-Setting `failClosed: false` in `.cursor/hooks.json` clears the block exactly once. That file is a managed deposit: the next repair/upgrade rewrites the entries with `failClosed: true` and **silently re-arms the lockout**, usually long after anyone remembers editing it. Use the policy verb above, which is durable and tracked. Do not delete the Grok wrapper by hand for the same reason.
+Setting `failClosed: false` in `.cursor/hooks.json` clears the block exactly once. That file is a managed deposit: the next repair/upgrade rewrites the entries with `failClosed: true` and **silently re-arms the lockout**, usually long after anyone remembers editing it. Use the policy verb above, which is durable and tracked. Do not delete hook files by hand for the same reason.
 
-## Why the flags do not help
+## What the flags do here
 
-| Escape hatch | Why it does not reach this failure |
+| Escape hatch | Effect on this failure |
 |---|---|
-| `.deft-directive-disable` | Evaluated *inside* the package-relative hook-bin. When the module is missing, nothing reads the flag. |
+| `.deft-directive-disable` | The hook file checks it first, so an untracked flag lets calls through even while the runtime is missing. It can't help when the hook never starts. |
 | `.no-deft-directive` | Consulted at `session.start` only; it never reaches `preToolUse`. |
 | Host-side "skip hook" | A host concept. Directive has no such bypass. |
 
-## Absent, crashed, and timed out (Cursor / Grok wrapper)
+## Absent, crashed, and timed out
 
-The hook exit contract already decouples the exit code from the verdict: exit `0` means a decision was **rendered** — allow *or* deny — so every non-zero exit is by construction a *non-decision*. On Cursor, absence, a crash, and a host timeout kill stay fail-closed via schema. On Grok, the deposited wrapper turns missing package-relative hook-bin / missing node / crash / malformed output into an explicit deny envelope when the wrapper itself starts.
+When the hook file runs, a missing runtime or a crash becomes a block in the host's own form (exit 2 on Claude Code and Codex, a deny on Cursor and Grok). Malformed output is checked only for Grok, where it becomes a deny; on the other hosts a successful runtime's output is passed through, and the host decides what malformed output means. When the hook file never starts, the host decides: Cursor blocks through `failClosed: true`; Claude Code and Codex carry on.
 
-They stay fail-closed on those hosts because fail-open-on-absence is a bypass primitive, not a lenience: removing `node_modules/@deftai/directive-runtime` is an ordinary filesystem operation, so treating absence as allow would convert a self-inflicted denial into a bypass of the write fence, the intent ceiling, the session ritual, and the occupancy lease ([#3156](https://github.com/deftai/directive/issues/3156)). Claude/Codex do not get that guarantee today — see the table above.
+Directive blocks rather than allows on a missing runtime because fail-open-on-absence is a bypass primitive, not a lenience: removing `node_modules/@deftai/directive-runtime` is an ordinary filesystem operation, so treating absence as allow would convert a self-inflicted denial into a bypass of the write fence, the intent ceiling, the session ritual, and the occupancy lease ([#3156](https://github.com/deftai/directive/issues/3156)). A hook that never starts is outside that guarantee on Claude Code and Codex — see the table above.
 
 For a timeout specifically, retry the gated ritual first when machine load is the likely cause; the Cursor / nested `tool.before` budget is sized for a gated ritual plus live readiness, so a repeated timeout is a real signal rather than noise.
 
