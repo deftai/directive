@@ -83,8 +83,9 @@ the v0.27 bare-file format). A drift between the manifest's `tag` and
 the bare `.deft-version` is reported by the framework doctor as a
 `manifest-agreement` check failure.
 
-Operators should NOT hand-edit `.deft-version` -- update the canonical
-manifest and re-run `task upgrade` to regenerate the derivative.
+Operators should NOT hand-edit `.deft-version`. `task upgrade` is retired
+(#6022); to upgrade now, run `directive upgrade`, which does not write this
+manifest (see the history note above).
 
 ## Writers
 
