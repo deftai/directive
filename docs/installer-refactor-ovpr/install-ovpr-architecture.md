@@ -1,6 +1,6 @@
 # Install OVPR — Architecture (active)
 
-**Document revision:** **v261118** (2026-11-18) — old projects run their own installed copy until upgraded; one recovery table; project install for a missing or mismatched runtime; launcher entry order for pre-OVPR layouts. **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text; each carries the tag of the revision that last changed it.
+**Document revision:** **v261119** (2026-11-19) — hook entries find the outer from any subfolder or worktree; payload project root is the Git checkout top. **v261118** (2026-11-18) — old projects run their own installed copy until upgraded; one recovery table; project install for a missing or mismatched runtime; launcher entry order for pre-OVPR layouts. **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text; each carries the tag of the revision that last changed it.
 
 Compact map of the One Version Per Repo installer. Normative detail lives in [install-ovpr-requirements.md](./install-ovpr-requirements.md).
 
