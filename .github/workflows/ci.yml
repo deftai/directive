@@ -68,6 +68,15 @@ jobs:
   # (#3678), so those PR/push runs run no vitest. Every merge_group run is
   # full-stack, so every commit that lands on master has passed the suite.
   # Primary/failover lane names must never be branch-protection required checks.
+  #
+  # Gate meaning on a master push (#6584): with the merge queue on, the group
+  # commit becomes the master commit. On a push, `changes` makes ONE lookup
+  # (script read from the base tree). A green `TypeScript (build + lint)` or
+  # `Merge gate (task check)` then means EITHER this run passed, OR the latest
+  # attempt of a `merge_group` run of this workflow passed this exact commit
+  # (both aggregators green); the aggregator logs that queue run URL and attempt.
+  # Any lookup doubt (no run, in progress, failure, API error, failed job) runs
+  # the full stack as before. Pull request and merge_group runs are unchanged.
   # -------------------------------------------------------------------------
 
   # -------------------------------------------------------------------------
@@ -84,6 +93,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       artifact_only: ${{ steps.predicate.outputs.artifact_only }}
+      queue_passed: ${{ steps.queue.outputs.queue_passed }}
+      queue_run_id: ${{ steps.queue.outputs.queue_run_id }}
+      queue_run_attempt: ${{ steps.queue.outputs.queue_run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -135,8 +147,37 @@ jobs:
           export ARTIFACT_ONLY_SCRIPT="$TRUST/artifact-only-lifecycle.mjs"
           bash "$TRUST/compute-artifact-only.sh"
 
+      # #6584: the ONE queue-reuse lookup. Runs only on a master push. The script is
+      # read from the push's base tree (as the predicate above is), so a pushed
+      # commit cannot change its own lookup. Any doubt (script absent on the base,
+      # no passed queue run, an API error) writes queue_passed=false and the full
+      # stack runs as before. If this step fails, its outputs are empty, which the
+      # downstream conditions also treat as "run everything".
+      - name: Look up a passed queue run for this commit (#6584)
+        id: queue
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          HEAD_SHA: ${{ github.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          ZERO="0000000000000000000000000000000000000000"
+          LOOKUP=".github/scripts/ci-queue-reuse-lookup.mjs"
+          if [ -z "${PUSH_BEFORE:-}" ] || [ "$PUSH_BEFORE" = "$ZERO" ] || ! git cat-file -e "${PUSH_BEFORE}:${LOOKUP}"; then
+            echo "Trusted lookup absent on ${PUSH_BEFORE:-empty}; running the full stack"
+            echo "queue_passed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TRUST="$(mktemp -d)"
+          git show "${PUSH_BEFORE}:${LOOKUP}" > "$TRUST/ci-queue-reuse-lookup.mjs"
+          node "$TRUST/ci-queue-reuse-lookup.mjs" || echo "queue_passed=false" >> "$GITHUB_OUTPUT"
+
   ts-primary:
     name: TypeScript (Blacksmith primary)
+    needs: [changes]
+    if: always() && needs.changes.outputs.queue_passed != 'true'
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: ts
@@ -145,7 +186,7 @@ jobs:
   merge-gate-primary:
     name: Merge gate (Blacksmith primary)
     needs: [changes]
-    if: always() && needs.changes.outputs.artifact_only != 'true'
+    if: always() && needs.changes.outputs.artifact_only != 'true' && needs.changes.outputs.queue_passed != 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -213,7 +254,7 @@ jobs:
   capacity-watchdog:
     name: Capacity watchdog
     needs: [changes]
-    if: always()
+    if: always() && needs.changes.outputs.queue_passed != 'true'
     runs-on: ubuntu-latest
     # Isolate from primary-lane cancel thrash: this job never needs: primaries
     # and is not selected by cancel-queued-ci-primary.mjs needles.
@@ -310,7 +351,7 @@ jobs:
   capacity-arm:
     name: Capacity arm (failover decision)
     needs: [changes, capacity-watchdog]
-    if: always()
+    if: always() && needs.changes.outputs.queue_passed != 'true'
     runs-on: ubuntu-latest
     outputs:
       ts_failover: ${{ steps.decide.outputs.ts_failover }}
@@ -393,8 +434,8 @@ jobs:
   # -------------------------------------------------------------------------
   ts-failover:
     name: TypeScript (GH-hosted failover)
-    needs: [capacity-arm]
-    if: always() && needs.capacity-arm.result == 'success' && needs.capacity-arm.outputs.ts_failover == 'true'
+    needs: [changes, capacity-arm]
+    if: always() && needs.changes.outputs.queue_passed != 'true' && needs.capacity-arm.result == 'success' && needs.capacity-arm.outputs.ts_failover == 'true'
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: ts
@@ -402,8 +443,8 @@ jobs:
 
   merge-gate-failover:
     name: Merge gate (GH-hosted failover)
-    needs: [capacity-arm]
-    if: always() && needs.capacity-arm.result == 'success' && needs.capacity-arm.outputs.merge_failover == 'true'
+    needs: [changes, capacity-arm]
+    if: always() && needs.changes.outputs.queue_passed != 'true' && needs.capacity-arm.result == 'success' && needs.capacity-arm.outputs.merge_failover == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -469,7 +510,7 @@ jobs:
   # -------------------------------------------------------------------------
   ts:
     name: TypeScript (build + lint)
-    needs: [capacity-arm, ts-failover]
+    needs: [changes, capacity-arm, ts-failover]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -479,6 +520,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}
           REPO: ${{ github.repository }}
+          QUEUE_PASSED: ${{ needs.changes.outputs.queue_passed }}
+          QUEUE_RUN_ID: ${{ needs.changes.outputs.queue_run_id }}
+          QUEUE_RUN_ATTEMPT: ${{ needs.changes.outputs.queue_run_attempt }}
           WANT_FAILOVER: ${{ needs.capacity-arm.outputs.ts_failover }}
           FAILOVER_RESULT: ${{ needs.ts-failover.result }}
           PRIMARY_NEEDLE: "typescript (blacksmith primary)"
@@ -488,7 +532,7 @@ jobs:
   merge-gate:
     name: Merge gate (task check)
     needs: [changes, capacity-arm, merge-gate-failover]
-    if: always() && needs.changes.outputs.artifact_only != 'true'
+    if: always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -497,6 +541,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}
           REPO: ${{ github.repository }}
+          QUEUE_PASSED: ${{ needs.changes.outputs.queue_passed }}
+          QUEUE_RUN_ID: ${{ needs.changes.outputs.queue_run_id }}
+          QUEUE_RUN_ATTEMPT: ${{ needs.changes.outputs.queue_run_attempt }}
           WANT_FAILOVER: ${{ needs.capacity-arm.outputs.merge_failover }}
           FAILOVER_RESULT: ${{ needs.merge-gate-failover.result }}
           PRIMARY_NEEDLE: "merge gate (blacksmith primary)"
@@ -511,7 +558,7 @@ jobs:
     # ships `migrate:vbrief` on current npm deposits.
     name: Windows (task dispatch regression)
     needs: [changes]
-    if: always() && needs.changes.outputs.artifact_only != 'true'
+    if: always() && needs.changes.outputs.artifact_only != 'true' && needs.changes.outputs.queue_passed != 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

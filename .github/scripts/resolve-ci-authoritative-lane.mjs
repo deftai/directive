@@ -6,6 +6,9 @@
  * Env:
  *   REPO, RUN_ID, GH_TOKEN (via gh), WANT_FAILOVER, FAILOVER_RESULT,
  *   PRIMARY_NEEDLE (lowercase substring of primary job name), SUITE_LABEL
+ *   QUEUE_PASSED, QUEUE_RUN_ID, QUEUE_RUN_ATTEMPT (optional, #6584): when
+ *   QUEUE_PASSED=true with an id and attempt, exit 0 citing that queue run and
+ *   make no API read.
  *
  * When WANT_FAILOVER=true, the GH-hosted failover job result is authoritative.
  * When WANT_FAILOVER=false, the Blacksmith primary is polled until completed.
@@ -91,6 +94,19 @@ export function resolveAuthoritativeLane(env, deps = {}) {
   if (!repo || !runId || needle == null || label == null) {
     console.error("REPO, RUN_ID, PRIMARY_NEEDLE, and SUITE_LABEL are required");
     return 2;
+  }
+
+  // #6584: on a master push the `changes` job made the one lookup and found a
+  // passed queue run of this workflow on this exact commit. Cite it; no second read.
+  const queueRunId = env.QUEUE_RUN_ID ?? "";
+  const queueAttempt = env.QUEUE_RUN_ATTEMPT ?? "";
+  if (env.QUEUE_PASSED === "true" && /^\d+$/.test(queueRunId) && /^\d+$/.test(queueAttempt)) {
+    console.log(
+      `Authoritative ${label} green via queue run (#6584): ` +
+        `https://github.com/${repo}/actions/runs/${queueRunId}/attempts/${queueAttempt} ` +
+        `(attempt ${queueAttempt})`,
+    );
+    return 0;
   }
 
   if (want) {
