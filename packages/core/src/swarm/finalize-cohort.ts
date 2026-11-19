@@ -35,6 +35,7 @@ import {
   type FetchPrChangedFilesFn,
   isDeliveryBriefLandPath,
   type MergeTimeForge,
+  PROJECT_DEFINITION_REGISTRY_REL,
   type PrChangedFile,
   SPEC_DRIFT_LEDGER_REL,
   SPEC_DRIFT_ROWS_DIR_REL,
@@ -1212,6 +1213,9 @@ export function derivedLifecycleRelsFromSweep(
     // the same lifecycle commit as the completed briefs (#680 P5 / #6231).
     if (sweep.stories.some((rec) => rec.ok)) {
       out.push(SPEC_DRIFT_LEDGER_REL);
+      // #6764: the move also rewrites the PROJECT-DEFINITION open-scope registry
+      // (#6689); it travels in the same commit as the completed briefs.
+      out.push(PROJECT_DEFINITION_REGISTRY_REL);
       // #6335: completions write per-story row files; they travel in the same
       // commit. The folder markers cover `git status` collapsing a new untracked
       // folder (`?? xbrief/.audit/spec-drift/`, or `?? xbrief/.audit/` when nothing

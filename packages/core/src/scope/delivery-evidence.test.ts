@@ -33,13 +33,17 @@ import {
   isDeliveryBriefLandExcluded,
   isDeliveryBriefLandPath,
   isEligibleStoredDeliveryDisposition,
+  isProjectDefinitionRegistryOnlyChange,
+  isProjectDefinitionRegistryPath,
   isSpecDriftRowFilePath,
   liveRunGh,
   MERGE_TIME_SCAN_WALL_CLOCK_MS,
   type MergedPrListNode,
   type MergeTimeForge,
+  movedBriefNamesFromPaths,
   NON_DELIVERY_DISPOSITIONS,
   PR_FILES_LISTING_CAP,
+  PROJECT_DEFINITION_REGISTRY_REL,
   type PrBodyRevision,
   type PrConnectionEvent,
   type PrFileEntry,
@@ -3686,5 +3690,103 @@ describe("isDeliveryBriefLandPath changelog entry paths (#6314)", () => {
     expect(isDeliveryBriefLandPath("changelog.d/sub/x.md")).toBe(false);
     expect(isDeliveryBriefLandPath("changelog.d/X.md")).toBe(false);
     expect(isDeliveryBriefLandPath("docs/CHANGELOG.md")).toBe(false);
+  });
+});
+
+describe("completion move carries the PROJECT-DEFINITION registry (#6764)", () => {
+  const pd = PROJECT_DEFINITION_REGISTRY_REL;
+  const row = "xbrief/.audit/spec-drift/github.issue.1.json";
+  const pdEntry: PrFileEntry = { status: "modified", filename: pd };
+  const rowEntry: PrFileEntry = { status: "added", filename: row };
+  const rename: PrFileEntry = {
+    status: "renamed",
+    filename: "xbrief/completed/a.xbrief.json",
+    previousFilename: "xbrief/active/a.xbrief.json",
+  };
+  const product: PrFileEntry = { status: "modified", filename: "packages/core/src/x.ts" };
+
+  it("names only the xbrief registry and keeps it out of the family on its own", () => {
+    expect(pd).toBe("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(isProjectDefinitionRegistryPath("xbrief\\PROJECT-DEFINITION.xbrief.json")).toBe(true);
+    expect(isProjectDefinitionRegistryPath("xbrief/specification.xbrief.json")).toBe(false);
+    expect(isDeliveryBriefLandPath(pd)).toBe(false);
+  });
+
+  it("treats brief move + row file + registry as a completion move only with a registry-only proof", () => {
+    const paths = ["xbrief/active/a.json", "xbrief/completed/a.json", row, pd];
+    const proven = { projectDefinitionRegistryOnly: true };
+    expect(isCompletionMoveShaped(paths, proven)).toBe(true);
+    expect(isDeliveryBriefLandExcluded([rename, rowEntry, pdEntry], proven)).toBe(true);
+    // Path names alone never admit the registry (Greptile P1 on #6772).
+    expect(isCompletionMoveShaped(paths)).toBe(false);
+    expect(isDeliveryBriefLandExcluded([rename, rowEntry, pdEntry])).toBe(false);
+  });
+
+  it("proves a PROJECT-DEFINITION change registry-only for the moved briefs only", () => {
+    const moved = movedBriefNamesFromPaths([
+      "xbrief/active/a.xbrief.json",
+      "xbrief/completed/a.xbrief.json",
+      "xbrief/.audit/spec-drift/github.issue.1.json",
+    ]);
+    expect([...moved]).toEqual(["a.xbrief.json"]);
+    const rowA = { id: "a", status: "running", metadata: { source_path: "active/a.xbrief.json" } };
+    const rowB = { id: "b", status: "running", metadata: { source_path: "active/b.xbrief.json" } };
+    const doc = (items: unknown[], refs: string[], requireHumanMerge = true, updated = "t1") => ({
+      xBRIEFInfo: { version: "0.8", updated },
+      plan: {
+        title: "p",
+        updated,
+        policy: { requireHumanMerge },
+        items,
+        references: refs.map((uri) => ({ uri, type: "x-xbrief/plan", title: "r" })),
+      },
+    });
+    const text = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
+    const base = doc([rowA, rowB], ["file://active/a.xbrief.json", "file://active/b.xbrief.json"]);
+    // The move of a: its row goes, its reference changes folder, stamps change.
+    const moveA = doc(
+      [rowB],
+      ["file://completed/a.xbrief.json", "file://active/b.xbrief.json"],
+      true,
+      "t2",
+    );
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(moveA), moved)).toBe(true);
+    // A policy edit beside the move is not registry-only.
+    const policy = doc(
+      [rowB],
+      ["file://completed/a.xbrief.json", "file://active/b.xbrief.json"],
+      false,
+    );
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(policy), moved)).toBe(false);
+    // Rows and references of a brief that did not move still count (Greptile P1 on #6772).
+    const refB = doc([rowB], ["file://completed/a.xbrief.json", "file://completed/b.xbrief.json"]);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(refB), moved)).toBe(false);
+    const rowBGone = doc([], ["file://completed/a.xbrief.json", "file://active/b.xbrief.json"]);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(rowBGone), moved)).toBe(false);
+    expect(isProjectDefinitionRegistryOnlyChange(null, text(moveA), moved)).toBe(false);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), "{not json", moved)).toBe(false);
+  });
+
+  it("does not treat the registry with product code, or without a completed brief, as lifecycle-only", () => {
+    const proven = { projectDefinitionRegistryOnly: true };
+    expect(isCompletionMoveShaped(["xbrief/completed/a.json", pd, "src/x.ts"], proven)).toBe(false);
+    expect(isDeliveryBriefLandExcluded([rename, pdEntry, product], proven)).toBe(false);
+    expect(isDeliveryBriefLandExcluded([pdEntry], proven)).toBe(false);
+    expect(
+      isDeliveryBriefLandExcluded(
+        [{ status: "modified", filename: "xbrief/active/a.json" }, pdEntry],
+        proven,
+      ),
+    ).toBe(false);
+    // A product file renamed into completed/ is still refused.
+    expect(
+      isDeliveryBriefLandExcluded(
+        [
+          { status: "renamed", filename: "xbrief/completed/a.json", previousFilename: "src/a.ts" },
+          pdEntry,
+        ],
+        proven,
+      ),
+    ).toBe(false);
   });
 });

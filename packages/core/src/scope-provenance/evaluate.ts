@@ -64,6 +64,11 @@ import {
 } from "../policy/one-pr-scope-proof.js";
 import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
 import type { RefusalDeclaration } from "../refusal-declarations/table.js";
+import {
+  isProjectDefinitionRegistryOnlyChange,
+  isProjectDefinitionRegistryPath,
+  movedBriefNamesFromPaths,
+} from "../scope/delivery-evidence.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
 import { parseGitHubRepoSlug } from "../text/redos-safe.js";
 import {
@@ -1153,6 +1158,32 @@ function evaluateWithRunner(
     if (read.status === "missing") return { kind: "missing" };
     return { kind: "error", message: read.message };
   };
+  // #6764: PROJECT-DEFINITION rides a completion move only when its change
+  // against the merge base is registry-only. Same base and head reads as the
+  // one-PR policy gate below.
+  let registryOnlyMemo: boolean | null = null;
+  const projectDefinitionRegistryOnly = (changedPaths: readonly string[]): boolean => {
+    if (registryOnlyMemo !== null) return registryOnlyMemo;
+    const baseRead = readPolicyAtMergeBase();
+    let headRaw: string | null = null;
+    if (options.headProjectDefinition !== undefined) {
+      headRaw = options.headProjectDefinition;
+    } else {
+      try {
+        headRaw = readFileSync(join(root, PROJECT_DEFINITION_REL_PATH), "utf8");
+      } catch {
+        headRaw = null;
+      }
+    }
+    registryOnlyMemo =
+      baseRead.kind === "text" &&
+      isProjectDefinitionRegistryOnlyChange(
+        baseRead.text,
+        headRaw,
+        movedBriefNamesFromPaths(changedPaths),
+      );
+    return registryOnlyMemo;
+  };
   let onePrGate: OnePrScopeProofGate | null = null;
   const resolveOnePrGate = (): OnePrScopeProofGate => {
     if (onePrGate !== null) return onePrGate;
@@ -1675,6 +1706,9 @@ function evaluateWithRunner(
     }
 
     const membershipInput = {
+      projectDefinitionRegistryOnly: changed.some((p) => isProjectDefinitionRegistryPath(p))
+        ? projectDefinitionRegistryOnly(changed)
+        : false,
       ...(membershipAllowanceScope !== undefined
         ? { allowanceScope: membershipAllowanceScope }
         : {}),

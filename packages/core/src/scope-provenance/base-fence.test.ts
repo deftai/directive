@@ -315,6 +315,37 @@ describe("spec-drift ledger membership under the completion-move shape (#680 P5 
     });
     expect(withProduct?.expandedPaths).toEqual([ROW]);
   });
+
+  it("admits PROJECT-DEFINITION beside the completed brief move only with a registry-only proof (#6764)", () => {
+    const PD = "xbrief/PROJECT-DEFINITION.xbrief.json";
+    const ROW = "xbrief/.audit/spec-drift/story-1.json";
+    const move = ["xbrief/active/story.xbrief.json", "xbrief/completed/story.xbrief.json", ROW, PD];
+    expect(
+      evaluateApprovedScopeMembership({
+        ...base,
+        projectDefinitionRegistryOnly: true,
+        changedFiles: move,
+      }),
+    ).toBeNull();
+    // Without the content proof (e.g. a policy edit rides along), the registry
+    // is never free, so the row file loses the completion shape too.
+    const unproven = evaluateApprovedScopeMembership({ ...base, changedFiles: move });
+    expect(unproven?.expandedPaths).toEqual(expect.arrayContaining([ROW, PD]));
+    const withProduct = evaluateApprovedScopeMembership({
+      ...base,
+      projectDefinitionRegistryOnly: true,
+      changedFiles: [...move, "packages/core/src/a.ts"],
+    });
+    expect(withProduct?.expandedPaths).toEqual(expect.arrayContaining([ROW, PD]));
+    expect(withProduct?.expandedPaths).toHaveLength(2);
+    const noCompletion = evaluateApprovedScopeMembership({
+      ...base,
+      projectDefinitionRegistryOnly: true,
+      exemptRelPaths: [],
+      changedFiles: ["xbrief/active/story.xbrief.json", PD],
+    });
+    expect(noCompletion?.expandedPaths).toEqual([PD]);
+  });
 });
 
 describe("evaluateApprovedScopeMembership (#4774)", () => {
