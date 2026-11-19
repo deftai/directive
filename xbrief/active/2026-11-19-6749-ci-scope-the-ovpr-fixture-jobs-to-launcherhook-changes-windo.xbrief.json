@@ -1,0 +1,501 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6749",
+    "updated": "2026-11-19T18:07:26Z"
+  },
+  "plan": {
+    "title": "ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests",
+    "status": "running",
+    "narratives": {
+      "Description": "ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6749",
+      "Overview": "\n1. Path script (P1, P3, P4). A new script `.github/scripts/ovpr-fixture-paths.mjs` reads a newline list of changed paths and prints `ovpr_paths=true` when any path matches the list in item 2, else `ovpr_paths=false`. It exports its matcher so a test can call it.\n2. Path list (P1, P3, P4): `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**`, `packages/content/**`, `packages/types/**`, `packages/core/package.json`, `packages/core/src/hooks/**`, `packages/core/src/deposit/**`, `packages/core/src/init-deposit/**`, `packages/core/src/install-contract/**`, `packages/core/src/install-health/**`, `packages/core/src/release-e2e/**`, `.github/workflows/ci.yml`, `.github/scripts/ovpr-fixture-paths.mjs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc`.\n3. `changes` job wiring (P1). A new step and an output `ovpr_paths` on the `changes` job. It runs only on `pull_request`. It lists files with `git diff --name-only --no-renames` between the merge base and the PR head (as `compute-artifact-only.sh` does), loads the script from the base tree with `git show \"${BASE}:<script>\"` (as the artifact-only predicate does), and passes branch names and SHAs through quoted environment variables. If the base is unusable, the script is absent on the base, or the diff fails, it writes `ovpr_paths=true`. It writes `false` only after a successful diff and match.\n4. ubuntu fixture (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`. A missing or empty output runs the job. Push and merge_group behaviour is unchanged.\n5. Windows fixture (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`. The workflow's push trigger is master only, so it runs on master pushes and not on pull requests or merge_group. Its header comment says it moves to pull requests or required only at the Phase 4 exit.\n6. Tests (P1-P4). In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: the `changes` job exposes `ovpr_paths`; both `if:` conditions are as in items 4 and 5; the matcher returns false for a docs-only list and a scope-code list (`packages/core/src/scope/...`), and true for a launcher file (`packages/cli/src/launcher.ts`), a hook file (`packages/core/src/hooks/...`) and a content-staging file (`packages/content/stage-pack.mjs`); the wiring writes `true` when the script is absent on the base or the base is unusable.\n\n## Acceptance Criteria\n\n- In `.github/workflows/ci.yml`, the `changes` job exposes an `ovpr_paths` output computed on pull requests from the merge-base diff by `.github/scripts/ovpr-fixture-paths.mjs` loaded from the base tree, and writes `true` when the base is unusable, the script is absent on the base, or the diff fails.\n- In `.github/workflows/ci.yml`, `ovpr-fixture` runs on a pull request unless `ovpr_paths` is exactly `false`, and still runs on push and merge_group when the change is not artifact-only.\n- In `.github/workflows/ci.yml`, `ovpr-fixture-windows` runs only on push events (master), not on pull requests or merge_group.\n- In `.github/scripts/ovpr-fixture-paths.mjs`, the path list covers the launcher, runtime, content and types packages, `packages/core/package.json`, the core hook, deposit, init-deposit, install-contract, install-health and release-e2e folders, `ci.yml`, the script itself, and the root toolchain files.\n- In `ci_lifecycle_lane.test.ts`, tests show a docs-only and a scope-code change set give `ovpr_paths=false`, a launcher, hook or content-staging change set gives `true`, and both job conditions are pinned.\n\n\n",
+      "Constraint": "- An ubuntu condition that requires `ovpr_paths == 'true'`, so a missing output skips the job (comment 7017568341, finding 1).\n- Filtering on all of `packages/core` (comment 7017568341, finding 2: it defeats the scope-code skip).\n- Workflow-level `paths:` filters (Stop 1 constraint).",
+      "Labels": "ci-cd, area:installer, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Path script (P1, P3, P4). A new script `.github/scripts/ovpr-fixture-paths.mjs` reads a newline list of changed paths and prints `ovpr_paths=true` when any path matches the list in item 2, else `ovpr_paths=false`. It exports its matcher so a test can call it.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Path list (P1, P3, P4): `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**`, `packages/content/**`, `packages/types/**`, `packages/core/package.json`, `packages/core/src/hooks/**`, `packages/core/src/deposit/**`, `packages/core/src/init-deposit/**`, `packages/core/src/install-contract/**`, `packages/core/src/install-health/**`, `packages/core/src/release-e2e/**`, `.github/workflows/ci.yml`, `.github/scripts/ovpr-fixture-paths.mjs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc`.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "`changes` job wiring (P1). A new step and an output `ovpr_paths` on the `changes` job. It runs only on `pull_request`. It lists files with `git diff --name-only --no-renames` between the merge base and the PR head (as `compute-artifact-only.sh` does), loads the script from the base tree with `git show \"${BASE}:<script>\"` (as the artifact-only predicate does), and passes branch names and SHAs through quoted environment variables. If the base is unusable, the script is absent on the base, or the diff fails, it writes `ovpr_paths=true`. It writes `false` only after a successful diff and match.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "ubuntu fixture (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`. A missing or empty output runs the job. Push and merge_group behaviour is unchanged.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Windows fixture (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`. The workflow's push trigger is master only, so it runs on master pushes and not on pull requests or merge_group. Its header comment says it moves to pull requests or required only at the Phase 4 exit.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Tests (P1-P4). In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: the `changes` job exposes `ovpr_paths`; both `if:` conditions are as in items 4 and 5; the matcher returns false for a docs-only list and a scope-code list (`packages/core/src/scope/...`), and true for a launcher file (`packages/cli/src/launcher.ts`), a hook file (`packages/core/src/hooks/...`) and a content-staging file (`packages/content/stage-pack.mjs`); the wiring writes `true` when the script is absent on the base or the base is unusable.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, the `changes` job exposes an `ovpr_paths` output computed on pull requests from the merge-base diff by `.github/scripts/ovpr-fixture-paths.mjs` loaded from the base tree, and writes `true` when the base is unusable, the script is absent on the base, or the diff fails.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, `ovpr-fixture` runs on a pull request unless `ovpr_paths` is exactly `false`, and still runs on push and merge_group when the change is not artifact-only.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "In `.github/workflows/ci.yml`, `ovpr-fixture-windows` runs only on push events (master), not on pull requests or merge_group.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "In `.github/scripts/ovpr-fixture-paths.mjs`, the path list covers the launcher, runtime, content and types packages, `packages/core/package.json`, the core hook, deposit, init-deposit, install-contract, install-health and release-e2e folders, `ci.yml`, the script itself, and the root toolchain files.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "In `ci_lifecycle_lane.test.ts`, tests show a docs-only and a scope-code change set give `ovpr_paths=false`, a launcher, hook or content-staging change set gives `true`, and both job conditions are pinned.",
+        "status": "proposed",
+        "id": "clause.11"
+      }
+    ],
+    "tags": [
+      "ci-cd",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6749",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6749: ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6698",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6698"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (11), in list order (#6333)",
+      "sentences": [
+        "Path script (P1, P3, P4). A new script `.github/scripts/ovpr-fixture-paths.mjs` reads a newline list of changed paths and prints `ovpr_paths=true` when any path matches the list in item 2, else `ovpr_paths=false`. It exports its matcher so a test can call it.",
+        "Path list (P1, P3, P4): `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**`, `packages/content/**`, `packages/types/**`, `packages/core/package.json`, `packages/core/src/hooks/**`, `packages/core/src/deposit/**`, `packages/core/src/init-deposit/**`, `packages/core/src/install-contract/**`, `packages/core/src/install-health/**`, `packages/core/src/release-e2e/**`, `.github/workflows/ci.yml`, `.github/scripts/ovpr-fixture-paths.mjs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc`.",
+        "`changes` job wiring (P1). A new step and an output `ovpr_paths` on the `changes` job. It runs only on `pull_request`. It lists files with `git diff --name-only --no-renames` between the merge base and the PR head (as `compute-artifact-only.sh` does), loads the script from the base tree with `git show \"${BASE}:<script>\"` (as the artifact-only predicate does), and passes branch names and SHAs through quoted environment variables. If the base is unusable, the script is absent on the base, or the diff fails, it writes `ovpr_paths=true`. It writes `false` only after a successful diff and match.",
+        "ubuntu fixture (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`. A missing or empty output runs the job. Push and merge_group behaviour is unchanged.",
+        "Windows fixture (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`. The workflow's push trigger is master only, so it runs on master pushes and not on pull requests or merge_group. Its header comment says it moves to pull requests or required only at the Phase 4 exit.",
+        "Tests (P1-P4). In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: the `changes` job exposes `ovpr_paths`; both `if:` conditions are as in items 4 and 5; the matcher returns false for a docs-only list and a scope-code list (`packages/core/src/scope/...`), and true for a launcher file (`packages/cli/src/launcher.ts`), a hook file (`packages/core/src/hooks/...`) and a content-staging file (`packages/content/stage-pack.mjs`); the wiring writes `true` when the script is absent on the base or the base is unusable.",
+        "In `.github/workflows/ci.yml`, the `changes` job exposes an `ovpr_paths` output computed on pull requests from the merge-base diff by `.github/scripts/ovpr-fixture-paths.mjs` loaded from the base tree, and writes `true` when the base is unusable, the script is absent on the base, or the diff fails.",
+        "In `.github/workflows/ci.yml`, `ovpr-fixture` runs on a pull request unless `ovpr_paths` is exactly `false`, and still runs on push and merge_group when the change is not artifact-only.",
+        "In `.github/workflows/ci.yml`, `ovpr-fixture-windows` runs only on push events (master), not on pull requests or merge_group.",
+        "In `.github/scripts/ovpr-fixture-paths.mjs`, the path list covers the launcher, runtime, content and types packages, `packages/core/package.json`, the core hook, deposit, init-deposit, install-contract, install-health and release-e2e folders, `ci.yml`, the script itself, and the root toolchain files.",
+        "In `ci_lifecycle_lane.test.ts`, tests show a docs-only and a scope-code change set give `ovpr_paths=false`, a launcher, hook or content-staging change set gives `true`, and both job conditions are pinned."
+      ],
+      "admitted_source_sentences": [
+        "Path script (P1, P3, P4). A new script `.github/scripts/ovpr-fixture-paths.mjs` reads a newline list of changed paths and prints `ovpr_paths=true` when any path matches the list in item 2, else `ovpr_paths=false`. It exports its matcher so a test can call it.",
+        "Path list (P1, P3, P4): `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**`, `packages/content/**`, `packages/types/**`, `packages/core/package.json`, `packages/core/src/hooks/**`, `packages/core/src/deposit/**`, `packages/core/src/init-deposit/**`, `packages/core/src/install-contract/**`, `packages/core/src/install-health/**`, `packages/core/src/release-e2e/**`, `.github/workflows/ci.yml`, `.github/scripts/ovpr-fixture-paths.mjs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc`.",
+        "`changes` job wiring (P1). A new step and an output `ovpr_paths` on the `changes` job. It runs only on `pull_request`. It lists files with `git diff --name-only --no-renames` between the merge base and the PR head (as `compute-artifact-only.sh` does), loads the script from the base tree with `git show \"${BASE}:<script>\"` (as the artifact-only predicate does), and passes branch names and SHAs through quoted environment variables. If the base is unusable, the script is absent on the base, or the diff fails, it writes `ovpr_paths=true`. It writes `false` only after a successful diff and match.",
+        "ubuntu fixture (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`. A missing or empty output runs the job. Push and merge_group behaviour is unchanged.",
+        "Windows fixture (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`. The workflow's push trigger is master only, so it runs on master pushes and not on pull requests or merge_group. Its header comment says it moves to pull requests or required only at the Phase 4 exit.",
+        "Tests (P1-P4). In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: the `changes` job exposes `ovpr_paths`; both `if:` conditions are as in items 4 and 5; the matcher returns false for a docs-only list and a scope-code list (`packages/core/src/scope/...`), and true for a launcher file (`packages/cli/src/launcher.ts`), a hook file (`packages/core/src/hooks/...`) and a content-staging file (`packages/content/stage-pack.mjs`); the wiring writes `true` when the script is absent on the base or the base is unusable.",
+        "In `.github/workflows/ci.yml`, the `changes` job exposes an `ovpr_paths` output computed on pull requests from the merge-base diff by `.github/scripts/ovpr-fixture-paths.mjs` loaded from the base tree, and writes `true` when the base is unusable, the script is absent on the base, or the diff fails.",
+        "In `.github/workflows/ci.yml`, `ovpr-fixture` runs on a pull request unless `ovpr_paths` is exactly `false`, and still runs on push and merge_group when the change is not artifact-only.",
+        "In `.github/workflows/ci.yml`, `ovpr-fixture-windows` runs only on push events (master), not on pull requests or merge_group.",
+        "In `.github/scripts/ovpr-fixture-paths.mjs`, the path list covers the launcher, runtime, content and types packages, `packages/core/package.json`, the core hook, deposit, init-deposit, install-contract, install-health and release-e2e folders, `ci.yml`, the script itself, and the root toolchain files.",
+        "In `ci_lifecycle_lane.test.ts`, tests show a docs-only and a scope-code change set give `ovpr_paths=false`, a launcher, hook or content-staging change set gives `true`, and both job conditions are pinned."
+      ],
+      "admitted_source_digest": "5d8264a9da6b8594815b4737de1297c07aa6f02289d0c0f0d305c8e525d5616a",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Path script (P1, P3, P4). A new script `.github/scripts/ovpr-fixture-paths.mjs` reads a newline list of changed paths and prints `ovpr_paths=true` when any path matches the list in item 2, else `ovpr_paths=false`. It exports its matcher so a test can call it.",
+          "artifact_path": ".github/scripts/ovpr-fixture-paths.mjs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Path list (P1, P3, P4): `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**`, `packages/content/**`, `packages/types/**`, `packages/core/package.json`, `packages/core/src/hooks/**`, `packages/core/src/deposit/**`, `packages/core/src/init-deposit/**`, `packages/core/src/install-contract/**`, `packages/core/src/install-health/**`, `packages/core/src/release-e2e/**`, `.github/workflows/ci.yml`, `.github/scripts/ovpr-fixture-paths.mjs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc`.",
+          "artifact_path": ".github/scripts/ovpr-fixture-paths.mjs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`changes` job wiring (P1). A new step and an output `ovpr_paths` on the `changes` job. It runs only on `pull_request`. It lists files with `git diff --name-only --no-renames` between the merge base and the PR head (as `compute-artifact-only.sh` does), loads the script from the base tree with `git show \"${BASE}:<script>\"` (as the artifact-only predicate does), and passes branch names and SHAs through quoted environment variables. If the base is unusable, the script is absent on the base, or the diff fails, it writes `ovpr_paths=true`. It writes `false` only after a successful diff and match.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "ubuntu fixture (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`. A missing or empty output runs the job. Push and merge_group behaviour is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Windows fixture (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`. The workflow's push trigger is master only, so it runs on master pushes and not on pull requests or merge_group. Its header comment says it moves to pull requests or required only at the Phase 4 exit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Tests (P1-P4). In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: the `changes` job exposes `ovpr_paths`; both `if:` conditions are as in items 4 and 5; the matcher returns false for a docs-only list and a scope-code list (`packages/core/src/scope/...`), and true for a launcher file (`packages/cli/src/launcher.ts`), a hook file (`packages/core/src/hooks/...`) and a content-staging file (`packages/content/stage-pack.mjs`); the wiring writes `true` when the script is absent on the base or the base is unusable.",
+          "artifact_path": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In `.github/workflows/ci.yml`, the `changes` job exposes an `ovpr_paths` output computed on pull requests from the merge-base diff by `.github/scripts/ovpr-fixture-paths.mjs` loaded from the base tree, and writes `true` when the base is unusable, the script is absent on the base, or the diff fails.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "In `.github/workflows/ci.yml`, `ovpr-fixture` runs on a pull request unless `ovpr_paths` is exactly `false`, and still runs on push and merge_group when the change is not artifact-only.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "In `.github/workflows/ci.yml`, `ovpr-fixture-windows` runs only on push events (master), not on pull requests or merge_group.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "In `.github/scripts/ovpr-fixture-paths.mjs`, the path list covers the launcher, runtime, content and types packages, `packages/core/package.json`, the core hook, deposit, init-deposit, install-contract, install-health and release-e2e folders, `ci.yml`, the script itself, and the root toolchain files.",
+          "artifact_path": ".github/scripts/ovpr-fixture-paths.mjs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "In `ci_lifecycle_lane.test.ts`, tests show a docs-only and a scope-code change set give `ovpr_paths=false`, a launcher, hook or content-staging change set gives `true`, and both job conditions are pinned.",
+          "artifact_path": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci.yml",
+          ".github/scripts/ovpr-fixture-paths.mjs",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts",
+          "packages/core/src/content-contracts/standards/merge_queue_6295.test.ts",
+          "changelog.d/6749-scope-ovpr-fixture-jobs.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "module_boundary": "CI workflow wiring for the two OVPR fixture jobs (.github/workflows/ci.yml changes job and the two fixture job conditions) plus one path-match script under .github/scripts and its content-contract test",
+        "cohesion_exemption": "xbrief/PROJECT-DEFINITION.xbrief.json (shared project record) is declared as-is; the story adds no code to it."
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Timing evidence\n\nSample: 123 `ci.yml` runs created after 2026-11-18T20:40Z, about 11 hours (65 pull_request, 32 merge_group, 26 push). Measured read-only through the REST API.\n\n| Job | Runs | Median | p90 | Total |\n|---|---|---|---|---|\n| OVPR lifecycle fixture (ubuntu) | 123 | 1.5 min | 1.7 min | 176 min |\n| OVPR lifecycle fixture (Windows) | 122 | 6.3 min | 8.0 min | 780 min |\n\n- Both fixture jobs together: 957 of 5,270 job-minutes (18.1%).\n- Billed, with Windows at 2x: 1,736 of 6,556 minutes (26.5%).\n- The Windows fixture uses 780 of 1,286 Windows minutes (60.7%).\n- 26 of the 65 PR runs were on PRs that touched no launcher, runtime, hook, deposit or install path. They used 199 fixture minutes. A path filter would have skipped these.\n- Wall-clock: the Windows fixture finished last in 16 of 122 runs and added about 1.1 min on average (3 min at most). The ubuntu job never finished last.\n- Release path: no impact. The jobs exist only in `ci.yml`, which does not run on tags. `release.yml` and `npm-publish.yml` do not call the fixture CLI.\n\nThe main cost is runner minutes, not wall-clock. The Windows leg on pull_request and merge_group is most of it.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7013657343,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7013657343",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T15:30:11Z",
+          "updated_at": "2026-11-19T15:30:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6749; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and the change decides which pull requests skip a lifecycle check, so its path list and event conditions need a design.\n\nTarget-digest: sha256:762e14950d6ac9eccf09e0c889188f7e38e56b6c14e9a41e4ac4b458e1104ffe\ndispatch-sha: cb381593b255970ac63cd3a424ae91e68fa0020f\ndest: .deft-scratch/worktrees/arc-6749 (pinKind origin-default, process-only-no-install; under the unbound activation worktree `C:/Repos/deft/wt/ow-6749-activate`)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; a CI workflow condition change; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show cb381593b255970ac63cd3a424ae91e68fa0020f: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\npain: P4\n\n## In plain English\nThe two OVPR lifecycle fixture jobs in `ci.yml` run on every pull request that is not artifact-only. Each does a full install and build, and the Windows leg is the expensive one. The recommended fix adds one path output to the existing `changes` job, runs the ubuntu fixture on a pull request only when that output says launcher, runtime, hook, deposit or install files changed, and runs the Windows leg on master pushes only. Neither job is in the merge gate's `needs`, so required checks do not change.\n\nPain source: the four pains are the issue's `## Acceptance Criteria` items as written. The timing comment (7013657343) is evidence for the cost, not extra criteria.\n\n## Pains\n- P1 — On pull requests, the OVPR fixture jobs run only when the change set touches launcher, runtime, hook, deposit or install files, through a path filter on the existing `changes` job outputs.\n- P2 — The Windows fixture leg runs on pushes to master (or a schedule), not on every pull request, until the Phase 4 exit makes it required.\n- P3 — A pull request that changes only unrelated files (for example docs or scope code) runs neither fixture job.\n- P4 — A pull request that changes a launcher or hook file still runs the fixture job.\n\n## Excluded (not pains, not in this arc)\n- Making either fixture job required, or adding it to the merge gate's `needs` (the Phase 4 exit, a separate reviewed change).\n- Other CI cost work (#6584, #6585, #6586), the `artifact_only` allowlist, and the queue-reuse lookup.\n- Ownership: the jobs were added by polfer in #6698 (installer/OVPR area). The operator relays polfer's approval to take this issue through to merge, limited to its four criteria.\n\n## Constraints (not pains)\n- No workflow-level `paths:` or `paths-ignore:` (ci_lifecycle_lane.test.ts 145-150 pins this; the required aggregators must still report).\n- No new gate, grant or policy flag. Required check names and the merge gate's `needs` do not change.\n- Fail-open for the fixture: when the path output cannot be computed (no usable base, unknown event), the ubuntu fixture runs.\n\n## Anchors at the dispatch SHA\n- `.github/workflows/ci.yml` 3-10 (`on:` pull_request, push to master, merge_group).\n- `.github/workflows/ci.yml` 91-175: the `changes` job. Outputs 94-98 (`artifact_only`, `queue_passed`, `queue_run_id`, `queue_run_attempt`); the predicate step 104-148 fetches the base and diffs against it with `fetch-depth: 0`; merge_group routes to the full stack at 119-123; `.github/scripts/compute-artifact-only.sh` 44 lists files with `git diff --name-only --no-renames --diff-filter=ACDMRT \"${BASE}...${TIP}\"`.\n- `.github/workflows/ci.yml` 1117-1157: `ovpr-fixture` (ubuntu, `if: always() && needs.changes.outputs.artifact_only != 'true'` at 1125, 12 min cap).\n- `.github/workflows/ci.yml` 1159-1191: `ovpr-fixture-windows` (windows-latest, same `if:` at 1165, 15 min cap, step 4 only).\n- `packages/core/src/release-e2e/packed-consumer.ts` 88-115: the fixture packs the launcher (`packages/cli`, `@deftai/directive`) and the runtime (`packages/runtime`, `@deftai/directive-runtime`) and installs both; `ovpr-lifecycle-fixture.ts` runs each host's registered hook command.\n- Tests that read ci.yml job blocks: `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts` (145-150 no workflow-level paths; 179-196 non-required jobs gate on `artifact_only`), `ci_queue_reuse.test.ts` 151-191, `merge_queue_6295.test.ts` 36-50. None names the fixture jobs today.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1). Add a step and an output `ovpr_paths` to the `changes` job. On `pull_request` it lists the changed files against the merge base (`git diff --name-only --no-renames origin/<base>...<head>`, as the predicate does) and writes `ovpr_paths=true` when any path matches the list in R2, else `false`. On any other event, or when the base is unusable, it writes `true`.\n- R2 (P1, P3, P4). The path list: `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**` (runtime, staging and pack scripts), `packages/core/src/hooks/**` (hook), `packages/core/src/deposit/**` and `packages/core/src/init-deposit/**` (deposit), `packages/core/src/install-contract/**` and `packages/core/src/install-health/**` (install), `packages/core/src/release-e2e/**` (the fixture itself), `.github/workflows/ci.yml`, and `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc` (toolchain and dependencies).\n- R3 (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths == 'true')`. Push and merge_group behaviour is unchanged.\n- R4 (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`, so it runs on master pushes only (the workflow's push trigger is master only). Its header comment says why and names the Phase 4 exit.\n- R5 (P1-P4). A test in `ci_lifecycle_lane.test.ts` pins the `ovpr_paths` output, both `if:` conditions and the path list, and runs the path-match logic on a docs-only list, a scope-code list (`packages/core/src/scope/...`) and a launcher or hook list.\n\nQuestions for the critic:\n1. Is the R2 path list right for \"launcher, runtime, hook, deposit or install files\"? The runtime bundle stages all of `packages/core`, so a change elsewhere in core can still break the fixture; is a named list the right trade, or should the list be broader?\n2. Should the path logic live inline in the `changes` job, or in a script under `.github/scripts/` read from the base tree like the artifact-only predicate? The fixture jobs are advisory, and HEAD's workflow already decides their conditions on a pull request.\n3. Is master push enough for the Windows leg, given that with queue reuse (#6584) a push can skip other jobs, or should it also run on a schedule?\n4. Should the ubuntu fixture keep running on merge_group, or follow the path filter there too?\n\n",
+          "id": 7017511745,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7017511745",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T17:59:01Z",
+          "updated_at": "2026-11-19T17:59:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7017515975\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: cb381593b255970ac63cd3a424ae91e68fa0020f\ndest: .deft-scratch/worktrees/arc-6749 (under `C:/Repos/deft/wt/ow-6749-activate`)\nverification-path: pin-read git show cb381593b255970ac63cd3a424ae91e68fa0020f: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7017511745\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7017515975,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7017515975",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T17:59:12Z",
+          "updated_at": "2026-11-19T17:59:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThese advisory fixtures spend runner time on changes that do not need immediate lifecycle feedback, especially on Windows. The proposed event split is sensible, but the Ubuntu condition needs correction: it currently skips the fixture when the path output is missing, contrary to the stated fallback.\n\nMy answers to the four questions:\n\n1. Keep a named path list rather than all core code, but include the direct packaging inputs missing from R2. Describe it as selective PR coverage, not a complete dependency boundary.\n2. Prefer a small script read from the base tree, following the existing predicate mechanism. Include that script’s path in the trigger list. This permits behavioral tests and preserves the existing trust boundary.\n3. Master pushes are sufficient for the proposed advisory Windows coverage. R4 does not consult `queue_passed`, so queue reuse does not suppress it. A schedule is unnecessary for this scope.\n4. Keep Ubuntu running on merge groups. That retains integrated lifecycle coverage for changes deliberately excluded from PR filtering.\n\nVerification used pinned source reads at `cb381593b255970ac63cd3a424ae91e68fa0020f`. No tests, builds, writes, or network calls were performed.\n\n### 1. blocks-the-design — Missing path output suppresses the fallback\n\n**Evidence:** `.github/workflows/ci.yml:150–155` explicitly treats empty queue outputs as “run everything.” The existing fixture condition at lines 1124–1125 likewise skips only an explicit `artifact_only=true`. R3 instead requires an explicit `ovpr_paths=true` on PRs.\n\n**Failure mode:** Checkout or an earlier step fails, or the new predicate fails before emitting its output. `ovpr_paths` is empty, so R3 skips Ubuntu even though the change set was never established as unrelated. R1’s fallback inside the predicate cannot cover a predicate that never runs.\n\n**Disposition:** Change R3 to skip only an explicit negative result:\n\n`always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`\n\nEmit `false` only after successful diff collection and matching. Extend R5 to cover missing output, failed diff, and unusable base, alongside the positive and negative path cases. The design cannot bind with R3 as written.\n\n### 2. sharpens-framing — R2 omits direct runtime packaging inputs\n\n**Evidence:** `packages/core/src/release-e2e/packed-consumer.ts:94–114` packs and installs the launcher and runtime. `packages/runtime/scripts/stage-bundle.mjs:39–60` names core, types, and content as private runtime inputs; lines 112–124 copy types and core output; lines 135–147 execute `packages/content/stage-pack.mjs` and copy its result. None of `packages/content/**`, `packages/types/**`, or `packages/core/package.json` appears in R2.\n\n**Failure mode:** A content-staging or private-package metadata change can break the packed installation while being classified as unrelated on the PR. This is a direct packaging omission, beyond the acknowledged possibility that arbitrary core code affects the fixture.\n\n**Disposition:** Retain selective PR coverage, but add these direct packaging inputs and regression examples to R2/R5. Explicitly accept delayed feedback for other excluded core changes, covered by the unfiltered Ubuntu merge-group run.\n\nThe strongest alternative is filtering on all core changes: it avoids maintaining an incomplete dependency approximation. I reject that for this scope because it defeats the explicit scope-code skip criterion. Requiring complete lifecycle coverage before queue entry would change that judgment.\n\n### 3. footnote — Preserve the existing predicate trust boundary\n\n`.github/workflows/ci.yml:134–148` deliberately loads predicate code from the base tree so a PR cannot change its own classification through the script. Reuse that pattern for the new script, including “script absent → run fixture” on its first landing.\n\nThis is a limited protection: the PR workflow itself remains a separate control surface. Pass branch names through quoted environment variables, as the existing workflow does, rather than interpolating untrusted values into shell source.\n\n### 4. footnote — Envelope ceiling differs from the single-seat contract\n\nThe envelope sets ceiling `7017515975`; the Stop 1 write-back is `7017511745`. The pinned contract’s “Envelope and ceiling” section specifies the write-back as the round-one ceiling for a single critic; its post-deposit exception applies to two or more critics.\n\nI honored the explicit envelope ceiling. The intervening deposit supplies dispatch bookkeeping, not another critic’s verdict. This is a parent-side protocol discrepancy, not a product-design blocker.",
+          "id": 7017568341,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7017568341",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T18:01:29Z",
+          "updated_at": "2026-11-19T18:01:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7017511745 (round 1: 1 of 1 critic posted, comment 7017568341)\n\n## In plain English\nProblem: the two OVPR lifecycle fixture jobs in `ci.yml` run on every pull request that is not artifact-only, each with a full install and build. The Windows leg is most of the cost.\n\nWhat the critic found: the event split is right (ubuntu filtered on pull requests and kept on merge_group and push; Windows on master push only, with no schedule needed). One part of the first draft did not hold: the ubuntu condition skipped the job when the path output was missing, so a failed or absent predicate would skip the fixture instead of running it. One point was made sharper: the path list missed direct packaging inputs of the runtime bundle (`packages/content/**`, `packages/types/**`, `packages/core/package.json`). The critic also advised a small script read from the base tree, like the artifact-only predicate, so a pull request cannot change its own classification and the matching can be tested.\n\nSolution this lean proposes: a base-tree script decides `ovpr_paths` on pull requests from the merge-base diff and a named path list. The ubuntu fixture skips on a pull request only when that output is exactly `false`; missing, failed or unusable means it runs. The Windows leg runs only on push (master only). Other core changes get their fixture feedback on merge_group, where the ubuntu job still runs unfiltered.\n\nWhat this adds: no new gate, grant or policy flag. Required check names and the merge gate's `needs` do not change.\n\nWhat it does not do:\n- It does not make either fixture job required.\n- It does not filter on all of `packages/core`; core changes outside the list are covered on merge_group, not on the pull request.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:762e14950d6ac9eccf09e0c889188f7e38e56b6c14e9a41e4ac4b458e1104ffe\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7017568341). Panel deposit: comment 7017515975.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. Path script (P1, P3, P4). A new script `.github/scripts/ovpr-fixture-paths.mjs` reads a newline list of changed paths and prints `ovpr_paths=true` when any path matches the list in item 2, else `ovpr_paths=false`. It exports its matcher so a test can call it.\n2. Path list (P1, P3, P4): `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**`, `packages/content/**`, `packages/types/**`, `packages/core/package.json`, `packages/core/src/hooks/**`, `packages/core/src/deposit/**`, `packages/core/src/init-deposit/**`, `packages/core/src/install-contract/**`, `packages/core/src/install-health/**`, `packages/core/src/release-e2e/**`, `.github/workflows/ci.yml`, `.github/scripts/ovpr-fixture-paths.mjs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc`.\n3. `changes` job wiring (P1). A new step and an output `ovpr_paths` on the `changes` job. It runs only on `pull_request`. It lists files with `git diff --name-only --no-renames` between the merge base and the PR head (as `compute-artifact-only.sh` does), loads the script from the base tree with `git show \"${BASE}:<script>\"` (as the artifact-only predicate does), and passes branch names and SHAs through quoted environment variables. If the base is unusable, the script is absent on the base, or the diff fails, it writes `ovpr_paths=true`. It writes `false` only after a successful diff and match.\n4. ubuntu fixture (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`. A missing or empty output runs the job. Push and merge_group behaviour is unchanged.\n5. Windows fixture (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`. The workflow's push trigger is master only, so it runs on master pushes and not on pull requests or merge_group. Its header comment says it moves to pull requests or required only at the Phase 4 exit.\n6. Tests (P1-P4). In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: the `changes` job exposes `ovpr_paths`; both `if:` conditions are as in items 4 and 5; the matcher returns false for a docs-only list and a scope-code list (`packages/core/src/scope/...`), and true for a launcher file (`packages/cli/src/launcher.ts`), a hook file (`packages/core/src/hooks/...`) and a content-staging file (`packages/content/stage-pack.mjs`); the wiring writes `true` when the script is absent on the base or the base is unusable.\n\n## Acceptance Criteria\n- In `.github/workflows/ci.yml`, the `changes` job exposes an `ovpr_paths` output computed on pull requests from the merge-base diff by `.github/scripts/ovpr-fixture-paths.mjs` loaded from the base tree, and writes `true` when the base is unusable, the script is absent on the base, or the diff fails.\n- In `.github/workflows/ci.yml`, `ovpr-fixture` runs on a pull request unless `ovpr_paths` is exactly `false`, and still runs on push and merge_group when the change is not artifact-only.\n- In `.github/workflows/ci.yml`, `ovpr-fixture-windows` runs only on push events (master), not on pull requests or merge_group.\n- In `.github/scripts/ovpr-fixture-paths.mjs`, the path list covers the launcher, runtime, content and types packages, `packages/core/package.json`, the core hook, deposit, init-deposit, install-contract, install-health and release-e2e folders, `ci.yml`, the script itself, and the root toolchain files.\n- In `ci_lifecycle_lane.test.ts`, tests show a docs-only and a scope-code change set give `ovpr_paths=false`, a launcher, hook or content-staging change set gives `true`, and both job conditions are pinned.\n\n## Reject\n- An ubuntu condition that requires `ovpr_paths == 'true'`, so a missing output skips the job (comment 7017568341, finding 1).\n- Filtering on all of `packages/core` (comment 7017568341, finding 2: it defeats the scope-code skip).\n- Workflow-level `paths:` filters (Stop 1 constraint).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7017568341 | 1. Missing path output suppresses the fallback | blocks-the-design | accept-into-contract (items 3 and 4) |\n| comment 7017568341 | 2. R2 omits direct runtime packaging inputs | sharpens-framing | accept-into-contract (items 2 and 6) |\n\nFootnotes in the census, no take: comment 7017568341 findings 3 (reflected in items 1 and 3) and 4 (the ceiling is the deposit id, as on earlier single-seat arcs; no verdict sits between).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 7017579815,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7017579815",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T18:01:57Z",
+          "updated_at": "2026-11-19T18:01:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:8e8d01fcb840352247319744fd3d89b332ec912841559de10707b49b046fe24a\n\n## In plain English\n\nAll four pain claims hold. The bound design removes unnecessary fixture runs from ordinary unrelated pull requests, keeps Ubuntu coverage for launcher and hook changes, and moves Windows coverage to master pushes. Classification failures deliberately retain Ubuntu coverage. No mechanism or acceptance-criteria change is needed.\n\nThis is a design verdict from source reads at `cb381593b255970ac63cd3a424ae91e68fa0020f`, not an implementation test result.\n\npain-P1: holds - Items 1–4 add selective PR coverage through the existing `changes` output mechanism (`.github/workflows/ci.yml:91–148`). The expanded packaging paths match the runtime’s private inputs (`packages/runtime/scripts/stage-bundle.mjs:39–60,112–147`). The fallback honors Stop 1’s explicit uncertainty exception.\n\npain-P2: holds - Item 5 excludes pull requests and merge groups. Push events target master only (`.github/workflows/ci.yml:3–10`), and the condition does not consult queue reuse. Existing artifact-only skipping remains intact.\n\npain-P3: holds - With successful classification, docs-only and scope-code changes match none of item 2’s paths, so Ubuntu skips; Windows skips every PR. Missing classification runs Ubuntu as Stop 1 expressly requires. Item 6 covers both unrelated-change examples.\n\npain-P4: holds - Launcher and hook paths explicitly match item 2, retaining Ubuntu coverage. These paths are outside the existing artifact-only allowlist (`.github/scripts/artifact-only-lifecycle.mjs:32–51`), so that independent condition does not suppress them. Item 6 includes positive matcher cases.\n\n### 1. footnote — Thread instructions remain review data\n\nComment 7017568341 contains imperatives such as “Emit `false` only after successful diff collection and matching” and “Extend R5.” These were treated as prior review recommendations, not commands to this audit. The verdict evaluates their inclusion in the bound design. No embedded instruction was executed, and this observation requires no contract change.\n\nNo files were changed, tests or builds run, network accessed, or comments posted.",
+          "id": 7017627340,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7017627340",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T18:03:55Z",
+          "updated_at": "2026-11-19T18:03:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7017579815. Dispatch SHA: cb381593b255970ac63cd3a424ae91e68fa0020f. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. Both critic posts are from one family (Codex), so their agreement is not counted as extra confirmation. No tests or builds were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Both fixture jobs run on every non-artifact-only event (`if: always() && needs.changes.outputs.artifact_only != 'true'`) and neither is in the merge gate's `needs` | verified | parent pin-read of `.github/workflows/ci.yml` 532-535, 1117-1125, 1159-1165 |\n| 2 | The `changes` job already diffs against the merge base and loads its predicate script from the base tree | verified | parent pin-read of `.github/workflows/ci.yml` 91-148 and `.github/scripts/compute-artifact-only.sh` 44; critic 7017568341 finding 3 |\n| 3 | The push trigger is master only, and merge_group is a separate event | verified | parent pin-read of `.github/workflows/ci.yml` 3-10 |\n| 4 | The runtime bundle stages core, types and content, so those packages are direct packaging inputs | verified | parent pin-read of `packages/runtime/scripts/stage-bundle.mjs` 135-147; critic 7017568341 finding 2 (39-60, 112-147) |\n| 5 | Workflow-level `paths:` filters are pinned out by a test | verified | parent pin-read of `ci_lifecycle_lane.test.ts` 145-150 |\n| 6 | The Bound remedy relieves P1-P4 | verified as design coverage | audit 7017627340 on the bound lean (all four hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 7 | Core changes outside the path list still get fixture feedback before landing | endorsed, not verified | the ubuntu job stays unfiltered on merge_group (lean item 4); observed in CI after the build |\n\n",
+          "id": 7017642678,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7017642678",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T18:04:33Z",
+          "updated_at": "2026-11-19T18:04:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: the two OVPR lifecycle fixture jobs in `ci.yml` run on every pull request that is not artifact-only, each with a full install and build. The Windows leg is most of the cost.\n\nAccepted solution: a small script, loaded from the base tree by the `changes` job, sets an `ovpr_paths` output on pull requests from the merge-base diff and a named list of launcher, runtime, content, types, hook, deposit, install, fixture and toolchain paths. The ubuntu fixture skips on a pull request only when that output is exactly `false`; a missing or failed classification runs it. It still runs on push and merge_group. The Windows leg runs on master pushes only. Tests pin both conditions and show docs-only and scope-code changes skip while launcher, hook and content-staging changes run.\n\nLimits accepted: core changes outside the list get fixture feedback on merge_group, not on the pull request. Neither job becomes required. It was checked by reading the source at the pinned commit; nothing was installed or run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7017579815.\nverified-claims table 7017642678\n\nConfirm conjunct: yolo standing (Stop 1 7017511745, `yolo-standing: on`). Round-1 critic: comment 7017568341, posted by the parent verbatim as disclosed on panel-deposit 7017515975; its two classified findings are accepted on the lean. Clean audit of the bound lean: comment 7017627340 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 6.\n\n",
+          "id": 7017643507,
+          "html_url": "https://github.com/deftai/directive/issues/6749#issuecomment-7017643507",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T18:04:35Z",
+          "updated_at": "2026-11-19T18:04:35Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "The two advisory jobs #6698 added to `.github/workflows/ci.yml`, `ovpr-fixture` (ubuntu, 12 min cap) and `ovpr-fixture-windows` (windows-latest, 15 min cap), run on every PR that is not artifact-only. Each does a full `pnpm install` and build. They are not in the merge gate's `needs`, but they add runner time to every PR, while #6584, #6585 and #6586 are removing CI cost.\n\n## Acceptance Criteria\n\n- [ ] On pull requests, the OVPR fixture jobs run only when the change set touches launcher, runtime, hook, deposit or install files (a path filter through the existing `changes` job outputs).\n- [ ] The Windows fixture leg runs on pushes to master (or a schedule), not on every pull request, until the Phase 4 exit makes it required.\n- [ ] A pull request that changes only unrelated files (for example docs or scope code) runs neither fixture job.\n- [ ] A pull request that changes a launcher or hook file still runs the fixture job.\n\nRefs #6698, #6614, #6621, #6586\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6481116939,
+        "origin": "deftai/directive#6749",
+        "id": "github.issue.6481116939"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "762e14950d6ac9eccf09e0c889188f7e38e56b6c14e9a41e4ac4b458e1104ffe"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6749,
+        "leanCommentId": 7017579815,
+        "harvestDigest": "8e8d01fcb840352247319744fd3d89b332ec912841559de10707b49b046fe24a",
+        "slice": null
+      },
+      "swarm": {
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/scripts/ovpr-fixture-paths.mjs",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts",
+          "packages/core/src/content-contracts/standards/merge_queue_6295.test.ts",
+          "changelog.d/6749-scope-ovpr-fixture-jobs.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6481116939.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts packages/core/src/content-contracts/standards/merge_queue_6295.test.ts"
+        ],
+        "Traces": [
+          "#6749"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high"
+      }
+    },
+    "id": "github.issue.6481116939",
+    "updated": "2026-11-19T18:07:26Z"
+  }
+}
