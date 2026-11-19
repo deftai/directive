@@ -1168,21 +1168,30 @@ const PRE_COMMIT = `#!/usr/bin/env sh
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 # shellcheck source=/dev/null
 . "$REPO_ROOT/.githooks/_directive-run.sh"
+run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
+run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
+if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
+  run_directive verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
+  run_directive verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
+fi
 `;
 
+// Refspec-aware default-branch push gate, as in 0.126 (#5808 / D-021). Git's
+// ref list arrives on stdin and goes straight to preflight-gh.
 const PRE_PUSH = `#!/usr/bin/env sh
-# deft:pre-pr-bound-push-v1 — refuse-to-downgrade marker (#5804); marker-aware ensureGitHooks only
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 # shellcheck source=/dev/null
 . "$REPO_ROOT/.githooks/_directive-run.sh"
-run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
-# Enrolled bound pre-PR arm: sole-stdin (do not redirect shared run_directive to /dev/null)
-run_directive pre-pr:run --push-admit --project-root "$REPO_ROOT" || exit $?
+run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit $?
 `;
 
-/** Monotonic refuse-to-downgrade marker for marker-aware ensureGitHooks (#5804). */
-export const PRE_PUSH_BOUND_PRE_PR_MARKER = "deft:pre-pr-bound-push-v1";
+/** Current Directive git-hook bodies by repo-relative path (#5808 / #5976). */
+export const DIRECTIVE_GIT_HOOK_BODIES: Readonly<Record<string, string>> = {
+  ".githooks/_directive-run.sh": GITHOOK_HELPER,
+  ".githooks/pre-commit": PRE_COMMIT,
+  ".githooks/pre-push": PRE_PUSH,
+};
 
 /**
  * Current OVPR helpers plus supported latest-legacy Directive git hooks
@@ -1218,8 +1227,8 @@ export const GIT_HOOKS_INACTIVE_NO_GIT =
   "Git hooks inactive until git init + eligible repair/self-complete (core.hooksPath not set)";
 
 /**
- * True when `rel` is tracked by git in `projectRoot` (#5837). Any git failure
- * (no repo, no git binary) reads as untracked, which keeps the replace path lawful.
+ * True when `rel` is tracked by git in `projectRoot`. Any git failure (no repo,
+ * no git binary) reads as untracked.
  */
 export function isGitTrackedPath(projectRoot: string, rel: string): boolean {
   try {
@@ -1232,9 +1241,14 @@ export function isGitTrackedPath(projectRoot: string, rel: string): boolean {
   }
 }
 
-/** Disclosure for a tracked divergent managed hook kept in place (#5837). */
-export function formatTrackedHookPreserved(rel: string): string {
-  return `${rel}: tracked managed hook differs from the template; kept (not a failure). Review and pass --force-githooks to setup to replace it (#5837)`;
+/**
+ * Disclosure for a Directive git hook that setup replaced or removed (D-023).
+ * The git-history note is only true for a file git already tracks.
+ */
+export function formatGitHookUpdated(rel: string, tracked: boolean): string {
+  return tracked
+    ? `Updated \`${rel}\`; your earlier version is in git history.`
+    : `Updated \`${rel}\`.`;
 }
 
 /** Where a `core.hooksPath` value comes from (`git config --show-scope`). */
@@ -1354,30 +1368,36 @@ export function formatHooksPathStillForeign(projectRoot: string, state: HooksPat
 }
 
 export interface EnsureGitHooksOptions {
-  /** Explicit pre-write operator force: replace tracked divergent managed hooks (#5837). */
-  readonly forceTrackedReplace?: boolean;
   /**
    * Operator approved the install/repair plan that disclosed taking over another
    * `core.hooksPath` (#4960, ledger Problem 20). Only the launcher passes this,
    * after its single approval; automatic setup and upgrade never do.
    */
   readonly takeOverHooksPath?: boolean;
-  /**
-   * Test-only: override the next body for named relative hook paths so fixtures
-   * can reach refuse-to-downgrade under forceTrackedReplace (#5885 / #5804).
-   */
-  readonly testOnlyNextBodyByRel?: Readonly<Record<string, string>>;
 }
 
+/** Disclosure for an old Directive git-hook helper that setup removed (D-023). */
+export function formatGitHookRemoved(rel: string, tracked: boolean): string {
+  return tracked
+    ? `Removed \`${rel}\`; your earlier version is in git history.`
+    : `Removed \`${rel}\`.`;
+}
+
+/**
+ * Replace every Directive-shaped git hook with the current template, edited or
+ * not (AC8.3 / INIT-18 / D-023), and name each one it replaced. A hook that is
+ * not Directive-shaped stays a named conflict and is never touched.
+ */
 export function ensureGitHooks(
   projectRoot: string,
   options: EnsureGitHooksOptions = {},
 ): {
   created: string[];
   modified: string[];
+  removed: string[];
   conflicts: string[];
-  /** Tracked divergent managed hooks kept in place; a non-failure outcome (#5837). */
-  preserved: string[];
+  /** One plain line per existing hook that was replaced or removed (D-023). */
+  updated: string[];
   /** True only when core.hooksPath is relative .githooks (AC9.9). */
   hooksPathActive: boolean;
   /** Human disclosure when hooks are not live; null when active. */
@@ -1387,67 +1407,35 @@ export function ensureGitHooks(
 } {
   const created: string[] = [];
   const modified: string[] = [];
+  const removed: string[] = [];
   const conflicts: string[] = [];
-  const preserved: string[] = [];
-  const force = options.forceTrackedReplace === true;
-  const files: Array<{ rel: string; body: string }> = [
-    { rel: ".githooks/_directive-run.sh", body: GITHOOK_HELPER },
-    { rel: ".githooks/pre-commit", body: PRE_COMMIT },
-    { rel: ".githooks/pre-push", body: PRE_PUSH },
-  ];
-  for (const file of files) {
-    const override = options.testOnlyNextBodyByRel?.[file.rel];
-    const rawNext = override ?? file.body;
-    const next = rawNext.endsWith("\n") ? rawNext : `${rawNext}\n`;
-    const prior = readText(join(projectRoot, file.rel));
-    if (
-      prior !== null &&
-      !contentsEqualIgnoringEol(prior, next) &&
-      !isOurGitHookBody(file.rel, prior)
-    ) {
+  const updated: string[] = [];
+  for (const [rel, body] of Object.entries(DIRECTIVE_GIT_HOOK_BODIES)) {
+    const next = body.endsWith("\n") ? body : `${body}\n`;
+    const prior = readText(join(projectRoot, rel));
+    if (prior !== null && !contentsEqualIgnoringEol(prior, next) && !isOurGitHookBody(rel, prior)) {
       conflicts.push(
-        `${file.rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
+        `${rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
       );
       continue;
     }
-    // Tracked divergent preserve (#5837): never overwrite a committed hook body,
-    // even a Directive-managed one, unless the operator forced the replace.
-    if (
-      prior !== null &&
-      !contentsEqualIgnoringEol(prior, next) &&
-      !force &&
-      isGitTrackedPath(projectRoot, file.rel)
-    ) {
-      preserved.push(formatTrackedHookPreserved(file.rel));
-      continue;
+    const tracked = prior !== null && isGitTrackedPath(projectRoot, rel);
+    const change = trackChange(projectRoot, rel, next);
+    if (change.created) created.push(rel);
+    else if (change.modified) {
+      modified.push(rel);
+      updated.push(formatGitHookUpdated(rel, tracked));
     }
-    // Refuse-to-downgrade: marker-aware installer will not replace a newer enrolled
-    // pre-push arm with an older body that lacks the monotonic marker (#5804).
-    if (
-      file.rel === ".githooks/pre-push" &&
-      prior !== null &&
-      prior.includes(PRE_PUSH_BOUND_PRE_PR_MARKER) &&
-      !next.includes(PRE_PUSH_BOUND_PRE_PR_MARKER)
-    ) {
-      conflicts.push(
-        `${file.rel}: refuse-to-downgrade enrolled bound pre-PR arm (${PRE_PUSH_BOUND_PRE_PR_MARKER}); keeping newer hook`,
-      );
-      continue;
-    }
-    const change = trackChange(projectRoot, file.rel, next);
-    if (change.created) created.push(file.rel);
-    else if (change.modified) modified.push(file.rel);
-    if (EXECUTABLE_GITHOOKS.has(file.rel) && existsSync(join(projectRoot, file.rel))) {
+    if (EXECUTABLE_GITHOOKS.has(rel) && existsSync(join(projectRoot, rel))) {
       try {
-        containedChmod({ root: projectRoot, target: file.rel, mode: 0o755 });
+        containedChmod({ root: projectRoot, target: rel, mode: 0o755 });
       } catch {
         /* best-effort on platforms without chmod */
       }
     }
   }
 
-  // Drop obsolete latest-legacy helper once OVPR hooks are in place (wave4e).
-  // Greptile: keep helper if any other .githooks file still sources it.
+  // Drop the old `_deft-run.sh` helper once no remaining hook sources it.
   const legacyHelperRel = ".githooks/_deft-run.sh";
   const legacyHelperAbs = join(projectRoot, legacyHelperRel);
   if (existsSync(legacyHelperAbs)) {
@@ -1467,12 +1455,14 @@ export function ensureGitHooks(
       } catch {
         stillReferenced = true;
       }
-      if (!stillReferenced && !force && isGitTrackedPath(projectRoot, legacyHelperRel)) {
-        preserved.push(formatTrackedHookPreserved(legacyHelperRel));
-      } else if (!stillReferenced) {
+      if (!stillReferenced) {
+        const tracked = isGitTrackedPath(projectRoot, legacyHelperRel);
         try {
           const rem = containedRemove({ root: projectRoot, target: legacyHelperRel });
-          if (rem.removed) modified.push(legacyHelperRel);
+          if (rem.removed) {
+            removed.push(legacyHelperRel);
+            updated.push(formatGitHookRemoved(legacyHelperRel, tracked));
+          }
         } catch {
           /* best-effort; conflicts already captured for other files */
         }
@@ -1532,8 +1522,9 @@ export function ensureGitHooks(
   return {
     created,
     modified,
+    removed,
     conflicts,
-    preserved,
+    updated,
     hooksPathActive,
     inactiveDisclosure,
     hooksPathTakenOver,

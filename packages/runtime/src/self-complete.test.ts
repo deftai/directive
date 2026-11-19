@@ -13,10 +13,10 @@ import {
   isDoctorDiagnosticEnv,
   isEligibleSelfCompleteCommand,
   maybeSelfCompleteSetup,
-  resetSelfCompletePreservedDisclosureForTests,
+  resetSelfCompleteGitHookDisclosureForTests,
 } from "./self-complete.js";
 import { runSetup } from "./setup.js";
-import { formatTrackedHookPreserved } from "./setup-wiring.js";
+import { DIRECTIVE_GIT_HOOK_BODIES, formatGitHookUpdated } from "./setup-wiring.js";
 
 const TEMPS: string[] = [];
 
@@ -50,7 +50,7 @@ function pinRuntime(root: string, version: string): void {
   );
 }
 
-/** Consumer-customized managed hook (sources the shared helper). */
+/** Consumer-edited Directive hook (sources the shared helper). */
 const CUSTOM_PRE_PUSH = `#!/usr/bin/env sh
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 . "$REPO_ROOT/.githooks/_directive-run.sh"
@@ -58,7 +58,7 @@ run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit 
 `;
 
 afterEach(() => {
-  resetSelfCompletePreservedDisclosureForTests();
+  resetSelfCompleteGitHookDisclosureForTests();
   while (TEMPS.length > 0) {
     const p = TEMPS.pop();
     if (p) rmSync(p, { recursive: true, force: true });
@@ -160,7 +160,7 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     expect(result.skipReason).toBe("ineligible");
   });
 
-  it("discloses preserved tracked hooks on writeErr once per process (#5885 P1)", () => {
+  it("names a replaced tracked hook on writeErr once per process (#5885 / D-023)", () => {
     const root = tempRoot();
     const installed = runSetup({ operation: "install", from: "none", root });
     pinRuntime(root, installed.runtimeVersion);
@@ -182,7 +182,7 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
 
     const err: string[] = [];
     const out: string[] = [];
-    const expected = formatTrackedHookPreserved(hookRel);
+    const expected = formatGitHookUpdated(hookRel, true);
     const first = maybeSelfCompleteSetup(root, {
       argv: ["verify:branch"],
       writeErr: (text) => err.push(text),
@@ -193,6 +193,7 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     expect(out).toEqual([]);
 
     rmSync(readyRel, { force: true });
+    writeFileSync(join(root, hookRel), CUSTOM_PRE_PUSH, "utf8");
     const second = maybeSelfCompleteSetup(root, {
       argv: ["verify:branch"],
       writeErr: (text) => err.push(text),
@@ -235,7 +236,7 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     expect(err.filter((chunk) => chunk.includes("custom-hooks"))).toHaveLength(1);
   });
 
-  it("hook-dispatch run threads seams.writeErr for preserve disclosure (#5885 P1)", () => {
+  it("hook-dispatch run threads seams.writeErr for the hook update line (#5885 / D-023)", () => {
     const root = tempRoot();
     const installed = runSetup({ operation: "install", from: "none", root });
     pinRuntime(root, installed.runtimeVersion);
@@ -279,10 +280,10 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
       },
     );
     expect(code).toBe(0);
-    expect(err.join("")).toContain(formatTrackedHookPreserved(hookRel));
+    expect(err.join("")).toContain(formatGitHookUpdated(hookRel, true));
   });
 
-  it("e2e: preserve disclosure, empty conflicts, readiness, unchanged hook bytes (#5885 P3)", () => {
+  it("e2e: automatic setup replaces an edited tracked hook, names it, records readiness (D-023)", () => {
     const root = tempRoot();
     const installed = runSetup({ operation: "install", from: "none", root });
     pinRuntime(root, installed.runtimeVersion);
@@ -310,10 +311,10 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     });
     expect(result.ran).toBe(true);
     expect(result.skipReason).toBeNull();
-    expect(err.join("")).toContain(formatTrackedHookPreserved(hookRel));
+    expect(err.join("")).toContain(formatGitHookUpdated(hookRel, true));
     expect(result.setup?.conflicts ?? []).toEqual([]);
     expect(existsSync(readyRel)).toBe(true);
-    expect(readFileSync(join(root, hookRel), "utf8")).toBe(CUSTOM_PRE_PUSH);
+    expect(readFileSync(join(root, hookRel), "utf8")).toBe(DIRECTIVE_GIT_HOOK_BODIES[hookRel]);
   });
 
   it("AC14.10 / HT-17: pin+installed at W, GENERATION/wiring still V → eligible refreshes at W; pin+xbrief unchanged", () => {

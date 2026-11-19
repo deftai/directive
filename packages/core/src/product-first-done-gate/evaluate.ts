@@ -16,6 +16,7 @@ import {
   stampedAmbiguityAttestationError,
 } from "../intake/clause-derivation.js";
 import {
+  fetchPlanAdmittedSourceText,
   fetchSpecPathLiveIdentities,
   readSpecPathSourceRecord,
   SPEC_PATH_SOURCE_KEY,
@@ -84,8 +85,9 @@ import {
 } from "../verify-ac/requirement-sources.js";
 import {
   digestAdmittedSourceSentences,
-  extractAdmittedSourceSentencesFromText,
+  extractAdmittedSourceIdentitiesWithVersion,
   readAdmittedSourceDigest,
+  readAdmittedSourceExtractor,
   readAdmittedSourceSentences,
   readPlanAcceptance,
   STATEMENT_SENTENCE_NARRATIVE_KEYS,
@@ -719,8 +721,12 @@ function resolveBriefOnMergeBase(
   plan: Record<string, unknown>,
   options: EvaluateVerifyAcOptions,
   projectRoot: string,
+  gitPin?: { readonly source?: "merge-base" | "head" } | null,
 ): boolean | undefined {
-  if (!planIsSpecPath(plan) || options.admittedSourceMergeBase !== undefined) {
+  // #6609 item 7: a body-route brief whose only git pin is the HEAD fallback
+  // also needs the merge-base probe, so its pin can be compared with the live body.
+  const headPin = gitPin?.source === "head";
+  if (!(planIsSpecPath(plan) || headPin) || options.admittedSourceMergeBase !== undefined) {
     return undefined;
   }
   const hinted =
@@ -814,7 +820,8 @@ export function evaluateVerifyAcFromPlan(
   const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
   const admittedSourceMergeBase = resolveAdmittedSourceGitPin(plan, options, projectRootEarly);
   const briefOnMergeBase =
-    options.briefOnMergeBase ?? resolveBriefOnMergeBase(plan, options, projectRootEarly);
+    options.briefOnMergeBase ??
+    resolveBriefOnMergeBase(plan, options, projectRootEarly, admittedSourceMergeBase);
   const optionsWithScope: EvaluateVerifyAcOptions = {
     ...options,
     ...(briefOnMergeBase !== undefined ? { briefOnMergeBase } : {}),
@@ -1608,6 +1615,25 @@ function specPathBriefOnMergeBase(options: EvaluateVerifyAcOptions): boolean {
   return (mergeBase.source ?? "merge-base") === "merge-base";
 }
 
+/**
+ * #6609 item 7: a body-route brief that is not on the merge base and whose git
+ * pin is the HEAD fallback. Its pin is branch-local, so it is compared with the
+ * live issue body, re-read by the extractor version stored on the pin.
+ */
+function isUnlandedBodyRouteHeadPin(
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions,
+): boolean {
+  const pin = options.admittedSourceMergeBase;
+  return (
+    !planIsSpecPath(plan) &&
+    pin !== undefined &&
+    pin !== null &&
+    pin.source === "head" &&
+    options.briefOnMergeBase === false
+  );
+}
+
 /** Issue number of the brief's origin reference, for the re-ingest command. */
 function originIssueNumber(plan: Record<string, unknown>): string {
   const refs = Array.isArray(plan.references) ? plan.references : [];
@@ -1719,8 +1745,11 @@ function resolveAdmittedSourceIdentities(
         typeof mergeBase.digest === "string" && mergeBase.digest.trim().length > 0
           ? mergeBase.digest.trim()
           : digestAdmittedSourceSentences(identities),
-      // Git pin is already the ingest-recorded reference — no live compare.
-      compareLiveDigest: false,
+      // A merge-base pin is the ingest-recorded reference — no live compare.
+      // A HEAD-sourced pin of a body-route brief that is not on the merge base
+      // is only branch-local, so a committed trim must not prove itself (#6609
+      // item 7): it is compared with the live body like a working pin.
+      compareLiveDigest: isUnlandedBodyRouteHeadPin(plan, options),
     };
   }
 
@@ -1747,10 +1776,12 @@ function resolveAdmittedSourceIdentities(
         message: `verify:ac admitted-source digest (#5055): ${fetched.reason}`,
       };
     }
-    // Same quarantine-aware extract as the first-ingest pin (#5055 P1).
-    const identities = extractAdmittedSourceSentencesFromText(fetched.text).map(
-      normalizeIdentityText,
-    );
+    // Same quarantine-aware extract as the first-ingest pin (#5055 P1), read
+    // with the extractor version stored on the pin (#6609 item 4).
+    const identities = extractAdmittedSourceIdentitiesWithVersion(
+      fetched.text,
+      readAdmittedSourceExtractor(plan.acceptance),
+    ).map(normalizeIdentityText);
     if (identities.length === 0) {
       if (recordedDigest !== null) {
         return {
@@ -1859,9 +1890,10 @@ function applyAdmittedSourceIdentityGate(
       };
     }
     // Quarantine-aware: match pin extract so unchanged bodies do not mismatch.
-    const liveIdentities = extractAdmittedSourceSentencesFromText(fetched.text).map(
-      normalizeIdentityText,
-    );
+    const liveIdentities = extractAdmittedSourceIdentitiesWithVersion(
+      fetched.text,
+      readAdmittedSourceExtractor(plan.acceptance),
+    ).map(normalizeIdentityText);
     const liveDigest = digestAdmittedSourceSentences(liveIdentities);
     const expectedDigest = resolved.digest ?? digestAdmittedSourceSentences(resolved.identities);
     if (liveDigest !== expectedDigest) {
@@ -2217,9 +2249,12 @@ export function evaluateVerifyAcFromPath(
     }
   }
   // #6333 item 5: probe the merge base itself for Spec-path briefs.
+  // #6609 item 7: a HEAD-sourced pin of a body-route brief needs the same probe.
   const briefOnMergeBase =
     options.briefOnMergeBase ??
-    (planIsSpecPath(plan) ? isBriefOnMergeBase(projectRoot, abs) : undefined);
+    (planIsSpecPath(plan) || admittedSourceMergeBase?.source === "head"
+      ? isBriefOnMergeBase(projectRoot, abs)
+      : undefined);
   const emitOptions: EvaluateVerifyAcOptions = {
     ...options,
     xbriefPath: abs,
@@ -2244,6 +2279,98 @@ export function evaluateVerifyAcFromPath(
   const banked = maybeAttachAcPassBank(result, plan, abs, emitOptions);
   emitAcceptanceTelemetry(banked, emitOptions, projectRoot);
   return banked;
+}
+
+export interface AdmittedSourceActivationResult {
+  readonly ok: boolean;
+  /** The `verify:ac` message `scope:complete` would print; empty when ok. */
+  readonly message: string;
+  readonly cause?: string;
+}
+
+/**
+ * #6609 item 7: the existing admitted-source identity check (#5055) and the
+ * statement sentence floor (#3550), run when a brief enters `xbrief/active/`.
+ * The clause oracle walk does not run. A body-route brief that is not on the
+ * merge base is compared with the live issue body, even when its pin comes
+ * from HEAD. No new cause, refusal text or flag: same checks, same messages.
+ */
+export function evaluateAdmittedSourceAtActivation(
+  plan: Record<string, unknown>,
+  options: {
+    readonly projectRoot: string;
+    readonly xbriefPath?: string | null;
+    readonly admittedSourceMergeBase?: EvaluateVerifyAcOptions["admittedSourceMergeBase"];
+    readonly briefOnMergeBase?: boolean;
+    readonly fetchAdmittedSourceText?: EvaluateVerifyAcOptions["fetchAdmittedSourceText"];
+    readonly fetchSpecPathLiveIdentities?: EvaluateVerifyAcOptions["fetchSpecPathLiveIdentities"];
+  },
+): AdmittedSourceActivationResult {
+  const projectRoot = resolve(options.projectRoot);
+  const base: EvaluateVerifyAcOptions = {
+    projectRoot,
+    quiet: false,
+    ...(options.xbriefPath !== undefined ? { xbriefPath: options.xbriefPath } : {}),
+    ...(options.admittedSourceMergeBase !== undefined
+      ? { admittedSourceMergeBase: options.admittedSourceMergeBase }
+      : {}),
+    ...(options.fetchSpecPathLiveIdentities !== undefined
+      ? { fetchSpecPathLiveIdentities: options.fetchSpecPathLiveIdentities }
+      : {}),
+  };
+  const pin = resolveAdmittedSourceGitPin(plan, base, projectRoot);
+  // Only an ingested brief is checked: one that carries a stored sentence list
+  // or an admitted-source pin, or whose pin was saved in git (a deleted working
+  // block must not skip the check, so the git pin is looked up first). A
+  // hand-authored brief has none; its sentence list is derived from narratives
+  // at completion, as before.
+  const stored = asPlanRecord(plan.acceptance);
+  const carriesAdmittedSource =
+    (stored !== null &&
+      (readAdmittedSourceSentences(stored) !== null ||
+        readAdmittedSourceDigest(stored) !== null ||
+        Array.isArray(stored.sentences))) ||
+    planHasSpecPathRefusedBody(plan) ||
+    (pin !== undefined && pin !== null && pin.sentences.length > 0);
+  if (!carriesAdmittedSource) {
+    return { ok: true, message: "" };
+  }
+  const briefOnMergeBase =
+    options.briefOnMergeBase ?? resolveBriefOnMergeBase(plan, base, projectRoot, pin ?? null);
+  // Arm the live fetch when a pin or digest exists or the brief is Spec-path,
+  // as `verify:ac` does, so a brief with no admitted source stays unchecked.
+  const armed =
+    readAdmittedSourceSentences(plan.acceptance) !== null ||
+    readAdmittedSourceDigest(plan.acceptance) !== null ||
+    planHasSpecPathRefusedBody(plan) ||
+    (pin !== undefined && pin !== null && pin.sentences.length > 0);
+  const fetchText =
+    options.fetchAdmittedSourceText ??
+    (armed ? () => fetchPlanAdmittedSourceText(plan) : undefined);
+  const acceptance = readPlanAcceptance(plan);
+  const walked: VerifyAcResult = {
+    ok: true,
+    code: 0,
+    message: "",
+    commands: [],
+    runs: [],
+    sourceRung: acceptance.source_rung,
+    noneStated: acceptance.none_stated,
+    acceptance,
+    resolution: "verified-pass",
+    resolvedCommandCount: 0,
+  };
+  const checked = applyStatementSentenceFloor(walked, plan, {
+    ...base,
+    ...(pin !== undefined ? { admittedSourceMergeBase: pin } : {}),
+    ...(briefOnMergeBase !== undefined ? { briefOnMergeBase } : {}),
+    ...(fetchText !== undefined ? { fetchAdmittedSourceText: fetchText } : {}),
+  });
+  return {
+    ok: checked.ok,
+    message: checked.ok ? "" : checked.message,
+    ...(checked.cause !== undefined ? { cause: checked.cause } : {}),
+  };
 }
 
 /**

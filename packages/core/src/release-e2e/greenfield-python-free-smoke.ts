@@ -125,7 +125,9 @@ export function runConsumerDocsImpactSmoke(
     [["config", "user.email", "smoke@example.com"], "user.email"],
     [["config", "user.name", "greenfield-smoke"], "user.name"],
     [["add", "-A"], "add"],
-    [["commit", "--allow-empty", "-m", "docs-impact fixture"], "commit"],
+    // Seed commit on master: the deposited pre-commit runs verify:branch, which
+    // refuses master (#5808), so this fixture setup commit skips hooks.
+    [["commit", "--allow-empty", "--no-verify", "-m", "docs-impact fixture"], "commit"],
     [["update-ref", "refs/remotes/origin/master", "HEAD"], "origin/master"],
     // Leave HEAD off master/main so later task deft:check verify:branch passes.
     [["checkout", "-B", "feat/docs-impact-smoke"], "feature branch"],
