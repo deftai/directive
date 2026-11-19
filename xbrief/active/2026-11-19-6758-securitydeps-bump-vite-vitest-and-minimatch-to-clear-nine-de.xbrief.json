@@ -1,0 +1,695 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6758",
+    "updated": "2026-11-19T04:32:47Z"
+  },
+  "plan": {
+    "title": "security(deps): bump vite, vitest and minimatch to clear nine Dependabot alerts",
+    "status": "running",
+    "narratives": {
+      "Description": "security(deps): bump vite, vitest and minimatch to clear nine Dependabot alerts",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6758",
+      "Overview": "\n1. vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.\n2. vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.\n3. minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.\n4. minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.\n5. Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.\n6. Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.\n7. Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. The story is complete only when all nine named alerts (#20-#26, #29, #31) are observed closed after merge. Until Dependabot rescans the merged revision, open alerts are reported as pending, an interim state that is not completion. An alert still open after that rescan stays unresolved with its observed status, and is reported, not answered with speculative dependency changes.\n\n## Acceptance Criteria\n\n- In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.\n- In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.\n- In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.\n- In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.\n- In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.\n- In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.\n- In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported.\n- After merge, the story completes only when all nine named Dependabot alerts (#20-#26, #29, #31) are observed closed; pending is an interim state, and an alert still open after a rescan stays unresolved.\n\n\n",
+      "Constraint": "- Raising only `packages/core`'s direct minimatch range (comment 6999567563, finding 1).\n- A blanket minimatch override across the graph without compatibility evidence (comment 6999567563, finding 1).\n- Treating a green suite as proof that the alerts closed (comment 6999567563, finding 3).\n- Replacing alert closure with a check-and-report step (audit 6999607833, finding 1).",
+      "Labels": "security, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. The story is complete only when all nine named alerts (#20-#26, #29, #31) are observed closed after merge. Until Dependabot rescans the merged revision, open alerts are reported as pending, an interim state that is not completion. An alert still open after that rescan stays unresolved with its observed status, and is reported, not answered with speculative dependency changes.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "After merge, the story completes only when all nine named Dependabot alerts (#20-#26, #29, #31) are observed closed; pending is an interim state, and an alert still open after a rescan stays unresolved.",
+        "status": "proposed",
+        "id": "clause.15"
+      }
+    ],
+    "tags": [
+      "security",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6758",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6758: security(deps): bump vite, vitest and minimatch to clear nine Dependabot alerts"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6586",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6586"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (15), in list order (#6333)",
+      "sentences": [
+        "vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.",
+        "vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.",
+        "minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.",
+        "minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.",
+        "Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.",
+        "Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.",
+        "Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. The story is complete only when all nine named alerts (#20-#26, #29, #31) are observed closed after merge. Until Dependabot rescans the merged revision, open alerts are reported as pending, an interim state that is not completion. An alert still open after that rescan stays unresolved with its observed status, and is reported, not answered with speculative dependency changes.",
+        "In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.",
+        "In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.",
+        "In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.",
+        "In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.",
+        "In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.",
+        "In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.",
+        "In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported.",
+        "After merge, the story completes only when all nine named Dependabot alerts (#20-#26, #29, #31) are observed closed; pending is an interim state, and an alert still open after a rescan stays unresolved."
+      ],
+      "admitted_source_sentences": [
+        "vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.",
+        "vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.",
+        "minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.",
+        "minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.",
+        "Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.",
+        "Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.",
+        "Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. The story is complete only when all nine named alerts (#20-#26, #29, #31) are observed closed after merge. Until Dependabot rescans the merged revision, open alerts are reported as pending, an interim state that is not completion. An alert still open after that rescan stays unresolved with its observed status, and is reported, not answered with speculative dependency changes.",
+        "In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.",
+        "In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.",
+        "In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.",
+        "In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.",
+        "In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.",
+        "In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.",
+        "In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported.",
+        "After merge, the story completes only when all nine named Dependabot alerts (#20-#26, #29, #31) are observed closed; pending is an interim state, and an alert still open after a rescan stays unresolved."
+      ],
+      "admitted_source_digest": "81d059a104422374c011d8a1a6c03404c073d17af9c7f7f3386e5cf2cd0420c7",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.",
+          "artifact_path": "package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.",
+          "artifact_path": "packages/core/package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.",
+          "artifact_path": "pnpm-lock.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. The story is complete only when all nine named alerts (#20-#26, #29, #31) are observed closed after merge. Until Dependabot rescans the merged revision, open alerts are reported as pending, an interim state that is not completion. An alert still open after that rescan stays unresolved with its observed status, and is reported, not answered with speculative dependency changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.",
+          "artifact_path": "package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.",
+          "artifact_path": "packages/core/package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.",
+          "artifact_path": "pnpm-lock.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "After merge, the story completes only when all nine named Dependabot alerts (#20-#26, #29, #31) are observed closed; pending is an interim state, and an alert still open after a rescan stays unresolved.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "pnpm-workspace.yaml",
+          "package.json",
+          "packages/core/package.json",
+          "pnpm-lock.yaml",
+          "packages/core/src/fs/glob-sync.ts",
+          "packages/core/src/fs/glob-sync.test.ts",
+          "packages/core/src/release/build-dist.test.ts",
+          "changelog.d/6758-bump-vite-vitest-minimatch.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "module_boundary": "dependency manifests and lockfile (pnpm-workspace.yaml, package.json, packages/core/package.json, pnpm-lock.yaml) plus the packages/core/src/fs glob caller if minimatch 11 requires it",
+        "cohesion_exemption": "pnpm-lock.yaml (generated by pnpm install) and xbrief/PROJECT-DEFINITION.xbrief.json (shared project record) are declared as-is; the story edits version numbers in the lockfile and adds no code to either, so splitting them is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6758; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and one bump (minimatch 10 to 11) is a major version in the runtime tree that ships to consumers.\n\nTarget-digest: sha256:8fd9cd0881e61cffbd3dc32c450a4a106b39ac1f0118f92efdbf9bfdbfd8f93b\ndispatch-sha: 6d0d7e21e957e04e23aeefdf72853936f5e78a1f\ndest: .deft-scratch/worktrees/arc-6758 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; a dependency bump; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 6d0d7e21e957e04e23aeefdf72853936f5e78a1f: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\npain: P4\npain: P5\n\n## In plain English\nNine open Dependabot alerts on master are cleared by three version bumps: vite, vitest (with its mocker and coverage packages) and minimatch. minimatch is a runtime dependency of `packages/core`, so its alert ships to consumers. The recommended fix raises the version ranges and the vite override, regenerates the lockfile, removes the vite release-age exclusion, and checks that the one minimatch caller still works on the new major.\n\nPain source: the five pains are the issue's `## Acceptance Criteria` items as written.\n\n## Pains\n- P1 — vite resolves to 7.3.7 or later in `pnpm-lock.yaml` (Dependabot alerts #20, #21, #22, #23, #24).\n- P2 — vitest, `@vitest/mocker` and `@vitest/coverage-v8` resolve to 4.1.12 or later (alerts #25, #26).\n- P3 — minimatch resolves to 11.0.1 or later everywhere in the lockfile, including the runtime path through `packages/core` (alerts #29, #31), and the package that depends on it still passes its tests on 11.\n- P4 — The `minimumReleaseAgeExclude` entry for `vite@7.3.6` in `pnpm-workspace.yaml` is removed, with no new exclusion added unless a bumped version is younger than the minimum release age.\n- P5 — The full suite passes in the merge gate, and all nine alerts are closed by Dependabot after merge.\n\n## Excluded (not pains, not in this arc)\n- Other open alerts or dependency updates beyond these three packages.\n- Ownership check: no file here is in the installer/OVPR maintainer's area (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` §5); these are the workspace manifest, lockfile and one core module.\n\n## Constraints (not pains)\n- No new gate, grant or policy flag. Existing overrides for esbuild, brace-expansion, postcss and source-map-js stay unless a bump makes one unnecessary or wrong.\n\n## Anchors at the dispatch SHA\n- `pnpm-workspace.yaml` 11-28 (overrides: `vite: \"^7.3.6\"`, `esbuild`, `brace-expansion@2`/`@5` with a comment naming minimatch@10, `postcss`, `source-map-js`), 39-40 (`minimumReleaseAgeExclude: vite@7.3.6`).\n- `package.json` 25 and 29 (`@vitest/coverage-v8: ^4`, `vitest: ^4`); `packages/core/package.json` 457 (`minimatch: ^10.2.5`).\n- `pnpm-lock.yaml` 736 and 1463 (`minimatch@10.2.5`), 867 and 1628 (`vite@7.3.6`), 907 and 1641 (`vitest@4.1.11`).\n- The only minimatch caller in `packages/`: `packages/core/src/fs/glob-sync.ts`.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1). Raise the `vite` override in `pnpm-workspace.yaml` to `^7.3.7`.\n- R2 (P2). Raise `vitest` and `@vitest/coverage-v8` in the root `package.json` to `^4.1.12` (mocker follows vitest).\n- R3 (P3). Raise `minimatch` in `packages/core/package.json` to `^11.0.1`; adjust `packages/core/src/fs/glob-sync.ts` only if the 11 API differs; update the brace-expansion override comment if minimatch 11 changes which brace-expansion major it pulls.\n- R4 (P4). Remove `vite@7.3.6` from `minimumReleaseAgeExclude`; add an exclusion only for a bumped version younger than the minimum release age, with a comment naming why.\n- R5 (P1-P3, P5). Regenerate `pnpm-lock.yaml` with `pnpm install` under the workspace settings; the merge gate runs the full suite; the alerts are checked closed after merge.\n\nQuestions for the critic:\n1. Does minimatch 11 change the API or the brace-expansion dependency that `glob-sync.ts` and the existing overrides rely on?\n2. Are the ranges and overrides enough to make every lockfile node resolve to the patched versions, including transitive copies?\n3. P5's \"alerts closed after merge\" happens after the build; how should a build criterion state it?\n\n",
+          "id": 6999535457,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999535457",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:17:39Z",
+          "updated_at": "2026-11-19T04:17:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6999537392\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 6d0d7e21e957e04e23aeefdf72853936f5e78a1f\ndest: .deft-scratch/worktrees/arc-6758\nverification-path: pin-read git show 6d0d7e21e957e04e23aeefdf72853936f5e78a1f: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6999535457\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6999537392,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999537392",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:17:47Z",
+          "updated_at": "2026-11-19T04:17:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe proposed updates address the reported vulnerable packages, but the mechanism is incomplete: minimatch also arrives through `archiver → readdir-glob`. Updating core’s direct dependency does not ensure that second runtime path upgrades.\n\nAnswers to Stop 1’s questions:\n\n1. The pinned source establishes which minimatch features need compatibility checking, but contains no minimatch 11 source or metadata proving its API, Node requirements, or brace-expansion dependency. Those remain unverified.\n2. The Vite override and Vitest version floors are reasonable mechanisms, subject to checking the regenerated graph. The direct minimatch bump alone does not cover every dependency path.\n3. P5 needs two checkpoints: passing build/merge validation before merge, and observed closure of the nine named alerts after Dependabot processes the merged revision. Until that observation, alert closure remains pending.\n\n### 1. blocks-the-design — R3 leaves a second runtime minimatch path uncontrolled\n\n**Evidence:** At `6d0d7e21e957e04e23aeefdf72853936f5e78a1f`, `packages/core/package.json:453–459` declares both archiver and minimatch. `pnpm-lock.yaml:1264–1273` records archiver’s dependency on `readdir-glob@3.0.0`; `pnpm-lock.yaml:1511–1513` records that package’s dependency on `minimatch@10.2.5`. Existing overrides in `pnpm-workspace.yaml:11–28` contain no minimatch override.\n\n**Failure mode:** R3 raises only core’s direct range. Installation can introduce minimatch 11 for that edge while retaining minimatch 10 through readdir-glob, violating P3’s “everywhere” requirement. The pinned lockfile does not establish readdir-glob’s declared range, so automatic migration of that edge cannot be assumed.\n\n**Disposition consequence:** The mechanism cannot bind as written. It needs an explicit resolution for the transitive edge—an appropriate upstream dependency update or a compatibility-validated override—and verification that no below-floor minimatch node remains. A blanket major-version override is not already proven safe by the direct caller’s tests.\n\n### 2. sharpens-framing — Compatibility includes matcher representation and runtime loading\n\n**Evidence:** At the dispatch SHA, `packages/core/src/fs/glob-sync.ts:19` imports `GLOBSTAR` and `Minimatch`; lines `65–75` configure matching options; lines `201–212` consume `matcher.set` and `matcher.globParts`. Existing tests directly compare fallback behavior against native globbing (`packages/core/src/fs/glob-sync.test.ts:111–124`) and simulate missing native glob support (`143–169`). The Node 20 staged-runtime load job is explicitly non-blocking (`.github/workflows/ci.yml:1070–1076`).\n\n**Failure mode:** An unchanged constructor signature alone does not establish compatibility with the parsed-pattern representation, matching behavior, or supported runtime. A green required suite also does not establish that the optional Node 20 load check passed.\n\n**Disposition consequence:** The bump approach can bind with clearer validation wording: compatibility covers these consumed members, existing fallback parity tests, and the existing runtime-load result. This does not require a new gate. No claim that minimatch 11 changes or preserves these properties is substantiated by the supplied snapshot.\n\n### 3. footnote — Post-merge alert closure is an observed outcome\n\nP5 can retain all nine named alert IDs as its completion target while separating pre-merge test evidence from post-merge Dependabot evidence. A successful installation or green suite is not evidence that those alerts have closed. Delayed scanning should remain visibly pending, rather than being reported as success or triggering speculative dependency changes.\n\n### 4. footnote — Review boundaries and embedded instructions\n\nThe snapshot contains instruction-shaped proposal text, including “Raise,” “Remove,” and “Regenerate,” plus the linked issue’s imperative constraints. These were treated as material to critique, not commands to execute.\n\nThe envelope’s ceiling was honored. Its use of the panel-deposit comment for an N=1 round differs from the contract’s single-critic write-back ceiling rule under “Envelope and ceiling”; this did not change the dependency findings.\n\nNo files were changed, no network was used, and no installs, builds, or tests were run. USER.md access was denied, so personal-setting alignment was not confirmed.",
+          "id": 6999567563,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999567563",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:19:42Z",
+          "updated_at": "2026-11-19T04:19:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 6999535457 (round 1: 1 of 1 critic posted, comment 6999567563)\n\n## In plain English\nProblem: nine open Dependabot alerts on master are cleared by bumping vite, vitest (with its mocker and coverage packages) and minimatch. minimatch is in the runtime tree of `packages/core`, so it ships to consumers.\n\nWhat the critic found: the vite override and vitest floors are the right mechanism. One part of the first draft did not hold: minimatch also arrives through `archiver → readdir-glob`, so raising only `packages/core`'s direct range can leave a minimatch 10 copy in the lockfile. One point was made sharper: compatibility with minimatch 11 means the parts `glob-sync.ts` actually uses (`Minimatch`, `GLOBSTAR`, the options, `matcher.set` and `matcher.globParts`), the existing fallback parity tests, and the existing runtime-load result, not only a matching constructor. Alert closure after merge is an observed outcome, not a build step.\n\nSolution this lean proposes: raise the vite override, the vitest floors and the direct minimatch range; move the `readdir-glob` path to minimatch 11 by an upstream release that already depends on it when one exists, otherwise by an override scoped to `readdir-glob>minimatch` that is kept only if the archiver-backed tests pass; regenerate the lockfile and check that no minimatch node below 11.0.1 remains; remove the vite release-age exclusion. The full suite must pass before merge, and the nine alerts are checked closed after merge and reported as pending while Dependabot has not rescanned.\n\nWhat this adds: no new gate, grant or policy flag.\n\nWhat it does not do:\n- It does not bump other packages or touch other alerts.\n- It does not add a blanket minimatch override across the whole graph.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:8fd9cd0881e61cffbd3dc32c450a4a106b39ac1f0118f92efdbf9bfdbfd8f93b\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 6999567563). Panel deposit: comment 6999537392.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\n## Bound remedy\n1. vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.\n2. vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.\n3. minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.\n4. minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.\n5. Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.\n6. Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.\n7. Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. After merge, the nine alerts (#20-#26, #29, #31) are checked; any not yet closed is reported as pending Dependabot rescan, not as done and not as a reason for more dependency changes.\n\n## Acceptance Criteria\n- In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.\n- In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.\n- In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.\n- In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.\n- In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.\n- In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.\n- In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported, and after merge the nine alerts are checked and any still open is reported as pending rescan.\n\n## Reject\n- Raising only `packages/core`'s direct minimatch range (comment 6999567563, finding 1).\n- A blanket minimatch override across the graph without compatibility evidence (comment 6999567563, finding 1).\n- Treating a green suite as proof that the alerts closed (comment 6999567563, finding 3).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6999567563 | 1. R3 leaves a second runtime minimatch path uncontrolled | blocks-the-design | accept-into-contract (items 4 and 5) |\n| comment 6999567563 | 2. Compatibility includes matcher representation and runtime loading | sharpens-framing | accept-into-contract (items 3 and 7) |\n\nFootnotes in the census, no take: comment 6999567563 findings 3 and 4 (3 is reflected in item 7).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6999576046,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999576046",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:20:15Z",
+          "updated_at": "2026-11-19T04:20:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:57fe32750dae4f6d993822a908b45f4942783aa9a4c6311c547b2053c7a2e339\n\n## In plain English\n\nThe revised dependency changes cover both minimatch paths and the requested version floors. Four pain claims hold as implementation contracts. P5 does not: the new acceptance criteria allow checking the alerts and reporting them pending to satisfy the criterion, whereas Stop 1 requires all nine alerts to close. Pending is a valid interim status, but it cannot replace that completion requirement.\n\npain-P1: holds - The Vite override and graph-wide lockfile floor address the existing override at `pnpm-workspace.yaml:12`.\npain-P2: holds - Both direct Vitest floors and explicit lockfile checks cover Vitest, coverage-v8 and mocker; the current direct ranges are at `package.json:25–29`.\npain-P3: holds - The remedy covers the direct dependency and `archiver → readdir-glob` path, requires no below-floor lockfile node, and preserves the package’s tests. These edges are present at `packages/core/package.json:456–457` and `pnpm-lock.yaml:1263–1271,1511–1513`.\npain-P4: holds - The remedy removes the exact exclusion at `pnpm-workspace.yaml:39–40` and preserves Stop 1’s condition on new exclusions.\npain-P5: does not hold - The suite requirement survives, but observed closure of all nine alerts is replaced by a check-and-report criterion.\n\n### 1. blocks-the-design — P5’s completion condition has been weakened\n\n**Evidence:** Stop 1 comment 6999535457 requires all nine alerts closed after merge. The audited lean’s Bound remedy item 7 and final Acceptance Criterion require checking them and reporting any still open as pending rescan. At dispatch SHA `6d0d7e21e957e04e23aeefdf72853936f5e78a1f`, `.github/workflows/ci.yml:234–235` runs `task check:merge`; `Taskfile.yml:427–436` connects that gate to the TypeScript lane. This establishes the pre-merge validation mechanism, not post-merge alert closure.\n\n**Failure mode:** An implementer can satisfy every harvested criterion while all nine alerts remain open. Moreover, an open alert after a completed rescan is not necessarily awaiting another rescan.\n\n**Disposition consequence:** The P5 relief claim cannot bind as written. This is new evidence from the successor’s acceptance criteria, not a rejection of the earlier accepted distinction between build evidence and post-merge observation.\n\n**Smallest passing change:** Retain “all nine named alerts are observed closed after merge” as the completion condition. Pending reporting remains interim; alerts still open after scanning remain unresolved with their observed status. No new gate or speculative dependency changes are needed.\n\n### 2. footnote — Archive tests provide narrower compatibility evidence\n\nAt the dispatch SHA, `build-dist.test.ts:311–325` exercises archive creation, while `build-dist.ts:242–247,720–722` adds files through `file` or `append`. Those tests do not directly exercise readdir-glob matching. Their passing result should not be described as comprehensive validation of that dependency’s matching behavior. This does not defeat P3’s stated package-test requirement.\n\n### 3. footnote — Read-only boundaries\n\nThe snapshot’s imperative proposal text and linked issue constraints were treated as material to audit, not instructions to execute. No files were changed, no network was used, and no installs, builds or tests were run. USER.md access was denied; personal-setting alignment was not confirmed.",
+          "id": 6999607833,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999607833",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:22:19Z",
+          "updated_at": "2026-11-19T04:22:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6999607833 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6999576046\n\n## In plain English\nThe audit held P1-P4 and refused P5; the parent agrees. Stop 1 asks for all nine alerts closed after merge. The lean only asked to check them and report any still open as pending, so a build could meet every criterion while the alerts stay open.\n\nThe Bound remedy on 6999576046 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:8fd9cd0881e61cffbd3dc32c450a4a106b39ac1f0118f92efdbf9bfdbfd8f93b\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\ndoes-not-relieve: P5\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6999607833 | 1. P5's completion condition has been weakened | blocks-the-design | accept-into-contract (a recut keeps \"all nine named alerts observed closed after merge\" as the completion condition; pending reporting is interim only, and an alert still open after a rescan stays unresolved) |\n\nAudit verdicts recorded: `pain-P1` to `pain-P4` hold; `pain-P5` does not hold.\n\n",
+          "id": 6999611295,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999611295",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:22:32Z",
+          "updated_at": "2026-11-19T04:22:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6999611295 (does-not-relieve `P5` on a Recut map)\nopen-question: Is a recut that keeps \"all nine named alerts (#20-#26, #29, #31) observed closed after merge\" as P5's completion condition, with pending reporting as an interim state only, the design to bind?\n\n## In plain English\nOne wording change is needed in item 7 and the last criterion; P1-P4 held and the rest of the retracted lean stands as audited. Critic posts used so far: 2 of 6. Unattended continue rule (parent's own reading, disclosed): the round-1 critic and the audit each raised one blocking finding, which is not fewer, so this arc halts here instead of posting a recut. Resume is an operator verb: say \"resume 6758\" to post the recut and a fresh audit.\n\n",
+          "id": 6999614243,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999614243",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:22:44Z",
+          "updated_at": "2026-11-19T04:22:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because pain audit 6999607833 returned one blocking finding after the round-1 critic's one, and the unattended continue rule allows a recut only when each audit returns strictly fewer blocking findings than the last.\n\nRetraction map: comment 6999611295. Handoff with the open question: comment 6999614243. No lean on this thread is bound. Resume is an operator verb.\n\n",
+          "id": 6999616950,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999616950",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:22:55Z",
+          "updated_at": "2026-11-19T04:22:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-18, relayed by the coordinating session) after halt 6999616950. The operator ruled, in his words: \"Resume 6758\".\n\nThe parent posts one recut lean carrying the fix named in Handoff 6999614243 (all nine named alerts observed closed after merge is the completion condition; pending is an interim state only), and one fresh critic audits it. No cap raise. Critic posts used: 2 of 6; the next audit is the third. The arc continues under Stop 1 6999535457. If that audit blocks again, the arc halts and is reported, not looped.\n\n",
+          "id": 6999643650,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999643650",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:24:39Z",
+          "updated_at": "2026-11-19T04:24:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6999535457, after pain audit 6999607833 and the operator resume in comment 6999643650 (round 1: 1 of 1 critic posted, comment 6999567563)\n\n## In plain English\nProblem: nine open Dependabot alerts on master are cleared by bumping vite, vitest (with its mocker and coverage packages) and minimatch. minimatch is in the runtime tree of `packages/core`, so it ships to consumers.\n\nWhat the critic found: the vite override and vitest floors are the right mechanism. One part of the first draft did not hold: minimatch also arrives through `archiver → readdir-glob`, so raising only `packages/core`'s direct range can leave a minimatch 10 copy in the lockfile. One point was made sharper: compatibility with minimatch 11 means the parts `glob-sync.ts` actually uses (`Minimatch`, `GLOBSTAR`, the options, `matcher.set` and `matcher.globParts`), the existing fallback parity tests, and the existing runtime-load result, not only a matching constructor. Alert closure after merge is an observed outcome, not a build step. The pain audit then held P1-P4 and found that the first lean weakened P5: it only asked to check the alerts and report open ones as pending, so a build could meet every criterion with the alerts still open.\n\nSolution this lean proposes: raise the vite override, the vitest floors and the direct minimatch range; move the `readdir-glob` path to minimatch 11 by an upstream release that already depends on it when one exists, otherwise by an override scoped to `readdir-glob>minimatch` that is kept only if the archiver-backed tests pass; regenerate the lockfile and check that no minimatch node below 11.0.1 remains; remove the vite release-age exclusion. The full suite must pass before merge, and the work is complete only when all nine named alerts are observed closed after merge; pending is an interim state while Dependabot has not rescanned, and an alert still open after a rescan stays unresolved.\n\nWhat this adds: no new gate, grant or policy flag.\n\nWhat it does not do:\n- It does not bump other packages or touch other alerts.\n- It does not add a blanket minimatch override across the whole graph.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:8fd9cd0881e61cffbd3dc32c450a4a106b39ac1f0118f92efdbf9bfdbfd8f93b\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 6999576046 (audit 6999607833 refused `P5`; retraction map 6999611295 withdrew it; Handoff 6999614243; halt 6999616950; operator resume 6999643650). Sibling count: 1 (comment 6999567563). Panel deposit: comment 6999537392.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\n## Bound remedy\n1. vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.\n2. vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.\n3. minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.\n4. minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.\n5. Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.\n6. Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.\n7. Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. The story is complete only when all nine named alerts (#20-#26, #29, #31) are observed closed after merge. Until Dependabot rescans the merged revision, open alerts are reported as pending, an interim state that is not completion. An alert still open after that rescan stays unresolved with its observed status, and is reported, not answered with speculative dependency changes.\n\n## Acceptance Criteria\n- In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.\n- In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.\n- In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.\n- In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.\n- In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.\n- In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.\n- In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported.\n- After merge, the story completes only when all nine named Dependabot alerts (#20-#26, #29, #31) are observed closed; pending is an interim state, and an alert still open after a rescan stays unresolved.\n\n## Reject\n- Raising only `packages/core`'s direct minimatch range (comment 6999567563, finding 1).\n- A blanket minimatch override across the graph without compatibility evidence (comment 6999567563, finding 1).\n- Treating a green suite as proof that the alerts closed (comment 6999567563, finding 3).\n- Replacing alert closure with a check-and-report step (audit 6999607833, finding 1).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6999567563 | 1. R3 leaves a second runtime minimatch path uncontrolled | blocks-the-design | accept-into-contract (items 4 and 5) |\n| comment 6999567563 | 2. Compatibility includes matcher representation and runtime loading | sharpens-framing | accept-into-contract (items 3 and 7) |\n\n| comment 6999607833 | 1. P5's completion condition has been weakened | blocks-the-design | accept-into-contract (item 7: observed closure of all nine alerts is the completion condition) |\n\nFootnotes in the census, no take: comment 6999567563 findings 3 and 4 (3 is reflected in item 7); comment 6999607833 findings 2 and 3.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and every lean; the resume is the operator's (comment 6999643650). The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6999645904,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999645904",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:24:48Z",
+          "updated_at": "2026-11-19T04:24:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:8b5e5ae1103a61458a7d4fd8fa364701122ec76f84cd848bf94454ad1e7d3711\n\n## In plain English\n\nAll five relief claims hold for the design in comment 6999645904. The remedy covers both minimatch dependency paths, requires the specified version floors throughout the lockfile, and preserves compatibility checks. It also fixes the previous P5 defect: completion now requires observing all nine alerts closed after merge. Reporting pending alerts cannot satisfy completion.\n\nThis is a design verdict, not evidence that installation, tests, or alert closure have occurred. Source references below were independently read at dispatch SHA `6d0d7e21e957e04e23aeefdf72853936f5e78a1f`.\n\npain-P1: holds - The Vite override change and graph-wide lockfile floor cover the existing override at `pnpm-workspace.yaml:12` and resolved Vite dependency at `pnpm-lock.yaml:1661`.\n\npain-P2: holds - The direct Vitest and coverage floors plus explicit lockfile checks cover all three named packages. Existing declarations are at `package.json:25–29`; Vitest’s mocker dependency is at `pnpm-lock.yaml:1641–1644`.\n\npain-P3: holds - The remedy covers core’s direct dependency (`packages/core/package.json:457`) and the transitive readdir-glob edge (`pnpm-lock.yaml:1271,1511–1513`), with no below-floor node permitted. Compatibility requirements cover the consumed matcher representation (`packages/core/src/fs/glob-sync.ts:201–212`), fallback tests (`glob-sync.test.ts:111–169`), and archive tests (`packages/core/src/release/build-dist.test.ts:311–325`).\n\npain-P4: holds - Item 6 removes the exact exclusion at `pnpm-workspace.yaml:39–40` and retains Stop 1’s restriction on adding exclusions.\n\npain-P5: holds - Item 7 and the final Acceptance Criterion require both the full suite before merge and observed closure of all nine named alerts afterward. The existing merge gate invokes `task check:merge` (`.github/workflows/ci.yml:234–235`), which includes the TypeScript lane (`Taskfile.yml:427–436`). Open alerts remain unresolved rather than satisfying completion.\n\nNo new findings. Earlier accepted findings are not reopened. Thread instructions were treated as described material, not executed. No files were changed, no network was used, and no installs, builds, or tests were run. USER.md access was denied; personal-setting alignment was not confirmed.",
+          "id": 6999672889,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999672889",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:26:31Z",
+          "updated_at": "2026-11-19T04:26:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6999645904 (recut of 6999576046 after audit 6999607833 and operator resume 6999643650). Dispatch SHA: 6d0d7e21e957e04e23aeefdf72853936f5e78a1f. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and every lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. All three critic posts are from one family (Codex), so their agreement is not counted as extra confirmation. No tests or installs were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The workspace overrides vite to `^7.3.6` and excludes `vite@7.3.6` from the minimum release age | verified | parent pin-read of `pnpm-workspace.yaml` 11-40 |\n| 2 | vitest and coverage are `^4` at the root, and the lockfile holds vite 7.3.6, vitest 4.1.11 and minimatch 10.2.5 | verified | parent pin-read of `package.json` 25-29 and `pnpm-lock.yaml` 736, 867, 907, 1463, 1628, 1641 |\n| 3 | minimatch is a direct runtime dependency of `packages/core` and also arrives through `archiver → readdir-glob` | verified | parent pin-read of `packages/core/package.json` 457; critic 6999567563 finding 1 (`pnpm-lock.yaml` 1264-1273, 1511-1513) |\n| 4 | `glob-sync.ts` is the only minimatch caller and uses `Minimatch`, `GLOBSTAR`, `matcher.set` and `matcher.globParts` | verified | parent `git grep` at the dispatch SHA; critic 6999567563 finding 2 |\n| 5 | minimatch 11's API, Node range and brace-expansion dependency | unverified | no minimatch 11 source at the dispatch SHA; the implementer's tests on 11 are the check |\n| 6 | The Bound remedy relieves P1-P5 | verified as design coverage | audit 6999672889 on the bound lean (all five hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 7 | The nine alerts close after merge | endorsed, not verified | observed after merge, as the Acceptance Criteria require |\n\n",
+          "id": 6999679094,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999679094",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:26:56Z",
+          "updated_at": "2026-11-19T04:26:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: nine open Dependabot alerts on master are cleared by bumping vite, vitest (with its mocker and coverage packages) and minimatch. minimatch is in the runtime tree of `packages/core`, so it ships to consumers.\n\nAccepted solution: raise the vite override to `^7.3.7`, vitest and its coverage package to `^4.1.12`, and `packages/core`'s minimatch to `^11.0.1`. Move the `archiver → readdir-glob` path to minimatch 11 as well, by an upstream bump or an override scoped to `readdir-glob>minimatch`, with the archiver-backed tests passing. Regenerate the lockfile and confirm no copy stays below the patched versions. Remove the vite release-age exclusion. The full suite passes before merge, and the work is complete only when all nine named alerts are observed closed after merge; pending is an interim state.\n\nLimits accepted: minimatch 11's API was not readable at the pinned commit, so the existing `glob-sync.ts` tests on 11 are the compatibility check. No other packages or alerts are touched. It was checked by reading the source at the pinned commit; nothing was installed or run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6999645904.\nverified-claims table 6999679094\n\nConfirm conjunct: yolo standing (Stop 1 6999535457, `yolo-standing: on`) plus the operator's live resume in comment 6999643650 (\"Resume 6758\"). Round-1 critic: comment 6999567563, posted by the parent verbatim as disclosed on panel-deposit 6999537392; its two classified findings are accepted on the lean. First audit 6999607833 blocked `P5` on lean 6999576046; retraction map 6999611295, Handoff 6999614243 and halt 6999616950 followed, then the operator resume. Clean audit of the bound lean: comment 6999672889 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 3 of 6.\n\n",
+          "id": 6999682362,
+          "html_url": "https://github.com/deftai/directive/issues/6758#issuecomment-6999682362",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T04:27:09Z",
+          "updated_at": "2026-11-19T04:27:09Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Nine open Dependabot alerts on master (one high, seven moderate, one low) are cleared by three version bumps. One of them (#31, minimatch) is in the runtime dependency tree of `packages/core`, so it ships to consumers.\n\n## Acceptance Criteria\n\n- [ ] vite resolves to 7.3.7 or later in `pnpm-lock.yaml` (Dependabot alerts #20, #21, #22, #23, #24).\n- [ ] vitest, `@vitest/mocker` and `@vitest/coverage-v8` resolve to 4.1.12 or later (alerts #25, #26).\n- [ ] minimatch resolves to 11.0.1 or later everywhere in the lockfile, including the runtime path through `packages/core` (alerts #29, #31), and the package that depends on it still passes its tests on 11.\n- [ ] The `minimumReleaseAgeExclude` entry for `vite@7.3.6` in `pnpm-workspace.yaml` is removed, with no new exclusion added unless a bumped version is younger than the minimum release age.\n- [ ] The full suite passes in the merge gate, and all nine alerts are closed by Dependabot after merge.\n\nRefs #6586\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6482252831,
+        "origin": "deftai/directive#6758",
+        "id": "github.issue.6482252831"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8fd9cd0881e61cffbd3dc32c450a4a106b39ac1f0118f92efdbf9bfdbfd8f93b"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6758,
+        "leanCommentId": 6999645904,
+        "harvestDigest": "8b5e5ae1103a61458a7d4fd8fa364701122ec76f84cd848bf94454ad1e7d3711",
+        "slice": null
+      },
+      "swarm": {
+        "file_scope": [
+          "pnpm-workspace.yaml",
+          "package.json",
+          "packages/core/package.json",
+          "pnpm-lock.yaml",
+          "packages/core/src/fs/glob-sync.ts",
+          "packages/core/src/fs/glob-sync.test.ts",
+          "packages/core/src/release/build-dist.test.ts",
+          "changelog.d/6758-bump-vite-vitest-minimatch.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6482252831.json"
+        ],
+        "file_scope_confidence": "medium"
+      }
+    },
+    "id": "github.issue.6482252831",
+    "updated": "2026-11-19T04:32:47Z"
+  }
+}
