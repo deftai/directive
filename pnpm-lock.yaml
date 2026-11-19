@@ -21,8 +21,8 @@ importers:
         specifier: 2.5.0
         version: 2.5.0
       '@deftai/directive-runtime':
-        specifier: 0.129.15
-        version: 0.129.15
+        specifier: 0.130.0
+        version: 0.130.0
       '@types/node':
         specifier: ^24
         version: 24.13.2
@@ -164,8 +164,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@deftai/directive-runtime@0.129.15':
-    resolution: {integrity: sha512-qylY8ciJCfJ+wuRBay6P9+CVlAVP9KXx1Tn8LQNWbSMaRle+NrqkVxw8NyKNV2Vr7+BTYK25al0dIZnZwjyvLw==}
+  '@deftai/directive-runtime@0.130.0':
+    resolution: {integrity: sha512-z0acH1sAPJ6AviwMU7uQqrgWc2hVOhYwWOJ0GSPWYhf27RjfYs1WfTR3baZVdoaFrj5lO/FfnK9GUJ7xvcg3Rw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -1012,9 +1012,10 @@ snapshots:
   '@biomejs/cli-win32-x64@2.5.0':
     optional: true
 
-  '@deftai/directive-runtime@0.129.15':
+  '@deftai/directive-runtime@0.130.0':
     dependencies:
       archiver: 8.0.0
+      minimatch: 11.0.9
       parse5: 7.3.0
       typescript: 5.9.3
     transitivePeerDependencies:

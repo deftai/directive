@@ -2,4 +2,10 @@
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 # shellcheck source=/dev/null
 . "$REPO_ROOT/.githooks/_directive-run.sh"
+run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
+run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
+if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
+  run_directive verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
+  run_directive verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
+fi

@@ -215,3 +215,5 @@ xbrief/.triage-cache/scm-label-mirror-discovery-state.json
 .claude/worktrees/
 .claude/settings.local.json
 .deft/directive/wiring-ready.*.json
+.deft/pre-pr-execution-private/
+.deft/orientation-state.json
