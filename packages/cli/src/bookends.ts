@@ -1,9 +1,9 @@
 /**
  * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   CONTRACT_NUMBER,
   EXIT_CODES,
@@ -35,6 +35,7 @@ import { checkNodeVersion } from "./node-check.js";
 import type { ProjectInstallState } from "./pin.js";
 import { isContractSupported, readInstalledRuntime, readProjectInstallState } from "./pin.js";
 import {
+  type HooksTakeover,
   parseVerbosityFlags,
   presentAmbiguousYes,
   presentFirstInstallPlan,
@@ -347,6 +348,72 @@ function _appendGitHooksPlanDisclosure(lines: string[], projectRoot: string): vo
   if (!existsSync(join(projectRoot, ".git"))) {
     lines.push(GIT_HOOKS_INACTIVE_PLAN_LINE);
   }
+}
+
+function gitOut(projectRoot: string, args: readonly string[]): string | null {
+  try {
+    return execFileSync("git", ["-C", projectRoot, ...args], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+}
+
+function samePath(a: string, b: string): boolean {
+  if (a === b) return true;
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * #4960 / ledger Problem 20 — read-only check, before the install/repair plan, for
+ * Git hooks that `.githooks` would replace in this repository. Returns null when
+ * nothing would be replaced (no `.git`, hooks already Directive's, or nothing set).
+ * Never writes Git config (safe for `--dry-run`).
+ */
+export function detectHooksTakeover(projectRoot: string): HooksTakeover | null {
+  if (!existsSync(join(projectRoot, ".git"))) return null;
+  const ours = resolve(projectRoot, ".githooks");
+  const raw = gitOut(projectRoot, ["config", "--show-scope", "--get", "core.hooksPath"]);
+  if (raw !== null) {
+    const line = raw.replace(/\r?\n$/, "");
+    const tab = line.indexOf("\t");
+    const scope = tab >= 0 ? line.slice(0, tab) : "";
+    const value = (tab >= 0 ? line.slice(tab + 1) : line).trim();
+    if (value !== "") {
+      if (value === ".githooks" || value === ".githooks/") return null;
+      if (samePath(resolve(projectRoot, value), ours)) return null;
+      return { previous: value, scope: scope === "" ? null : scope, hooks: [] };
+    }
+  }
+  // Unset: Git's default hooks folder; only sample files mean nothing is replaced.
+  const hooksDirRaw = gitOut(projectRoot, ["rev-parse", "--git-path", "hooks"]);
+  if (hooksDirRaw === null) return null;
+  const hooksDirRel = hooksDirRaw.trim();
+  if (hooksDirRel === "") return null;
+  const hooksDir = resolve(projectRoot, hooksDirRel);
+  let names: string[];
+  try {
+    names = readdirSync(hooksDir)
+      .filter((n) => !n.endsWith(".sample"))
+      .filter((n) => {
+        try {
+          return statSync(join(hooksDir, n)).isFile();
+        } catch {
+          return false;
+        }
+      })
+      .sort();
+  } catch {
+    return null;
+  }
+  if (names.length === 0) return null;
+  return { previous: hooksDirRel, scope: "default", hooks: names };
 }
 
 /** AC5.8 / AC14.45 — fail before mutation when the selected PM is not on PATH. */
@@ -704,6 +771,8 @@ function runFirstInstall(
 
   const willCreatePkg = !existsSync(join(projectRoot, "package.json"));
   const pmCmd = formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot);
+  // #4960 / Problem 20: disclose a hooks takeover inside this one plan.
+  const hooksTakeover = detectHooksTakeover(projectRoot);
 
   presentFirstInstallPlan(io, {
     projectRoot,
@@ -713,6 +782,7 @@ function runFirstInstall(
     pmCommand: pmCmd,
     willCreatePkg,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
+    hooksTakeover,
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
@@ -780,6 +850,7 @@ function runFirstInstall(
     verbosity: flags.verbosity,
     pm: pmDetect.pm,
     pnpmWorkspaceChanged,
+    hooksTakeover,
   }).exitCode;
 }
 
@@ -821,6 +892,8 @@ function runRepair(
   const restoreReason = lockOk
     ? "installed package mismatch/missing"
     : "lockfile missing/unusable/disagree";
+  // #4960 / Problem 20: disclose a hooks takeover inside this one plan.
+  const hooksTakeover = detectHooksTakeover(projectRoot);
 
   presentRepairPlan(io, {
     projectRoot,
@@ -831,6 +904,7 @@ function runRepair(
     pmCommand: needsPmRestore ? pmCmd : null,
     restoreReason: needsPmRestore ? restoreReason : null,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
+    hooksTakeover,
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
@@ -903,6 +977,7 @@ function runRepair(
     pm: pmDetect.pm,
     restoredPackage: needsPmRestore,
     pnpmWorkspaceChanged,
+    hooksTakeover,
   }).exitCode;
 }
 
@@ -948,8 +1023,16 @@ function handOffSetup(opts: {
   restoredPackage?: boolean;
   /** pnpm changed pnpm-workspace.yaml during the PM add (#5854 / #6006). */
   pnpmWorkspaceChanged?: boolean;
+  /**
+   * Hooks takeover disclosed in the approved install/repair plan (#4960). Only
+   * then does setup get --take-over-hooks-path; upgrade never passes it.
+   */
+  hooksTakeover?: HooksTakeover | null;
 }): { exitCode: number; summary: SetupSummary | null } {
-  const argv = setupArgv(opts.operation, opts.from, opts.projectRoot);
+  const hooksTakeover = opts.operation === "upgrade" ? null : (opts.hooksTakeover ?? null);
+  const argv = setupArgv(opts.operation, opts.from, opts.projectRoot, {
+    takeOverHooksPath: hooksTakeover !== null,
+  });
   const result =
     opts.deps.invokeSetup?.(argv) ??
     invokeRuntime({
@@ -979,6 +1062,7 @@ function handOffSetup(opts: {
         summary,
         verbosity: opts.verbosity,
         pnpmWorkspaceChanged: opts.pnpmWorkspaceChanged ?? false,
+        hooksTakeover,
       });
     } else if (opts.operation === "repair") {
       presentRepairSuccess(opts.io, {
@@ -988,6 +1072,7 @@ function handOffSetup(opts: {
         verbosity: opts.verbosity,
         pm: opts.pm,
         pnpmWorkspaceChanged: opts.pnpmWorkspaceChanged ?? false,
+        hooksTakeover,
       });
     }
     // upgrade: caller presents after migrate

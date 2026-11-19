@@ -35,6 +35,7 @@ import {
 } from "@deftai/directive-core/dist/lifecycle-visible/evaluate.js";
 import { envGitRunner, type GitRunner } from "@deftai/directive-core/dist/session/git.js";
 import { type DataStatusValue, readProjectDataStatus } from "./data-status.js";
+import { describeHooksPathScope, type HooksPathState, readHooksPathState } from "./setup-wiring.js";
 
 export { DEFT_DOCTOR_HOOK_DIAGNOSTIC };
 
@@ -228,6 +229,20 @@ export const GIT_PRECONDITION_RECOVERY_GUIDANCE = "git init, then directive inst
 /** Readiness detail when wiring-ready is withheld solely because there is no .git. */
 export const GIT_PRECONDITION_READINESS_DETAIL =
   "incomplete install — wiring-ready withheld until git init (hooksPath not activatable)";
+
+/**
+ * #4960 / #5846 — readiness withheld because another `core.hooksPath` is set.
+ * Repair shows the takeover in its plan and asks once (ledger Problem 20).
+ */
+export const FOREIGN_HOOKS_PATH_RECOVERY_GUIDANCE = "directive install --repair";
+
+/** Readiness detail naming the other hooks folder and where it is set. */
+export function formatForeignHooksPathReadinessDetail(state: HooksPathState): string {
+  return (
+    `wiring-ready withheld — Git hooks inactive: core.hooksPath is '${state.value ?? ""}', ` +
+    `set by ${describeHooksPathScope(state.scope)}`
+  );
+}
 
 /**
  * #5798 — wiring-only residual (pin/install/readiness already ok).
@@ -520,6 +535,33 @@ export function isNoGitReadinessGap(sync: FullInSyncResult, projectRoot: string)
   return p.pin.ok && p.lockfile.ok && p.installed.ok && p.generation.ok && p.wiring.ok;
 }
 
+/**
+ * #4960 / #5846: otherwise-healthy install with readiness withheld because
+ * `core.hooksPath` points at another hooks folder. Returns that state, else null.
+ * Read-only (reads Git config; never writes it).
+ */
+export function foreignHooksPathReadinessGap(
+  sync: FullInSyncResult,
+  projectRoot: string,
+): HooksPathState | null {
+  if (!projectHasGitDir(projectRoot)) return null;
+  if (sync.failClosed) return null;
+  if (sync.predicates.readiness.ok) return null;
+  const p = sync.predicates;
+  if (!(p.pin.ok && p.lockfile.ok && p.installed.ok && p.generation.ok && p.wiring.ok)) {
+    return null;
+  }
+  const state = readHooksPathState(projectRoot);
+  return state.kind === "foreign" ? state : null;
+}
+
+export function isForeignHooksPathReadinessGap(
+  sync: FullInSyncResult,
+  projectRoot: string,
+): boolean {
+  return foreignHooksPathReadinessGap(sync, projectRoot) !== null;
+}
+
 function chooseRemedy(
   sync: FullInSyncResult,
   dataStatus: DataStatusValue,
@@ -528,6 +570,14 @@ function chooseRemedy(
   // F-010: incomplete no-git install — do not lead with AC9.7 global reinstall.
   if (isNoGitReadinessGap(sync, projectRoot)) {
     return { remedy: GIT_PRECONDITION_RECOVERY_GUIDANCE, schemaRemedy: null };
+  }
+  // #4960 / #5846: another hooks folder — repair shows the takeover and asks once.
+  if (isForeignHooksPathReadinessGap(sync, projectRoot)) {
+    const schemaBehind = dataStatus === "migration_needed" || dataStatus === "diagnosis_failed";
+    return {
+      remedy: FOREIGN_HOOKS_PATH_RECOVERY_GUIDANCE,
+      schemaRemedy: schemaBehind ? "directive upgrade" : null,
+    };
   }
 
   const p = sync.predicates;
@@ -610,9 +660,12 @@ export function runDoctorDiagnosis(
   const healthy =
     sync.inSync && dataStatus === "current" && form.hookCommandForm.ok && form.skillPointers.ok;
 
+  const foreignHooks = gitPrecondition ? null : foreignHooksPathReadinessGap(sync, projectRoot);
   const readinessSurface = gitPrecondition
     ? { ok: false, detail: GIT_PRECONDITION_READINESS_DETAIL }
-    : surfaceFromPred(sync.predicates.readiness);
+    : foreignHooks !== null
+      ? { ok: false, detail: formatForeignHooksPathReadinessDetail(foreignHooks) }
+      : surfaceFromPred(sync.predicates.readiness);
 
   return {
     inSync: sync.inSync,

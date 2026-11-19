@@ -71,6 +71,9 @@ export async function handleContractEntrypoint(argv: readonly string[]): Promise
       operation: operation as "install" | "repair" | "upgrade",
       from,
       root,
+      // Launcher passes this only after the install/repair plan approval that
+      // disclosed the takeover (#4960); self-complete never does.
+      takeOverHooksPath: hasFlag(argv, "--take-over-hooks-path"),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.conflicts.length > 0) return 1;

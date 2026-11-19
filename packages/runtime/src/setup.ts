@@ -86,6 +86,13 @@ export interface SetupResult {
    * retired core-guard workflow (#5835). Git hooks are never kept (D-023).
    */
   readonly preserved?: string[];
+  /**
+   * Set when this run replaced another `core.hooksPath` with `.githooks` after the
+   * install/repair plan's approval (#4960, ledger Problem 20). Present only then.
+   */
+  readonly hooksPathTakenOver?: { readonly previous: string; readonly scope: string | null };
+  /** Why Git hooks are not active (no `.git`, another hooks folder); present only then. */
+  readonly gitHooksInactive?: string;
   readonly message: string;
 }
 
@@ -430,13 +437,24 @@ export function runSetup(options: {
   readonly operation: SetupOperation;
   readonly from: string;
   readonly root: string;
+  /**
+   * The operator approved an install/repair plan that disclosed taking over another
+   * `core.hooksPath` (#4960). Automatic setup and upgrade never pass this.
+   */
+  readonly takeOverHooksPath?: boolean;
 }): SetupResult {
   const { operation, from, root } = options;
   let gitHookUpdates: string[] = [];
   const keptRetired: string[] = [];
-  const withKeptAndUpdated = (): { gitHookUpdates?: string[]; preserved?: string[] } => ({
+  let hooksTakenOver: { previous: string; scope: string | null } | null = null;
+  const withKeptAndUpdated = (): {
+    gitHookUpdates?: string[];
+    preserved?: string[];
+    hooksPathTakenOver?: { previous: string; scope: string | null };
+  } => ({
     ...(gitHookUpdates.length > 0 ? { gitHookUpdates } : {}),
     ...(keptRetired.length > 0 ? { preserved: [...keptRetired] } : {}),
+    ...(hooksTakenOver !== null ? { hooksPathTakenOver: hooksTakenOver } : {}),
   });
   const created: string[] = [];
   const modified: string[] = [];
@@ -546,7 +564,12 @@ export function runSetup(options: {
     created.push(...hooks.created);
     modified.push(...hooks.modified);
 
-    const githooks = ensureGitHooks(root);
+    const githooks = ensureGitHooks(root, {
+      takeOverHooksPath: options.takeOverHooksPath === true,
+    });
+    if (githooks.hooksPathTakenOver !== null) {
+      hooksTakenOver = githooks.hooksPathTakenOver;
+    }
     gitHookUpdates = githooks.updated;
     created.push(...githooks.created);
     modified.push(...githooks.modified);
@@ -656,6 +679,7 @@ export function runSetup(options: {
         removed,
         conflicts,
         ...withKeptAndUpdated(),
+        gitHooksInactive: disclosure,
         message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX}); ${disclosure}`,
       };
     }

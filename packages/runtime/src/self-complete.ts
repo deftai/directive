@@ -171,5 +171,10 @@ export function maybeSelfCompleteSetup(
   discloseOnce(setup.gitHookUpdates, writeErr);
   // Kept files (e.g. a user-edited retired core-guard workflow, #5835).
   discloseOnce(setup.preserved, writeErr);
+  // #4960 / #5846: another core.hooksPath keeps Git hooks inactive; automatic
+  // setup never takes it over, so name the fix (once per process).
+  if (setup.gitHooksInactive?.includes("core.hooksPath is ")) {
+    discloseOnce([setup.gitHooksInactive], writeErr);
+  }
   return { ran: true, skipReason: null, setup };
 }

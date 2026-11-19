@@ -4,8 +4,8 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/dist/doctor/paths.js";
 import {
@@ -1251,6 +1251,131 @@ export function formatGitHookUpdated(rel: string, tracked: boolean): string {
     : `Updated \`${rel}\`.`;
 }
 
+/** Where a `core.hooksPath` value comes from (`git config --show-scope`). */
+export type HooksPathScope = "local" | "worktree" | "global" | "system" | "command" | "unknown";
+
+/**
+ * Effective `core.hooksPath` for a checkout (#4960 / #5846, ledger Problem 20).
+ * - `unset`: Git uses its default hooks folder.
+ * - `ours`: points at this project's `.githooks` (relative or absolute).
+ * - `foreign`: points anywhere else (another tool, a global hooks folder, a cloud host).
+ */
+export interface HooksPathState {
+  readonly kind: "unset" | "ours" | "foreign";
+  readonly value: string | null;
+  readonly scope: HooksPathScope | null;
+}
+
+const HOOKS_PATH_SCOPES: ReadonlySet<string> = new Set([
+  "local",
+  "worktree",
+  "global",
+  "system",
+  "command",
+]);
+
+function samePath(a: string, b: string): boolean {
+  if (a === b) return true;
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return false;
+  }
+}
+
+/** True when a `core.hooksPath` value names `<projectRoot>/.githooks`. */
+export function isOurHooksPathValue(projectRoot: string, value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed === ".githooks" || trimmed === ".githooks/") return true;
+  if (trimmed === "") return false;
+  return samePath(resolve(projectRoot, trimmed), resolve(projectRoot, ".githooks"));
+}
+
+/** Read-only: the effective `core.hooksPath` and its config scope. Never writes Git config. */
+export function readHooksPathState(projectRoot: string): HooksPathState {
+  let raw: string;
+  try {
+    raw = execFileSync(
+      "git",
+      ["-C", projectRoot, "config", "--show-scope", "--get", "core.hooksPath"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+  } catch {
+    return { kind: "unset", value: null, scope: null };
+  }
+  const line = raw.replace(/\r?\n$/, "");
+  const tab = line.indexOf("\t");
+  const scopeText = tab >= 0 ? line.slice(0, tab) : "";
+  const value = (tab >= 0 ? line.slice(tab + 1) : line).trim();
+  if (value === "") return { kind: "unset", value: null, scope: null };
+  const scope: HooksPathScope = HOOKS_PATH_SCOPES.has(scopeText)
+    ? (scopeText as HooksPathScope)
+    : "unknown";
+  return { kind: isOurHooksPathValue(projectRoot, value) ? "ours" : "foreign", value, scope };
+}
+
+/** Plain-English name for a config scope, for messages. */
+export function describeHooksPathScope(scope: HooksPathScope | null): string {
+  switch (scope) {
+    case "global":
+      return "your global Git config";
+    case "system":
+      return "your system Git config";
+    case "local":
+    case "worktree":
+      return "this repository's Git config";
+    case "command":
+      return "the Git command line";
+    default:
+      return "your Git config";
+  }
+}
+
+/**
+ * Disclosure when another hooks folder is set and setup may not take it over
+ * (automatic setup, upgrade). Names the one fix (#4960 / #5846, D-017).
+ */
+export function formatForeignHooksPathInactive(state: HooksPathState): string {
+  return (
+    `Git hooks inactive: core.hooksPath is '${state.value ?? ""}', set by ${describeHooksPathScope(state.scope)}. ` +
+    `Run directive install --repair to review and approve using Directive's .githooks.`
+  );
+}
+
+/**
+ * Disclosure when setting `.githooks` did not take effect because another config
+ * source still wins (an included file, or `git -c`). Names where it is set.
+ */
+export function formatHooksPathStillForeign(projectRoot: string, state: HooksPathState): string {
+  let origin = "";
+  try {
+    const raw = execFileSync(
+      "git",
+      ["-C", projectRoot, "config", "--show-origin", "--get", "core.hooksPath"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const tab = raw.indexOf("\t");
+    origin = (tab >= 0 ? raw.slice(0, tab) : "").trim();
+  } catch {
+    origin = "";
+  }
+  const where = origin === "" ? describeHooksPathScope(state.scope) : origin;
+  return (
+    `Git hooks inactive: core.hooksPath is still '${state.value ?? ""}' after setting .githooks, ` +
+    `because ${where} sets it. Directive does not edit that file: remove the core.hooksPath ` +
+    `setting there to use Directive's .githooks.`
+  );
+}
+
+export interface EnsureGitHooksOptions {
+  /**
+   * Operator approved the install/repair plan that disclosed taking over another
+   * `core.hooksPath` (#4960, ledger Problem 20). Only the launcher passes this,
+   * after its single approval; automatic setup and upgrade never do.
+   */
+  readonly takeOverHooksPath?: boolean;
+}
+
 /** Disclosure for an old Directive git-hook helper that setup removed (D-023). */
 export function formatGitHookRemoved(rel: string, tracked: boolean): string {
   return tracked
@@ -1263,7 +1388,10 @@ export function formatGitHookRemoved(rel: string, tracked: boolean): string {
  * not (AC8.3 / INIT-18 / D-023), and name each one it replaced. A hook that is
  * not Directive-shaped stays a named conflict and is never touched.
  */
-export function ensureGitHooks(projectRoot: string): {
+export function ensureGitHooks(
+  projectRoot: string,
+  options: EnsureGitHooksOptions = {},
+): {
   created: string[];
   modified: string[];
   removed: string[];
@@ -1274,6 +1402,8 @@ export function ensureGitHooks(projectRoot: string): {
   hooksPathActive: boolean;
   /** Human disclosure when hooks are not live; null when active. */
   inactiveDisclosure: string | null;
+  /** Set when this run replaced another `core.hooksPath` with `.githooks` (#4960). */
+  hooksPathTakenOver: { previous: string; scope: HooksPathScope | null } | null;
 } {
   const created: string[] = [];
   const modified: string[] = [];
@@ -1342,36 +1472,63 @@ export function ensureGitHooks(projectRoot: string): {
 
   let hooksPathActive = false;
   let inactiveDisclosure: string | null = null;
+  let hooksPathTakenOver: { previous: string; scope: HooksPathScope | null } | null = null;
 
-  // Activate relative hooksPath only when unset or already .githooks (AC9.9 / Greptile P1).
+  // Activate relative hooksPath when unset or already ours (AC9.9). Another hooks
+  // folder is taken over only with the install/repair plan's approval (#4960,
+  // ledger Problem 20); otherwise hooks stay inactive and setup names the fix.
   if (!existsSync(join(projectRoot, ".git"))) {
     inactiveDisclosure = GIT_HOOKS_INACTIVE_NO_GIT;
   } else {
-    let current: string | null = null;
-    try {
-      current = execFileSync("git", ["-C", projectRoot, "config", "--get", "core.hooksPath"], {
-        encoding: "utf8",
-      }).trim();
-    } catch {
-      current = null;
-    }
-    if (current === null || current === "") {
+    const state = readHooksPathState(projectRoot);
+    if (state.kind === "ours") {
+      hooksPathActive = true;
+    } else if (state.kind === "unset" || options.takeOverHooksPath === true) {
+      // Repository config only; never global or system (P20). A worktree-scoped
+      // value outranks local config, so replace it where it lives.
+      // --replace-all: a repository config may hold the key more than once.
+      const where = state.scope === "worktree" ? "--worktree" : "--local";
+      let wrote = false;
       try {
-        execFileSync("git", ["-C", projectRoot, "config", "core.hooksPath", ".githooks"]);
-        hooksPathActive = true;
+        execFileSync(
+          "git",
+          ["-C", projectRoot, "config", where, "--replace-all", "core.hooksPath", ".githooks"],
+          { stdio: ["ignore", "ignore", "ignore"] },
+        );
+        wrote = true;
       } catch {
+        /* verified below; a failed (for example locked) write never falls through */
+      }
+      const after = readHooksPathState(projectRoot);
+      if (after.kind === "ours") {
+        hooksPathActive = true;
+        if (state.kind === "foreign" && state.value !== null) {
+          hooksPathTakenOver = { previous: state.value, scope: state.scope };
+        }
+      } else if (after.kind === "foreign" && !wrote) {
+        inactiveDisclosure =
+          "Git hooks inactive: could not set core.hooksPath=.githooks (the repository's Git config is locked or not writable). Try directive install --repair again.";
+      } else if (after.kind === "foreign") {
+        // Still another value after our write (an included config file or the
+        // command line wins). Repeating repair cannot fix that; name the file.
+        inactiveDisclosure = formatHooksPathStillForeign(projectRoot, after);
+      } else {
         inactiveDisclosure = "Git hooks inactive: could not set core.hooksPath=.githooks";
       }
-    } else if (current === ".githooks" || current === ".githooks/") {
-      hooksPathActive = true;
     } else {
-      conflicts.push(
-        `core.hooksPath is '${current}' (not .githooks); refusing to redirect and disable existing checks`,
-      );
-      inactiveDisclosure = `Git hooks inactive: core.hooksPath is '${current}' (not .githooks)`;
+      inactiveDisclosure = formatForeignHooksPathInactive(state);
     }
   }
-  return { created, modified, removed, conflicts, updated, hooksPathActive, inactiveDisclosure };
+  return {
+    created,
+    modified,
+    removed,
+    conflicts,
+    updated,
+    hooksPathActive,
+    inactiveDisclosure,
+    hooksPathTakenOver,
+  };
 }
 
 const DEFT_INCLUDE_BLOCK =
