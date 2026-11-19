@@ -6,7 +6,7 @@
     { "id": 132861839280, "name": "Go (GH-hosted failover)", "status": "completed", "conclusion": "skipped", "started_at": "2026-11-15T15:33:42Z", "app": { "id": 15368, "slug": "github-actions" } },
     { "id": 132861839257, "name": "TypeScript (GH-hosted failover)", "status": "completed", "conclusion": "skipped", "started_at": "2026-11-15T15:33:42Z", "app": { "id": 15368, "slug": "github-actions" } },
     { "id": 132861837848, "name": "Merge gate (task check)", "status": "completed", "conclusion": "startup_failure", "started_at": "2026-11-15T15:33:43Z", "app": { "id": 15368, "slug": "github-actions" } },
-    { "id": 132861837833, "name": "TypeScript (build + lint + test)", "status": "completed", "conclusion": "success", "started_at": "2026-11-15T15:33:43Z", "app": { "id": 15368, "slug": "github-actions" } },
+    { "id": 132861837833, "name": "TypeScript (build + lint)", "status": "completed", "conclusion": "success", "started_at": "2026-11-15T15:33:43Z", "app": { "id": 15368, "slug": "github-actions" } },
     { "id": 132861837830, "name": "Go (test + build)", "status": "completed", "conclusion": "success", "started_at": "2026-11-15T15:33:43Z", "app": { "id": 15368, "slug": "github-actions" } },
     { "id": 132861780481, "name": "CodeQL", "status": "completed", "conclusion": "success", "started_at": "2026-11-15T15:33:29Z", "app": { "id": 57789, "slug": "github-advanced-security" } },
     { "id": 132861779475, "name": "Capacity arm (failover decision)", "status": "completed", "conclusion": "success", "started_at": "2026-11-15T15:33:31Z", "app": { "id": 15368, "slug": "github-actions" } },

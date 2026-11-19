@@ -155,7 +155,7 @@ describe("evaluateReviewerExpectation (#3630)", () => {
 
 describe("botReviewCheckPresent / reviewerConfigPresent", () => {
   it("reuses isBotReviewCheck names", () => {
-    expect(botReviewCheckPresent([{ name: "TypeScript (build + lint + test)" }])).toBe(false);
+    expect(botReviewCheckPresent([{ name: "TypeScript (build + lint)" }])).toBe(false);
     expect(botReviewCheckPresent([{ name: "Greptile Review" }])).toBe(true);
     expect(botReviewCheckPresent([{ name: "SLizard" }])).toBe(true);
   });

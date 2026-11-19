@@ -56,7 +56,7 @@ describe("isSlizardCheck", () => {
   it("matches the canonical name and case-insensitive variants", () => {
     expect(isSlizardCheck("SLizard")).toBe(true);
     expect(isSlizardCheck("slizard review")).toBe(true);
-    expect(isSlizardCheck("TypeScript (build + lint + test)")).toBe(false);
+    expect(isSlizardCheck("TypeScript (build + lint)")).toBe(false);
   });
 });
 
@@ -126,7 +126,7 @@ describe("evaluateSlizardGate", () => {
 
   it("skips (no block) when no SLizard check-run is present", () => {
     const other: CheckRunRecord = {
-      name: "TypeScript (build + lint + test)",
+      name: "TypeScript (build + lint)",
       status: "completed",
       conclusion: "success",
     };
@@ -247,7 +247,7 @@ function fakeRunGh(slizardSummary: string, slizardConclusion = "failure"): RunGh
         stdout: JSON.stringify({
           check_runs: [
             {
-              name: "TypeScript (build + lint + test)",
+              name: "TypeScript (build + lint)",
               status: "completed",
               conclusion: "success",
             },

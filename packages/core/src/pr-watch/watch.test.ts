@@ -250,7 +250,7 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
         isClean: false,
         cleanGateHoldout: "ci_failures",
         ciReadyState: "runner_capacity_stall",
-        ciCapacityStalledChecks: ["TypeScript (build + lint + test)"],
+        ciCapacityStalledChecks: ["TypeScript (build + lint)"],
         terminalCheckRun: false,
         confidence: 5,
         shaMatch: true,
@@ -258,7 +258,7 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
     );
     expect(r.verdict).toBe(VERDICT_RUNNER_CAPACITY_STALL);
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
-    expect(r.probe.ciCapacityStalledChecks).toEqual(["TypeScript (build + lint + test)"]);
+    expect(r.probe.ciCapacityStalledChecks).toEqual(["TypeScript (build + lint)"]);
   });
 
   it("ci_never_scheduled -> CI_NEVER_SCHEDULED exit 2 (#3167)", () => {
@@ -320,7 +320,7 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
         cleanGateHoldout: "ci_failures",
         ciReadyState: "ci_failures",
         ciFailures: 1,
-        ciFailedChecks: ["TypeScript (build + lint + test) (failure)"],
+        ciFailedChecks: ["TypeScript (build + lint) (failure)"],
         confidence: 5,
         shaMatch: true,
       }),

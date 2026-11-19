@@ -677,7 +677,7 @@ describe("monitor loop", () => {
           stdout: JSON.stringify({
             check_runs: [
               {
-                name: "TypeScript (build + lint + test)",
+                name: "TypeScript (build + lint)",
                 status: "completed",
                 conclusion: "success",
               },
