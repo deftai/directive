@@ -263,3 +263,82 @@ describe("artifact-only lifecycle lane changelog entry paths (#6314)", () => {
     expect(artifactOnly(["changelog.d/6314-x.md", "packages/core/src/x.ts"])).toBe(false);
   });
 });
+
+const OVPR_SCRIPT = join(repoRoot(), ".github", "scripts", "ovpr-fixture-paths.mjs");
+
+/** Run the OVPR fixture path filter (#6749) the way the `changes` job does. */
+function ovprPaths(paths: string[]): boolean {
+  const out = execFileSync(process.execPath, [OVPR_SCRIPT, "--stdin"], {
+    encoding: "utf8",
+    input: `${paths.join("\n")}\n`,
+  }).trim();
+  const match = /^ovpr_paths=(true|false)$/m.exec(out);
+  if (!match?.[1]) {
+    throw new Error(`unexpected path filter output: ${JSON.stringify(out)}`);
+  }
+  return match[1] === "true";
+}
+
+describe("OVPR fixture path filter (#6749)", () => {
+  it("a docs-only change set gives ovpr_paths=false", () => {
+    expect(ovprPaths(["docs/getting-started.md", "README.md", "content/coding/docs.md"])).toBe(
+      false,
+    );
+  });
+
+  it("a scope-code change set gives ovpr_paths=false", () => {
+    expect(
+      ovprPaths([
+        "packages/core/src/scope/acceptance-evidence.ts",
+        "packages/core/src/scope/acceptance-evidence.test.ts",
+      ]),
+    ).toBe(false);
+  });
+
+  it.each([
+    ["launcher", "packages/cli/src/launcher.ts"],
+    ["hook", "packages/core/src/hooks/classify/index.ts"],
+    ["content staging", "packages/content/stage-pack.mjs"],
+    ["runtime", "packages/runtime/scripts/stage-bundle.mjs"],
+    ["deposit", "packages/core/src/deposit/x.ts"],
+    ["install", "packages/core/src/install-health/x.ts"],
+    ["toolchain", "pnpm-lock.yaml"],
+  ])("a %s change gives ovpr_paths=true", (_label, path) => {
+    expect(ovprPaths(["docs/x.md", path])).toBe(true);
+  });
+
+  it("an empty change set fails open to ovpr_paths=true", () => {
+    expect(ovprPaths([])).toBe(true);
+  });
+
+  it("changes job exposes ovpr_paths and fails open on an unusable base or absent script", () => {
+    const changes = jobBlock(readText(".github/workflows/ci.yml"), "changes");
+    expect(changes).toContain("ovpr_paths: ${{ steps.ovpr.outputs.ovpr_paths }}");
+    expect(changes).toContain('git show "${BASE}:${SCRIPT}"');
+    expect(changes).toContain('SCRIPT=".github/scripts/ovpr-fixture-paths.mjs"');
+    expect(changes).toContain('git diff --name-only --no-renames "${BASE}...${PR_HEAD_SHA}"');
+    expect(changes).toMatch(
+      /Unusable base or head; running the OVPR fixture"\n\s+echo "ovpr_paths=true"/,
+    );
+    expect(changes).toMatch(
+      /Path filter absent on \$\{BASE\}; running the OVPR fixture"\n\s+echo "ovpr_paths=true"/,
+    );
+    expect(changes).toMatch(/Diff failed; running the OVPR fixture"\n\s+echo "ovpr_paths=true"/);
+  });
+
+  it("ubuntu fixture skips on a pull request only when ovpr_paths is exactly false", () => {
+    const block = jobBlock(readText(".github/workflows/ci.yml"), "ovpr-fixture");
+    expect(block).toContain(
+      "if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')",
+    );
+    expect(block).toMatch(/needs:\s*\[changes/);
+  });
+
+  it("Windows fixture runs on push only", () => {
+    const block = jobBlock(readText(".github/workflows/ci.yml"), "ovpr-fixture-windows");
+    expect(block).toContain(
+      "if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'",
+    );
+    expect(block).toMatch(/needs:\s*\[changes/);
+  });
+});

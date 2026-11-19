@@ -96,6 +96,7 @@ jobs:
       queue_passed: ${{ steps.queue.outputs.queue_passed }}
       queue_run_id: ${{ steps.queue.outputs.queue_run_id }}
       queue_run_attempt: ${{ steps.queue.outputs.queue_run_attempt }}
+      ovpr_paths: ${{ steps.ovpr.outputs.ovpr_paths }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -146,6 +147,47 @@ jobs:
           git show "${BASE}:${SH}" > "$TRUST/compute-artifact-only.sh"
           export ARTIFACT_ONLY_SCRIPT="$TRUST/artifact-only-lifecycle.mjs"
           bash "$TRUST/compute-artifact-only.sh"
+
+      # #6749: path filter for the advisory OVPR fixture jobs, pull requests only.
+      # The script is read from the base tree, as the predicate above is. Fail
+      # open: an unusable base, a script absent on the base (first landing) or a
+      # failed diff writes ovpr_paths=true; false is written only after a
+      # successful diff and match. If this step never runs, the output is empty
+      # and the ubuntu fixture runs.
+      - name: OVPR fixture path filter (#6749)
+        id: ovpr
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          SCRIPT=".github/scripts/ovpr-fixture-paths.mjs"
+          if [ -z "${BASE_REF:-}" ] || [ -z "${PR_HEAD_SHA:-}" ]; then
+            echo "Unusable base or head; running the OVPR fixture"
+            echo "ovpr_paths=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags origin "$BASE_REF" || true
+          BASE="origin/${BASE_REF}"
+          if ! git cat-file -e "${BASE}:${SCRIPT}"; then
+            echo "Path filter absent on ${BASE}; running the OVPR fixture"
+            echo "ovpr_paths=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TRUST="$(mktemp -d)"
+          git show "${BASE}:${SCRIPT}" > "$TRUST/ovpr-fixture-paths.mjs"
+          if ! files="$(git diff --name-only --no-renames "${BASE}...${PR_HEAD_SHA}")"; then
+            echo "Diff failed; running the OVPR fixture"
+            echo "ovpr_paths=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          result="$(printf '%s\n' "$files" | node "$TRUST/ovpr-fixture-paths.mjs" --stdin || true)"
+          echo "$result"
+          if [ "$result" = "ovpr_paths=false" ]; then
+            echo "ovpr_paths=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ovpr_paths=true" >> "$GITHUB_OUTPUT"
+          fi
 
       # #6584: the ONE queue-reuse lookup. Runs only on a master push. The script is
       # read from the push's base tree (as the predicate above is), so a pushed
@@ -1120,9 +1162,12 @@ jobs:
     # hook command as the host would (sh -c, JSON on stdin). No agent, no LLM.
     # Advisory through Phase 4 (D-020): NOT in merge-gate's needs. A reviewed
     # ci.yml PR adds it at the Phase 4 exit. No repository setting changes.
+    # #6749: on a pull request it skips only when the `changes` path filter says
+    # ovpr_paths=false (no launcher, runtime, hook, deposit or install path).
+    # A missing output runs it. Push and merge_group runs are unfiltered.
     name: OVPR lifecycle fixture (no agent)
     needs: [changes]
-    if: always() && needs.changes.outputs.artifact_only != 'true'
+    if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -1160,9 +1205,12 @@ jobs:
     # Windows leg of the lifecycle fixture (#6621, D-020): step 4 only. AC9.1
     # says the hook form is the same on every OS, so the committed .mjs outer
     # must block under Node on Windows too. Advisory: NOT in merge-gate's needs.
+    # #6749: runs on push only (the push trigger is master only), not on pull
+    # requests or merge_group. It moves to pull requests, or becomes required,
+    # only at the Phase 4 exit.
     name: OVPR lifecycle fixture (Windows, step 4)
     needs: [changes]
-    if: always() && needs.changes.outputs.artifact_only != 'true'
+    if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'
     runs-on: windows-latest
     timeout-minutes: 15
     defaults:
