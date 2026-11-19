@@ -27,14 +27,14 @@ describe("isBotReviewCheck (#3167)", () => {
     expect(isBotReviewCheck("Greptile Review")).toBe(true);
     expect(isBotReviewCheck("SLizard")).toBe(true);
     expect(isBotReviewCheck("CodeRabbit")).toBe(true);
-    expect(isBotReviewCheck("TypeScript (build + lint + test)")).toBe(false);
+    expect(isBotReviewCheck("TypeScript (build + lint)")).toBe(false);
   });
 });
 
 describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
   it("returns ready when all required checks passed", () => {
     const result = evaluateCiGate(
-      [run({ name: "TypeScript (build + lint + test)" }), run({ name: "Go (test + build)" })],
+      [run({ name: "TypeScript (build + lint)" }), run({ name: "Go (test + build)" })],
       { nowMs: NOW },
     );
     expect(result.summary.ready_state).toBe("ready");
@@ -45,7 +45,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     const result = evaluateCiGate(
       [
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           conclusion: "none",
           created_at: new Date(NOW - 5 * 60 * 1000).toISOString(),
@@ -62,7 +62,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     const result = evaluateCiGate(
       [
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           conclusion: "none",
           created_at: new Date(NOW - DEFAULT_CAPACITY_STALL_MS - 1000).toISOString(),
@@ -72,7 +72,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
       { nowMs: NOW },
     );
     expect(result.summary.ready_state).toBe("runner_capacity_stall");
-    expect(result.summary.capacity_stalled_required).toEqual(["TypeScript (build + lint + test)"]);
+    expect(result.summary.capacity_stalled_required).toEqual(["TypeScript (build + lint)"]);
     expect(result.failures.join(" ")).toContain("runner_capacity_stall");
     expect(result.failures.join(" ")).toContain("do NOT use --skip-ci");
   });
@@ -81,7 +81,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     const result = evaluateCiGate(
       [
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           conclusion: "none",
           created_at: new Date(NOW - DEFAULT_CAPACITY_STALL_MS - 1000).toISOString(),
@@ -98,14 +98,14 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
       { nowMs: NOW },
     );
     expect(result.summary.ready_state).toBe("not_ready_yet");
-    expect(result.summary.capacity_stalled_required).toEqual(["TypeScript (build + lint + test)"]);
+    expect(result.summary.capacity_stalled_required).toEqual(["TypeScript (build + lint)"]);
   });
 
   it("returns ci_failures on failed required checks (#3167)", () => {
     const result = evaluateCiGate(
       [
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "completed",
           conclusion: "failure",
         }),
@@ -113,7 +113,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
       { nowMs: NOW },
     );
     expect(result.summary.ready_state).toBe("ci_failures");
-    expect(result.summary.failed_required).toEqual(["TypeScript (build + lint + test) (failure)"]);
+    expect(result.summary.failed_required).toEqual(["TypeScript (build + lint) (failure)"]);
     expect(result.failures.join(" ")).toContain("ci_failures");
   });
 
@@ -161,7 +161,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
           status: "completed",
           conclusion: "cancelled",
         }),
-        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+        run({ name: "TypeScript (build + lint)", conclusion: "success" }),
       ],
       { nowMs: NOW },
     );
@@ -209,7 +209,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     const result = evaluateCiGate(
       [
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "completed",
           conclusion: "cancelled",
         }),
@@ -229,7 +229,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
           status: "completed",
           conclusion: "cancelled",
         }),
-        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+        run({ name: "TypeScript (build + lint)", conclusion: "success" }),
       ],
       { nowMs: NOW },
     );
@@ -244,11 +244,11 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
           status: "completed",
           conclusion: "cancelled",
         }),
-        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+        run({ name: "TypeScript (build + lint)", conclusion: "success" }),
       ],
       {
         nowMs: NOW,
-        ignoreCheckNames: ["TypeScript (build + lint + test)"],
+        ignoreCheckNames: ["TypeScript (build + lint)"],
       },
     );
     expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
@@ -267,7 +267,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
           status: "completed",
           conclusion: "cancelled",
         }),
-        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+        run({ name: "TypeScript (build + lint)", conclusion: "success" }),
       ],
       { nowMs: NOW },
     );
@@ -284,7 +284,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
           conclusion: "cancelled",
         }),
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "completed",
           conclusion: "skipped",
         }),
@@ -303,7 +303,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
           conclusion: "cancelled",
         }),
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "completed",
           conclusion: "failure",
         }),
@@ -335,7 +335,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
   });
 
   it("honors skipCi", () => {
-    const result = evaluateCiGate([run({ name: "TypeScript (build + lint + test)" })], {
+    const result = evaluateCiGate([run({ name: "TypeScript (build + lint)" })], {
       skipCi: true,
     });
     expect(result.summary.ready_state).toBe("skipped");
@@ -355,14 +355,14 @@ describe("evaluateCiGate absent required contexts (#3234)", () => {
   it("fails closed when observed checks are green but a ruleset context is absent", () => {
     const result = evaluateCiGate(
       [
-        run({ name: "TypeScript (build + lint + test)" }),
+        run({ name: "TypeScript (build + lint)" }),
         run({ name: "Go (test + build)" }),
         run({ name: "Greptile Review" }),
       ],
       {
         nowMs: NOW,
         requiredContexts: [
-          "TypeScript (build + lint + test)",
+          "TypeScript (build + lint)",
           "terraform-plan",
           "terraform-apply-staging",
         ],
@@ -378,10 +378,10 @@ describe("evaluateCiGate absent required contexts (#3234)", () => {
 
   it("stays ready when every required context has a matching HEAD check-run", () => {
     const result = evaluateCiGate(
-      [run({ name: "TypeScript (build + lint + test)" }), run({ name: "terraform-plan" })],
+      [run({ name: "TypeScript (build + lint)" }), run({ name: "terraform-plan" })],
       {
         nowMs: NOW,
-        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+        requiredContexts: ["TypeScript (build + lint)", "terraform-plan"],
       },
     );
     expect(result.summary.ready_state).toBe("ready");
@@ -393,14 +393,14 @@ describe("evaluateCiGate absent required contexts (#3234)", () => {
     const result = evaluateCiGate(
       [
         run({
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "completed",
           conclusion: "failure",
         }),
       ],
       {
         nowMs: NOW,
-        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+        requiredContexts: ["TypeScript (build + lint)", "terraform-plan"],
       },
     );
     expect(result.summary.ready_state).toBe("ci_failures");
@@ -419,9 +419,9 @@ describe("evaluateCiGate absent required contexts (#3234)", () => {
   });
 
   it("honors operator ignore for a required context name", () => {
-    const result = evaluateCiGate([run({ name: "TypeScript (build + lint + test)" })], {
+    const result = evaluateCiGate([run({ name: "TypeScript (build + lint)" })], {
       nowMs: NOW,
-      requiredContexts: ["TypeScript (build + lint + test)", "flaky-optional"],
+      requiredContexts: ["TypeScript (build + lint)", "flaky-optional"],
       ignoreCheckNames: ["flaky-optional"],
     });
     expect(result.summary.ready_state).toBe("ready");
@@ -429,9 +429,9 @@ describe("evaluateCiGate absent required contexts (#3234)", () => {
   });
 
   it("includes absent count in the summary line", () => {
-    const result = evaluateCiGate([run({ name: "TypeScript (build + lint + test)" })], {
+    const result = evaluateCiGate([run({ name: "TypeScript (build + lint)" })], {
       nowMs: NOW,
-      requiredContexts: ["TypeScript (build + lint + test)", "missing-a", "missing-b"],
+      requiredContexts: ["TypeScript (build + lint)", "missing-a", "missing-b"],
     });
     expect(buildCiSummaryLine(result.summary)).toContain("2 absent-required");
     expect(buildCiSummaryLine(result.summary)).toContain("ci_absent_required");
@@ -571,7 +571,7 @@ describe("every red conclusion is a named failure (#6336)", () => {
   it("a red bot review check is advisory and not counted", () => {
     const runs = [
       run({ name: "SLizard", appId: 3532919, conclusion: "failure" }),
-      run({ name: "TypeScript (build + lint + test)" }),
+      run({ name: "TypeScript (build + lint)" }),
     ];
     expect(evaluateCiGate(runs, { nowMs: NOW }).summary.ready_state).toBe("ready");
     expect(advisoryBotReviewFailures(runs)).toEqual(["SLizard (failure)"]);

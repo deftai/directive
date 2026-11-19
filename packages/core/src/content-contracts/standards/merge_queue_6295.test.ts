@@ -44,7 +44,7 @@ describe("merge queue workflows (#6295 items 2, 3)", () => {
     expect(ci).toMatch(
       /elif \[ "\$EVENT_NAME" = "merge_group" \]; then[\s\S]*?artifact_only=false/,
     );
-    expect(ci.match(/name:\s*TypeScript \(build \+ lint \+ test\)/g) ?? []).toHaveLength(1);
+    expect(ci.match(/name:\s*TypeScript \(build \+ lint\)/g) ?? []).toHaveLength(1);
     expect(ci.match(/name:\s*Merge gate \(task check\)/g) ?? []).toHaveLength(1);
     // The Greptile Review job lives in its own workflow, not behind an if in ci.yml.
     expect(ci).not.toMatch(/name:\s*Greptile Review/);

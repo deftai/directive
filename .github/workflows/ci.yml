@@ -4,8 +4,8 @@ on:
   pull_request:
   push:
     branches: [master]
-  # #6295: the merge queue re-runs the required checks (`TypeScript (build + lint
-  # + test)`, `Merge gate (task check)`) on each group commit. PR-context checks
+  # #6295: the merge queue re-runs the required checks (`TypeScript (build + lint)`,
+  # `Merge gate (task check)`) on each group commit. PR-context checks
   # inside `task check:merge` skip themselves on merge_group (they ran on the PR).
   merge_group:
 
@@ -59,13 +59,17 @@ jobs:
   # | Failover TS | ts-failover          | TypeScript (GH-hosted failover)         | no        |
   # | Failover Go | go-failover          | Go (GH-hosted failover)                 | no        |
   # | Failover MG | merge-gate-failover  | Merge gate (GH-hosted failover)         | no        |
-  # | Aggregator  | ts                   | TypeScript (build + lint + test)        | YES       |
+  # | Aggregator  | ts                   | TypeScript (build + lint)               | YES       |
   # | Aggregator  | go                   | Go (test + build)                       | no        |
-  # | Aggregator  | merge-gate           | Merge gate (task check)                 | no        |
+  # | Aggregator  | merge-gate           | Merge gate (task check)                 | YES       |
   #
-  # Live branch protection requires ONLY the TypeScript aggregator.
-  # Go and merge-gate aggregators are not required; they skip on diffs
-  # confined to {xbrief/completed/**, CHANGELOG.md} (#3678).
+  # Live branch protection requires `TypeScript (build + lint)` and
+  # `Merge gate (task check)` (#6586). The Go aggregator is not required.
+  # The TypeScript lane runs build and lint only; the suite runs once, in the
+  # merge gate (`task check:merge`). Merge-gate and Go aggregators skip on
+  # diffs confined to {xbrief/completed/**, CHANGELOG.md, changelog.d/*.md}
+  # (#3678), so those PR/push runs run no vitest. Every merge_group run is
+  # full-stack, so every commit that lands on master has passed the suite.
   # Primary/failover lane names must never be branch-protection required checks.
   # -------------------------------------------------------------------------
 
@@ -520,7 +524,7 @@ jobs:
   # aggregator is green even if the Blacksmith primary was cancelled (#3168/#3340).
   # -------------------------------------------------------------------------
   ts:
-    name: TypeScript (build + lint + test)
+    name: TypeScript (build + lint)
     needs: [capacity-arm, ts-failover]
     if: always()
     runs-on: ubuntu-latest

@@ -12,7 +12,7 @@ describe("isRunnerCapacityStalled (#2672)", () => {
     expect(
       isRunnerCapacityStalled(
         {
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           created_at: new Date(NOW - DEFAULT_CAPACITY_STALL_MS - 1000).toISOString(),
           started_at: null,
@@ -26,7 +26,7 @@ describe("isRunnerCapacityStalled (#2672)", () => {
     expect(
       isRunnerCapacityStalled(
         {
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           created_at: new Date(NOW - 5 * 60 * 1000).toISOString(),
           started_at: null,
@@ -40,7 +40,7 @@ describe("isRunnerCapacityStalled (#2672)", () => {
     expect(
       isRunnerCapacityStalled(
         {
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "in_progress",
           created_at: new Date(NOW - DEFAULT_CAPACITY_STALL_MS * 2).toISOString(),
           started_at: new Date(NOW - DEFAULT_CAPACITY_STALL_MS).toISOString(),
@@ -54,7 +54,7 @@ describe("isRunnerCapacityStalled (#2672)", () => {
     expect(
       isRunnerCapacityStalled(
         {
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           created_at: new Date(NOW - DEFAULT_CAPACITY_STALL_MS * 2).toISOString(),
           started_at: new Date(NOW - 1000).toISOString(),
@@ -68,7 +68,7 @@ describe("isRunnerCapacityStalled (#2672)", () => {
     expect(
       isRunnerCapacityStalled(
         {
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           created_at: null,
           started_at: null,
@@ -84,7 +84,7 @@ describe("classifyCapacityStalledRequired (#2672)", () => {
     const stalled = classifyCapacityStalledRequired(
       [
         {
-          name: "TypeScript (build + lint + test)",
+          name: "TypeScript (build + lint)",
           status: "queued",
           created_at: new Date(NOW - DEFAULT_CAPACITY_STALL_MS - 1).toISOString(),
           started_at: null,
@@ -98,6 +98,6 @@ describe("classifyCapacityStalledRequired (#2672)", () => {
       ],
       { nowMs: NOW },
     );
-    expect(stalled).toEqual(["TypeScript (build + lint + test)"]);
+    expect(stalled).toEqual(["TypeScript (build + lint)"]);
   });
 });

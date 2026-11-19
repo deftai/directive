@@ -141,14 +141,6 @@ export interface ReleaseSeams {
   readonly namedMergeGateFn?: import("../pr-wait-mergeable/semantic-green.js").NamedMergeGateFn;
   readonly runGh?: import("../pr-merge-readiness/types.js").RunGhFn;
   /**
-   * Legacy tip-SHA GHA coverage-of-record cite (#5026). Retired from Step 5
-   * success / stamp-hit / auto-hatch paths under #6041 (host coverage is SoT).
-   * Seam retained for tests and optional diagnostics.
-   */
-  readonly resolveCoverageOfRecord?: (
-    projectRoot: string,
-  ) => import("./preflight.js").CoverageOfRecordResult;
-  /**
    * #5239 F1 / #6041 — whether Step 5 child lane wrote local coverage-final.json.
    * Production defaults to true (host coverage at Step 5). Tests inject false
    * to exercise the "not expected to write" diagnostic without setting

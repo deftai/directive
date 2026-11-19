@@ -237,16 +237,13 @@ describe("required status contexts (#3234)", () => {
           parameters: {
             required_status_checks: [
               { context: "terraform-plan" },
-              { context: "TypeScript (build + lint + test)", integration_id: 42 },
+              { context: "TypeScript (build + lint)", integration_id: 42 },
             ],
           },
         },
         { type: "pull_request" },
       ]),
-    ).toEqual([
-      { name: "terraform-plan" },
-      { name: "TypeScript (build + lint + test)", appId: 42 },
-    ]);
+    ).toEqual([{ name: "terraform-plan" }, { name: "TypeScript (build + lint)", appId: 42 }]);
   });
 
   it("parses classic branch-protection contexts and app-bound checks", () => {
