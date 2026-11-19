@@ -4201,8 +4201,35 @@ const PLAIN_READ_BINS = new Set([
   "gc",
   "gci",
   "sls",
+  // Compare, hash and dump programs only print; navigation and no-ops change nothing.
+  "diff",
+  "cmp",
+  "xxd",
+  "od",
+  "strings",
+  "sha256sum",
+  "md5sum",
+  "cd",
+  "pushd",
+  "popd",
+  "pwd",
+  "set-location",
+  "true",
+  "false",
+  ":",
 ]);
-const PLAIN_READ_GIT_SUBCOMMANDS = new Set(["show", "log", "diff", "status"]);
+const PLAIN_READ_GIT_SUBCOMMANDS = new Set([
+  "show",
+  "log",
+  "diff",
+  "status",
+  "rev-parse",
+  "rev-list",
+  "ls-files",
+  "cat-file",
+  "blame",
+  "describe",
+]);
 /** xargs options that take a separate value (lowercased: a value is skipped, never a program). */
 const XARGS_VALUE_OPTIONS = new Set(["-i", "-n", "-l", "-p", "-s", "-e", "-d", "-a", "-j"]);
 
@@ -4212,7 +4239,12 @@ function readBinName(word: string): string {
 }
 
 function wordsAreGitRead(words: readonly string[], at: number): boolean {
-  const sub = words[at + 1];
+  // Skip git's global options (`--no-pager`; `-C dir` and `-c k=v` take a value).
+  let i = at + 1;
+  while (i < words.length && (words[i] as string).startsWith("-")) {
+    i += words[i] === "-c" || words[i] === "-C" ? 2 : 1;
+  }
+  const sub = words[i];
   if (sub === undefined || !PLAIN_READ_GIT_SUBCOMMANDS.has(sub)) return false;
   return !words.some((w) => w.startsWith("--output"));
 }
