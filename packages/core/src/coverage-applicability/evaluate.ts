@@ -19,7 +19,9 @@ import {
   AGENT_HOOK_PATHS,
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
-  hostHookOuterCommand,
+  hostHookEntryFields,
+  hostHookEntryPrefix,
+  hostHookEntryText,
   hostHookOuterSha8,
   hostHookOuterSource,
   NESTED_HOOK_TIMEOUT_SECONDS,
@@ -868,7 +870,7 @@ function isPayloadRunPath(path: string): boolean {
 
 function deftHookCommand(host: HookHost, event: string): string {
   const sha8 = hostHookOuterSha8();
-  return `${hostHookOuterCommand(host, sha8)} --host ${host} --event ${event}`;
+  return `${hostHookEntryPrefix(host, sha8)} --host ${host} --event ${event}`;
 }
 
 function hostForRegistrationPath(path: string): HookHost | null {
@@ -887,7 +889,7 @@ function nestedManagedGroup(host: Exclude<HookHost, "cursor">, event: string, ma
     hooks: [
       {
         type: "command",
-        command,
+        ...hostHookEntryFields(command),
         timeout: toolBefore ? NESTED_TOOL_BEFORE_TIMEOUT_SECONDS : NESTED_HOOK_TIMEOUT_SECONDS,
       },
     ],
@@ -996,13 +998,14 @@ function isCanonicalNestedManagedGroup(
     return false;
   }
   const hook = entry.hooks[0];
-  if (!isPlainObject(hook) || hook.type !== "command" || typeof hook.command !== "string") {
+  const hookText = hostHookEntryText(hook);
+  if (!isPlainObject(hook) || hook.type !== "command" || hookText === null) {
     return false;
   }
   if (eventKey === "SessionStart") {
     return (
       entry.matcher === undefined &&
-      hook.command === deftHookCommand(host, "session.start") &&
+      hookText === deftHookCommand(host, "session.start") &&
       hook.timeout === NESTED_HOOK_TIMEOUT_SECONDS
     );
   }
@@ -1011,14 +1014,14 @@ function isCanonicalNestedManagedGroup(
     return (
       typeof entry.matcher === "string" &&
       (NESTED_PRE_TOOL_MATCHERS as readonly string[]).includes(entry.matcher) &&
-      hook.command === expectedCmd &&
+      hookText === expectedCmd &&
       hook.timeout === NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
     );
   }
   if (eventKey === "PreCompact" || eventKey === "PostCompact") {
     return (
       entry.matcher === undefined &&
-      hook.command === deftHookCommand(host, "session.compact") &&
+      hookText === deftHookCommand(host, "session.compact") &&
       hook.timeout === NESTED_HOOK_TIMEOUT_SECONDS
     );
   }

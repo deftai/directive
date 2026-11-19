@@ -309,6 +309,33 @@ describe("runRegisteredHook", () => {
     expect(ran.run.stderr).toContain("|echo hi");
     expect(ran.run.stderr.split("|")[0]).toMatch(/lifecycle-fixture-test-/);
   });
+
+  it("runs a no-shell entry (`command` + `args`) directly, as Claude does (AC9.1 v261119)", () => {
+    const dir = tempDir();
+    writeFileSync(
+      join(dir, "hook.js"),
+      "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{" +
+        "const p=JSON.parse(s);process.stderr.write(process.argv.slice(2).join(' ')+'|'+p.tool_input.command);process.exit(2)});",
+      "utf8",
+    );
+    // An argument a shell would split or expand reaches the hook unchanged.
+    const args = ["hook.js", "--host", "claude", "--event", "tool.before", "a b $HOME"];
+    writeConfig(dir, HOST_CONFIG_PATHS.claude, {
+      hooks: {
+        PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "node", args }] }],
+      },
+    });
+    expect(registeredHookCommand(dir, "claude", "tool.before", "Bash")).toEqual({
+      ok: true,
+      command: "node",
+      args,
+    });
+    const ran = runRegisteredHook(dir, "claude", "tool.before", shellToolPayload("claude", dir));
+    expect(ran.ok).toBe(true);
+    if (!ran.ok) return;
+    expect(ran.run.status).toBe(2);
+    expect(ran.run.stderr).toBe("--host claude --event tool.before a b $HOME|echo hi");
+  });
 });
 
 describe("old-layout fixtures (static, no download)", () => {

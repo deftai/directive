@@ -1262,15 +1262,27 @@ export function normalizeHookProjectRoot(path: string): string {
   return resolved;
 }
 
+/**
+ * Top of the Git checkout that contains `dir`: the nearest folder holding `.git`
+ * (a directory, or a linked worktree's `.git` file), never the nearest
+ * `package.json` (AC9.4 v261119). Unchanged when no checkout contains it.
+ */
+export function gitCheckoutTop(dir: string): string {
+  for (let current = dir; ; current = dirname(current)) {
+    if (existsSync(join(current, ".git"))) return current;
+    if (dirname(current) === current) return dir;
+  }
+}
+
 export function projectRootFromHookPayload(payload: unknown, fallback: string): string {
-  const fallbackResolved = normalizeHookProjectRoot(fallback);
+  const fallbackResolved = gitCheckoutTop(normalizeHookProjectRoot(fallback));
   const input = record(payload);
   if (input === null) return fallbackResolved;
   const usable = hookPayloadRootCandidates(input).find(
     (candidate) => !isWindowsDriveOnlyRoot(candidate),
   );
   if (usable !== undefined) {
-    return normalizeHookProjectRoot(usable);
+    return gitCheckoutTop(normalizeHookProjectRoot(usable));
   }
   return fallbackResolved;
 }

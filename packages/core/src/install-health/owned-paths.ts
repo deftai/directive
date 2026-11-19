@@ -23,7 +23,10 @@
  * Keep the exported names and result values stable.
  */
 
-import { GROK_PRETOOLUSE_WRAPPER_REL_PATH } from "../init-deposit/agent-hooks.js";
+import {
+  GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+  hostHookEntryText,
+} from "../init-deposit/agent-hooks.js";
 import {
   isDirectiveDependencyKey,
   isUpgradePinPathContentAllowed,
@@ -369,7 +372,16 @@ export function isDirectiveHookCommand(command: string): boolean {
   if (/[\r\n]/.test(command)) return false;
   const tokens = command.trim().split(/[ \t]+/);
   let args: string[];
-  if (tokens[0] === "node" && tokens[1] !== undefined) {
+  if (
+    tokens[0] === "node" &&
+    tokens[1] === "-e" &&
+    tokens[2] === "<locator>" &&
+    tokens[3] === "--"
+  ) {
+    // No-shell locator entry (AC9.1 v261119), read through `hostHookEntryText`.
+    if (!OUTER_PATH_TOKEN_RE.test(tokens[4] ?? "")) return false;
+    args = tokens.slice(5);
+  } else if (tokens[0] === "node" && tokens[1] !== undefined) {
     const target = tokens[1];
     const bin = target.startsWith("./") ? target.slice(2) : target;
     if (!OUTER_PATH_TOKEN_RE.test(target) && bin !== HOOK_BIN_PATH_TOKEN) return false;
@@ -407,11 +419,8 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 function isDirectiveHookEntry(entry: unknown): boolean {
-  return (
-    isPlainObject(entry) &&
-    typeof entry.command === "string" &&
-    isDirectiveHookCommand(entry.command)
-  );
+  const text = hostHookEntryText(entry);
+  return text !== null && isDirectiveHookCommand(text);
 }
 
 /**

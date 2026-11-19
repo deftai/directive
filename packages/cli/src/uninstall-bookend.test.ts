@@ -3,6 +3,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -21,12 +22,14 @@ import {
   listDirectiveOwnedPaths,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { afterEach, describe, expect, it } from "vitest";
+import { HOST_HOOK_LOCATOR_SOURCE } from "../../core/src/init-deposit/host-hook-outer.js";
 import { isSoleAuthorPackageJson as runtimeIsSoleAuthorPackageJson } from "../../runtime/src/removal-steps/steps.js";
 import { runSetup } from "../../runtime/src/setup.js";
 import { type BookendIo, runUninstall, type UninstallDeps } from "./bookends.js";
 import type { ProjectInstallState } from "./pin.js";
 import {
   applyLauncherCleanup,
+  DIRECTIVE_HOOK_LOCATOR_SHA256,
   discoverKnownArtifacts,
   discoverUninstallFootprint,
   HOST_HOOK_OUTER_DIRS,
@@ -889,6 +892,36 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     );
   });
 
+  it("keeps the launcher's locator hash equal to core's source (AC3.1)", () => {
+    expect(DIRECTIVE_HOOK_LOCATOR_SHA256).toBe(
+      createHash("sha256").update(HOST_HOOK_LOCATOR_SOURCE, "utf8").digest("hex"),
+    );
+  });
+
+  it("removes Directive's locator entries but keeps a user's own node -e hook", () => {
+    const root = tempProject("mjs-locator");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const cfg = JSON.parse(readFileSync(rel, "utf8")) as {
+      hooks: Record<string, Array<{ hooks: Array<{ command: string; args?: string[] }> }>>;
+    };
+    const directive = cfg.hooks.PreToolUse?.[0]?.hooks[0];
+    expect(directive?.args?.[1]).toBe(HOST_HOOK_LOCATOR_SOURCE);
+    const userArgs = [
+      "-e",
+      "require('fs').appendFileSync('mine.log','x')",
+      ...(directive?.args ?? []).slice(2),
+    ];
+    cfg.hooks.PreToolUse?.push({ hooks: [{ command: "node", args: userArgs }] } as never);
+    writeFileSync(rel, `${JSON.stringify(cfg, null, 2)}\n`);
+    rmSync(join(root, ".deft", "GENERATION.json"));
+    applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    const after = readFileSync(rel, "utf8");
+    expect(after).toContain("mine.log");
+    expect(after).not.toContain("node:url");
+  });
+
   it("keeps a user command added to a Directive hook group", () => {
     const root = tempProject("mjs-group");
     writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
@@ -911,10 +944,11 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     const root = tempProject("mjs-chained");
     writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
     runSetup({ operation: "install", from: "none", root });
-    const rel = join(root, ".claude", "settings.json");
+    // Codex keeps the string form; Claude's no-shell entry has no shell to chain onto.
+    const rel = join(root, ".codex", "hooks.json");
     const body = readFileSync(rel, "utf8");
     const chained = body.replace(
-      /("command": "node \.claude\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
+      /("command": "node \.codex\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
       '$1 && node scripts/check.mjs"',
     );
     expect(chained).not.toBe(body);
@@ -923,7 +957,7 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
     expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
     expect(outersOnDisk(root)).toHaveLength(4);
-    expect(report.leftovers).toEqual(expect.arrayContaining([".claude/settings.json#hooks"]));
+    expect(report.leftovers).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
   });
 
   it("keeps the .mjs files as leftovers when a registration cannot be removed", () => {

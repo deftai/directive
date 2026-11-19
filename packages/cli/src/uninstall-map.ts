@@ -9,6 +9,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -549,6 +550,45 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+/**
+ * SHA-256 of Directive's no-shell hook locator source (AC9.1 v261119), core
+ * `HOST_HOOK_LOCATOR_SOURCE`. The launcher keeps only the hash (AC3.1: no
+ * core import; the bundle stays free of the locator's code); a test keeps it
+ * equal to core's.
+ */
+export const DIRECTIVE_HOOK_LOCATOR_SHA256 =
+  "e3b58aa1a0311f26d8c74ff56ceb335f4653cabc09c979ef7b13403f12fd5d66";
+
+function isDirectiveHookLocator(source: string): boolean {
+  return (
+    createHash("sha256").update(source, "utf8").digest("hex") === DIRECTIVE_HOOK_LOCATOR_SHA256
+  );
+}
+
+/**
+ * Command text of one hook entry. Directive's locator entry
+ * (`"command": "node", "args": ["-e", <locator>, "--", <outer rel>, …]`,
+ * AC9.1 v261119) reads as `node <outer rel> …`, so it matches like the outer
+ * form. Any other `node -e` script keeps its own text and is never taken for
+ * Directive's. Mirrors core `hostHookEntryText` (AC3.1: no core import).
+ */
+function hookEntryCommandText(value: unknown): string | null {
+  const hook = object(value);
+  if (hook === null || typeof hook.command !== "string") return null;
+  const { command, args } = hook;
+  if (args === undefined) return command;
+  if (!Array.isArray(args) || !args.every((a) => typeof a === "string")) return null;
+  if (
+    command === "node" &&
+    args[0] === "-e" &&
+    isDirectiveHookLocator(args[1] ?? "") &&
+    args[2] === "--"
+  ) {
+    return ["node", ...args.slice(3)].join(" ");
+  }
+  return [command, ...args].join(" ");
+}
+
 function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
   const hooks = object(cfg.hooks);
   if (hooks === null) return cfg;
@@ -565,12 +605,13 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
         filtered.push(entry);
         continue;
       }
-      if (typeof e.command === "string" && isManagedHookCommand(e.command)) continue;
+      const entryText = hookEntryCommandText(e);
+      if (entryText !== null && isManagedHookCommand(entryText)) continue;
       if (Array.isArray(e.hooks)) {
         // Drop only Directive commands; keep a group that still holds user commands.
         const kept = e.hooks.filter((h) => {
-          const hook = object(h);
-          return !(typeof hook?.command === "string" && isManagedHookCommand(hook.command));
+          const text = hookEntryCommandText(h);
+          return !(text !== null && isManagedHookCommand(text));
         });
         if (kept.length === e.hooks.length) filtered.push(entry);
         else if (kept.length > 0) filtered.push({ ...e, hooks: kept });

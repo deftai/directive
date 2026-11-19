@@ -5,7 +5,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event session.start",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "session.start"
+            ],
             "timeout": 5
           }
         ]
@@ -17,7 +27,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event tool.before",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "tool.before"
+            ],
             "timeout": 30
           }
         ]
@@ -27,7 +47,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event tool.before",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "tool.before"
+            ],
             "timeout": 30
           }
         ]
@@ -37,7 +67,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event tool.before",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "tool.before"
+            ],
             "timeout": 30
           }
         ]
@@ -47,7 +87,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event tool.before",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "tool.before"
+            ],
             "timeout": 30
           }
         ]
@@ -57,7 +107,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event tool.before",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "tool.before"
+            ],
             "timeout": 30
           }
         ]
@@ -68,7 +128,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event session.compact",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "session.compact"
+            ],
             "timeout": 5
           }
         ]
@@ -79,7 +149,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-a598056e.mjs --host claude --event session.compact",
+            "command": "node",
+            "args": [
+              "-e",
+              "const f=require(\"node:fs\"),p=require(\"node:path\"),u=require(\"node:url\");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,\".git\"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+\"\\n\");process.exit(2)};if(!f.existsSync(o))no(\"No Directive project here. Run `directive install`.\"+\" (\"+d+\")\");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+              "--",
+              ".claude/deft-hook-a598056e.mjs",
+              "--host",
+              "claude",
+              "--event",
+              "session.compact"
+            ],
             "timeout": 5
           }
         ]

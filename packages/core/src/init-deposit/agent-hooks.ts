@@ -21,7 +21,9 @@ import {
 import type { InitDepositIo } from "./constants.js";
 import { type HookRuntimeTravelSeams, inspectHookRuntimeTravel } from "./hook-runtime-travel.js";
 import {
-  hostHookOuterCommand,
+  hostHookEntryFields,
+  hostHookEntryPrefix,
+  hostHookEntryText,
   hostHookOuterRelPath,
   hostHookOuterSha8,
   hostHookOuterSource,
@@ -35,8 +37,13 @@ export {
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
 export {
+  HOST_HOOK_LOCATOR_SOURCE,
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
+  hostHookConfigEntryLines,
+  hostHookEntryFields,
+  hostHookEntryPrefix,
+  hostHookEntryText,
   hostHookOuterCommand,
   hostHookOuterFileName,
   hostHookOuterRelPath,
@@ -383,7 +390,8 @@ function nestedCommands(value: unknown): string[] {
   if (group === null || !Array.isArray(group.hooks)) return [];
   return group.hooks.flatMap((candidate) => {
     const hook = object(candidate);
-    return typeof hook?.command === "string" ? [hook.command] : [];
+    const text = hostHookEntryText(hook);
+    return text === null ? [] : [text];
   });
 }
 
@@ -405,8 +413,8 @@ function withoutManagedHooks(
   const group = object(value);
   if (group === null || !Array.isArray(group.hooks)) return value;
   const kept = group.hooks.filter((candidate) => {
-    const commandText = object(candidate)?.command;
-    return !(typeof commandText === "string" && isManaged(commandText));
+    const commandText = hostHookEntryText(candidate);
+    return !(commandText !== null && isManaged(commandText));
   });
   if (kept.length === group.hooks.length) return value;
   return kept.length === 0 ? null : { ...group, hooks: kept };
@@ -449,7 +457,7 @@ function nestedGroup(bin: string, host: NestedHookHost, event: HookEvent, matche
     hooks: [
       {
         type: "command",
-        command: nestedToolCommand(bin, host, event),
+        ...hostHookEntryFields(nestedToolCommand(bin, host, event)),
         timeout:
           event === "tool.before"
             ? NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
@@ -676,7 +684,7 @@ export function writeAgentHookDeposit(
   const strippedPaths: AgentHookPath[] = [];
   const outerSource = hostHookOuterSource();
   const outerSha8 = hostHookOuterSha8(outerSource);
-  const binFor = (host: HookHost): string => hostHookOuterCommand(host, outerSha8);
+  const binFor = (host: HookHost): string => hostHookEntryPrefix(host, outerSha8);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -887,8 +895,8 @@ function nestedToolBeforeTimeoutOk(entry: unknown, toolCommand: string): boolean
   return group.hooks.some((candidate) => {
     const hook = object(candidate);
     return (
-      typeof hook?.command === "string" &&
-      hook.command === toolCommand &&
+      hook !== null &&
+      hostHookEntryText(hook) === toolCommand &&
       hook.timeout === NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
     );
   });
@@ -1065,7 +1073,7 @@ export function inspectSessionStartNotice(
     const config = readConfig(absolute);
     return {
       host,
-      registered: hasSessionStartRegistration(config, host, hostHookOuterCommand(host, outerSha8)),
+      registered: hasSessionStartRegistration(config, host, hostHookEntryPrefix(host, outerSha8)),
     };
   });
 }
@@ -1076,7 +1084,7 @@ export function inspectAgentHookDeposit(
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): AgentHookInspection[] {
   const outerSha8 = hostHookOuterSha8();
-  const binFor = (host: HookHost): string => hostHookOuterCommand(host, outerSha8);
+  const binFor = (host: HookHost): string => hostHookEntryPrefix(host, outerSha8);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;

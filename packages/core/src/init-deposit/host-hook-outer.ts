@@ -71,6 +71,119 @@ export function isHostHookOuterCommand(commandText: string): boolean {
 }
 
 /**
+ * Message when the Git checkout the hook runs in has no committed outer
+ * (AC9.1 v261119): the `no-runtime-pin` row ("No Directive project here").
+ */
+export const HOST_HOOK_LOCATOR_NO_OUTER_MESSAGE = ENTRY_GUARD_MESSAGES["no-runtime-pin"];
+
+/**
+ * No-shell Node locator (AC9.1 v261119, #5959 / #6594), run as
+ * `node -e <locator> -- <outer rel> <outer args>`. It walks up from the current
+ * folder to the first Git checkout top (a `.git` folder or a linked worktree's
+ * `.git` file) and runs that checkout's outer in this process with the same
+ * arguments. No checkout: exit 1, as `deft-hook` outside a repository (O-08).
+ * No outer in that checkout: block (exit 2) with the install message.
+ * Node built-ins only; never looks past the first checkout top.
+ */
+export const HOST_HOOK_LOCATOR_SOURCE = [
+  'const f=require("node:fs"),p=require("node:path"),u=require("node:url");',
+  "const [r,...a]=process.argv.slice(1);let d=process.cwd();",
+  'for(;!f.existsSync(p.join(d,".git"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);',
+  "const o=p.join(d,r);",
+  'const no=m=>{process.stderr.write(m+"\\n");process.exit(2)};',
+  `if(!f.existsSync(o))no(${JSON.stringify(HOST_HOOK_LOCATOR_NO_OUTER_MESSAGE)}+" ("+d+")");`,
+  "process.argv=[process.argv[0],o,...a];",
+  "import(u.pathToFileURL(o).href).catch(e=>no(String(e)));",
+].join("");
+
+/** Text form of a locator entry; matchers read entries through {@link hostHookEntryText}. */
+export const HOST_HOOK_LOCATOR_TEXT = "node -e <locator> --";
+
+/**
+ * Hosts that run hooks from the agent's current folder and offer a no-shell
+ * form (AC9.1 v261119). Codex runs hooks from the session folder but has only
+ * a shell string, so it keeps `node <rel>` (documented limitation).
+ */
+export function hostHookUsesLocator(host: HookHost): boolean {
+  return host === "claude";
+}
+
+/**
+ * Registered entry prefix as text (host/event args appended by callers):
+ * `node -e <locator> -- <rel>` for locator hosts, `node <rel>` otherwise.
+ */
+export function hostHookEntryPrefix(host: HookHost, sha8: string): string {
+  const rel = hostHookOuterRelPath(host, sha8);
+  return hostHookUsesLocator(host) ? `${HOST_HOOK_LOCATOR_TEXT} ${rel}` : `node ${rel}`;
+}
+
+/** Entry fields for one registered hook from its text form. */
+export function hostHookEntryFields(commandText: string): { command: string; args?: string[] } {
+  const prefix = `${HOST_HOOK_LOCATOR_TEXT} `;
+  if (!commandText.startsWith(prefix)) return { command: commandText };
+  const rest = commandText.slice(prefix.length).trim().split(/\s+/);
+  return { command: "node", args: ["-e", HOST_HOOK_LOCATOR_SOURCE, "--", ...rest] };
+}
+
+/**
+ * Text form of a registered hook entry: `command` alone, or `command` plus
+ * `args` for the no-shell form. Only today's locator source reads as
+ * `<locator>`; any other `node -e` script keeps its own text, so a user's
+ * hook is never taken for Directive's. Null when there is no command.
+ */
+export function hostHookEntryText(hook: unknown): string | null {
+  if (hook === null || typeof hook !== "object" || Array.isArray(hook)) return null;
+  const { command, args } = hook as { command?: unknown; args?: unknown };
+  if (typeof command !== "string") return null;
+  if (args === undefined) return command;
+  if (!Array.isArray(args) || !args.every((a) => typeof a === "string")) return null;
+  const list = args as string[];
+  if (
+    command === "node" &&
+    list[0] === "-e" &&
+    list[1] === HOST_HOOK_LOCATOR_SOURCE &&
+    list[2] === "--"
+  ) {
+    return [HOST_HOOK_LOCATOR_TEXT, ...list.slice(3)].join(" ");
+  }
+  return [command, ...list].join(" ");
+}
+
+/**
+ * Text forms of every hook entry in a host config file, one per line, so text
+ * checks see no-shell entries as `node -e <locator> -- <rel> …`. Raw text when
+ * the file is not JSON.
+ */
+export function hostHookConfigEntryLines(configText: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(configText);
+  } catch {
+    return configText;
+  }
+  const lines: string[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        // A bare command string listed directly in an event array.
+        if (typeof item === "string") lines.push(item);
+        else walk(item);
+      }
+      return;
+    }
+    if (value === null || typeof value !== "object") return;
+    const text = hostHookEntryText(value);
+    if (text !== null) lines.push(text);
+    for (const [key, child] of Object.entries(value)) {
+      // `args` belong to the entry text above; walking them would list the locator source.
+      if (key !== "args") walk(child);
+    }
+  };
+  walk(parsed);
+  return lines.join("\n");
+}
+
+/**
  * Reason the outer gives when the pin exists but hook-bin reached no decision
  * (spawn error, signal / null status, non-zero exit, stdout capture failure,
  * or malformed Grok output): the `hook-failed` row (#6201 / #6166).
