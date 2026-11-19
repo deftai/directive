@@ -3735,6 +3735,134 @@ describe("historical ship-closeout (#5403)", () => {
     expect(result.skipped[0]?.reason).toBe("undeclared-merge");
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
   });
+
+  function provenancePlan(items: Record<string, unknown>[]): Record<string, unknown> {
+    return {
+      items,
+      acceptance: {
+        clauses: [{ id: 1, text: "Clause one", artifact_path: null, ambiguous: false }],
+      },
+      metadata: {
+        completionProvenance: {
+          mergeCommit: "abcdef1",
+          deliveryBranch: "master",
+          deliveryCommit: "tipsha",
+          disposition: "delivered",
+          verifier: "scope:complete",
+        },
+      },
+    };
+  }
+
+  it("gives a hand-written item the same merge evidence as a clause item (#6765)", () => {
+    const clause: Record<string, unknown> = {
+      id: "clause.1",
+      title: "clause.1",
+      status: "pending",
+    };
+    const ac: Record<string, unknown> = {
+      id: "ac.1",
+      title: "Reader trims the value.",
+      status: "proposed",
+    };
+    const plan = provenancePlan([ac, clause]);
+    const result = stampMergeFromCompletionProvenance(plan, {
+      projectRoot: "/repo",
+      reuseValidatedAncestry: true,
+      recorded_at: "2026-11-19T12:00:00Z",
+    });
+    expect(result.stampedIds).toEqual(["clause.1", "ac.1"]);
+    expect(ac[ACCEPTANCE_EVIDENCE_KEY]).toEqual(clause[ACCEPTANCE_EVIDENCE_KEY]);
+    expect(ac[ACCEPTANCE_REQUIRES_KEY]).toBe("merge");
+    expect(evaluateAcceptanceEvidenceGate(plan).ok).toBe(true);
+  });
+
+  it("leaves a hand-written strict-axis item unstamped, so completion still refuses it (#6765)", () => {
+    const smoke: Record<string, unknown> = {
+      id: "ac.13",
+      title: "Smoke: the materialized runtime starts.",
+      status: "proposed",
+      [ACCEPTANCE_REQUIRES_KEY]: "smoke",
+    };
+    expect(inferRequiredStrictAxes(smoke)).toEqual(["smoke"]);
+    const plan = provenancePlan([smoke, { id: "clause.1", title: "clause.1", status: "pending" }]);
+    const result = stampMergeFromCompletionProvenance(plan, {
+      projectRoot: "/repo",
+      reuseValidatedAncestry: true,
+    });
+    expect(result.stampedIds).toEqual(["clause.1"]);
+    expect(smoke[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+    const gate = evaluateAcceptanceEvidenceGate(plan);
+    expect(gate.ok).toBe(false);
+    expect(gate.reports.find((r) => r.path === "plan.items[0]")?.outcome).toBe("missing");
+  });
+
+  it("leaves a hand-written item that already has evidence or a disposition unchanged (#6765)", () => {
+    const prior = {
+      kind: "test",
+      pointer: "packages/x.test.ts",
+      recorded_at: "2026-11-19T12:00:00Z",
+      recorded_by: "me",
+    };
+    const withEvidence: Record<string, unknown> = {
+      id: "ac.1",
+      title: "Has test evidence",
+      status: "proposed",
+      [ACCEPTANCE_EVIDENCE_KEY]: prior,
+    };
+    const plan = provenancePlan([
+      withEvidence,
+      { id: "clause.1", title: "clause.1", status: "pending" },
+    ]);
+    const result = stampMergeFromCompletionProvenance(plan, {
+      projectRoot: "/repo",
+      reuseValidatedAncestry: true,
+    });
+    expect(result.stampedIds).toEqual(["clause.1"]);
+    expect(withEvidence[ACCEPTANCE_EVIDENCE_KEY]).toEqual(prior);
+    expect(withEvidence[ACCEPTANCE_REQUIRES_KEY]).toBeUndefined();
+  });
+
+  it("does not stamp a hand-written item without delivery provenance (#6765)", () => {
+    const ac: Record<string, unknown> = { id: "ac.1", title: "Undeclared", status: "proposed" };
+    const plan = provenancePlan([ac]);
+    delete (plan as { metadata?: unknown }).metadata;
+    expect(stampMergeFromCompletionProvenance(plan, { projectRoot: "/repo" }).stampedIds).toEqual(
+      [],
+    );
+    // Default (no admit) path: an undeclared hand-written item is still skipped.
+    const result = stampDeclaredMergeEvidence(plan, {
+      recorded_by: "scope:complete",
+      mergeCommit: "abcdef1",
+      projectRoot: "/repo",
+      deliveryBranch: "master",
+      verifyAncestry: () => ({ ok: true, error: null, remoteTip: "tipsha" }),
+    });
+    expect(result.stampedIds).toEqual([]);
+    expect(ac[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("skips terminal hand-written items and reaches nested subItems (#6765)", () => {
+    const done: Record<string, unknown> = { id: "ac.1", title: "Done", status: "completed" };
+    const child: Record<string, unknown> = { id: "ac.2.1", title: "Nested", status: "pending" };
+    const parent: Record<string, unknown> = {
+      id: "ac.2",
+      title: "Parent",
+      status: "pending",
+      subItems: [child],
+    };
+    const plan = provenancePlan([
+      done,
+      parent,
+      { id: "clause.1", title: "clause.1", status: "pending" },
+    ]);
+    const result = stampMergeFromCompletionProvenance(plan, {
+      projectRoot: "/repo",
+      reuseValidatedAncestry: true,
+    });
+    expect(result.stampedIds).toEqual(["clause.1", "ac.2", "ac.2.1"]);
+    expect(done[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
 });
 
 describe("grant-covered dispositions in complete-prep (#6318)", () => {
