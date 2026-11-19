@@ -28,9 +28,7 @@ const HEAD = "abc1234567890def1234567890abcdef12345678";
 const OLD = "1111111111111111111111111111111111111111";
 
 const GREEN_CHECKS = JSON.stringify({
-  check_runs: [
-    { name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" },
-  ],
+  check_runs: [{ name: "TypeScript (build + lint)", status: "completed", conclusion: "success" }],
 });
 
 function cleanGreptileBody(sha: string): string {
@@ -383,7 +381,7 @@ describe("computeGateResult #2260 reconciliation", () => {
         mergeable: false,
       }),
       {
-        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+        requiredContexts: ["TypeScript (build + lint)", "terraform-plan"],
         fetchMergeabilityFn: () => {
           called = true;
           return { mergeableState: "clean", mergeable: true, error: null };
@@ -402,7 +400,7 @@ describe("computeGateResult #2260 reconciliation", () => {
       fakeRunGh({ commentBody: cleanGreptileBody(HEAD), mergeableState: "clean", mergeable: true }),
       {
         requiredContexts: [
-          "TypeScript (build + lint + test)",
+          "TypeScript (build + lint)",
           "terraform-plan",
           "terraform-apply-staging",
         ],
@@ -415,7 +413,7 @@ describe("computeGateResult #2260 reconciliation", () => {
     expect(ci.ready_state).toBe("ci_absent_required");
     expect(ci.absent_required).toEqual(["terraform-plan", "terraform-apply-staging"]);
     expect(ci.required_contexts).toEqual([
-      "TypeScript (build + lint + test)",
+      "TypeScript (build + lint)",
       "terraform-plan",
       "terraform-apply-staging",
     ]);
@@ -427,7 +425,7 @@ describe("computeGateResult #2260 reconciliation", () => {
       "deftai/directive",
       fakeRunGh({ commentBody: cleanGreptileBody(HEAD), mergeableState: "clean", mergeable: true }),
       {
-        requiredContexts: ["TypeScript (build + lint + test)"],
+        requiredContexts: ["TypeScript (build + lint)"],
       },
     );
     expect(result.failures).toEqual([]);
@@ -446,7 +444,7 @@ describe("computeGateResult #2260 reconciliation", () => {
         fetchRequiredContextsFn: (_repo, branch) => {
           branchSeen = branch;
           return {
-            contexts: [{ name: "TypeScript (build + lint + test)" }, { name: "terraform-plan" }],
+            contexts: [{ name: "TypeScript (build + lint)" }, { name: "terraform-plan" }],
             sources: ["rulesets"],
             error: "",
             resolutionFailed: false,
@@ -470,7 +468,7 @@ describe("computeGateResult #2260 reconciliation", () => {
       // wipe CI failures via #2260 reconciliation.
       fakeRunGh({ commentBody: "", mergeableState: "clean", mergeable: true }),
       {
-        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+        requiredContexts: ["TypeScript (build + lint)", "terraform-plan"],
       },
     );
     expect(result.failures.join(" ")).toContain("ci_absent_required");
@@ -706,7 +704,7 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
             // No Merge gate (task check) — consumer contract skip.
             checkRuns: [
               {
-                name: "TypeScript (build + lint + test)",
+                name: "TypeScript (build + lint)",
                 status: "completed",
                 conclusion: "success",
               },

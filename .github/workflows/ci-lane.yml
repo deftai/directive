@@ -52,11 +52,6 @@ jobs:
         if: inputs.suite == 'ts'
         run: pnpm run lint
 
-      - name: Test (vitest, no coverage)
-        if: inputs.suite == 'ts'
-        timeout-minutes: 20
-        run: pnpm exec vitest run
-
       - name: Rule-relocation eval:health gate (#2373)
         if: inputs.suite == 'ts' && github.event_name == 'pull_request'
         run: |

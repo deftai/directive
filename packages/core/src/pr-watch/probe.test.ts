@@ -94,7 +94,7 @@ function makeFakeGh(cfg: FakeGhConfig) {
 }
 
 const GREEN_CI = [
-  { name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" },
+  { name: "TypeScript (build + lint)", status: "completed", conclusion: "success" },
 ];
 
 let emptyReviewersRoot = "";
@@ -365,7 +365,7 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
         headSha: FIXTURE_SHA,
         body: "",
         checkRuns: [
-          { name: "TypeScript (build + lint + test)", status: "in_progress", conclusion: "none" },
+          { name: "TypeScript (build + lint)", status: "in_progress", conclusion: "none" },
         ],
       }),
     );
@@ -866,7 +866,7 @@ describe("pr:watch names the CI cause (#6336)", () => {
   it("names a required context that has no check-run on the head", () => {
     const runGh = fakeWithBase(
       { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
-      ["TypeScript (build + lint + test)", "Merge gate (task check)"],
+      ["TypeScript (build + lint)", "Merge gate (task check)"],
     );
     const probe = probeOnce(6336, "deftai/directive", runGh);
     expect(probe.ciReadyState).toBe("ci_absent_required");
@@ -881,7 +881,7 @@ describe("pr:watch names the CI cause (#6336)", () => {
   it("does not name a required context that is reported as a commit status", () => {
     const runGh = fakeWithBase(
       { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
-      ["TypeScript (build + lint + test)", "legacy/ci"],
+      ["TypeScript (build + lint)", "legacy/ci"],
       ["legacy/ci"],
     );
     const probe = probeOnce(6336, "deftai/directive", runGh);
@@ -905,7 +905,7 @@ describe("pr:watch names the CI cause (#6336)", () => {
     it(`keeps a required context whose commit status is ${state} (not CLEAN)`, () => {
       const runGh = fakeWithBase(
         { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
-        ["TypeScript (build + lint + test)", "legacy/ci"],
+        ["TypeScript (build + lint)", "legacy/ci"],
         [{ context: "legacy/ci", state }],
       );
       const probe = probeOnce(6336, "deftai/directive", runGh);

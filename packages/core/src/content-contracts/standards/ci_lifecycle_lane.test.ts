@@ -151,7 +151,7 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
 
   it("exactly one job publishes the required TypeScript check name", () => {
     const ci = readText(".github/workflows/ci.yml");
-    const matches = ci.match(/name:\s*TypeScript \(build \+ lint \+ test\)/g) ?? [];
+    const matches = ci.match(/name:\s*TypeScript \(build \+ lint\)/g) ?? [];
     expect(matches).toHaveLength(1);
     expect(ci).toContain("  ts:");
   });
@@ -166,19 +166,16 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     expect(github).toContain("#4912");
   });
 
-  it("required-check comment map matches live protection (only TypeScript is YES)", () => {
+  it("required-check comment map matches live protection (TypeScript and Merge gate are YES)", () => {
     const ci = readText(".github/workflows/ci.yml");
     expect(ci).toMatch(
-      /\|\s*Aggregator\s*\|\s*ts\s+\|\s*TypeScript \(build \+ lint \+ test\)\s+\|\s*YES\s+\|/,
+      /\|\s*Aggregator\s*\|\s*ts\s+\|\s*TypeScript \(build \+ lint\)\s+\|\s*YES\s+\|/,
     );
     expect(ci).toMatch(/\|\s*Aggregator\s*\|\s*go\s+\|\s*Go \(test \+ build\)\s+\|\s*no\s+\|/);
     expect(ci).toMatch(
-      /\|\s*Aggregator\s*\|\s*merge-gate\s+\|\s*Merge gate \(task check\)\s+\|\s*no\s+\|/,
-    );
-    expect(ci).not.toMatch(/\|\s*Aggregator\s*\|\s*go\s+\|\s*Go \(test \+ build\)\s+\|\s*YES\s+\|/);
-    expect(ci).not.toMatch(
       /\|\s*Aggregator\s*\|\s*merge-gate\s+\|\s*Merge gate \(task check\)\s+\|\s*YES\s+\|/,
     );
+    expect(ci).not.toMatch(/\|\s*Aggregator\s*\|\s*go\s+\|\s*Go \(test \+ build\)\s+\|\s*YES\s+\|/);
   });
 
   it("non-required ci.yml jobs gate on the artifact-only output", () => {
@@ -217,7 +214,7 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
   it("TypeScript aggregator stays ungated by the artifact-only predicate", () => {
     const ci = readText(".github/workflows/ci.yml");
     const job = jobBlock(ci, "ts");
-    expect(job).toContain("name: TypeScript (build + lint + test)");
+    expect(job).toContain("name: TypeScript (build + lint)");
     expect(job).toContain("if: always()");
     expect(job).not.toContain("artifact_only");
   });

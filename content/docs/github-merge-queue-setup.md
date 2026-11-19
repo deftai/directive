@@ -39,7 +39,7 @@ The commands use `gh` and PowerShell 7. Replace `<owner>/<repo>`, the branch and
 2. Required checks on the branch, with "require branches to be up to date" OFF. The queue tests the merged result, so strict mode only adds rebases:
    ```powershell
    @{ strict = $false; checks = @(
-       @{ context = 'TypeScript (build + lint + test)'; app_id = 15368 },
+       @{ context = 'TypeScript (build + lint)'; app_id = 15368 },
        @{ context = 'Merge gate (task check)'; app_id = 15368 }) } |
      ConvertTo-Json -Depth 4 -Compress |
      gh api -X PATCH repos/<owner>/<repo>/branches/<branch>/protection/required_status_checks --input -
@@ -148,4 +148,4 @@ Each push after review costs one more review and one more CI run. For agents on 
 
 ## Reference setup
 
-`deftai/directive` `master`, set 2026-11-16: auto-merge on; required checks `TypeScript (build + lint + test)` and `Merge gate (task check)`, strict off; org ruleset requires `Greptile Review`; ruleset "Merge queue on master" as in step 3, targeting `~DEFAULT_BRANCH`.
+`deftai/directive` `master`, set 2026-11-16: auto-merge on; required checks `TypeScript (build + lint)` (renamed from `TypeScript (build + lint + test)` under #6586, when the lane stopped running the suite) and `Merge gate (task check)`, strict off; org ruleset requires `Greptile Review`; ruleset "Merge queue on master" as in step 3, targeting `~DEFAULT_BRANCH`.
