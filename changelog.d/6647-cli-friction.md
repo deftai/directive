@@ -1,2 +1,0 @@
-section: Fixed
-- `deft verify:<name> -- <args>` now takes the same arguments as `task verify:<name> -- <args>`. A refused `occupancy:release` prints the exact command for your own session. `xbrief:preflight` accepts an absolute path, including the Git Bash `/c/...` form. A refused `session:start` or `session:ready` prints the whole command to run again, with the suggested `--session-id` filled in or a marked template. Refs #6647.

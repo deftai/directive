@@ -1,2 +1,0 @@
-section: Changed
-- `directive install`, `upgrade` and `install --repair` no longer edit `pnpm-workspace.yaml` (the #5860 `minimumReleaseAgeExclude` rewrite is removed); the file belongs to pnpm and your project. When pnpm refuses the runtime as too new (`ERR_PNPM_NO_MATURE_MATCHING_VERSION` / `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`), the launcher prints pnpm's recovery steps and exits non-zero. When pnpm itself changed the file, it is listed under "Review and commit". Refs #5854, #6006.
