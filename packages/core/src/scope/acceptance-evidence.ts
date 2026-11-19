@@ -1247,41 +1247,90 @@ export function stampDeclaredMergeEvidence(
     }
     return { stampedIds, repairedIds, skipped };
   }
+  const evidence = {
+    kind: "merge" as const,
+    pointer: mergeCommit,
+    recorded_at: recordedAt,
+    recorded_by: recordedBy,
+  };
+  const clauseItems = new Set<Record<string, unknown>>();
   for (const clause of clauses) {
     const item = findClauseKeyedItem(plan.items, clause.id);
     if (item === null) {
       skipped.push({ clauseId: clause.id, reason: "unbound" });
       continue;
     }
-    const fields = readNamespacedAcceptanceFields(item);
-    if (fields.hasEvidence || fields.hasDisposition) {
-      skipped.push({ clauseId: clause.id, reason: "already-stamped" });
+    clauseItems.add(item);
+    const reason = mergeStampSkipReason(item, options.admitUndeclaredMerge === true);
+    if (reason !== null) {
+      skipped.push({ clauseId: clause.id, reason });
       continue;
     }
-    const undeclared = !itemDeclaresMergeRequirement(item);
-    if (undeclared && options.admitUndeclaredMerge !== true) {
-      skipped.push({ clauseId: clause.id, reason: "undeclared-merge" });
-      continue;
-    }
-    if (inferRequiredStrictAxes(item).length > 0) {
-      skipped.push({ clauseId: clause.id, reason: "strict-axis" });
-      continue;
-    }
-    // #5403 declaration-side admit: write requires=merge so the later
-    // evaluateAcceptanceEvidenceGate / isEvidenceKindSuitable path agrees
-    // with this stamp (Greptile P1 on #5430). Strict axes already skipped.
-    if (undeclared && options.admitUndeclaredMerge === true) {
-      item[ACCEPTANCE_REQUIRES_KEY] = MERGE_ACCEPTANCE_REQUIREMENT;
-    }
-    stampNamespacedEvidence(item, {
-      kind: "merge",
-      pointer: mergeCommit,
-      recorded_at: recordedAt,
-      recorded_by: recordedBy,
-    });
+    stampMergeOnItem(item, evidence, options.admitUndeclaredMerge === true);
     stampedIds.push(itemIdKey(item) ?? clauseKeyedItemId(clause.id));
   }
+  // #6765: a hand-written acceptance item (not clause-keyed, e.g. `ac.1`) gets
+  // the same merge evidence under the same rules. The gate walks the same tree,
+  // so every non-terminal item it holds to evidence is reached here.
+  forEachStrictAxisItem(plan, (item) => {
+    if (clauseItems.has(item) || isClauseKeyedIdShape(itemIdKey(item))) {
+      return;
+    }
+    if (!NON_TERMINAL_ITEM_STATUSES.has(String(item.status ?? ""))) {
+      return;
+    }
+    if (mergeStampSkipReason(item, options.admitUndeclaredMerge === true) !== null) {
+      return;
+    }
+    stampMergeOnItem(item, evidence, options.admitUndeclaredMerge === true);
+    const id = itemIdKey(item);
+    if (id !== null) {
+      stampedIds.push(id);
+    }
+  });
   return { stampedIds, repairedIds, skipped };
+}
+
+/** Why the merge stamper leaves an item alone, or null to stamp it (#5105 / #6765). */
+function mergeStampSkipReason(
+  item: Record<string, unknown>,
+  admitUndeclaredMerge: boolean,
+): "already-stamped" | "undeclared-merge" | "strict-axis" | null {
+  const fields = readNamespacedAcceptanceFields(item);
+  if (fields.hasEvidence || fields.hasDisposition) {
+    return "already-stamped";
+  }
+  if (!itemDeclaresMergeRequirement(item) && !admitUndeclaredMerge) {
+    return "undeclared-merge";
+  }
+  if (inferRequiredStrictAxes(item).length > 0) {
+    return "strict-axis";
+  }
+  return null;
+}
+
+function stampMergeOnItem(
+  item: Record<string, unknown>,
+  evidence: {
+    readonly kind: "merge";
+    readonly pointer: string;
+    readonly recorded_at: string;
+    readonly recorded_by: string;
+  },
+  admitUndeclaredMerge: boolean,
+): void {
+  // #5403 declaration-side admit: write requires=merge so the later
+  // evaluateAcceptanceEvidenceGate / isEvidenceKindSuitable path agrees
+  // with this stamp (Greptile P1 on #5430). Strict axes already skipped.
+  if (admitUndeclaredMerge && !itemDeclaresMergeRequirement(item)) {
+    item[ACCEPTANCE_REQUIRES_KEY] = MERGE_ACCEPTANCE_REQUIREMENT;
+  }
+  stampNamespacedEvidence(item, { ...evidence });
+}
+
+/** `clause.N`, legacy `clause:N`, or a bare clause number (#4385). */
+function isClauseKeyedIdShape(id: string | null): boolean {
+  return id !== null && /^(?:clause[.:])?\d+$/.test(id);
 }
 
 function readCompletionProvenance(plan: Record<string, unknown>): Record<string, unknown> | null {
