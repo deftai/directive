@@ -272,33 +272,55 @@ describe("task-surface", () => {
     expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(0);
   });
 
-  it("against-merge-base exempts a completion that also rewrites PROJECT-DEFINITION (#6764)", () => {
+  const PD_REL = "xbrief/PROJECT-DEFINITION.xbrief.json";
+  function pdText(items: unknown[], requireHumanMerge = true): string {
+    const doc = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "p", policy: { requireHumanMerge }, items },
+    };
+    return `${JSON.stringify(doc, null, 2)}\n`;
+  }
+  function initWithProjectDefinition(): string {
     const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
     const project = initChangelogGit(existing);
+    commitNested(project, PD_REL, pdText([{ id: "story", status: "running" }]));
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], { cwd: project });
+    return project;
+  }
+
+  it("against-merge-base exempts a completion whose PROJECT-DEFINITION change is registry-only (#6764)", () => {
+    const project = initWithProjectDefinition();
     execFileSync("git", ["checkout", "-q", "-b", "lifecycle-pd"], { cwd: project });
     commitNested(project, "xbrief/completed/story.xbrief.json", "{}\n");
     commitNested(project, "xbrief/.audit/spec-drift/story.json", "{}\n");
-    commitNested(project, "xbrief/PROJECT-DEFINITION.xbrief.json", "{}\n");
+    commitNested(project, PD_REL, pdText([]));
     const { io } = captureIo();
     expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(0);
   });
 
+  it("against-merge-base keeps the new entry when the completion also edits PROJECT-DEFINITION policy (#6764)", () => {
+    const project = initWithProjectDefinition();
+    execFileSync("git", ["checkout", "-q", "-b", "pd-policy"], { cwd: project });
+    commitNested(project, "xbrief/completed/story.xbrief.json", "{}\n");
+    commitNested(project, PD_REL, pdText([], false));
+    const { io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
+  });
+
   it("against-merge-base keeps the new entry for PROJECT-DEFINITION beside product code (#6764)", () => {
-    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
-    const project = initChangelogGit(existing);
+    const project = initWithProjectDefinition();
     execFileSync("git", ["checkout", "-q", "-b", "pd-mixed"], { cwd: project });
     commitNested(project, "xbrief/completed/story.xbrief.json", "{}\n");
-    commitNested(project, "xbrief/PROJECT-DEFINITION.xbrief.json", "{}\n");
+    commitNested(project, PD_REL, pdText([]));
     commitNested(project, "packages/core/src/x.ts", "export {};\n");
     const { io } = captureIo();
     expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
   });
 
   it("against-merge-base keeps the new entry for a PROJECT-DEFINITION-only change (#6764)", () => {
-    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
-    const project = initChangelogGit(existing);
+    const project = initWithProjectDefinition();
     execFileSync("git", ["checkout", "-q", "-b", "pd-only"], { cwd: project });
-    commitNested(project, "xbrief/PROJECT-DEFINITION.xbrief.json", "{}\n");
+    commitNested(project, PD_REL, pdText([]));
     const { io } = captureIo();
     expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
   });

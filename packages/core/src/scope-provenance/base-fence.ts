@@ -306,6 +306,12 @@ export interface ApprovedScopeMembershipInput {
    */
   readonly allowlistAuthority?: MembershipAllowlistAuthority;
   readonly changedFiles: readonly string[];
+  /**
+   * The PROJECT-DEFINITION change against the merge base touches only the
+   * open-scope registry a lifecycle move rewrites (#6764). Without it the
+   * registry is never free, even beside a completion move.
+   */
+  readonly projectDefinitionRegistryOnly?: boolean;
   /** Peer active xBRIEF paths that also changed; exempt from this story's extras. */
   readonly peerXbriefRelPaths?: readonly string[];
   /**
@@ -422,8 +428,10 @@ export function evaluateApprovedScopeMembership(
   // paths with a completed/ brief), so it never carries other paths past membership.
   // The per-story row files under xbrief/.audit/spec-drift/ join it (#6335), and
   // so does the PROJECT-DEFINITION registry that the move rewrites (#6764).
+  const registryOnly = input.projectDefinitionRegistryOnly === true;
   const ledgerFree = isCompletionMoveShaped(
     input.changedFiles.map((raw) => normalizeMembershipRel(raw)).filter((rel) => rel.length > 0),
+    { projectDefinitionRegistryOnly: registryOnly },
   );
 
   const isFreePath = (rel: string): boolean => {
@@ -435,7 +443,7 @@ export function evaluateApprovedScopeMembership(
       ledgerFree &&
       (rel === SPEC_DRIFT_LEDGER_REL ||
         isSpecDriftRowFilePath(rel) ||
-        isProjectDefinitionRegistryPath(rel))
+        (registryOnly && isProjectDefinitionRegistryPath(rel)))
     ) {
       return true;
     }

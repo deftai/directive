@@ -1945,8 +1945,9 @@ describe("finalizeCohort", () => {
     // #6335: completed brief + row files is lifecycle-shaped; an authority record is not.
     expect(isLifecycleShapedPr(samples[3] ?? [])).toBe(true);
     expect(isLifecycleShapedPr(samples[4] ?? [])).toBe(false);
-    // #6764: completion move + registry is lifecycle-shaped; registry + product is not.
-    expect(isLifecycleShapedPr(samples[10] ?? [])).toBe(true);
+    // #6764: a forge file list carries no content proof, so the registry never
+    // makes a PR lifecycle-shaped here.
+    expect(isLifecycleShapedPr(samples[10] ?? [])).toBe(false);
     expect(isLifecycleShapedPr(samples[11] ?? [])).toBe(false);
   });
 

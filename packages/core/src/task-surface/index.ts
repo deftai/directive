@@ -22,7 +22,12 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { resolveChangelogMode } from "../policy/changelog-mode.js";
-import { isDeliveryBriefLandExcluded } from "../scope/delivery-evidence.js";
+import {
+  isDeliveryBriefLandExcluded,
+  isProjectDefinitionRegistryOnlyChange,
+  isProjectDefinitionRegistryPath,
+  PROJECT_DEFINITION_REGISTRY_REL,
+} from "../scope/delivery-evidence.js";
 
 export interface TaskSurfaceIo {
   writeOut: (text: string) => void;
@@ -143,9 +148,22 @@ function changeSetAgainstMergeBase(
   return rows;
 }
 
-function isDeliveryBriefLandChangeSet(rows: readonly ChangelogChangeSetEntry[]): boolean {
+function isDeliveryBriefLandChangeSet(
+  root: string,
+  mergeBaseSha: string,
+  rows: readonly ChangelogChangeSetEntry[],
+): boolean {
+  // #6764: the PROJECT-DEFINITION registry rides along only when its committed
+  // change against the merge base is registry-only (no policy or other edit).
+  const registryOnly =
+    rows.some((row) => isProjectDefinitionRegistryPath(row.path)) &&
+    isProjectDefinitionRegistryOnlyChange(
+      gitText(root, ["show", `${mergeBaseSha}:${PROJECT_DEFINITION_REGISTRY_REL}`]),
+      gitText(root, ["show", `HEAD:${PROJECT_DEFINITION_REGISTRY_REL}`]),
+    );
   return isDeliveryBriefLandExcluded(
     rows.map((row) => ({ status: "modified", filename: row.path })),
+    { projectDefinitionRegistryOnly: registryOnly },
   );
 }
 
@@ -250,7 +268,7 @@ function checkAgainstMergeBase(
   // paths, the spec-drift ledger only) needs no new entry. Oracle is the
   // committed change set vs merge-base; --no-renames lists rename sources too.
   // An empty change set is not exempt. Product/code diffs keep the requirement.
-  if (isDeliveryBriefLandChangeSet(rows)) {
+  if (isDeliveryBriefLandChangeSet(root, mergeBase.sha, rows)) {
     if (total === 0) {
       io.writeOut(
         "OK: CHANGELOG.md [Unreleased] section has 0 entries; lifecycle-only change set needs none (#680)\n",

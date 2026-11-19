@@ -1002,16 +1002,90 @@ export function isProjectDefinitionRegistryPath(path: string): boolean {
   return path.replace(/\\/g, "/") === PROJECT_DEFINITION_REGISTRY_REL;
 }
 
+/** Sorted-key JSON so two parses compare by content, not key order. */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((v) => canonicalJson(v)).join(",")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/** PROJECT-DEFINITION without the parts a lifecycle move rewrites, or null when unreadable. */
+function projectDefinitionWithoutRegistry(text: string): string | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  const root = { ...(parsed as Record<string, unknown>) };
+  for (const infoKey of ["xBRIEFInfo", "vBRIEFInfo"]) {
+    const info = root[infoKey];
+    if (info !== null && typeof info === "object" && !Array.isArray(info)) {
+      const { updated: _updated, ...rest } = info as Record<string, unknown>;
+      root[infoKey] = rest;
+    }
+  }
+  const plan = root.plan;
+  if (plan !== null && typeof plan === "object" && !Array.isArray(plan)) {
+    const { items: _items, updated: _planUpdated, ...rest } = plan as Record<string, unknown>;
+    root.plan = rest;
+  }
+  return canonicalJson(root);
+}
+
+/**
+ * True when a PROJECT-DEFINITION change touches only the open-scope registry a
+ * lifecycle move rewrites (`plan.items` and `updated` stamps). Any other edit,
+ * such as a `plan.policy` change, is false, as is a missing or unparsable side
+ * (#6764, fail closed).
+ */
+export function isProjectDefinitionRegistryOnlyChange(
+  baseText: string | null,
+  headText: string | null,
+): boolean {
+  if (baseText === null || headText === null) {
+    return false;
+  }
+  const base = projectDefinitionWithoutRegistry(baseText);
+  const head = projectDefinitionWithoutRegistry(headText);
+  return base !== null && head !== null && base === head;
+}
+
+/** Options for the completion-move shape (#6764). */
+export interface CompletionMoveShapeOptions {
+  /**
+   * The PROJECT-DEFINITION change is registry-only (`isProjectDefinitionRegistryOnlyChange`).
+   * Only then may the registry ride in a completion move; path names alone never admit it.
+   */
+  readonly projectDefinitionRegistryOnly?: boolean;
+}
+
 /**
  * Completion-move shape (#680 P5 / #6764): a non-empty change set of
- * delivery-brief-land paths, plus the PROJECT-DEFINITION registry that
- * scope:complete rewrites, with at least one brief under `completed/`.
- * Membership admits the ledger, row files and the registry only under this shape.
+ * delivery-brief-land paths with at least one brief under `completed/`.
+ * The PROJECT-DEFINITION registry that scope:complete rewrites may ride along
+ * only when the caller proved its change is registry-only. Membership admits
+ * the ledger, row files and that registry only under this shape.
  */
-export function isCompletionMoveShaped(paths: readonly string[]): boolean {
+export function isCompletionMoveShaped(
+  paths: readonly string[],
+  options: CompletionMoveShapeOptions = {},
+): boolean {
+  const registryAdmitted = options.projectDefinitionRegistryOnly === true;
   return (
     paths.length > 0 &&
-    paths.every((p) => isDeliveryBriefLandPath(p) || isProjectDefinitionRegistryPath(p)) &&
+    paths.every(
+      (p) => isDeliveryBriefLandPath(p) || (registryAdmitted && isProjectDefinitionRegistryPath(p)),
+    ) &&
     paths.some((p) => /^(?:xbrief|vbrief)\/completed\/./.test(p.replace(/\\/g, "/")))
   );
 }
@@ -1027,7 +1101,10 @@ export function isCompletionMoveShaped(paths: readonly string[]): boolean {
  * activation `isBriefLandShapedDiff`, which denies completed/ and needs a
  * non-removed nonterminal brief.
  */
-export function isDeliveryBriefLandExcluded(files: readonly PrFileEntry[]): boolean {
+export function isDeliveryBriefLandExcluded(
+  files: readonly PrFileEntry[],
+  options: CompletionMoveShapeOptions = {},
+): boolean {
   if (files.length === 0) {
     return false;
   }
@@ -1041,9 +1118,9 @@ export function isDeliveryBriefLandExcluded(files: readonly PrFileEntry[]): bool
   ) {
     return true;
   }
-  // #6764: a completion move also rewrites the PROJECT-DEFINITION registry.
-  // Rename sources count as paths, so a product file renamed into completed/
-  // is never excluded.
+  // #6764: a completion move also rewrites the PROJECT-DEFINITION registry; it
+  // counts only when the caller proved that change registry-only. Rename sources
+  // count as paths, so a product file renamed into completed/ is never excluded.
   const paths: string[] = [];
   for (const file of files) {
     paths.push(file.filename);
@@ -1051,7 +1128,7 @@ export function isDeliveryBriefLandExcluded(files: readonly PrFileEntry[]): bool
       paths.push(file.previousFilename ?? "");
     }
   }
-  return isCompletionMoveShaped(paths);
+  return isCompletionMoveShaped(paths, options);
 }
 
 /** The single distinct `deft-story` mark in a body, or null when zero or several (#5710). */

@@ -33,7 +33,6 @@ import {
   defaultMergeTimeForge,
   evidenceFromPrPayload,
   type FetchPrChangedFilesFn,
-  isCompletionMoveShaped,
   isDeliveryBriefLandPath,
   type MergeTimeForge,
   PROJECT_DEFINITION_REGISTRY_REL,
@@ -611,10 +610,7 @@ function deftStoryMarkBindsDelivery(
  * as delivery. An empty list stays lifecycle-shaped, so it never binds either.
  */
 export function isLifecycleShapedPr(files: readonly PrChangedFile[]): boolean {
-  return (
-    files.every((f) => isDeliveryBriefLandPath(f.filename)) ||
-    isCompletionMoveShaped(files.map((f) => f.filename))
-  );
+  return files.every((f) => isDeliveryBriefLandPath(f.filename));
 }
 
 /**

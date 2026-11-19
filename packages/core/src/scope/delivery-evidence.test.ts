@@ -33,6 +33,7 @@ import {
   isDeliveryBriefLandExcluded,
   isDeliveryBriefLandPath,
   isEligibleStoredDeliveryDisposition,
+  isProjectDefinitionRegistryOnlyChange,
   isProjectDefinitionRegistryPath,
   isSpecDriftRowFilePath,
   liveRunGh,
@@ -3710,29 +3711,61 @@ describe("completion move carries the PROJECT-DEFINITION registry (#6764)", () =
     expect(isDeliveryBriefLandPath(pd)).toBe(false);
   });
 
-  it("treats brief move + row file + registry as a completion move", () => {
-    expect(
-      isCompletionMoveShaped(["xbrief/active/a.json", "xbrief/completed/a.json", row, pd]),
-    ).toBe(true);
-    expect(isDeliveryBriefLandExcluded([rename, rowEntry, pdEntry])).toBe(true);
+  it("treats brief move + row file + registry as a completion move only with a registry-only proof", () => {
+    const paths = ["xbrief/active/a.json", "xbrief/completed/a.json", row, pd];
+    const proven = { projectDefinitionRegistryOnly: true };
+    expect(isCompletionMoveShaped(paths, proven)).toBe(true);
+    expect(isDeliveryBriefLandExcluded([rename, rowEntry, pdEntry], proven)).toBe(true);
+    // Path names alone never admit the registry (Greptile P1 on #6772).
+    expect(isCompletionMoveShaped(paths)).toBe(false);
+    expect(isDeliveryBriefLandExcluded([rename, rowEntry, pdEntry])).toBe(false);
+  });
+
+  it("proves a PROJECT-DEFINITION change registry-only by content", () => {
+    const base = {
+      xBRIEFInfo: { version: "0.8", updated: "2026-11-18T00:00:00Z" },
+      plan: {
+        title: "p",
+        updated: "2026-11-18T00:00:00Z",
+        policy: { requireHumanMerge: true },
+        items: [{ id: "a", status: "running" }],
+      },
+    };
+    const itemsOnly = {
+      xBRIEFInfo: { version: "0.8", updated: "2026-11-19T00:00:00Z" },
+      plan: { ...base.plan, updated: "2026-11-19T00:00:00Z", items: [] },
+    };
+    const policyEdit = {
+      ...itemsOnly,
+      plan: { ...itemsOnly.plan, policy: { requireHumanMerge: false } },
+    };
+    const text = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(itemsOnly))).toBe(true);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(policyEdit))).toBe(false);
+    expect(isProjectDefinitionRegistryOnlyChange(null, text(itemsOnly))).toBe(false);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), "{not json")).toBe(false);
   });
 
   it("does not treat the registry with product code, or without a completed brief, as lifecycle-only", () => {
-    expect(isCompletionMoveShaped(["xbrief/completed/a.json", pd, "src/x.ts"])).toBe(false);
-    expect(isDeliveryBriefLandExcluded([rename, pdEntry, product])).toBe(false);
-    expect(isDeliveryBriefLandExcluded([pdEntry])).toBe(false);
+    const proven = { projectDefinitionRegistryOnly: true };
+    expect(isCompletionMoveShaped(["xbrief/completed/a.json", pd, "src/x.ts"], proven)).toBe(false);
+    expect(isDeliveryBriefLandExcluded([rename, pdEntry, product], proven)).toBe(false);
+    expect(isDeliveryBriefLandExcluded([pdEntry], proven)).toBe(false);
     expect(
-      isDeliveryBriefLandExcluded([
-        { status: "modified", filename: "xbrief/active/a.json" },
-        pdEntry,
-      ]),
+      isDeliveryBriefLandExcluded(
+        [{ status: "modified", filename: "xbrief/active/a.json" }, pdEntry],
+        proven,
+      ),
     ).toBe(false);
     // A product file renamed into completed/ is still refused.
     expect(
-      isDeliveryBriefLandExcluded([
-        { status: "renamed", filename: "xbrief/completed/a.json", previousFilename: "src/a.ts" },
-        pdEntry,
-      ]),
+      isDeliveryBriefLandExcluded(
+        [
+          { status: "renamed", filename: "xbrief/completed/a.json", previousFilename: "src/a.ts" },
+          pdEntry,
+        ],
+        proven,
+      ),
     ).toBe(false);
   });
 });
