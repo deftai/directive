@@ -52,21 +52,18 @@ jobs:
   # |-------------|----------------------|-----------------------------------------|-----------|
   # | Predicate   | changes              | Changes (artifact-only predicate)       | no        |
   # | Primary TS  | ts-primary           | TypeScript (Blacksmith primary)         | no        |
-  # | Primary Go  | go-primary           | Go (Blacksmith primary)                 | no        |
   # | Primary MG  | merge-gate-primary   | Merge gate (Blacksmith primary)         | no        |
   # | Watchdog    | capacity-watchdog    | Capacity watchdog                       | no        |
   # | Arm decision| capacity-arm         | Capacity arm (failover decision)        | no        |
   # | Failover TS | ts-failover          | TypeScript (GH-hosted failover)         | no        |
-  # | Failover Go | go-failover          | Go (GH-hosted failover)                 | no        |
   # | Failover MG | merge-gate-failover  | Merge gate (GH-hosted failover)         | no        |
   # | Aggregator  | ts                   | TypeScript (build + lint)               | YES       |
-  # | Aggregator  | go                   | Go (test + build)                       | no        |
   # | Aggregator  | merge-gate           | Merge gate (task check)                 | YES       |
   #
   # Live branch protection requires `TypeScript (build + lint)` and
-  # `Merge gate (task check)` (#6586). The Go aggregator is not required.
+  # `Merge gate (task check)` (#6586).
   # The TypeScript lane runs build and lint only; the suite runs once, in the
-  # merge gate (`task check:merge`). Merge-gate and Go aggregators skip on
+  # merge gate (`task check:merge`). The merge-gate aggregator skips on
   # diffs confined to {xbrief/completed/**, CHANGELOG.md, changelog.d/*.md}
   # (#3678), so those PR/push runs run no vitest. Every merge_group run is
   # full-stack, so every commit that lands on master has passed the suite.
@@ -145,15 +142,6 @@ jobs:
       suite: ts
       runner: blacksmith-4vcpu-ubuntu-2404
 
-  go-primary:
-    name: Go (Blacksmith primary)
-    needs: [changes]
-    if: always() && needs.changes.outputs.artifact_only != 'true'
-    uses: ./.github/workflows/ci-lane.yml
-    with:
-      suite: go
-      runner: blacksmith-4vcpu-ubuntu-2404
-
   merge-gate-primary:
     name: Merge gate (Blacksmith primary)
     needs: [changes]
@@ -219,7 +207,7 @@ jobs:
   # Capacity watchdog: GH-hosted, independent of primary job cancellation
   # (no needs: on primaries; cancel API targets only Blacksmith primary names).
   # ~20m budget for queued/missing; immediate arm on cancelled_unclaimed (#3168).
-  # Never skip while TS, Go, or merge-gate is unclaimed (#3340).
+  # Never skip while TS or merge-gate is unclaimed (#3340).
   # Never failover a job with runner_name (#2652).
   # -------------------------------------------------------------------------
   capacity-watchdog:
@@ -230,10 +218,9 @@ jobs:
     # Isolate from primary-lane cancel thrash: this job never needs: primaries
     # and is not selected by cancel-queued-ci-primary.mjs needles.
     # Artifact-only diffs still start the TS primary, so this job still runs;
-    # it must not treat skipped Go/merge-gate jobs as capacity death (#3678).
+    # it must not treat the skipped merge-gate job as capacity death (#3678).
     outputs:
       ts_failover: ${{ steps.poll.outputs.ts_failover }}
-      go_failover: ${{ steps.poll.outputs.go_failover }}
       merge_failover: ${{ steps.poll.outputs.merge_failover }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -249,27 +236,21 @@ jobs:
         run: |
           set -euo pipefail
           ts_failover=false
-          go_failover=false
           merge_failover=false
           echo "Stall budget=${STALL_BUDGET_SECONDS}s poll=${POLL_SECONDS}s run=${RUN_ID} artifact_only=${ARTIFACT_ONLY}"
 
           while true; do
             jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
             ts_state="$(node .github/scripts/classify-ci-job-state.mjs "typescript (blacksmith primary)" "$jobs_json")"
-            go_state="done"
             merge_state="done"
             if [[ "$ARTIFACT_ONLY" != "true" ]]; then
-              go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
               merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
             fi
-            echo "state ts=${ts_state} go=${go_state} merge=${merge_state} elapsed=${SECONDS}s artifact_only=${ARTIFACT_ONLY}"
+            echo "state ts=${ts_state} merge=${merge_state} elapsed=${SECONDS}s artifact_only=${ARTIFACT_ONLY}"
 
             # #3168: cancelled/skipped without a runner claim = capacity death → arm now.
             if [[ "$ts_state" == "cancelled_unclaimed" ]]; then
               ts_failover=true
-            fi
-            if [[ "$ARTIFACT_ONLY" != "true" && "$go_state" == "cancelled_unclaimed" ]]; then
-              go_failover=true
             fi
             if [[ "$ARTIFACT_ONLY" != "true" && "$merge_state" == "cancelled_unclaimed" ]]; then
               merge_failover=true
@@ -279,9 +260,6 @@ jobs:
             if [[ ( "$ts_state" == "queued" || "$ts_state" == "missing" ) && "$SECONDS" -ge "$STALL_BUDGET_SECONDS" ]]; then
               ts_failover=true
             fi
-            if [[ ( "$go_state" == "queued" || "$go_state" == "missing" ) && "$SECONDS" -ge "$STALL_BUDGET_SECONDS" ]]; then
-              go_failover=true
-            fi
             if [[ ( "$merge_state" == "queued" || "$merge_state" == "missing" ) && "$SECONDS" -ge "$STALL_BUDGET_SECONDS" ]]; then
               merge_failover=true
             fi
@@ -289,36 +267,29 @@ jobs:
             # Pending = still waiting for a runner_name (or job to appear).
             # started/done/cancelled_unclaimed are terminal for the poll loop.
             ts_pending=false
-            go_pending=false
             merge_pending=false
             if [[ "$ts_state" == "queued" || "$ts_state" == "missing" ]]; then
               ts_pending=true
-            fi
-            if [[ "$go_state" == "queued" || "$go_state" == "missing" ]]; then
-              go_pending=true
             fi
             if [[ "$merge_state" == "queued" || "$merge_state" == "missing" ]]; then
               merge_pending=true
             fi
 
-            if [[ "$ts_pending" == "false" && "$go_pending" == "false" && "$merge_pending" == "false" ]]; then
-              echo "Required primaries claimed, finished, or capacity-cancelled; ts_failover=${ts_failover} go_failover=${go_failover} merge_failover=${merge_failover}"
+            if [[ "$ts_pending" == "false" && "$merge_pending" == "false" ]]; then
+              echo "Required primaries claimed, finished, or capacity-cancelled; ts_failover=${ts_failover} merge_failover=${merge_failover}"
               break
             fi
             if [[ "$SECONDS" -ge "$STALL_BUDGET_SECONDS" ]]; then
-              echo "Stall budget reached; ts_failover=${ts_failover} go_failover=${go_failover} merge_failover=${merge_failover}"
+              echo "Stall budget reached; ts_failover=${ts_failover} merge_failover=${merge_failover}"
               break
             fi
             sleep "$POLL_SECONDS"
           done
 
-          if [[ "$ts_failover" == "true" || "$go_failover" == "true" || "$merge_failover" == "true" ]]; then
+          if [[ "$ts_failover" == "true" || "$merge_failover" == "true" ]]; then
             jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
             if [[ "$ts_failover" == "true" ]]; then
               node .github/scripts/cancel-queued-ci-primary.mjs "typescript (blacksmith primary)" "$jobs_json"
-            fi
-            if [[ "$go_failover" == "true" ]]; then
-              node .github/scripts/cancel-queued-ci-primary.mjs "go (blacksmith primary)" "$jobs_json"
             fi
             if [[ "$merge_failover" == "true" ]]; then
               node .github/scripts/cancel-queued-ci-primary.mjs "merge gate (blacksmith primary)" "$jobs_json"
@@ -326,9 +297,8 @@ jobs:
           fi
 
           echo "ts_failover=${ts_failover}" >> "$GITHUB_OUTPUT"
-          echo "go_failover=${go_failover}" >> "$GITHUB_OUTPUT"
           echo "merge_failover=${merge_failover}" >> "$GITHUB_OUTPUT"
-          echo "::notice title=capacity-watchdog (#3168/#3340)::ts_failover=${ts_failover} go_failover=${go_failover} merge_failover=${merge_failover}"
+          echo "::notice title=capacity-watchdog (#3168/#3340)::ts_failover=${ts_failover} merge_failover=${merge_failover}"
 
   # -------------------------------------------------------------------------
   # Capacity arm (#3168 / #3340): durable failover decision. Passes through
@@ -344,7 +314,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ts_failover: ${{ steps.decide.outputs.ts_failover }}
-      go_failover: ${{ steps.decide.outputs.go_failover }}
       merge_failover: ${{ steps.decide.outputs.merge_failover }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -356,41 +325,33 @@ jobs:
           REPO: ${{ github.repository }}
           WATCHDOG_RESULT: ${{ needs.capacity-watchdog.result }}
           TS_FROM_WD: ${{ needs.capacity-watchdog.outputs.ts_failover }}
-          GO_FROM_WD: ${{ needs.capacity-watchdog.outputs.go_failover }}
           MERGE_FROM_WD: ${{ needs.capacity-watchdog.outputs.merge_failover }}
           ARTIFACT_ONLY: ${{ needs.changes.outputs.artifact_only }}
         run: |
           set -euo pipefail
           ts_failover=false
-          go_failover=false
           merge_failover=false
 
           if [[ "$WATCHDOG_RESULT" == "success" ]]; then
             ts_failover="${TS_FROM_WD:-false}"
-            go_failover="${GO_FROM_WD:-false}"
             merge_failover="${MERGE_FROM_WD:-false}"
-            echo "Pass-through from capacity-watchdog (success): ts=${ts_failover} go=${go_failover} merge=${merge_failover}"
+            echo "Pass-through from capacity-watchdog (success): ts=${ts_failover} merge=${merge_failover}"
           else
             echo "::warning title=capacity-arm (#3168)::capacity-watchdog result=${WATCHDOG_RESULT}; re-classifying primaries for failover recovery"
           fi
 
           # #3340: re-evaluate every required Blacksmith job. Do not skip while
-          # TS, Go, or merge-gate is still unclaimed (same-run rerun included).
+          # TS or merge-gate is still unclaimed (same-run rerun included).
           jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
           ts_state="$(node .github/scripts/classify-ci-job-state.mjs "typescript (blacksmith primary)" "$jobs_json")"
-          go_state="done"
           merge_state="done"
           if [[ "$ARTIFACT_ONLY" != "true" ]]; then
-            go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
             merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
           fi
-          echo "re-eval state ts=${ts_state} go=${go_state} merge=${merge_state} artifact_only=${ARTIFACT_ONLY}"
+          echo "re-eval state ts=${ts_state} merge=${merge_state} artifact_only=${ARTIFACT_ONLY}"
 
           if [[ "$ts_state" == "queued" || "$ts_state" == "missing" || "$ts_state" == "cancelled_unclaimed" ]]; then
             ts_failover=true
-          fi
-          if [[ "$ARTIFACT_ONLY" != "true" && ( "$go_state" == "queued" || "$go_state" == "missing" || "$go_state" == "cancelled_unclaimed" ) ]]; then
-            go_failover=true
           fi
           if [[ "$ARTIFACT_ONLY" != "true" && ( "$merge_state" == "queued" || "$merge_state" == "missing" || "$merge_state" == "cancelled_unclaimed" ) ]]; then
             merge_failover=true
@@ -398,9 +359,6 @@ jobs:
 
           if [[ "$ts_failover" == "true" ]]; then
             node .github/scripts/cancel-queued-ci-primary.mjs "typescript (blacksmith primary)" "$jobs_json"
-          fi
-          if [[ "$ARTIFACT_ONLY" != "true" && "$go_failover" == "true" ]]; then
-            node .github/scripts/cancel-queued-ci-primary.mjs "go (blacksmith primary)" "$jobs_json"
           fi
           if [[ "$ARTIFACT_ONLY" != "true" && "$merge_failover" == "true" ]]; then
             node .github/scripts/cancel-queued-ci-primary.mjs "merge gate (blacksmith primary)" "$jobs_json"
@@ -410,24 +368,19 @@ jobs:
           if [[ -z "$ts_failover" || "$ts_failover" == "null" ]]; then
             ts_failover=false
           fi
-          if [[ -z "$go_failover" || "$go_failover" == "null" ]]; then
-            go_failover=false
-          fi
           if [[ -z "$merge_failover" || "$merge_failover" == "null" ]]; then
             merge_failover=false
           fi
           if [[ "$ARTIFACT_ONLY" == "true" ]]; then
-            go_failover=false
             merge_failover=false
           fi
 
           echo "ts_failover=${ts_failover}" >> "$GITHUB_OUTPUT"
-          echo "go_failover=${go_failover}" >> "$GITHUB_OUTPUT"
           echo "merge_failover=${merge_failover}" >> "$GITHUB_OUTPUT"
-          if [[ "$ts_failover" == "true" || "$go_failover" == "true" || "$merge_failover" == "true" ]]; then
-            echo "::notice title=failover_armed (#3168/#3340)::ts_failover=${ts_failover} go_failover=${go_failover} merge_failover=${merge_failover}"
+          if [[ "$ts_failover" == "true" || "$merge_failover" == "true" ]]; then
+            echo "::notice title=failover_armed (#3168/#3340)::ts_failover=${ts_failover} merge_failover=${merge_failover}"
           else
-            echo "::notice title=failover_skipped (#3168/#3340)::ts_failover=${ts_failover} go_failover=${go_failover} merge_failover=${merge_failover} reason=primaries_claimed_or_done"
+            echo "::notice title=failover_skipped (#3168/#3340)::ts_failover=${ts_failover} merge_failover=${merge_failover} reason=primaries_claimed_or_done"
           fi
 
   # -------------------------------------------------------------------------
@@ -445,15 +398,6 @@ jobs:
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: ts
-      runner: ubuntu-latest
-
-  go-failover:
-    name: Go (GH-hosted failover)
-    needs: [capacity-arm]
-    if: always() && needs.capacity-arm.result == 'success' && needs.capacity-arm.outputs.go_failover == 'true'
-    uses: ./.github/workflows/ci-lane.yml
-    with:
-      suite: go
       runner: ubuntu-latest
 
   merge-gate-failover:
@@ -539,24 +483,6 @@ jobs:
           FAILOVER_RESULT: ${{ needs.ts-failover.result }}
           PRIMARY_NEEDLE: "typescript (blacksmith primary)"
           SUITE_LABEL: TypeScript
-        run: node .github/scripts/resolve-ci-authoritative-lane.mjs
-
-  go:
-    name: Go (test + build)
-    needs: [changes, capacity-arm, go-failover]
-    if: always() && needs.changes.outputs.artifact_only != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Resolve authoritative Go result
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.run_id }}
-          REPO: ${{ github.repository }}
-          WANT_FAILOVER: ${{ needs.capacity-arm.outputs.go_failover }}
-          FAILOVER_RESULT: ${{ needs.go-failover.result }}
-          PRIMARY_NEEDLE: "go (blacksmith primary)"
-          SUITE_LABEL: Go
         run: node .github/scripts/resolve-ci-authoritative-lane.mjs
 
   merge-gate:
