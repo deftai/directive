@@ -3,6 +3,22 @@
   "sequence_kind": "delivery",
   "entries": [
     {
+      "id": "github.issue.6483053822",
+      "kind": "story",
+      "title": "#6765 merge evidence for hand-written acceptance items",
+      "issue": 6765,
+      "status": "pending",
+      "batch": "rest"
+    },
+    {
+      "id": "github.issue.6483053628",
+      "kind": "story",
+      "title": "#6764 completion PRs pass with PROJECT-DEFINITION",
+      "issue": 6764,
+      "status": "pending",
+      "batch": "rest"
+    },
+    {
       "id": "github.issue.6333598818",
       "kind": "story",
       "title": "Hosts block a tool call when the Directive hook can't decide [ovpr-p1-u1]",
@@ -198,7 +214,7 @@
   "exhausted": false,
   "authorized_by": "polfer",
   "created_at": "2026-11-18T17:32:48.550Z",
-  "updated_at": "2026-11-18T17:32:48.550Z",
-  "generation": 3,
-  "source_revision": "7dda3d6a1cedbd0b0c80a100e22d27c1df6a2d2a"
+  "updated_at": "2026-11-19T14:17:21.727Z",
+  "generation": 6,
+  "source_revision": "07c3739acb4349b9a44c858d0c29247cc04b4c31"
 }
