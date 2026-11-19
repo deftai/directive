@@ -35,7 +35,7 @@ Do **not** parse managed-section markers, byte-compare an attributed block again
 
 Three checks here, in this order. The first match wins; later checks only run when earlier checks pass.
 
-1. **Classifier (Case G gate).** Run `deft agents:refresh --check` (or `deft doctor`). If the CLI is not on PATH, `npm i -g @deftai/directive` then the same verb. Wiring/runtime missing: `directive install --repair`. Supported legacy layout: `directive upgrade`.
+1. **Classifier (Case G gate).** Run `deft agents:refresh --check` (or `deft doctor`). If the CLI is not on PATH, `npm i -g @deftai/directive` then the same verb. Runtime missing or not the pinned version: the project install (`npm install`, or `pnpm install --frozen-lockfile`). Wiring damaged: `directive install --repair`. Supported legacy layout: `directive upgrade`.
    - ! If state is **stale**, **missing**, **absent**, or **unreadable**, treat as **stale content** -- jump to Case G ("Stale AGENTS.md") in Step 2. Case G remediates with the registered rewrite, not a hand-append.
    - If state is **current**, continue to the install-path check below.
 2. **Install-path resolution (Case K gate -- #1046 PR-A).** When the classifier reports **current**, parse the section for its install-path declaration (`Full guidelines: <root>/main.md`, e.g. `node_modules/@deftai/directive-runtime/main.md` for the OVPR layout or `deft/main.md` for a legacy install layout). Verify that `../<root>/main.md` exists on disk.
@@ -73,7 +73,7 @@ Pick exactly one case from Step 1 and follow its instructions. Do not mix cases.
 
 ### Case F — No AGENTS.md (fresh install)
 
-1. ! Run `deft agents:refresh` (the registered rewrite for classifier state `absent`). ⊗ Do not copy `templates/agents-entry.md` by hand. If the CLI is not on PATH: `npm i -g @deftai/directive`, then the same verb. Wiring/runtime missing: `directive install --repair`. Data/schema: `directive upgrade`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
+1. ! Run `deft agents:refresh` (the registered rewrite for classifier state `absent`). ⊗ Do not copy `templates/agents-entry.md` by hand. If the CLI is not on PATH: `npm i -g @deftai/directive`, then the same verb. Runtime missing or not the pinned version: the project install (`npm install`, or `pnpm install --frozen-lockfile`). Wiring damaged: `directive install --repair`. Data/schema: `directive upgrade`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
 2. Tell the user: "✓ Created AGENTS.md at your project root."
 3. Continue to Step 3.
 
@@ -81,7 +81,7 @@ Pick exactly one case from Step 1 and follow its instructions. Do not mix cases.
 
 1. ⊗ Do not locate the `deft/main.md` sentinel, do not append `templates/agents-entry.md`, and do not hand-rewrite markers. QUICK-START is not a second parser.
 2. ! Run `deft agents:refresh`. That command is the four-state plan (`current | stale | missing | absent`; v1/v2 force-stale). Truncated close refuses to write a second section.
-3. If the CLI is not on PATH: `npm i -g @deftai/directive`, then the same verb. Wiring/runtime missing: `directive install --repair`. Data/schema: `directive upgrade`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
+3. If the CLI is not on PATH: `npm i -g @deftai/directive`, then the same verb. Runtime missing or not the pinned version: the project install (`npm install`, or `pnpm install --frozen-lockfile`). Wiring damaged: `directive install --repair`. Data/schema: `directive upgrade`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
 4. Tell the user: "✓ Refreshed Deft-managed section of AGENTS.md. Your existing additions outside that region were preserved."
 5. ! Instruct the user: **"Framework updated. Start a new agent session to pick up the changes. The current session has stale context."** Do not continue past this instruction in the current session.
 
@@ -148,7 +148,7 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 After a Deft project is set up, the CLI runs a periodic, read-only remote-version probe (issue #801) so you find out when the upstream framework ships a new release. The probe shells out to `git ls-remote --tags --refs <upstream>` against the deft submodule's `origin` remote at most once every 24 hours, parses the highest semver tag, and -- if your local checkout is behind -- prints a single informational warn line below the existing recorded-vs-current message:
 
 ```
-⚠ Upstream directive v0.24.0 is available (you are on v0.23.0). Run `task framework:check-updates` for details; follow `skills/deft-directive-sync/SKILL.md` Phase 0 (npm + `directive update` / `deft update`) and Phase 8 SCM release handoff (`released` | `pr-open` | `blocked:<reason>`) — not submodule Phase 2 alone (#1604).
+⚠ Upstream directive v0.24.0 is available (you are on v0.23.0). Run `task framework:check-updates` for details; follow `skills/deft-directive-sync/SKILL.md` Phase 0 (npm + `directive upgrade`) and Phase 8 SCM release handoff (`released` | `pr-open` | `blocked:<reason>`) — not submodule Phase 2 alone (#1604).
 ```
 
 The banner is informational only: it never blocks CI, never prompts in non-interactive sessions, and never triggers a second `Continue anyway?` prompt on top of the existing #410 marker-drift gate. Re-notification cadence is per-tag -- once you dismiss `v0.24.0` the banner stays silent for 24 hours, but a fresh `v0.24.1` re-notifies immediately. State is persisted to `xbrief/.deft-remote-probe.json`; per-run-invocation dedup prevents the same banner from stacking when chained commands (e.g. `cmd_install -> cmd_project -> cmd_spec`) all hit the gate.
@@ -159,4 +159,4 @@ Air-gapped or strict-egress environments can opt out of the probe entirely by se
 
 <!-- xbrief-backcompat-2111 -->
 
-> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` signposts unmigrated layouts; `directive upgrade` migrates them.

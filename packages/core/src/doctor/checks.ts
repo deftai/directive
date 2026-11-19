@@ -1054,7 +1054,7 @@ export function checkManifestAgreement(
       return {
         name: "manifest-agreement",
         status: "fail",
-        detail: `Two install manifests disagree: .deft/core/VERSION (tag='${coreVer}') vs legacy .deft/VERSION (tag='${legacyVer}'). The canonical manifest is .deft/core/VERSION -- run \`deft update\` to migrate the stale .deft/VERSION (backed up as .deft/VERSION.premigrate). See UPGRADING.md for the canonical drift-repair walkthrough.`,
+        detail: `Two install manifests disagree: .deft/core/VERSION (tag='${coreVer}') vs legacy .deft/VERSION (tag='${legacyVer}'). This is an older Directive layout -- run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project. See UPGRADING.md.`,
         data: {
           dual_manifest_drift: true,
           core_manifest_path: coreManifest,
@@ -1062,7 +1062,7 @@ export function checkManifestAgreement(
           core_version: coreVer,
           legacy_version: legacyVer,
           authoritative: "manifest",
-          suggested_fix: "deft update",
+          suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
         },
       };
     }
@@ -1090,11 +1090,11 @@ export function checkManifestAgreement(
       return {
         name: "manifest-agreement",
         status: "fail",
-        detail: `Bare .deft-version markers disagree (${listing}). Run \`deft update\` to keep the canonical lifecycle marker and delete the others (#5245).`,
+        detail: `Bare .deft-version markers disagree (${listing}). Run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project; it removes the leftover markers (#5245).`,
         data: {
           bare_marker_disagreement: true,
           bare_markers: presentMarkers,
-          suggested_fix: "deft update",
+          suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
         },
       };
     }
@@ -1102,7 +1102,7 @@ export function checkManifestAgreement(
     return {
       name: "manifest-agreement",
       status: "skip",
-      detail: `Bare .deft-version markers disagree (${listing}) and no inhabited xbrief/ layout is present. Delete-repair is gated on migrate; run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` then \`deft update\` (#5245 Prefer-A H1).`,
+      detail: `Bare .deft-version markers disagree (${listing}) and no inhabited xbrief/ layout is present. Run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project (#5245 Prefer-A H1).`,
       data: {
         bare_marker_disagreement: true,
         bare_markers: presentMarkers,
@@ -1130,13 +1130,13 @@ export function checkManifestAgreement(
     return {
       name: "manifest-agreement",
       status: "fail",
-      detail: `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. Run \`deft update\` to write the canonical manifest (#1046 PR-B AC-4). See UPGRADING.md for the v0.27.x -> v0.28 transition walkthrough.`,
+      detail: `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. This is an older Directive layout -- run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project. See UPGRADING.md.`,
       data: {
         manifest_path: manifestPath,
         expected_manifest_path: expectedManifestPath,
         bare_path: barePath,
         bare_value: bareText?.trim() ?? null,
-        suggested_fix: "deft update",
+        suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
       },
     };
   }
@@ -1146,7 +1146,7 @@ export function checkManifestAgreement(
     return {
       name: "manifest-agreement",
       status: "pass",
-      detail: `YAML manifest at ${manifestPath} present; bare .deft-version absent (derived value: '${derived}' from manifest tag). Run \`deft update\` to regenerate the derivative.`,
+      detail: `YAML manifest at ${manifestPath} present; bare .deft-version absent (derived value: '${derived}' from manifest tag).`,
       data: {
         manifest_path: manifestPath,
         manifest,
@@ -1186,14 +1186,14 @@ export function checkManifestAgreement(
   return {
     name: "manifest-agreement",
     status: "fail",
-    detail: `Drift detected: YAML manifest tag='${derived}' does NOT agree with bare .deft-version='${bareValue}'. Per #1046 PR-B AC-4 the YAML manifest is the canonical source -- run \`deft update\` to regenerate the bare derivative from the manifest, OR manually update ${manifestPath} if the bare value is correct. See UPGRADING.md for the canonical drift-repair walkthrough.`,
+    detail: `Drift detected: YAML manifest tag='${derived}' does NOT agree with bare .deft-version='${bareValue}'. This is an older Directive layout -- run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project. See UPGRADING.md.`,
     data: {
       manifest_path: manifestPath,
       bare_path: barePath,
       derived_version: derived,
       bare_value: bareValue,
       authoritative: "manifest",
-      suggested_fix: "deft update",
+      suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
     },
   };
 }

@@ -120,7 +120,7 @@ function resolveUpgradeCommand(
   if (pm === "pnpm") {
     // Same registry, same tarball -- only the command form differs (#2197).
     const upgrade = upgradeCommandFor("pnpm");
-    return vendored ? `${upgrade} && deft update` : upgrade;
+    return vendored ? `${upgrade} && directive upgrade` : upgrade;
   }
   return vendored ? VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND : CANONICAL_UPGRADE_COMMAND;
 }

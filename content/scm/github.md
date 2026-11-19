@@ -700,7 +700,7 @@ Three consumer-facing surfaces enforce the branch-policy contract:
 
 - `deft check` — consumer pre-commit quality gate. In vendored `.deft/core` installs it runs consumer-safe Deft install/lifecycle gates and does NOT run framework source-repo self-tests. Run `deft check:framework-source` only when explicitly validating the vendored framework payload itself (#1519).
 - `deft verify:branch` — refuses default-branch commit unless `plan.policy.allowDirectCommitsToMaster = true` (typed) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.
-- `.githooks/pre-commit` / `pre-push` — installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `deft update` to refresh hook templates (#2049).
+- `.githooks/pre-commit` / `pre-push` — installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `directive install --repair` to refresh hook templates (#2049).
 - `deft policy:show --field=allowDirectCommitsToMaster` — inspect policy; `deft policy:allow-direct-commits -- --confirm` writes typed override with audit row.
 - `deft verify:forward-coverage` — fail-closed new-source-file existence (#1310) plus warn-first diff coverage of added/modified branches (#3514). Intersects `coverage/coverage-final.json` with the diff (90% per-change branch threshold). That 90% is not the 75 global floor. Wired into `deft check` + pre-commit (`--staged`); `--enforce` fail-closes the diff half; `--allow-list <path>` documents exceptions. A paired file does not count when its assertions only say an export is a function, or when it reads the paired source as text and expects strings (#4543).
 
@@ -756,7 +756,7 @@ Up-to-date-required branch protection plus a required `Merge gate (task check)` 
 
 ## Local git hooks (#747 / #2049)
 
-Project-root `.githooks/` enforce branch policy and encoding gates through the **`deft` CLI only** — no Python `scripts/*.py` dispatch (#2049). `deft init` and `deft update` deposit hook files; `deft setup` / `task setup` wires `core.hooksPath=.githooks` and refuses when the directory is missing (#2530).
+Project-root `.githooks/` enforce branch policy and encoding gates through the **`deft` CLI only** — no Python `scripts/*.py` dispatch (#2049). Setup (`directive install`, `directive install --repair`) deposits hook files; `deft setup` / `task setup` wires `core.hooksPath=.githooks` and refuses when the directory is missing (#2530).
 
 | Hook | Dispatches | Purpose |
 |------|------------|---------|
@@ -764,8 +764,8 @@ Project-root `.githooks/` enforce branch policy and encoding gates through the *
 | `pre-push` | `deft preflight-gh --pre-push-stdin` | Refspec-aware default-branch push refusal + destructive gh verb gate (#1019) |
 
 - ! Verify wiring after install or framework upgrade: `deft verify:hooks-installed` (also wired into `deft check`).
-- ! After upgrading the framework payload, run `deft update` from the project root to refresh `.githooks/` to the current TS-native templates (#2049). Stale hooks that still invoke `python scripts/preflight_branch.py` or other legacy paths fail `deft verify:hooks-installed`.
-- ~ Recovery when hooks are stale or broken: `deft update` (deposits/refreshes hook files from the framework payload, including on an already-current deposit) then `deft setup` / `task setup` (wires `core.hooksPath` when files are present).
+- ! After upgrading the framework payload, run `directive install --repair` from the project root to refresh `.githooks/` to the current TS-native templates (#2049). Stale hooks that still invoke `python scripts/preflight_branch.py` or other legacy paths fail `deft verify:hooks-installed`.
+- ~ Recovery when hooks are stale or broken: `directive install --repair` (deposits/refreshes hook files from the runtime package, including on an already-current deposit) then `deft setup` / `task setup` (wires `core.hooksPath` when files are present).
 
 ## Destructive gh verbs (#1019)
 

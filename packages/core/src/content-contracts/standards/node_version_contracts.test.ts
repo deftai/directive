@@ -46,7 +46,7 @@ function consumerReadmeSlice(readme: string): string {
     )?.[0] ?? "";
   const start = readme.indexOf("## 🚀 Getting Started");
   const maintainer = readme.indexOf("#### Framework maintainers");
-  const setup = readme.indexOf("### 2. Set Up Your Preferences");
+  const setup = readme.indexOf("### Set Up Your Preferences");
   const endCandidates = [maintainer, setup].filter((n) => n > start);
   const end = endCandidates.length > 0 ? Math.min(...endCandidates) : -1;
   const gettingStarted = start >= 0 && end > start ? readme.slice(start, end) : "";
@@ -92,7 +92,7 @@ describe("node version contracts (#4089)", () => {
     const slice = consumerReadmeSlice(readText("README.md"));
     expect(slice.length).toBeGreaterThan(200);
     expect(slice).toMatch(CONSUMER_FLOOR);
-    expect(slice).toContain("directive init");
+    expect(slice).toContain("directive install");
     expect(slice).toContain("directive doctor");
     expect(slice).toContain("toolchain:check --consumer");
     expect(slice).not.toMatch(/\.nvmrc/);

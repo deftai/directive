@@ -135,7 +135,7 @@ closed on four silences:
 | `unclassified-tool` | a catalogued name the runtime classifier does not place in the same group |
 | `unexplained-entry` | an out-of-scope entry with no reason, a host claiming full observation while naming no mutation tool, or a non-mutation entry the classifier actually gates |
 
-A hand-edited deposit reads as **stale** first, and `deft update` is the remedy
+A hand-edited deposit reads as **stale** first, and `directive install --repair` is the remedy
 for that; the coverage message is for gaps a current deposit still leaves.
 
 Implementation: `packages/core/src/init-deposit/host-tool-coverage.ts`.

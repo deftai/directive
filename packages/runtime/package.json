@@ -1,9 +1,9 @@
 {
   "name": "@deftai/directive-runtime",
   "version": "0.0.0",
-  "description": "Directive runtime \u2014 pinned product commands, hooks, content, and engine.",
+  "description": "Directive project runtime (the exact version pinned in your project). The directive and deft commands come from the global @deftai/directive launcher; this package has no such commands on purpose.",
   "license": "MIT",
-  "homepage": "https://deftai.github.io/directive/",
+  "homepage": "https://github.com/deftai/directive#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

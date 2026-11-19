@@ -27,8 +27,7 @@ import type { OutputStream } from "./verify-hooks-installed.js";
 export const AGENT_HOOK_NO_SWAP_RECOVERY =
   "Recovery: rewrite still-enabled host hook registrations with writeAgentHookDeposit " +
   "(does not swap `.deft/core`). Then re-run `deft verify:hooks-installed --scope=agent --live`. " +
-  "Recovery: run `deft update` (or `directive init`) is a repo-wide payload file-swap when VERSION differs " +
-  "and is not required to clear this gate. ";
+  "`directive install --repair` and `directive upgrade` are not required to clear this gate. ";
 
 /** #4711 thin command printed from evaluateAgentHooks. session:ready is not this writer. */
 export const AGENT_HOOK_WORKTREE_REPAIR_RECOVERY =
@@ -117,7 +116,7 @@ function formatPinEngineSkewVisibility(projectRoot: string): string | null {
   if (cmp === 0 || cmp === null) return null;
   return (
     `Pin/engine skew is also present (engine ${engineVersion}, pin ${pinVersion}). ` +
-    "That is not this valid() fail; `deft update` is not the skew fix."
+    "That is not this valid() fail; the skew fix is the project install (`npm install` / `pnpm install --frozen-lockfile`)."
   );
 }
 

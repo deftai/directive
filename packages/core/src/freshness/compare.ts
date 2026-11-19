@@ -89,7 +89,7 @@ export function compareFreshness(
       softDiffs: [],
       ready: false,
       rebindGuidance:
-        "Live generation token missing. Run `directive update` / `deft update` to stamp " +
+        "Live generation token missing. Run `directive upgrade` to stamp " +
         "the deposit, then rebind. " +
         REBIND_GUIDANCE,
       midMissionSafety: MID_MISSION_SAFETY,

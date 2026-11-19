@@ -79,7 +79,7 @@ task -t /path/to/deft-v0.59.0/Taskfile.yml migrate:vbrief -- --dry-run
 task -t /path/to/deft-v0.59.0/Taskfile.yml migrate:vbrief
 ```
 
-See [UPGRADING.md § Frozen pre-v0.20 document-model migration](../UPGRADING.md#frozen-pre-v020-document-model-migration-2068) for the full frozen Go-installer / git-tag path, then upgrade to current npm with `npm i -g @deftai/directive@latest` and `deft update`.
+See [UPGRADING.md § Frozen pre-v0.20 document-model migration](../UPGRADING.md#frozen-pre-v020-document-model-migration-2068) for the full frozen Go-installer / git-tag path, then upgrade to current npm with `npm i -g @deftai/directive@latest` and `directive upgrade`.
 
 The migration is **idempotent** on the pinned release — safe to re-run on a partially-migrated project.
 
@@ -212,4 +212,4 @@ Run these in order once pre-v0.20 migration completes on v0.59.0 (`task -t /path
 
 <!-- xbrief-backcompat-2111 -->
 
-> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task deft:migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task deft:migrate:xbrief`). `deft doctor` signposts unmigrated layouts; `directive upgrade` migrates them.
