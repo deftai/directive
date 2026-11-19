@@ -2,7 +2,10 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { spawnSync } = require("node:child_process");
 const {
+  lstatSync,
+  realpathSync,
   mkdtempSync,
   mkdirSync,
   writeFileSync,
@@ -12,7 +15,7 @@ const {
   readFileSync,
 } = require("node:fs");
 const { tmpdir } = require("node:os");
-const { join } = require("node:path");
+const { basename, dirname, join } = require("node:path");
 const { describe, it, after } = require("node:test");
 const {
   acquireLock,
@@ -20,6 +23,10 @@ const {
   isCheckoutOwnedDir,
   movePath,
   materialize,
+  buildTipTarball,
+  extractTarball,
+  tarCommand,
+  resolveSwapTarget,
   writeReleaseCutContext,
   clearReleaseCutContext,
   isCutContextActive,
@@ -106,6 +113,17 @@ describe("materialize isolation (#5805 P4)", () => {
     assert.equal(existsSync(join(root, LOCK_REL)), false);
     const lock = acquireLock(root);
     releaseLock(lock);
+  });
+
+  it("a failed tip build removes its temporary stage and pack folders", () => {
+    const root = tempRoot();
+    const scripts = join(root, "packages", "runtime", "scripts");
+    mkdirSync(scripts, { recursive: true });
+    writeFileSync(join(scripts, "stage-bundle.mjs"), "process.stderr.write('stage broke'); process.exit(1);\n");
+    writeFileSync(join(scripts, "pack-staged-runtime.mjs"), "process.exit(0);\n");
+    const tmpBase = tempRoot();
+    assert.throws(() => buildTipTarball(root, tmpBase), /stage-bundle\.mjs failed \(exit 1\): stage broke/);
+    assert.deepEqual(require("node:fs").readdirSync(tmpBase), []);
   });
 });
 
@@ -207,5 +225,179 @@ describe("release cut-context refuse (#5910 P1/P4)", () => {
     assert.equal(rootPkg.devDependencies["@deftai/directive-runtime"], "0.129.0");
     assert.equal(installed.version, rootPkg.devDependencies["@deftai/directive-runtime"]);
     assert.equal(isCutContextActive(root), true);
+  });
+});
+
+describe("extraction under Git Bash / PowerShell / cmd (#6220)", () => {
+  it("runs tar in the tarball's folder with a bare archive name (no drive letter)", () => {
+    const calls = [];
+    const fake = (cmd, args, options) => {
+      calls.push({ cmd, args, options });
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const tgz = join("C:\\", "Users", "me", "AppData", "Local", "Temp", "pack-1", "rt-1.0.0.tgz");
+    extractTarball(tgz, "C:\\x\\extract", {
+      spawnSync: fake,
+      platform: "win32",
+      env: { SystemRoot: "C:\\Windows" },
+      existsSync: () => true,
+    });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].cmd, "C:\\Windows\\System32\\tar.exe");
+    assert.deepEqual(calls[0].args, ["-xzf", "rt-1.0.0.tgz", "-C", "C:\\x\\extract"]);
+    assert.equal(calls[0].options.cwd, dirname(tgz));
+    assert.ok(!calls[0].args[1].includes(":"), "archive argument must not carry a drive letter");
+  });
+
+  it("tarCommand falls back to tar.exe on PATH when System32 tar is absent; plain tar elsewhere", () => {
+    assert.equal(tarCommand("win32", { SystemRoot: "C:\\Windows" }, () => false), "tar.exe");
+    assert.equal(tarCommand("linux", {}, () => true), "tar");
+    assert.equal(tarCommand("darwin", {}, () => true), "tar");
+  });
+
+  it("a tar failure is reported, not swallowed", () => {
+    const fake = () => ({ status: 2, stdout: "", stderr: "tar (child): Cannot connect to C: resolve failed" });
+    assert.throws(
+      () => extractTarball("/tmp/x/a.tgz", "/tmp/y", { spawnSync: fake, platform: "linux" }),
+      /tar extract failed: tar \(child\): Cannot connect/,
+    );
+  });
+});
+
+describe("pin swap and fail-closed smoke check (#6220)", () => {
+  /** A runtime package folder: dist/bin.js prints the version (or exits 1 when broken). */
+  function writeRuntimePkg(dir, version, { deps = {}, binExit = 0 } = {}) {
+    mkdirSync(join(dir, "dist"), { recursive: true });
+    writeFileSync(
+      join(dir, "package.json"),
+      `${JSON.stringify({ name: "@deftai/directive-runtime", version, dependencies: deps }, null, 2)}\n`,
+    );
+    writeFileSync(
+      join(dir, "dist", "bin.js"),
+      binExit === 0
+        ? `process.stdout.write(${JSON.stringify(version)} + "\\n");\n`
+        : `process.stderr.write("boom\\n"); process.exit(${binExit});\n`,
+    );
+  }
+
+  function writeDepPkg(nodeModules, name) {
+    mkdirSync(join(nodeModules, name), { recursive: true });
+    writeFileSync(join(nodeModules, name, "package.json"), `${JSON.stringify({ name, version: "1.0.0" })}\n`);
+  }
+
+  /** Builds a real tgz with a top-level `package/` folder, as `npm pack` does. */
+  function tipTarballBuilder(version, opts) {
+    return () => {
+      const work = mkdtempSync(join(tmpdir(), "mat-tip-"));
+      roots.push(work);
+      writeRuntimePkg(join(work, "package"), version, opts);
+      const out = mkdtempSync(join(tmpdir(), "mat-tgz-"));
+      roots.push(out);
+      const tgz = join(out, `deftai-directive-runtime-${version}.tgz`);
+      const r = spawnSync(tarCommand(), ["-czf", basename(tgz), "-C", work, "package"], {
+        cwd: out,
+        encoding: "utf8",
+      });
+      assert.equal(r.status, 0, r.stderr);
+      return { tgz, cleanup: [] };
+    };
+  }
+
+  /** pnpm layout: the pin is a link into node_modules/.pnpm/…; deps sit beside it there. */
+  function pnpmCheckout(version = "1.0.0") {
+    const root = tempRoot();
+    const storeNm = join(root, "node_modules", ".pnpm", `@deftai+directive-runtime@${version}`, "node_modules");
+    const store = join(storeNm, "@deftai", "directive-runtime");
+    writeRuntimePkg(store, version, { deps: { parse5: "^7.0.0" } });
+    writeDepPkg(storeNm, "parse5");
+    mkdirSync(join(root, "node_modules", "@deftai"), { recursive: true });
+    try {
+      symlinkSync(store, join(root, PIN_PKG), "junction");
+    } catch {
+      return null;
+    }
+    return { root, store };
+  }
+
+  it("pnpm: swaps at the link's real path, keeps the link, and the new runtime resolves its deps", () => {
+    const fx = pnpmCheckout();
+    if (!fx) return;
+    const pin = join(fx.root, PIN_PKG);
+    assert.equal(resolveSwapTarget(pin), realpathSync(fx.store));
+    const overlay = materialize(fx.root, {
+      buildTarball: tipTarballBuilder("2.0.0-tip", { deps: { parse5: "^7.0.0" } }),
+    });
+    assert.ok(lstatSync(pin).isSymbolicLink(), "the node_modules link is left in place");
+    assert.equal(realpathSync(pin), realpathSync(fx.store));
+    assert.equal(JSON.parse(readFileSync(join(fx.store, "package.json"), "utf8")).version, "2.0.0-tip");
+    assert.ok(existsSync(join(fx.root, OVERLAY_REL)));
+    assert.equal(overlay.pinPath, pin);
+    assert.equal(existsSync(join(fx.root, LOCK_REL)), false);
+  });
+
+  it("tip needing a dependency the pin lacks: restores the published pin, writes no overlay", () => {
+    const fx = pnpmCheckout();
+    if (!fx) return;
+    assert.throws(
+      () =>
+        materialize(fx.root, {
+          buildTarball: tipTarballBuilder("2.0.0-tip", { deps: { parse5: "^7.0.0", "new-dep": "1.0.0" } }),
+        }),
+      /materialize failed; the published pin was restored: tip needs dependency new-dep/,
+    );
+    const pin = join(fx.root, PIN_PKG);
+    assert.ok(lstatSync(pin).isSymbolicLink());
+    assert.equal(JSON.parse(readFileSync(join(pin, "package.json"), "utf8")).version, "1.0.0");
+    const run = spawnSync(process.execPath, [join(pin, "dist", "bin.js")], { encoding: "utf8" });
+    assert.equal(run.status, 0);
+    assert.equal(existsSync(join(fx.root, OVERLAY_REL)), false);
+    assert.equal(existsSync(join(fx.root, LOCK_REL)), false);
+  });
+
+  it("a runtime that cannot start: restores the published pin, writes no overlay", () => {
+    const fx = pnpmCheckout();
+    if (!fx) return;
+    assert.throws(
+      () => materialize(fx.root, { buildTarball: tipTarballBuilder("2.0.0-tip", { binExit: 1 }) }),
+      /materialize failed; the published pin was restored: `dist\/bin\.js --version` exited 1: boom/,
+    );
+    assert.equal(
+      JSON.parse(readFileSync(join(fx.root, PIN_PKG, "package.json"), "utf8")).version,
+      "1.0.0",
+    );
+    assert.equal(existsSync(join(fx.root, OVERLAY_REL)), false);
+  });
+
+  it("a runtime link that cannot be followed is refused, not replaced", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "node_modules", "@deftai"), { recursive: true });
+    const pin = join(root, PIN_PKG);
+    try {
+      symlinkSync(join(root, "node_modules", ".pnpm", "gone"), pin, "junction");
+    } catch {
+      return;
+    }
+    assert.throws(
+      () => materialize(root, { buildTarball: tipTarballBuilder("2.0.0-tip") }),
+      /refusing to mutate linked\/shared pin/,
+    );
+    assert.ok(lstatSync(pin).isSymbolicLink(), "the link is left alone");
+    assert.equal(existsSync(join(root, OVERLAY_REL)), false);
+  });
+
+  it("npm: real pin folder with hoisted deps is replaced in place, as before", () => {
+    const root = tempRoot();
+    const pin = join(root, PIN_PKG);
+    writeRuntimePkg(pin, "1.0.0", { deps: { parse5: "^7.0.0" } });
+    writeDepPkg(join(root, "node_modules"), "parse5");
+    assert.equal(resolveSwapTarget(pin), pin);
+    materialize(root, { buildTarball: tipTarballBuilder("2.0.0-tip", { deps: { parse5: "^7.0.0" } }) });
+    assert.ok(lstatSync(pin).isDirectory() && !lstatSync(pin).isSymbolicLink());
+    assert.equal(JSON.parse(readFileSync(join(pin, "package.json"), "utf8")).version, "2.0.0-tip");
+    assert.ok(existsSync(join(root, OVERLAY_REL)));
+    const leftovers = require("node:fs")
+      .readdirSync(join(root, "node_modules", "@deftai"))
+      .filter((n) => n.startsWith(".directive-runtime-"));
+    assert.deepEqual(leftovers, []);
   });
 });
