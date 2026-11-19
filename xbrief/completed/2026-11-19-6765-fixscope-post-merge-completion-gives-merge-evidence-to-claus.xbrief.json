@@ -1,0 +1,452 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6765",
+    "updated": "2026-11-19T16:40:28Z"
+  },
+  "plan": {
+    "title": "fix(scope): post-merge completion gives merge evidence to clause items only, never to hand-written acceptance items",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(scope): post-merge completion gives merge evidence to clause items only, never to hand-written acceptance items",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6765",
+      "Overview": "## Problem\n\nWhen `scope:complete` (or `swarm:finalize-cohort`) completes a story after its product PR merged and the delivery is verified, the merge stamper (`stampDeclaredMergeEvidence` via `stampMergeFromCompletionProvenance`, `packages/core/src/scope/acceptance-evidence.ts`) writes `kind: merge` evidence only on the derived `clause.N` items. It looks up items by clause id only, so hand-written acceptance items (for example `ac.1`, `ac.2`) never get evidence, and the evidence gate refuses the completion.\n\nEvidence: `swarm:finalize-cohort --no-commit --pr <product PR> --stories <brief>` on origin/master 457cec14f, for 20 OVPR briefs. Every `clause.N` item got merge evidence; every `ac.N` item was reported \"no x-directive/evidence or x-directive/disposition; scope:complete refuses to auto-complete (#3240)\". Example: `xbrief/active/2026-11-18-ovpr-g-codeql.xbrief.json` with `--pr 6705`: clause.1 to clause.7 stamped, ac.1 to ac.3 refused. None of these `ac.N` items has a strict axis except one `smoke` item in the G-I brief.\n\n## Fix\n\n1. When completion provenance proves delivery, the merge stamper gives every non-terminal acceptance item the same `kind: merge` evidence the clause items get, hand-written items included, under the same rules: skip items that already have evidence or a disposition, and skip items whose required strict axis (smoke, uat, deploy, observed_behavior) merge cannot satisfy.\n2. No new evidence kind and no change to the evidence gate. An item with a strict axis is still refused until it has suitable evidence or a disposition.\n\n## Acceptance Criteria\n\n- With verified delivery provenance, `scope:complete` stamps `kind: merge` evidence on a non-terminal hand-written item (for example `ac.1`) with no strict axis, and the evidence gate passes.\n- A hand-written item that requires a `smoke` (or uat, deploy, observed_behavior) axis gets no merge evidence, and `scope:complete` still refuses it.\n- A hand-written item that already has evidence or a disposition is left unchanged.\n- Without delivery provenance, no hand-written item gets merge evidence.\n\n"
+    },
+    "items": [
+      {
+        "title": "With verified delivery provenance, `scope:complete` stamps `kind: merge` evidence on a non-terminal hand-written item (for example `ac.1`) with no strict axis, and the evidence gate passes.",
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A hand-written item that requires a `smoke` (or uat, deploy, observed_behavior) axis gets no merge evidence, and `scope:complete` still refuses it.",
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A hand-written item that already has evidence or a disposition is left unchanged.",
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Without delivery provenance, no hand-written item gets merge evidence.",
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+          "recorded_at": "2026-11-19T16:40:28Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6765",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6765: fix(scope): post-merge completion gives merge evidence to clause items only, never to hand-written acceptance items"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "kind: merge",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "changelog.d/6765-merge-evidence-for-hand-written-items.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6483053822.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts"
+        ],
+        "Traces": [
+          "#6765"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "changelog.d/6765-merge-evidence-for-hand-written-items.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6483053822.json"
+        ],
+        "module_boundary": "merge-evidence stamping at completion (scope/acceptance-evidence.ts)",
+        "cohesion_exemption": "xbrief/PROJECT-DEFINITION.xbrief.json and the story's spec-drift row file are scope:complete output, listed so the in-PR or post-merge completion of this story passes membership."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6483053822,
+        "origin": "deftai/directive#6765",
+        "id": "github.issue.6483053822"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "4288f9f9ae6c05593f7045717213bcc21e82fd5c",
+        "prNumber": 6771,
+        "prBase": "master",
+        "mergeCommit": "2186a42954bb5c1a812f21e9dc55dbbb0e58e5e2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:40:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6769,
+          6770
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:40:28Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:40:28Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (16), in order (#6333)",
+      "sentences": [
+        "fix(scope): post-merge completion gives merge evidence to clause items only, never to hand-written acceptance items",
+        "Problem When `scope:complete` (or `swarm:finalize-cohort`) completes a story after its product PR merged and the delivery is verified, the merge stamper (`stampDeclaredMergeEvidence` via `stampMergeFromCompletionProvenance`, `packages/core/src/scope/acceptance-evidence.ts`) writes `kind: merge` evidence only on the derived `clause.N` items.",
+        "It looks up items by clause id only, so hand-written acceptance items (for example `ac.1`, `ac.2`) never get evidence, and the evidence gate refuses the completion.",
+        "Evidence: `swarm:finalize-cohort --no-commit --pr <product PR> --stories <brief>` on origin/master 457cec14f, for 20 OVPR briefs.",
+        "Every `clause.N` item got merge evidence; every `ac.N` item was reported \"no x-directive/evidence or x-directive/disposition; scope:complete refuses to auto-complete (#3240)\".",
+        "Example: `xbrief/active/2026-11-18-ovpr-g-codeql.xbrief.json` with `--pr 6705`: clause.1 to clause.7 stamped, ac.1 to ac.3 refused.",
+        "None of these `ac.N` items has a strict axis except one `smoke` item in the G-I brief.",
+        "Fix 1.",
+        "When completion provenance proves delivery, the merge stamper gives every non-terminal acceptance item the same `kind: merge` evidence the clause items get, hand-written items included, under the same rules: skip items that already have evidence or a disposition, and skip items whose required strict axis (smoke, uat, deploy, observed_behavior) merge cannot satisfy.",
+        "No new evidence kind and no change to the evidence gate.",
+        "An item with a strict axis is still refused until it has suitable evidence or a disposition.",
+        "Acceptance Criteria - With verified delivery provenance, `scope:complete` stamps `kind: merge` evidence on a non-terminal hand-written item (for example `ac.1`) with no strict axis, and the evidence gate passes.",
+        "A hand-written item that requires a `smoke` (or uat, deploy, observed_behavior) axis gets no merge evidence, and `scope:complete` still refuses it.",
+        "A hand-written item that already has evidence or a disposition is left unchanged.",
+        "Without delivery provenance, no hand-written item gets merge evidence.",
+        "With verified delivery provenance, `scope:complete` stamps `kind: merge` evidence on a non-terminal hand-written item (for example `ac.1`) with no strict axis, and the evidence gate passes."
+      ],
+      "admitted_source_sentences": [
+        "Problem When `scope:complete` (or `swarm:finalize-cohort`) completes a story after its product PR merged and the delivery is verified, the merge stamper (`stampDeclaredMergeEvidence` via `stampMergeFromCompletionProvenance`, `packages/core/src/scope/acceptance-evidence.ts`) writes `kind: merge` evidence only on the derived `clause.N` items.",
+        "It looks up items by clause id only, so hand-written acceptance items (for example `ac.1`, `ac.2`) never get evidence, and the evidence gate refuses the completion.",
+        "Evidence: `swarm:finalize-cohort --no-commit --pr <product PR> --stories <brief>` on origin/master 457cec14f, for 20 OVPR briefs.",
+        "Every `clause.N` item got merge evidence; every `ac.N` item was reported \"no x-directive/evidence or x-directive/disposition; scope:complete refuses to auto-complete (#3240)\".",
+        "Example: `xbrief/active/2026-11-18-ovpr-g-codeql.xbrief.json` with `--pr 6705`: clause.1 to clause.7 stamped, ac.1 to ac.3 refused.",
+        "None of these `ac.N` items has a strict axis except one `smoke` item in the G-I brief.",
+        "Fix 1.",
+        "When completion provenance proves delivery, the merge stamper gives every non-terminal acceptance item the same `kind: merge` evidence the clause items get, hand-written items included, under the same rules: skip items that already have evidence or a disposition, and skip items whose required strict axis (smoke, uat, deploy, observed_behavior) merge cannot satisfy.",
+        "No new evidence kind and no change to the evidence gate.",
+        "An item with a strict axis is still refused until it has suitable evidence or a disposition.",
+        "Acceptance Criteria - With verified delivery provenance, `scope:complete` stamps `kind: merge` evidence on a non-terminal hand-written item (for example `ac.1`) with no strict axis, and the evidence gate passes.",
+        "A hand-written item that requires a `smoke` (or uat, deploy, observed_behavior) axis gets no merge evidence, and `scope:complete` still refuses it.",
+        "A hand-written item that already has evidence or a disposition is left unchanged.",
+        "Without delivery provenance, no hand-written item gets merge evidence."
+      ],
+      "admitted_source_digest": "0c0b80102f117c9bfb8290afd478b54a127151efe0e68220ee2e85bb87174d9d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "fix(scope): post-merge completion gives merge evidence to clause items only, never to hand-written acceptance items",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Problem When `scope:complete` (or `swarm:finalize-cohort`) completes a story after its product PR merged and the delivery is verified, the merge stamper (`stampDeclaredMergeEvidence` via `stampMergeFromCompletionProvenance`, `packages/core/src/scope/acceptance-evidence.ts`) writes `kind: merge` evidence only on the derived `clause.N` items.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "It looks up items by clause id only, so hand-written acceptance items (for example `ac.1`, `ac.2`) never get evidence, and the evidence gate refuses the completion.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Evidence: `swarm:finalize-cohort --no-commit --pr <product PR> --stories <brief>` on origin/master 457cec14f, for 20 OVPR briefs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Every `clause.N` item got merge evidence; every `ac.N` item was reported \"no x-directive/evidence or x-directive/disposition; scope:complete refuses to auto-complete (#3240)\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Example: `xbrief/active/2026-11-18-ovpr-g-codeql.xbrief.json` with `--pr 6705`: clause.1 to clause.7 stamped, ac.1 to ac.3 refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "None of these `ac.N` items has a strict axis except one `smoke` item in the G-I brief.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Fix 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "When completion provenance proves delivery, the merge stamper gives every non-terminal acceptance item the same `kind: merge` evidence the clause items get, hand-written items included, under the same rules: skip items that already have evidence or a disposition, and skip items whose required strict axis (smoke, uat, deploy, observed_behavior) merge cannot satisfy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "No new evidence kind and no change to the evidence gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "An item with a strict axis is still refused until it has suitable evidence or a disposition.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Acceptance Criteria - With verified delivery provenance, `scope:complete` stamps `kind: merge` evidence on a non-terminal hand-written item (for example `ac.1`) with no strict axis, and the evidence gate passes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "A hand-written item that requires a `smoke` (or uat, deploy, observed_behavior) axis gets no merge evidence, and `scope:complete` still refuses it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "A hand-written item that already has evidence or a disposition is left unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Without delivery provenance, no hand-written item gets merge evidence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "With verified delivery provenance, `scope:complete` stamps `kind: merge` evidence on a non-terminal hand-written item (for example `ac.1`) with no strict axis, and the evidence gate passes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6483053822",
+    "updated": "2026-11-19T16:40:28Z"
+  }
+}

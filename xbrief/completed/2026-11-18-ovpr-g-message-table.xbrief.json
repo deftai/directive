@@ -1,0 +1,2562 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6620",
+    "updated": "2026-11-19T16:00:29Z"
+  },
+  "plan": {
+    "title": "hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin",
+    "status": "completed",
+    "narratives": {
+      "Description": "OVPR fix plan group G-G (story id ovpr-g-message-table): units P4-U3a + P4-U3b + P4-U3d in one PR. Primary issue #6620; also #6466, #5940, #6225, #5977 (item 2), #6517, #6550. Directive can be reached through the committed .mjs hook file, the global deft-hook, the runtime hook-bin, the directive launcher and launcher doctor, the git-hook helper, the Taskfile and the runtime bin. Each checks things in a different order and prints different advice (the global pair, '(or yarn)', plain `pnpm install` that the hook refuses, `@?`, `deft update`, a retired `_deft-run.sh`). Build one start-up guard order and one message table in core (with a byte-identical launcher copy), and use it at every entry point, with the exact RC-06 / RC-12 words in plain customer language.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6620",
+      "Overview": "## Problem\n\nWhen Directive can't run, an agent host reaches it three ways: the committed `.mjs` hook file, the global `deft-hook` command (old repos), or the runtime's `hook-bin.js`. Each one checks things in a different order and prints different advice. The same broken state gets different instructions, and some of them don't work.\n\nIn a fresh clone or a new linked worktree, `node_modules` is missing, so the hooks fail closed (AC9.12). Agent workflows create worktrees all the time, so this is frequent. The message must say plainly that a person runs the project install in a terminal, because the agent's own shell is blocked (#6466, D-013).\n\nEvidence (origin/master `def527f5e`):\n- **`.mjs` outer** (`hostHookOuterSource()`, `packages/core/src/init-deposit/host-hook-outer.ts:259`): untracked disable flag → quiet allow; `hook-bin.js` missing → fail closed; spawn failure → fail closed. Text `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` (`:22-24`): \"Run npm install or pnpm install (or yarn) in this project.\" Yarn is not supported, and the text doesn't say that a person must run it.\n- **Global `deft-hook`** (`packages/cli/src/hook-launcher.ts`, 64 lines): no disable-flag check, no old-layout check. Every failure prints `RECOVERY_GUIDANCE` (`:27`, `:36`, `:49`) = \"npm i -g @deftai/directive, then directive install --repair\" (`packages/cli/src/constants.ts:34`). The docstring at `:4` still says host configs should call `hook-bin.js` directly (superseded by AC9.1 v261027).\n- **Runtime `hook-bin`** (`run()`, `packages/runtime/src/hook-dispatch.ts:386`): root check, then the pin check (`:446`), then self-complete, then `decideHook`. The disable flag is checked only inside `decideHook` (Scott's `dispatcher.ts`), after the pin checks. Through global `deft-hook` or an old direct `hook-bin.js` registration, a disabled project with a pin mismatch is blocked instead of stopping quietly. The fallback text is `cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE` (`:462`).\n- **Install commands:** the #6313 admit lets through only `pnpm install --frozen-lockfile`, `npm install` and `npm ci` (`PIN_MISMATCH_RECOVERY_COMMANDS`, `packages/core/src/install-health/recovery-admit.ts`). `PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE` (`packages/core/src/install-health/constants.ts:34`) names plain `pnpm install`, which the hook refuses.\n- **Shipped since the unit spec was written (effef711d):**\n  - #6534 (#6375) added `renderPinMismatchRecoveryGuidance` (`packages/core/src/install-health/pin-mismatch-guidance.ts:70`), used by `hook-dispatch.ts:458-461` when pin ≠ installed is the only fault. It names the project root, says to open a terminal outside the blocked session, and names `pnpm install` / `npm install` by lockfile kind.\n  - #6563 (#6185) added `FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE` (`constants.ts:51`).\n\n## What the design says\n\n- AC9.12 (v261027): the same guard order on the host-hook outer, the git-hook helper, the Taskfile entry and launcher commands that delegate to the pin: (1) untracked `.deft-directive-disable` → stop with no pin policy load; (2) missing or unusable pin package → fail closed with clear **project** `npm install` / `pnpm install` guidance; (3) run the pin.\n- AC9.1 (v261027): the outer uses only Node built-ins until the guards pass; full product logic stays in `hook-bin.js`.\n- AC2.6 / AC9.4 / AC14.8: pin ≠ installed → no setup, no policy, block.\n- Ledger \"Unified local entry guards\": same order, same recovery shape, minimal duplication.\n- §A9: a new launcher never delegates to an old-style runtime.\n- D-001 (Rule 3): one shared guard and one message table; failures block on every host.\n- D-013: no runtime → fail closed on every entry point. No install is let through on that path (the #6328 admit applies only when `hook-bin` runs). The message says a person runs the project install in a terminal. Borrowing another checkout's runtime is ruled out (AC9.5).\n- D-017 (O-37): #6375's shipped Codex wording (#6534) is checked against the table here. P4-U4 is dropped.\n- Open, settled before merge: the exact words from P4-U2 / RC-06 (O-30: which install commands the message names); O-34 / RC-07 (old-layout check before \"runtime missing\").\n\n## Expected\n\n1. **One message table in core** (`packages/core/src/install-health/constants.ts`): `EntrySituation`, `ENTRY_GUARD_MESSAGES` and `projectInstallCommand(projectRoot)` (reads lockfile presence only). Rows follow the Rule 3 table; final words come from P4-U2:\n   - `disabled`: no message; allow / exit 0.\n   - `runtime-missing`: names the missing runtime package and says a person runs `{install}` in this project, in a terminal, because the agent's shell is blocked. Blocks.\n   - `pin-mismatch`: installed X is not the pinned Y; run `{install}`. Blocks; the named install is admitted (#6313).\n   - `wiring-damaged`: `directive install --repair` (doctor and launcher only; hooks self-complete).\n   - `data-behind`: reuse `SESSION_START_SCHEMA_BEHIND_NOTICE`. Notice only.\n   - `legacy-layout`: \"This repo uses pre-OVPR Directive. Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`.\" Blocks.\n   - `launcher-missing`: `npm i -g @deftai/directive` (text for committed surfaces).\n   - `hook-failed`: P1-U1's `HOST_HOOK_NONDECISION_REASON`, moved unchanged.\n   - `contract-too-new`, `root-mismatch`, `overlay`, `pin-invalid`, `no-runtime-pin`: existing text, moved unchanged.\n\n   `{install}` is `pnpm install --frozen-lockfile` with `pnpm-lock.yaml`, `npm install` with `package-lock.json`, else \"`npm install` (or `pnpm install --frozen-lockfile`)\", subject to O-30. Drop \"(or yarn)\". Keep the old constant names as aliases. Leave `INSTALLATION_RECOVERY_GUIDANCE` unchanged here; its callers move in P4-U3c / P4-U3d.\n2. **One order**, in a doc comment above the table and in a shared test fixture: disabled → root-mismatch (hooks only) → legacy-layout (only when the root `package.json` has no `@deftai/directive-runtime` dependency; P1-U2's recogniser; subject to O-34 / RC-07) → runtime-missing → pin-mismatch (+ #6313 admit) / overlay → contract-too-new (launcher only) → wiring-damaged → data-behind.\n3. **Use it in the three hook entry points:**\n   - `.mjs` outer: embed the `runtime-missing` row with the lockfile-based `{install}`, using Node built-ins only. The outer keeps its two checks (disabled, runtime missing). Don't add a pin ≠ installed check to the outer. Use P1-U1's block helper unchanged.\n   - Global `deft-hook`: Node check → discovery → **disabled** (new) → **legacy** (P1-U2) → runtime missing → `hook-bin` missing (as `runtime-missing`) → spawn the installed `hook-bin`. Replace every `RECOVERY_GUIDANCE` use with table rows. Block via P1-U2's `renderHookBlock`. Fix the stale docstring.\n   - `hook-dispatch.ts` `run()`: after the `session.end` branch, if the disable flag is active (`isDeftDirectiveDisableActive`), skip the root, pin and self-complete steps and go straight to `decideHook`. Build the deny text from the table.\n   - Check the shipped #6375 text (`renderPinMismatchRecoveryGuidance`) against the `pin-mismatch` row (D-017).\n4. **Launcher copy:** `packages/cli/src/entry-guard.ts`, a byte-identical copy of the table and `projectInstallCommand`, with no imports beyond `node:fs` / `node:path` (AC3.1). A parity test keeps the copies equal. P4-U3b uses it.\n\nMust not do: no product logic or #6313 admit in the `.mjs` outer (AC9.1); don't widen the admit list; no install admit on the missing-runtime path (D-013); don't edit `packages/core/src/hooks/dispatcher.ts` (Scott); don't redo P1-U1 (exit codes, block forms) or P1-U2 (recogniser) — move only their reason strings, and add a parity test for the two block renderers; don't run old-layout code; don't change the registered command form or sha8 naming (AC9.1); don't adopt #6358.\n\n## Acceptance criteria\n\n1. One table (`ENTRY_GUARD_MESSAGES`) in core and one copy in cli. The parity test fails on any drift.\n2. The outer, `deft-hook` and `hook-dispatch` all check the untracked disable flag before any pin check. Tests cover each.\n3. In an old-layout fixture, `deft-hook` prints the `legacy-layout` row and blocks per host. It never spawns anything.\n4. With `node_modules` deleted, the outer and `deft-hook` print the `runtime-missing` row with the lockfile-correct command, say a person runs it in a terminal, and block per host.\n5. With pin ≠ installed (runtime built from this change), `hook-bin` denies with the `pin-mismatch` row, and the exact command it names is admitted.\n6. No string in the three hook entry points contains `npm i -g @deftai/directive, then` or \"(or yarn)\".\n7. The `.mjs` outer still uses Node built-ins only before loading `hook-bin` (existing outer tests stay green).\n\nTests: new `packages/cli/src/entry-guard-parity.test.ts`; extend `packages/cli/src/hook-launcher.test.ts` (created by P1-U2); update `host-hook-outer.test.ts`, `hook-dispatch.test.ts`, `hook-identity-failclosed.test.ts`, `recovery-admit.test.ts` (every command the `pin-mismatch` row can name passes `matchPinMismatchRecoveryCommand`) and `cheap.test.ts`. The P1-U3 fixture's steps 4 and 6 assert these rows.\n\n## Related\n\n- #6466 (no-runtime message on the hook file; handed over by Scott; D-008, D-013): fixed here. Suggest removing `Upgrade Blocker` and `urgent` after the message fix.\n- #5960: the `deft-hook` old-repo path now checks the order and prints the old-layout message; the blocking exit is P1-U1 / P1-U2. Comment when this merges.\n- #6375 / #6534 (closed): wording checked here (D-017).\n- #6517, #6550: the same message for git hooks and `task` (P4-U3d).\n- #6619 (wording), #6201 (P1-U1), #5940 / #6225 (P4-U3b).\n\n## Plan placement\n\n- Unit P4-U3a, story id `ovpr-p4-u3a`. Phase 4, wave 4.2. Size M.\n- Depends on P4-U2 (its RC-06 docs PR merged), P1-U1 and P1-U2. O-34 / RC-07 approved, and its docs PR merged, before this merges.\n- Blocks P4-U3b, P4-U3c and P4-U3d (they import the table).\n- Owner polfer. Scott: FYI only, because `hook-dispatch.ts` sits next to his `decideHook`.\n\n",
+      "Labels": "bug, area:installer",
+      "UserStory": "As a developer whose Directive can't run in a checkout, I want every Directive entry point to check in the same order and name the one command that fixes it, so that I am never sent to a command that doesn't work or that the hook then blocks.",
+      "StoryId": "ovpr-g-message-table (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P4-U3a-shared-startup-guard-hook-paths.md, P4-U3b-launcher-and-launcher-doctor-use-guard.md and P4-U3d-git-hooks-taskfile-runtime-self-check.md (read all three in full; 'Update' banners win over the text below them). Recovery words: drafts/RC-06.md (approved, docs merged as v261118) and drafts/RC-12.md (approved, docs merged as v261118). One PR for all three units (polfer D-037).",
+      "ImplementationPlan": "1. P4-U3a: packages/core/src/install-health/constants.ts gets `EntrySituation`, `ENTRY_GUARD_MESSAGES`, `projectInstallCommand(projectRoot)` and the order doc comment (disabled -> root-mismatch (hooks) -> legacy-layout (only without a runtime pin) -> runtime-missing -> pin-mismatch/overlay -> contract-too-new (launcher) -> wiring-damaged -> data-behind). Old constant names stay as aliases. Add a row for `FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE` (#6563) with unchanged text except where RC-06 rewords it; root-mismatch text moves over unchanged. Align `renderPinMismatchRecoveryGuidance` (#6534, pin-mismatch-guidance.ts) to the pin-mismatch row and O-30 (name only admitted commands). New packages/cli/src/entry-guard.ts = byte-identical launcher copy (node:fs/node:path only) plus a parity test.\n2. P4-U3a: adopt in the .mjs outer (host-hook-outer.ts: runtime-missing row with lockfile command, Node built-ins only, no pin check in the outer), global deft-hook (hook-launcher.ts: disabled check, legacy via P1-U2's recogniser and hand-off as already shipped, table rows, renderHookBlock, fix the docstring), and hook-dispatch.ts run() (disable flag first via isDeftDirectiveDisableActive, then decideHook; deny text from the table).\n3. P4-U3b: launcher.ts and bookends.ts use `classifyLauncherSituation` (in entry-guard.ts): disabled notice + exit 0 for passthrough commands; one row per situation; no `@?`; doctor prints exactly one Next: line; `RECOVERY_GUIDANCE` in packages/cli/src/constants.ts removed or kept only as the wiring-damaged alias.\n4. P4-U3d: Taskfile.yml setup checks `_directive-run.sh` and names `directive install --repair`; GITHOOK_HELPER (setup-wiring.ts) prints the runtime-missing row with a lockfile branch in sh; skill-pointer Recovery line per the AC9.7 table; tasks/engine-invoke.cjs and tasks/engine.yml use the runtime-missing row; packages/runtime/src/bin.ts refuses on pin != installed with the pin-mismatch row (exempt: contract entry points, doctor, --version, --help, hook:dispatch). Regenerate this repo's .githooks/_directive-run.sh (ordinary repair output).\n5. Tests per the three specs. Changelog fragment changelog.d/6620-one-hook-guard-and-message-table.md.",
+      "Constraint": "- Recovery words are exactly the approved RC-06 / RC-12 texts (requirements v261118). AC9.7 table (RC-06): runtime missing or not the pinned version -> the project install (`npm install` for npm, `pnpm install --frozen-lockfile` for pnpm, chosen from the lockfile); wiring damaged while the pinned runtime is installed -> `directive install --repair`; project data behind or an old layout -> `directive upgrade`; `directive` command missing -> `npm i -g @deftai/directive`. AC9.12 (RC-06): on the host-hook path nothing is let through when the runtime is missing, 'so the message says a person runs the install in a terminal'; on pin != installed the pin blocks and lets through only a tool call that is exactly `npm install`, `npm ci` or `pnpm install --frozen-lockfile` at the project root. Old-layout row (RC-12, §A5.6): \"This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update.\" Never name plain `pnpm install` for a pin mismatch (O-30), never '(or yarn)', never `npm i -g @deftai/directive, then directive install --repair`, never `deft update`.\n- Plain customer wording: no internal acronyms (no 'OVPR', 'pin package', 'AC9.12') in any message a customer sees.\n- RC-10 is not approved: leave the launcher `postinstall` in packages/cli/package.json exactly as it is.\n- #6594 / #6607 (Scott's root-mismatch admit): change it only as far as the message table requires (moving its text into the table unchanged). Do not change its detection or admit logic. Do not edit packages/core/src/hooks/dispatcher.ts (Scott).\n- No product logic and no #6313 admit in the .mjs outer (AC9.1); no pin check in the outer. Do not widen the admit list. No install admitted on the missing-runtime path (D-013). Never use another checkout's runtime (AC9.4 / AC9.5); #6517's and #6550's borrow-the-primary design is ruled out.\n- The launcher does not import core (AC3.1): use packages/cli/src/entry-guard.ts. Do not run old Directive code except the RC-12 hand-off P1-U2 already shipped. Do not add a runtime dependency to the launcher (#6225 dependency ask is by design).\n- Do not change the registered hook command form or sha8 naming, the git-hook helper file name or `run_directive` API, `core.hooksPath` handling, or pre-commit/pre-push gate content.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: P1-U1 and P1-U2 (merged), RC-06 and RC-12 docs (merged, v261118). Blocks: P4-U3c (in G-F, imports the table). Shares packages/cli/src/bookends.ts, packages/cli/src/launcher.ts and packages/core/src/init-deposit/host-hook-outer.ts with other groups; serialize merges in conflict group hook-entry.",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #6620. Partly addresses #6466 (message), #5940 (message part), #6225 (message part; dependency ask by design), #5977 (item 2 and the Taskfile `deft update` line), #6517 part 1 and #6550 (message only; borrow design ruled out by D-013), #5960, #5967 (launcher half of 'one next command'). Refs #6375, #6534, #6563, #6594, #6607."
+    },
+    "items": [
+      {
+        "title": "One message table (`ENTRY_GUARD_MESSAGES`) in core and one byte-identical copy in packages/cli/src/entry-guard.ts; a parity test fails on any drift.",
+        "status": "completed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/install-health/constants.ts and packages/cli/src/entry-guard.ts, when packages/cli/src/entry-guard-parity.test.ts runs, then the two tables and the `projectInstallCommand` outputs are equal, and the test fails if either copy changes alone."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The .mjs outer, global deft-hook and hook-dispatch all check the untracked disable flag before any pin check.",
+        "status": "completed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given an untracked root `.deft-directive-disable` and a pin mismatch, when the .mjs outer, `deft-hook` or `hook-bin` runs, then each stops quietly (allow / exit 0) without a pin check, and a test covers each entry point."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "In an old-layout project with no project-local old copy installed, deft-hook prints the RC-12 old-layout row and blocks per host; it never runs another copy.",
+        "status": "completed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given an old-layout fixture (P1-U2 shapes) with no pre-split copy in its own node_modules, when `deft-hook` runs, then it prints \"This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update.\" and blocks with the host's blocking response, and no global or out-of-project copy is started."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "With node_modules deleted, the outer and deft-hook print the runtime-missing row with the lockfile-correct command, say a person runs it in a terminal, and block per host.",
+        "status": "completed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a project with `pnpm-lock.yaml` (or `package-lock.json`) and no `node_modules`, when the .mjs outer or `deft-hook` runs before a tool call, then it prints the runtime-missing row naming `pnpm install --frozen-lockfile` (or `npm install`), says a person runs it in a terminal, and blocks per host."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "With pin != installed, hook-bin denies with the pin-mismatch row, and the exact command it names is admitted.",
+        "status": "completed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given an installed runtime built from this change at a version other than the pin, when `hook-bin` runs for a tool call, then it denies with the pin-mismatch row, and every command that row can name (all three lockfile cases) passes `matchPinMismatchRecoveryCommand`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "No string in the hook entry points, launcher, launcher doctor, Taskfile, tasks/, git-hook helper or skill pointers contains `npm i -g @deftai/directive, then`, '(or yarn)', `@?` or `deft update` as a fix.",
+        "status": "completed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given the changed files, when they are searched for `npm i -g @deftai/directive, then`, `(or yarn)`, `@?` and `deft update`, then none of these appears as recovery text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The .mjs outer still uses Node built-ins only before loading hook-bin.",
+        "status": "completed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given the generated outer source, when packages/core/src/init-deposit/host-hook-outer.test.ts runs, then the existing built-ins-only checks pass and the outer has no pin check."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "In the Visage and Evolution old-layout shapes, launcher passthrough commands and `directive doctor` print the old-layout row and exit non-zero (when no project-local old copy is installed); `directive upgrade` behaves as today.",
+        "status": "completed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given the Visage-shape and Evolution-shape fixtures with no project-local pre-split copy, when a passthrough command or `directive doctor` runs, then it prints the RC-12 old-layout row and exits non-zero, and `directive upgrade` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "With the untracked disable flag, launcher passthrough commands start no runtime and exit 0 with the disabled notice; doctor, install, upgrade, uninstall, --version and --help behave as before.",
+        "status": "completed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given an untracked root `.deft-directive-disable` and a pin mismatch, when a passthrough command runs, then no runtime starts and it exits 0 with the one-line disabled notice; when `directive doctor`, `install`, `upgrade`, `uninstall`, `--version` or `--help` runs, then behaviour is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Launcher and launcher doctor: runtime missing and pin != installed each print one row naming the lockfile-correct project install; a range or invalid runtime pin prints the 'rectify the pin' row.",
+        "status": "completed",
+        "id": "ac.10",
+        "narrative": {
+          "Acceptance": "Given runtime-missing, pin-mismatch and range-pin fixtures, when a passthrough command or `directive doctor` runs, then exactly one Next:/Recovery: line is printed: the project install for the first two (`pnpm install --frozen-lockfile` with a pnpm lockfile) and the rectify-the-pin row, with no install command, for the range pin."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "On a fresh install, `task deft:setup` no longer refuses for a missing `_deft-run.sh`; a real miss names `directive install --repair`.",
+        "status": "completed",
+        "id": "ac.11",
+        "narrative": {
+          "Acceptance": "Given a fresh install with `.githooks/_directive-run.sh`, when `task deft:setup` runs, then it passes the hook-file check; given that file missing, then it names `directive install --repair` and not `deft update`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "With node_modules deleted, `git commit` (pre-commit) fails with the runtime-missing row; with the untracked disable flag it passes silently.",
+        "status": "completed",
+        "id": "ac.12",
+        "narrative": {
+          "Acceptance": "Given the regenerated git-hook helper and no `node_modules`, when the pre-commit hook runs, then it exits 1 with the runtime-missing row and the lockfile branch; given an untracked `.deft-directive-disable`, then it passes silently."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "With installed != pin, `git commit` and Taskfile verbs fail with the pin-mismatch row (runtime built from this change); `doctor`, `--version` and `--help` still run.",
+        "status": "completed",
+        "id": "ac.13",
+        "narrative": {
+          "Acceptance": "Given pin 1.2.4 and installed runtime 1.2.3 built from this change, when `node node_modules/@deftai/directive-runtime/dist/bin.js verify:encoding` runs, then it exits 1 with the pin-mismatch row; when it runs `doctor`, `--version` or `--help`, then the command runs; with equal versions the command runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Every customer-facing message in the table uses plain words: no 'OVPR', no internal AC numbers, no 'pin package'.",
+        "status": "completed",
+        "id": "ac.14",
+        "narrative": {
+          "Acceptance": "Given `ENTRY_GUARD_MESSAGES`, when its rows are read, then none contains 'OVPR', 'pre-OVPR', an AC number or 'pin package'."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.26",
+        "title": "clause.26",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.27",
+        "title": "clause.27",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.28",
+        "title": "clause.28",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.29",
+        "title": "clause.29",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.30",
+        "title": "clause.30",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.31",
+        "title": "clause.31",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.32",
+        "title": "clause.32",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.33",
+        "title": "clause.33",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.34",
+        "title": "clause.34",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.35",
+        "title": "clause.35",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.36",
+        "title": "clause.36",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.37",
+        "title": "clause.37",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.38",
+        "title": "clause.38",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.39",
+        "title": "clause.39",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.40",
+        "title": "clause.40",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.41",
+        "title": "clause.41",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.42",
+        "title": "clause.42",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.43",
+        "title": "clause.43",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.44",
+        "title": "clause.44",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.45",
+        "title": "clause.45",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.46",
+        "title": "clause.46",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.47",
+        "title": "clause.47",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.48",
+        "title": "clause.48",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.49",
+        "title": "clause.49",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.50",
+        "title": "clause.50",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.51",
+        "title": "clause.51",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.52",
+        "title": "clause.52",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.53",
+        "title": "clause.53",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.54",
+        "title": "clause.54",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.55",
+        "title": "clause.55",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.56",
+        "title": "clause.56",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.57",
+        "title": "clause.57",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.58",
+        "title": "clause.58",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.59",
+        "title": "clause.59",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.60",
+        "title": "clause.60",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.61",
+        "title": "clause.61",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.62",
+        "title": "clause.62",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.63",
+        "title": "clause.63",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.64",
+        "title": "clause.64",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.65",
+        "title": "clause.65",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.66",
+        "title": "clause.66",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.67",
+        "title": "clause.67",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.68",
+        "title": "clause.68",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.69",
+        "title": "clause.69",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.70",
+        "title": "clause.70",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.71",
+        "title": "clause.71",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.72",
+        "title": "clause.72",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.73",
+        "title": "clause.73",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.74",
+        "title": "clause.74",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.75",
+        "title": "clause.75",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.76",
+        "title": "clause.76",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.77",
+        "title": "clause.77",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.78",
+        "title": "clause.78",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.79",
+        "title": "clause.79",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.80",
+        "title": "clause.80",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.81",
+        "title": "clause.81",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.82",
+        "title": "clause.82",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.83",
+        "title": "clause.83",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.84",
+        "title": "clause.84",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.85",
+        "title": "clause.85",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.86",
+        "title": "clause.86",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.87",
+        "title": "clause.87",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.88",
+        "title": "clause.88",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.89",
+        "title": "clause.89",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.90",
+        "title": "clause.90",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.91",
+        "title": "clause.91",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.92",
+        "title": "clause.92",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.93",
+        "title": "clause.93",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.94",
+        "title": "clause.94",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.95",
+        "title": "clause.95",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.96",
+        "title": "clause.96",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.97",
+        "title": "clause.97",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.98",
+        "title": "clause.98",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+          "recorded_at": "2026-11-19T16:00:29Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6620",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6620: hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6466",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6466"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5940",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5940"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6225",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6225"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5977",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5977"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6517",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6517"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6550",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6550"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-hook",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        },
+        {
+          "command": "npm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L20"
+        },
+        {
+          "command": "pnpm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L20"
+        },
+        {
+          "command": "directive upgrade",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L38"
+        },
+        {
+          "command": "npm i -g @deftai/directive@0.126.2",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L38"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/install-health/constants.ts",
+          "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "packages/core/src/install-health/cheap.ts",
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/bin.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/cli/src/entry-guard.ts",
+          "packages/cli/src/hook-launcher.ts",
+          "packages/cli/src/hook-block.ts",
+          "packages/cli/src/constants.ts",
+          "packages/cli/src/launcher.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/legacy-shapes/messages.ts",
+          "Taskfile.yml",
+          "tasks/engine.yml",
+          "tasks/engine-invoke.cjs",
+          ".githooks/_directive-run.sh",
+          "packages/cli/src/entry-guard-parity.test.ts",
+          "packages/cli/src/hook-launcher.test.ts",
+          "packages/cli/src/launcher-smoke.test.ts",
+          "packages/cli/src/doctor-bookend.test.ts",
+          "packages/cli/src/legacy-conversion.test.ts",
+          "packages/cli/src/install-bookend.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/cli/src/legacy-shapes/legacy-shapes.test.ts",
+          "packages/cli/src/legacy-shapes/pre-ovpr.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/core/src/install-health/cheap.test.ts",
+          "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts",
+          "packages/runtime/src/hook-foreign-runtime-link.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/bin-identity.test.ts",
+          "packages/runtime/src/bin.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "tasks/engine-invoke.test.cjs",
+          "changelog.d/6620-one-hook-guard-and-message-table.md",
+          "packages/runtime/src/hook-pin-mismatch-guidance.test.ts"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/entry-guard-parity.test.ts packages/cli/src/hook-launcher.test.ts packages/cli/src/launcher-smoke.test.ts packages/cli/src/doctor-bookend.test.ts packages/cli/src/legacy-conversion.test.ts packages/cli/src/install-bookend.test.ts packages/cli/src/upgrade-bookend.test.ts packages/cli/src/legacy-shapes packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/install-health packages/runtime/src/hook-dispatch.test.ts packages/runtime/src/hook-identity-failclosed.test.ts packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts packages/runtime/src/hook-foreign-runtime-link.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/bin-identity.test.ts packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "node --test tasks/engine-invoke.test.cjs"
+        ],
+        "Traces": [
+          "#6620",
+          "#6466",
+          "#5940",
+          "#6225",
+          "#5977",
+          "#6517",
+          "#6550"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "hook-entry",
+        "expected_outputs": [
+          "One message table (`ENTRY_GUARD_MESSAGES`) in core and one byte-identical copy in packages/cli/src/entry-guard.ts; a parity test fails on any drift.",
+          "The .mjs outer, global deft-hook and hook-dispatch all check the untracked disable flag before any pin check.",
+          "In an old-layout project with no project-local old copy installed, deft-hook prints the RC-12 old-layout row and blocks per host; it never runs another copy.",
+          "With node_modules deleted, the outer and deft-hook print the runtime-missing row with the lockfile-correct command, say a person runs it in a terminal, and block per host.",
+          "With pin != installed, hook-bin denies with the pin-mismatch row, and the exact command it names is admitted.",
+          "No string in the hook entry points, launcher, launcher doctor, Taskfile, tasks/, git-hook helper or skill pointers contains `npm i -g @deftai/directive, then`, '(or yarn)', `@?` or `deft update` as a fix.",
+          "The .mjs outer still uses Node built-ins only before loading hook-bin.",
+          "In the Visage and Evolution old-layout shapes, launcher passthrough commands and `directive doctor` print the old-layout row and exit non-zero (when no project-local old copy is installed); `directive upgrade` behaves as today.",
+          "With the untracked disable flag, launcher passthrough commands start no runtime and exit 0 with the disabled notice; doctor, install, upgrade, uninstall, --version and --help behave as before.",
+          "Launcher and launcher doctor: runtime missing and pin != installed each print one row naming the lockfile-correct project install; a range or invalid runtime pin prints the 'rectify the pin' row.",
+          "On a fresh install, `task deft:setup` no longer refuses for a missing `_deft-run.sh`; a real miss names `directive install --repair`.",
+          "With node_modules deleted, `git commit` (pre-commit) fails with the runtime-missing row; with the untracked disable flag it passes silently.",
+          "With installed != pin, `git commit` and Taskfile verbs fail with the pin-mismatch row (runtime built from this change); `doctor`, `--version` and `--help` still run.",
+          "Every customer-facing message in the table uses plain words: no 'OVPR', no internal AC numbers, no 'pin package'.",
+          "one changelog fragment changelog.d/6620-one-hook-guard-and-message-table.md"
+        ],
+        "acceptance_criteria_justification": "Fourteen items: P4-U3a acceptance criteria 1-7, P4-U3b criteria 2-5 (1 and 6 are folded into items 6 and 1), P4-U3d criteria 1-5 (2 folded into item 6), plus the plain-wording rule from groups.md."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/install-health/constants.ts",
+          "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "packages/core/src/install-health/cheap.ts",
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/bin.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/cli/src/entry-guard.ts",
+          "packages/cli/src/hook-launcher.ts",
+          "packages/cli/src/hook-block.ts",
+          "packages/cli/src/constants.ts",
+          "packages/cli/src/launcher.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/legacy-shapes/messages.ts",
+          "Taskfile.yml",
+          "tasks/engine.yml",
+          "tasks/engine-invoke.cjs",
+          ".githooks/_directive-run.sh",
+          "packages/cli/src/entry-guard-parity.test.ts",
+          "packages/cli/src/hook-launcher.test.ts",
+          "packages/cli/src/launcher-smoke.test.ts",
+          "packages/cli/src/doctor-bookend.test.ts",
+          "packages/cli/src/legacy-conversion.test.ts",
+          "packages/cli/src/install-bookend.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/cli/src/legacy-shapes/legacy-shapes.test.ts",
+          "packages/cli/src/legacy-shapes/pre-ovpr.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/core/src/install-health/cheap.test.ts",
+          "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts",
+          "packages/runtime/src/hook-foreign-runtime-link.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/bin-identity.test.ts",
+          "packages/runtime/src/bin.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "tasks/engine-invoke.test.cjs",
+          "changelog.d/6620-one-hook-guard-and-message-table.md"
+        ],
+        "module_boundary": "Entry guards and recovery text only: the core install-health message table, its launcher copy (packages/cli/src/entry-guard.ts), and the places that print it (host-hook outer, deft-hook, hook-dispatch run(), launcher, launcher doctor and bookends, runtime bin, git-hook helper template, Taskfile and tasks/engine*). No change to decideHook, the admit logic, hook command forms or gate content.",
+        "cohesion_exemption": "packages/cli/src/bookends.ts (1737 lines), packages/runtime/src/setup-wiring.ts (1433 lines) and Taskfile.yml (1376 lines) already exceed the review trigger. This group changes a few message call sites in each; the table lives in its own small files; splitting them is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6458883594,
+        "origin": "deftai/directive#6620",
+        "id": "github.issue.6458883594"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "706450165e667dbc871d026d36c2a26970a08424",
+        "prNumber": 6702,
+        "prBase": "master",
+        "mergeCommit": "7f0575102e1c2ce3bf61be61782d3a4ac9cf53a3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:00:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:00:29Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:00:29Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/cli/src/entry-guard-parity.test.ts packages/cli/src/hook-launcher.test.ts packages/cli/src/launcher-smoke.test.ts packages/cli/src/doctor-bookend.test.ts packages/cli/src/legacy-conversion.test.ts packages/cli/src/install-bookend.test.ts packages/cli/src/upgrade-bookend.test.ts packages/cli/src/legacy-shapes packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/install-health packages/runtime/src/hook-dispatch.test.ts packages/runtime/src/hook-identity-failclosed.test.ts packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts packages/runtime/src/hook-foreign-runtime-link.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/bin-identity.test.ts packages/runtime/src/doctor-remedy-inventory.test.ts",
+        "node --test tasks/engine-invoke.test.cjs"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (98), in order (#6333)",
+      "sentences": [
+        "hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin",
+        "Problem When Directive can't run, an agent host reaches it three ways: the committed `.mjs` hook file, the global `deft-hook` command (old repos), or the runtime's `hook-bin.js`.",
+        "Each one checks things in a different order and prints different advice.",
+        "The same broken state gets different instructions, and some of them don't work.",
+        "In a fresh clone or a new linked worktree, `node_modules` is missing, so the hooks fail closed (AC9.12).",
+        "Agent workflows create worktrees all the time, so this is frequent.",
+        "The message must say plainly that a person runs the project install in a terminal, because the agent's own shell is blocked (#6466, D-013).",
+        "Evidence (origin/master `def527f5e`): - `.mjs` outer (`hostHookOuterSource()`, `packages/core/src/init-deposit/host-hook-outer.ts:259`): untracked disable flag → quiet allow; `hook-bin.js` missing → fail closed; spawn failure → fail closed.",
+        "Text `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` (`:22-24`): \"Run npm install or pnpm install (or yarn) in this project.\" Yarn is not supported, and the text doesn't say that a person must run it.",
+        "Global `deft-hook` (`packages/cli/src/hook-launcher.ts`, 64 lines): no disable-flag check, no old-layout check.",
+        "Every failure prints `RECOVERY_GUIDANCE` (`:27`, `:36`, `:49`) = \"npm i -g @deftai/directive, then directive install --repair\" (`packages/cli/src/constants.ts:34`).",
+        "The docstring at `:4` still says host configs should call `hook-bin.js` directly (superseded by AC9.1 v261027).",
+        "Runtime `hook-bin` (`run()`, `packages/runtime/src/hook-dispatch.ts:386`): root check, then the pin check (`:446`), then self-complete, then `decideHook`.",
+        "The disable flag is checked only inside `decideHook` (Scott's `dispatcher.ts`), after the pin checks.",
+        "Through global `deft-hook` or an old direct `hook-bin.js` registration, a disabled project with a pin mismatch is blocked instead of stopping quietly.",
+        "The fallback text is `cheap.recoveryGuidance ??",
+        "INSTALLATION_RECOVERY_GUIDANCE` (`:462`).",
+        "Install commands: the #6313 admit lets through only `pnpm install --frozen-lockfile`, `npm install` and `npm ci` (`PIN_MISMATCH_RECOVERY_COMMANDS`, `packages/core/src/install-health/recovery-admit.ts`).",
+        "`PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE` (`packages/core/src/install-health/constants.ts:34`) names plain `pnpm install`, which the hook refuses.",
+        "Shipped since the unit spec was written (effef711d): - #6534 (#6375) added `renderPinMismatchRecoveryGuidance` (`packages/core/src/install-health/pin-mismatch-guidance.ts:70`), used by `hook-dispatch.ts:458-461` when pin ≠ installed is the only fault.",
+        "It names the project root, says to open a terminal outside the blocked session, and names `pnpm install` / `npm install` by lockfile kind.",
+        "#6563 (#6185) added `FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE` (`constants.ts:51`).",
+        "What the design says - AC9.12 (v261027): the same guard order on the host-hook outer, the git-hook helper, the Taskfile entry and launcher commands that delegate to the pin: (1) untracked `.deft-directive-disable` → stop with no pin policy load; (2) missing or unusable pin package → fail closed with clear project `npm install` / `pnpm install` guidance; (3) run the pin.",
+        "AC9.1 (v261027): the outer uses only Node built-ins until the guards pass; full product logic stays in `hook-bin.js`.",
+        "AC2.6 / AC9.4 / AC14.8: pin ≠ installed → no setup, no policy, block.",
+        "Ledger \"Unified local entry guards\": same order, same recovery shape, minimal duplication.",
+        "§A9: a new launcher never delegates to an old-style runtime.",
+        "D-001 (Rule 3): one shared guard and one message table; failures block on every host.",
+        "D-013: no runtime → fail closed on every entry point.",
+        "No install is let through on that path (the #6328 admit applies only when `hook-bin` runs).",
+        "The message says a person runs the project install in a terminal.",
+        "Borrowing another checkout's runtime is ruled out (AC9.5).",
+        "D-017 (O-37): #6375's shipped Codex wording (#6534) is checked against the table here.",
+        "P4-U4 is dropped.",
+        "Open, settled before merge: the exact words from P4-U2 / RC-06 (O-30: which install commands the message names); O-34 / RC-07 (old-layout check before \"runtime missing\").",
+        "Expected 1.",
+        "One message table in core (`packages/core/src/install-health/constants.ts`): `EntrySituation`, `ENTRY_GUARD_MESSAGES` and `projectInstallCommand(projectRoot)` (reads lockfile presence only).",
+        "Rows follow the Rule 3 table; final words come from P4-U2: - `disabled`: no message; allow / exit 0.",
+        "`runtime-missing`: names the missing runtime package and says a person runs `{install}` in this project, in a terminal, because the agent's shell is blocked.",
+        "Blocks.",
+        "`pin-mismatch`: installed X is not the pinned Y; run `{install}`.",
+        "Blocks; the named install is admitted (#6313).",
+        "`wiring-damaged`: `directive install --repair` (doctor and launcher only; hooks self-complete).",
+        "`data-behind`: reuse `SESSION_START_SCHEMA_BEHIND_NOTICE`.",
+        "Notice only.",
+        "`legacy-layout`: \"This repo uses pre-OVPR Directive.",
+        "Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`.\" Blocks.",
+        "`launcher-missing`: `npm i -g @deftai/directive` (text for committed surfaces).",
+        "`hook-failed`: P1-U1's `HOST_HOOK_NONDECISION_REASON`, moved unchanged.",
+        "`contract-too-new`, `root-mismatch`, `overlay`, `pin-invalid`, `no-runtime-pin`: existing text, moved unchanged.",
+        "`{install}` is `pnpm install --frozen-lockfile` with `pnpm-lock.yaml`, `npm install` with `package-lock.json`, else \"`npm install` (or `pnpm install --frozen-lockfile`)\", subject to O-30.",
+        "Drop \"(or yarn)\".",
+        "Keep the old constant names as aliases.",
+        "Leave `INSTALLATION_RECOVERY_GUIDANCE` unchanged here; its callers move in P4-U3c / P4-U3d.",
+        "One order, in a doc comment above the table and in a shared test fixture: disabled → root-mismatch (hooks only) → legacy-layout (only when the root `package.json` has no `@deftai/directive-runtime` dependency; P1-U2's recogniser; subject to O-34 / RC-07) → runtime-missing → pin-mismatch (+ #6313 admit) / overlay → contract-too-new (launcher only) → wiring-damaged → data-behind.",
+        "Use it in the three hook entry points: - `.mjs` outer: embed the `runtime-missing` row with the lockfile-based `{install}`, using Node built-ins only.",
+        "The outer keeps its two checks (disabled, runtime missing).",
+        "Don't add a pin ≠ installed check to the outer.",
+        "Use P1-U1's block helper unchanged.",
+        "Global `deft-hook`: Node check → discovery → disabled (new) → legacy (P1-U2) → runtime missing → `hook-bin` missing (as `runtime-missing`) → spawn the installed `hook-bin`.",
+        "Replace every `RECOVERY_GUIDANCE` use with table rows.",
+        "Block via P1-U2's `renderHookBlock`.",
+        "Fix the stale docstring.",
+        "`hook-dispatch.ts` `run()`: after the `session.end` branch, if the disable flag is active (`isDeftDirectiveDisableActive`), skip the root, pin and self-complete steps and go straight to `decideHook`.",
+        "Build the deny text from the table.",
+        "Check the shipped #6375 text (`renderPinMismatchRecoveryGuidance`) against the `pin-mismatch` row (D-017).",
+        "Launcher copy: `packages/cli/src/entry-guard.ts`, a byte-identical copy of the table and `projectInstallCommand`, with no imports beyond `node:fs` / `node:path` (AC3.1).",
+        "A parity test keeps the copies equal.",
+        "P4-U3b uses it.",
+        "Must not do: no product logic or #6313 admit in the `.mjs` outer (AC9.1); don't widen the admit list; no install admit on the missing-runtime path (D-013); don't edit `packages/core/src/hooks/dispatcher.ts` (Scott); don't redo P1-U1 (exit codes, block forms) or P1-U2 (recogniser) — move only their reason strings, and add a parity test for the two block renderers; don't run old-layout code; don't change the registered command form or sha8 naming (AC9.1); don't adopt #6358.",
+        "Acceptance criteria 1.",
+        "One table (`ENTRY_GUARD_MESSAGES`) in core and one copy in cli.",
+        "The parity test fails on any drift.",
+        "The outer, `deft-hook` and `hook-dispatch` all check the untracked disable flag before any pin check.",
+        "Tests cover each.",
+        "In an old-layout fixture, `deft-hook` prints the `legacy-layout` row and blocks per host.",
+        "It never spawns anything.",
+        "With `node_modules` deleted, the outer and `deft-hook` print the `runtime-missing` row with the lockfile-correct command, say a person runs it in a terminal, and block per host.",
+        "With pin ≠ installed (runtime built from this change), `hook-bin` denies with the `pin-mismatch` row, and the exact command it names is admitted.",
+        "No string in the three hook entry points contains `npm i -g @deftai/directive, then` or \"(or yarn)\".",
+        "The `.mjs` outer still uses Node built-ins only before loading `hook-bin` (existing outer tests stay green).",
+        "Tests: new `packages/cli/src/entry-guard-parity.test.ts`; extend `packages/cli/src/hook-launcher.test.ts` (created by P1-U2); update `host-hook-outer.test.ts`, `hook-dispatch.test.ts`, `hook-identity-failclosed.test.ts`, `recovery-admit.test.ts` (every command the `pin-mismatch` row can name passes `matchPinMismatchRecoveryCommand`) and `cheap.test.ts`.",
+        "The P1-U3 fixture's steps 4 and 6 assert these rows.",
+        "Related - #6466 (no-runtime message on the hook file; handed over by Scott; D-008, D-013): fixed here.",
+        "Suggest removing `Upgrade Blocker` and `urgent` after the message fix.",
+        "#5960: the `deft-hook` old-repo path now checks the order and prints the old-layout message; the blocking exit is P1-U1 / P1-U2.",
+        "Comment when this merges.",
+        "#6375 / #6534 (closed): wording checked here (D-017).",
+        "#6517, #6550: the same message for git hooks and `task` (P4-U3d).",
+        "#6619 (wording), #6201 (P1-U1), #5940 / #6225 (P4-U3b).",
+        "Plan placement - Unit P4-U3a, story id `ovpr-p4-u3a`.",
+        "Phase 4, wave 4.2.",
+        "Size M.",
+        "Depends on P4-U2 (its RC-06 docs PR merged), P1-U1 and P1-U2.",
+        "O-34 / RC-07 approved, and its docs PR merged, before this merges.",
+        "Blocks P4-U3b, P4-U3c and P4-U3d (they import the table).",
+        "Owner polfer.",
+        "Scott: FYI only, because `hook-dispatch.ts` sits next to his `decideHook`."
+      ],
+      "admitted_source_sentences": [
+        "Problem When Directive can't run, an agent host reaches it three ways: the committed `.mjs` hook file, the global `deft-hook` command (old repos), or the runtime's `hook-bin.js`.",
+        "Each one checks things in a different order and prints different advice.",
+        "The same broken state gets different instructions, and some of them don't work.",
+        "In a fresh clone or a new linked worktree, `node_modules` is missing, so the hooks fail closed (AC9.12).",
+        "Agent workflows create worktrees all the time, so this is frequent.",
+        "The message must say plainly that a person runs the project install in a terminal, because the agent's own shell is blocked (#6466, D-013).",
+        "Evidence (origin/master `def527f5e`): - `.mjs` outer (`hostHookOuterSource()`, `packages/core/src/init-deposit/host-hook-outer.ts:259`): untracked disable flag → quiet allow; `hook-bin.js` missing → fail closed; spawn failure → fail closed.",
+        "Text `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` (`:22-24`): \"Run npm install or pnpm install (or yarn) in this project.\" Yarn is not supported, and the text doesn't say that a person must run it.",
+        "Global `deft-hook` (`packages/cli/src/hook-launcher.ts`, 64 lines): no disable-flag check, no old-layout check.",
+        "Every failure prints `RECOVERY_GUIDANCE` (`:27`, `:36`, `:49`) = \"npm i -g @deftai/directive, then directive install --repair\" (`packages/cli/src/constants.ts:34`).",
+        "The docstring at `:4` still says host configs should call `hook-bin.js` directly (superseded by AC9.1 v261027).",
+        "Runtime `hook-bin` (`run()`, `packages/runtime/src/hook-dispatch.ts:386`): root check, then the pin check (`:446`), then self-complete, then `decideHook`.",
+        "The disable flag is checked only inside `decideHook` (Scott's `dispatcher.ts`), after the pin checks.",
+        "Through global `deft-hook` or an old direct `hook-bin.js` registration, a disabled project with a pin mismatch is blocked instead of stopping quietly.",
+        "The fallback text is `cheap.recoveryGuidance ??",
+        "INSTALLATION_RECOVERY_GUIDANCE` (`:462`).",
+        "Install commands: the #6313 admit lets through only `pnpm install --frozen-lockfile`, `npm install` and `npm ci` (`PIN_MISMATCH_RECOVERY_COMMANDS`, `packages/core/src/install-health/recovery-admit.ts`).",
+        "`PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE` (`packages/core/src/install-health/constants.ts:34`) names plain `pnpm install`, which the hook refuses.",
+        "Shipped since the unit spec was written (effef711d): - #6534 (#6375) added `renderPinMismatchRecoveryGuidance` (`packages/core/src/install-health/pin-mismatch-guidance.ts:70`), used by `hook-dispatch.ts:458-461` when pin ≠ installed is the only fault.",
+        "It names the project root, says to open a terminal outside the blocked session, and names `pnpm install` / `npm install` by lockfile kind.",
+        "#6563 (#6185) added `FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE` (`constants.ts:51`).",
+        "What the design says - AC9.12 (v261027): the same guard order on the host-hook outer, the git-hook helper, the Taskfile entry and launcher commands that delegate to the pin: (1) untracked `.deft-directive-disable` → stop with no pin policy load; (2) missing or unusable pin package → fail closed with clear project `npm install` / `pnpm install` guidance; (3) run the pin.",
+        "AC9.1 (v261027): the outer uses only Node built-ins until the guards pass; full product logic stays in `hook-bin.js`.",
+        "AC2.6 / AC9.4 / AC14.8: pin ≠ installed → no setup, no policy, block.",
+        "Ledger \"Unified local entry guards\": same order, same recovery shape, minimal duplication.",
+        "§A9: a new launcher never delegates to an old-style runtime.",
+        "D-001 (Rule 3): one shared guard and one message table; failures block on every host.",
+        "D-013: no runtime → fail closed on every entry point.",
+        "No install is let through on that path (the #6328 admit applies only when `hook-bin` runs).",
+        "The message says a person runs the project install in a terminal.",
+        "Borrowing another checkout's runtime is ruled out (AC9.5).",
+        "D-017 (O-37): #6375's shipped Codex wording (#6534) is checked against the table here.",
+        "P4-U4 is dropped.",
+        "Open, settled before merge: the exact words from P4-U2 / RC-06 (O-30: which install commands the message names); O-34 / RC-07 (old-layout check before \"runtime missing\").",
+        "Expected 1.",
+        "One message table in core (`packages/core/src/install-health/constants.ts`): `EntrySituation`, `ENTRY_GUARD_MESSAGES` and `projectInstallCommand(projectRoot)` (reads lockfile presence only).",
+        "Rows follow the Rule 3 table; final words come from P4-U2: - `disabled`: no message; allow / exit 0.",
+        "`runtime-missing`: names the missing runtime package and says a person runs `{install}` in this project, in a terminal, because the agent's shell is blocked.",
+        "Blocks.",
+        "`pin-mismatch`: installed X is not the pinned Y; run `{install}`.",
+        "Blocks; the named install is admitted (#6313).",
+        "`wiring-damaged`: `directive install --repair` (doctor and launcher only; hooks self-complete).",
+        "`data-behind`: reuse `SESSION_START_SCHEMA_BEHIND_NOTICE`.",
+        "Notice only.",
+        "`legacy-layout`: \"This repo uses pre-OVPR Directive.",
+        "Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`.\" Blocks.",
+        "`launcher-missing`: `npm i -g @deftai/directive` (text for committed surfaces).",
+        "`hook-failed`: P1-U1's `HOST_HOOK_NONDECISION_REASON`, moved unchanged.",
+        "`contract-too-new`, `root-mismatch`, `overlay`, `pin-invalid`, `no-runtime-pin`: existing text, moved unchanged.",
+        "`{install}` is `pnpm install --frozen-lockfile` with `pnpm-lock.yaml`, `npm install` with `package-lock.json`, else \"`npm install` (or `pnpm install --frozen-lockfile`)\", subject to O-30.",
+        "Drop \"(or yarn)\".",
+        "Keep the old constant names as aliases.",
+        "Leave `INSTALLATION_RECOVERY_GUIDANCE` unchanged here; its callers move in P4-U3c / P4-U3d.",
+        "One order, in a doc comment above the table and in a shared test fixture: disabled → root-mismatch (hooks only) → legacy-layout (only when the root `package.json` has no `@deftai/directive-runtime` dependency; P1-U2's recogniser; subject to O-34 / RC-07) → runtime-missing → pin-mismatch (+ #6313 admit) / overlay → contract-too-new (launcher only) → wiring-damaged → data-behind.",
+        "Use it in the three hook entry points: - `.mjs` outer: embed the `runtime-missing` row with the lockfile-based `{install}`, using Node built-ins only.",
+        "The outer keeps its two checks (disabled, runtime missing).",
+        "Don't add a pin ≠ installed check to the outer.",
+        "Use P1-U1's block helper unchanged.",
+        "Global `deft-hook`: Node check → discovery → disabled (new) → legacy (P1-U2) → runtime missing → `hook-bin` missing (as `runtime-missing`) → spawn the installed `hook-bin`.",
+        "Replace every `RECOVERY_GUIDANCE` use with table rows.",
+        "Block via P1-U2's `renderHookBlock`.",
+        "Fix the stale docstring.",
+        "`hook-dispatch.ts` `run()`: after the `session.end` branch, if the disable flag is active (`isDeftDirectiveDisableActive`), skip the root, pin and self-complete steps and go straight to `decideHook`.",
+        "Build the deny text from the table.",
+        "Check the shipped #6375 text (`renderPinMismatchRecoveryGuidance`) against the `pin-mismatch` row (D-017).",
+        "Launcher copy: `packages/cli/src/entry-guard.ts`, a byte-identical copy of the table and `projectInstallCommand`, with no imports beyond `node:fs` / `node:path` (AC3.1).",
+        "A parity test keeps the copies equal.",
+        "P4-U3b uses it.",
+        "Must not do: no product logic or #6313 admit in the `.mjs` outer (AC9.1); don't widen the admit list; no install admit on the missing-runtime path (D-013); don't edit `packages/core/src/hooks/dispatcher.ts` (Scott); don't redo P1-U1 (exit codes, block forms) or P1-U2 (recogniser) — move only their reason strings, and add a parity test for the two block renderers; don't run old-layout code; don't change the registered command form or sha8 naming (AC9.1); don't adopt #6358.",
+        "Acceptance criteria 1.",
+        "One table (`ENTRY_GUARD_MESSAGES`) in core and one copy in cli.",
+        "The parity test fails on any drift.",
+        "The outer, `deft-hook` and `hook-dispatch` all check the untracked disable flag before any pin check.",
+        "Tests cover each.",
+        "In an old-layout fixture, `deft-hook` prints the `legacy-layout` row and blocks per host.",
+        "It never spawns anything.",
+        "With `node_modules` deleted, the outer and `deft-hook` print the `runtime-missing` row with the lockfile-correct command, say a person runs it in a terminal, and block per host.",
+        "With pin ≠ installed (runtime built from this change), `hook-bin` denies with the `pin-mismatch` row, and the exact command it names is admitted.",
+        "No string in the three hook entry points contains `npm i -g @deftai/directive, then` or \"(or yarn)\".",
+        "The `.mjs` outer still uses Node built-ins only before loading `hook-bin` (existing outer tests stay green).",
+        "Tests: new `packages/cli/src/entry-guard-parity.test.ts`; extend `packages/cli/src/hook-launcher.test.ts` (created by P1-U2); update `host-hook-outer.test.ts`, `hook-dispatch.test.ts`, `hook-identity-failclosed.test.ts`, `recovery-admit.test.ts` (every command the `pin-mismatch` row can name passes `matchPinMismatchRecoveryCommand`) and `cheap.test.ts`.",
+        "The P1-U3 fixture's steps 4 and 6 assert these rows.",
+        "Related - #6466 (no-runtime message on the hook file; handed over by Scott; D-008, D-013): fixed here.",
+        "Suggest removing `Upgrade Blocker` and `urgent` after the message fix.",
+        "#5960: the `deft-hook` old-repo path now checks the order and prints the old-layout message; the blocking exit is P1-U1 / P1-U2.",
+        "Comment when this merges.",
+        "#6375 / #6534 (closed): wording checked here (D-017).",
+        "#6517, #6550: the same message for git hooks and `task` (P4-U3d).",
+        "#6619 (wording), #6201 (P1-U1), #5940 / #6225 (P4-U3b).",
+        "Plan placement - Unit P4-U3a, story id `ovpr-p4-u3a`.",
+        "Phase 4, wave 4.2.",
+        "Size M.",
+        "Depends on P4-U2 (its RC-06 docs PR merged), P1-U1 and P1-U2.",
+        "O-34 / RC-07 approved, and its docs PR merged, before this merges.",
+        "Blocks P4-U3b, P4-U3c and P4-U3d (they import the table).",
+        "Owner polfer.",
+        "Scott: FYI only, because `hook-dispatch.ts` sits next to his `decideHook`."
+      ],
+      "admitted_source_digest": "3913d3ac584a698735e24f921f84efa8a6e7d02cfbbcfe677338b555c86592d7",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Problem When Directive can't run, an agent host reaches it three ways: the committed `.mjs` hook file, the global `deft-hook` command (old repos), or the runtime's `hook-bin.js`.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "Each one checks things in a different order and prints different advice.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "The same broken state gets different instructions, and some of them don't work.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "In a fresh clone or a new linked worktree, `node_modules` is missing, so the hooks fail closed (AC9.12).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Agent workflows create worktrees all the time, so this is frequent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The message must say plainly that a person runs the project install in a terminal, because the agent's own shell is blocked (#6466, D-013).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Evidence (origin/master `def527f5e`): - `.mjs` outer (`hostHookOuterSource()`, `packages/core/src/init-deposit/host-hook-outer.ts:259`): untracked disable flag → quiet allow; `hook-bin.js` missing → fail closed; spawn failure → fail closed.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Text `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` (`:22-24`): \"Run npm install or pnpm install (or yarn) in this project.\" Yarn is not supported, and the text doesn't say that a person must run it.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 10,
+          "text": "Global `deft-hook` (`packages/cli/src/hook-launcher.ts`, 64 lines): no disable-flag check, no old-layout check.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 11,
+          "text": "Every failure prints `RECOVERY_GUIDANCE` (`:27`, `:36`, `:49`) = \"npm i -g @deftai/directive, then directive install --repair\" (`packages/cli/src/constants.ts:34`).",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 12,
+          "text": "The docstring at `:4` still says host configs should call `hook-bin.js` directly (superseded by AC9.1 v261027).",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Runtime `hook-bin` (`run()`, `packages/runtime/src/hook-dispatch.ts:386`): root check, then the pin check (`:446`), then self-complete, then `decideHook`.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "The disable flag is checked only inside `decideHook` (Scott's `dispatcher.ts`), after the pin checks.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Through global `deft-hook` or an old direct `hook-bin.js` registration, a disabled project with a pin mismatch is blocked instead of stopping quietly.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 16,
+          "text": "The fallback text is `cheap.recoveryGuidance ??",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "INSTALLATION_RECOVERY_GUIDANCE` (`:462`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Install commands: the #6313 admit lets through only `pnpm install --frozen-lockfile`, `npm install` and `npm ci` (`PIN_MISMATCH_RECOVERY_COMMANDS`, `packages/core/src/install-health/recovery-admit.ts`).",
+          "artifact_path": "packages/core/src/install-health/recovery-admit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "`PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE` (`packages/core/src/install-health/constants.ts:34`) names plain `pnpm install`, which the hook refuses.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 20,
+          "text": "Shipped since the unit spec was written (effef711d): - #6534 (#6375) added `renderPinMismatchRecoveryGuidance` (`packages/core/src/install-health/pin-mismatch-guidance.ts:70`), used by `hook-dispatch.ts:458-461` when pin ≠ installed is the only fault.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "It names the project root, says to open a terminal outside the blocked session, and names `pnpm install` / `npm install` by lockfile kind.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "#6563 (#6185) added `FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE` (`constants.ts:51`).",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "What the design says - AC9.12 (v261027): the same guard order on the host-hook outer, the git-hook helper, the Taskfile entry and launcher commands that delegate to the pin: (1) untracked `.deft-directive-disable` → stop with no pin policy load; (2) missing or unusable pin package → fail closed with clear project `npm install` / `pnpm install` guidance; (3) run the pin.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "AC9.1 (v261027): the outer uses only Node built-ins until the guards pass; full product logic stays in `hook-bin.js`.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "AC2.6 / AC9.4 / AC14.8: pin ≠ installed → no setup, no policy, block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Ledger \"Unified local entry guards\": same order, same recovery shape, minimal duplication.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "§A9: a new launcher never delegates to an old-style runtime.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "D-001 (Rule 3): one shared guard and one message table; failures block on every host.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "D-013: no runtime → fail closed on every entry point.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "No install is let through on that path (the #6328 admit applies only when `hook-bin` runs).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "The message says a person runs the project install in a terminal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "Borrowing another checkout's runtime is ruled out (AC9.5).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "D-017 (O-37): #6375's shipped Codex wording (#6534) is checked against the table here.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "P4-U4 is dropped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "Open, settled before merge: the exact words from P4-U2 / RC-06 (O-30: which install commands the message names); O-34 / RC-07 (old-layout check before \"runtime missing\").",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Expected 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "One message table in core (`packages/core/src/install-health/constants.ts`): `EntrySituation`, `ENTRY_GUARD_MESSAGES` and `projectInstallCommand(projectRoot)` (reads lockfile presence only).",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "Rows follow the Rule 3 table; final words come from P4-U2: - `disabled`: no message; allow / exit 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "`runtime-missing`: names the missing runtime package and says a person runs `{install}` in this project, in a terminal, because the agent's shell is blocked.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Blocks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "`pin-mismatch`: installed X is not the pinned Y; run `{install}`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Blocks; the named install is admitted (#6313).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "`wiring-damaged`: `directive install --repair` (doctor and launcher only; hooks self-complete).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "`data-behind`: reuse `SESSION_START_SCHEMA_BEHIND_NOTICE`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "Notice only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "`legacy-layout`: \"This repo uses pre-OVPR Directive.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`.\" Blocks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "`launcher-missing`: `npm i -g @deftai/directive` (text for committed surfaces).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 49,
+          "text": "`hook-failed`: P1-U1's `HOST_HOOK_NONDECISION_REASON`, moved unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 50,
+          "text": "`contract-too-new`, `root-mismatch`, `overlay`, `pin-invalid`, `no-runtime-pin`: existing text, moved unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 51,
+          "text": "`{install}` is `pnpm install --frozen-lockfile` with `pnpm-lock.yaml`, `npm install` with `package-lock.json`, else \"`npm install` (or `pnpm install --frozen-lockfile`)\", subject to O-30.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 52,
+          "text": "Drop \"(or yarn)\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 53,
+          "text": "Keep the old constant names as aliases.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 54,
+          "text": "Leave `INSTALLATION_RECOVERY_GUIDANCE` unchanged here; its callers move in P4-U3c / P4-U3d.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 55,
+          "text": "One order, in a doc comment above the table and in a shared test fixture: disabled → root-mismatch (hooks only) → legacy-layout (only when the root `package.json` has no `@deftai/directive-runtime` dependency; P1-U2's recogniser; subject to O-34 / RC-07) → runtime-missing → pin-mismatch (+ #6313 admit) / overlay → contract-too-new (launcher only) → wiring-damaged → data-behind.",
+          "artifact_path": "packages/core/src/install-health/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 56,
+          "text": "Use it in the three hook entry points: - `.mjs` outer: embed the `runtime-missing` row with the lockfile-based `{install}`, using Node built-ins only.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 57,
+          "text": "The outer keeps its two checks (disabled, runtime missing).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 58,
+          "text": "Don't add a pin ≠ installed check to the outer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 59,
+          "text": "Use P1-U1's block helper unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 60,
+          "text": "Global `deft-hook`: Node check → discovery → disabled (new) → legacy (P1-U2) → runtime missing → `hook-bin` missing (as `runtime-missing`) → spawn the installed `hook-bin`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 61,
+          "text": "Replace every `RECOVERY_GUIDANCE` use with table rows.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 62,
+          "text": "Block via P1-U2's `renderHookBlock`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 63,
+          "text": "Fix the stale docstring.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 64,
+          "text": "`hook-dispatch.ts` `run()`: after the `session.end` branch, if the disable flag is active (`isDeftDirectiveDisableActive`), skip the root, pin and self-complete steps and go straight to `decideHook`.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 65,
+          "text": "Build the deny text from the table.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 66,
+          "text": "Check the shipped #6375 text (`renderPinMismatchRecoveryGuidance`) against the `pin-mismatch` row (D-017).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 67,
+          "text": "Launcher copy: `packages/cli/src/entry-guard.ts`, a byte-identical copy of the table and `projectInstallCommand`, with no imports beyond `node:fs` / `node:path` (AC3.1).",
+          "artifact_path": "packages/cli/src/entry-guard.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 68,
+          "text": "A parity test keeps the copies equal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 69,
+          "text": "P4-U3b uses it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 70,
+          "text": "Must not do: no product logic or #6313 admit in the `.mjs` outer (AC9.1); don't widen the admit list; no install admit on the missing-runtime path (D-013); don't edit `packages/core/src/hooks/dispatcher.ts` (Scott); don't redo P1-U1 (exit codes, block forms) or P1-U2 (recogniser) — move only their reason strings, and add a parity test for the two block renderers; don't run old-layout code; don't change the registered command form or sha8 naming (AC9.1); don't adopt #6358.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 71,
+          "text": "Acceptance criteria 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 72,
+          "text": "One table (`ENTRY_GUARD_MESSAGES`) in core and one copy in cli.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 73,
+          "text": "The parity test fails on any drift.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 74,
+          "text": "The outer, `deft-hook` and `hook-dispatch` all check the untracked disable flag before any pin check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 75,
+          "text": "Tests cover each.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 76,
+          "text": "In an old-layout fixture, `deft-hook` prints the `legacy-layout` row and blocks per host.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 77,
+          "text": "It never spawns anything.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 78,
+          "text": "With `node_modules` deleted, the outer and `deft-hook` print the `runtime-missing` row with the lockfile-correct command, say a person runs it in a terminal, and block per host.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 79,
+          "text": "With pin ≠ installed (runtime built from this change), `hook-bin` denies with the `pin-mismatch` row, and the exact command it names is admitted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 80,
+          "text": "No string in the three hook entry points contains `npm i -g @deftai/directive, then` or \"(or yarn)\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 81,
+          "text": "The `.mjs` outer still uses Node built-ins only before loading `hook-bin` (existing outer tests stay green).",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 82,
+          "text": "Tests: new `packages/cli/src/entry-guard-parity.test.ts`; extend `packages/cli/src/hook-launcher.test.ts` (created by P1-U2); update `host-hook-outer.test.ts`, `hook-dispatch.test.ts`, `hook-identity-failclosed.test.ts`, `recovery-admit.test.ts` (every command the `pin-mismatch` row can name passes `matchPinMismatchRecoveryCommand`) and `cheap.test.ts`.",
+          "artifact_path": "packages/cli/src/entry-guard-parity.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 83,
+          "text": "The P1-U3 fixture's steps 4 and 6 assert these rows.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 84,
+          "text": "Related - #6466 (no-runtime message on the hook file; handed over by Scott; D-008, D-013): fixed here.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 85,
+          "text": "Suggest removing `Upgrade Blocker` and `urgent` after the message fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 86,
+          "text": "#5960: the `deft-hook` old-repo path now checks the order and prints the old-layout message; the blocking exit is P1-U1 / P1-U2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 87,
+          "text": "Comment when this merges.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 88,
+          "text": "#6375 / #6534 (closed): wording checked here (D-017).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 89,
+          "text": "#6517, #6550: the same message for git hooks and `task` (P4-U3d).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 90,
+          "text": "#6619 (wording), #6201 (P1-U1), #5940 / #6225 (P4-U3b).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 91,
+          "text": "Plan placement - Unit P4-U3a, story id `ovpr-p4-u3a`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 92,
+          "text": "Phase 4, wave 4.2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 93,
+          "text": "Size M.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 94,
+          "text": "Depends on P4-U2 (its RC-06 docs PR merged), P1-U1 and P1-U2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 95,
+          "text": "O-34 / RC-07 approved, and its docs PR merged, before this merges.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 96,
+          "text": "Blocks P4-U3b, P4-U3c and P4-U3d (they import the table).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 97,
+          "text": "Owner polfer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 98,
+          "text": "Scott: FYI only, because `hook-dispatch.ts` sits next to his `decideHook`.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6458883594",
+    "updated": "2026-11-19T16:00:29Z"
+  }
+}

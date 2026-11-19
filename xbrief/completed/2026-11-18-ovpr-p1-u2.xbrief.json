@@ -1,0 +1,618 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5960",
+    "updated": "2026-11-19T16:14:38Z"
+  },
+  "plan": {
+    "title": "P1-U2: old (pre-OVPR) repos keep blocking when their hooks reach the new deft-hook (ovpr-p1-u2)",
+    "status": "completed",
+    "narratives": {
+      "Description": "OVPR fix plan unit P1-U2 (story id ovpr-p1-u2), spec units/P1-U2-old-repo-hook-blocks.md. Hook part of #5960 only. In an old-layout repo, the new launcher's deft-hook blocks the tool call on every host with the old-repo message, and never runs old code. In a new-layout repo with no runtime installed it blocks with project install text. `deft hook:dispatch` from old registrations takes the same path. The rest of #5960 (one global for both layouts) is the accepted §A9 limitation.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5960",
+      "Overview": "Acceptance criteria (spec P1-U2):\n1. In any repo `recognisePreOvprLayout` matches, `deft-hook --host <h> --event tool.before` blocks on all four hosts (Claude/Codex exit 2; Cursor and Grok one deny JSON, exit 0) and the reason equals `PRE_OVPR_LAYOUT_MESSAGE`.\n2. No old Directive code runs, and no child process is spawned, on that path.\n3. In a new-layout repo with no runtime installed, `deft-hook` blocks with project `npm install` / `pnpm install` text and never prints `npm i -g @deftai/directive` or `install --repair`.\n4. A new-layout repo with the runtime installed behaves as today, except a non-zero hook-bin exit on Claude/Codex `tool.before` becomes exit 2.\n5. `deft hook:dispatch` in an old repo blocks the same way.\n6. `readPin().oldStyle`, upgrade admission and install refusal are unchanged (existing tests green).\n7. The recogniser is one exported function in `legacy-shapes/` with its own tests.",
+      "Labels": "bug, adoption-blocker, area:cli, triaged",
+      "StoryId": "ovpr-p1-u2 (OVPR fix plan, Phase 1, Rule 3).",
+      "ImplementationPlan": "1. New packages/cli/src/legacy-shapes/pre-ovpr.ts: recognisePreOvprLayout(root) -> { evidence } | null, exported from legacy-shapes/index.ts. Message only. Null when root package.json lists @deftai/directive-runtime. Otherwise evidence when: (a) resolveInstallShape(root) is not ovpr-runtime-pin; (b) a .deft/core dir exists and an @deftai/directive dependency in any form is in the root or a nested package.json (depth <= 3, skip node_modules, .git and dot-dirs, stop after 200 files); (c) .githooks/_deft-run.sh exists; (d) root lists @deftai/directive in any form and a host config holds a bare `deft-hook ` or `deft hook:dispatch` command, or .grok/hooks/deft-pretooluse-wrapper.sh exists. No writes, no git; never feeds readPin().oldStyle, upgrade admission or install refusal.\n2. constants.ts: PRE_OVPR_LAYOUT_MESSAGE with the RC-01 approved text exactly (\"This repo uses pre-OVPR Directive. Run `directive upgrade`, or keep the old tools: `npm i -g @deftai/directive@0.126.2`.\"), LAST_PRE_OVPR_LAUNCHER_VERSION = \"0.126.2\", and a project-install constant for the runtime-missing case.\n3. New packages/cli/src/hook-block.ts: renderHookBlock(host, event, reason) -> { stdout, stderr, exitCode }, same table as P1-U1 (only tool.before blocks; Grok always deny JSON exit 0); tiny local --host/--event parser.\n4. hook-launcher.ts: after discoverProject and before readInstalledRuntime, block with PRE_OVPR_LAYOUT_MESSAGE when recognised, spawning nothing (this is the RC-07 order). Runtime or hook-bin missing -> block with the project-install message (not RECOVERY_GUIDANCE). Child non-decision on Claude/Codex tool.before -> 2. No project root and Node too old -> unchanged.\n5. launcher.ts: route rawCmd hook:dispatch to runHookLauncher(cmdArgv) before the old-layout gate.\n6. Changelog fragment changelog.d/5960-old-repo-hook-blocks.md (never CHANGELOG.md).\nTests: pre-ovpr.test.ts, hook-launcher.test.ts (new), the hook:dispatch case in the nearest launcher test, and the old Grok wrapper case with the v0.126.2 wrapper bytes as a test fixture.",
+      "Constraint": "Must not do:\n- Never run, download or spawn any old Directive code or old global CLI (§A9). No pass-through to .deft/core or packages/cli/dist/bin.js in the repo.\n- Do not widen readPin().oldStyle or the upgrade / install admission (AC10.1, §A6.7).\n- Do not treat a nested package.json as the project or the pin (AC1.7).\n- Do not change the launcher's ordinary-command messages here (P4-U3b), except the hook:dispatch routing.\n- Do not import @deftai/directive-core into the launcher (AC3.1).\n- Do not write files from the hook path.\n- OVPR change gate: RC-01, RC-02 and RC-07 are approved (D-030); their docs PRs must merge before this unit merges. Work may start and a PR may be written, but it merges only after those docs PRs. Any other change to OVPR text or behaviour stops for polfer.",
+      "Dependencies": "No unit dependency (P1-U1 not required; different package). Merge waits for the RC-01, RC-07 and RC-02 docs PRs (D-030, change gate step 6). Blocks ovpr-p1-u3 (step 6), P4-U3a and P4-U3b.",
+      "Traces": "#5960 (primary, hook part only). Partly addresses #5940 and #6225 (shared recogniser; their messages are P4-U3b).",
+      "DesignCritique": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "UserStory": "As a developer in a repo still on the old (pre-OVPR) Directive layout, I want my agent's tool calls blocked with the old-repo message when its hooks reach the new deft-hook, so that old hooks never run without checks and I know to upgrade."
+    },
+    "items": [
+      {
+        "title": "In any repo `recognisePreOvprLayout` matches, `deft-hook --host <h> --event tool.before` blocks on all four hosts (Claude/Codex exit 2; Cursor and Grok one deny JSON, exit 0) and the reason equals `PRE_OVPR_LAYOUT_MESSAGE`.",
+        "status": "completed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given an old-layout fixture, when deft-hook runs with --event tool.before for each host, then Claude/Codex exit 2 and Cursor/Grok exit 0 with exactly one deny JSON, and the reason equals PRE_OVPR_LAYOUT_MESSAGE."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "No old Directive code runs, and no child process is spawned, on that path.",
+        "status": "completed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given an old-layout fixture with a marker-writing hook-bin.js, when deft-hook runs, then the marker file does not exist."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "In a new-layout repo with no runtime installed, `deft-hook` blocks with project `npm install` / `pnpm install` text and never prints `npm i -g @deftai/directive` or `install --repair`.",
+        "status": "completed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a new-layout repo with no runtime installed, when deft-hook runs on tool.before, then it blocks with project install text and the output has no npm i -g @deftai/directive and no install --repair."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A new-layout repo with the runtime installed behaves as today, except a non-zero hook-bin exit on Claude/Codex `tool.before` becomes exit 2.",
+        "status": "completed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given the runtime installed, when the child exits 0 with allow JSON, then output passes through unchanged; when the child exits 1 on Claude/Codex tool.before, then deft-hook exits 2."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "`deft hook:dispatch` in an old repo blocks the same way.",
+        "status": "completed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given an old-layout fixture, when `deft hook:dispatch --host claude --event tool.before` runs, then it exits 2 with the old-repo message."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "`readPin().oldStyle`, upgrade admission and install refusal are unchanged (existing tests green).",
+        "status": "completed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given the existing pin, upgrade and install tests, when they run, then they pass unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The recogniser is one exported function in `legacy-shapes/` with its own tests.",
+        "status": "completed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given packages/cli/src/legacy-shapes, then recognisePreOvprLayout is exported from index.ts and pre-ovpr.test.ts covers the positive, negative and walk-bound cases in the spec."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+          "recorded_at": "2026-11-19T16:14:38Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "area:cli",
+      "triaged"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5960",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5960: OVPR launcher: one global launcher cannot serve repos on the old layout, so the stale-CLI write gate forces an all-repos upgrade"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5940",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5940"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6225",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6225"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "npx @deftai/directive@0.127.0 verify:encoding --help",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        },
+        {
+          "command": "deft ...",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "deft",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "deft-hook",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "directive",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "deft-ts",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "deft-verify-encoding",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "npm view @deftai/directive@<v> bin",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/cli/src/legacy-shapes/pre-ovpr.ts",
+          "packages/cli/src/legacy-shapes/pre-ovpr.test.ts",
+          "packages/cli/src/legacy-shapes/index.ts",
+          "packages/cli/src/hook-block.ts",
+          "packages/cli/src/hook-launcher.ts",
+          "packages/cli/src/hook-launcher.test.ts",
+          "packages/cli/src/launcher.ts",
+          "packages/cli/src/launcher-smoke.test.ts",
+          "packages/cli/src/constants.ts",
+          "packages/cli/src/fixtures/pre-ovpr/**",
+          "changelog.d/5960-old-repo-hook-blocks.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "size": "small",
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/legacy-shapes packages/cli/src/hook-launcher.test.ts packages/cli/src/launcher-smoke.test.ts"
+        ],
+        "Traces": [
+          "#5960"
+        ],
+        "acceptance_criteria_justification": "Seven items: the seven acceptance criteria of unit spec P1-U2, one each. The spec names launcher.test.ts 'or nearest'; there is no launcher.test.ts, so launcher-smoke.test.ts is listed. The old Grok wrapper fixture goes under packages/cli/src/fixtures/pre-ovpr/.",
+        "parallel_safe": true,
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "launcher-hook",
+        "expected_outputs": [
+          "In any repo `recognisePreOvprLayout` matches, `deft-hook --host <h> --event tool.before` blocks on all four hosts (Claude/Codex exit 2; Cursor and Grok one deny JSON, exit 0) and the reason equals `PRE_OVPR_LAYOUT_MESSAGE`.",
+          "No old Directive code runs, and no child process is spawned, on that path.",
+          "In a new-layout repo with no runtime installed, `deft-hook` blocks with project `npm install` / `pnpm install` text and never prints `npm i -g @deftai/directive` or `install --repair`.",
+          "A new-layout repo with the runtime installed behaves as today, except a non-zero hook-bin exit on Claude/Codex `tool.before` becomes exit 2.",
+          "`deft hook:dispatch` in an old repo blocks the same way.",
+          "`readPin().oldStyle`, upgrade admission and install refusal are unchanged (existing tests green).",
+          "The recogniser is one exported function in `legacy-shapes/` with its own tests.",
+          "one changelog fragment changelog.d/5960-old-repo-hook-blocks.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/legacy-shapes/pre-ovpr.ts",
+          "packages/cli/src/legacy-shapes/pre-ovpr.test.ts",
+          "packages/cli/src/legacy-shapes/index.ts",
+          "packages/cli/src/hook-block.ts",
+          "packages/cli/src/hook-launcher.ts",
+          "packages/cli/src/hook-launcher.test.ts",
+          "packages/cli/src/launcher.ts",
+          "packages/cli/src/launcher-smoke.test.ts",
+          "packages/cli/src/constants.ts",
+          "packages/cli/src/fixtures/pre-ovpr/**",
+          "changelog.d/5960-old-repo-hook-blocks.md"
+        ],
+        "module_boundary": "The launcher package only (packages/cli): a message-only recogniser in legacy-shapes/, a small block renderer, the deft-hook path in hook-launcher.ts, and one hook:dispatch routing line in launcher.ts. No core import."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6060535800,
+        "origin": "deftai/directive#5960",
+        "id": "github.issue.6060535800"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "60ff44b9b96e8ddba29f8e3145815157c6e627a4",
+        "prNumber": 6653,
+        "prBase": "master",
+        "mergeCommit": "007c22a88ec87088a11f7aed96c21f9d1ce149ac",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:14:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:14:38Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:14:38Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (15), in order (#6333)",
+      "sentences": [
+        "OVPR launcher: one global launcher cannot serve repos on the old layout, so the stale-CLI write gate forces an all-repos upgrade",
+        "Summary A consumer that upgrades one repo to the OVPR layout is then told to install the new launcher globally, but the new launcher refuses ordinary commands in every repo still on the old layout.",
+        "On a machine with many Directive repos this forces upgrading all of them at once, or leaving the upgraded repo's agent write gate red.",
+        "Evidence Measured on a consumer machine with 47 Directive repos (46 on the old vendored / four-package layout, 1 upgraded), global CLI engine 0.125.2 installed with npm.",
+        "After upgrading one repo to 0.127.0 the Edit/Write hook refuses every write with: `stale higher-precedence CLI after upgrade: shell-active deft is engine 0.125.2 at ~/.local/bin/deft, but upgrade target is 0.127.0`.",
+        "The remedy it prints is `npm i -g @deftai/directive@latest`.",
+        "The launcher refuses ordinary commands in a repo on the old layout.",
+        "In a throwaway copy of a pre-upgrade repo, and again in a real old-layout repo: `npx @deftai/directive@0.127.0 verify:encoding --help` and the same with `@0.129.1` print only `This project uses an older Directive layout.",
+        "Run directive upgrade.` 3.",
+        "So the documented remedy for the upgraded repo breaks `deft ...` in the other 46.",
+        "The launcher package also ships only `deft`, `deft-hook` and `directive` bins; 0.125.2 shipped `deft-ts` and `deft-verify-encoding` as well (`npm view @deftai/directive@<v> bin`).",
+        "Not tested: what the launcher's `deft-hook` does inside an old-layout repo, whose agent hooks call `deft-hook`.",
+        "Why it matters Directive repos are rarely upgraded in lockstep.",
+        "Related earlier work: #3233 (detect stale higher-precedence CLI) and the RFC #4730 (remove the global/pin/deposit version triangle) closed; this is the residual case with more than one layout on one machine.",
+        "Suggested fix Any of: let the launcher pass through to a repo's old-layout CLI (or a bundled legacy shim); downgrade the stale-CLI check to a warning when other layouts are present on the machine; or document a per-repo way to choose which `deft` the hooks run."
+      ],
+      "admitted_source_sentences": [
+        "Summary A consumer that upgrades one repo to the OVPR layout is then told to install the new launcher globally, but the new launcher refuses ordinary commands in every repo still on the old layout.",
+        "On a machine with many Directive repos this forces upgrading all of them at once, or leaving the upgraded repo's agent write gate red.",
+        "Evidence Measured on a consumer machine with 47 Directive repos (46 on the old vendored / four-package layout, 1 upgraded), global CLI engine 0.125.2 installed with npm.",
+        "After upgrading one repo to 0.127.0 the Edit/Write hook refuses every write with: `stale higher-precedence CLI after upgrade: shell-active deft is engine 0.125.2 at ~/.local/bin/deft, but upgrade target is 0.127.0`.",
+        "The remedy it prints is `npm i -g @deftai/directive@latest`.",
+        "The launcher refuses ordinary commands in a repo on the old layout.",
+        "In a throwaway copy of a pre-upgrade repo, and again in a real old-layout repo: `npx @deftai/directive@0.127.0 verify:encoding --help` and the same with `@0.129.1` print only `This project uses an older Directive layout.",
+        "Run directive upgrade.` 3.",
+        "So the documented remedy for the upgraded repo breaks `deft ...` in the other 46.",
+        "The launcher package also ships only `deft`, `deft-hook` and `directive` bins; 0.125.2 shipped `deft-ts` and `deft-verify-encoding` as well (`npm view @deftai/directive@<v> bin`).",
+        "Not tested: what the launcher's `deft-hook` does inside an old-layout repo, whose agent hooks call `deft-hook`.",
+        "Why it matters Directive repos are rarely upgraded in lockstep.",
+        "Related earlier work: #3233 (detect stale higher-precedence CLI) and the RFC #4730 (remove the global/pin/deposit version triangle) closed; this is the residual case with more than one layout on one machine.",
+        "Suggested fix Any of: let the launcher pass through to a repo's old-layout CLI (or a bundled legacy shim); downgrade the stale-CLI check to a warning when other layouts are present on the machine; or document a per-repo way to choose which `deft` the hooks run."
+      ],
+      "admitted_source_digest": "780bdea9eafa2a98d746d14824e2e3ecb020e5e6acbb6d5753acfb7f6a330a47",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "OVPR launcher: one global launcher cannot serve repos on the old layout, so the stale-CLI write gate forces an all-repos upgrade",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary A consumer that upgrades one repo to the OVPR layout is then told to install the new launcher globally, but the new launcher refuses ordinary commands in every repo still on the old layout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "On a machine with many Directive repos this forces upgrading all of them at once, or leaving the upgraded repo's agent write gate red.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Evidence Measured on a consumer machine with 47 Directive repos (46 on the old vendored / four-package layout, 1 upgraded), global CLI engine 0.125.2 installed with npm.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "After upgrading one repo to 0.127.0 the Edit/Write hook refuses every write with: `stale higher-precedence CLI after upgrade: shell-active deft is engine 0.125.2 at ~/.local/bin/deft, but upgrade target is 0.127.0`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The remedy it prints is `npm i -g @deftai/directive@latest`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The launcher refuses ordinary commands in a repo on the old layout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "In a throwaway copy of a pre-upgrade repo, and again in a real old-layout repo: `npx @deftai/directive@0.127.0 verify:encoding --help` and the same with `@0.129.1` print only `This project uses an older Directive layout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Run directive upgrade.` 3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "So the documented remedy for the upgraded repo breaks `deft ...` in the other 46.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The launcher package also ships only `deft`, `deft-hook` and `directive` bins; 0.125.2 shipped `deft-ts` and `deft-verify-encoding` as well (`npm view @deftai/directive@<v> bin`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Not tested: what the launcher's `deft-hook` does inside an old-layout repo, whose agent hooks call `deft-hook`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Why it matters Directive repos are rarely upgraded in lockstep.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Related earlier work: #3233 (detect stale higher-precedence CLI) and the RFC #4730 (remove the global/pin/deposit version triangle) closed; this is the residual case with more than one layout on one machine.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Suggested fix Any of: let the launcher pass through to a repo's old-layout CLI (or a bundled legacy shim); downgrade the stale-CLI check to a warning when other layouts are present on the machine; or document a per-repo way to choose which `deft` the hooks run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "id": "github.issue.6060535800",
+    "updated": "2026-11-19T16:14:38Z"
+  }
+}

@@ -1,0 +1,626 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6002",
+    "updated": "2026-11-19T16:36:25Z"
+  },
+  "plan": {
+    "title": "Legacy upgrade deletes .deft/core on a dirty tree without warning (successor to #4158)",
+    "status": "completed",
+    "narratives": {
+      "Description": "OVPR fix plan unit P2-U6, second brief (story id ovpr-p2-u6b), spec units/P2-U6-upgrade-task-works-and-is-honest.md and drafts/RC-03.md, issues #6002 and #6022. Split from the P2-U6 brief because its file list lacks the new test file and the evaluator-surface disclosure file, and briefs cannot be widened. Part 1 (#6002, RC-03, approved D-030): when upgrade converts an old-layout project, the plan lists the files Git reports as modified or untracked under .deft/core (the first 20, then a count), with no prompt, no refusal and no exit-code change. Part 2 (#6022 cleanup): the root Taskfile.yml `upgrade` and `uninstall` alias descriptions say the task is retired and name the `directive` command, and the stale comment naming `install-upgrade` is removed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6002",
+      "Overview": "## Summary\n`directive upgrade` from the legacy layout deletes `.deft/core` on a dirty tree without any warning. Uncommitted local edits there are lost, and git can't bring them back. #4158 (closed) covered \"refuse dirty consumer upgrades before writes\" for the old `deft update`.\n\n## Steps / Actual\n0.126.2 deposit with 149 uncommitted paths (the whole fresh deposit). The commit was blocked by the old hooks once the global launcher was 0.127 (see #5960). `directive upgrade --yes` → plan says \"remove the copied .deft/core tree (including any local edits there)\", with no mention of uncommitted changes, and proceeds. Exit 0.\n\n## Expected\nWarn (or require explicit approval) when the tree is dirty, especially for the paths about to be deleted. In non-interactive mode with `--yes`, at minimum list the uncommitted paths that will be removed.\n\n## Root cause\n- Cause: the OVPR upgrade plan presents a generic removal note and does not inspect git status before deleting the legacy tree.\n- Evidence: upgrade plan and output (upgrade log); #4158 precedent.\n- Confidence: likely (behavior confirmed; plan code not read).\n- Checked: upgrade on a dirty tree.\n\nRefs #4158\n\n## Environment\n- Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag\n- Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`)\n- Shells: Git Bash, PowerShell 7, cmd.exe. Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs. Throwaway fixture repos.\n\n",
+      "Labels": "adoption-blocker, urgent, area:installer, core-capabilities, promise:lifecycle",
+      "StoryId": "ovpr-p2-u6b (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U6-upgrade-task-works-and-is-honest.md and ~/Projects/directive-ovpr-planning-202611/drafts/RC-03.md (read both in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "Part 1 (#6002): the upgrade bookend (packages/cli/src/bookends.ts) runs `git status --porcelain -- .deft/core` read-only before the plan is shown, only for old-layout conversion. packages/cli/src/plan-present.ts lists the reported paths under the existing removal line (the first 20, then a count of the rest), in both the human and the keyed plan output. Not a Git repo, Git missing, or nothing reported: no list, plan unchanged. Test in packages/cli/src/upgrade-deft-core-edits.test.ts; fragment changelog.d/6002-upgrade-lists-deft-core-edits.md. Part 2 (#6022): in the root Taskfile.yml, change the `upgrade` and `uninstall` alias `desc` lines to say the task is retired and name `directive upgrade` / `directive uninstall`; delete the stale comment block above `upgrade` that names `install-upgrade`. Taskfile.yml is an evaluator surface, so add the disclosure record in xbrief/evaluator-surface-disposition.json.",
+      "Constraint": "- #6002: list only. No prompt, no refusal, no exit-code change, no clean-tree requirement; `--yes` still approves the plan (RC-03 option B; AC5.3, AC5.13).\n- The Git read is read-only. Do not stash, commit, reset or change anything in the user's Git state.\n- Do not merge the #6002 change before RC-03's docs PR (AC10.6 and the requirements section A9 mitigation cell) has merged (D-030).\n- Do not make `task upgrade` or `task uninstall` run `directive` (or anything else). Retired names are not redirected (AC13.6).\n- Do not add a new verb, flag or upgrade path.\n- Do not edit the P2-U6 brief.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on P2-U6 (plan.id github.issue.6142058296; its first PR #6661 for #6022 is in the merge queue). The #6002 part also depends on requirements change RC-03 (approved by polfer, D-030): its docs-only PR #6630 must merge before this code merges. Blocks: none.",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #6002 (RC-03 option B). Refs #6022 (Taskfile.yml alias cleanup left over from P2-U6's first PR).",
+      "UserStory": "As a person upgrading an old-layout project, I want the upgrade plan to list the edited or new files Git sees under .deft/core before it deletes that folder, and the retired task aliases to name the directive command, so that I can save my files first and know which command to run."
+    },
+    "items": [
+      {
+        "title": "When upgrade converts an old-layout project, the plan lists the files Git reports as modified or untracked under `.deft/core` (the first 20, then a count of the rest).",
+        "status": "completed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given an old-layout project where Git reports modified or untracked files under `.deft/core`, when `directive upgrade` shows its conversion plan, then the plan lists those files under the `.deft/core` removal line, the first 20 by path and then a count of the rest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The list adds no prompt and no refusal and does not change the exit code; `--yes` still approves the plan and a clean working tree is still not required.",
+        "status": "completed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given the same project, when `directive upgrade --yes` runs, then it asks no extra question, does not refuse, removes `.deft/core` as before, and exits with the same code as without the list."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The Git read is read-only, and when Git reports nothing (or the project is not a Git repo) the plan is unchanged.",
+        "status": "completed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a project where `.deft/core` is clean, ignored, or not in a Git repo, when the conversion plan is shown, then no file list appears and the plan text is unchanged; and in every case the upgrade does not change the Git index, stash or branches."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The root `Taskfile.yml` `upgrade` and `uninstall` alias descriptions say the task is retired and name `directive upgrade` / `directive uninstall`, and no comment there names `install-upgrade`.",
+        "status": "completed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given the root `Taskfile.yml`, when its `upgrade` and `uninstall` aliases are read, then each `desc` says the task is retired and names `directive upgrade` or `directive uninstall`, and the file has no comment naming `install-upgrade`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+          "recorded_at": "2026-11-19T16:36:25Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "urgent",
+      "area:installer",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6002",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6002: Legacy upgrade deletes .deft/core on a dirty tree without warning (successor to #4158)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4158",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4158"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6022",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6022"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (17), in order (#6333)",
+      "sentences": [
+        "Legacy upgrade deletes .deft/core on a dirty tree without warning (successor to #4158)",
+        "Summary `directive upgrade` from the legacy layout deletes `.deft/core` on a dirty tree without any warning.",
+        "Uncommitted local edits there are lost, and git can't bring them back.",
+        "#4158 (closed) covered \"refuse dirty consumer upgrades before writes\" for the old `deft update`.",
+        "Steps / Actual 0.126.2 deposit with 149 uncommitted paths (the whole fresh deposit).",
+        "The commit was blocked by the old hooks once the global launcher was 0.127 (see #5960).",
+        "`directive upgrade --yes` → plan says \"remove the copied .deft/core tree (including any local edits there)\", with no mention of uncommitted changes, and proceeds.",
+        "Exit 0.",
+        "Expected Warn (or require explicit approval) when the tree is dirty, especially for the paths about to be deleted.",
+        "In non-interactive mode with `--yes`, at minimum list the uncommitted paths that will be removed.",
+        "Root cause - Cause: the OVPR upgrade plan presents a generic removal note and does not inspect git status before deleting the legacy tree.",
+        "Evidence: upgrade plan and output (upgrade log); #4158 precedent.",
+        "Confidence: likely (behavior confirmed; plan code not read).",
+        "Checked: upgrade on a dirty tree.",
+        "Refs #4158 ## Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+        "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+        "Throwaway fixture repos."
+      ],
+      "admitted_source_sentences": [
+        "Summary `directive upgrade` from the legacy layout deletes `.deft/core` on a dirty tree without any warning.",
+        "Uncommitted local edits there are lost, and git can't bring them back.",
+        "#4158 (closed) covered \"refuse dirty consumer upgrades before writes\" for the old `deft update`.",
+        "Steps / Actual 0.126.2 deposit with 149 uncommitted paths (the whole fresh deposit).",
+        "The commit was blocked by the old hooks once the global launcher was 0.127 (see #5960).",
+        "`directive upgrade --yes` → plan says \"remove the copied .deft/core tree (including any local edits there)\", with no mention of uncommitted changes, and proceeds.",
+        "Exit 0.",
+        "Expected Warn (or require explicit approval) when the tree is dirty, especially for the paths about to be deleted.",
+        "In non-interactive mode with `--yes`, at minimum list the uncommitted paths that will be removed.",
+        "Root cause - Cause: the OVPR upgrade plan presents a generic removal note and does not inspect git status before deleting the legacy tree.",
+        "Evidence: upgrade plan and output (upgrade log); #4158 precedent.",
+        "Confidence: likely (behavior confirmed; plan code not read).",
+        "Checked: upgrade on a dirty tree.",
+        "Refs #4158 ## Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+        "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+        "Throwaway fixture repos."
+      ],
+      "admitted_source_digest": "4824d7b8cb5101939a3a5e6f8ef600007c8689198b622466f7d212174ce6bf22",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Legacy upgrade deletes .deft/core on a dirty tree without warning (successor to #4158)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 2,
+          "text": "Summary `directive upgrade` from the legacy layout deletes `.deft/core` on a dirty tree without any warning.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "Uncommitted local edits there are lost, and git can't bring them back.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "#4158 (closed) covered \"refuse dirty consumer upgrades before writes\" for the old `deft update`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "Steps / Actual 0.126.2 deposit with 149 uncommitted paths (the whole fresh deposit).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "The commit was blocked by the old hooks once the global launcher was 0.127 (see #5960).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "`directive upgrade --yes` → plan says \"remove the copied .deft/core tree (including any local edits there)\", with no mention of uncommitted changes, and proceeds.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 8,
+          "text": "Exit 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 9,
+          "text": "Expected Warn (or require explicit approval) when the tree is dirty, especially for the paths about to be deleted.",
+          "artifact_path": "packages/cli/src/plan-present.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "In non-interactive mode with `--yes`, at minimum list the uncommitted paths that will be removed.",
+          "artifact_path": "packages/cli/src/plan-present.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Root cause - Cause: the OVPR upgrade plan presents a generic removal note and does not inspect git status before deleting the legacy tree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 12,
+          "text": "Evidence: upgrade plan and output (upgrade log); #4158 precedent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 13,
+          "text": "Confidence: likely (behavior confirmed; plan code not read).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 14,
+          "text": "Checked: upgrade on a dirty tree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 15,
+          "text": "Refs #4158 ## Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 16,
+          "text": "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 17,
+          "text": "Throwaway fixture repos.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "swarm": {
+        "file_scope": [
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/cli/src/upgrade-deft-core-edits.test.ts",
+          "changelog.d/6002-upgrade-lists-deft-core-edits.md",
+          "Taskfile.yml",
+          "xbrief/evaluator-surface-disposition.json",
+          ".deft/intent-constraint/github.issue.6082665470.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6142058296"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/upgrade-deft-core-edits.test.ts"
+        ],
+        "Traces": [
+          "#6002",
+          "#6022"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-dispatch",
+        "expected_outputs": [
+          "When upgrade converts an old-layout project, the plan lists the files Git reports as modified or untracked under `.deft/core` (the first 20, then a count of the rest).",
+          "The list adds no prompt and no refusal and does not change the exit code; `--yes` still approves the plan and a clean working tree is still not required.",
+          "The Git read is read-only, and when Git reports nothing (or the project is not a Git repo) the plan is unchanged.",
+          "The root `Taskfile.yml` `upgrade` and `uninstall` alias descriptions say the task is retired and name `directive upgrade` / `directive uninstall`, and no comment there names `install-upgrade`.",
+          "one changelog fragment changelog.d/6002-upgrade-lists-deft-core-edits.md",
+          "one evaluator-surface disclosure record xbrief/evaluator-surface-disposition.json for the Taskfile.yml change"
+        ],
+        "acceptance_criteria_justification": "Four items: three for the #6002 part (the list, no prompt or refusal, read-only and unchanged when nothing is reported), from RC-03's approved AC10.6 text and P2-U6 option B; one for the root Taskfile.yml part of P2-U6 Fix step 2."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/cli/src/upgrade-deft-core-edits.test.ts",
+          "changelog.d/6002-upgrade-lists-deft-core-edits.md",
+          "Taskfile.yml",
+          "xbrief/evaluator-surface-disposition.json"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "bookends.ts (1751 lines), Taskfile.yml (1504) and plan-present.ts (1106) already exceed the review trigger. This change adds one read-only Git listing, one listed-files block and two alias descriptions; splitting those files is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "### Duplicate / uniqueness triage (2026-10-28)\n\n**Verdict: UNIQUE — keep open (explicit OVPR successor of a closed ticket).**\n\nNot a row in the sealed install-ovpr-problem-ledger-2026-10-23 map.\n\n**Related (not duplicate):**\n- Closed #4158 / fix #4448 — refuse dirty consumer upgrades before writes for old `deft update`\n- Open #5960 — related upgrade friction under mixed layouts (different: stale-CLI write gate / all-repos upgrade pressure)\n\nDo not reopen #4158. Implement the dirty-tree warn/list (or refuse) on `directive upgrade` deleting `.deft/core` under this ticket.\n\n",
+          "id": 6474893165,
+          "html_url": "https://github.com/deftai/directive/issues/6002#issuecomment-6474893165",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-28T16:40:24Z",
+          "updated_at": "2026-10-28T16:40:24Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6082665470,
+        "origin": "deftai/directive#6002",
+        "id": "github.issue.6082665470"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "c7d0e95800d1e0b56b0db75dec91c7ded6942aff",
+        "prNumber": 6685,
+        "prBase": "master",
+        "mergeCommit": "bd0f0128e3f0a70026efaa907173ec493e9e47a6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:36:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6719
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:36:25Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:36:25Z"
+      }
+    },
+    "id": "github.issue.6082665470",
+    "updated": "2026-11-19T16:36:25Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "20",
+          "unit": "numeric-const",
+          "rejectionScope": "operation"
+        }
+      ]
+    }
+  }
+}

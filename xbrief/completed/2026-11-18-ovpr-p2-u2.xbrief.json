@@ -1,0 +1,597 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6001",
+    "updated": "2026-11-19T16:31:44Z"
+  },
+  "plan": {
+    "title": "After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version",
+    "status": "completed",
+    "narratives": {
+      "Description": "OVPR fix plan unit P2-U2 (story id ovpr-p2-u2), spec units/P2-U2-doctor-green-after-old-repo-upgrade.md, issue #6001 (also #6503 item 3), decision D-022. After `directive upgrade` of an old repo, `directive doctor --full` fails `manifest-agreement` on the leftover `xbrief/.deft-version` and advises `deft update`, which loops. Part A makes doctor ignore the marker in OVPR projects (pin present, no .deft/core); Part B makes old-layout conversion delete each version-only marker (`xbrief/.deft-version`, root `.deft-version`, `vbrief/.deft-version`) and list it in the upgrade report.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6001",
+      "Overview": "## Summary\nAfter a successful legacy upgrade (0.126.2 → 0.127.0), doctor fails with `manifest-agreement` because `xbrief/.deft-version` from the old layout is left behind. Uninstall then reinstall doesn't clear it.\n\n## Steps\nExisting app, `directive init` with 0.126.2 (`.deft/core` deposit), commit, `npm i -g @deftai/directive@0.127.0`, `directive upgrade --yes` (exit 0, \"This project now uses Directive 0.127.0\"), then `directive doctor --full`.\n\n## Actual\nExit 1: `✗ manifest-agreement: fail -- Bare .deft-version exists at …/xbrief/.deft-version but YAML manifest is missing at …node_modules\\@deftai\\directive-runtime…`. The header still says `directive doctor: in sync`. Still present after `directive uninstall` + `directive install`.\n\n## Expected\nUpgrade retires or migrates the legacy marker, or the check ignores it under OVPR.\n\n## Root cause\n- Cause: the upgrade's legacy removal covers `.deft/core` but not `xbrief/.deft-version`, and the core `manifest-agreement` check still treats a bare `.deft-version` as an install manifest when there is no `.deft/core`.\n- Evidence: doctor output; the file remains after upgrade, uninstall and reinstall.\n- Confidence: likely (behavior confirmed; check source not read).\n- Checked: upgrade, doctor, uninstall, reinstall, doctor.\n\n## Environment\n- Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag\n- Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`)\n- Shells: Git Bash, PowerShell 7, cmd.exe. Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs. Throwaway fixture repos.\n\n",
+      "Labels": "adoption-blocker, area:installer, triaged, core-capabilities, promise:lifecycle",
+      "UserStory": "As a developer who upgraded an old Directive repo, I want doctor to stop failing on the leftover .deft-version marker and the upgrade to remove that marker, so that a supported upgrade ends with a green doctor and no loop of advice.",
+      "StoryId": "ovpr-p2-u2 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U2-doctor-green-after-old-repo-upgrade.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "Part A (doctor): 1. In packages/core/src/doctor/checks.ts checkManifestAgreement, add an OVPR branch first: when package.json has a @deftai/directive-runtime dependency and .deft/core does not exist, return skip (or pass) with a detail that names the pin as the version authority (AC1.6), put the leftover paths in data.legacy_markers, and name no `deft update`. Reuse an existing pin reader. 2. Repos that still have .deft/core keep today's behaviour. Doctor writes nothing.\nPart B (D-022, upgrade only): 3. packages/runtime/src/removal-steps/steps.ts: add removeLegacyBareVersionMarkers(root): for each bareVersionMarkerTargets path, remove it only when it is a regular file whose trimmed content is a single version string; return removed paths. 4. Run it in runSetup's old-style branch (setup.ts) next to the .deft/core removal and in every convert strategy that removes copied core (strategies.ts), upgrade only, never repair, uninstall or doctor; removed paths flow into the upgrade report. 5. Before deleting the root marker, confirm its four other readers (paths.ts:24, payload-staleness.ts:181, resolve-version.ts:75, deposit-sha.ts:91) are copy-model only; if any OVPR path still needs it, stop and report. 6. installer-output-inventory.ts: add a `bare-version-marker` entry with disposition na-retired-copy-model and an AC8.10 justification.\n7. Settle the leftover .deft-version handling here; P2-U12 (#6562) PR 2 later removes the linked-worktree branch of the same check. 8. Tests per the spec; P1-U3 fixture assertions if it has merged. Changelog fragment changelog.d/6001-doctor-ignores-old-version-markers.md.\nScope: Five production files: Part A is checks.ts; Part B is steps.ts, strategies.ts, setup.ts and installer-output-inventory.ts. One PR, or two (A then B).",
+      "Constraint": "- Do not make doctor write, delete or \"fix\" anything (AC8.8, AC12.1).\n- Do not advise `deft update`, `directive update` or `install --repair` for a leftover marker under OVPR (AC12.7).\n- Do not delete anything else under `xbrief/` or `vbrief/`. Do not delete a marker whose content is not a bare version.\n- Do not start writing `.deft-version` again anywhere (AC1.6).\n- Do not change uninstall to remove `xbrief/` content (AC11.7). Marker removal runs on upgrade only, never repair, uninstall or doctor (D-022).\n- Keep the doctor change local to `checkManifestAgreement`.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: P2-U12 (#6562) PR 2 follows this unit's .deft-version handling. Decision D-022 (upgrade deletes version-only markers; doctor ignores them).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #6001. Same failure as #6503 item 3."
+    },
+    "items": [
+      {
+        "title": "After `directive upgrade --yes` on a 0.126.2-layout repo, `directive doctor --full` reports no `manifest-agreement` failure, and exit status is 0 if nothing else is wrong (AC14.29).",
+        "status": "completed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a 0.126.2-layout repo, when `directive upgrade --yes` runs and then `directive doctor --full` runs, then `manifest-agreement` does not fail and doctor exits 0 when nothing else is wrong."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "In an OVPR repo that still has `xbrief/.deft-version` (converted by an older release, or reinstalled after uninstall), doctor does not fail on it and does not advise `deft update` or `directive update`.",
+        "status": "completed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given an OVPR repo with a runtime pin, no `.deft/core` and a leftover `xbrief/.deft-version`, when `directive doctor` runs, then `manifest-agreement` does not fail and its output does not contain `deft update` or `directive update`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "In a repo that still has `.deft/core`, `manifest-agreement` behaves as before.",
+        "status": "completed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a pre-conversion repo that still has `.deft/core`, when `directive doctor` runs, then `manifest-agreement` returns the same status and detail as before this change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Doctor writes nothing (snapshot before/after unchanged).",
+        "status": "completed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a project snapshot, when `directive doctor` runs, then the snapshot after the run is byte-identical to the one before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Conversion removes `xbrief/.deft-version`, `vbrief/.deft-version` and root `.deft-version` when each holds only a version string. The upgrade report lists them. Other files are untouched.",
+        "status": "completed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given an old-layout repo with version-only `xbrief/.deft-version`, `vbrief/.deft-version` and root `.deft-version`, when `directive upgrade --yes` runs, then each marker is deleted and listed in the upgrade report, a marker with other content is kept, and no other file changes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The AC8.10 inventory has a `bare-version-marker` entry.",
+        "status": "completed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given `packages/runtime/src/installer-output-inventory.ts`, when the inventory is read, then it has a `bare-version-marker` entry with disposition `na-retired-copy-model`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+          "recorded_at": "2026-11-19T16:31:44Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "area:installer",
+      "triaged",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6001",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6001: After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6503",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6503"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6562",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6562"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (15), in order (#6333)",
+      "sentences": [
+        "After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version",
+        "Summary After a successful legacy upgrade (0.126.2 → 0.127.0), doctor fails with `manifest-agreement` because `xbrief/.deft-version` from the old layout is left behind.",
+        "Uninstall then reinstall doesn't clear it.",
+        "Steps Existing app, `directive init` with 0.126.2 (`.deft/core` deposit), commit, `npm i -g @deftai/directive@0.127.0`, `directive upgrade --yes` (exit 0, \"This project now uses Directive 0.127.0\"), then `directive doctor --full`.",
+        "Actual Exit 1: `✗ manifest-agreement: fail -- Bare .deft-version exists at …/xbrief/.deft-version but YAML manifest is missing at …node_modules\\@deftai\\directive-runtime…`.",
+        "The header still says `directive doctor: in sync`.",
+        "Still present after `directive uninstall` + `directive install`.",
+        "Expected Upgrade retires or migrates the legacy marker, or the check ignores it under OVPR.",
+        "Root cause - Cause: the upgrade's legacy removal covers `.deft/core` but not `xbrief/.deft-version`, and the core `manifest-agreement` check still treats a bare `.deft-version` as an install manifest when there is no `.deft/core`.",
+        "Evidence: doctor output; the file remains after upgrade, uninstall and reinstall.",
+        "Confidence: likely (behavior confirmed; check source not read).",
+        "Checked: upgrade, doctor, uninstall, reinstall, doctor.",
+        "Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+        "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+        "Throwaway fixture repos."
+      ],
+      "admitted_source_sentences": [
+        "Summary After a successful legacy upgrade (0.126.2 → 0.127.0), doctor fails with `manifest-agreement` because `xbrief/.deft-version` from the old layout is left behind.",
+        "Uninstall then reinstall doesn't clear it.",
+        "Steps Existing app, `directive init` with 0.126.2 (`.deft/core` deposit), commit, `npm i -g @deftai/directive@0.127.0`, `directive upgrade --yes` (exit 0, \"This project now uses Directive 0.127.0\"), then `directive doctor --full`.",
+        "Actual Exit 1: `✗ manifest-agreement: fail -- Bare .deft-version exists at …/xbrief/.deft-version but YAML manifest is missing at …node_modules\\@deftai\\directive-runtime…`.",
+        "The header still says `directive doctor: in sync`.",
+        "Still present after `directive uninstall` + `directive install`.",
+        "Expected Upgrade retires or migrates the legacy marker, or the check ignores it under OVPR.",
+        "Root cause - Cause: the upgrade's legacy removal covers `.deft/core` but not `xbrief/.deft-version`, and the core `manifest-agreement` check still treats a bare `.deft-version` as an install manifest when there is no `.deft/core`.",
+        "Evidence: doctor output; the file remains after upgrade, uninstall and reinstall.",
+        "Confidence: likely (behavior confirmed; check source not read).",
+        "Checked: upgrade, doctor, uninstall, reinstall, doctor.",
+        "Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+        "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+        "Throwaway fixture repos."
+      ],
+      "admitted_source_digest": "df87dd539302d973ab7acea13fcca02c1150a65107c6b0634a443b4ff6707976",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary After a successful legacy upgrade (0.126.2 → 0.127.0), doctor fails with `manifest-agreement` because `xbrief/.deft-version` from the old layout is left behind.",
+          "artifact_path": "packages/core/src/doctor/checks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "Uninstall then reinstall doesn't clear it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Steps Existing app, `directive init` with 0.126.2 (`.deft/core` deposit), commit, `npm i -g @deftai/directive@0.127.0`, `directive upgrade --yes` (exit 0, \"This project now uses Directive 0.127.0\"), then `directive doctor --full`.",
+          "artifact_path": "packages/core/src/doctor/checks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "Actual Exit 1: `✗ manifest-agreement: fail -- Bare .deft-version exists at …/xbrief/.deft-version but YAML manifest is missing at …node_modules\\@deftai\\directive-runtime…`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "The header still says `directive doctor: in sync`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Still present after `directive uninstall` + `directive install`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Expected Upgrade retires or migrates the legacy marker, or the check ignores it under OVPR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Root cause - Cause: the upgrade's legacy removal covers `.deft/core` but not `xbrief/.deft-version`, and the core `manifest-agreement` check still treats a bare `.deft-version` as an install manifest when there is no `.deft/core`.",
+          "artifact_path": "packages/core/src/doctor/checks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 10,
+          "text": "Evidence: doctor output; the file remains after upgrade, uninstall and reinstall.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Confidence: likely (behavior confirmed; check source not read).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Checked: upgrade, doctor, uninstall, reinstall, doctor.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Environment - Directive 0.127.0 (`@deftai/directive` launcher + `@deftai/directive-runtime`), `latest` dist-tag - Windows 11 Pro 10.0.26200, Node 24.20.0, npm 11.19.0, pnpm 10.33.2, Git for Windows (system gitconfig `core.autocrlf=true`) - Shells: Git Bash, PowerShell 7, cmd.exe.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Isolated npm prefix/cache; registry = local Verdaccio proxying npmjs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Throwaway fixture repos.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/doctor/checks.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/runtime/src/removal-steps/strategies.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/installer-output-inventory.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/cli/src/legacy-conversion.test.ts",
+          "changelog.d/6001-doctor-ignores-old-version-markers.md"
+        ],
+        "module_boundary": "Doctor manifest-agreement check (Part A) and a new upgrade removal step for version-only markers in packages/runtime/src/removal-steps (Part B). Uninstall and repair unchanged.",
+        "cohesion_exemption": "packages/core/src/doctor/checks.ts (2259 lines) already exceeds the review trigger. This fix adds one early branch to checkManifestAgreement; splitting the file is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "### Duplicate / uniqueness triage (2026-10-28)\n\n**Verdict: UNIQUE — keep open.**\n\nNot in the sealed install-ovpr-problem-ledger-2026-10-23 Problems 1–33 ticket map.\n\n**Related (not duplicate):**\n- Closed #2055 / #1437 / #5390 — historical `.deft-version` / manifest-agreement classes under the vendored-core model\n\nThis is the OVPR legacy-upgrade residual: `xbrief/.deft-version` left after 0.126.2 → 0.127.0 upgrade (and survives uninstall+reinstall) so doctor `manifest-agreement` fails while header may still say in sync. Keep.\n\n",
+          "id": 6474892801,
+          "html_url": "https://github.com/deftai/directive/issues/6001#issuecomment-6474892801",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-28T16:40:23Z",
+          "updated_at": "2026-10-28T16:40:23Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6082665123,
+        "origin": "deftai/directive#6001",
+        "id": "github.issue.6082665123"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/doctor/checks.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/runtime/src/removal-steps/strategies.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/installer-output-inventory.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/runtime/src/removal-steps/removal-steps.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/cli/src/legacy-conversion.test.ts",
+          "changelog.d/6001-doctor-ignores-old-version-markers.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor packages/runtime/src/removal-steps packages/cli/src/legacy-conversion.test.ts"
+        ],
+        "Traces": [
+          "#6001",
+          "#6503",
+          "#6562"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-setup",
+        "expected_outputs": [
+          "After `directive upgrade --yes` on a 0.126.2-layout repo, `directive doctor --full` reports no `manifest-agreement` failure, and exit status is 0 if nothing else is wrong (AC14.29).",
+          "In an OVPR repo that still has `xbrief/.deft-version` (converted by an older release, or reinstalled after uninstall), doctor does not fail on it and does not advise `deft update` or `directive update`.",
+          "In a repo that still has `.deft/core`, `manifest-agreement` behaves as before.",
+          "Doctor writes nothing (snapshot before/after unchanged).",
+          "Conversion removes `xbrief/.deft-version`, `vbrief/.deft-version` and root `.deft-version` when each holds only a version string. The upgrade report lists them. Other files are untouched.",
+          "The AC8.10 inventory has a `bare-version-marker` entry.",
+          "one changelog fragment changelog.d/6001-doctor-ignores-old-version-markers.md"
+        ],
+        "acceptance_criteria_justification": "Six items: the six acceptance criteria of unit spec P2-U2, one each. Items 5 and 6 are Part B, decided by D-022 (upgrade deletes the version-only markers)."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "242e73ac8a1d29d2d4e80ac1b4f184fcfd793a09",
+        "prNumber": 6675,
+        "prBase": "master",
+        "mergeCommit": "88df345db8d4555f8bf197eaa64aeaf43a6519ed",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:31:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:31:44Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:31:44Z"
+      }
+    },
+    "id": "github.issue.6082665123",
+    "updated": "2026-11-19T16:31:44Z"
+  }
+}

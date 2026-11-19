@@ -1,0 +1,728 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5976",
+    "updated": "2026-11-19T16:25:09Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push",
+    "status": "completed",
+    "narratives": {
+      "Description": "OVPR fix plan unit P2-U1 (story id ovpr-p2-u1), spec units/P2-U1-upgrade-refreshes-git-hooks-and-restores-brief-gates.md, issues #5808 and #5976 (items 1-4), decisions D-021 and D-023. The 0.127 git-hook templates dropped the 0.126 pre-commit brief gates and the refspec-aware pre-push, and since 0.129.0 setup keeps any committed hook that differs from the template, so the fix never reaches customers. U1a restores the templates (pre-commit gates; pre-push = `preflight-gh --pre-push-stdin` only, #5804 marker removed); U1b makes every setup path replace Directive-shaped hooks, edited or not, and name each one, and doctor probes pre-push. Both PRs ship in one release.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5976",
+      "Overview": "## Summary\n\nUpgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push\n\n## Context\n\nConsumer project on the package layout (runtime pin in package.json), upgraded with `directive upgrade --yes` and `directive install --repair --yes` across 0.125.2, 0.127.0 and 0.129.x. Observed in disposable clones of a real consumer; source checked on master at 61152d8.\n\n## Expected behavior\n\nAfter a normal upgrade or repair, every recommended Directive git hook is in its current recommended form, or the output says plainly which hooks were kept and which gates are therefore off. Doctor reports hooks that are not in the recommended state, including pre-push.\n\n## Actual behavior / gap\n\n1. Setup keeps any tracked managed hook whose body differs from the template unless `--force-githooks` is passed (setup-wiring.ts, kept-hook text). Consumer hooks are tracked, and neither `directive upgrade` nor `directive install --repair` passes that flag; only the runtime contract entry reads it (contract-entry.ts).\n2. The kept-hook disclosure never reaches the upgrade or repair output. The 'Review and commit' list does not mention kept hooks.\n3. Result on the common 0.127 to 0.129 path: the pre-push hook keeps the old body without the bound pre-PR marker, and a product push is admitted. The bound pre-PR gate is silently off.\n4. Doctor's wiring probe covers pre-commit and the run helper but not pre-push (install-health/wiring.ts, WIRING_PROBE_RELS), so doctor output on a stale pre-push is identical to a correctly wired project.\n5. Doctor has only pass/fail: a host hook file disabled by policy is reported as a wiring FAIL, and the printed remedy for a legacy pre-commit (`directive install --repair`) does not change it, so following the remedy loops.\n\n## Session notes\n\nShared root cause: hook body ownership on upgrade/repair. Related, not duplicates: #5808 (0.127 templates drop gates), #5885 (closed; self-repair disclosure only), #5947 (pin bump leaves deposit stale), #5956 (sequence point for hook generation). Suggested direction: refresh hooks whose body is a known shipped body, print updated/kept per hook, probe pre-push in doctor, and add an advisory tier for hooks not in the recommended state.\n\nFiled for @MScottAdams\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "Labels": "bug, consumer-example, doctor, area:installer, design-critique:mechanism-shaped, framework-gap",
+      "UserStory": "As a developer on a Directive project, I want the deposited git hooks to run the 0.126 brief gates at commit and the refspec-aware check at push, and I want install, upgrade, repair and automatic setup to replace old or edited Directive hooks, so that a broken brief or a push to the default branch is stopped again in every project.",
+      "StoryId": "ovpr-p2-u1 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U1-upgrade-refreshes-git-hooks-and-restores-brief-gates.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "Two PRs, both in the release that closes #5808. The spec's 'Update 2026-11-17' banner (D-021, D-023) wins over its body text.\nU1a (templates):\n1. packages/runtime/src/setup-wiring.ts PRE_COMMIT: restore the 0.126.2 checks under run_directive: verify:branch, verify:encoding --staged, verify:forward-coverage --staged, then, only when \"$REPO_ROOT/xbrief\" or \"$REPO_ROOT/vbrief\" is a directory at run time, verify:vbrief-conformance --staged and verify:xbrief-drift --staged; each line ends `|| exit $?`.\n2. PRE_PUSH (D-021): `run_directive preflight-gh --pre-push-stdin --project-root \"$REPO_ROOT\"` only, stdin passed through. Drop verify:branch and pre-pr:run --push-admit; remove the deft:pre-pr-bound-push-v1 marker and the refuse-to-downgrade logic in ensureGitHooks.\n3. packages/core/src/verify-env/verify-hooks-installed.ts: command lists match the new templates.\n4. Do not edit this repo's .githooks/* (DOGFOOD). branch_gate.test.ts checks the template in setup-wiring.ts, not the repo copy.\nU1b (refresh, D-023):\n5. ensureGitHooks: remove #5859's keep-any-differing (tracked-divergent / preserved) branch. A Directive-shaped hook, old or edited, is replaced and named: \"Updated `<path>`; your earlier version is in git history.\" A hook that is not Directive-shaped stays a named conflict (INIT-18, AC8.3), untouched. No KNOWN_SHIPPED_GITHOOK_BODIES list and no `preserved` result. Remove the old _deft-run.sh when no remaining hook sources it.\n6. Install, repair, upgrade and uninstall list every git hook they will write, replace or remove in the plan (confirm unless --yes; --dry-run reports it). Automatic setup refreshes hooks with no approval and names them in its output. Retire forceGitHooks / --force-githooks.\n7. setup.ts ownership record fingerprints only bodies Directive wrote; plan-present.ts shows the hook lines; install-health/wiring.ts adds .githooks/pre-push to WIRING_PROBE_RELS.\n8. Tests per the spec (tracked-hooks rewrite, legacy hooks committed before setup, CRLF, behaviour test for pre-commit and pre-push, bookend output, wiring probe, branch_gate, verify-hooks-installed). Add the P1-U3 fixture assertions if P1-U3 has merged.\n9. Changelog fragments changelog.d/5808-git-hooks-restore-brief-gates.md (U1a) and changelog.d/5976-setup-replaces-directive-git-hooks.md (U1b). Tell Scott about the pre-push default (D-021: told, not asked) and the preflight-gh raw-stdin gap.\nScope: Two PRs in one release. U1a: setup-wiring.ts (templates, marker branch), verify-hooks-installed.ts, branch_gate.test.ts, verify-hooks-installed.test.ts, 5808 fragment. U1b: setup-wiring.ts (ensureGitHooks, disclosure text), setup.ts, contract-entry.ts, plan-present.ts, install-health/wiring.ts, the setup-wiring tracked/legacy tests, wiring.test.ts, upgrade-bookend.test.ts, 5976 fragment. If listing hooks in the uninstall plan (D-023) needs a file outside this list, split it into its own PR within the 5-file cap and report.",
+      "Constraint": "- Do not follow the 10-23 \"Prefer-A Bound / Recut-1…5\" comments on #5808; polfer's Locked body forbids re-running the design.\n- Do not ship the template change without U1b in the same release.\n- Do not overwrite a hook that is not Directive-shaped (INIT-18 / AC8.3 conflict path stays).\n- Do not make the template depend on a help-probe of the pinned runtime.\n- Do not touch `packages/core/src/hooks/dispatcher.ts` or the logic inside `evaluateEnrolledBoundPrePrPush` (Scott's). This unit only chooses which verb the deposited hook calls.\n- Do not edit this repo's `.githooks/*` by hand to \"match tip\" (DOGFOOD).\n- Do not require a pin-bump PR to carry refreshed hooks (AC14.10, Rule 1).\n- Do not add `KNOWN_SHIPPED_GITHOOK_BODIES` or a `preserved` (keep-and-report) result; D-023 replaces edited Directive hooks.\n- U1b must not merge before P2-U14 (D-026) and P2-U13 (#6571).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: P2-U13 (#6571, brief github.issue.6452158147; must merge first, D-012) and P2-U14 (#6616; U1b must not merge before it, D-026). Soft: P2-U0 (ownership record). Decisions D-021 (pre-push parity, bound pre-PR default is Scott's policy) and D-023 (every setup path replaces Directive hooks, edited or not). Blocks: none hard; P1-U3 gets new assertions.",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #5808 and #5976 (items 1-4) when U1a and U1b are released. #5976 item 5 moves to #5967. Primary issue for this brief is #5976: `issue:ingest 5808` is refused by an old design-critique Target-digest on #5808 (stale-target), and D-008 rules out a new ARC."
+    },
+    "items": [
+      {
+        "title": "A fresh `directive install` writes pre-commit with `verify:branch`, `verify:encoding`, `verify:forward-coverage`, and the directory-guarded `verify:vbrief-conformance` + `verify:xbrief-drift`, all through `run_directive`.",
+        "status": "completed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given an empty project, when `directive install` runs, then `.githooks/pre-commit` calls `verify:branch`, `verify:encoding`, `verify:forward-coverage` and, guarded by an `xbrief/` or `vbrief/` directory test, `verify:vbrief-conformance` and `verify:xbrief-drift`, all through `run_directive`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Pre-push runs `preflight-gh --pre-push-stdin` with stdin as its only check (D-021) and refuses a push whose remote ref is a default branch, even when the current checkout is a feature branch. No #5804 marker or refuse-to-downgrade logic remains.",
+        "status": "completed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a fresh install on a feature branch, when `git push` targets `HEAD:refs/heads/main`, then the pre-push hook runs only `preflight-gh --pre-push-stdin` with stdin and rejects the push; the deposited hook has no `deft:pre-pr-bound-push-v1` marker."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "`directive upgrade` from a committed 0.126.2 layout replaces all three tracked hooks and removes `_deft-run.sh`. The new hooks run the pinned runtime (`node_modules/@deftai/directive-runtime/dist/bin.js`), not a global `deft` (AC9.9, AC14.29).",
+        "status": "completed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a repo with committed 0.126.2 hooks, when `directive upgrade --yes` runs, then all three hooks are replaced, `_deft-run.sh` is deleted, and the hooks call `node_modules/@deftai/directive-runtime/dist/bin.js`, not a global `deft`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "`directive upgrade` or `directive install --repair` on a repo with committed 0.127.0 or 0.129.x hooks replaces them with the current templates.",
+        "status": "completed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a repo with committed 0.127.0 or 0.129.x hooks, when `directive upgrade` or `directive install --repair` runs, then each hook file is replaced with the current template bytes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A committed Directive-shaped hook that was edited is replaced with the template (D-023, AC8.3), and the output names it: \"Updated `<path>`; your earlier version is in git history.\" Install, repair, upgrade and uninstall list every git hook they will write, replace or remove in the plan (confirm unless `--yes`; `--dry-run` reports it). The exit code is 0.",
+        "status": "completed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given a committed Directive-shaped hook with one extra line, when `directive install --repair` or `directive upgrade` runs, then the plan lists the hook, the hook is replaced with the template, the output prints \"Updated `<path>`; your earlier version is in git history.\", and the command exits 0; with `--dry-run` the plan lists it and no file changes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A foreign hook (for example prettier-only) is never overwritten. The conflict behaviour is unchanged.",
+        "status": "completed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given a foreign (not Directive-shaped) `.githooks/pre-commit`, when install, repair, upgrade or automatic setup runs, then the file stays byte-identical and setup reports the same named conflict as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Automatic setup (AC8.6) refreshes Directive's git hooks with the rest of the wiring, with no approval, and names each hook it updated in its output (D-023).",
+        "status": "completed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given a pin-only bump on a repo with committed 0.129.x hooks, when automatic setup runs on the first tool or hook call, then it replaces the hooks with the current templates without a prompt and its output names each updated hook."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Doctor inspects `.githooks/pre-push`.",
+        "status": "completed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given a repo whose `.githooks/pre-push` is missing or not Directive-shaped, when `directive doctor` runs, then its wiring check reports `.githooks/pre-push`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The ownership record never claims a hook body that Directive did not write.",
+        "status": "completed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given setup has run, when `.deft/GENERATION.json` is read, then each `.githooks/*` fingerprint equals the bytes Directive wrote in that run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "No user-facing text mentions `--force-githooks`.",
+        "status": "completed",
+        "id": "ac.10",
+        "narrative": {
+          "Acceptance": "Given the shipped runtime and launcher sources, when they are searched for `--force-githooks` in user-facing text, then the search returns no match."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75ab46970e37d6916b873824ba53508c1154a3aa",
+          "recorded_at": "2026-11-19T16:25:09Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "consumer-example",
+      "doctor",
+      "area:installer",
+      "design-critique:mechanism-shaped",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5976",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5976: [framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5808",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5808"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5967",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5967"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5837",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5837"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (18), in order (#6333)",
+      "sentences": [
+        "[framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push",
+        "Summary Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push ## Context Consumer project on the package layout (runtime pin in package.json), upgraded with `directive upgrade --yes` and `directive install --repair --yes` across 0.125.2, 0.127.0 and 0.129.x.",
+        "Observed in disposable clones of a real consumer; source checked on master at 61152d8.",
+        "Expected behavior After a normal upgrade or repair, every recommended Directive git hook is in its current recommended form, or the output says plainly which hooks were kept and which gates are therefore off.",
+        "Doctor reports hooks that are not in the recommended state, including pre-push.",
+        "Actual behavior / gap 1.",
+        "Setup keeps any tracked managed hook whose body differs from the template unless `--force-githooks` is passed (setup-wiring.ts, kept-hook text).",
+        "Consumer hooks are tracked, and neither `directive upgrade` nor `directive install --repair` passes that flag; only the runtime contract entry reads it (contract-entry.ts).",
+        "The kept-hook disclosure never reaches the upgrade or repair output.",
+        "The 'Review and commit' list does not mention kept hooks.",
+        "Result on the common 0.127 to 0.129 path: the pre-push hook keeps the old body without the bound pre-PR marker, and a product push is admitted.",
+        "The bound pre-PR gate is silently off.",
+        "Doctor's wiring probe covers pre-commit and the run helper but not pre-push (install-health/wiring.ts, WIRING_PROBE_RELS), so doctor output on a stale pre-push is identical to a correctly wired project.",
+        "Doctor has only pass/fail: a host hook file disabled by policy is reported as a wiring FAIL, and the printed remedy for a legacy pre-commit (`directive install --repair`) does not change it, so following the remedy loops.",
+        "Session notes Shared root cause: hook body ownership on upgrade/repair.",
+        "Related, not duplicates: #5808 (0.127 templates drop gates), #5885 (closed; self-repair disclosure only), #5947 (pin bump leaves deposit stale), #5956 (sequence point for hook generation).",
+        "Suggested direction: refresh hooks whose body is a known shipped body, print updated/kept per hook, probe pre-push in doctor, and add an advisory tier for hooks not in the recommended state.",
+        "Filed for @MScottAdams --- _Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._"
+      ],
+      "admitted_source_sentences": [
+        "Summary Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push ## Context Consumer project on the package layout (runtime pin in package.json), upgraded with `directive upgrade --yes` and `directive install --repair --yes` across 0.125.2, 0.127.0 and 0.129.x.",
+        "Observed in disposable clones of a real consumer; source checked on master at 61152d8.",
+        "Expected behavior After a normal upgrade or repair, every recommended Directive git hook is in its current recommended form, or the output says plainly which hooks were kept and which gates are therefore off.",
+        "Doctor reports hooks that are not in the recommended state, including pre-push.",
+        "Actual behavior / gap 1.",
+        "Setup keeps any tracked managed hook whose body differs from the template unless `--force-githooks` is passed (setup-wiring.ts, kept-hook text).",
+        "Consumer hooks are tracked, and neither `directive upgrade` nor `directive install --repair` passes that flag; only the runtime contract entry reads it (contract-entry.ts).",
+        "The kept-hook disclosure never reaches the upgrade or repair output.",
+        "The 'Review and commit' list does not mention kept hooks.",
+        "Result on the common 0.127 to 0.129 path: the pre-push hook keeps the old body without the bound pre-PR marker, and a product push is admitted.",
+        "The bound pre-PR gate is silently off.",
+        "Doctor's wiring probe covers pre-commit and the run helper but not pre-push (install-health/wiring.ts, WIRING_PROBE_RELS), so doctor output on a stale pre-push is identical to a correctly wired project.",
+        "Doctor has only pass/fail: a host hook file disabled by policy is reported as a wiring FAIL, and the printed remedy for a legacy pre-commit (`directive install --repair`) does not change it, so following the remedy loops.",
+        "Session notes Shared root cause: hook body ownership on upgrade/repair.",
+        "Related, not duplicates: #5808 (0.127 templates drop gates), #5885 (closed; self-repair disclosure only), #5947 (pin bump leaves deposit stale), #5956 (sequence point for hook generation).",
+        "Suggested direction: refresh hooks whose body is a known shipped body, print updated/kept per hook, probe pre-push in doctor, and add an advisory tier for hooks not in the recommended state.",
+        "Filed for @MScottAdams --- _Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._"
+      ],
+      "admitted_source_digest": "a0393944b0f4ab178538abf61291d3c2d290579c9fa968a5fb04cc5b3359343c",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "[framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push ## Context Consumer project on the package layout (runtime pin in package.json), upgraded with `directive upgrade --yes` and `directive install --repair --yes` across 0.125.2, 0.127.0 and 0.129.x.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "Observed in disposable clones of a real consumer; source checked on master at 61152d8.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Expected behavior After a normal upgrade or repair, every recommended Directive git hook is in its current recommended form, or the output says plainly which hooks were kept and which gates are therefore off.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Doctor reports hooks that are not in the recommended state, including pre-push.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Actual behavior / gap 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Setup keeps any tracked managed hook whose body differs from the template unless `--force-githooks` is passed (setup-wiring.ts, kept-hook text).",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 8,
+          "text": "Consumer hooks are tracked, and neither `directive upgrade` nor `directive install --repair` passes that flag; only the runtime contract entry reads it (contract-entry.ts).",
+          "artifact_path": "packages/runtime/src/contract-entry.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 9,
+          "text": "The kept-hook disclosure never reaches the upgrade or repair output.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "The 'Review and commit' list does not mention kept hooks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Result on the common 0.127 to 0.129 path: the pre-push hook keeps the old body without the bound pre-PR marker, and a product push is admitted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 12,
+          "text": "The bound pre-PR gate is silently off.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 13,
+          "text": "Doctor's wiring probe covers pre-commit and the run helper but not pre-push (install-health/wiring.ts, WIRING_PROBE_RELS), so doctor output on a stale pre-push is identical to a correctly wired project.",
+          "artifact_path": "packages/core/src/install-health/wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 14,
+          "text": "Doctor has only pass/fail: a host hook file disabled by policy is reported as a wiring FAIL, and the printed remedy for a legacy pre-commit (`directive install --repair`) does not change it, so following the remedy loops.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 15,
+          "text": "Session notes Shared root cause: hook body ownership on upgrade/repair.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Related, not duplicates: #5808 (0.127 templates drop gates), #5885 (closed; self-repair disclosure only), #5947 (pin bump leaves deposit stale), #5956 (sequence point for hook generation).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Suggested direction: refresh hooks whose body is a known shipped body, print updated/kept per hook, probe pre-push in doctor, and add an advisory tier for hooks not in the recommended state.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Filed for @MScottAdams --- _Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/core/src/install-health/wiring.ts",
+          "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "packages/runtime/src/setup-wiring-legacy-hooks.test.ts",
+          "packages/core/src/install-health/wiring.test.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+          "changelog.d/5808-git-hooks-restore-brief-gates.md",
+          "changelog.d/5976-setup-replaces-directive-git-hooks.md"
+        ],
+        "module_boundary": "packages/runtime setup wiring (git-hook templates and ensureGitHooks), the launcher plan/report text, and the doctor wiring probe; no change to packages/core/src/hooks/dispatcher.ts or evaluateEnrolledBoundPrePrPush.",
+        "cohesion_exemption": "setup-wiring.ts (1411 lines) and plan-present.ts (1106 lines) already exceed the review trigger. This fix changes the hook templates, the ensureGitHooks branches and a few report lines; splitting those files is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6064733040,
+        "origin": "deftai/directive#5976",
+        "id": "github.issue.6064733040"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/core/src/install-health/wiring.ts",
+          "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "packages/runtime/src/setup-wiring-legacy-hooks.test.ts",
+          "packages/core/src/install-health/wiring.test.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+          "changelog.d/5808-git-hooks-restore-brief-gates.md",
+          "changelog.d/5976-setup-replaces-directive-git-hooks.md",
+          "packages/runtime/src/self-complete.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/ownership-fix.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/install-health/in-sync.test.ts",
+          "packages/core/src/verify-env/branches.test.ts",
+          "packages/core/src/release-e2e/greenfield-python-free-smoke.ts"
+        ],
+        "readiness": "ready",
+        "depends_on": [
+          "github.issue.6452158147",
+          "github.issue.6458882780"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/setup-wiring-tracked-hooks.test.ts packages/runtime/src/setup-wiring-legacy-hooks.test.ts packages/core/src/install-health/wiring.test.ts packages/core/src/verify-env/verify-hooks-installed.test.ts packages/cli/src/upgrade-bookend.test.ts packages/core/src/content-contracts/standards/branch_gate.test.ts"
+        ],
+        "Traces": [
+          "#5976",
+          "#1709",
+          "#5808",
+          "#5967",
+          "#5837"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "runtime-setup",
+        "expected_outputs": [
+          "A fresh `directive install` writes pre-commit with `verify:branch`, `verify:encoding`, `verify:forward-coverage`, and the directory-guarded `verify:vbrief-conformance` + `verify:xbrief-drift`, all through `run_directive`.",
+          "Pre-push runs `preflight-gh --pre-push-stdin` with stdin as its only check (D-021) and refuses a push whose remote ref is a default branch, even when the current checkout is a feature branch. No #5804 marker or refuse-to-downgrade logic remains.",
+          "`directive upgrade` from a committed 0.126.2 layout replaces all three tracked hooks and removes `_deft-run.sh`. The new hooks run the pinned runtime (`node_modules/@deftai/directive-runtime/dist/bin.js`), not a global `deft` (AC9.9, AC14.29).",
+          "`directive upgrade` or `directive install --repair` on a repo with committed 0.127.0 or 0.129.x hooks replaces them with the current templates.",
+          "A committed Directive-shaped hook that was edited is replaced with the template (D-023, AC8.3), and the output names it: \"Updated `<path>`; your earlier version is in git history.\" Install, repair, upgrade and uninstall list every git hook they will write, replace or remove in the plan (confirm unless `--yes`; `--dry-run` reports it). The exit code is 0.",
+          "A foreign hook (for example prettier-only) is never overwritten. The conflict behaviour is unchanged.",
+          "Automatic setup (AC8.6) refreshes Directive's git hooks with the rest of the wiring, with no approval, and names each hook it updated in its output (D-023).",
+          "Doctor inspects `.githooks/pre-push`.",
+          "The ownership record never claims a hook body that Directive did not write.",
+          "No user-facing text mentions `--force-githooks`.",
+          "one changelog fragment changelog.d/5808-git-hooks-restore-brief-gates.md",
+          "one changelog fragment changelog.d/5976-setup-replaces-directive-git-hooks.md"
+        ],
+        "acceptance_criteria_justification": "Ten items: the ten acceptance criteria of unit spec P2-U1, one each. Items 2, 5 and 7 carry the spec's 'Update 2026-11-17' banner (D-021 pre-push parity; D-023 replace edited hooks, list hooks in the plan, automatic setup refreshes hooks), which wins over the spec body's decision-2/3 defaults. Size: the unit spec rates the unit L as a whole; it ships as two PRs (U1a templates, U1b refresh), each medium, so the brief records medium (swarm:readiness refuses large with parallel_safe)."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "55af6e8ef9f75a609d54cff51f59dc7db18d53a4",
+        "prNumber": 6716,
+        "prBase": "master",
+        "mergeCommit": "75ab46970e37d6916b873824ba53508c1154a3aa",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:25:09Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:25:09Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:25:09Z"
+      }
+    },
+    "id": "github.issue.6064733040",
+    "updated": "2026-11-19T16:25:09Z"
+  }
+}
