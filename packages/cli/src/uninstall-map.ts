@@ -550,10 +550,18 @@ function object(value: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Command text of one hook entry. The no-shell locator entry
+ * Directive's no-shell hook locator source (AC9.1 v261119). A copy of core
+ * `HOST_HOOK_LOCATOR_SOURCE` (AC3.1: no core import); a test keeps them equal.
+ */
+export const DIRECTIVE_HOOK_LOCATOR_SOURCE =
+  'const f=require("node:fs"),p=require("node:path"),u=require("node:url");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,".git"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+"\\n");process.exit(2)};if(!f.existsSync(o))no("No Directive project here. Run `directive install`."+" ("+d+")");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));';
+
+/**
+ * Command text of one hook entry. Directive's locator entry
  * (`"command": "node", "args": ["-e", <locator>, "--", <outer rel>, …]`,
  * AC9.1 v261119) reads as `node <outer rel> …`, so it matches like the outer
- * form. Mirrors core `hostHookEntryText` (AC3.1: no core import).
+ * form. Any other `node -e` script keeps its own text and is never taken for
+ * Directive's. Mirrors core `hostHookEntryText` (AC3.1: no core import).
  */
 function hookEntryCommandText(value: unknown): string | null {
   const hook = object(value);
@@ -561,7 +569,12 @@ function hookEntryCommandText(value: unknown): string | null {
   const { command, args } = hook;
   if (args === undefined) return command;
   if (!Array.isArray(args) || !args.every((a) => typeof a === "string")) return null;
-  if (command === "node" && args[0] === "-e" && args[2] === "--") {
+  if (
+    command === "node" &&
+    args[0] === "-e" &&
+    args[1] === DIRECTIVE_HOOK_LOCATOR_SOURCE &&
+    args[2] === "--"
+  ) {
     return ["node", ...args.slice(3)].join(" ");
   }
   return [command, ...args].join(" ");

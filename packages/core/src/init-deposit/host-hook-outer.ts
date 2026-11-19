@@ -98,8 +98,6 @@ export const HOST_HOOK_LOCATOR_SOURCE = [
 
 /** Text form of a locator entry; matchers read entries through {@link hostHookEntryText}. */
 export const HOST_HOOK_LOCATOR_TEXT = "node -e <locator> --";
-/** Text form of a locator entry whose source is not today's (setup rewrites it). */
-const HOST_HOOK_STALE_LOCATOR_TEXT = "node -e <stale-locator> --";
 
 /**
  * Hosts that run hooks from the agent's current folder and offer a no-shell
@@ -129,8 +127,9 @@ export function hostHookEntryFields(commandText: string): { command: string; arg
 
 /**
  * Text form of a registered hook entry: `command` alone, or `command` plus
- * `args` for the no-shell form, with a locator source shown as `<locator>`
- * (`<stale-locator>` when it is not today's). Null when there is no command.
+ * `args` for the no-shell form. Only today's locator source reads as
+ * `<locator>`; any other `node -e` script keeps its own text, so a user's
+ * hook is never taken for Directive's. Null when there is no command.
  */
 export function hostHookEntryText(hook: unknown): string | null {
   if (hook === null || typeof hook !== "object" || Array.isArray(hook)) return null;
@@ -139,10 +138,13 @@ export function hostHookEntryText(hook: unknown): string | null {
   if (args === undefined) return command;
   if (!Array.isArray(args) || !args.every((a) => typeof a === "string")) return null;
   const list = args as string[];
-  if (command === "node" && list[0] === "-e" && list[2] === "--") {
-    const head =
-      list[1] === HOST_HOOK_LOCATOR_SOURCE ? HOST_HOOK_LOCATOR_TEXT : HOST_HOOK_STALE_LOCATOR_TEXT;
-    return [head, ...list.slice(3)].join(" ");
+  if (
+    command === "node" &&
+    list[0] === "-e" &&
+    list[1] === HOST_HOOK_LOCATOR_SOURCE &&
+    list[2] === "--"
+  ) {
+    return [HOST_HOOK_LOCATOR_TEXT, ...list.slice(3)].join(" ");
   }
   return [command, ...list].join(" ");
 }

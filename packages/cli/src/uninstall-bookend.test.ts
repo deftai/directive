@@ -21,12 +21,14 @@ import {
   listDirectiveOwnedPaths,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { afterEach, describe, expect, it } from "vitest";
+import { HOST_HOOK_LOCATOR_SOURCE } from "../../core/src/init-deposit/host-hook-outer.js";
 import { isSoleAuthorPackageJson as runtimeIsSoleAuthorPackageJson } from "../../runtime/src/removal-steps/steps.js";
 import { runSetup } from "../../runtime/src/setup.js";
 import { type BookendIo, runUninstall, type UninstallDeps } from "./bookends.js";
 import type { ProjectInstallState } from "./pin.js";
 import {
   applyLauncherCleanup,
+  DIRECTIVE_HOOK_LOCATOR_SOURCE,
   discoverKnownArtifacts,
   discoverUninstallFootprint,
   HOST_HOOK_OUTER_DIRS,
@@ -887,6 +889,34 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     expect(verify.leftovers).toEqual(
       expect.arrayContaining([".claude/deft-hook-1a2b3c4d.mjs", ".claude/settings.json#hooks"]),
     );
+  });
+
+  it("keeps the launcher's locator copy equal to core's (AC3.1)", () => {
+    expect(DIRECTIVE_HOOK_LOCATOR_SOURCE).toBe(HOST_HOOK_LOCATOR_SOURCE);
+  });
+
+  it("removes Directive's locator entries but keeps a user's own node -e hook", () => {
+    const root = tempProject("mjs-locator");
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    const rel = join(root, ".claude", "settings.json");
+    const cfg = JSON.parse(readFileSync(rel, "utf8")) as {
+      hooks: Record<string, Array<{ hooks: Array<{ command: string; args?: string[] }> }>>;
+    };
+    const directive = cfg.hooks.PreToolUse?.[0]?.hooks[0];
+    expect(directive?.args?.[1]).toBe(DIRECTIVE_HOOK_LOCATOR_SOURCE);
+    const userArgs = [
+      "-e",
+      "require('fs').appendFileSync('mine.log','x')",
+      ...(directive?.args ?? []).slice(2),
+    ];
+    cfg.hooks.PreToolUse?.push({ hooks: [{ command: "node", args: userArgs }] } as never);
+    writeFileSync(rel, `${JSON.stringify(cfg, null, 2)}\n`);
+    rmSync(join(root, ".deft", "GENERATION.json"));
+    applyLauncherCleanup(root, discoverUninstallFootprint(root));
+    const after = readFileSync(rel, "utf8");
+    expect(after).toContain("mine.log");
+    expect(after).not.toContain("node:url");
   });
 
   it("keeps a user command added to a Directive hook group", () => {

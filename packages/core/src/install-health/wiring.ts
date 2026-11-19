@@ -258,7 +258,7 @@ export function hasDirectiveWiringEvidence(projectRoot: string, seams: FsSeams =
     }
     if (isGitHookShim(rel, text)) return true;
     if (HOST_HOOK_REGISTRATION_RELS.has(rel)) {
-      if (isHostHookOuterRegistration(text)) return true;
+      if (isHostHookOuterRegistration(hostHookConfigEntryLines(text))) return true;
       continue;
     }
     if (targetsRuntime(text)) return true;

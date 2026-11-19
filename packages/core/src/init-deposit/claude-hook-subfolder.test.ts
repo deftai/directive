@@ -10,6 +10,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { gitCheckoutTop, projectRootFromHookPayload } from "../hooks/dispatcher.js";
+import { isDirectiveHookCommand } from "../install-health/owned-paths.js";
+import { hasDirectiveWiringEvidence } from "../install-health/wiring.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import {
   HOST_HOOK_LOCATOR_NO_OUTER_MESSAGE,
@@ -113,17 +115,18 @@ describe("Claude hook entry form (AC9.1 v261119)", () => {
     expect(HOST_HOOK_LOCATOR_SOURCE).not.toMatch(/package\.json|child_process|execSync/);
   });
 
-  it("reads entries back as text and marks a stale locator", () => {
+  it("reads entries back as text; another node -e script is never Directive's", () => {
     const fields = hostHookEntryFields(
       `${hostHookEntryPrefix("claude", SHA8)} --host claude --event e`,
     );
     expect(hostHookEntryText(fields)).toBe(
       `node -e <locator> -- ${OUTER_REL} --host claude --event e`,
     );
-    const stale = { ...fields, args: ["-e", "old()", ...(fields.args ?? []).slice(2)] };
-    expect(hostHookEntryText(stale)).toBe(
-      `node -e <stale-locator> -- ${OUTER_REL} --host claude --event e`,
-    );
+    expect(isDirectiveHookCommand(hostHookEntryText(fields) ?? "")).toBe(true);
+    // A user's own `node -e` hook that passes the same arguments keeps its text.
+    const custom = { ...fields, args: ["-e", "log()", ...(fields.args ?? []).slice(2)] };
+    expect(hostHookEntryText(custom)).toBe(`node -e log() -- ${OUTER_REL} --host claude --event e`);
+    expect(isDirectiveHookCommand(hostHookEntryText(custom) ?? "")).toBe(false);
     expect(hostHookEntryText({ command: "echo hi" })).toBe("echo hi");
     expect(hostHookEntryText({ command: "node", args: [1] })).toBeNull();
     expect(hostHookConfigEntryLines("not json")).toBe("not json");
@@ -216,6 +219,20 @@ describe("payload project root is the Git checkout top (AC9.4 v261119)", () => {
     const dir = tempDir("deft-locator-plain-");
     expect(gitCheckoutTop(dir)).toBe(dir);
     expect(projectRootFromHookPayload({ cwd: dir }, "/")).toBe(dir);
+  });
+});
+
+describe("Claude locator entries count as Directive wiring", () => {
+  it("finds wiring evidence from a locator-only Claude config", () => {
+    const top = repo();
+    writeAgentHookDeposit(top);
+    const only = tempDir("deft-locator-evidence-");
+    mkdirSync(join(only, ".claude"), { recursive: true });
+    writeFileSync(
+      join(only, ".claude/settings.json"),
+      readFileSync(join(top, ".claude/settings.json"), "utf8"),
+    );
+    expect(hasDirectiveWiringEvidence(only)).toBe(true);
   });
 });
 

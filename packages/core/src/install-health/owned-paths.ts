@@ -375,7 +375,7 @@ export function isDirectiveHookCommand(command: string): boolean {
   if (
     tokens[0] === "node" &&
     tokens[1] === "-e" &&
-    (tokens[2] === "<locator>" || tokens[2] === "<stale-locator>") &&
+    tokens[2] === "<locator>" &&
     tokens[3] === "--"
   ) {
     // No-shell locator entry (AC9.1 v261119), read through `hostHookEntryText`.
