@@ -1086,3 +1086,129 @@ jobs:
             Pop-Location
             pnpm --dir $contentPackage run postpack
           }
+
+  node20-load:
+    # AC15.1 / AC16 (#5873): Node 20 is allowed, best effort. This job loads
+    # the staged runtime under Node 20 and fails if a module will not link
+    # (for example a Node-22-only builtin import such as `fs.globSync`).
+    # Non-blocking: `continue-on-error`, and no merge gate needs it.
+    name: Node 20 runtime load (best effort)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and stage the runtime
+        run: |
+          set -eu
+          pnpm exec tsc -b packages/runtime
+          node packages/runtime/scripts/stage-bundle.mjs "$RUNNER_TEMP/node20-runtime"
+          ( cd "$RUNNER_TEMP/node20-runtime" && npm install --omit=dev --ignore-scripts )
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 20
+
+      - name: Load the staged runtime under Node 20
+        run: |
+          set -u
+          node --version
+          STAGE="$RUNNER_TEMP/node20-runtime"
+          fail=0
+          node "$STAGE/dist/bin.js" --version > out-bin.txt 2>&1 || fail=1
+          cat out-bin.txt
+          printf '' | node "$STAGE/dist/hook-bin.js" --host claude --event tool.before \
+            --project-root "$GITHUB_WORKSPACE" > out-hook.txt 2>&1 || fail=1
+          cat out-hook.txt
+          if grep -E "SyntaxError|ERR_MODULE_NOT_FOUND|does not provide an export" out-bin.txt out-hook.txt; then
+            fail=1
+          fi
+          exit "$fail"
+
+  ovpr-fixture:
+    # No-agent lifecycle fixture (#6614): packs the launcher and runtime,
+    # installs them into throwaway projects and runs each host's registered
+    # hook command as the host would (sh -c, JSON on stdin). No agent, no LLM.
+    # Advisory through Phase 4 (D-020): NOT in merge-gate's needs. A reviewed
+    # ci.yml PR adds it at the Phase 4 exit. No repository setting changes.
+    name: OVPR lifecycle fixture (no agent)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript workspace
+        run: pnpm run build
+
+      - name: Lifecycle fixture steps 1-6
+        run: |
+          set -o pipefail
+          started=$(date +%s)
+          status=0
+          node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js | tee fixture-report.txt || status=$?
+          {
+            echo "### OVPR lifecycle fixture"
+            echo '```'
+            cat fixture-report.txt
+            echo '```'
+            echo "Job step duration: $(( $(date +%s) - started ))s"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+  ovpr-fixture-windows:
+    # Windows leg of the lifecycle fixture (#6621, D-020): step 4 only. AC9.1
+    # says the hook form is the same on every OS, so the committed .mjs outer
+    # must block under Node on Windows too. Advisory: NOT in merge-gate's needs.
+    name: OVPR lifecycle fixture (Windows, step 4)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript workspace
+        run: pnpm run build
+
+      # pwsh, not Git Bash: the runtime pack script calls `tar`, and Git Bash's
+      # GNU tar reads `C:\...` as a remote host. Windows' own tar.exe does not.
+      - name: Lifecycle fixture step 4 (missing packages)
+        shell: pwsh
+        run: node packages/core/dist/release-e2e/ovpr-lifecycle-fixture-cli.js --step 4

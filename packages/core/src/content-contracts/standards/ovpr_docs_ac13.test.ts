@@ -54,7 +54,8 @@ const A9_TOPICS: ReadonlyArray<{ id: string; re: RegExp }> = [
   { id: "passive-skill-reads", re: /passive skill reads/i },
   { id: "uninstall-best-effort", re: /uninstall can be best-effort/i },
   { id: "old-global-clis", re: /old global CLI/i },
-  { id: "no-delegate-old-runtime", re: /never delegates to an old-style|does not run old-style/i },
+  // v261118 (§A6.7 / D-031): old projects run only their own installed copy.
+  { id: "no-delegate-old-runtime", re: /only their own installed copy|own installed Directive/i },
   {
     id: "historical-latest-legacy",
     re: /latest .+copied-core|latest package\.json-pinned|supported latest legacy/i,

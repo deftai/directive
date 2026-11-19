@@ -1,14 +1,12 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { readOccupancy } from "./occupancy.js";
-import {
-  runSessionStartOccupancyBarrier,
-  SESSION_START_BARRIER_DEST_REL,
-} from "./session-start-occupancy-barrier-worker.js";
+import { readRitualState } from "./ritual-sentinel.js";
+import { runSessionStartOccupancyBarrier } from "./session-start-occupancy-barrier-worker.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -22,7 +20,6 @@ function spawnBarrierWorker(
   wait?: { readonly dir: string; readonly id: string; readonly count?: number },
 ): Promise<{
   code: number;
-  destWrote: boolean;
   sessionId: string;
 }> {
   const workerFile = fileURLToPath(
@@ -60,7 +57,7 @@ function spawnBarrierWorker(
         return;
       }
       const line = stdout.trim().split(/\r?\n/).at(-1) ?? "{}";
-      resolve(JSON.parse(line) as { code: number; destWrote: boolean; sessionId: string });
+      resolve(JSON.parse(line) as { code: number; sessionId: string });
     });
   });
 }
@@ -70,7 +67,7 @@ describe("session:start occupancy dest barrier (#3906)", () => {
     expect(typeof runSessionStartOccupancyBarrier).toBe("function");
   });
 
-  it("winner/loser uses distinct owners and loser writes no dest file", {
+  it("winner/loser uses distinct owners and only the winner binds the ritual", {
     timeout: process.platform === "win32" ? 240_000 : 30_000,
   }, async () => {
     const root = mkdtempSync(join(tmpdir(), "session-start-barrier-"));
@@ -83,17 +80,13 @@ describe("session:start occupancy dest barrier (#3906)", () => {
       spawnBarrierWorker(root, ownerA, { dir: waitDir, id: "a" }),
       spawnBarrierWorker(root, ownerB, { dir: waitDir, id: "b" }),
     ]);
-    const writers = results.filter((row) => row.destWrote);
-    expect(writers).toHaveLength(1);
-    const winner = writers[0];
+    const winners = results.filter((row) => row.code === 0);
+    expect(winners).toHaveLength(1);
+    const winner = winners[0];
     const loser = results.find((row) => row.sessionId !== winner?.sessionId);
-    expect(winner?.code).toBe(0);
-    expect(loser?.destWrote).toBe(false);
     expect(loser?.code).not.toBe(0);
-    const destPath = join(root, SESSION_START_BARRIER_DEST_REL);
-    expect(existsSync(destPath)).toBe(true);
-    expect(readFileSync(destPath, "utf8").trim()).toBe(winner?.sessionId);
     expect(readOccupancy(root)?.sessionId).toBe(winner?.sessionId);
+    expect(readRitualState(root)[0]?.sessionId).toBe(winner?.sessionId);
   });
 
   it("same-id heartbeat is not exclusive dest (characterization)", {
@@ -109,7 +102,6 @@ describe("session:start occupancy dest barrier (#3906)", () => {
       spawnBarrierWorker(root, sessionId, { dir: waitDir, id: "b" }),
     ]);
     expect(results.every((row) => row.code === 0)).toBe(true);
-    expect(results.some((row) => row.destWrote)).toBe(true);
     expect(readOccupancy(root)?.sessionId).toBe(sessionId);
   });
 });

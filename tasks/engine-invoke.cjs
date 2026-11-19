@@ -23,11 +23,47 @@ const CONTENT_PACKAGE_NAME = "@deftai/directive-content";
 /** Single remediation when a deposit has no global CLI (#3324 / #3265). */
 const DEPOSIT_REMEDIATION = "npm i -g @deftai/directive";
 const SOURCE_BUILD_REMEDIATION = "task build";
-/** Missing checkout pin remediation (#5994 / AC9.12): project PM first.
- * pin-bin path never recommends npm i -g (that is DEPOSIT_REMEDIATION only).
+/**
+ * Missing runtime (#5994 / AC9.12 / #6620): the `runtime-missing` row of the
+ * shared message table (core `install-health/constants.ts`), with `{install}`
+ * chosen from the lockfile. Never `npm i -g` (that is DEPOSIT_REMEDIATION only).
  */
-const PIN_INSTALL_REMEDIATION =
-  "Run npm install or pnpm install (or yarn) in this project (missing node_modules/@deftai/directive-runtime)";
+const RUNTIME_MISSING_ROW =
+  "Directive can't run: @deftai/directive-runtime is not installed in this project. Run {install} in a terminal in this project.";
+const ANY_PROJECT_INSTALL = "`npm install` (or `pnpm install --frozen-lockfile`)";
+
+/** The project install named by the shared table, from the lockfile at root. */
+function projectInstallCommand(root) {
+  if (root && fs.existsSync(path.join(root, "pnpm-lock.yaml"))) {
+    return "`pnpm install --frozen-lockfile`";
+  }
+  if (root && fs.existsSync(path.join(root, "package-lock.json"))) return "`npm install`";
+  return ANY_PROJECT_INSTALL;
+}
+
+/** The `runtime-missing` row for the project at root. */
+function runtimeMissingMessage(root) {
+  return RUNTIME_MISSING_ROW.replace("{install}", () => projectInstallCommand(root));
+}
+
+/** The `launcher-missing` row (shared table): no runtime package and no launcher. */
+const LAUNCHER_MISSING_ROW = "Install the Directive launcher: `npm i -g @deftai/directive`.";
+
+/**
+ * Consumer branch with no usable bin and no global launcher. When the include
+ * points into the project's runtime package, the runtime is what is missing
+ * (project install); otherwise (an older content-only deposit) it is the
+ * launcher.
+ */
+function consumerMissingMessage(projectRoot, deftRoot) {
+  const normalized = String(deftRoot || "").replace(/\\/g, "/");
+  return normalized.includes("node_modules/@deftai/directive-runtime")
+    ? runtimeMissingMessage(projectRoot)
+    : LAUNCHER_MISSING_ROW;
+}
+
+/** Root-independent form (no lockfile read). */
+const PIN_INSTALL_REMEDIATION = RUNTIME_MISSING_ROW.replace("{install}", () => ANY_PROJECT_INSTALL);
 /** Tip dogfood secondary when project install is not enough (#5805). */
 const PIN_MATERIALIZE_REMEDIATION = "task materialize:runtime";
 const PIN_BIN_REL = path.join("node_modules", "@deftai", "directive-runtime", "dist", "bin.js");
@@ -426,6 +462,16 @@ if (require.main === module) {
   if (mode === "is-buildable-source") {
     process.exit(isBuildableSource(process.argv[3] || "") ? 0 : 1);
   }
+  if (mode === "runtime-missing-message") {
+    // argv: <projectRoot> [<DEFT_ROOT>]; without DEFT_ROOT, the runtime row.
+    const deftRoot = process.argv[4];
+    console.error(
+      deftRoot === undefined
+        ? runtimeMissingMessage(process.argv[3] || "")
+        : consumerMissingMessage(process.argv[3] || "", deftRoot),
+    );
+    process.exit(0);
+  }
   if (mode === "disable-active") {
     process.exit(isDirectiveDisableActive(process.argv[3] || "") ? 0 : 1);
   }
@@ -440,7 +486,7 @@ if (require.main === module) {
       process.exit(0);
     }
     console.error("deft: missing checkout pin " + pin);
-    console.error("  Recovery: " + PIN_INSTALL_REMEDIATION);
+    console.error("  " + runtimeMissingMessage(root));
     console.error("  Or tip dogfood: " + PIN_MATERIALIZE_REMEDIATION);
     process.exit(2);
   }
@@ -466,6 +512,10 @@ module.exports = {
   SOURCE_BUILD_REMEDIATION,
   PIN_INSTALL_REMEDIATION,
   PIN_MATERIALIZE_REMEDIATION,
+  projectInstallCommand,
+  runtimeMissingMessage,
+  consumerMissingMessage,
+  LAUNCHER_MISSING_ROW,
   isDirectiveDisableActive,
   DISABLE_FLAG,
 };

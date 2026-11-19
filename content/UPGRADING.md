@@ -14,17 +14,33 @@ Two packages: global `@deftai/directive` (launcher) and project-pinned `@deftai/
 
 | Your situation | Run this |
 | --- | --- |
-| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` (`update` is an alias) |
-| Wiring broken; pin should stay | `npm i -g @deftai/directive`, then `directive install --repair` |
-| Fresh clone / new worktree | Project `pnpm install` / `npm install`, then first eligible runtime command or hook |
-| Not sure | `directive doctor` (read-only) |
-| First-time adoption | `directive install` (`init` alias) |
-| Supported latest legacy (pre-split pin + `.deft/core`) | `directive upgrade` |
-| Remove project wiring | `directive uninstall` (`remove` alias) |
+| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` |
+| Runtime missing or not the pinned version (fresh clone, new worktree, deleted `node_modules`) | The project install: `npm install`, or `pnpm install --frozen-lockfile` for pnpm. The first runtime command or hook then finishes local setup |
+| Wiring damaged with the right runtime installed | `directive install --repair` |
+| Project data behind, or an older Directive layout (pre-split pin + `.deft/core`) | `directive upgrade` |
+| `directive` command missing | `npm i -g @deftai/directive` |
+| Not sure | `directive doctor` (read-only; names one of the commands above) |
+| First-time adoption | `directive install` |
+| Remove project wiring | `directive uninstall` |
 
 Do not teach `npx`/`pnpm exec` as ongoing identity. Retired verbs (`migrate`, `bootstrap`, …) are unknown commands.
 
-Walkthrough history below keeps existing `UPGRADING.md#` anchors. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
+### After converting an old `.deft/core` project
+
+`directive upgrade` removes the `.deft/core` lines Directive wrote in `.gitattributes`, `.prettierignore`, `greptile.json` and `.github/codeql/codeql-config.yml`, and lists those files for review. It does not edit files you wrote yourself. After converting:
+
+- Run `git grep .deft/core` and update any hits in your own files (README, docs, scripts).
+- Check your CI workflows for conditions that test for `.deft/core` files, such as `if: hashFiles('.deft/core/Taskfile.yml') != ''`. The folder is gone, so those steps now skip without failing.
+
+### Formatter and linter checks on the hook files
+
+Directive commits one hook file per host (`deft-hook-<hash>.mjs` under `.claude/`, `.codex/`, `.cursor/hooks/` and `.grok/hooks/`). If your project already has a `.prettierignore`, setup adds `**/deft-hook-*.mjs` to it. Setup does not create `.prettierignore` and does not edit ESLint config. If ESLint checks these files (for example typescript-eslint `projectService`), add this to your flat config:
+
+```js
+{ ignores: ["**/deft-hook-*.mjs"] }
+```
+
+Walkthrough history below keeps existing `UPGRADING.md#` anchors. Older sections may say `deft update`; that command is retired as a recovery step, so use the table above instead. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
 
 ---
 
@@ -133,7 +149,7 @@ Commit `pnpm-workspace.yaml` when it changes. On older pnpm 11 releases, CI `pnp
 **What to do:**
 
 1. Prefer `xbrief/` and `.xbrief.json` in all new docs, skills, CLI help, and agent prose.
-2. On projects still on disk under `vbrief/`, run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+2. On projects still on disk under `vbrief/`, run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` signposts unmigrated layouts; `directive upgrade` migrates them.
 3. Do **not** tell users to “prefer vBRIEF” or treat xbrief and vBRIEF as two current models.
 4. Deep schema conventions still live under `content/vbrief/` (path name is historical for the schema package); public work-state name remains xBRIEF.
 
@@ -363,7 +379,7 @@ The `deft-directive-sync` skill (and any agent following this upgrade path) MUST
 
 ### One upgrade PR shape (#3127 / #3193)
 
-A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `deft-core-guard` (`no-mixed-core-and-app`, #1430) allowlists the upgrade co-travel unit so deposit + pin + freshness stamp land together — and **content-constrains** package/lock when they co-travel with `.deft/core/**` (#3193):
+A normal framework upgrade is **one PR**, not two stacked PRs: deposit + pin + freshness stamp land together, and package/lock changes stay limited to the Directive pin (#3193):
 
 | Include in the upgrade PR | Why |
 | --- | --- |
@@ -375,19 +391,17 @@ A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `de
 
 | Keep out of the upgrade PR | Why |
 | --- | --- |
-| Application source, tests, product docs | True app/product work — guard still fails if mixed with `.deft/core/**` |
-| Unrelated `package.json` fields (scripts, metadata, non-Directive deps) co-travelling with deposit | Content-aware guard rejects (#3193); path allowlist alone is not enough |
-| Unrelated lock direct product dep bumps riding the pin exemption | Content-aware guard rejects (#3193) |
+| Application source, tests, product docs | True app/product work |
+| Unrelated `package.json` fields (scripts, metadata, non-Directive deps) co-travelling with deposit | Not part of the pin unit (#3193) |
+| Unrelated lock direct product dep bumps riding the pin exemption | Not part of the pin unit (#3193) |
 | Consumer kit narrative / host prose not deposited by Directive | Not installer-managed |
 | Arbitrary playbooks, cast, features | Product scope, not upgrade |
 
-**Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade. Consumers should **not** hand-roll a forked `deft-core-guard.yml` for normal upgrades — the deposited workflow already enforces pin-only + lock follow-through.
+**Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade.
 
 **Format before you open the PR (#3395):** if `deft update` listed rewritten consumer-owned `xbrief/schemas/*` paths, run `task fmt` (or your repo formatter) first. Update does not invoke the consumer formatter.
 
-**Load fix (#3345):** if GitHub Actions shows workflow name as the path string `.github/workflows/deft-core-guard.yml` (not `deft-core-guard`), or historical runs are 0s/0 jobs and the required check `no-mixed-core-and-app` never appears on PRs, the deposited workflow failed to load (invalid YAML from an unindented Python heredoc). Run `deft update` (or re-init deposit) so the fixed workflow is rewritten, then open a normal upgrade PR — classic branch protection that requires `no-mixed-core-and-app` can clear once the job posts.
-
-**Paths filter + required-check migration (#5552):** the deposited `deft-core-guard` workflow now uses `on.pull_request.paths` for `.deft/core/**` and `.deft/GENERATION.json`, so ordinary app-only PRs skip the workflow (and burn no Actions minutes). A path-filtered skip posts **no** check at all — missing ≠ a skipped job. If classic branch protection currently requires `no-mixed-core-and-app`, remove that required status check before adopting the filtered advisory workflow, or replace it with a consumer-owned always-run workflow that does **not** keep the `name: deft-core-guard` recognition marker (else `EnsureCoreGuardWorkflow` refresh restores the filtered template). Do not treat “allow skipped required checks” alone as enough when the workflow never starts. GitHub’s path filter only inspects the first ~300 files in a PR; huge PRs can miss the filter — that ceiling is an accepted residual, not a detection guarantee. Consumers that need complete detection keep an always-triggered guard.
+**Retired `deft-core-guard` workflow (#5835):** Directive no longer writes `.github/workflows/deft-core-guard.yml`. `directive upgrade` deletes a leftover copy that still has the `name: deft-core-guard` line and leaves any other file at that path alone. If branch protection requires the `deft-core-guard` / `no-mixed-core-and-app` check, remove that required check, or the upgrade PR cannot merge.
 
 Refs: [#3127](https://github.com/deftai/directive/issues/3127), [#3193](https://github.com/deftai/directive/issues/3193), [#1430](https://github.com/deftai/directive/issues/1430), [#3117](https://github.com/deftai/directive/issues/3117), [#3345](https://github.com/deftai/directive/issues/3345), [#5552](https://github.com/deftai/directive/issues/5552).
 

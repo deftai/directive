@@ -106,12 +106,11 @@ describe("test_readme_brownfield.py", () => {
     it("test_readme_getting_started_leads_with_npm_then_init", () => {
       const content = readme();
       // The install step leads with the global npm install, then `directive install`.
-      const step = content.slice(content.indexOf("### 1. Install and initialize"));
+      const step = content.slice(content.indexOf("### Install"));
       const npmIdx = step.indexOf("npm i -g @deftai/directive");
       const installIdx = step.indexOf("directive install");
       expect(npmIdx).toBeGreaterThanOrEqual(0);
       expect(installIdx).toBeGreaterThan(npmIdx);
-      expect(step).toMatch(/alias:\s*directive init|alias:\s*`?init`?/i);
     });
 
     it("test_readme_routes_by_situation_across_three_commands", () => {
@@ -119,9 +118,9 @@ describe("test_readme_brownfield.py", () => {
       for (const cmd of ["directive install", "directive upgrade", "directive doctor"]) {
         expect(content, `README missing ${cmd}`).toContain(cmd);
       }
-      // Aliases remain documented.
-      expect(content).toMatch(/alias(?:es)?[`'":\s/]*init/i);
-      expect(content).toMatch(/alias(?:es)?[`'":\s/]*update/i);
+      // AC13.6: init / update / remove stay accepted but undocumented aliases.
+      expect(content).not.toMatch(/alias(?:es)?[`'":\s/]*init/i);
+      expect(content).not.toMatch(/alias(?:es)?[`'":\s/]*update/i);
     });
 
     it("test_readme_brownfield_upgrading_agree_on_three_command_model", () => {

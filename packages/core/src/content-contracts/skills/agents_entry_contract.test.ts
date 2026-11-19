@@ -149,18 +149,24 @@ const DEFT_DIRECTIVE_DISABLE_MARKERS = [
 const STAMP_RETIREMENT_MARKERS = ["No xBRIEF DeftVersion stamps", "#4271"] as const;
 
 /**
- * Always-on hook-runtime lockout card (#3785). A session denied on exit 127
- * can still read files, so this card is the only channel that reaches it: it
- * must name the out-of-band recovery and forbid the failClosed hand-edit,
- * which the next `deft update` silently reverts.
+ * Always-on "hook can't run" card (#3785 / D-019). When a hook errors instead
+ * of deciding, plain AGENTS text is the only channel that still reaches the
+ * agent: it must tell the operator once that Directive is not protecting the
+ * session, leave installs to a person, name the out-of-band escape, and forbid
+ * the failClosed hand-edit, which the next repair silently reverts.
  */
 const HOOK_RUNTIME_UNAVAILABLE_MARKERS = [
-  "Hook runtime unavailable (#3785)",
-  "is not executable on this host",
+  "Directive hook can't run (#3785)",
+  "`node --version` fails",
+  "Directive is not protecting this session",
+  "Install anything yourself",
   "policy:disable-host-hooks --host cursor --confirm",
   "hook-runtime-unavailable.md",
   "silently re-arms the lockout",
 ] as const;
+
+/** Retired card wording that must not come back (#5869: hooks no longer call `deft-hook` on PATH). */
+const HOOK_RUNTIME_UNAVAILABLE_RETIRED = "is not executable on this host";
 
 /** Always-on same-issue busy flag (#4200) — session-start MUST scan. */
 const WORK_CLAIM_MARKERS = [
@@ -989,6 +995,7 @@ describe("test_agents_entry_contract", () => {
 
   it("hook_runtime_unavailable_markers_present_in_both_files", () => {
     expect(missingMarkers(template, HOOK_RUNTIME_UNAVAILABLE_MARKERS)).toEqual([]);
+    expect(template).not.toContain(HOOK_RUNTIME_UNAVAILABLE_RETIRED);
   });
 
   it("work_claim_markers_present_in_both_files", () => {

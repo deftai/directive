@@ -245,15 +245,15 @@ describe("writeAgentHookDeposit no-swap recovery (#4716)", () => {
     );
   });
 
-  it("names writeAgentHookDeposit and discloses update file-swap on the recovery line", () => {
+  it("names writeAgentHookDeposit and says repair/upgrade are not needed on the recovery line", () => {
     const result = evaluateAgentHooks(project());
     expect(result.message).toContain(AGENT_HOOK_NO_SWAP_RECOVERY);
     expect(result.message).toContain("writeAgentHookDeposit");
     expect(result.message).toContain("does not swap `.deft/core`");
     expect(result.message).toContain("verify:hooks-installed --scope=agent --live");
-    expect(result.message).toContain("repo-wide payload file-swap");
-    expect(result.message).toContain("deft update");
-    expect(result.message).toContain("directive init");
+    expect(result.message).toContain("are not required to clear this gate");
+    expect(result.message).toContain("directive install --repair");
+    expect(result.message).not.toContain("deft update");
     expect(result.message).not.toMatch(/treat .* as a warning/i);
   });
 

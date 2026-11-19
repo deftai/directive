@@ -52,19 +52,28 @@ npm i -g @deftai/directive
 # or: pnpm add -g @deftai/directive
 
 cd your-project   # must be a Git repo for most workflows
-directive install # alias: init — pins @deftai/directive-runtime exactly
+directive install # pins @deftai/directive-runtime exactly
 directive doctor
 ```
+
+**Windows:** the same two steps. If PowerShell refuses to run npm's own script, use `npm.cmd i -g @deftai/directive`. Directive tries to remove its own `.ps1` shims when it installs; if PowerShell still refuses `directive`, type `directive.cmd`. It is the same command.
 
 After clone or a new worktree: run the project package manager (`npm install` / `pnpm install`), then the first eligible runtime command or registered hook completes local activation.
 
 **Dependabot / pin-only bumps (AC14.10):** a PR that changes only the `@deftai/directive-runtime` pin + lockfile is valid. After `pnpm install` / `npm install` brings `node_modules` to the new pin, the first eligible skill, hook, or ordinary runtime command runs local automatic setup (wiring / `GENERATION` / readiness). `directive doctor` stays read-only — dirty doctor output before that eligible invocation is expected. CI may either rely on that first eligible command or run explicit `directive install --repair --yes`. Do not treat "deposit bytes must land in the same pin PR" as product law. Human-test mirror: HT-17 in `docs/installer-refactor-ovpr/install-ovpr-human-test-plan.md`. Schema/data behind the new pin still needs `directive upgrade` (AC14.11), not repair alone.
 
-**Repair (pin unchanged):** `npm i -g @deftai/directive`, then `directive install --repair`.
+**When something is wrong**, run the one command that matches (`directive doctor` names it):
 
-**Upgrade version or migrate data:** `directive upgrade` (alias: `update`).
+| What is wrong | Command |
+| --- | --- |
+| Runtime missing or not the pinned version | `npm install`, or `pnpm install --frozen-lockfile` for pnpm |
+| Wiring damaged with the right runtime installed | `directive install --repair` |
+| Project data behind, or an older Directive layout | `directive upgrade` |
+| `directive` command missing | `npm i -g @deftai/directive` |
 
-**Uninstall project wiring:** `directive uninstall` (alias: `remove`).
+**Upgrade version or migrate data:** `directive upgrade`.
+
+**Uninstall project wiring:** `directive uninstall`.
 
 Do not use `npx` / `pnpm exec` as day-to-day identity. Retired verbs (`migrate`, `bootstrap`, `sync`, `install-upgrade`, `install-uninstall`, `doctor fix`) print unknown command.
 
@@ -91,7 +100,7 @@ directive --version
 
 ### 2. Create a Git repository, then install
 
-`directive install` (alias `init`) does not create a Git repository. Start in an empty project directory:
+`directive install` does not create a Git repository. Start in an empty project directory:
 
 ```bash
 mkdir my-project && cd my-project
@@ -101,7 +110,7 @@ directive install
 
 `install` adds an exact `@deftai/directive-runtime` pin through the package manager, runs setup (package-relative `AGENTS.md` / hooks / skills), and may seed initial project data. There is no copied `.deft/core/` content.
 
-**Success:** `package.json` pins `@deftai/directive-runtime`, managed wiring exists, `directive doctor` is healthy. **Recovery:** `directive install --repair` after `npm i -g @deftai/directive`.
+**Success:** `package.json` pins `@deftai/directive-runtime`, managed wiring exists, `directive doctor` is healthy. **Recovery:** `directive install --repair` (first `npm i -g @deftai/directive` if the `directive` command is missing).
 
 ### 3. Doctor
 
@@ -109,7 +118,7 @@ directive install
 directive doctor --full
 ```
 
-Doctor is read-only. `--full` bypasses the 24h clean / 4h dirty throttle so a skip is not a healthy install. When the install is healthy it prints `System check passed!`. When action is required it prints exactly one `Next command:` with a root-cause line.
+Doctor is read-only and never skips a run; `--full` also runs the live hook probe. When the install is healthy it prints `System check passed!`. When action is required it prints exactly one `Next command:` with a root-cause line.
 
 **Success:** `System check passed!` (not a throttle-skip line). **Recovery:** run the printed `Next command:`. Detect-state ladders stay in [QUICK-START.md](../QUICK-START.md).
 
@@ -123,7 +132,7 @@ User preferences live outside the repo:
 
 Project identity lives in `xbrief/PROJECT-DEFINITION.xbrief.json`. Greenfield setup does not create `specification.xbrief.json`.
 
-Tell your agent to follow `AGENTS.md`, or run `directive bootstrap`. That hands off to the setup skill. The skill asks one question at a time and **must not write files until you confirm** the captured values (`yes` / `confirmed` / `approve`). Promotion and activation are later commitments, not automatic setup continuation.
+Tell your agent `read AGENTS.md and follow it`. That starts the setup skill. The skill asks one question at a time and **must not write files until you confirm** the captured values (`yes` / `confirmed` / `approve`). Promotion and activation are later commitments, not automatic setup continuation.
 
 **Success:** `USER.md` exists at the platform path and `xbrief/PROJECT-DEFINITION.xbrief.json` exists. **Recovery:** `directive doctor --full`, then re-enter setup. Do not skip the confirmation gate.
 
@@ -207,6 +216,50 @@ Cached issue bodies are **untrusted external content**. Do not put them on the w
 For brownfield adoption of an existing repo, see [BROWNFIELD.md](./BROWNFIELD.md). This first-project path does not teach that migration.
 
 **Labels:** a bare tracker should adopt the [consumer issue-label kit](./consumer-issue-label-kit.md) before you rely on ranking.
+
+---
+
+## Fewer local hook refusals (#6535)
+
+Optional. You do not need this for the first green `deft check`. For the repository settings it names, see [GitHub merge queue setup](./github-merge-queue-setup.md), which carries this same section after "How agents merge afterwards".
+
+A repository can let five local hook refusals warn instead of refuse, when its merge path already runs the full gate.
+
+**Part A. What the hook checks**
+
+- (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree).
+- (b) That check is required on the delivery branch, by a ruleset or by classic branch protection.
+- (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total. A 404 on either protection read is fine; any other error on either means no signal.
+
+**Part B. What you make true (the hook does not check it)**
+
+- (d) The named check runs the full merge gate (`deft check`) and runs on `merge_group`.
+- (e) The merge queue is on for the delivery branch.
+- (f) The review bot is a required check.
+
+When Part A holds, the five warn sites warn and every other refusal stays. When any item of Part A fails, the hook refuses as today. For the site table, the floor and the limits, see [Warn-only sites behind a live merge gate (#6535)](./hook-root-admission.md#warn-only-sites-behind-a-live-merge-gate-6535).
+
+**Worked example**
+
+The policy fragment in `xbrief/PROJECT-DEFINITION.xbrief.json`:
+
+```json
+"plan": {
+  "policy": {
+    "mergeGateContext": "Merge gate (task check)"
+  }
+}
+```
+
+Three reads, as diagnostics. They show that the parts are in place. They do not prove that the hook's read finishes within its budget.
+
+```bash
+gh api "repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>"
+gh api repos/<owner>/<repo>/rules/branches/<branch>
+gh api repos/<owner>/<repo>/branches/<branch>/protection
+```
+
+The result, when Part A holds: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text. Any later refusal (occupancy, a protected store, a binding refusal) still wins.
 
 ---
 

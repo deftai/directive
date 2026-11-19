@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 25 groupings, 293 documents
-- **Tasks:** 66 namespaces, 292 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 66 namespaces, 293 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -152,7 +152,7 @@ _Explanatory docs and the framework glossary._
 - `good-agents-md.md` — **Source**: https://x.com/augmentcode/status/2047164534310494709 **Author**: Slava Zhenylenko (Member of Technical Staff, Augment Code) **Published**: 2026-04-23
 - `grok-build-subscription-setup.md` — Agent-facing playbook for a new maintainer. Paste this file (or issue [#4035](https://github.com/deftai/directive/issues/4035)) and say: follow this playbook. The human completes browser logins when the agent stops.
 - `hook-root-admission.md` — Every PreToolUse mutation carries **two** roots, and they are not interchangeable:
-- `hook-runtime-unavailable.md` — Current Directive hooks invoke `node node_modules/@deftai/directive-runtime/dist/hook-bin.js …` (AC9.1 — not bare `deft-hook` on PATH). When the runtime package is absent, Node reports `Cannot find module…
+- `hook-runtime-unavailable.md` — Directive registers each agent hook as `node <host dir>/deft-hook-<sha8>.mjs --host <host> --event <event>` (AC9.1). That small committed file uses only Node built-ins. It checks, in this order (AC9.12):
 - `host-surface-assumptions.md` — Directive control surfaces assume two host behaviors that **some** modern agent hosts break by design.
 - `host-tool-surface-audit.md` — The PreToolUse write gate only runs on tool names the host's deposited matcher selects. A name nobody listed is not a permissive policy — it is a gate that never executes. #3987 was exactly that: Grok Build's shell tool…
 - `intent-constraint.md` — Refs: #4541 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [observable-scope.md](../content/docs/observable-scope.md) (#4495)
@@ -445,7 +445,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | review-monitor | Claim PR-anchored review-owner lease via sticky GitHub comment (#2814). Does not write local JSON. | 2 |
 | roadmap | Render and validate the ROADMAP from vBRIEF source. | 2 |
 | scm | Source-control / Git workflow tasks. | 16 |
-| scope | Scope lifecycle: promote / activate / complete / fail / cancel. | 15 |
+| scope | Scope lifecycle: promote / activate / complete / fail / cancel. | 16 |
 | scope-undo | Reverse a scope-lifecycle audit entry (#1134). Single: `task scope:undo -- <decision_id>` / `task scope:undo -- --decision-id=<uuid>`.… | 1 |
 | session | Claim occupancy and run the quick-tier ritual for one owner (#1348/#3611). Flags: --session-id <id> / --steal --confirm --occupant… | 3 |
 | setup | Wired into the parent Taskfile.yml `includes:` block under namespace key | 1 |

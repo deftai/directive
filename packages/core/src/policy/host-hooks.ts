@@ -45,8 +45,8 @@ export const HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE =
   "  \u2022 Apply: `" +
   disableHostHooksInvocation() +
   "`.\n" +
-  "  \u2022 Reversible: set the host back to true and run `deft update`.\n" +
-  "  \u2022 Hand-edit of plan.policy.hostHooks plus `deft update` still strips " +
+  "  \u2022 Reversible: set the host back to true and run `directive install --repair`.\n" +
+  "  \u2022 Hand-edit of plan.policy.hostHooks plus `directive install --repair` still strips " +
   "(human high-trust bypass).\n" +
   "  \u2022 Changes are recorded to meta/policy-changes.log for auditability.";
 
@@ -256,7 +256,7 @@ export function disableHostHooks(
     const lines = [
       `\u2713 ${FIELD_HOST_HOOKS}.${options.host}=false (deft-hook guardrails removed for ${options.host}; result is tracked).`,
       changed ? "  audit: meta/policy-changes.log updated." : POLICY_AUDIT_NOOP_STDOUT,
-      "  Run `deft update` to strip Directive-managed hook entries for that host.",
+      "  Run `directive install --repair` to strip Directive-managed hook entries for that host.",
     ];
     return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };
   } catch (err: unknown) {

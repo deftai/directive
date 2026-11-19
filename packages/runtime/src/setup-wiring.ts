@@ -23,7 +23,6 @@ import {
 } from "@deftai/directive-core/dist/hooks/tools.js";
 import {
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
-  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   hostHookOuterCommand,
   hostHookOuterRelPath,
   hostHookOuterSha8,
@@ -34,10 +33,10 @@ import {
 import {
   DESIRED_GITATTRIBUTES_LINES,
   ensureGitattributes,
-  LEGACY_CORE_TEXT_EOL_LF,
+  RETIRED_GITATTRIBUTES_LINES,
 } from "@deftai/directive-core/dist/init-deposit/scaffold.js";
 import {
-  INSTALLATION_RECOVERY_GUIDANCE,
+  ENTRY_GUARD_MESSAGES,
   RUNTIME_PACKAGE_PATH_PREFIX,
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import {
@@ -161,6 +160,13 @@ export function yamlScalar(value: string): string {
   return needsQuotes ? JSON.stringify(value) : value;
 }
 
+/**
+ * Skill pointer recovery line (AC9.7, #6620): a missing path means the
+ * project install has not run; damaged wiring means repair.
+ */
+export const SKILL_POINTER_RECOVERY =
+  "if this path is missing, run `npm install` (or `pnpm install --frozen-lockfile`) in this project; if Directive's wiring is damaged, run `directive install --repair`.";
+
 function thinSkillPointer(
   dir: string,
   description: string,
@@ -178,7 +184,7 @@ description: ${yamlScalar(description)}
 
 Read and follow: ${RUNTIME_PREFIX}${targetRel}
 
-Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
+Recovery: ${SKILL_POINTER_RECOVERY}
 `,
   };
 }
@@ -450,13 +456,13 @@ export const GITATTRIBUTES_STAGING_SKIPPED_DIRTY =
   ".gitattributes had unstaged local edits; LF pins were written but left unstaged so install/upgrade does not git add unrelated user changes (#6151 P1)";
 
 const DESIRED_GITATTRIBUTES_LINE_SET = new Set<string>([
-  ...(DESIRED_GITATTRIBUTES_LINES as readonly string[]),
-  LEGACY_CORE_TEXT_EOL_LF,
+  ...DESIRED_GITATTRIBUTES_LINES,
+  ...RETIRED_GITATTRIBUTES_LINES,
 ]);
 
 /**
- * True when every attribute line is a known Directive core/managed marker (or
- * Deft deposit comment). Foreign rules mean the file is not pure Directive-owned
+ * True when every attribute line is a known Directive managed line, a retired
+ * `.deft/core` line, or a Deft deposit comment. Foreign rules mean the file is not pure Directive-owned
  * (#6151 P1 dirty-skip heuristic).
  */
 export function isDirectiveManagedGitattributes(content: string): boolean {
@@ -502,8 +508,8 @@ function pathIsUntrackedInRepo(projectRoot: string, rel: string): boolean {
 }
 
 /**
- * Deposit narrow LF .gitattributes for managed wiring paths (#5995).
- * Reuses scaffold ensureGitattributes (core markers + managed wiring lines).
+ * Deposit narrow LF .gitattributes for managed wiring paths (#5995) and strip
+ * the retired `.deft/core` lines (#5961). Reuses scaffold ensureGitattributes.
  * Reports created/modified so install/upgrade staging commits the pins (#6151 P1).
  * When the path already has unstaged user edits (or an untracked foreign file),
  * still appends missing pins but does not report modified (avoids staging WIP).
@@ -1106,13 +1112,26 @@ export function ensureHostHooks(
   return { created, modified };
 }
 
+/** Escape `text` for use inside a double-quoted sh string. */
+function shDoubleQuoted(text: string): string {
+  return text.replace(/[\\"$`]/g, (ch) => `\\${ch}`);
+}
+
+/**
+ * The git-hook helper's missing-runtime line: the `runtime-missing` row, with
+ * `{install}` filled in by the helper from the lockfile at the repo root.
+ */
+const GITHOOK_RUNTIME_MISSING_LINE = shDoubleQuoted(
+  ENTRY_GUARD_MESSAGES["runtime-missing"],
+).replace("{install}", () => "$_directive_install");
+
 // Taskfile F1 disable-first + project-PM pin miss live in tasks/engine.yml +
 // tasks/engine-invoke.cjs (#5994) — disable-active runs BEFORE pin-bin / is-buildable-source;
 // pin-bin also quiet-exits when disable is active. This GITHOOK_HELPER is the .githooks twin.
 const GITHOOK_HELPER = `#!/usr/bin/env sh
 # Package-relative Directive git-hook helper (AC9.9 / AC9.12 / #5994).
 # Sourced by pre-commit/pre-push; defines run_directive.
-# F1 order: disable → missing pin (project PM) → pin bin.js.
+# Shared entry order: disable → runtime missing (project install, by lockfile) → pin bin.js.
 if [ -z "\${REPO_ROOT:-}" ]; then
   REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 fi
@@ -1130,8 +1149,15 @@ run_directive() {
   fi
   RUNTIME_BIN="$REPO_ROOT/${RUNTIME_BIN_REL}"
   if [ ! -f "$RUNTIME_BIN" ]; then
+    if [ -f "$REPO_ROOT/pnpm-lock.yaml" ]; then
+      _directive_install='\`pnpm install --frozen-lockfile\`'
+    elif [ -f "$REPO_ROOT/package-lock.json" ]; then
+      _directive_install='\`npm install\`'
+    else
+      _directive_install='\`npm install\` (or \`pnpm install --frozen-lockfile\`)'
+    fi
     echo "directive hooks: missing $RUNTIME_BIN" >&2
-    echo "${HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE}" >&2
+    echo "${GITHOOK_RUNTIME_MISSING_LINE}" >&2
     exit 1
   fi
   node "$RUNTIME_BIN" "$@"
@@ -1142,21 +1168,30 @@ const PRE_COMMIT = `#!/usr/bin/env sh
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 # shellcheck source=/dev/null
 . "$REPO_ROOT/.githooks/_directive-run.sh"
+run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
+run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
+if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
+  run_directive verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
+  run_directive verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
+fi
 `;
 
+// Refspec-aware default-branch push gate, as in 0.126 (#5808 / D-021). Git's
+// ref list arrives on stdin and goes straight to preflight-gh.
 const PRE_PUSH = `#!/usr/bin/env sh
-# deft:pre-pr-bound-push-v1 — refuse-to-downgrade marker (#5804); marker-aware ensureGitHooks only
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 # shellcheck source=/dev/null
 . "$REPO_ROOT/.githooks/_directive-run.sh"
-run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
-# Enrolled bound pre-PR arm: sole-stdin (do not redirect shared run_directive to /dev/null)
-run_directive pre-pr:run --push-admit --project-root "$REPO_ROOT" || exit $?
+run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit $?
 `;
 
-/** Monotonic refuse-to-downgrade marker for marker-aware ensureGitHooks (#5804). */
-export const PRE_PUSH_BOUND_PRE_PR_MARKER = "deft:pre-pr-bound-push-v1";
+/** Current Directive git-hook bodies by repo-relative path (#5808 / #5976). */
+export const DIRECTIVE_GIT_HOOK_BODIES: Readonly<Record<string, string>> = {
+  ".githooks/_directive-run.sh": GITHOOK_HELPER,
+  ".githooks/pre-commit": PRE_COMMIT,
+  ".githooks/pre-push": PRE_PUSH,
+};
 
 /**
  * Current OVPR helpers plus supported latest-legacy Directive git hooks
@@ -1192,8 +1227,8 @@ export const GIT_HOOKS_INACTIVE_NO_GIT =
   "Git hooks inactive until git init + eligible repair/self-complete (core.hooksPath not set)";
 
 /**
- * True when `rel` is tracked by git in `projectRoot` (#5837). Any git failure
- * (no repo, no git binary) reads as untracked, which keeps the replace path lawful.
+ * True when `rel` is tracked by git in `projectRoot`. Any git failure (no repo,
+ * no git binary) reads as untracked.
  */
 export function isGitTrackedPath(projectRoot: string, rel: string): boolean {
   try {
@@ -1206,30 +1241,35 @@ export function isGitTrackedPath(projectRoot: string, rel: string): boolean {
   }
 }
 
-/** Disclosure for a tracked divergent managed hook kept in place (#5837). */
-export function formatTrackedHookPreserved(rel: string): string {
-  return `${rel}: tracked managed hook differs from the template; kept (not a failure). Review and pass --force-githooks to setup to replace it (#5837)`;
+/**
+ * Disclosure for a Directive git hook that setup replaced or removed (D-023).
+ * The git-history note is only true for a file git already tracks.
+ */
+export function formatGitHookUpdated(rel: string, tracked: boolean): string {
+  return tracked
+    ? `Updated \`${rel}\`; your earlier version is in git history.`
+    : `Updated \`${rel}\`.`;
 }
 
-export interface EnsureGitHooksOptions {
-  /** Explicit pre-write operator force: replace tracked divergent managed hooks (#5837). */
-  readonly forceTrackedReplace?: boolean;
-  /**
-   * Test-only: override the next body for named relative hook paths so fixtures
-   * can reach refuse-to-downgrade under forceTrackedReplace (#5885 / #5804).
-   */
-  readonly testOnlyNextBodyByRel?: Readonly<Record<string, string>>;
+/** Disclosure for an old Directive git-hook helper that setup removed (D-023). */
+export function formatGitHookRemoved(rel: string, tracked: boolean): string {
+  return tracked
+    ? `Removed \`${rel}\`; your earlier version is in git history.`
+    : `Removed \`${rel}\`.`;
 }
 
-export function ensureGitHooks(
-  projectRoot: string,
-  options: EnsureGitHooksOptions = {},
-): {
+/**
+ * Replace every Directive-shaped git hook with the current template, edited or
+ * not (AC8.3 / INIT-18 / D-023), and name each one it replaced. A hook that is
+ * not Directive-shaped stays a named conflict and is never touched.
+ */
+export function ensureGitHooks(projectRoot: string): {
   created: string[];
   modified: string[];
+  removed: string[];
   conflicts: string[];
-  /** Tracked divergent managed hooks kept in place; a non-failure outcome (#5837). */
-  preserved: string[];
+  /** One plain line per existing hook that was replaced or removed (D-023). */
+  updated: string[];
   /** True only when core.hooksPath is relative .githooks (AC9.9). */
   hooksPathActive: boolean;
   /** Human disclosure when hooks are not live; null when active. */
@@ -1237,67 +1277,35 @@ export function ensureGitHooks(
 } {
   const created: string[] = [];
   const modified: string[] = [];
+  const removed: string[] = [];
   const conflicts: string[] = [];
-  const preserved: string[] = [];
-  const force = options.forceTrackedReplace === true;
-  const files: Array<{ rel: string; body: string }> = [
-    { rel: ".githooks/_directive-run.sh", body: GITHOOK_HELPER },
-    { rel: ".githooks/pre-commit", body: PRE_COMMIT },
-    { rel: ".githooks/pre-push", body: PRE_PUSH },
-  ];
-  for (const file of files) {
-    const override = options.testOnlyNextBodyByRel?.[file.rel];
-    const rawNext = override ?? file.body;
-    const next = rawNext.endsWith("\n") ? rawNext : `${rawNext}\n`;
-    const prior = readText(join(projectRoot, file.rel));
-    if (
-      prior !== null &&
-      !contentsEqualIgnoringEol(prior, next) &&
-      !isOurGitHookBody(file.rel, prior)
-    ) {
+  const updated: string[] = [];
+  for (const [rel, body] of Object.entries(DIRECTIVE_GIT_HOOK_BODIES)) {
+    const next = body.endsWith("\n") ? body : `${body}\n`;
+    const prior = readText(join(projectRoot, rel));
+    if (prior !== null && !contentsEqualIgnoringEol(prior, next) && !isOurGitHookBody(rel, prior)) {
       conflicts.push(
-        `${file.rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
+        `${rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
       );
       continue;
     }
-    // Tracked divergent preserve (#5837): never overwrite a committed hook body,
-    // even a Directive-managed one, unless the operator forced the replace.
-    if (
-      prior !== null &&
-      !contentsEqualIgnoringEol(prior, next) &&
-      !force &&
-      isGitTrackedPath(projectRoot, file.rel)
-    ) {
-      preserved.push(formatTrackedHookPreserved(file.rel));
-      continue;
+    const tracked = prior !== null && isGitTrackedPath(projectRoot, rel);
+    const change = trackChange(projectRoot, rel, next);
+    if (change.created) created.push(rel);
+    else if (change.modified) {
+      modified.push(rel);
+      updated.push(formatGitHookUpdated(rel, tracked));
     }
-    // Refuse-to-downgrade: marker-aware installer will not replace a newer enrolled
-    // pre-push arm with an older body that lacks the monotonic marker (#5804).
-    if (
-      file.rel === ".githooks/pre-push" &&
-      prior !== null &&
-      prior.includes(PRE_PUSH_BOUND_PRE_PR_MARKER) &&
-      !next.includes(PRE_PUSH_BOUND_PRE_PR_MARKER)
-    ) {
-      conflicts.push(
-        `${file.rel}: refuse-to-downgrade enrolled bound pre-PR arm (${PRE_PUSH_BOUND_PRE_PR_MARKER}); keeping newer hook`,
-      );
-      continue;
-    }
-    const change = trackChange(projectRoot, file.rel, next);
-    if (change.created) created.push(file.rel);
-    else if (change.modified) modified.push(file.rel);
-    if (EXECUTABLE_GITHOOKS.has(file.rel) && existsSync(join(projectRoot, file.rel))) {
+    if (EXECUTABLE_GITHOOKS.has(rel) && existsSync(join(projectRoot, rel))) {
       try {
-        containedChmod({ root: projectRoot, target: file.rel, mode: 0o755 });
+        containedChmod({ root: projectRoot, target: rel, mode: 0o755 });
       } catch {
         /* best-effort on platforms without chmod */
       }
     }
   }
 
-  // Drop obsolete latest-legacy helper once OVPR hooks are in place (wave4e).
-  // Greptile: keep helper if any other .githooks file still sources it.
+  // Drop the old `_deft-run.sh` helper once no remaining hook sources it.
   const legacyHelperRel = ".githooks/_deft-run.sh";
   const legacyHelperAbs = join(projectRoot, legacyHelperRel);
   if (existsSync(legacyHelperAbs)) {
@@ -1317,12 +1325,14 @@ export function ensureGitHooks(
       } catch {
         stillReferenced = true;
       }
-      if (!stillReferenced && !force && isGitTrackedPath(projectRoot, legacyHelperRel)) {
-        preserved.push(formatTrackedHookPreserved(legacyHelperRel));
-      } else if (!stillReferenced) {
+      if (!stillReferenced) {
+        const tracked = isGitTrackedPath(projectRoot, legacyHelperRel);
         try {
           const rem = containedRemove({ root: projectRoot, target: legacyHelperRel });
-          if (rem.removed) modified.push(legacyHelperRel);
+          if (rem.removed) {
+            removed.push(legacyHelperRel);
+            updated.push(formatGitHookRemoved(legacyHelperRel, tracked));
+          }
         } catch {
           /* best-effort; conflicts already captured for other files */
         }
@@ -1361,7 +1371,7 @@ export function ensureGitHooks(
       inactiveDisclosure = `Git hooks inactive: core.hooksPath is '${current}' (not .githooks)`;
     }
   }
-  return { created, modified, conflicts, preserved, hooksPathActive, inactiveDisclosure };
+  return { created, modified, removed, conflicts, updated, hooksPathActive, inactiveDisclosure };
 }
 
 const DEFT_INCLUDE_BLOCK =

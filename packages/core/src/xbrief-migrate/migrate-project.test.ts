@@ -1594,6 +1594,132 @@ describe("runXbriefMigration finishes the vbrief move (#6571 / D-012)", () => {
   });
 });
 
+/** PNG signature plus bytes that are not valid UTF-8 and include NUL. */
+const BINARY_BYTES = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0xff, 0xfe, 0xc3, 0x28,
+  0x80, 0x7f, 0xe2, 0x82, 0x00,
+]);
+const OTHER_BINARY_BYTES = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0xff, 0xd8, 0x9c, 0x00]);
+
+function writeLegacyBinary(project: string, rel: string, bytes: Buffer = BINARY_BYTES): void {
+  const abs = join(project, LEGACY_ARTIFACT_DIR, rel);
+  mkdirSync(join(abs, ".."), { recursive: true });
+  writeFileSync(abs, bytes);
+}
+
+describe("binary files move byte for byte (#6571)", () => {
+  it("normal migration copies a binary file unchanged", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-binary-normal-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    writeLegacyBinary(project, "assets/logo.png");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    expect(readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "assets", "logo.png"))).toEqual(
+      BINARY_BYTES,
+    );
+  });
+
+  it("dual-populated: a binary file moves unchanged and vbrief/ is removed", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-binary-dual-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    writeLegacyBinary(project, "assets/logo.png");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.migratedPaths).toContain("xbrief/assets/logo.png");
+    }
+    expect(readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "assets", "logo.png"))).toEqual(
+      BINARY_BYTES,
+    );
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("dual-populated: the same binary already in xbrief/ is skipped", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-binary-same-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    writeLegacyBinary(project, "assets/logo.png");
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "assets"), { recursive: true });
+    writeFileSync(join(project, MIGRATED_ARTIFACT_DIR, "assets", "logo.png"), BINARY_BYTES);
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.alreadyPresentPaths).toContain("xbrief/assets/logo.png");
+      expect(outcome.archivedPaths).toEqual([]);
+    }
+  });
+
+  it("dual-populated: a different binary is archived raw and xbrief/ is kept", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-binary-differ-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    writeLegacyBinary(project, "assets/logo.png");
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "assets"), { recursive: true });
+    writeFileSync(join(project, MIGRATED_ARTIFACT_DIR, "assets", "logo.png"), OTHER_BINARY_BYTES);
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.collisionArchivedPaths).toEqual(["xbrief/archive/assets/logo.png"]);
+    }
+    expect(readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "assets", "logo.png"))).toEqual(
+      OTHER_BINARY_BYTES,
+    );
+    expect(
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "assets", "logo.png")),
+    ).toEqual(BINARY_BYTES);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("already-marked: a binary file moves unchanged and DEPRECATED.md is gone", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-binary-marked-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    markLegacyRoot(project);
+    writeLegacyBinary(project, "docs/spec.pdf", OTHER_BINARY_BYTES);
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    expect(readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "docs", "spec.pdf"))).toEqual(
+      OTHER_BINARY_BYTES,
+    );
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("keeps a UTF-8 BOM on a copied text file", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-binary-bom-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    const bom = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("notes\n", "utf8")]);
+    writeLegacyBinary(project, "bom.md", bom);
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    expect(readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "bom.md"))).toEqual(bom);
+  });
+
+  it("dual-populated: binary bytes under a brief name are archived unchanged", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-binary-envelope-"));
+    temps.push(base);
+    const project = scaffoldDualPopulated(base);
+    writeLegacyBinary(project, "active/blob.vbrief.json");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind === "migrated") {
+      expect(outcome.archivedPaths).toContain("xbrief/archive/active/blob.xbrief.json");
+    }
+    expect(
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "blob.xbrief.json")),
+    ).toEqual(BINARY_BYTES);
+  });
+});
+
 describe("convergeLegacyVbriefRoot (#2270)", () => {
   it("returns removed when the legacy dir is already absent", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-converge-absent-"));

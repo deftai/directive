@@ -1,0 +1,500 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6567",
+    "updated": "2026-11-18T19:37:45Z"
+  },
+  "plan": {
+    "title": "docs(setup): tell users at setup that reduced local gates need the full merge-path stack (#6535)",
+    "status": "running",
+    "narratives": {
+      "Description": "docs(setup): tell users at setup that reduced local gates need the full merge-path stack (#6535)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6567",
+      "Overview": "\n1. Checklist. One checklist under the heading \"Fewer local hook refusals (#6535)\", with the same words in both docs. Part A, \"What the hook checks\": (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree); (b) that check is required on the delivery branch, by a ruleset or by classic branch protection; (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total, where a 404 on either protection read is fine and any other error on either means no signal. Part B, \"What you make true (the hook does not check it)\": (d) the named check runs the full merge gate (`deft check`) and runs on `merge_group`; (e) the merge queue is on for the delivery branch; (f) the review bot is a required check. Then one sentence: when Part A holds, the five warn sites warn and every other refusal stays; when any item of Part A fails, the hook refuses as today. Then a link to `hook-root-admission.md` § Warn-only sites behind a live merge gate (#6535) for the site table, the floor and the limits.\n2. Placement. In `content/docs/github-merge-queue-setup.md`, a new section after \"How agents merge afterwards\". In `content/docs/getting-started.md`, a new section after \"Working an existing backlog\", marked optional and not needed for the first green `deft check`, with a link to the merge-queue doc for the settings.\n3. Worked example, the same in both docs: (a) the `plan.policy` fragment `\"mergeGateContext\": \"Merge gate (task check)\"`; (b) three reads labelled as diagnostics that show the parts are in place but do not prove the hook's read finishes in its budget: `gh api \"repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>\"`, `gh api repos/<owner>/<repo>/rules/branches/<branch>` and `gh api repos/<owner>/<repo>/branches/<branch>/protection`; (c) the result, stated as conditional: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text; any later refusal (occupancy, a protected store, a binding refusal) still wins.\n4. Changelog and limits. One new `changelog.d/` fragment. No code, verb, gate or grant.\n\n## Acceptance Criteria\n\n- In `content/docs/github-merge-queue-setup.md`, a new \"Fewer local hook refusals (#6535)\" section after \"How agents merge afterwards\" carries the two-part checklist of Bound remedy item 1 and the worked example of item 3.\n- In `content/docs/getting-started.md`, a new optional section after \"Working an existing backlog\" carries the same checklist and worked example word for word, says it is not needed for the first green `deft check`, and links to the merge-queue doc for the settings.\n- In `changelog.d/6567-merge-gate-checklist.md`, one line records that both docs now carry the checklist and example and that no gate or grant was added.\n\n\n",
+      "Constraint": "- Using the ruleset and contents reads alone as proof that the signal holds (comment 6988430840, finding 1).\n- Listing \"runs the full merge gate\" under what the hook checks (comment 6988430840, finding 2).\n- One canonical checklist with a pointer from the other doc (comment 6988430840, answer 3; the issue asks for the same checklist in both).\n- A stale-ritual example that promises a warning with no condition (comment 6988430840, finding 3).",
+      "Labels": "documentation, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Checklist. One checklist under the heading \"Fewer local hook refusals (#6535)\", with the same words in both docs. Part A, \"What the hook checks\": (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree); (b) that check is required on the delivery branch, by a ruleset or by classic branch protection; (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total, where a 404 on either protection read is fine and any other error on either means no signal. Part B, \"What you make true (the hook does not check it)\": (d) the named check runs the full merge gate (`deft check`) and runs on `merge_group`; (e) the merge queue is on for the delivery branch; (f) the review bot is a required check. Then one sentence: when Part A holds, the five warn sites warn and every other refusal stays; when any item of Part A fails, the hook refuses as today. Then a link to `hook-root-admission.md` § Warn-only sites behind a live merge gate (#6535) for the site table, the floor and the limits.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Placement. In `content/docs/github-merge-queue-setup.md`, a new section after \"How agents merge afterwards\". In `content/docs/getting-started.md`, a new section after \"Working an existing backlog\", marked optional and not needed for the first green `deft check`, with a link to the merge-queue doc for the settings.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Worked example, the same in both docs: (a) the `plan.policy` fragment `\"mergeGateContext\": \"Merge gate (task check)\"`; (b) three reads labelled as diagnostics that show the parts are in place but do not prove the hook's read finishes in its budget: `gh api \"repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>\"`, `gh api repos/<owner>/<repo>/rules/branches/<branch>` and `gh api repos/<owner>/<repo>/branches/<branch>/protection`; (c) the result, stated as conditional: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text; any later refusal (occupancy, a protected store, a binding refusal) still wins.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Changelog and limits. One new `changelog.d/` fragment. No code, verb, gate or grant.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "In `content/docs/github-merge-queue-setup.md`, a new \"Fewer local hook refusals (#6535)\" section after \"How agents merge afterwards\" carries the two-part checklist of Bound remedy item 1 and the worked example of item 3.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "In `content/docs/getting-started.md`, a new optional section after \"Working an existing backlog\" carries the same checklist and worked example word for word, says it is not needed for the first green `deft check`, and links to the merge-queue doc for the settings.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "In `changelog.d/6567-merge-gate-checklist.md`, one line records that both docs now carry the checklist and example and that no gate or grant was added.",
+        "status": "proposed",
+        "id": "clause.7"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6567",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6567: docs(setup): tell users at setup that reduced local gates need the full merge-path stack (#6535)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6535",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6535"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (7), in list order (#6333)",
+      "sentences": [
+        "Checklist. One checklist under the heading \"Fewer local hook refusals (#6535)\", with the same words in both docs. Part A, \"What the hook checks\": (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree); (b) that check is required on the delivery branch, by a ruleset or by classic branch protection; (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total, where a 404 on either protection read is fine and any other error on either means no signal. Part B, \"What you make true (the hook does not check it)\": (d) the named check runs the full merge gate (`deft check`) and runs on `merge_group`; (e) the merge queue is on for the delivery branch; (f) the review bot is a required check. Then one sentence: when Part A holds, the five warn sites warn and every other refusal stays; when any item of Part A fails, the hook refuses as today. Then a link to `hook-root-admission.md` § Warn-only sites behind a live merge gate (#6535) for the site table, the floor and the limits.",
+        "Placement. In `content/docs/github-merge-queue-setup.md`, a new section after \"How agents merge afterwards\". In `content/docs/getting-started.md`, a new section after \"Working an existing backlog\", marked optional and not needed for the first green `deft check`, with a link to the merge-queue doc for the settings.",
+        "Worked example, the same in both docs: (a) the `plan.policy` fragment `\"mergeGateContext\": \"Merge gate (task check)\"`; (b) three reads labelled as diagnostics that show the parts are in place but do not prove the hook's read finishes in its budget: `gh api \"repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>\"`, `gh api repos/<owner>/<repo>/rules/branches/<branch>` and `gh api repos/<owner>/<repo>/branches/<branch>/protection`; (c) the result, stated as conditional: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text; any later refusal (occupancy, a protected store, a binding refusal) still wins.",
+        "Changelog and limits. One new `changelog.d/` fragment. No code, verb, gate or grant.",
+        "In `content/docs/github-merge-queue-setup.md`, a new \"Fewer local hook refusals (#6535)\" section after \"How agents merge afterwards\" carries the two-part checklist of Bound remedy item 1 and the worked example of item 3.",
+        "In `content/docs/getting-started.md`, a new optional section after \"Working an existing backlog\" carries the same checklist and worked example word for word, says it is not needed for the first green `deft check`, and links to the merge-queue doc for the settings.",
+        "In `changelog.d/6567-merge-gate-checklist.md`, one line records that both docs now carry the checklist and example and that no gate or grant was added."
+      ],
+      "admitted_source_sentences": [
+        "Checklist. One checklist under the heading \"Fewer local hook refusals (#6535)\", with the same words in both docs. Part A, \"What the hook checks\": (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree); (b) that check is required on the delivery branch, by a ruleset or by classic branch protection; (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total, where a 404 on either protection read is fine and any other error on either means no signal. Part B, \"What you make true (the hook does not check it)\": (d) the named check runs the full merge gate (`deft check`) and runs on `merge_group`; (e) the merge queue is on for the delivery branch; (f) the review bot is a required check. Then one sentence: when Part A holds, the five warn sites warn and every other refusal stays; when any item of Part A fails, the hook refuses as today. Then a link to `hook-root-admission.md` § Warn-only sites behind a live merge gate (#6535) for the site table, the floor and the limits.",
+        "Placement. In `content/docs/github-merge-queue-setup.md`, a new section after \"How agents merge afterwards\". In `content/docs/getting-started.md`, a new section after \"Working an existing backlog\", marked optional and not needed for the first green `deft check`, with a link to the merge-queue doc for the settings.",
+        "Worked example, the same in both docs: (a) the `plan.policy` fragment `\"mergeGateContext\": \"Merge gate (task check)\"`; (b) three reads labelled as diagnostics that show the parts are in place but do not prove the hook's read finishes in its budget: `gh api \"repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>\"`, `gh api repos/<owner>/<repo>/rules/branches/<branch>` and `gh api repos/<owner>/<repo>/branches/<branch>/protection`; (c) the result, stated as conditional: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text; any later refusal (occupancy, a protected store, a binding refusal) still wins.",
+        "Changelog and limits. One new `changelog.d/` fragment. No code, verb, gate or grant.",
+        "In `content/docs/github-merge-queue-setup.md`, a new \"Fewer local hook refusals (#6535)\" section after \"How agents merge afterwards\" carries the two-part checklist of Bound remedy item 1 and the worked example of item 3.",
+        "In `content/docs/getting-started.md`, a new optional section after \"Working an existing backlog\" carries the same checklist and worked example word for word, says it is not needed for the first green `deft check`, and links to the merge-queue doc for the settings.",
+        "In `changelog.d/6567-merge-gate-checklist.md`, one line records that both docs now carry the checklist and example and that no gate or grant was added."
+      ],
+      "admitted_source_digest": "cafc796fc5f58a7235e628c2b7fe340e558569634bc774f0c0fe2d23d845c9bf",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Checklist. One checklist under the heading \"Fewer local hook refusals (#6535)\", with the same words in both docs. Part A, \"What the hook checks\": (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree); (b) that check is required on the delivery branch, by a ruleset or by classic branch protection; (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total, where a 404 on either protection read is fine and any other error on either means no signal. Part B, \"What you make true (the hook does not check it)\": (d) the named check runs the full merge gate (`deft check`) and runs on `merge_group`; (e) the merge queue is on for the delivery branch; (f) the review bot is a required check. Then one sentence: when Part A holds, the five warn sites warn and every other refusal stays; when any item of Part A fails, the hook refuses as today. Then a link to `hook-root-admission.md` § Warn-only sites behind a live merge gate (#6535) for the site table, the floor and the limits.",
+          "artifact_path": "content/docs/github-merge-queue-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Placement. In `content/docs/github-merge-queue-setup.md`, a new section after \"How agents merge afterwards\". In `content/docs/getting-started.md`, a new section after \"Working an existing backlog\", marked optional and not needed for the first green `deft check`, with a link to the merge-queue doc for the settings.",
+          "artifact_path": "content/docs/getting-started.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Worked example, the same in both docs: (a) the `plan.policy` fragment `\"mergeGateContext\": \"Merge gate (task check)\"`; (b) three reads labelled as diagnostics that show the parts are in place but do not prove the hook's read finishes in its budget: `gh api \"repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>\"`, `gh api repos/<owner>/<repo>/rules/branches/<branch>` and `gh api repos/<owner>/<repo>/branches/<branch>/protection`; (c) the result, stated as conditional: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text; any later refusal (occupancy, a protected store, a binding refusal) still wins.",
+          "artifact_path": "content/docs/github-merge-queue-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Changelog and limits. One new `changelog.d/` fragment. No code, verb, gate or grant.",
+          "artifact_path": "changelog.d/6567-merge-gate-checklist.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "In `content/docs/github-merge-queue-setup.md`, a new \"Fewer local hook refusals (#6535)\" section after \"How agents merge afterwards\" carries the two-part checklist of Bound remedy item 1 and the worked example of item 3.",
+          "artifact_path": "content/docs/github-merge-queue-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "In `content/docs/getting-started.md`, a new optional section after \"Working an existing backlog\" carries the same checklist and worked example word for word, says it is not needed for the first green `deft check`, and links to the merge-queue doc for the settings.",
+          "artifact_path": "content/docs/getting-started.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In `changelog.d/6567-merge-gate-checklist.md`, one line records that both docs now carry the checklist and example and that no gate or grant was added.",
+          "artifact_path": "changelog.d/6567-merge-gate-checklist.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/docs/github-merge-queue-setup.md",
+          "content/docs/getting-started.md",
+          "changelog.d/6567-merge-gate-checklist.md"
+        ],
+        "module_boundary": "Docs only. Each user doc gets one new section with the same checklist and worked example; the hooks reference (hook-root-admission.md) stays the full reference and is only linked. No code, verb, gate or grant."
+      },
+      "swarm": {
+        "file_scope": [
+          "content/docs/github-merge-queue-setup.md",
+          "content/docs/getting-started.md",
+          "changelog.d/6567-merge-gate-checklist.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "docs-merge-gate-checklist",
+        "verify_commands": [
+          "task verify:changelog-unreleased"
+        ],
+        "expected_outputs": [
+          "content/docs/github-merge-queue-setup.md carries the Fewer local hook refusals (#6535) section after How agents merge afterwards",
+          "content/docs/getting-started.md carries the same checklist and example after Working an existing backlog",
+          "one changelog fragment changelog.d/6567-merge-gate-checklist.md"
+        ],
+        "Traces": [
+          "#6567",
+          "#6535"
+        ]
+      },
+      "issueCommentThread": [
+        {
+          "body": "Split: the setup output and doctor advisory (installer owner's area per LLM-CONTEXT §5) moved to #6686, assigned to @polfer. This issue keeps the docs half: the getting-started and merge-queue setup checklist with one worked example.",
+          "id": 6988213796,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988213796",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:47:25Z",
+          "updated_at": "2026-11-18T18:47:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6567; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and the docs tell users how to turn local hook refusals into warnings, so a wrong checklist weakens a repository's local gates without the merge path that the #6535 design depends on.\n\nTarget-digest: sha256:d7650f8853bc851cbb399d77338df7b449a6b9aebe2e105b018e11c3db8a9dce\ndispatch-sha: 103414819a1b68f52bd609300324805becf857c9\ndest: .deft-scratch/worktrees/arc-6567 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; a docs-only change to two files, with the mechanism already shipped in #6535; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 103414819a1b68f52bd609300324805becf857c9: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\npain: P4\n\n## In plain English\n#6535 (shipped in 0.129.15) lets a repository turn five local hook refusals into warnings. It works only when the repository names its merge-gate check in `plan.policy.mergeGateContext`, GitHub's copy of the project definition on the delivery branch names the same check, and the branch lists that check as required. Today only the hooks reference doc (`content/docs/hook-root-admission.md` § Warn-only sites) says so. A user who sets up Directive or the merge queue does not learn that the mode exists or what it needs.\n\nThis arc covers the docs half: the getting-started doc and the merge-queue setup doc get the same checklist and one worked example. The setup output and the doctor advisory were split to #6686 by the operator (comment 6988213796) and are not designed here.\n\n## Pains\n- P1 — `content/docs/getting-started.md` does not say that local hook refusals at the #6535 warn sites become warnings only when the merge path runs the full gate set, or what that needs.\n- P2 — `content/docs/github-merge-queue-setup.md` (#6366) sets up the queue and the required checks, but does not say that naming the merge-gate check in `plan.policy.mergeGateContext` is the last step for the warn-only mode, and has no worked example.\n- P3 — `deft setup` and the setup skill do not explain the mode or list what it needs (issue criterion 1). Operator-deferred to #6686 (split comment 6988213796, Scott, 2026-11-18).\n- P4 — `deft doctor` has no advisory line for a project without that stack (issue criterion 2). Operator-deferred to #6686 (same split comment).\n\n## Excluded (not pains, not in this arc)\n- Any code change: the signal, the warn sites and the floor are shipped (#6535) and are not changed here.\n- The hooks reference section (`hook-root-admission.md` 286-330) stays the full reference; this arc points to it.\n- Ownership check: setup output and doctor are in the installer owner's area (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` §5) and moved to #6686. The two docs here are user docs, not locked OVPR docs.\n\n## Constraints\n- C1 No gate and no grant (issue criterion 4). Docs only.\n- C2 The docs must not claim more than the code checks. The hook checks the name (worktree copy as trigger, GitHub copy at the delivery-branch head as authority) and the live required-check list; it does not check that the named check runs every gate, that a merge queue is on, or that a review bot is required (`hook-root-admission.md` 323-330).\n- C3 Both docs carry the same checklist (issue criterion 3).\n\n## Anchors at the dispatch SHA\n- `packages/core/src/hooks/merge-gate-signal.ts` 1-30 (contract and 10 s budget), 80-110 (`evaluateSignal`: trigger, origin slug, delivery branch, contents read, name match, required contexts).\n- `packages/core/src/pr-merge-readiness/gh.ts` 763-860: `fetchRequiredStatusContexts` reads rulesets (`rules/branches/<b>`) and classic protection; 404 is soft-skipped.\n- `content/docs/hook-root-admission.md` 286-330: signal, warn-site table, warning output, floor, limits.\n- `content/docs/github-merge-queue-setup.md` 19-63 (prerequisites and settings), 109-111 (reference setup).\n- `content/docs/getting-started.md` 182-209 (first check, working an existing backlog).\n- `content/vbrief/schemas/vbrief-core.schema.json` 641-647 (`mergeGateContext` schema).\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1, P2, C3). One checklist, the same words in both docs, under a heading \"Fewer local hook refusals (#6535)\". In `github-merge-queue-setup.md` it is a new section after \"How agents merge afterwards\". In `getting-started.md` it is a short section after \"Working an existing backlog\", with a link to the merge-queue doc for the settings.\n- R2 (C2). The checklist has two parts. \"What the hook checks\": (1) a status check that runs the full merge gate (for Directive, `deft check` or `task check:merge`) is required on the delivery branch, by ruleset or classic protection; (2) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names that exact check, and that change is merged to the delivery branch; (3) `origin` is the GitHub repository and `gh` can read the file and the required checks within 10 seconds. \"What you make true (the hook does not check it)\": (4) that check runs on `merge_group` and runs the full gate; (5) the merge queue is on for the delivery branch; (6) the review bot is a required check. Then one sentence on the effect (the five warn sites warn, everything else refuses) and a link to `hook-root-admission.md` § Warn-only sites for the site table and the floor.\n- R3 (P2). One worked example, in both docs: the `plan.policy` fragment with `\"mergeGateContext\": \"Merge gate (task check)\"`, the two `gh api` reads that show the signal holds (contents at the delivery branch, `rules/branches/<branch>`), and what a stale-ritual write then returns (`Warning:` plus the refusal text).\n- R4 (C1). No code, no new verb, no gate and no grant. One `changelog.d/` fragment.\n\nQuestions for the critic:\n1. Is the split in R2 right? The issue lists the merge queue and the review bot as requirements, but the hook does not check them. Should the docs list them as requirements, as recommendations, or not at all?\n2. Does any item in R2 or R3 claim more than `merge-gate-signal.ts` and `fetchRequiredStatusContexts` do (for example, the classic-protection read needing admin access, or the worktree copy needing the name too)?\n3. Is duplicating the checklist in two docs right, or should one doc hold it and the other point to it, given C3?\n4. Is the getting-started placement right for a first-project page?\n\n",
+          "id": 6988376671,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988376671",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:54:19Z",
+          "updated_at": "2026-11-18T18:54:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6988380807\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 103414819a1b68f52bd609300324805becf857c9\ndest: .deft-scratch/worktrees/arc-6567\nverification-path: pin-read git show 103414819a1b68f52bd609300324805becf857c9: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6988376671\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6988380807,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988380807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:54:30Z",
+          "updated_at": "2026-11-18T18:54:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nUsers currently have to find the hooks reference to learn how to reduce local refusals. Adding the checklist and example to both setup guides addresses that gap. The proposed design needs one correction before acceptance: its two API reads do not establish that the hook’s signal holds.\n\nMy answers to the four questions:\n\n1. Keep the merge queue and required review bot as requirements of the documented full-stack setup, explicitly distinguished from conditions the hook verifies. The hook does not prove that the named check runs the full gate.\n2. R2 needs an explicit matching name in the current worktree. R3 omits the classic-protection read and promises a warning without excluding later refusals. Repository-admin access should not be described as a universal hook requirement; the relevant requirement is successful reads with the hook’s credentials.\n3. Duplicating a short checklist satisfies C3 and makes each page useful independently. A single canonical checklist would reduce drift, but would change the stated requirement.\n4. The getting-started placement is reasonable as an optional section after the first-project journey. It should not appear to be another prerequisite for the first green check.\n\n### 1. blocks-the-design — Two API reads cannot demonstrate the signal\n\n**Evidence:** At dispatch SHA `103414819a1b68f52bd609300324805becf857c9`, `packages/core/src/pr-merge-readiness/gh.ts:837–871` reads rulesets, `874–906` also reads classic protection, and `912–915` makes **any** hard error invalidate the inventory—even when the other source succeeded. `packages/core/src/hooks/merge-gate-signal.ts:80–110` additionally requires a local trigger, resolved repository and delivery branch, matching remote definition, and a successful required-context inventory.\n\n**Failure mode:** Both proposed example reads succeed and show the expected name, but classic protection returns a non-404 error. The hook still refuses. Conversely, a check required only through classic protection is absent from the proposed ruleset read despite being supported by the runtime.\n\n**Disposition consequence:** R3 cannot bind as a demonstration that “the signal holds.” The example needs the classic-protection read and an explicit local-name match, or must describe its commands as partial diagnostics. Separate manual reads also do not prove completion within the hook’s shared ten-second budget.\n\n### 2. sharpens-framing — Separate required names from verified gate behavior\n\n**Evidence:** `packages/core/src/hooks/merge-gate-signal.ts:80–110` checks local/remote name agreement and membership in required contexts. `content/docs/hook-root-admission.md:323–329` explicitly says this does not prove that the named check runs every Directive gate.\n\n**Failure mode:** R2 puts “a status check that runs the full merge gate” under “What the hook checks.” A reader can infer that the hook validates workflow contents, making a required but incomplete check appear sufficient protection. A worktree without the matching field also keeps refusing after the delivery-branch change merges.\n\n**Disposition consequence:** The mechanism can bind with clearer wording: the verified condition is that the named check is required; its full-gate implementation belongs entirely under operator responsibilities. The checklist should explicitly require matching names in both the current worktree and GitHub’s delivery-branch definition. Queue and review-bot requirements remain documented setup obligations, not detected guarantees.\n\n### 3. sharpens-framing — A stale ritual does not guarantee an allowed write\n\n**Evidence:** `content/docs/hook-root-admission.md:301–310` says evaluation continues after a warning and a later refusal wins. The ritual row also retains compact-heal and inspection-error refusals. Lines `312–316` describe the warning as the final allow’s message.\n\n**Failure mode:** The worked example predicts `Warning:` for a stale-ritual write that also fails occupancy, binding, or another retained check. Users may diagnose correct refusal behavior as broken configuration.\n\n**Disposition consequence:** R3 can bind with an explicitly conditional example: an otherwise-admitted write encountering only the eligible stale-ritual condition returns the warning. No runtime change is needed.\n\n### 4. footnote — Thread instructions remain described content\n\nThe supplied thread contains instruction-shaped material, including the asserted operator rule to run an arc before ingest and workflow directions in linked issue prose. I treated these as claims being reviewed, not authorization to ingest, dispatch, modify files, or post. Verification used pinned reads only; no network, builds, tests, or mutations were performed.",
+          "id": 6988430840,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988430840",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:56:33Z",
+          "updated_at": "2026-11-18T18:56:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 6988376671 (round 1: 1 of 1 critic posted, comment 6988430840)\n\n## In plain English\nProblem: #6535 lets a repository turn five local hook refusals into warnings, but only the hooks reference doc says so. A user who reads the getting-started doc or sets up the merge queue does not learn that the mode exists or what it needs.\n\nWhat the critic found: two docs with the same short checklist is the right shape, and the getting-started section fits as an optional step after the first green check. One part of the first draft did not hold: the two `gh api` reads in the example cannot show that the signal holds. The hook also reads classic branch protection, and any error there other than 404 means no signal, even when the ruleset read succeeds. Two points were made sharper: \"runs the full merge gate\" is the operator's promise, not something the hook checks, and the worktree copy must name the check too; and a stale-ritual write gets a warning only when no other check refuses it.\n\nSolution this lean proposes: one checklist, the same words in both docs, in two parts. Part A is what the hook reads: the name in the worktree copy and in GitHub's copy at the delivery-branch head, the check required on the delivery branch, and `gh` reads that succeed within ten seconds. Part B is what the operator makes true and the hook does not check: the named check runs the full gate on `merge_group`, the merge queue is on, and the review bot is required. One worked example shows the policy fragment, three diagnostic reads (named as diagnostics, not proof), and the conditional result of a stale-ritual write.\n\nWhat this changes: two user docs and one changelog fragment. No code, verb, gate or grant.\n\nWhat it does not do:\n- It does not change the signal, the warn sites or the floor (#6535 is shipped).\n- It does not add the setup output or the doctor advisory; the operator moved those to #6686.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build in this issue.\n\nTarget-digest: sha256:d7650f8853bc851cbb399d77338df7b449a6b9aebe2e105b018e11c3db8a9dce\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 6988430840). Panel deposit: comment 6988380807.\n\nrelieves: P1\nrelieves: P2\noperator-deferred: P3 #6686\noperator-deferred: P4 #6686\n\n`P3` and `P4` are cited as the operator's split of the setup output and the doctor advisory to #6686 (comment 6988213796, Scott, 2026-11-18). This arc does not design them.\n\n## Bound remedy\n1. Checklist. One checklist under the heading \"Fewer local hook refusals (#6535)\", with the same words in both docs. Part A, \"What the hook checks\": (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree); (b) that check is required on the delivery branch, by a ruleset or by classic branch protection; (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total, where a 404 on classic protection is fine and any other error means no signal. Part B, \"What you make true (the hook does not check it)\": (d) the named check runs the full merge gate (`deft check`) and runs on `merge_group`; (e) the merge queue is on for the delivery branch; (f) the review bot is a required check. Then one sentence: when Part A holds, the five warn sites warn and every other refusal stays; when any item of Part A fails, the hook refuses as today. Then a link to `hook-root-admission.md` § Warn-only sites behind a live merge gate (#6535) for the site table, the floor and the limits.\n2. Placement. In `content/docs/github-merge-queue-setup.md`, a new section after \"How agents merge afterwards\". In `content/docs/getting-started.md`, a new section after \"Working an existing backlog\", marked optional and not needed for the first green `deft check`, with a link to the merge-queue doc for the settings.\n3. Worked example, the same in both docs: (a) the `plan.policy` fragment `\"mergeGateContext\": \"Merge gate (task check)\"`; (b) three reads labelled as diagnostics that show the parts are in place but do not prove the hook's read finishes in its budget: `gh api \"repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>\"`, `gh api repos/<owner>/<repo>/rules/branches/<branch>` and `gh api repos/<owner>/<repo>/branches/<branch>/protection`; (c) the result, stated as conditional: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text; any later refusal (occupancy, a protected store, a binding refusal) still wins.\n4. Changelog and limits. One new `changelog.d/` fragment. No code, verb, gate or grant.\n\n## Acceptance Criteria\n- In `content/docs/github-merge-queue-setup.md`, a new \"Fewer local hook refusals (#6535)\" section after \"How agents merge afterwards\" carries the two-part checklist of Bound remedy item 1 and the worked example of item 3.\n- In `content/docs/getting-started.md`, a new optional section after \"Working an existing backlog\" carries the same checklist and worked example word for word, says it is not needed for the first green `deft check`, and links to the merge-queue doc for the settings.\n- In `changelog.d/6567-merge-gate-checklist.md`, one line records that both docs now carry the checklist and example and that no gate or grant was added.\n\n## Reject\n- Using the ruleset and contents reads alone as proof that the signal holds (comment 6988430840, finding 1).\n- Listing \"runs the full merge gate\" under what the hook checks (comment 6988430840, finding 2).\n- One canonical checklist with a pointer from the other doc (comment 6988430840, answer 3; the issue asks for the same checklist in both).\n- A stale-ritual example that promises a warning with no condition (comment 6988430840, finding 3).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6988430840 | 1. Two API reads cannot demonstrate the signal | blocks-the-design | accept-into-contract (item 1(c) names both protection reads and the 404 rule; item 3(b) adds the classic read and labels the reads as diagnostics) |\n| comment 6988430840 | 2. Separate required names from verified gate behavior | sharpens-framing | accept-into-contract (item 1 Part B; item 1(a) worktree copy) |\n| comment 6988430840 | 3. A stale ritual does not guarantee an allowed write | sharpens-framing | accept-into-contract (item 3(c) conditional result) |\n\nFootnotes in the census, no take: comment 6988430840 finding 4.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6988457380,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988457380",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:57:42Z",
+          "updated_at": "2026-11-18T18:57:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:4deb3465bfe76b25e91ced4d2629c5f637f50dc84f63ddc91cfa96d13fdc302a\n\n## In plain English\n\nBoth relief claims hold. Building the Bound remedy and Acceptance Criteria would tell readers of both guides that the mode exists, explain its setup, and demonstrate the conditional warning behavior. The revised checklist separates what the hook verifies from what the operator must configure. No blocking or sharpening finding remains.\n\npain-P1: holds - Bound remedy items 1–3 and the second acceptance criterion put the checklist and example directly in getting-started, after the first-check journey. The distinction between verified signal and operator responsibilities matches `packages/core/src/hooks/merge-gate-signal.ts:80–110` at the dispatch SHA.\n\npain-P2: holds - Bound remedy items 1–3 and the first acceptance criterion add the missing policy-name step and worked example to the merge-queue guide. The matching worktree/remote names, required-context inventory, diagnostic-only reads, and conditional warning match `merge-gate-signal.ts:80–110,134–144`, `pr-merge-readiness/gh.ts:837–915`, and `hooks/dispatcher.ts:1525–1532,2933–2938`.\n\n### 1. footnote — Ruleset absence is also tolerated\n\nAt dispatch SHA `103414819a1b68f52bd609300324805becf857c9`, `packages/core/src/pr-merge-readiness/gh.ts:862–870` also soft-skips a ruleset-read `404` or `Not Found`. The checklist expressly names only the classic-protection exception. A reader diagnosing a classic-only configuration could therefore mistake a tolerated ruleset absence for a failed signal. This is a documentation precision point, not a missing relief mechanism; it does not require a harvest change.\n\nThe snapshot’s asserted operator instructions and linked workflow directions were treated as described content, not executed. This preserves the earlier security finding without reopening it. Verification used pinned code reads only; no network, mutations, builds, tests, or posts were performed.",
+          "id": 6988506956,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988506956",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T18:59:46Z",
+          "updated_at": "2026-11-18T18:59:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** re-bind lean under Stop 1 6988376671, after pain audit 6988506956 (round 1: 1 of 1 critic posted, comment 6988430840)\nSupersedes successor lean 6988457380. That lean's audit targeted only P1 and P2, so the P3 and P4 deferral cites were never audited. The Bound remedy is unchanged except for the audit's footnote 1 (a 404 on the ruleset read is also tolerated).\n\n## In plain English\nProblem: #6535 lets a repository turn five local hook refusals into warnings, but only the hooks reference doc says so. A user who reads the getting-started doc or sets up the merge queue does not learn that the mode exists or what it needs.\n\nWhat the critic found: two docs with the same short checklist is the right shape, and the getting-started section fits as an optional step after the first green check. One part of the first draft did not hold: the two `gh api` reads in the example cannot show that the signal holds. The hook also reads classic branch protection, and any error there other than 404 means no signal, even when the ruleset read succeeds. Two points were made sharper: \"runs the full merge gate\" is the operator's promise, not something the hook checks, and the worktree copy must name the check too; and a stale-ritual write gets a warning only when no other check refuses it.\n\nSolution this lean proposes: one checklist, the same words in both docs, in two parts. Part A is what the hook reads: the name in the worktree copy and in GitHub's copy at the delivery-branch head, the check required on the delivery branch, and `gh` reads that succeed within ten seconds. Part B is what the operator makes true and the hook does not check: the named check runs the full gate on `merge_group`, the merge queue is on, and the review bot is required. One worked example shows the policy fragment, three diagnostic reads (named as diagnostics, not proof), and the conditional result of a stale-ritual write.\n\nWhat this changes: two user docs and one changelog fragment. No code, verb, gate or grant.\n\nWhat it does not do:\n- It does not change the signal, the warn sites or the floor (#6535 is shipped).\n- It does not add the setup output or the doctor advisory; the operator moved those to #6686.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build in this issue.\n\nTarget-digest: sha256:d7650f8853bc851cbb399d77338df7b449a6b9aebe2e105b018e11c3db8a9dce\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 6988430840). Panel deposit: comment 6988380807. Pain audit of lean 6988457380: comment 6988506956.\n\nrelieves: P1\nrelieves: P2\noperator-deferred: P3 #6686\noperator-deferred: P4 #6686\n\n`P3` and `P4` are cited as the operator's split of the setup output and the doctor advisory to #6686 (comment 6988213796, Scott, 2026-11-18). This arc does not design them.\n\n## Bound remedy\n1. Checklist. One checklist under the heading \"Fewer local hook refusals (#6535)\", with the same words in both docs. Part A, \"What the hook checks\": (a) `plan.policy.mergeGateContext` in `xbrief/PROJECT-DEFINITION.xbrief.json` names one status check, and the same exact name is in GitHub's copy of that file at the head of the delivery branch and in the copy in the worktree you work in (merge the change, then update each worktree); (b) that check is required on the delivery branch, by a ruleset or by classic branch protection; (c) `origin` is the GitHub repository, the delivery branch resolves, and `gh` with the credentials the hook uses can read the file at the delivery branch, `rules/branches/<branch>` and `branches/<branch>/protection` within ten seconds in total, where a 404 on either protection read is fine and any other error on either means no signal. Part B, \"What you make true (the hook does not check it)\": (d) the named check runs the full merge gate (`deft check`) and runs on `merge_group`; (e) the merge queue is on for the delivery branch; (f) the review bot is a required check. Then one sentence: when Part A holds, the five warn sites warn and every other refusal stays; when any item of Part A fails, the hook refuses as today. Then a link to `hook-root-admission.md` § Warn-only sites behind a live merge gate (#6535) for the site table, the floor and the limits.\n2. Placement. In `content/docs/github-merge-queue-setup.md`, a new section after \"How agents merge afterwards\". In `content/docs/getting-started.md`, a new section after \"Working an existing backlog\", marked optional and not needed for the first green `deft check`, with a link to the merge-queue doc for the settings.\n3. Worked example, the same in both docs: (a) the `plan.policy` fragment `\"mergeGateContext\": \"Merge gate (task check)\"`; (b) three reads labelled as diagnostics that show the parts are in place but do not prove the hook's read finishes in its budget: `gh api \"repos/<owner>/<repo>/contents/xbrief/PROJECT-DEFINITION.xbrief.json?ref=<branch>\"`, `gh api repos/<owner>/<repo>/rules/branches/<branch>` and `gh api repos/<owner>/<repo>/branches/<branch>/protection`; (c) the result, stated as conditional: a product write that only a stale session ritual would refuse is allowed, with a message that starts `Warning:` and carries the ritual refusal text; any later refusal (occupancy, a protected store, a binding refusal) still wins.\n4. Changelog and limits. One new `changelog.d/` fragment. No code, verb, gate or grant.\n\n## Acceptance Criteria\n- In `content/docs/github-merge-queue-setup.md`, a new \"Fewer local hook refusals (#6535)\" section after \"How agents merge afterwards\" carries the two-part checklist of Bound remedy item 1 and the worked example of item 3.\n- In `content/docs/getting-started.md`, a new optional section after \"Working an existing backlog\" carries the same checklist and worked example word for word, says it is not needed for the first green `deft check`, and links to the merge-queue doc for the settings.\n- In `changelog.d/6567-merge-gate-checklist.md`, one line records that both docs now carry the checklist and example and that no gate or grant was added.\n\n## Reject\n- Using the ruleset and contents reads alone as proof that the signal holds (comment 6988430840, finding 1).\n- Listing \"runs the full merge gate\" under what the hook checks (comment 6988430840, finding 2).\n- One canonical checklist with a pointer from the other doc (comment 6988430840, answer 3; the issue asks for the same checklist in both).\n- A stale-ritual example that promises a warning with no condition (comment 6988430840, finding 3).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6988430840 | 1. Two API reads cannot demonstrate the signal | blocks-the-design | accept-into-contract (item 1(c) names both protection reads and the 404 rule; item 3(b) adds the classic read and labels the reads as diagnostics) |\n| comment 6988430840 | 2. Separate required names from verified gate behavior | sharpens-framing | accept-into-contract (item 1 Part B; item 1(a) worktree copy) |\n| comment 6988430840 | 3. A stale ritual does not guarantee an allowed write | sharpens-framing | accept-into-contract (item 3(c) conditional result) |\n| comment 6988506956 | 1. Ruleset absence is also tolerated | footnote | accept-into-contract (item 1(c)) |\n\nFootnotes in the census, no take: comment 6988430840 finding 4.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 6988562239,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988562239",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T19:02:07Z",
+          "updated_at": "2026-11-18T19:02:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:d9f37f460f8dfaedaea66be267c0825c3844e5740cfee587f545bf2470b26e6b\n\n## In plain English\n\nThe documentation remedy holds. Implementing the Bound remedy and Acceptance Criteria would address P1 and P2. P3 and P4 remain unmet, but the lean correctly records them as deferred to #6686 rather than claiming relief. The supplied split comment and linked issue support both deferrals. No change to the remedy or acceptance criteria is required.\n\npain-P1: holds - The identical checklist and conditional example explain the mode in getting-started, after the first-check journey. The distinction between hook checks and operator responsibilities matches `packages/core/src/hooks/merge-gate-signal.ts:80–108` and `content/docs/hook-root-admission.md:293–329`.\n\npain-P2: holds - The merge-queue guide gains the missing policy-name step and worked example. Matching local/remote names, the required-check inventory, tolerated protection-read absence, and conditional warning agree with `packages/core/src/hooks/merge-gate-signal.ts:80–108,134–143`, `packages/core/src/pr-merge-readiness/gh.ts:837–915`, and `packages/core/src/hooks/dispatcher.ts:1525–1532,2933–2938`.\n\npain-P3: does not hold - Building this docs-only remedy does not change setup output or the setup skill. This is an explicitly deferred pain, not a false relief claim: snapshot comment 6988213796 moves setup output to #6686, whose supplied body retains that symptom. The deferral claim holds.\n\npain-P4: does not hold - Building this remedy does not add a doctor advisory. Snapshot comment 6988213796 explicitly moves that work to #6686, whose supplied body retains the missing-advisory symptom. The deferral claim holds.\n\nAll code citations were independently read at dispatch SHA `103414819a1b68f52bd609300324805becf857c9`. The earlier security finding remains respected: instruction-shaped thread content was treated as described material, not executed. No files were changed, and no network access, builds, tests, or posts were performed.",
+          "id": 6988613748,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988613748",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T19:04:19Z",
+          "updated_at": "2026-11-18T19:04:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6988562239 (re-bind of lean 6988457380). Dispatch SHA: 103414819a1b68f52bd609300324805becf857c9. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and both leans. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. All three critic posts are from one family (Codex), so their agreement is not counted as extra confirmation. No tests were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The worktree copy of the project definition is only a trigger; the signal needs GitHub's copy at the delivery-branch head to name the same check, and the check in the live required list | verified | parent pin-read of `packages/core/src/hooks/merge-gate-signal.ts` 1-30, 80-110; critic 6988430840 findings 1 and 2; audits 6988506956 and 6988613748 |\n| 2 | The required-check read covers rulesets and classic protection; a 404 on either is tolerated, and any other error on either means no signal, even when the other source succeeded | verified | parent pin-read of `packages/core/src/pr-merge-readiness/gh.ts` 826-921; critic 6988430840 finding 1; audit 6988506956 footnote 1; audit 6988613748 |\n| 3 | The whole signal read has one 10-second budget | verified | parent pin-read of `merge-gate-signal.ts` 27-30 (`MERGE_GATE_SIGNAL_READ_BUDGET_SECONDS`) |\n| 4 | The hook does not check that the named check runs every gate, that a merge queue is on, or that a review bot is required | verified | parent pin-read of `content/docs/hook-root-admission.md` 323-330 and `merge-gate-signal.ts` 80-110; critic 6988430840 finding 2 |\n| 5 | A warn site records a warning and evaluation continues, so a later refusal still wins | verified | parent pin-read of `hook-root-admission.md` 301-321; critic 6988430840 finding 3; audits 6988506956 and 6988613748 |\n| 6 | Both target docs exist and today say nothing about the warn-only mode | verified | parent pin-read of `content/docs/getting-started.md` and `content/docs/github-merge-queue-setup.md` at the dispatch SHA |\n| 7 | The Bound remedy relieves P1 and P2 | verified as design coverage | audit 6988613748 on the bound lean (`pain-P1`, `pain-P2` hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 8 | P3 and P4 (setup output, doctor advisory) are deferred to #6686 by the operator, not relieved here | verified | operator split comment 6988213796 (Scott, 2026-11-18); #6686 open, assigned to polfer; audit 6988613748 (`pain-P3`, `pain-P4` do not hold as relief; the deferral holds) |\n\n",
+          "id": 6988617106,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988617106",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T19:04:27Z",
+          "updated_at": "2026-11-18T19:04:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: #6535 lets a repository turn five local hook refusals into warnings, but only the hooks reference doc says so. Users who read the getting-started doc or set up the merge queue do not learn that the mode exists or what it needs.\n\nAccepted solution: both docs get the same two-part checklist and one worked example. Part A is what the hook reads: the check name in `plan.policy.mergeGateContext` in the worktree copy and in GitHub's copy at the delivery-branch head, the check required on the delivery branch, and `gh` reads of the file, the rulesets and classic protection that succeed within ten seconds. Part B is what the operator makes true and the hook does not check: the named check runs the full gate on `merge_group`, the merge queue is on, and the review bot is required. The example shows the policy fragment, three reads labelled as diagnostics, and the conditional result of a stale-ritual write. One changelog fragment records it.\n\nLimits accepted: docs only; no code, verb, gate or grant. The setup output and the doctor advisory moved to #6686. A 404 on either protection read is tolerated, and the checklist says so. It was checked by reading the source at the pinned commit; nothing was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6988562239.\nverified-claims table 6988617106\n\nConfirm conjunct: yolo standing (Stop 1 6988376671, `yolo-standing: on`). Round-1 critic: comment 6988430840, posted by the parent verbatim as disclosed on panel-deposit 6988380807; its three classified findings are accepted on the lean. The first audit, 6988506956, targeted only P1 and P2 of lean 6988457380, so the parent re-posted the lean as 6988562239 with its footnote folded in. Clean audit of the bound lean: comment 6988613748 (all four pains targeted, `finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). P3 and P4 are operator-deferred to #6686 (comment 6988213796). Critic posts used: 3 of 6.\n\n",
+          "id": 6988623850,
+          "html_url": "https://github.com/deftai/directive/issues/6567#issuecomment-6988623850",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T19:04:44Z",
+          "updated_at": "2026-11-18T19:04:44Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nThe hooks RFC #6535 (accepted lean 6957007991) lets a repository trade some local refusals for warnings, but only when its merge path runs the full gate set and the operator names the merge-gate check in `plan.policy.mergeGateContext`. A consumer who never sets that up keeps every local refusal, and nothing tells them the faster mode exists or what it needs.\n\nOperator direction (Scott, 2026-11-17): \"the new hook behaviour needs to be highlighted to users when they setup that the full stack needs implementation to reduce gates\".\n\n## Acceptance Criteria\n\n- Given a project runs `deft setup` or the setup skill, then the output explains that local hook refusals at the named warn sites become warnings only when the repository's merge path runs the full gate set, and lists what that requires: a required merge-gate CI check on the delivery branch, the merge queue, the review bot, and the `plan.policy.mergeGateContext` field naming that check.\n- Given a project has not configured that stack, then `deft doctor` reports one advisory line naming the missing pieces and the setup doc, and never fails for it.\n- The getting-started and merge-queue setup docs (`content/docs/github-merge-queue-setup.md` from #6366) carry the same checklist, with one worked example.\n- Lands with or after #6535; adds no gate or grant.\n\n## Related\n\n#6535, #6366, #1517, #6281.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6451421243,
+        "origin": "deftai/directive#6567",
+        "id": "github.issue.6451421243"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d7650f8853bc851cbb399d77338df7b449a6b9aebe2e105b018e11c3db8a9dce"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6567,
+        "leanCommentId": 6988562239,
+        "harvestDigest": "d9f37f460f8dfaedaea66be267c0825c3844e5740cfee587f545bf2470b26e6b",
+        "slice": null
+      }
+    },
+    "id": "github.issue.6451421243",
+    "updated": "2026-11-18T19:37:45Z"
+  }
+}

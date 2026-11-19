@@ -13,15 +13,17 @@ Accepted product decisions for the launcher + pinned-runtime install model. Docu
 | **Passive skill reads are not version-gated** | Before PM sync after a pin bump, Markdown may show older installed instructions | Commands/hooks enforce identity when they execute |
 | **Uninstall can be best-effort** | Missing or unfamiliar runtime still cleans known owned artifacts; leftovers are reported | Cleanup must not require install/repair/upgrade first |
 | **Old global CLIs are not defended against** | A pre-split global CLI in a converted repo is stopped only by the generation check on supported lines; older ones may write stale files | Pre-1.0; answer is update the global launcher, then `directive install --repair` when the pin is valid |
-| **New launcher never delegates to an old-style runtime** | Ordinary commands in supported old layouts name `directive upgrade`; the launcher contains no runtime code | Conversion is the path; engineers who update global must convert each old repo |
+| **Old projects run only their own installed copy** | In a project still on the older layout, the launcher hands each command to that project's own installed Directive. If it isn't installed you see: "This project uses an older version of Directive that isn't installed. Run `npm install` (or `pnpm install`) to keep using it, or run `directive upgrade` to update." | People move to a new version one project at a time; the launcher never runs a global or other-version copy |
 | **Initial historical support is the supported latest legacy** | Only the latest package.json-pinned / copied-core architecture converts in-product; older layouts may need uninstall/reinstall later | Full historical survey is follow-up and does not block initial release |
 | **Retired verbs are gone** | `migrate`, `bootstrap`, `sync`, `install-upgrade`, `install-uninstall`, `doctor fix` → unknown command | Dead names are not redirected |
 | **`update` means `upgrade`** | `directive update` moves the pin (after plan/approval) | Courtesy alias; the prompt is the guard |
-| **Only package/readiness ignore entries change** | Ignore updates cover `node_modules` and `.deft/directive/wiring-ready.*.json`; `GENERATION.json` stays committed | Broader housekeeping stays where it is |
+| **Only named ignore entries change** | `.gitignore` gets `node_modules`, `.deft/directive/wiring-ready.*.json` and a short list of per-checkout runtime files; an existing `.prettierignore` gets one line for the hook files; `GENERATION.json` stays committed | Broader housekeeping stays where it is |
 | **Node 20 is best-effort** | Warning on Node 20; gates test 22 and 24 | Broad compatibility without blocking |
 | **`@deftai/directive` is the launcher** | Adding it locally does not activate a project; meaning changes from “the product” to “the launcher” at the split | Pin `@deftai/directive-runtime` via `directive install` |
 | **FF alone is not tip dogfood** | On the maintainer monorepo, ordinary `task` and hooks stay on the checkout pin; workspace `packages/runtime/dist` is not a silent ordinary-verb fallback (#5805) | Run `task materialize:runtime` in the checkout that should dogfood tip; dest worktrees do not inherit primary materialize |
-| **Hooks cannot run while their runtime package is absent** | Host may block edits until packages are restored | No fallback to another version; recover with `npm i -g @deftai/directive`, then `directive install --repair` |
+| **Hooks cannot run while their runtime package is absent** | Each host blocks tool calls and names the project install. A person runs it in a terminal: `npm install`, or `pnpm install --frozen-lockfile` for pnpm | No fallback to another version |
+| **A hook that never starts can't protect you** | If Node is missing, the hook file isn't found, or the host times out before the hook answers, Directive never runs. Claude Code and Codex then carry on with a hook error; Cursor blocks. The managed `AGENTS.md` text tells the agent to say once that Directive is not protecting the session | The host decides what happens when its hook command can't start. Fix: install Node, then the project install; `directive install --repair` if wiring is still incomplete. Details: [hook-runtime-unavailable.md](./hook-runtime-unavailable.md) |
+| **Codex and Grok hooks need the project root as the working folder** | Hooks are registered as `node .codex/deft-hook-<sha8>.mjs …` (Grok: `.grok/hooks/…`), a path relative to the project root. If the host runs the hook from a subfolder, Node can't find the file, the hook never starts, and that tool call isn't checked | These hosts offer no project-root variable for a no-shell hook command, and a shell wrapper is ruled out. Start the agent session at the project root and keep its working folder there |
 | **No `--force`** | Conflicts are named and left | Destructive bypass is out of scope |
 | **Three private packages are not consumable** | `directive-core`, `directive-content`, and `directive-types` are not on npm for external use | Bundled into the runtime; loose ranges were part of the bug |
 | **Manual package add is not activation** | Dropping a runtime into a never-configured project creates no hooks/skills; reading Markdown does not run setup | Use `directive install` / `install --repair` (repair needs an unambiguous exact pin) |
@@ -31,9 +33,16 @@ Accepted product decisions for the launcher + pinned-runtime install model. Docu
 
 ## Standard recovery
 
-```bash
-npm i -g @deftai/directive
-directive install --repair
-```
+Run the one command that matches what is wrong:
+
+| What is wrong | Command (a person runs it) |
+| --- | --- |
+| Runtime missing, or not the pinned version (fresh clone, new worktree, deleted `node_modules`) | `npm install`, or `pnpm install --frozen-lockfile` for pnpm |
+| `package.json` doesn't name one exact Directive version | Change it to an exact version, like `"@deftai/directive-runtime": "0.129.15"`, then run the project install |
+| Wiring damaged (hooks, skills, `GENERATION.json`) with the right runtime installed | `directive install --repair` |
+| Project data behind, or an older Directive layout | `directive upgrade` |
+| `directive` command missing | `npm i -g @deftai/directive` |
+
+`directive doctor` names the right one for your project.
 
 Full design catalogue: UNIFIED / PROPOSAL §A9.

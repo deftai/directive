@@ -54,7 +54,6 @@ export const COLD_EXCLUSIVE_PHASE_NAMES = [
   "ceremony_dial_resolve",
   "git_head",
   "occupancy_plan",
-  "linked_deposit",
   "user_md_resolve",
   "branch_sync",
   "staleness_tickler",

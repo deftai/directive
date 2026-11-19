@@ -152,6 +152,8 @@
           "packages/core/src/authz/classify.ts",
           "packages/core/src/authz/classify.test.ts",
           "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
           "changelog.d/6681-killswitch-plant-guard-regression.md"
         ],
         "module_boundary": "packages/core/src/authz/classify.ts keeps owning the shell-op classification and the kill-switch plant scan; the change widens what that scan sees (quoted launcher payloads, xargs pipelines). No new module; new tests go in classify.test.ts and evaluate.test.ts.",
@@ -162,6 +164,8 @@
           "packages/core/src/authz/classify.ts",
           "packages/core/src/authz/classify.test.ts",
           "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
           "changelog.d/6681-killswitch-plant-guard-regression.md"
         ],
         "file_scope_confidence": "medium",

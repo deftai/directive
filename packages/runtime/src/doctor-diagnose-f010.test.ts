@@ -17,6 +17,7 @@ import {
   GIT_PRECONDITION_READINESS_DETAIL,
   GIT_PRECONDITION_RECOVERY_GUIDANCE,
   runDoctorDiagnosis,
+  WIRING_DAMAGED_RECOVERY_GUIDANCE,
 } from "./doctor-diagnose.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { runSetup } from "./setup.js";
@@ -124,8 +125,8 @@ describe("F-010 no-git incomplete install doctor (C7 warn+partial)", () => {
 
     const text = formatDoctorReport(diag);
     expect(text).toMatch(/incomplete install \(git precondition\)/i);
-    expect(text).not.toMatch(/^directive doctor: not in sync$/m);
-    expect(text).not.toMatch(/^directive doctor: in sync$/m);
+    expect(text).not.toMatch(/^Install sync: not in sync$/m);
+    expect(text).not.toMatch(/^Install sync: in sync$/m);
     // wave 4g: plain Next: block (same git-init recovery, friendlier layout)
     expect(text).toContain("Next:");
     expect(text).toMatch(/git init/i);
@@ -167,7 +168,7 @@ describe("F-010 no-git incomplete install doctor (C7 warn+partial)", () => {
     expect(after.remedy).toBeNull();
     expect(after.exitCode).toBe(0);
     const text = formatDoctorReport(after);
-    expect(text).toMatch(/^directive doctor: in sync$/m);
+    expect(text).toMatch(/^Install sync: in sync$/m);
     expect(text).not.toMatch(/incomplete install/i);
     expect(text).not.toContain(GIT_PRECONDITION_RECOVERY_GUIDANCE);
     expect(text).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
@@ -187,10 +188,11 @@ describe("F-010 no-git incomplete install doctor (C7 warn+partial)", () => {
     const diag = runDoctorDiagnosis(root, { probeHooks: false });
     expect(diag.incompleteInstall).toBeNull();
     expect(diag.inSync).toBe(false);
-    expect(diag.remedy).toBe(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(diag.remedy).toBe(WIRING_DAMAGED_RECOVERY_GUIDANCE);
     const text = formatDoctorReport(diag);
-    expect(text).toMatch(/^directive doctor: not in sync$/m);
+    expect(text).toMatch(/^Install sync: not in sync$/m);
     expect(text).not.toMatch(/incomplete install \(git precondition\)/i);
-    expect(text).toContain(`Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}`);
+    expect(text).toContain(`Recovery: ${WIRING_DAMAGED_RECOVERY_GUIDANCE}`);
+    expect(text).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
   });
 });

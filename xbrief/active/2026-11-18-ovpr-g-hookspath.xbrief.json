@@ -1,0 +1,670 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5846",
+    "updated": "2026-11-18T18:45:46Z"
+  },
+  "plan": {
+    "title": "setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed",
+    "status": "running",
+    "narratives": {
+      "Description": "OVPR fix plan group G-D (story id ovpr-g-hookspath), unit P2-U8 Part A, issue #5846 (hooksPath limb only) and #4960, ledger Problem 20 FINAL, D-017 (confirm the 'inactive' report). A user with a global or other foreign `core.hooksPath` cannot finish install: setup refuses, readiness is never written, every hook re-runs setup, and doctor loops on global install + repair. Install and repair now show one takeover warning inside their single plan and, on approval, set local `core.hooksPath=.githooks`; upgrade and automatic setup report 'Git hooks inactive' instead of a conflict, and doctor names `directive install --repair` with the hooksPath scope. One PR (runtime and launcher halves together).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5846",
+      "Overview": "@polfer routing to you since this is setup/installer work.\n\n## Summary\n\nIn a Cursor Cloud Agent VM, Directive 0.127.0 can't be used to make any edits. The fail-closed `preToolUse` hook denies every Write/Edit because the gated session ritual can't be satisfied. The documented recovery, `directive upgrade --yes`, stops with \"setup completed with conflicts\": the host has set git `core.hooksPath` to its own agent-hooks directory, and upgrade refuses to redirect it. As a result `wiring-ready.0.127.0.json` is never written, doctor stays red, and the write gate stays closed. Maintainers and consumers who build through Cursor Cloud Agents are blocked.\n\n## Repro and environment\n\n- Host: Cursor Cloud Agent (Linux VM), fresh environment snapshot, default branch checked out clean\n- Node 24.22.1, pnpm 11.8.0, `task` 3.52.0\n- `deft --version`: launcher `0.127.0`, project pins `0.127.0 (installed (metadata verified))`\n- `node_modules/@deftai/directive-runtime/dist/hook-bin.js` present. The hook runs and returns a policy deny (exit 0, `permission: deny`), so this is not the exit-127 class.\n- The host VM sets `git config core.hooksPath` to `<host agent-hooks dir>` (not `.githooks`)\n\nSteps:\n1. `deft session:start --session-id=host:claude:v1:<id> --defer-owed \"<reason>\"`. The shell side resolves to the `claude` host identity.\n2. Attempt any Write through the agent's edit tool (Cursor `preToolUse` → `hook-bin --host cursor --event tool.before`).\n3. `deft doctor`\n4. `directive upgrade --yes`\n\n## Exact error lines\n\nEdit-tool deny before session start:\n```text\nDirective denied Write: ritual state missing at <repo root>/.deft/ritual-state.json. Run before implementation dispatch. ... occupancy refuses to mint an owner on host cursor: this host has a declared identity contract, and minting binds the lease to an id no later hook can present. Re-run with `--session-id=<host-published-id>` from a session that has a Directive hook registered.\n```\n\nEdit-tool deny after `session:start` from the shell:\n```text\nDirective denied Write: hook --host cursor: Cursor hook payload omits conversation_id. A live occupancy lease exists for session host:claude:v1:<id>; use an exact host-mediated lifecycle command or pass the matching --session-id explicitly.\ncode: occupancy-identity-unavailable\n```\n\nRitual gate reasons reported for the Write deny:\n```text\nsession ritual gated step 'agent_hooks' is missing\nsession ritual gated step 'doctor' failed\n```\n\nDoctor (exit 1, still red after installing `uv`):\n```text\ndirective doctor: not in sync\n  readiness: FAIL — wiring-ready.0.127.0.json missing\n  xbrief/schema currency: FAIL — project data schema behind runtime; run directive upgrade\n```\n\n`directive upgrade --yes`:\n```text\nsetup completed with conflicts\ncore.hooksPath is '<host agent-hooks dir>' (not .githooks); refusing to redirect and disable existing checks\n```\n\n## Observed effects\n\n1. **The hooksPath refusal leaves wiring-ready missing.** Upgrade/setup correctly declines to disable the host's hooks. But nothing then records readiness, and there's no supported way to coexist with them. `readiness: FAIL` persists, the `doctor` ritual step can't pass, and every edit stays denied. The agent left the hooks path as-is and did not forge the marker.\n2. **The `agent_hooks` ritual step is missing, and the occupancy identity is split between the shell and edit-tool sessions.** Shell lifecycle commands resolve to `host:claude:v1:…`, while the edit tool is gated as `--host cursor`, and the Cursor payload in this VM omits `conversation_id`. The lease taken from the shell can't be presented by the edit-tool hook, and the cursor side refuses to mint its own owner. Running `deft session:start --session-id=host:cursor:v1:…` from the shell was itself blocked by the shell-side hook, so the only session the agent could start was as `claude`. No combination the agent tried got `agent_hooks` recorded as executed. The run ended without trying a release and re-claim as `cursor`.\n3. **Upgrade stripped the #5804 pre-push arm.** After `directive upgrade --yes`, `.githooks/pre-push` lost three lines, the refuse-to-downgrade marker and the enrolled bound pre-PR arm:\n   ```diff\n   -# deft:pre-pr-bound-push-v1 — refuse-to-downgrade marker (#5804); marker-aware ensureGitHooks only\n   -# Enrolled bound pre-PR arm: sole-stdin (do not redirect shared run_directive to /dev/null)\n   -run_directive pre-pr:run --push-admit --project-root \"$REPO_ROOT\" || exit $?\n   ```\n   The agent restored the file with `git checkout`. The same diff was already in the working tree when the session started, which suggests an earlier self-repair or setup pass in that environment had made the same downgrade (hypothesis).\n\n## Expected behavior\n\n- A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts). Or provide an explicit, documented opt-in that lets setup complete and write `wiring-ready` without disabling the host's checks.\n- Doctor and recovery prose that name this case, instead of looping on \"run directive upgrade\".\n- On Cursor Cloud Agents, the shell lifecycle and the edit-tool hook resolve to one occupancy identity, or there's a documented `--session-id` that the edit-tool hook can also present when `conversation_id` is absent.\n- Upgrade/setup never removes the #5804 marker or the bound pre-PR arm from `.githooks/pre-push`, consistent with the marker's own \"refuse-to-downgrade\" intent.\n\n## Out of scope here\n\nThe `xbrief/schema currency: FAIL` part is being handled separately by an upgrade PR on the default branch. This issue covers the hooksPath, wiring-ready, identity and pre-push effects that remain after that.\n\n## Open questions\n\n1. Should a host-managed `core.hooksPath` be detected and treated as a first-class wiring mode, or should setup chain `.githooks` into it? Who owns the chaining when the host rewrites its directory per session?\n2. Is it intended that the `claude` host identity resolves in the shell while the edit tool is gated as `cursor` in the same VM? (Hypothesis: the host env detection picks up a vendor-compat signal in the cloud shell.) Related: #5770 (local Cursor, same `host:cursor` vs `host:claude` split) and #5676.\n3. Is the pre-push downgrade the same root cause as #5837 (`ensureGitHooks` overwriting a recognized managed hook during self-repair)? If so, this may just be another repro for that issue.\n4. Until there's a fix, is there a sanctioned kill-switch or posture for cloud agents that keeps the gates honest? Related: #5133 (host-managed mode, on hold), #4960 (init overriding an existing hooks path).\n\n— filed by Grok Bot (Engineering) for @MScottAdams\n\n",
+      "Labels": "bug, adoption-blocker, area:installer, platform:linux, core-capabilities, promise:lifecycle",
+      "UserStory": "As a developer with a global or other foreign Git core.hooksPath, I want directive install and directive install --repair to tell me up front that this repo will use Directive's .githooks and take over only with my approval, so that setup can finish and doctor tells me the one command that fixes it instead of looping.",
+      "StoryId": "ovpr-g-hookspath (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U8-git-hookspath-takeover.md, Part A only (read in full; 'Update 2026-11-17' banners win over the text below them). Part B (host-managed hooksPath, RC-09) waits for a live cloud run and is NOT in this story.",
+      "ImplementationPlan": "1. packages/runtime/src/setup-wiring.ts: add readHooksPathState(projectRoot) -> {kind: unset|ours|foreign, value, scope} using `git config --show-scope --get core.hooksPath`; `.githooks`, `.githooks/` and an absolute path resolving to <root>/.githooks count as ours.\n2. setup-wiring.ts ensureGitHooks() and packages/runtime/src/setup.ts runSetup(): option takeOverHooksPath; packages/runtime/src/contract-entry.ts parses `--take-over-hooks-path` next to `--force-githooks`. Foreign + option: `git config --local core.hooksPath .githooks`, hooksPathActive=true, result carries hooksPathTakenOver {previous, scope}. Never write global/system config.\n3. Foreign without the option (AC8.6 auto-setup, upgrade): no conflict; set inactiveDisclosure naming `directive install --repair` (mirror GIT_HOOKS_INACTIVE_NO_GIT). Readiness stays withheld.\n4. packages/runtime/src/doctor-diagnose.ts: isForeignHooksPathReadinessGap() beside isNoGitReadinessGap(), and a chooseRemedy() branch returning `directive install --repair` with the hooksPath scope; no global-install line for this case.\n5. packages/cli/src/bookends.ts runFirstInstall()/runRepair(): detect the takeover condition with git directly (foreign effective hooksPath, or unset with non-.sample files in `git rev-parse --git-path hooks`); pass hooksTakeover to presentFirstInstallPlan/presentRepairPlan in packages/cli/src/plan-present.ts, which print one set-aside warning in the same plan (P20 wording). After approval pass `--take-over-hooks-path` via setupArgv() in packages/cli/src/contract-invoke.ts. `--yes` prints the same plan.\n6. presentInstallSuccess/presentRepairSuccess print the takeover statement plus the one-line Husky/Lefthook tip when the setup result has hooksPathTakenOver.\n7. Upgrade: no warning, no takeover; upgrade success output shows the inactive disclosure.\n8. content/UPGRADING.md: short 'Git hooks and core.hooksPath' section stating the P20 behaviour.\n9. Tests per the spec; changelog fragment changelog.d/5846-hookspath-takeover.md.",
+      "Constraint": "- Part A only. No Part B (host-managed hooksPath / remembered consent / RC-09) in this story.\n- No hook chaining, no wrapper calling the host's or user's hooks, no installing Husky/Lefthook (P20 non-goals).\n- No second confirmation for hooks; no takeover without the install/repair plan and its single approval.\n- AC8.6 automatic setup never takes over a foreign hooksPath. Never write global or system Git config. Never write readiness while Git hooks are inactive.\n- No upgrade-time takeover warning.\n- Do not touch occupancy / host identity (#5846 limb 2, Scott, #5770) or the session-ritual gate in dispatcher.ts (Scott).\n- Do not change uninstall's hooksPath rule (already correct).\n- chooseRemedy() is also edited by G-F (P4-U3c); keep this change to one added branch so the two merge cleanly.\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: none. Coordinate with G-F (ovpr-g-doctor, P4-U3c also edits chooseRemedy() in doctor-diagnose.ts) and with G-E / G-G (bookends.ts). Part B of P2-U8 is deferred (live Cursor Cloud run, then polfer under the approved RC-09 rule).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #4960. Partly addresses #5846 (hooksPath limb, local case); #5846 stays open for Part B and limb 2 (Scott, #5770). Ledger Problem 20 FINAL; D-017; D-030."
+    },
+    "items": [
+      {
+        "title": "With a global `core.hooksPath`, `directive install` shows the takeover warning inside its single plan; on approval it sets local `core.hooksPath=.githooks`, writes readiness, and the post-op says prior hooks no longer run here (plus the composer tip).",
+        "status": "proposed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a repo whose only `core.hooksPath` is global, when `directive install` runs and the plan is approved, then the plan shows the takeover warning, local `core.hooksPath` is `.githooks`, readiness is written, and the post-op states prior hooks no longer run here and gives the Husky/Lefthook tip."
+        }
+      },
+      {
+        "title": "Declining that plan changes nothing.",
+        "status": "proposed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a repo with a foreign `core.hooksPath`, when `directive install` shows its plan and the user declines, then Git config and project files are unchanged."
+        }
+      },
+      {
+        "title": "`directive install --repair` behaves the same as install when a takeover applies.",
+        "status": "proposed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a repo with a foreign `core.hooksPath`, when `directive install --repair` runs, then its plan shows the same takeover warning, approval sets local `core.hooksPath=.githooks`, and declining changes nothing."
+        }
+      },
+      {
+        "title": "`directive upgrade` never shows a takeover warning and never changes a foreign `core.hooksPath`; it completes and its output names `directive install --repair`.",
+        "status": "proposed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a repo with a foreign `core.hooksPath`, when `directive upgrade` runs, then no takeover warning is shown, `core.hooksPath` is unchanged, the upgrade completes, and its output names `directive install --repair`."
+        }
+      },
+      {
+        "title": "A registered hook (AC8.6) with a foreign `core.hooksPath` never changes Git config and never writes readiness.",
+        "status": "proposed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given a repo with a foreign `core.hooksPath` and no readiness marker, when an AC8.6 automatic setup runs from a registered hook, then Git config is unchanged and no readiness marker is written."
+        }
+      },
+      {
+        "title": "Doctor with a foreign `core.hooksPath` names `directive install --repair` and the hooksPath scope; it does not print the global-install line.",
+        "status": "proposed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given a repo with a foreign `core.hooksPath`, when `directive doctor` runs, then the remedy is `directive install --repair` with the hooksPath scope and the global-install line is absent."
+        }
+      },
+      {
+        "title": "Global and system Git config are never written.",
+        "status": "proposed",
+        "id": "ac.7",
+        "narrative": {
+          "Acceptance": "Given `GIT_CONFIG_GLOBAL` pointing at a temp file with `core.hooksPath` set, when install, repair, upgrade or automatic setup runs, then that file is byte-identical afterwards."
+        }
+      },
+      {
+        "title": "Uninstall behaviour is unchanged (existing tests stay green).",
+        "status": "proposed",
+        "id": "ac.8",
+        "narrative": {
+          "Acceptance": "Given the existing uninstall tests, when `pnpm exec vitest run packages/cli/src/uninstall-bookend.test.ts` runs, then they pass unchanged."
+        }
+      },
+      {
+        "title": "Docs describe the behaviour (#4960 'docs match').",
+        "status": "proposed",
+        "id": "ac.9",
+        "narrative": {
+          "Acceptance": "Given content/UPGRADING.md, when the 'Git hooks and core.hooksPath' section is read, then it states that install/repair take over with one approval, upgrade does not, and prior hooks stop running in this repo."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "area:installer",
+      "platform:linux",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5846",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5846: setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4960",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4960"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Directive denied Write: ritual state missing at <repo root>/.deft/ritual-state.json. Run before implementation dispatch. ... occupancy refuses to mint an owner on host cursor: this host has a declared identity contract, and minting binds the lease to an id no later hook can present. Re-run with `--session-id=<host-published-id>` from a session that has a Directive hook registered",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L26:text"
+        },
+        {
+          "command": "Directive denied Write: hook --host cursor: Cursor hook payload omits conversation_id. A live occupancy lease exists for session host:claude:v1:<id>; use an exact host-mediated lifecycle command or pass the matching --session-id explicitly",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L31:text"
+        },
+        {
+          "command": "code: occupancy-identity-unavailable",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L31:text"
+        },
+        {
+          "command": "session ritual gated step 'agent_hooks' is missing",
+          "reason": "first token \"session\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L37:text"
+        },
+        {
+          "command": "directive doctor: not in sync",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L43:text"
+        },
+        {
+          "command": "setup completed with conflicts",
+          "reason": "first token \"setup\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L50:text"
+        },
+        {
+          "command": "core.hooksPath is '<host agent-hooks dir>' (not .githooks); refusing to redirect and disable existing checks",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L50:text"
+        },
+        {
+          "command": "--host cursor",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L58"
+        },
+        {
+          "command": "deft session:start --session-id=host:cursor:v1:…",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L58"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/self-complete.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/cli/src/contract-invoke.ts",
+          "content/UPGRADING.md",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/setup-wiring-hookspath.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/contract-entry-doctor-compose.test.ts",
+          "packages/cli/src/install-bookend.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/cli/src/uninstall-bookend.test.ts",
+          "packages/cli/src/plan-present-wave3g.test.ts",
+          "packages/cli/src/plan-present-hookspath.test.ts",
+          "packages/cli/src/contract-invoke.test.ts",
+          "changelog.d/5846-hookspath-takeover.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/setup-wiring packages/runtime/src/setup packages/runtime/src/doctor-diagnose packages/runtime/src/self-complete packages/cli/src"
+        ],
+        "Traces": [
+          "#5846",
+          "#4960"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "cli-bookends",
+        "expected_outputs": [
+          "With a global `core.hooksPath`, `directive install` shows the takeover warning inside its single plan; on approval it sets local `core.hooksPath=.githooks`, writes readiness, and the post-op says prior hooks no longer run here (plus the composer tip).",
+          "Declining that plan changes nothing.",
+          "`directive install --repair` behaves the same as install when a takeover applies.",
+          "`directive upgrade` never shows a takeover warning and never changes a foreign `core.hooksPath`; it completes and its output names `directive install --repair`.",
+          "A registered hook (AC8.6) with a foreign `core.hooksPath` never changes Git config and never writes readiness.",
+          "Doctor with a foreign `core.hooksPath` names `directive install --repair` and the hooksPath scope; it does not print the global-install line.",
+          "Global and system Git config are never written.",
+          "Uninstall behaviour is unchanged (existing tests stay green).",
+          "Docs describe the behaviour (#4960 'docs match').",
+          "one changelog fragment changelog.d/5846-hookspath-takeover.md"
+        ],
+        "acceptance_criteria_justification": "Nine items: unit spec P2-U8 Part A acceptance criteria 1 to 9, one each."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/self-complete.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/cli/src/contract-invoke.ts",
+          "content/UPGRADING.md",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/setup-wiring-hookspath.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/contract-entry-doctor-compose.test.ts",
+          "packages/cli/src/install-bookend.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/cli/src/uninstall-bookend.test.ts",
+          "packages/cli/src/plan-present-wave3g.test.ts",
+          "packages/cli/src/plan-present-hookspath.test.ts",
+          "packages/cli/src/contract-invoke.test.ts",
+          "changelog.d/5846-hookspath-takeover.md"
+        ],
+        "module_boundary": "Runtime Git-hooks wiring (setup-wiring / setup / contract-entry), runtime doctor remedy choice for the foreign-hooksPath case, and the launcher install/repair plan, setup argv and post-op text, plus one UPGRADING section. No occupancy, dispatcher or uninstall changes.",
+        "cohesion_exemption": "setup-wiring.ts (1433 lines), bookends.ts (1737 lines), plan-present.ts (1118 lines) and content/UPGRADING.md (1139 lines) already exceed the review trigger. This fix adds one state reader, one option, one plan warning and one doc section; splitting those files is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5989619535,
+        "origin": "deftai/directive#5846",
+        "id": "github.issue.5989619535"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/runtime/src/setup-wiring packages/runtime/src/setup packages/runtime/src/doctor-diagnose packages/runtime/src/self-complete packages/cli/src"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (43), in order (#6333)",
+      "sentences": [
+        "setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed",
+        "@polfer routing to you since this is setup/installer work.",
+        "Summary In a Cursor Cloud Agent VM, Directive 0.127.0 can't be used to make any edits.",
+        "The fail-closed `preToolUse` hook denies every Write/Edit because the gated session ritual can't be satisfied.",
+        "The documented recovery, `directive upgrade --yes`, stops with \"setup completed with conflicts\": the host has set git `core.hooksPath` to its own agent-hooks directory, and upgrade refuses to redirect it.",
+        "As a result `wiring-ready.0.127.0.json` is never written, doctor stays red, and the write gate stays closed.",
+        "Maintainers and consumers who build through Cursor Cloud Agents are blocked.",
+        "Repro and environment - Host: Cursor Cloud Agent (Linux VM), fresh environment snapshot, default branch checked out clean - Node 24.22.1, pnpm 11.8.0, `task` 3.52.0 - `deft --version`: launcher `0.127.0`, project pins `0.127.0 (installed (metadata verified))` - `node_modules/@deftai/directive-runtime/dist/hook-bin.js` present.",
+        "The hook runs and returns a policy deny (exit 0, `permission: deny`), so this is not the exit-127 class.",
+        "The host VM sets `git config core.hooksPath` to `<host agent-hooks dir>` (not `.githooks`) Steps: 1.",
+        "`deft session:start --session-id=host:claude:v1:<id> --defer-owed \"<reason>\"`.",
+        "The shell side resolves to the `claude` host identity.",
+        "Attempt any Write through the agent's edit tool (Cursor `preToolUse` → `hook-bin --host cursor --event tool.before`).",
+        "`deft doctor` 4.",
+        "`directive upgrade --yes` ## Exact error lines Edit-tool deny before session start: Edit-tool deny after `session:start` from the shell: Ritual gate reasons reported for the Write deny: Doctor (exit 1, still red after installing `uv`): `directive upgrade --yes`: ## Observed effects 1.",
+        "The hooksPath refusal leaves wiring-ready missing. Upgrade/setup correctly declines to disable the host's hooks.",
+        "But nothing then records readiness, and there's no supported way to coexist with them.",
+        "`readiness: FAIL` persists, the `doctor` ritual step can't pass, and every edit stays denied.",
+        "The agent left the hooks path as-is and did not forge the marker.",
+        "The `agent_hooks` ritual step is missing, and the occupancy identity is split between the shell and edit-tool sessions. Shell lifecycle commands resolve to `host:claude:v1:…`, while the edit tool is gated as `--host cursor`, and the Cursor payload in this VM omits `conversation_id`.",
+        "The lease taken from the shell can't be presented by the edit-tool hook, and the cursor side refuses to mint its own owner.",
+        "Running `deft session:start --session-id=host:cursor:v1:…` from the shell was itself blocked by the shell-side hook, so the only session the agent could start was as `claude`.",
+        "No combination the agent tried got `agent_hooks` recorded as executed.",
+        "The run ended without trying a release and re-claim as `cursor`.",
+        "Upgrade stripped the #5804 pre-push arm. After `directive upgrade --yes`, `.githooks/pre-push` lost three lines, the refuse-to-downgrade marker and the enrolled bound pre-PR arm: The agent restored the file with `git checkout`.",
+        "The same diff was already in the working tree when the session started, which suggests an earlier self-repair or setup pass in that environment had made the same downgrade (hypothesis).",
+        "Out of scope (Part B, not in this story; Problem 20 and D-043: no chaining) - Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
+        "Or provide an explicit, documented opt-in that lets setup complete and write `wiring-ready` without disabling the host's checks.",
+        "Doctor and recovery prose that name this case, instead of looping on \"run directive upgrade\".",
+        "On Cursor Cloud Agents, the shell lifecycle and the edit-tool hook resolve to one occupancy identity, or there's a documented `--session-id` that the edit-tool hook can also present when `conversation_id` is absent.",
+        "Upgrade/setup never removes the #5804 marker or the bound pre-PR arm from `.githooks/pre-push`, consistent with the marker's own \"refuse-to-downgrade\" intent.",
+        "Out of scope here The `xbrief/schema currency: FAIL` part is being handled separately by an upgrade PR on the default branch.",
+        "This issue covers the hooksPath, wiring-ready, identity and pre-push effects that remain after that.",
+        "Open questions 1.",
+        "Should a host-managed `core.hooksPath` be detected and treated as a first-class wiring mode, or should setup chain `.githooks` into it?",
+        "Who owns the chaining when the host rewrites its directory per session?",
+        "Is it intended that the `claude` host identity resolves in the shell while the edit tool is gated as `cursor` in the same VM?",
+        "(Hypothesis: the host env detection picks up a vendor-compat signal in the cloud shell.) Related: #5770 (local Cursor, same `host:cursor` vs `host:claude` split) and #5676.",
+        "Is the pre-push downgrade the same root cause as #5837 (`ensureGitHooks` overwriting a recognized managed hook during self-repair)?",
+        "If so, this may just be another repro for that issue.",
+        "Until there's a fix, is there a sanctioned kill-switch or posture for cloud agents that keeps the gates honest?",
+        "Related: #5133 (host-managed mode, on hold), #4960 (init overriding an existing hooks path).",
+        "— filed by Grok Bot (Engineering) for @MScottAdams"
+      ],
+      "admitted_source_sentences": [
+        "@polfer routing to you since this is setup/installer work.",
+        "Summary In a Cursor Cloud Agent VM, Directive 0.127.0 can't be used to make any edits.",
+        "The fail-closed `preToolUse` hook denies every Write/Edit because the gated session ritual can't be satisfied.",
+        "The documented recovery, `directive upgrade --yes`, stops with \"setup completed with conflicts\": the host has set git `core.hooksPath` to its own agent-hooks directory, and upgrade refuses to redirect it.",
+        "As a result `wiring-ready.0.127.0.json` is never written, doctor stays red, and the write gate stays closed.",
+        "Maintainers and consumers who build through Cursor Cloud Agents are blocked.",
+        "Repro and environment - Host: Cursor Cloud Agent (Linux VM), fresh environment snapshot, default branch checked out clean - Node 24.22.1, pnpm 11.8.0, `task` 3.52.0 - `deft --version`: launcher `0.127.0`, project pins `0.127.0 (installed (metadata verified))` - `node_modules/@deftai/directive-runtime/dist/hook-bin.js` present.",
+        "The hook runs and returns a policy deny (exit 0, `permission: deny`), so this is not the exit-127 class.",
+        "The host VM sets `git config core.hooksPath` to `<host agent-hooks dir>` (not `.githooks`) Steps: 1.",
+        "`deft session:start --session-id=host:claude:v1:<id> --defer-owed \"<reason>\"`.",
+        "The shell side resolves to the `claude` host identity.",
+        "Attempt any Write through the agent's edit tool (Cursor `preToolUse` → `hook-bin --host cursor --event tool.before`).",
+        "`deft doctor` 4.",
+        "`directive upgrade --yes` ## Exact error lines Edit-tool deny before session start: Edit-tool deny after `session:start` from the shell: Ritual gate reasons reported for the Write deny: Doctor (exit 1, still red after installing `uv`): `directive upgrade --yes`: ## Observed effects 1.",
+        "The hooksPath refusal leaves wiring-ready missing. Upgrade/setup correctly declines to disable the host's hooks.",
+        "But nothing then records readiness, and there's no supported way to coexist with them.",
+        "`readiness: FAIL` persists, the `doctor` ritual step can't pass, and every edit stays denied.",
+        "The agent left the hooks path as-is and did not forge the marker.",
+        "The `agent_hooks` ritual step is missing, and the occupancy identity is split between the shell and edit-tool sessions. Shell lifecycle commands resolve to `host:claude:v1:…`, while the edit tool is gated as `--host cursor`, and the Cursor payload in this VM omits `conversation_id`.",
+        "The lease taken from the shell can't be presented by the edit-tool hook, and the cursor side refuses to mint its own owner.",
+        "Running `deft session:start --session-id=host:cursor:v1:…` from the shell was itself blocked by the shell-side hook, so the only session the agent could start was as `claude`.",
+        "No combination the agent tried got `agent_hooks` recorded as executed.",
+        "The run ended without trying a release and re-claim as `cursor`.",
+        "Upgrade stripped the #5804 pre-push arm. After `directive upgrade --yes`, `.githooks/pre-push` lost three lines, the refuse-to-downgrade marker and the enrolled bound pre-PR arm: The agent restored the file with `git checkout`.",
+        "The same diff was already in the working tree when the session started, which suggests an earlier self-repair or setup pass in that environment had made the same downgrade (hypothesis).",
+        "Out of scope (Part B, not in this story; Problem 20 and D-043: no chaining) - Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
+        "Or provide an explicit, documented opt-in that lets setup complete and write `wiring-ready` without disabling the host's checks.",
+        "Doctor and recovery prose that name this case, instead of looping on \"run directive upgrade\".",
+        "On Cursor Cloud Agents, the shell lifecycle and the edit-tool hook resolve to one occupancy identity, or there's a documented `--session-id` that the edit-tool hook can also present when `conversation_id` is absent.",
+        "Upgrade/setup never removes the #5804 marker or the bound pre-PR arm from `.githooks/pre-push`, consistent with the marker's own \"refuse-to-downgrade\" intent.",
+        "Out of scope here The `xbrief/schema currency: FAIL` part is being handled separately by an upgrade PR on the default branch.",
+        "This issue covers the hooksPath, wiring-ready, identity and pre-push effects that remain after that.",
+        "Open questions 1.",
+        "Should a host-managed `core.hooksPath` be detected and treated as a first-class wiring mode, or should setup chain `.githooks` into it?",
+        "Who owns the chaining when the host rewrites its directory per session?",
+        "Is it intended that the `claude` host identity resolves in the shell while the edit tool is gated as `cursor` in the same VM?",
+        "(Hypothesis: the host env detection picks up a vendor-compat signal in the cloud shell.) Related: #5770 (local Cursor, same `host:cursor` vs `host:claude` split) and #5676.",
+        "Is the pre-push downgrade the same root cause as #5837 (`ensureGitHooks` overwriting a recognized managed hook during self-repair)?",
+        "If so, this may just be another repro for that issue.",
+        "Until there's a fix, is there a sanctioned kill-switch or posture for cloud agents that keeps the gates honest?",
+        "Related: #5133 (host-managed mode, on hold), #4960 (init overriding an existing hooks path).",
+        "— filed by Grok Bot (Engineering) for @MScottAdams"
+      ],
+      "admitted_source_digest": "70c88dac69722a2f40d330aae653f0bbc086dfc4f237950687d3c409b40c3704",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "@polfer routing to you since this is setup/installer work.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Summary In a Cursor Cloud Agent VM, Directive 0.127.0 can't be used to make any edits.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "The fail-closed `preToolUse` hook denies every Write/Edit because the gated session ritual can't be satisfied.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "The documented recovery, `directive upgrade --yes`, stops with \"setup completed with conflicts\": the host has set git `core.hooksPath` to its own agent-hooks directory, and upgrade refuses to redirect it.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "As a result `wiring-ready.0.127.0.json` is never written, doctor stays red, and the write gate stays closed.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "Maintainers and consumers who build through Cursor Cloud Agents are blocked.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Repro and environment - Host: Cursor Cloud Agent (Linux VM), fresh environment snapshot, default branch checked out clean - Node 24.22.1, pnpm 11.8.0, `task` 3.52.0 - `deft --version`: launcher `0.127.0`, project pins `0.127.0 (installed (metadata verified))` - `node_modules/@deftai/directive-runtime/dist/hook-bin.js` present.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The hook runs and returns a policy deny (exit 0, `permission: deny`), so this is not the exit-127 class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "The host VM sets `git config core.hooksPath` to `<host agent-hooks dir>` (not `.githooks`) Steps: 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "`deft session:start --session-id=host:claude:v1:<id> --defer-owed \"<reason>\"`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The shell side resolves to the `claude` host identity.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Attempt any Write through the agent's edit tool (Cursor `preToolUse` → `hook-bin --host cursor --event tool.before`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "`deft doctor` 4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "`directive upgrade --yes` ## Exact error lines Edit-tool deny before session start: Edit-tool deny after `session:start` from the shell: Ritual gate reasons reported for the Write deny: Doctor (exit 1, still red after installing `uv`): `directive upgrade --yes`: ## Observed effects 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The hooksPath refusal leaves wiring-ready missing. Upgrade/setup correctly declines to disable the host's hooks.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 17,
+          "text": "But nothing then records readiness, and there's no supported way to coexist with them.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 18,
+          "text": "`readiness: FAIL` persists, the `doctor` ritual step can't pass, and every edit stays denied.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 19,
+          "text": "The agent left the hooks path as-is and did not forge the marker.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "The `agent_hooks` ritual step is missing, and the occupancy identity is split between the shell and edit-tool sessions. Shell lifecycle commands resolve to `host:claude:v1:…`, while the edit tool is gated as `--host cursor`, and the Cursor payload in this VM omits `conversation_id`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "The lease taken from the shell can't be presented by the edit-tool hook, and the cursor side refuses to mint its own owner.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Running `deft session:start --session-id=host:cursor:v1:…` from the shell was itself blocked by the shell-side hook, so the only session the agent could start was as `claude`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "No combination the agent tried got `agent_hooks` recorded as executed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "The run ended without trying a release and re-claim as `cursor`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Upgrade stripped the #5804 pre-push arm. After `directive upgrade --yes`, `.githooks/pre-push` lost three lines, the refuse-to-downgrade marker and the enrolled bound pre-PR arm: The agent restored the file with `git checkout`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "The same diff was already in the working tree when the session started, which suggests an earlier self-repair or setup pass in that environment had made the same downgrade (hypothesis).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Out of scope (Part B, not in this story; Problem 20 and D-043: no chaining) - Expected behavior - A supported path for a host-managed `core.hooksPath`: chain to or coexist with the host's hooks directory (for example, invoke `.githooks/*` from it, or record a \"host-managed hooks\" wiring state that doctor accepts).",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Or provide an explicit, documented opt-in that lets setup complete and write `wiring-ready` without disabling the host's checks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "Doctor and recovery prose that name this case, instead of looping on \"run directive upgrade\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "On Cursor Cloud Agents, the shell lifecycle and the edit-tool hook resolve to one occupancy identity, or there's a documented `--session-id` that the edit-tool hook can also present when `conversation_id` is absent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Upgrade/setup never removes the #5804 marker or the bound pre-PR arm from `.githooks/pre-push`, consistent with the marker's own \"refuse-to-downgrade\" intent.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "Out of scope here The `xbrief/schema currency: FAIL` part is being handled separately by an upgrade PR on the default branch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "This issue covers the hooksPath, wiring-ready, identity and pre-push effects that remain after that.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "Open questions 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "Should a host-managed `core.hooksPath` be detected and treated as a first-class wiring mode, or should setup chain `.githooks` into it?",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Who owns the chaining when the host rewrites its directory per session?",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "Is it intended that the `claude` host identity resolves in the shell while the edit tool is gated as `cursor` in the same VM?",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "(Hypothesis: the host env detection picks up a vendor-compat signal in the cloud shell.) Related: #5770 (local Cursor, same `host:cursor` vs `host:claude` split) and #5676.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "Is the pre-push downgrade the same root cause as #5837 (`ensureGitHooks` overwriting a recognized managed hook during self-repair)?",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "If so, this may just be another repro for that issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "Until there's a fix, is there a sanctioned kill-switch or posture for cloud agents that keeps the gates honest?",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Related: #5133 (host-managed mode, on hold), #4960 (init overriding an existing hooks path).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "— filed by Grok Bot (Engineering) for @MScottAdams",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "id": "github.issue.5989619535",
+    "updated": "2026-11-18T18:45:46Z"
+  }
+}

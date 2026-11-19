@@ -1967,11 +1967,49 @@ export const HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION =
   "For clause-bearing actives, stamp dispositions/evidence on clause-keyed items " +
   "or add allowlisted executables — do not invent commands solely to clear the fence.";
 
-export const SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION =
+const SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION_LEAD =
   "scope:complete requires executable plan.acceptance that runs green; stamp commands on " +
   "plan.acceptance.commands (or plan.metadata.swarm.verify_commands) — task verify:ac verifies, " +
-  "it does not stamp — then re-run task verify:ac -- <completing-xbrief> " +
-  "(disposition is not a substitute) (#3357/#3497)";
+  "it does not stamp — then re-run task verify:ac -- <completing-xbrief> ";
+
+export const SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION = `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION_LEAD}(disposition is not a substitute) (#3357/#3497)`;
+
+/**
+ * Refusal text for a walk that left clauses neither verified nor granted (#6644).
+ * Replaces the "(disposition is not a substitute)" sentence: it lists each such
+ * clause and gives the two remedies. Falls back to the standing text when no
+ * clause row is unresolved.
+ */
+function scopeCompleteRemediation(
+  plan: Record<string, unknown>,
+  unresolved: readonly { readonly id: number; readonly text: string }[],
+): string {
+  if (unresolved.length === 0) return SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION;
+  const planId = typeof plan.id === "string" && plan.id.trim().length > 0 ? plan.id.trim() : null;
+  const ids = unresolved.map((row) => `clause.${row.id}`).join(",");
+  const lines = unresolved.map((row) => {
+    const text = row.text.replace(/\s+/g, " ").trim();
+    return `  - clause ${row.id}: ${fenceUntrustedAcceptanceText(text.length > 80 ? `${text.slice(0, 80)}...` : text)}`;
+  });
+  return (
+    `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION_LEAD}(#3357/#3497)\n` +
+    `${unresolved.length} clause(s) neither verified nor granted:\n${lines.join("\n")}\n` +
+    `Fix each one of two ways: (1) a verify command that covers the clause; or (2) an operator ` +
+    `grant: deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE} ` +
+    `--plan-ref ${planId ?? "<scopeId>"} --story-ids ${ids} ` +
+    `--disposition <deferred|not_applicable|waived> --reason <text> ` +
+    `[--deferred-to <issue>, for deferred only] --confirm (#6644)`
+  );
+}
+
+/** Clause rows the walk neither verified nor left out as granted (#6644). */
+function unresolvedClauseRows(
+  rows: readonly { readonly id: number; readonly text: string; readonly outcome: string }[],
+): { readonly id: number; readonly text: string }[] {
+  return rows.filter((row) => row.outcome !== "verified").map(({ id, text }) => ({ id, text }));
+}
+
+const ACCEPTANCE_DISPOSITION_TEMPLATE = "acceptance-disposition";
 
 /**
  * Hard precondition for scope:complete (#3357 / #3267 / #3284).
@@ -2031,12 +2069,19 @@ export function evaluateScopeCompleteAcceptanceWalk(
     // executable oracle ran. verify:ac / #3826 stay unreverted.
     // #5477: rapid check may waive the same print for an in-diff completed
     // walk under the lifecycle-maintenance set (see rapid-zero-verified).
-    if (
-      scopeCompleteRejectsZeroVerifiedWalk({
-        text: walk.message,
-        predicate: verdict.predicate,
-      })
-    ) {
+    // #6644: with a clause walk, the rule is decided from the counts (granted
+    // clauses are already left out of them), not from the printed lead.
+    const walkedRows = walk.clauseOutcomes ?? [];
+    const zeroVerified =
+      walk.clauseWalked === true
+        ? walkedRows.length > 0 &&
+          !walkedRows.some((row) => row.outcome === "verified") &&
+          verdict.predicate !== "executable-pass"
+        : scopeCompleteRejectsZeroVerifiedWalk({
+            text: walk.message,
+            predicate: verdict.predicate,
+          });
+    if (zeroVerified) {
       // #5403 Stage-2 (a): clause-less + merge provenance admits without inventing commands.
       if (historical && clauseLess) {
         return {
@@ -2050,7 +2095,7 @@ export function evaluateScopeCompleteAcceptanceWalk(
       const remediation =
         historical && !clauseLess
           ? HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION
-          : SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION;
+          : scopeCompleteRemediation(plan, unresolvedClauseRows(walkedRows));
       return {
         ok: false,
         message: `${SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE}` + `${remediation}\n${walk.message}`,
@@ -2084,7 +2129,7 @@ export function evaluateScopeCompleteAcceptanceWalk(
   const remediation =
     historical && !clauseLess
       ? HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION
-      : SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION;
+      : scopeCompleteRemediation(plan, unresolvedClauseRows(walk.clauseOutcomes ?? []));
   return {
     ok: false,
     // Name the check that refused and the value it read BEFORE the standing

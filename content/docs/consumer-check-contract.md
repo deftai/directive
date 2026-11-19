@@ -85,7 +85,7 @@ value does not satisfy it.
 
 - **`--framework-source`: fail closed.** This repo owns its own composition, so
   a regression to the unscoped form is a hard failure here.
-- **Consumer deposits: warn.** `deft update` re-deposits the Taskfile; the
+- **Consumer deposits: warn.** `directive install --repair` re-deposits the Taskfile; the
   warning names the exact one-line repair in the meantime.
 - **Aggregates that do not list the gate are silent.** Include-only greenfield
   roots and orchestrator-body `check` tasks are unaffected.
@@ -97,9 +97,9 @@ runs on the bare verb, at the delivery tip, and on the after-merge
 
 ## Repair path
 
-1. Restore deposit Taskfiles: `deft update` (includes `tasks/verify.yml` under `.deft/core/`)
+1. Restore deposit Taskfiles: `directive install --repair` (includes `tasks/verify.yml`)
 2. Ensure `check:consumer` / `check:framework-source` deps list the three gates (framework source already ships this wiring), **or** keep the include-only greenfield shape so the gate follows the canonical include
-3. Prefer CI that runs `task check` / `task deft:check` / `deft check` rather than a partial custom graph (installer-only workflows such as `deft-core-guard` stay warn-only for CI composition)
+3. Prefer CI that runs `task check` / `task deft:check` / `deft check` rather than a partial custom graph (installer-only workflows stay warn-only for CI composition)
 
 ## Relation to #3070
 

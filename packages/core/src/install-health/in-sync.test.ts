@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkFullInSync, INSTALLATION_RECOVERY_GUIDANCE, RUNTIME_PIN_PACKAGE } from "./index.js";
+import { checkFullInSync, RUNTIME_PIN_PACKAGE } from "./index.js";
 
 const temps: string[] = [];
 
@@ -184,6 +184,17 @@ describe("checkFullInSync (AC2.1)", () => {
         "",
       ].join("\n"),
     );
+    // Doctor reports a missing pre-push next to the helper (#5976).
+    writeFileSync(
+      join(root, ".githooks", "pre-push"),
+      [
+        "#!/usr/bin/env sh",
+        'REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1',
+        '. "$REPO_ROOT/.githooks/_directive-run.sh"',
+        'run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit $?',
+        "",
+      ].join("\n"),
+    );
     writeFileSync(
       join(root, ".githooks", "_directive-run.sh"),
       [
@@ -212,9 +223,13 @@ describe("checkFullInSync pin≠installed fail-closed (AC2.6)", () => {
     expect(result.inSync).toBe(false);
     expect(result.failClosed).toBe(true);
     expect(result.allowSetup).toBe(false);
-    expect(result.recoveryGuidance).toBe(INSTALLATION_RECOVERY_GUIDANCE);
-    expect(INSTALLATION_RECOVERY_GUIDANCE).toContain("npm i -g @deftai/directive");
-    expect(INSTALLATION_RECOVERY_GUIDANCE).toContain("directive install --repair");
+    // AC9.7: installed ≠ pin → the project install, never the global + repair pair.
+    // The shared `pin-mismatch` row, with both versions filled in.
+    expect(result.recoveryGuidance).toContain(
+      "the installed @deftai/directive-runtime 0.9.0 is not the pinned",
+    );
+    expect(result.recoveryGuidance).toMatch(/Run `(npm|pnpm) install/);
+    expect(result.recoveryGuidance).not.toContain("npm i -g @deftai/directive, then");
   });
 });
 

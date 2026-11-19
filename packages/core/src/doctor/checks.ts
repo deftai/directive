@@ -3,12 +3,7 @@ import { existsSync, lstatSync, readdirSync, readlinkSync, statSync } from "node
 import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
-import {
-  CANONICAL_GITIGNORE_BASELINE,
-  looksLikePayload,
-  resolvePayloadSourceVersion,
-  resolveWorktreePayloadSource,
-} from "../init-deposit/gitignore.js";
+import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { bareVersionMarkerTargets } from "../init-deposit/hygiene.js";
 import {
   detectDualLayout,
@@ -24,6 +19,7 @@ import {
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
 } from "../init-deposit/migrate.js";
+import { DIRECTIVE_GITIGNORE_LINES } from "../install-health/owned-paths.js";
 import { readRuntimePin } from "../install-health/readers.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
@@ -45,7 +41,6 @@ import {
   PRE_PR_STORE_MAC_SECRET_NAME,
 } from "../pre-pr-controller/store.js";
 import { detectPackageManager, type PackageManager } from "../resolution/package-manager.js";
-import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
 import type { XbriefSchemaDistance } from "../staleness-tickler/types.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
@@ -80,11 +75,8 @@ import {
   parseInstallRootFromAgentsMd,
   parseManifest,
 } from "./manifest.js";
-import { readTextSafe, runningInsideDeftRepo } from "./paths.js";
+import { readTextSafe } from "./paths.js";
 import type { CheckResult, DanglingNodeModulesLink } from "./types.js";
-
-/** Narrow recovery for linked-worktree missing VERSION with agreeing bare (#5390). */
-export const MISSING_MANIFEST_RECONSTITUTE_FIX = "deft session:start" as const;
 
 /** Remediation for project envelope behind-major (AC8.9 / F-017): install-management upgrade. */
 export const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "directive upgrade" as const;
@@ -154,11 +146,6 @@ export interface CheckSeams {
   readonly isDir?: (path: string) => boolean;
   /** List directory entries; throws on enum failure (fail-closed for live lifecycle dirs). */
   readonly readdir?: (path: string) => string[];
-  /** #5390: linked-worktree eligibility for missing-YAML reconstitution route. */
-  readonly isLinkedWorktree?: (projectRoot: string) => boolean;
-  readonly isFrameworkSource?: (projectRoot: string) => boolean;
-  readonly payloadPresent?: (projectRoot: string) => boolean;
-  readonly resolvePayloadSourceVersion?: (projectRoot: string) => string | null;
   /**
    * #6271: read-only "is this repo-relative path in the git index" probe.
    * `null` means git is unavailable or the root is not a repository.
@@ -489,6 +476,36 @@ export function checkDanglingNodeModulesLinks(
     };
   }
   const named = dangling.map((d) => d.relativePath).join(", ");
+  // #5967 item 3: pnpm leaves dangling links on purpose (for example optional
+  // platform packages it did not install). Only a Directive package link or a
+  // link into an agent scratch worktree (#3749) is a broken install; any other
+  // dangling link is an advisory warning.
+  // A Directive package can sit at the top or under a nested `node_modules`
+  // (for example `.pnpm/node_modules/@deftai/...`).
+  const isDirectivePackageLink = (rel: string): boolean =>
+    rel.startsWith("@deftai/") || rel.includes("node_modules/@deftai/");
+  const hard = dangling.filter(
+    (d) => d.agentScratchWorktreeTarget || isDirectivePackageLink(d.relativePath),
+  );
+  if (hard.length === 0) {
+    return {
+      name,
+      status: "fail",
+      detail:
+        `Dangling link(s) under node_modules: ${named}. Package managers can leave these on ` +
+        "purpose (for example pnpm's links to optional packages it did not install), so this " +
+        `is not a broken install by itself. If a package fails to load, run \`${recovery}\`.`,
+      data: stampAdvisory({
+        dangling,
+        recovery,
+        package_manager: pm,
+        ...(incomplete
+          ? { incomplete: true, incomplete_reason: incompleteReason ?? "bounded" }
+          : {}),
+        discovery: "throttle-skip-or-doctor-full",
+      }),
+    };
+  }
   const worktreeHits = dangling.filter((d) => d.agentScratchWorktreeTarget);
   const worktreeNote =
     worktreeHits.length > 0
@@ -1037,7 +1054,7 @@ export function checkManifestAgreement(
       return {
         name: "manifest-agreement",
         status: "fail",
-        detail: `Two install manifests disagree: .deft/core/VERSION (tag='${coreVer}') vs legacy .deft/VERSION (tag='${legacyVer}'). The canonical manifest is .deft/core/VERSION -- run \`deft update\` to migrate the stale .deft/VERSION (backed up as .deft/VERSION.premigrate). See UPGRADING.md for the canonical drift-repair walkthrough.`,
+        detail: `Two install manifests disagree: .deft/core/VERSION (tag='${coreVer}') vs legacy .deft/VERSION (tag='${legacyVer}'). This is an older Directive layout -- run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project. See UPGRADING.md.`,
         data: {
           dual_manifest_drift: true,
           core_manifest_path: coreManifest,
@@ -1045,7 +1062,7 @@ export function checkManifestAgreement(
           core_version: coreVer,
           legacy_version: legacyVer,
           authoritative: "manifest",
-          suggested_fix: "deft update",
+          suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
         },
       };
     }
@@ -1073,11 +1090,11 @@ export function checkManifestAgreement(
       return {
         name: "manifest-agreement",
         status: "fail",
-        detail: `Bare .deft-version markers disagree (${listing}). Run \`deft update\` to keep the canonical lifecycle marker and delete the others (#5245).`,
+        detail: `Bare .deft-version markers disagree (${listing}). Run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project; it removes the leftover markers (#5245).`,
         data: {
           bare_marker_disagreement: true,
           bare_markers: presentMarkers,
-          suggested_fix: "deft update",
+          suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
         },
       };
     }
@@ -1085,7 +1102,7 @@ export function checkManifestAgreement(
     return {
       name: "manifest-agreement",
       status: "skip",
-      detail: `Bare .deft-version markers disagree (${listing}) and no inhabited xbrief/ layout is present. Delete-repair is gated on migrate; run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` then \`deft update\` (#5245 Prefer-A H1).`,
+      detail: `Bare .deft-version markers disagree (${listing}) and no inhabited xbrief/ layout is present. Run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project (#5245 Prefer-A H1).`,
       data: {
         bare_marker_disagreement: true,
         bare_markers: presentMarkers,
@@ -1110,59 +1127,16 @@ export function checkManifestAgreement(
     };
   }
   if (manifestText === null) {
-    const bareValue = bareText?.trim().replace(/^v/i, "") ?? null;
-    const linked = (seams.isLinkedWorktree ?? isLinkedWorktreePath)(projectRoot);
-    const framework = (seams.isFrameworkSource ?? runningInsideDeftRepo)(projectRoot);
-    const coreDir = join(projectRoot, ".deft", "core");
-    const payloadOk =
-      seams.payloadPresent?.(projectRoot) ??
-      // Same main.md completeness predicate reconstitution uses (#5390 S2).
-      looksLikePayload(coreDir);
-    const sourceVersion =
-      seams.resolvePayloadSourceVersion?.(projectRoot) ??
-      (() => {
-        const source = resolveWorktreePayloadSource(projectRoot);
-        return source ? resolvePayloadSourceVersion(source) : null;
-      })();
-    const eligibleReconstitute =
-      linked &&
-      !framework &&
-      payloadOk &&
-      bareValue !== null &&
-      bareValue.length > 0 &&
-      sourceVersion !== null &&
-      sourceVersion === bareValue;
-    if (eligibleReconstitute) {
-      return {
-        name: "manifest-agreement",
-        status: "fail",
-        detail:
-          `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. ` +
-          `Linked worktree payload is present and bare agrees with recoverable source provenance — ` +
-          `run \`${MISSING_MANIFEST_RECONSTITUTE_FIX}\` so reconstitution writes \`.deft/core/VERSION\` (#5390 / #4443). ` +
-          `If the ritual doctor stamp stays UNRESOLVED after VERSION exists, run \`deft session:start --rearm\` ` +
-          `(session:ready cannot clear that stamp; #3738). Keep \`deft update\` for true skew or absent payload.`,
-        data: {
-          manifest_path: manifestPath,
-          expected_manifest_path: expectedManifestPath,
-          bare_path: barePath,
-          bare_value: bareValue,
-          missing_manifest_reconstitute_eligible: true,
-          suggested_fix: MISSING_MANIFEST_RECONSTITUTE_FIX,
-        },
-      };
-    }
     return {
       name: "manifest-agreement",
       status: "fail",
-      detail: `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. Run \`deft update\` to write the canonical manifest (#1046 PR-B AC-4). See UPGRADING.md for the v0.27.x -> v0.28 transition walkthrough.`,
+      detail: `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. This is an older Directive layout -- run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project. See UPGRADING.md.`,
       data: {
         manifest_path: manifestPath,
         expected_manifest_path: expectedManifestPath,
         bare_path: barePath,
         bare_value: bareText?.trim() ?? null,
-        missing_manifest_reconstitute_eligible: false,
-        suggested_fix: "deft update",
+        suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
       },
     };
   }
@@ -1172,7 +1146,7 @@ export function checkManifestAgreement(
     return {
       name: "manifest-agreement",
       status: "pass",
-      detail: `YAML manifest at ${manifestPath} present; bare .deft-version absent (derived value: '${derived}' from manifest tag). Run \`deft update\` to regenerate the derivative.`,
+      detail: `YAML manifest at ${manifestPath} present; bare .deft-version absent (derived value: '${derived}' from manifest tag).`,
       data: {
         manifest_path: manifestPath,
         manifest,
@@ -1212,14 +1186,14 @@ export function checkManifestAgreement(
   return {
     name: "manifest-agreement",
     status: "fail",
-    detail: `Drift detected: YAML manifest tag='${derived}' does NOT agree with bare .deft-version='${bareValue}'. Per #1046 PR-B AC-4 the YAML manifest is the canonical source -- run \`deft update\` to regenerate the bare derivative from the manifest, OR manually update ${manifestPath} if the bare value is correct. See UPGRADING.md for the canonical drift-repair walkthrough.`,
+    detail: `Drift detected: YAML manifest tag='${derived}' does NOT agree with bare .deft-version='${bareValue}'. This is an older Directive layout -- run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to convert the project. See UPGRADING.md.`,
     data: {
       manifest_path: manifestPath,
       bare_path: barePath,
       derived_version: derived,
       bare_value: bareValue,
       authoritative: "manifest",
-      suggested_fix: "deft update",
+      suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
     },
   };
 }
@@ -1734,55 +1708,76 @@ export function checkTypescript7SideBySide(
   };
 }
 
-/**
- * #6271: escape when `directive update` refuses `dirty_tree` because local
- * runtime files the missing entries would ignore are still untracked.
- */
-export const GITIGNORE_DIRTY_TREE_FIX = "directive update --allow-dirty-no-stage" as const;
+/** Remedy for a missing Directive `.gitignore` line: setup owns these lines (AC8.5 / AC9.7). */
+export const GITIGNORE_REPAIR_FIX = "directive install --repair" as const;
 
-const GITIGNORE_DIRTY_TREE_RECOVERY =
-  "If update refuses with dirty_tree because untracked local runtime files " +
-  "(for example under .deft/) are present, run " +
-  `\`${GITIGNORE_DIRTY_TREE_FIX}\`, then commit .gitignore.`;
+/** Remedy on an old-layout project (no runtime pin): the conversion (AC9.7). */
+const GITIGNORE_OLD_LAYOUT_FIX = "directive upgrade" as const;
+
+function gitignoreNodeModulesCovered(present: ReadonlySet<string>): boolean {
+  return ["node_modules/", "node_modules", "/node_modules/", "/node_modules"].some((v) =>
+    present.has(v),
+  );
+}
 
 /**
- * #2206: check that the consumer `.gitignore` carries the canonical Deft baseline
- * entries. Advisory (exit-exempt) because missing entries are an adoption risk, not
- * a broken install.
+ * #2206 / #5967 item 2 / #6618: check that the consumer `.gitignore` carries
+ * Directive's entries. Advisory (exit-exempt): a missing entry is an adoption
+ * risk, not a broken install. Read-only; never edits `.gitignore`.
  *
- * Skips when `.gitignore` is absent (greenfield project that has not yet run
- * `directive init` or `directive update`).
+ * With a runtime pin, the required set is the AC8.5 list that setup writes
+ * (`DIRECTIVE_GITIGNORE_LINES`); its remedy is `directive install --repair`.
+ * Other lines from the old installer's baseline are listed as information.
+ * Old-layout projects (no runtime pin) keep the old baseline, remedy
+ * `directive upgrade`.
  */
 export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = {}): CheckResult {
   const gitignorePath = join(projectRoot, ".gitignore");
   const text = readText(gitignorePath, seams);
+  const runtimePinned = readRuntimePin(projectRoot).rawSpec !== null;
+  const fix = runtimePinned ? GITIGNORE_REPAIR_FIX : GITIGNORE_OLD_LAYOUT_FIX;
 
   if (text === null) {
     return {
       name: "gitignore-coverage",
       status: "skip",
-      detail: ".gitignore not found; run `directive init` or `directive update` to create it.",
+      detail: `.gitignore not found; run \`${fix}\` to create it.`,
       data: { gitignore_path: gitignorePath, missing: [] },
     };
   }
 
   const present = collectGitignorePresent(text);
+  const required: readonly string[] = runtimePinned
+    ? DIRECTIVE_GITIGNORE_LINES
+    : CANONICAL_GITIGNORE_BASELINE;
   const missing: string[] = [];
-  for (const line of CANONICAL_GITIGNORE_BASELINE) {
+  for (const line of required) {
+    if (line === "node_modules/" && gitignoreNodeModulesCovered(present)) continue;
     if (!gitignoreLineIsCovered(present, line)) {
       missing.push(line);
     }
   }
-  // Check .deft/core/ separately — only required for hybrid/greenfield installs.
-  // We conservatively omit it from the missing list here (tracked-deposit projects
-  // legitimately omit it). The update path handles this correctly per layout.
+  // Information only (runtime pin): old-baseline lines setup does not own.
+  const optional: string[] = [];
+  if (runtimePinned) {
+    const requiredSet = new Set<string>(required);
+    for (const line of CANONICAL_GITIGNORE_BASELINE) {
+      if (requiredSet.has(line) || gitignoreLineIsCovered(present, line)) continue;
+      optional.push(line);
+    }
+  }
+  const optionalNote =
+    optional.length > 0
+      ? ` Information: other local files you may want to ignore: ${optional.join(", ")}. ` +
+        "Add these to .gitignore if you don't want to see them in `git status`."
+      : "";
 
   if (missing.length === 0) {
     return {
       name: "gitignore-coverage",
       status: "pass",
-      detail: "All canonical Deft .gitignore entries are present.",
-      data: { gitignore_path: gitignorePath, missing: [] },
+      detail: `All Directive .gitignore entries are present.${optionalNote}`,
+      data: { gitignore_path: gitignorePath, missing: [], optional },
     };
   }
 
@@ -1790,16 +1785,13 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
     name: "gitignore-coverage",
     status: "fail",
     detail:
-      `Deft .gitignore coverage incomplete: ${missing.length} canonical entr${missing.length === 1 ? "y" : "ies"} ` +
-      `missing (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ", …" : ""}). ` +
-      "Run `directive update` to add the missing entries (idempotent, safe on re-run). " +
-      `${GITIGNORE_DIRTY_TREE_RECOVERY} ` +
-      `Full missing list: ${JSON.stringify(missing)}.`,
+      `Directive .gitignore entries missing: ${missing.join(", ")}. ` +
+      `Run \`${fix}\` to add them.${optionalNote}`,
     data: stampAdvisory({
       gitignore_path: gitignorePath,
       missing,
-      suggested_fix: "directive update",
-      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
+      optional,
+      suggested_fix: fix,
     }),
   };
 }
@@ -1856,15 +1848,14 @@ export function checkPrePrSecretTracked(projectRoot: string, seams: CheckSeams =
     detail:
       `The pre-PR HMAC secret ${PRE_PR_HMAC_SECRET_REL} is tracked in git. ` +
       "Anyone with the repository can forge pre-PR execution records. " +
-      "Doctor does not untrack it. Fix: run `directive update` to refresh the .gitignore baseline " +
-      `(\`${GITIGNORE_DIRTY_TREE_FIX}\` if it refuses with dirty_tree), ` +
+      "Doctor does not untrack it. Fix: run `directive install --repair` to add the missing " +
+      ".gitignore entries, " +
       `untrack the secret with \`${untrack}\` and commit, ` +
       `then rotate it (${rotate}) and re-run pre-PR.`,
     data: stampAdvisory({
       secret_path: PRE_PR_HMAC_SECRET_REL,
       tracked: true,
       untrack_command: untrack,
-      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
       rotate,
       suggested_fix: untrack,
     }),

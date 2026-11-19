@@ -686,7 +686,13 @@ function chunkCheckIgnorePathspecs(probes: readonly string[]): string[][] {
   return chunks;
 }
 
-function checkIgnoreVerboseStdout(
+/**
+ * Run `git check-ignore -v --no-index` over `probes` in argv-sized chunks and
+ * return the raw verbose stdout (parse with {@link parseCheckIgnoreVerboseLine}).
+ * Read-only. Throws when git fails (not a repository, bad pathspec). Shared
+ * with doctor's hidden-file check (#6618).
+ */
+export function checkIgnoreVerboseStdout(
   projectRoot: string,
   runGit: GitRunner,
   probes: readonly string[],

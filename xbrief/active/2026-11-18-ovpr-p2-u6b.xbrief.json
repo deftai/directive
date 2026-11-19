@@ -270,7 +270,8 @@
           "packages/cli/src/upgrade-deft-core-edits.test.ts",
           "changelog.d/6002-upgrade-lists-deft-core-edits.md",
           "Taskfile.yml",
-          "xbrief/evaluator-surface-disposition.json"
+          "xbrief/evaluator-surface-disposition.json",
+          ".deft/intent-constraint/github.issue.6082665470.json"
         ],
         "readiness": "ready",
         "depends_on": [
@@ -352,6 +353,15 @@
       "kind": "story"
     },
     "id": "github.issue.6082665470",
-    "updated": "2026-11-18T15:37:40Z"
+    "updated": "2026-11-18T15:37:40Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "20",
+          "unit": "numeric-const",
+          "rejectionScope": "operation"
+        }
+      ]
+    }
   }
 }

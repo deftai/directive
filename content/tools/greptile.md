@@ -89,6 +89,15 @@ Dashboard settings cover most needs. Per-repo `.greptile/` folders are only need
 
 ⊗ Duplicate behavioral settings (`triggerOnUpdates`, `statusCheck`, etc.) in per-repo configs when they match the org defaults — maintain them in one place.
 
+### Reviewer false positives on Directive projects
+
+Two patterns in a Directive project are by design. To stop reviewers flagging them, copy these lines into your `.greptile/rules.md` `## Ignore` section (or your reviewer's equivalent):
+
+```markdown
+- `@deftai/directive-runtime` in package.json with no `node_modules/.bin/directive` or `deft` is expected: those commands come from the global `@deftai/directive` launcher.
+- Hooks, Git hooks or the Taskfile that run `node_modules/@deftai/directive-runtime/...` are expected: each stops and names the project install (`npm install` / `pnpm install --frozen-lockfile`) when that path is missing.
+```
+
 ## Check Runs vs. Commit Statuses
 
 ! Greptile posts **check runs** (GitHub Checks API), not **commit statuses** (Statuses API). This distinction matters when verifying or debugging the integration.

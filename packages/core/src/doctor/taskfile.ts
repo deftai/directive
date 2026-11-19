@@ -1,11 +1,37 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { RUNTIME_PACKAGE_PATH_PREFIX } from "../install-health/constants.js";
 
 const TASKFILE_INCLUDES_KEY_RE = /^(?<indent>[\t ]*)includes\s*:\s*(?:#.*)?$/i;
-const TASKFILE_INCLUDE_VALUE_RE =
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+}
+
+/** The include setup writes: the installed runtime's Taskfile (#5967 item 1). */
+const TASKFILE_INCLUDE_VALUE_RE = new RegExp(
+  `^[\\t ]+taskfile\\s*:\\s*["']?\\.?\\/${escapeRegExp(RUNTIME_PACKAGE_PATH_PREFIX)}Taskfile\\.ya?ml["']?\\s*(?:#.*)?$`,
+  "i",
+);
+
+/** Old-layout include: `.deft/core` (deleted by upgrade) or the older `deft/` folder. */
+const LEGACY_TASKFILE_INCLUDE_VALUE_RE =
   /^[\t ]+taskfile\s*:\s*["']?\.?\/(?:\.deft\/core|deft)\/Taskfile\.ya?ml["']?\s*(?:#.*)?$/i;
 
+/** The runtime include line, as setup writes it. */
+export const RUNTIME_TASKFILE_INCLUDE_LINE = `taskfile: ./${RUNTIME_PACKAGE_PATH_PREFIX}Taskfile.yml`;
+
+/** True when the root `includes:` block includes the installed runtime Taskfile. */
 export function includesBlockHasDeftTaskfile(text: string): boolean {
+  return includesBlockHasValue(text, TASKFILE_INCLUDE_VALUE_RE);
+}
+
+/** True when the root `includes:` block still points at an old-layout Taskfile. */
+export function includesBlockHasLegacyDeftTaskfile(text: string): boolean {
+  return includesBlockHasValue(text, LEGACY_TASKFILE_INCLUDE_VALUE_RE);
+}
+
+function includesBlockHasValue(text: string, valueRe: RegExp): boolean {
   let includesIndent: number | null = null;
   let inIncludes = false;
   for (const rawLine of text.split("\n")) {
@@ -31,7 +57,7 @@ export function includesBlockHasDeftTaskfile(text: string): boolean {
       }
       continue;
     }
-    if (TASKFILE_INCLUDE_VALUE_RE.test(rawLine)) {
+    if (valueRe.test(rawLine)) {
       return true;
     }
   }
@@ -48,7 +74,12 @@ export function resolveConsumerTaskfile(projectRoot: string): string | null {
   return null;
 }
 
-export type TaskfileIncludeStatus = "ok" | "missing-file" | "missing-include" | "unreadable";
+export type TaskfileIncludeStatus =
+  | "ok"
+  | "missing-file"
+  | "missing-include"
+  | "legacy-include"
+  | "unreadable";
 
 export function classifyTaskfileInclude(projectRoot: string): TaskfileIncludeStatus {
   const taskfile = resolveConsumerTaskfile(projectRoot);
@@ -60,6 +91,9 @@ export function classifyTaskfileInclude(projectRoot: string): TaskfileIncludeSta
     if (includesBlockHasDeftTaskfile(text)) {
       return "ok";
     }
+    if (includesBlockHasLegacyDeftTaskfile(text)) {
+      return "legacy-include";
+    }
     return "missing-include";
   } catch {
     return "unreadable";
@@ -67,7 +101,7 @@ export function classifyTaskfileInclude(projectRoot: string): TaskfileIncludeSta
 }
 
 export function formatMissingIncludeSnippet(): string {
-  return "  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\n";
+  return `  deft:\n    ${RUNTIME_TASKFILE_INCLUDE_LINE}\n    optional: true\n`;
 }
 
 /** Primary remediation for deep-think gates when Taskfile include is absent (#2893). */

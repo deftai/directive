@@ -46,7 +46,7 @@ describe("agents-md git integration", () => {
 describe("taskfile re-entry", () => {
   it("finds include after closing prior block", () => {
     const yaml =
-      "includes:\n  other:\n    taskfile: ./other.yml\n\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\n";
+      "includes:\n  other:\n    taskfile: ./other.yml\n\nincludes:\n  deft:\n    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml\n    optional: true\n";
     expect(includesBlockHasDeftTaskfile(yaml)).toBe(true);
   });
 });

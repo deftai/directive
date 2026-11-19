@@ -324,7 +324,6 @@ run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit 
 
     const out = ensureGitHooks(root);
     expect(out.conflicts).toEqual([]);
-    expect(out.preserved).toEqual([]);
     for (const rel of [
       ".githooks/_directive-run.sh",
       ".githooks/pre-commit",
@@ -336,13 +335,15 @@ run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit 
     }
   });
 
-  it("still preserves tracked content-divergent hooks (not CRLF-only)", () => {
+  it("replaces tracked content-divergent hooks with LF template bytes (D-023)", () => {
     const root = tempGitRepo();
     writeHook(root, ".githooks/pre-push", customPrePush.replace(/\n/g, "\r\n"));
     execFileSync("git", ["add", "--", ".githooks/pre-push"], { cwd: root });
     const out = ensureGitHooks(root);
-    expect(out.preserved.join("\n")).toContain(".githooks/pre-push");
-    expect(out.modified).not.toContain(".githooks/pre-push");
-    expect(readFileSync(join(root, ".githooks/pre-push"), "utf8")).toContain("\r\n");
+    expect(out.modified).toContain(".githooks/pre-push");
+    expect(out.updated).toContain(
+      "Updated `.githooks/pre-push`; your earlier version is in git history.",
+    );
+    expect(readFileSync(join(root, ".githooks/pre-push"), "utf8")).not.toContain("\r");
   });
 });
