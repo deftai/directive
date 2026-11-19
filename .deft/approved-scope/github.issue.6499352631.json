@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-19-6793-docsrelease-release-skill-predates-the-release-pr-flow-docum.xbrief.json",
+  "planId": "github.issue.6499352631",
+  "approvedAt": "2026-11-19T22:59:25Z",
+  "fileScope": [
+    ".deft/approved-scope/github.issue.6499352631.intent.json",
+    ".deft/approved-scope/github.issue.6499352631.json",
+    "changelog.d/6793-release-stable-cut-runbook.md",
+    "content/.agents/skills/deft-directive-release/SKILL.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-release/SKILL.md",
+    "docs/RELEASING.md",
+    "packages/core/src/content-contracts/standards/release_workflow.test.ts",
+    "xbrief/.audit/spec-drift/github.issue.6499352631.json",
+    "xbrief/active/2026-11-19-6793-docsrelease-release-skill-predates-the-release-pr-flow-docum.xbrief.json",
+    "xbrief/PROJECT-DEFINITION.xbrief.json"
+  ],
+  "fileScopeDigest": "396aa8ce7b6e5341d5b6b87dec2103a88b72be4e4892a84e279c7b6ff1bd6114",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-19T22:59:25Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "027472471aa9160c46e86c35f9d9d1cb2d4da61f68da7fb8c823171b1192de6e",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:060092d6ed4344e1d3e7e8775b885b70cfd9032d038e6aa01f54dc99dc0d9e5d"
+}

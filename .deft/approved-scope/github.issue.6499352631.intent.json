@@ -1,0 +1,926 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "docs(release): release skill predates the release-PR flow; document the full cut sequence",
+    "narratives": {
+      "Description": "docs(release): release skill predates the release-PR flow; document the full cut sequence",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6793",
+      "Overview": "\n1. Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:\n   1. [agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding.\n   2. [agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan.\n   3. [operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`. This comes before step 4 on purpose: a branch switch after `session:start` forces a cold restart of the ritual (#6293).\n   4. [operator] `deft session:start --primary-claim-exception=release-cut` before any Directive state-changing step; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.\n   5. [agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review.\n   6. [operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts.\n   7. [agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it).\n   8. [agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no other PR merged since the release PR; record each package's `latest` dist-tag as the baseline for step 11.\n   9. [operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.\n   10. [operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends.\n   11. [agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA.\n   12. [agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag.\n   13. [agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep).\n   14. [agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. Two facts the step states: the agent commit gate refuses a dogfood pin commit (#5656 prospective scope-cover; `package.json` and the lockfiles are not exempt), so the operator commits the pin from their own terminal until #5771 lands; and installing the new version re-deposits host files (hooks, skill copies, host configs, `.gitignore`) on the first commit, so the pin PR carries that deposit. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.\n   15. [operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\".\n2. Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state.\n3. Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\".\n4. RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks).\n5. Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean.\n6. Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, the branch switch before session start, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment.\n\n## Acceptance Criteria\n\n- The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision.\n- Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary.\n- In the runbook, the operator cleans the primary and switches to the release branch before `session:start --primary-claim-exception=release-cut`, the step says a later switch forces a cold restart (#6293), and the session claim comes before `deft cache fetch-all` and every other Directive state-changing step.\n- The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, states the cases before and after the release merge commit, and its pre-finish observation checks that no other PR merged since the release PR.\n- The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791.\n- The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant.\n- The runbook pin-PR step states that the operator commits the pin from their own terminal until #5771 lands (#5656), and that the pin PR carries the host-file re-deposit.\n- `docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`.\n- `content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean.\n- `release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub.\n\n\n",
+      "Constraint": "- Cache refresh before the release-cut session claim (comment 7022957824, F1).\n- Claiming the session before the branch switch (operator ruling 7023169509: it forces a cold restart, #6293).\n- A freeze observation that counts the release PR as a breach (audit 7023017574, F2).\n- Claiming `--finish` refuses any merge during the freeze (F2).\n- Calling queue merges or the happy-path publish flip human-only (F4).\n- A mandatory `pr:watch` child on hosts that cannot spawn one (F4).\n- A RELEASING.md-owned list (F6: it recreates drift).",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:"
+      },
+      {
+        "id": "clause.10",
+        "title": "[operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY."
+      },
+      {
+        "id": "clause.11",
+        "title": "[operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends."
+      },
+      {
+        "id": "clause.12",
+        "title": "[agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA."
+      },
+      {
+        "id": "clause.13",
+        "title": "[agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag."
+      },
+      {
+        "id": "clause.14",
+        "title": "[agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep)."
+      },
+      {
+        "id": "clause.15",
+        "title": "[agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. Two facts the step states: the agent commit gate refuses a dogfood pin commit (#5656 prospective scope-cover; `package.json` and the lockfiles are not exempt), so the operator commits the pin from their own terminal until #5771 lands; and installing the new version re-deposits host files (hooks, skill copies, host configs, `.gitignore`) on the first commit, so the pin PR carries that deposit. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`."
+      },
+      {
+        "id": "clause.16",
+        "title": "[operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\"."
+      },
+      {
+        "id": "clause.17",
+        "title": "Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state."
+      },
+      {
+        "id": "clause.18",
+        "title": "Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\"."
+      },
+      {
+        "id": "clause.19",
+        "title": "RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks)."
+      },
+      {
+        "id": "clause.2",
+        "title": "[agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding."
+      },
+      {
+        "id": "clause.20",
+        "title": "Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean."
+      },
+      {
+        "id": "clause.21",
+        "title": "Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, the branch switch before session start, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment."
+      },
+      {
+        "id": "clause.22",
+        "title": "The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision."
+      },
+      {
+        "id": "clause.23",
+        "title": "Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary."
+      },
+      {
+        "id": "clause.24",
+        "title": "In the runbook, the operator cleans the primary and switches to the release branch before `session:start --primary-claim-exception=release-cut`, the step says a later switch forces a cold restart (#6293), and the session claim comes before `deft cache fetch-all` and every other Directive state-changing step."
+      },
+      {
+        "id": "clause.25",
+        "title": "The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, states the cases before and after the release merge commit, and its pre-finish observation checks that no other PR merged since the release PR."
+      },
+      {
+        "id": "clause.26",
+        "title": "The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791."
+      },
+      {
+        "id": "clause.27",
+        "title": "The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant."
+      },
+      {
+        "id": "clause.28",
+        "title": "The runbook pin-PR step states that the operator commits the pin from their own terminal until #5771 lands (#5656), and that the pin PR carries the host-file re-deposit."
+      },
+      {
+        "id": "clause.29",
+        "title": "`docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`."
+      },
+      {
+        "id": "clause.3",
+        "title": "[agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan."
+      },
+      {
+        "id": "clause.30",
+        "title": "`content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean."
+      },
+      {
+        "id": "clause.31",
+        "title": "`release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub."
+      },
+      {
+        "id": "clause.4",
+        "title": "[operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`. This comes before step 4 on purpose: a branch switch after `session:start` forces a cold restart of the ritual (#6293)."
+      },
+      {
+        "id": "clause.5",
+        "title": "[operator] `deft session:start --primary-claim-exception=release-cut` before any Directive state-changing step; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`."
+      },
+      {
+        "id": "clause.6",
+        "title": "[agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review."
+      },
+      {
+        "id": "clause.7",
+        "title": "[operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts."
+      },
+      {
+        "id": "clause.8",
+        "title": "[agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it)."
+      },
+      {
+        "id": "clause.9",
+        "title": "[agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no other PR merged since the release PR; record each package's `latest` dist-tag as the baseline for step 11."
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6793",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6793: docs(release): release skill predates the release-PR flow; document the full cut sequence"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6296",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6296"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "## Stable cut runbook",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "## Release through a PR (#6296)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "npm i -g",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "task release:e2e",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "deft session:start --primary-claim-exception=release-cut",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "deft cache fetch-all",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "deft verify:session-ritual -- --tier=gated",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "task materialize:cut-context",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "task pr:wait-mergeable-and-merge -- <N> --wait",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "gh run watch",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        },
+        {
+          "command": "npm-publish.yml",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        },
+        {
+          "command": "task release:wait-npm -- <version>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        },
+        {
+          "command": "task release",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L28"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "xbrief/active/2026-11-19-6793-docsrelease-release-skill-predates-the-release-pr-flow-docum.xbrief.json",
+          ".deft/approved-scope/github.issue.6499352631.json",
+          ".deft/approved-scope/github.issue.6499352631.intent.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/.agents/skills/deft-directive-release/SKILL.md",
+          "docs/RELEASING.md",
+          "packages/core/src/content-contracts/standards/release_workflow.test.ts",
+          "changelog.d/6793-release-stable-cut-runbook.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6499352631.json"
+        ],
+        "Traces": [
+          "#6793",
+          "#6296",
+          "#6791"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6793; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator rule of 2026-11-18 asks for at least a thin arc on every issue we build until the #6609 ingest fix is released, so ingest takes its clauses from an accepted synthesis and not from issue prose; and a read at the dispatch SHA shows the issue table was written against a stale copy of the skill, so the build list must be re-derived from the routed copy.\n\nTarget-digest: sha256:3d7327ca22e9837c832bc4d0210cb514890457867dd38330eb7a155c019fcf26\ndispatch-sha: bb48fa96f38f903e67ee4bda15a82c517039680b\ndest: .deft-scratch/worktrees/arc-6793 (pinKind origin-default, process-only-no-install; under the unbound arc worktree `C:/Repos/deft/wt/arc-6793`)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator rule; a docs and skill change; one critic of a different model family (Codex).\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show bb48fa96f38f903e67ee4bda15a82c517039680b: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\npain: P4\npain: P5\npain: P6\npain: P7\n\n## In plain English\nThe 0.130.0 cut was the first through the release-PR flow (#6296). The operator and the agents had to put the working sequence together from several files. The fix gives the release skill one numbered runbook that covers the whole cut end to end, including the agent-side steps, marks each step operator or agent with the reason, and states the merge freeze, the incident-only skip path and the `maintainer` dist-tag. `docs/RELEASING.md` points at the runbook. It adds no gate, flag or command: every step uses a verb or check that exists today.\n\nOperator scope addition (relayed by the coordinator, 2026-11-19): \"whatever is being done must be in the release skill as well\". The runbook therefore also covers pre-cut quiescence, the read-only dry run with readiness items, the identical-tree check before the skip path, the release PR review watch, a freeze check before `--finish`, post-finish publish checks, the post-`release:publish` REST check, and the pin PR path.\n\nCorrection to the issue table. The issue names `content/.agents/skills/deft-directive-release/SKILL.md`. That file is a stale 433-line full copy from before #6296. Every other skill under `content/.agents/skills/` except `deft-directive-tutorial` is a short pointer stub (\"Read and follow: skills/<name>/SKILL.md\"). The routed skill is `content/skills/deft-directive-release/SKILL.md`, rendered by `task packs:render` from `content/packs/skills/skills-pack-0.1.json`. At the dispatch SHA the routed copy already covers the release-cut session exception, cut context, `--finish`, the release PR merge, the grant, `release:wait-npm`, `release:publish`, the pin PR, `release:local-update`, the `maintainer` dist-tag and promote-to-`latest`, but spread over eight phases and three preamble sections. What it lacks: one ordered sequence, the agent-side steps above, the merge freeze, `--allow-unpaid-skip-ci`, and a link to #6791. `docs/RELEASING.md` already names the real required checks (line 66); the issue claim about `TypeScript (build + lint + test)` does not hold at this SHA. RELEASING.md does still carry a stale `## Release Process` section that tags master directly.\n\nPain source: the issue `## Acceptance Criteria`, re-read against the routed copy, plus the operator scope addition above. The issue table is evidence, not criteria.\n\n## Pains\n- P1 — The release skill gives the full stable cut as one numbered sequence, end to end: pre-cut quiescence, read-only dry run with readiness items, clean primary and release branch, cache refresh, session start with the release-cut exception, cut context, identical-tree check, `task release`, release PR review watch and merge, freeze check, publish grant, `--finish`, clear cut context, post-finish publish checks, `release:publish` and its REST check, pin PR, local update and `npm i -g`, and the later promote to `latest`.\n- P2 — The skill states the merge freeze (no other PR merges to the delivery branch from `task release` until `--finish` pushes the tag), the freeze check before `--finish`, and what happens if a PR does merge.\n- P3 — The skill documents the skip path, including `--allow-unpaid-skip-ci`, as incident-only, gated in prose on the identical-tree check, and links #6791.\n- P4 — The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` is unchanged, and that promote to `latest` is a separate step with its own grant.\n- P5 — `docs/RELEASING.md` names the actual required checks and links the skill runbook for cut context, the freeze and the pin steps; it carries no flow that contradicts the release-PR flow.\n- P6 — The rendered skill is regenerated from the pack source, and no stale full copy of the release skill remains for an agent to read.\n- P7 — Each runbook step names who runs it (operator or agent) and why (session-bound ritual, human-only cut, TTY grant).\n\n## Excluded (not pains, not in this arc)\n- Any change to `task release`, `--finish`, the release rule, grants or CI. Making the freeze, quiescence or identical-tree check machine-enforced. #6791 (Step 5 reuse of green CI) and #6485 (queue path to abandon a merged release).\n- Rewriting the eight phases. They stay as the detail behind the runbook.\n- The other stale full copy under `content/.agents/skills/` (`deft-directive-tutorial`, 94 lines).\n\n## Constraints (not pains)\n- No new gate, check verb, flag, grant or command (operator direction: fewer gates). Runbook checks are steps an agent runs with existing verbs, not new refusals.\n- Keep it lean: one numbered list; detail stays in the existing phases, linked by name.\n- Edit the pack source, then `task packs:render`; never hand-edit the rendered file.\n- Existing pins in `release_workflow.test.ts` (58-161) must keep passing.\n\n## Anchors at the dispatch SHA\n- `content/skills/deft-directive-release/SKILL.md`: 30-42 release-cut session exception; 44-63 cut context; 67-82 `## Release through a PR (#6296)` (4 steps, changes that land ahead, recovery by state); 244 and 302-304 tag push is the npm gate, Phase 4 says \"NO `--skip-ci`\"; 247 cache refresh on dirty `cache_fresh`; 259-264 dry run; 330-336 Phase 5 checks `npm-publish.yml` first; 357-361 `release:publish`; 397-401 `maintainer` dist-tag, promote-latest, `release:wait-npm`; 411-427 pin PR and `release:local-update`; 469 Skill Completion prints `npm i -g`.\n- `content/.agents/skills/deft-directive-release/SKILL.md`: 433 lines, banner claims generated, content predates #6296; siblings such as `content/.agents/skills/deft-directive-xbrief/SKILL.md` are 11-line pointer stubs.\n- `packages/core/src/packs/pack-render.ts` 298-310: the skills target renders only `^skills/.+/SKILL\\.md$` from `content/packs/skills/skills-pack-0.1.json`; nothing renders `.agents/skills`.\n- `docs/RELEASING.md`: 11-34 release through a PR; 66 required checks `TypeScript (build + lint)` and `Merge gate (task check)`; 121 production `--skip-ci` is an incident; 255-266 stale `## Release Process` (tag master and push the tag).\n- `packages/core/src/release/finish.ts` 182-194 (M must be on the fetched base, one parent), 396-405 (merge gate green on M), 415-433 (tag M by SHA, push only the tag).\n- `packages/core/src/release/constants.ts` 105-114: `--allow-unpaid-skip-ci #N` is a distinct override when the `--allow-skip-ci` issue is unpaid (open or unknown, or spend-record reuse) and must cite the same issue.\n- `.github/workflows/npm-publish.yml`: jobs `prepare`, `publish`, `promote-latest` (394, dispatch-only), `post-publish` two-pass fixture (447-471).\n- `packages/core/src/content-contracts/standards/release_workflow.test.ts` 58-161 pins the release skill and RELEASING.md text; `standards.test.ts` 252-255 and 1480 only assert absences on the `.agents` copy.\n- Pin PR precedent: #6673 (`package.json` pin, `pnpm-workspace.yaml` exclude, lockfile, one changelog line).\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1, P4, P7). In the pack source, add `## Stable cut runbook` directly after `## Release through a PR (#6296)`. One numbered list. Each step is tagged `[operator]` or `[agent]` and names the phase or section with the detail. A short key under the heading gives the reasons: the operator runs the steps bound to the session that owns the primary checkout (ritual, cut, finish, local update), the human-only merges, and the TTY grant; agents run the read-only checks and watches.\n  1. [agent] Pre-cut quiescence: no open PRs, no armed auto-merge, no running workers. Each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work.\n  2. [agent] Read-only dry run on an `origin/master` snapshot (Phase 2 command) and readiness items: pending `changelog.d/` fragments, version files consistent, both required checks green on the tip, tag `v<version>` not on origin.\n  3. [operator] Clean the primary, `git fetch origin master && git switch -c release/v<version> origin/master`.\n  4. [operator] `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft session:start --primary-claim-exception=release-cut`; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.\n  5. [agent] Identical-tree check, only if the skip path is wanted: the release branch HEAD tree equals the tree of the master tip SHA on which both required checks are green.\n  6. [operator] `task release -- <version>`. It pushes the branch and opens the release PR. The merge freeze starts. Skip path (incident-only until #6791): `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` while the cited issue is open, and only after step 5 passes.\n  7. [agent] Review watch: `review-monitor:register` and a `pr:watch` child until CLEAN. [operator] merges through the queue (`task pr:wait-mergeable-and-merge -- <N> --wait`).\n  8. [agent] Freeze check: the release merge commit is the delivery-branch tip and no PRs are open.\n  9. [operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.\n  10. [operator] `task release -- --finish <version>` (tags the merge commit, pushes only the tag, creates the draft release), then `task materialize:clear-cut-context`. The freeze ends.\n  11. [agent] Watch `npm-publish.yml` (`gh run watch`); `task release:wait-npm -- <version>`; on both packages `maintainer` is `<version>` and `latest` is unchanged; the `promote-latest` job is skipped; the `post-publish` fixture job is green.\n  12. [operator] `task release:publish -- <version>`. [agent] REST check: the GitHub release is not a draft and is not marked Latest.\n  13. [agent] Pin PR mirroring #6673 through the normal scope path; [operator] merges it. [operator] `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.\n  14. [operator] Later: promote to `latest` with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>` (Phase 7).\n- R2 (P2). One paragraph under the runbook: merge freeze from step 6 until step 10 pushes the tag. If a PR with a changelog entry or fragment merges before the release PR check, the release rule fails: close the release PR, delete the branch, cut again. If one lands ahead in the queue, `--finish` refuses (recovery by state applies).\n- R3 (P3). Step 6 carries the skip sub-line above. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook (step 6)\".\n- R4 (P5). `docs/RELEASING.md`: replace the stale `## Release Process` (255-266) with a two-line pointer to the skill runbook; add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Line 66 already names the right checks; keep it.\n- R5 (P6). Replace `content/.agents/skills/deft-directive-release/SKILL.md` with a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Run `task packs:render` and `task packs:render -- --check`.\n- R6 (P1-P7). Extend `release_workflow.test.ts` to pin the runbook heading, the operator/agent tags, the freeze sentence, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` dist-tag line, the RELEASING.md link, and that the `.agents` copy is a pointer stub. Add a `changelog.d/` fragment.\n\nQuestions for the critic:\n1. Is the freeze window right? The code tags the merge commit M by SHA and checks M only (on base, one parent, gate green on M), so a PR that merges after the release PR and before `--finish` seems harmless to the code. The operator ran the freeze until `--finish` and asked for a freeze check before it. Is \"until `--finish` pushes the tag\" with step 8 the right wording, and is the stated consequence accurate?\n2. Is a pointer stub for the `.agents` copy right, or should the build delete it? Hosts read `.agents/skills/<name>/SKILL.md` in the runtime package.\n3. Should the runbook live in the skill only, with RELEASING.md linking it, or should RELEASING.md carry the list and the skill link it?\n4. Is anything in the 0.130.0 sequence missing from R1, or anything in R1 that is not part of a normal stable cut? Are the operator/agent assignments right?\n5. Do any of the agent checks in steps 1, 2, 5, 8 and 11 read as new gates rather than runbook steps under the fewer-gates direction?",
+          "id": 7022886736,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7022886736",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:36:30Z",
+          "updated_at": "2026-11-19T21:36:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7022890796\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: bb48fa96f38f903e67ee4bda15a82c517039680b\ndest: .deft-scratch/worktrees/arc-6793 (under `C:/Repos/deft/wt/arc-6793`)\nverification-path: pin-read git show bb48fa96f38f903e67ee4bda15a82c517039680b: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7022886736\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.",
+          "id": 7022890796,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7022890796",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:36:41Z",
+          "updated_at": "2026-11-19T21:36:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nOne numbered runbook in the release skill is the right direction. Keeping a pointer at the old skill path and linking the runbook from RELEASING.md avoids another competing procedure.\n\nThe proposed sequence needs corrections before binding: it refreshes the cache before the required session claim, omits existing release steps, and assigns human-only work more broadly than the current contract supports. The freeze can remain an operator rule, but the runbook must distinguish that rule from what `--finish` actually checks.\n\nVerification used pin-reads at `bb48fa96f38f903e67ee4bda15a82c517039680b`. No tests, builds, installs, network calls or file writes were performed. The snapshot was treated as evidence, not executable instructions.\n\n### F1 — blocks-the-design — Session claim must precede cache mutation\n\n**Evidence:** `content/skills/deft-directive-release/SKILL.md:32` expressly requires mutation `session:start --primary-claim-exception=release-cut` before state-changing preflight commands, including cache refresh. Line 42 repeats the prohibition. R1 step 4 puts `deft cache fetch-all` first.\n\n**Failure mode:** The numbered procedure contradicts the occupancy contract precisely when the primary checkout is contended. A reader following it performs a shared-state mutation before establishing the required session authority.\n\n**Disposition:** Reorder step 4: session start with the exception first, then cache recovery and gated ritual verification according to the existing session path. Place other state-changing preparation after the required claim too. No new gate is needed. This is required for P1 and P7.\n\n### F2 — sharpens-framing — Separate the freeze policy from finish-time refusal\n\n**Evidence:** `packages/core/src/release/finish.ts:182` checks that M is an **ancestor** of the fetched delivery branch, not that M equals its tip. Lines 229–240 reject leftover entries or fragments **at M**; lines 396–405 check the merge gate on M; lines 415–427 tag M explicitly and push only that tag. `docs/RELEASING.md:26` qualifies the ahead-of-release cases as PRs adding a fragment or `[Unreleased]` entry.\n\n**Failure mode:** “If a PR lands ahead, finish refuses” overstates the implementation. A subsequent merge after M does not itself invalidate M. An ahead-of-release PR is not rejected merely because it exists; the relevant leftover state must be present. Step 8’s tip-equality check is a stricter operational rule, not a description of the executable finish check.\n\n**Disposition:** Keep the requested freeze from cut start until successful tag push, explicitly as operator coordination policy. Describe three cases:\n\n- Before M, leftover release-note material can trigger the documented recut/refusal paths.\n- After M, a merge violates the freeze policy but does not automatically make `--finish` refuse.\n- A failed freeze observation requires reporting the breach and applying recovery by actual release state; it is not evidence that the code rejected the release.\n\nThis sharpens P2 without adding enforcement or changing the freeze window.\n\n### F3 — blocks-the-design — The “full” sequence omits existing obligations and conflicts with retained phases\n\n**Evidence:** In `content/skills/deft-directive-release/SKILL.md`:\n\n- Lines 261–274 require the dry-run preview and confirmation, preserving any supplied summary.\n- Lines 278–294 require the E2E rehearsal, with an existing recent-success exception.\n- Lines 355–369 place the GitHub publish flip after npm success and draft QA.\n- Line 397 requires a promote-now decision or an explicit recorded decline.\n- Lines 401–407 cover registry/provenance verification and additional post-publish closeout.\n- Lines 413–423 require the pin PR before local update, whose pull runs on the default branch.\n\nR1 omits the E2E rehearsal and draft-QA dependency, reduces the latest decision to “Later,” and leaves the transition from the release branch back to the default branch unstated.\n\n**Failure mode:** An operator can follow every numbered step and still skip obligations in the phases that supposedly remain authoritative. Conversely, following both surfaces reintroduces the fragmented procedure P1 is intended to remove.\n\n**Disposition:** Add compact references at the correct positions for rehearsal or its existing exception, draft QA, applicable post-publish closeout, and the explicit latest decision. State the return to the default branch before local update. Preserve summary propagation. Reconcile directly conflicting phase sentences with the release-PR sequence; “do not rewrite the eight phases” should permit these targeted corrections.\n\nThis needs no duplicate detailed procedure and no new release checks.\n\n### F4 — blocks-the-design — Human-only assignments and mandatory child monitoring are unsupported\n\n**Evidence:** `content/skills/deft-directive-release/SKILL.md:69` says the release grant is the only human act a cut needs; `docs/RELEASING.md:13` says the same. The skill’s lines 355–369 explicitly make the happy-path GitHub publish flip automatic without a separate human prompt.\n\nFor monitoring, `content/skills/deft-directive-review-cycle/SKILL.md:732` requires registration against an actual monitor identity and handles ownership conflicts. Lines 751 and 765 distinguish leaf agents from parents that own a spawning primitive; line 860 supplies other monitoring paths.\n\n**Failure mode:** R1’s key turns session ownership into a general human-only restriction, including merges and the publish flip. Step 7 mandates a child even where nested spawning is unsupported. This adds operational handoffs and can strand a release on a host that already has a valid monitoring path.\n\n**Disposition:** Distinguish **human authority** from **execution in the owning session**. Retain the human TTY grant; explain any genuinely required operator-terminal step individually. Do not describe ordinary queue merges or the happy-path publish flip as inherently human-only without an authoritative basis.\n\nFor step 7, reference the existing review-cycle monitoring tiers: spawn/register when supported and appropriate, otherwise use the established owning-agent path. CLEAN is the success condition; error, findings and timeout return to that workflow rather than an unconditional wait forever. This corrects P7 and addresses the concurrency lens without new orchestration machinery.\n\n### F5 — sharpens-framing — Give observations a baseline and avoid accidental global prerequisites\n\n**Evidence:** `docs/RELEASING.md:66` lists two CI checks **and** the `Greptile Review` ruleset check. The release skill at line 401 makes registry waiting report-only and distinguishes partial propagation from incomplete publication. `.github/workflows/npm-publish.yml:394–399` restricts promotion to an explicit dispatch, and lines 442–445 move both npm tags and GitHub Latest.\n\n**Failure mode:** “No open PRs” can be read as a global release eligibility rule, although open work alone does not demonstrate a competing merge. “Latest unchanged” has no verifiable comparison without a recorded prior value. “Both required checks” can misleadingly imply that the separate review requirement does not exist. The identical-tree check can also be mistaken for a general exemption from incident authorization.\n\n**Disposition:** Describe quiescence and the freeze observations as coordination steps, with findings reported and handled under existing policy. Preserve the operator-requested observations without claiming executable refusal. Record each package’s prior `latest` value before tag push and identify the exact tag-triggered workflow run being inspected. Name the two checks as the **two CI checks**, retaining the separate review requirement.\n\nKeep the tree-equality observation limited to the proposed incident skip path; equality does not replace incident review. Describe `--allow-unpaid-skip-ci` using its actual scope: open/unknown issue or spend-record reuse, citing the same issue (`packages/core/src/release/constants.ts:105–114`). Preserve the existing report-only semantics of registry propagation.\n\n### F6 — footnote — Pointer stub and skill-owned runbook are appropriate\n\n**Evidence:** `content/.agents/skills/deft-directive-xbrief/SKILL.md:1–11` supplies the proposed pointer-stub pattern. `packages/core/src/packs/pack-render.ts:298–308` renders `skills/.../SKILL.md`, not `.agents/skills/...`. The release `.agents` file remains a 433-line full copy. `docs/RELEASING.md:255–266` still describes direct tagging of master.\n\n**Failure mode:** Leaving the full copy retains competing instructions; deleting the discovery entry risks losing the host-facing skill route. Duplicating the new list in RELEASING.md recreates drift.\n\n**Disposition:** Support R4 and R5: retain discovery metadata in a pointer stub, keep the canonical list in the pack-rendered skill, and replace the obsolete direct-tag sequence with a link. No residual objection.\n\nThe strongest alternative is a RELEASING.md-owned list because humans naturally look there. The explicit requirement that the complete procedure also be in the skill, together with the existing pack source, favors skill ownership. A documented change in canonical routing would change that assessment.\n\n## Answers to the five questions\n\n1. **Freeze:** Yes as an operator rule through successful tag push; no as a blanket prediction of `--finish` refusal. F2 gives the necessary distinction.\n2. **Old skill path:** Keep a pointer stub, not deletion.\n3. **Canonical list:** Keep it in the skill; link it from RELEASING.md.\n4. **Completeness and roles:** R1 needs the omissions and ownership corrections in F1, F3 and F4. The snapshot does not contain a full execution log proving every action in the historical 0.130.0 cut.\n5. **New gates:** Steps 1 and 8 currently read as stronger global prerequisites. Step 5 is a deliberate incident-path condition, not existing CLI enforcement. Steps 2 and 11 are useful observations when their evidence, baseline and existing failure semantics are explicit.\n\nCritic pass complete. The parent’s next step is a successor lean disposing of F1–F6; this comment does not accept synthesis or authorize ingest.",
+          "id": 7022957824,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7022957824",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:39:40Z",
+          "updated_at": "2026-11-19T21:39:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7022886736 (round 1: 1 of 1 critic posted, comment 7022957824)\n\n## In plain English\nProblem: the release skill holds most of the release-PR flow, but spread over eight phases and three preamble sections, with no single order, no merge freeze, no `--allow-unpaid-skip-ci`, and none of the agent-side checks the 0.130.0 cut used. A stale full copy at `content/.agents/skills/deft-directive-release/SKILL.md` and a direct-tag section in `docs/RELEASING.md` still describe the old flow.\n\nWhat the critic found: one skill-owned runbook, a pointer stub for the stale copy and a link from RELEASING.md are right. Three parts of the first draft did not hold. The cache refresh came before the release-cut session claim, which the skill forbids. The list left out existing obligations (E2E rehearsal, draft QA, post-publish closeout, the explicit `latest` decision, the return to the default branch). And it called steps human-only without a basis: the grant is the one human-authority act; other operator steps are operator-run because they belong to the session that owns the primary. The critic also sharpened the freeze: keep it until the tag push as a coordination rule, but do not claim `--finish` refuses every breach.\n\nSolution this lean proposes: one `## Stable cut runbook` in the skill, fifteen numbered steps, each tagged operator or agent with the reason. Observations (quiescence, freeze, dist-tags) are coordination steps that report findings, not refusals.\n\nWhat this adds: no new gate, verb, flag, grant or check. Every step uses an existing command or a read.\n\nWhat it does not do:\n- It does not change `task release`, `--finish`, CI or any policy.\n- It does not rewrite the phases; it corrects only sentences that conflict with the runbook.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:3d7327ca22e9837c832bc4d0210cb514890457867dd38330eb7a155c019fcf26\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7022957824). Panel deposit: comment 7022890796.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\nrelieves: P6\nrelieves: P7\n\n## Bound remedy\n1. Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:\n   1. [agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding.\n   2. [agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan.\n   3. [operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`.\n   4. [operator] `deft session:start --primary-claim-exception=release-cut` first; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.\n   5. [agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review.\n   6. [operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts.\n   7. [agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it).\n   8. [agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no PR merged since step 6; record each package's `latest` dist-tag as the baseline for step 11.\n   9. [operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.\n   10. [operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends.\n   11. [agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA.\n   12. [agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag.\n   13. [agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep).\n   14. [agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) through the normal scope path, merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.\n   15. [operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\".\n2. Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state.\n3. Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\".\n4. RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks).\n5. Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean.\n6. Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment.\n\n## Acceptance Criteria\n- The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision.\n- Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary.\n- In the runbook, `session:start --primary-claim-exception=release-cut` comes before `deft cache fetch-all` and every other state-changing step.\n- The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, and states the cases before and after the release merge commit.\n- The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791.\n- The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant.\n- `docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`.\n- `content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean.\n- `release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub.\n\n## Reject\n- Cache refresh before the release-cut session claim (comment 7022957824, F1).\n- Claiming `--finish` refuses any merge during the freeze (F2).\n- Calling queue merges or the happy-path publish flip human-only (F4).\n- A mandatory `pr:watch` child on hosts that cannot spawn one (F4).\n- A RELEASING.md-owned list (F6: it recreates drift).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7022957824 | F1 Session claim must precede cache mutation | blocks-the-design | accept-into-contract (item 1 step 4) |\n| comment 7022957824 | F2 Separate the freeze policy from finish-time refusal | sharpens-framing | accept-into-contract (item 2, step 8) |\n| comment 7022957824 | F3 Full sequence omits existing obligations | blocks-the-design | accept-into-contract (steps 2, 11, 13, 14, 15; item 3) |\n| comment 7022957824 | F4 Human-only assignments and mandatory child monitoring | blocks-the-design | accept-into-contract (key, steps 7 and 12) |\n| comment 7022957824 | F5 Baselines and no accidental global prerequisites | sharpens-framing | accept-into-contract (steps 1, 2, 5, 8, 11; item 3) |\n\nFootnote in the census, no take: F6 (supports items 4 and 5).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. Steps 1, 5, 7, 8, 11 and 12 carry the operator scope addition relayed in Stop 1; the lean introduces no premise beyond that, the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.",
+          "id": 7022979635,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7022979635",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:40:39Z",
+          "updated_at": "2026-11-19T21:40:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5, pain-P6, pain-P7\nfinding-classes: blocking, sharpening\nharvest-changed: true\nharvest-digest: sha256:dfe7fccfc9404e6f8d6d0d4211c124417d9a668ed676ad77dade00e6d15ba571\n\n## In plain English\n\nThe lean covers the release sequence and removes the competing documentation. Two corrections remain: claim the primary before changing its checkout, and exclude the release PR itself from the freeze observation. As written, the sequence contradicts its own acceptance criteria, and a normal release always fails the freeze observation.\n\npain-P1: fails - Bound remedy 1 step 3 cleans and switches the primary before step 4 claims it, contradicting the acceptance criterion requiring session start before every state-changing step.\npain-P2: fails - Step 8 requires “no PR merged since step 6,” but step 7 necessarily merges the release PR; the freeze paragraph otherwise correctly distinguishes coordination policy from finish-time refusal.\npain-P3: holds - Bound remedy 3 requires the incident-only skip flags, the same issue for the unpaid override, the identical-tree check, and the #6791 link; acceptance criteria retain these requirements.\npain-P4: holds - Steps 8, 11 and 15 record and compare the `latest` baseline, verify `maintainer`, and separate promotion with its own grant.\npain-P5: holds - Bound remedy 4 and the acceptance criteria replace the direct-tag procedure with a runbook pointer and retain the actual required check names.\npain-P6: holds - Bound remedy 1 edits the pack source; item 5 replaces the stale full copy with a pointer and requires regeneration plus a clean render check.\npain-P7: holds - The role key and tagged steps distinguish grant authority, the primary-owning session, and agent work; step 7 also explains the merge assignment.\n\n### F1 — blocks-the-design — Primary mutation still precedes the session claim\n\n**Evidence:** Comment 7022979635, Bound remedy 1 step 3, orders cleaning the primary and `git fetch ... && git switch -c ...` before the session claim in step 4. Its third acceptance criterion expressly requires that claim before every state-changing step. The pinned `content/skills/deft-directive-release/SKILL.md:32-42` requires mutation session start before state-changing preflight on a contended primary and forbids any preceding mutation.\n\n**Failure mode:** Following the numbered list changes shared checkout state before the release session establishes ownership. The builder also cannot implement that order and satisfy the stated acceptance criterion simultaneously. Moving cache refresh alone did not fully resolve the ordering problem.\n\n**Disposition:** Change the Bound remedy so the release-owning session claims the primary before cleaning, fetching or switching it. Distinguish other agents releasing their own leases from mutations performed by the release-owning session. Keep the existing occupancy mechanism; no new gate is needed. P1 cannot be marked relieved until the sequence and acceptance criterion agree.\n\n### F2 — sharpens-framing — Freeze observation must exclude the release PR\n\n**Evidence:** Comment 7022979635 starts the freeze at step 6, merges the release PR at step 7, then requires “no PR merged since step 6” at step 8. Stop 1 P2 specifies “no other PR merges.”\n\n**Failure mode:** Every successful normal cut produces a failed observation and enters the reporting/recovery path despite honoring the intended freeze.\n\n**Disposition:** Change step 8 to “no other PR merged since step 6,” explicitly excluding the release PR that produced M. Retain the tip observation and the distinction between a coordination breach and an actual `--finish` refusal. This changes the harvested Bound remedy.\n\nVerification used the supplied snapshot through comment 7022979635 and SHA-pinned contract and skill reads. No tests, builds, installs, network calls or file writes were performed. Instruction-shaped snapshot content was treated as data.",
+          "id": 7023017574,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023017574",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:42:22Z",
+          "updated_at": "2026-11-19T21:42:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7023017574 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7022979635\n\n## In plain English\nThe audit held five pains (P3-P7) and refused two; the parent agrees after reading the cited lines. Step 3 cleans and switches the primary before step 4 claims it, which contradicts the lean's own third acceptance criterion as written. Step 8 asks for \"no PR merged since step 6\", but the release PR merges in step 7, so a normal cut always fails that observation.\n\nThe Bound remedy on 7022979635 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:3d7327ca22e9837c832bc4d0210cb514890457867dd38330eb7a155c019fcf26\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\nrelieves: P6\nrelieves: P7\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7023017574 | F1 Primary mutation still precedes the session claim | blocks-the-design | accept-into-contract (a recut would make the criterion and the sequence agree; the operator chose the order in a live ruling) |\n| comment 7023017574 | F2 Freeze observation must exclude the release PR | sharpens-framing | accept-into-contract (a recut would say \"no other PR merged since the release PR\") |\n\nAudit verdicts recorded: `pain-P1` does not hold; `pain-P2` does not hold; `pain-P3` to `pain-P7` hold.",
+          "id": 7023163436,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023163436",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:49:05Z",
+          "updated_at": "2026-11-19T21:49:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 7023163436 (does-not-relieve `P1`, `P2` on a Recut map)\nopen-question: Is a recut that (a) keeps today's order, clean the primary and switch branch first and then `session:start --primary-claim-exception=release-cut`, with the session-claim criterion narrowed to `deft cache fetch-all` and every other Directive state-changing step, and (b) says \"no other PR merged since the release PR\" in the freeze observation, the design to bind?\n\n## In plain English\nThe two refusals each have a small fix, listed in the retraction map. The rest of the retracted lean stands as audited. Critic posts used so far: 3 of 6. The first fix is an order choice, so it goes to the operator.",
+          "id": 7023166586,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023166586",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:49:14Z",
+          "updated_at": "2026-11-19T21:49:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator ruling (live turn 2026-11-19, relayed by the coordinating session) on Handoff 7023166586. The operator ruled on the order, in his words: \"Keep today's order\".\n\nThe parent posts one recut lean with (a) today's order and the narrowed session-claim criterion, (b) \"no other PR merged since the release PR\", and (c) a factual note on the pin PR from the 0.130.0 pin work, and one fresh critic audits it. No cap raise. Critic posts used: 3 of 6; the next audit is the fourth. The arc continues under Stop 1 7022886736. If that audit blocks, the arc halts and is reported, not looped.",
+          "id": 7023169509,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023169509",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:49:23Z",
+          "updated_at": "2026-11-19T21:49:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7022886736, after pain audit 7023017574 and the operator ruling in comment 7023169509 (round 1: 1 of 1 critic posted, comment 7022957824)\n\n## In plain English\nProblem: the release skill holds most of the release-PR flow, but spread over eight phases and three preamble sections, with no single order, no merge freeze, no `--allow-unpaid-skip-ci`, and none of the agent-side checks the 0.130.0 cut used. A stale full copy at `content/.agents/skills/deft-directive-release/SKILL.md` and a direct-tag section in `docs/RELEASING.md` still describe the old flow.\n\nWhat the critic found: one skill-owned runbook, a pointer stub for the stale copy and a link from RELEASING.md are right. Three parts of the first draft did not hold. The cache refresh came before the release-cut session claim, which the skill forbids. The list left out existing obligations (E2E rehearsal, draft QA, post-publish closeout, the explicit `latest` decision, the return to the default branch). And it called steps human-only without a basis: the grant is the one human-authority act; other operator steps are operator-run because they belong to the session that owns the primary. The critic also sharpened the freeze: keep it until the tag push as a coordination rule, but do not claim `--finish` refuses every breach. The pain audit (7023017574) then found two gaps in the first lean: step 3 changed the primary before the session claim while a criterion said the claim comes first, and the freeze observation counted the release PR itself as a breach. The operator ruled to keep today's order (clean and switch, then the claim), so the criterion now names `deft cache fetch-all` and every other Directive state-changing step.\n\nSolution this lean proposes: one `## Stable cut runbook` in the skill, fifteen numbered steps, each tagged operator or agent with the reason. Observations (quiescence, freeze, dist-tags) are coordination steps that report findings, not refusals.\n\nWhat this adds: no new gate, verb, flag, grant or check. Every step uses an existing command or a read.\n\nWhat it does not do:\n- It does not change `task release`, `--finish`, CI or any policy.\n- It does not rewrite the phases; it corrects only sentences that conflict with the runbook.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:3d7327ca22e9837c832bc4d0210cb514890457867dd38330eb7a155c019fcf26\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 7022979635 (audit 7023017574 refused `P1` and `P2`; retraction map 7023163436 withdrew it; Handoff 7023166586; operator ruling 7023169509). Sibling count: 1 (comment 7022957824). Panel deposit: comment 7022890796.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\nrelieves: P6\nrelieves: P7\n\n## Bound remedy\n1. Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:\n   1. [agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding.\n   2. [agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan.\n   3. [operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`. This comes before step 4 on purpose: a branch switch after `session:start` forces a cold restart of the ritual (#6293).\n   4. [operator] `deft session:start --primary-claim-exception=release-cut` before any Directive state-changing step; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.\n   5. [agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review.\n   6. [operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts.\n   7. [agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it).\n   8. [agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no other PR merged since the release PR; record each package's `latest` dist-tag as the baseline for step 11.\n   9. [operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.\n   10. [operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends.\n   11. [agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA.\n   12. [agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag.\n   13. [agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep).\n   14. [agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. Two facts the step states: the agent commit gate refuses a dogfood pin commit (#5656 prospective scope-cover; `package.json` and the lockfiles are not exempt), so the operator commits the pin from their own terminal until #5771 lands; and installing the new version re-deposits host files (hooks, skill copies, host configs, `.gitignore`) on the first commit, so the pin PR carries that deposit. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.\n   15. [operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\".\n2. Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state.\n3. Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\".\n4. RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks).\n5. Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean.\n6. Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, the branch switch before session start, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment.\n\n## Acceptance Criteria\n- The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision.\n- Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary.\n- In the runbook, the operator cleans the primary and switches to the release branch before `session:start --primary-claim-exception=release-cut`, the step says a later switch forces a cold restart (#6293), and the session claim comes before `deft cache fetch-all` and every other Directive state-changing step.\n- The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, states the cases before and after the release merge commit, and its pre-finish observation checks that no other PR merged since the release PR.\n- The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791.\n- The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant.\n- The runbook pin-PR step states that the operator commits the pin from their own terminal until #5771 lands (#5656), and that the pin PR carries the host-file re-deposit.\n- `docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`.\n- `content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean.\n- `release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub.\n\n## Reject\n- Cache refresh before the release-cut session claim (comment 7022957824, F1).\n- Claiming the session before the branch switch (operator ruling 7023169509: it forces a cold restart, #6293).\n- A freeze observation that counts the release PR as a breach (audit 7023017574, F2).\n- Claiming `--finish` refuses any merge during the freeze (F2).\n- Calling queue merges or the happy-path publish flip human-only (F4).\n- A mandatory `pr:watch` child on hosts that cannot spawn one (F4).\n- A RELEASING.md-owned list (F6: it recreates drift).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7022957824 | F1 Session claim must precede cache mutation | blocks-the-design | accept-into-contract (item 1 step 4) |\n| comment 7022957824 | F2 Separate the freeze policy from finish-time refusal | sharpens-framing | accept-into-contract (item 2, step 8) |\n| comment 7022957824 | F3 Full sequence omits existing obligations | blocks-the-design | accept-into-contract (steps 2, 11, 13, 14, 15; item 3) |\n| comment 7022957824 | F4 Human-only assignments and mandatory child monitoring | blocks-the-design | accept-into-contract (key, steps 7 and 12) |\n| comment 7022957824 | F5 Baselines and no accidental global prerequisites | sharpens-framing | accept-into-contract (steps 1, 2, 5, 8, 11; item 3) |\n| comment 7023017574 | F1 Primary mutation still precedes the session claim | blocks-the-design | accept-into-contract (steps 3 and 4 and the third criterion agree, in the order the operator ruled) |\n| comment 7023017574 | F2 Freeze observation must exclude the release PR | sharpens-framing | accept-into-contract (step 8, freeze criterion) |\n\nFootnote in the census, no take: F6 (supports items 4 and 5).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. Steps 1, 5, 7, 8, 11 and 12 carry the operator scope addition relayed in Stop 1, and the step-14 pin facts and the step-3 order carry operator rulings relayed by the coordinating session (7023169509); the lean introduces no premise beyond that, the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.",
+          "id": 7023179808,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023179808",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:49:51Z",
+          "updated_at": "2026-11-19T21:49:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5, pain-P6, pain-P7\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:722285c8753c8704fc20dc053eb737a8b32852c414d4937a682cd3f8dd27c3c3\n\n## In plain English\n\nThe recut covers all seven pains. Its sequence and acceptance criteria now agree on branch preparation before the session claim and cache refresh afterward. The freeze observation excludes the release PR itself. Neither prior finding requires another change to this harvest.\n\nThe verdict concerns the proposed documentation, not verification that the release commands execute successfully.\n\npain-P1: holds - Comment 7023179808, Bound remedy 1 steps 1–15 and acceptance criteria 1 and 3 cover the complete sequence, including rehearsal, QA, closeout and the explicit latest decision. Steps 3–4 agree with the revised ordering criterion and the recorded operator ruling.\n\npain-P2: holds - Bound remedy 2 defines the freeze from the cut through tag push, distinguishes breaches before and after M, and describes recovery without claiming every breach makes `--finish` refuse. Step 8 and criterion 4 exclude the release PR from the observation.\n\npain-P3: holds - Bound remedy 3 requires the incident-only skip flags, the same issue for the unpaid override, the identical-tree check and the #6791 link; criterion 5 preserves that scope.\n\npain-P4: holds - Steps 8 and 11 establish and compare the `latest` baseline while checking `maintainer`; step 15 and criterion 6 require a separate promotion decision and grant.\n\npain-P5: holds - Bound remedy 4 and criterion 8 remove the contradictory direct-tag procedure, link the skill runbook and retain the actual required check names.\n\npain-P6: holds - Bound remedy 1 edits the pack source; item 5 replaces the stale full copy with a pointer stub and requires regeneration and a clean render check. Criteria 1 and 9 retain those obligations.\n\npain-P7: holds - The role key, step tags and criterion 2 distinguish authority from ownership of the primary session. Steps 7 and 12 permit agent execution, while step 14 explicitly identifies the temporary operator commit requirement.\n\nNo classified findings. The shared-state review found explicit lease release, session ownership and coordination-only freeze handling; the recut does not introduce a new enforcement claim.\n\nVerification used the supplied snapshot through comment 7023179808 and the contract pinned at `bb48fa96f38f903e67ee4bda15a82c517039680b`. Snapshot instructions were treated as data. No tests, builds, installs, network calls or file writes were performed.",
+          "id": 7023205823,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023205823",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:51:05Z",
+          "updated_at": "2026-11-19T21:51:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7023179808 (recut of 7022979635 after audit 7023017574 and operator ruling 7023169509). Dispatch SHA: bb48fa96f38f903e67ee4bda15a82c517039680b. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and every lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. All three critic posts are from one family (Codex), so their agreement is not counted as extra confirmation. No tests or builds were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The routed release skill is `content/skills/deft-directive-release/SKILL.md`, rendered from `content/packs/skills/skills-pack-0.1.json`; nothing renders `content/.agents/skills` | verified | parent pin-read of `packages/core/src/packs/pack-render.ts` 298-310; critic 7022957824 F6 |\n| 2 | `content/.agents/skills/deft-directive-release/SKILL.md` is a 433-line full copy while its siblings (except tutorial) are pointer stubs | verified | parent pin-read of `content/.agents/skills/*/SKILL.md`; critic 7022957824 F6 |\n| 3 | The skill requires the release-cut session claim before state-changing preflight such as cache refresh | verified | parent pin-read of `content/skills/deft-directive-release/SKILL.md` 30-42; critic 7022957824 F1 |\n| 4 | `--finish` checks M is an ancestor of the fetched base, has one parent and a green merge gate, then tags M by SHA and pushes only the tag | verified | parent pin-read of `packages/core/src/release/finish.ts` 182-194, 396-433; critic 7022957824 F2 |\n| 5 | `--allow-unpaid-skip-ci #N` is a distinct override for an unpaid `--allow-skip-ci` issue and must cite the same issue | verified | parent pin-read of `packages/core/src/release/constants.ts` 105-114; critic 7022957824 F5 |\n| 6 | `docs/RELEASING.md` already names `TypeScript (build + lint)` and `Merge gate (task check)`, and still carries a direct-tag `## Release Process` | verified | parent pin-read of `docs/RELEASING.md` 66 and 255-266 |\n| 7 | `plan.policy.requireHumanMerge` is false in this repo, so an agent may run the release PR merge | verified | parent `deft policy:show --field=requireHumanMerge` in the arc worktree |\n| 8 | The agent commit gate refuses a dogfood pin commit (#5656), and the first commit after install carries a host-file re-deposit | endorsed, not verified | relayed by the coordinating session from the 0.130.0 pin work; not read at the dispatch SHA |\n| 9 | The Bound remedy relieves P1-P7 | verified as design coverage | audit 7023205823 on the bound lean (all seven hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |",
+          "id": 7023220998,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023220998",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:51:49Z",
+          "updated_at": "2026-11-19T21:51:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: the release skill holds most of the release-PR flow, but spread over eight phases, with no single order, no merge freeze, no `--allow-unpaid-skip-ci`, and none of the agent-side checks the 0.130.0 cut used. A stale full copy under `content/.agents/skills/` and a direct-tag section in `docs/RELEASING.md` still describe the old flow.\n\nAccepted solution: the release skill gets one `## Stable cut runbook` of fifteen numbered steps, each tagged operator or agent with the reason, covering quiescence, readiness and the dry run, the release branch and session start (in that order), cache refresh and cut context, the incident-only skip path after an identical-tree check, the release PR watch and merge, a freeze observation, the TTY grant, `--finish`, publish checks against a recorded `latest` baseline, `release:publish` and its REST check, closeout, the pin PR (operator-committed until #5771), local update, `npm i -g`, and the `latest` decision. The merge freeze is a coordination rule, not a new refusal. `docs/RELEASING.md` links the runbook and drops the direct-tag section; the stale copy becomes a pointer stub.\n\nLimits accepted: no change to `task release`, `--finish`, CI or policy; the phases stay as detail. It was checked by reading the source at the pinned commit; nothing was installed or run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7023179808.\nverified-claims table 7023220998\n\nConfirm conjunct: yolo standing (Stop 1 7022886736, `yolo-standing: on`) plus the operator's live ruling in comment 7023169509 (\"Keep today's order\"). Round-1 critic: comment 7022957824, posted by the parent verbatim as disclosed on panel-deposit 7022890796; its five classified findings are accepted on the lean. First audit 7023017574 blocked `P1` and `P2` on lean 7022979635; retraction map 7023163436 and Handoff 7023166586 followed, then the operator ruling. Clean audit of the bound lean: comment 7023205823 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 4 of 6.",
+          "id": 7023221525,
+          "html_url": "https://github.com/deftai/directive/issues/6793#issuecomment-7023221525",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T21:51:51Z",
+          "updated_at": "2026-11-19T21:51:51Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "The release skill (`content/.agents/skills/deft-directive-release/SKILL.md`) still describes the release flow from before #6296. The 0.130.0 cut, the first through the release-PR flow, needed steps that the skill does not mention. Some of them are also missing from `docs/RELEASING.md`. The working sequence had to be put together from `docs/RELEASING.md`, the Taskfile, `release.yml` and `npm-publish.yml`, and the previous pin PR (#6673).\n\n| Step used in the 0.130.0 cut | Skill | RELEASING.md |\n|---|---|---|\n| `session:start --primary-claim-exception=release-cut` | yes | no |\n| `task materialize:cut-context` / `task materialize:clear-cut-context` | no | no |\n| `--skip-ci` / `--allow-skip-ci=#N` | yes | yes |\n| `--allow-unpaid-skip-ci=#N` (cited issue still open) | no | no |\n| Release PR open + merge (`task pr:wait-mergeable-and-merge -- <N> --wait`) | no | yes |\n| `task release -- --finish <version>` | no | yes |\n| `release-publish` grant | yes | no |\n| `release:wait-npm`, `release:publish` | yes | no |\n| Merge freeze from the cut until `--finish` | no | no |\n| Pin PR, `release:local-update`, `npm i -g` | no | no |\n| Promote to `latest` (`release-promote-latest` grant + `release-publish --promote-latest`) | no | no |\n\n`docs/RELEASING.md` also names the required check `TypeScript (build + lint + test)`. The real required checks are `TypeScript (build + lint)` and `Merge gate (task check)`.\n\n## Acceptance Criteria\n\n- [ ] The release skill gives the full operator sequence for a stable cut as numbered steps, saying who runs each one (operator or agent). The sequence covers: a clean primary checkout and branch, session start with the release-cut exception, cut context, an optional dry run, `task release`, the release PR merge, the publish grant, `--finish`, clearing the cut context, waiting for npm, `release:publish`, the pin PR, and the local update.\n- [ ] The skill states the merge freeze: no other PR merges to the delivery branch from `task release` until `--finish` has pushed the tag. It also states what happens if one does (redo the cut, or `--finish` refuses).\n- [ ] The skill documents the skip path, including `--allow-unpaid-skip-ci`, as incident-only, and links #6791.\n- [ ] The skill documents that a stable publish goes to the `maintainer` dist-tag, and describes the separate promote-to-`latest` step with its own grant.\n- [ ] `docs/RELEASING.md` names the actual required checks, and covers the cut context, the freeze and the pin steps, or links the skill for them.\n- [ ] Generated skill copies are refreshed from the edited source.\n\nRefs #6296, #6791\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6499352631,
+        "origin": "deftai/directive#6793",
+        "id": "github.issue.6499352631"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3d7327ca22e9837c832bc4d0210cb514890457867dd38330eb7a155c019fcf26"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6793,
+        "leanCommentId": 7023179808,
+        "harvestDigest": "722285c8753c8704fc20dc053eb737a8b32852c414d4937a682cd3f8dd27c3c3",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (31), in list order (#6333)",
+      "sentences": [
+        "Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:",
+        "[agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding.",
+        "[agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan.",
+        "[operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`. This comes before step 4 on purpose: a branch switch after `session:start` forces a cold restart of the ritual (#6293).",
+        "[operator] `deft session:start --primary-claim-exception=release-cut` before any Directive state-changing step; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.",
+        "[agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review.",
+        "[operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts.",
+        "[agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it).",
+        "[agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no other PR merged since the release PR; record each package's `latest` dist-tag as the baseline for step 11.",
+        "[operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.",
+        "[operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends.",
+        "[agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA.",
+        "[agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag.",
+        "[agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep).",
+        "[agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. Two facts the step states: the agent commit gate refuses a dogfood pin commit (#5656 prospective scope-cover; `package.json` and the lockfiles are not exempt), so the operator commits the pin from their own terminal until #5771 lands; and installing the new version re-deposits host files (hooks, skill copies, host configs, `.gitignore`) on the first commit, so the pin PR carries that deposit. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.",
+        "[operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\".",
+        "Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state.",
+        "Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\".",
+        "RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks).",
+        "Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean.",
+        "Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, the branch switch before session start, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment.",
+        "The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision.",
+        "Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary.",
+        "In the runbook, the operator cleans the primary and switches to the release branch before `session:start --primary-claim-exception=release-cut`, the step says a later switch forces a cold restart (#6293), and the session claim comes before `deft cache fetch-all` and every other Directive state-changing step.",
+        "The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, states the cases before and after the release merge commit, and its pre-finish observation checks that no other PR merged since the release PR.",
+        "The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791.",
+        "The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant.",
+        "The runbook pin-PR step states that the operator commits the pin from their own terminal until #5771 lands (#5656), and that the pin PR carries the host-file re-deposit.",
+        "`docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`.",
+        "`content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean.",
+        "`release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub."
+      ],
+      "admitted_source_sentences": [
+        "Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:",
+        "[agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding.",
+        "[agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan.",
+        "[operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`. This comes before step 4 on purpose: a branch switch after `session:start` forces a cold restart of the ritual (#6293).",
+        "[operator] `deft session:start --primary-claim-exception=release-cut` before any Directive state-changing step; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.",
+        "[agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review.",
+        "[operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts.",
+        "[agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it).",
+        "[agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no other PR merged since the release PR; record each package's `latest` dist-tag as the baseline for step 11.",
+        "[operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.",
+        "[operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends.",
+        "[agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA.",
+        "[agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag.",
+        "[agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep).",
+        "[agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. Two facts the step states: the agent commit gate refuses a dogfood pin commit (#5656 prospective scope-cover; `package.json` and the lockfiles are not exempt), so the operator commits the pin from their own terminal until #5771 lands; and installing the new version re-deposits host files (hooks, skill copies, host configs, `.gitignore`) on the first commit, so the pin PR carries that deposit. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.",
+        "[operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\".",
+        "Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state.",
+        "Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\".",
+        "RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks).",
+        "Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean.",
+        "Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, the branch switch before session start, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment.",
+        "The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision.",
+        "Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary.",
+        "In the runbook, the operator cleans the primary and switches to the release branch before `session:start --primary-claim-exception=release-cut`, the step says a later switch forces a cold restart (#6293), and the session claim comes before `deft cache fetch-all` and every other Directive state-changing step.",
+        "The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, states the cases before and after the release merge commit, and its pre-finish observation checks that no other PR merged since the release PR.",
+        "The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791.",
+        "The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant.",
+        "The runbook pin-PR step states that the operator commits the pin from their own terminal until #5771 lands (#5656), and that the pin PR carries the host-file re-deposit.",
+        "`docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`.",
+        "`content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean.",
+        "`release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub."
+      ],
+      "admitted_source_digest": "ed61d10d44e049eb4933f0d53f6a45aa9184200b37e454f1d554ad53221734c9",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "[agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "[agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan.",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "[operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`. This comes before step 4 on purpose: a branch switch after `session:start` forces a cold restart of the ritual (#6293).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "[operator] `deft session:start --primary-claim-exception=release-cut` before any Directive state-changing step; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "[agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "[operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "[agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "[agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no other PR merged since the release PR; record each package's `latest` dist-tag as the baseline for step 11.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "[operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "[operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "[agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA.",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "[agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "[agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "[agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. Two facts the step states: the agent commit gate refuses a dogfood pin commit (#5656 prospective scope-cover; `package.json` and the lockfiles are not exempt), so the operator commits the pin from their own terminal until #5771 lands; and installing the new version re-deposits host files (hooks, skill copies, host configs, `.gitignore`) on the first commit, so the pin PR carries that deposit. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "[operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks).",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean.",
+          "artifact_path": "content/.agents/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, the branch switch before session start, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment.",
+          "artifact_path": "packages/core/src/content-contracts/standards/release_workflow.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "In the runbook, the operator cleans the primary and switches to the release branch before `session:start --primary-claim-exception=release-cut`, the step says a later switch forces a cold restart (#6293), and the session claim comes before `deft cache fetch-all` and every other Directive state-changing step.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, states the cases before and after the release merge commit, and its pre-finish observation checks that no other PR merged since the release PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "The runbook pin-PR step states that the operator commits the pin from their own terminal until #5771 lands (#5656), and that the pin PR carries the host-file re-deposit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "`docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "`content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean.",
+          "artifact_path": "content/.agents/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "`release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub.",
+          "artifact_path": "packages/core/src/content-contracts/standards/release_workflow.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6499352631"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.issueBody",
+    "metadata.issueCommentThread",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id",
+    "metadata.x-directive/spec-path-source"
+  ]
+}
