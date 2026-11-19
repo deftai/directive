@@ -138,6 +138,11 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
       expect(skillsDeft).toBe(rootSkill);
       expect(skillsDeft).not.toMatch(/^Read and follow:\s*SKILL\.md\s*$/m);
       expect(skillsDeft.length).toBeGreaterThan(500);
+      // G-J AC6 (#5869): the staged package carries the runtime README.
+      const readme = readFileSync(join(outDir, "README.md"), "utf8");
+      expect(readme).toBe(
+        readFileSync(join(REPO_ROOT, "packages", "runtime", "README.md"), "utf8"),
+      );
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }

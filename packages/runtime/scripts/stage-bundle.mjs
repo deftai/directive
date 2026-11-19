@@ -304,6 +304,13 @@ function main() {
     }
   }
 
+  // G-J AC6 (#5869): the published runtime carries its own README (launcher vs pin,
+  // message-table recovery rows). npm packs README.md from the staged folder only.
+  const runtimeReadme = join(runtimePkg, "README.md");
+  if (existsSync(runtimeReadme)) {
+    cpSync(runtimeReadme, join(outDir, "README.md"));
+  }
+
   // AC9.6: skills/deft/SKILL.md must be the full package-root skill — never the
   // .agents/skills/deft redirect stub ("Read and follow: SKILL.md").
   const skillsDeft = join(outDir, "skills", "deft", "SKILL.md");
