@@ -1,0 +1,582 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6764",
+    "updated": "2026-11-19T16:38:59Z"
+  },
+  "plan": {
+    "title": "fix(lifecycle): completion PRs fail the merge gate because scope:complete now also writes PROJECT-DEFINITION",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(lifecycle): completion PRs fail the merge gate because scope:complete now also writes PROJECT-DEFINITION",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6764",
+      "Overview": "## Problem\n\nSince #6689, `scope:complete` also rewrites `xbrief/PROJECT-DEFINITION.xbrief.json` (the open-scope list) when it moves a brief to `completed/`. That file is not in the lifecycle-only path family (`isDeliveryBriefLandPath` in `packages/core/src/scope/delivery-evidence.ts`). So a post-merge completion PR that holds only what the lifecycle verb wrote cannot pass the merge gate:\n\n- Without a changelog fragment, `verify:changelog-unreleased` fails: \"change set adds neither a CHANGELOG.md [Unreleased] line nor a changelog.d/ fragment\".\n- With a fragment, `verify:scope-provenance` fails: the spec-drift row file and `PROJECT-DEFINITION.xbrief.json` are \"outside membership allowlist\", because the row file is admitted only when the whole change set is a completion move.\n\nEvidence: PR #6755 (complete the P2-U0 brief after #6662). Head a8cdaf759 (no fragment): merge gate fails on `verify:changelog-unreleased`. Head 2a7e0420b (with fragment): merge gate fails on `verify:scope-provenance`. The change set is exactly the verb output: brief rename `active/` to `completed/`, `xbrief/.audit/spec-drift/<scopeId>.json`, `xbrief/PROJECT-DEFINITION.xbrief.json`.\n\nCompletion PRs pass today only when the brief listed `PROJECT-DEFINITION.xbrief.json` and its row file in `file_scope` before activation (#6754, #6757). Briefs activated before #6689 do not, so about 20 OVPR briefs cannot be completed.\n\n## Fix\n\n1. A completion-move change set (only lifecycle briefs, changelog entry paths, the spec-drift ledger and row files, and `xbrief/PROJECT-DEFINITION.xbrief.json`, with at least one brief under `completed/`) is lifecycle-only for both `verify:changelog-unreleased` and `verify:scope-provenance` membership.\n2. `PROJECT-DEFINITION.xbrief.json` is admitted only under that completion-move shape. A change set that edits it together with any product file still needs a changelog entry and is still fenced by membership.\n3. `swarm:finalize-cohort` stages `PROJECT-DEFINITION.xbrief.json` with the completed briefs when the sweep changed it, so its lifecycle commit has the same shape.\n\n## Acceptance Criteria\n\n- A change set of one brief rename `xbrief/active/` to `xbrief/completed/`, its spec-drift row file and `xbrief/PROJECT-DEFINITION.xbrief.json` passes `verify:changelog-unreleased` with no new changelog entry.\n- The same change set passes `verify:scope-provenance` membership with no `file_scope` entry for the row file or `PROJECT-DEFINITION.xbrief.json`.\n- A change set that edits `xbrief/PROJECT-DEFINITION.xbrief.json` together with a production source file still fails `verify:changelog-unreleased` without an entry, and the production file is still checked against `file_scope`.\n- A change set that edits only `xbrief/PROJECT-DEFINITION.xbrief.json`, with no brief under `completed/`, is not lifecycle-only.\n- `swarm:finalize-cohort` commits `xbrief/PROJECT-DEFINITION.xbrief.json` in its lifecycle commit when the sweep changed it.\n\n"
+    },
+    "items": [
+      {
+        "title": "A change set of one brief rename `xbrief/active/` to `xbrief/completed/`, its spec-drift row file and `xbrief/PROJECT-DEFINITION.xbrief.json` passes `verify:changelog-unreleased` with no new changelog entry.",
+        "status": "completed",
+        "id": "clause.22",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The same change set passes `verify:scope-provenance` membership with no `file_scope` entry for the row file or `PROJECT-DEFINITION.xbrief.json`.",
+        "status": "completed",
+        "id": "clause.18",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A change set that edits `xbrief/PROJECT-DEFINITION.xbrief.json` together with a production source file still fails `verify:changelog-unreleased` without an entry, and the production file is still checked against `file_scope`.",
+        "status": "completed",
+        "id": "clause.19",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A change set that edits only `xbrief/PROJECT-DEFINITION.xbrief.json`, with no brief under `completed/`, is not lifecycle-only.",
+        "status": "completed",
+        "id": "clause.20",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "`swarm:finalize-cohort` commits `xbrief/PROJECT-DEFINITION.xbrief.json` in its lifecycle commit when the sweep changed it.",
+        "status": "completed",
+        "id": "clause.21",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+          "recorded_at": "2026-11-19T16:38:59Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6764",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6764: fix(lifecycle): completion PRs fail the merge gate because scope:complete now also writes PROJECT-DEFINITION"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (22), in order (#6333)",
+      "sentences": [
+        "fix(lifecycle): completion PRs fail the merge gate because scope:complete now also writes PROJECT-DEFINITION",
+        "Problem Since #6689, `scope:complete` also rewrites `xbrief/PROJECT-DEFINITION.xbrief.json` (the open-scope list) when it moves a brief to `completed/`.",
+        "That file is not in the lifecycle-only path family (`isDeliveryBriefLandPath` in `packages/core/src/scope/delivery-evidence.ts`).",
+        "So a post-merge completion PR that holds only what the lifecycle verb wrote cannot pass the merge gate: - Without a changelog fragment, `verify:changelog-unreleased` fails: \"change set adds neither a CHANGELOG.md [Unreleased] line nor a changelog.d/ fragment\".",
+        "With a fragment, `verify:scope-provenance` fails: the spec-drift row file and `PROJECT-DEFINITION.xbrief.json` are \"outside membership allowlist\", because the row file is admitted only when the whole change set is a completion move.",
+        "Evidence: PR #6755 (complete the P2-U0 brief after #6662).",
+        "Head a8cdaf759 (no fragment): merge gate fails on `verify:changelog-unreleased`.",
+        "Head 2a7e0420b (with fragment): merge gate fails on `verify:scope-provenance`.",
+        "The change set is exactly the verb output: brief rename `active/` to `completed/`, `xbrief/.audit/spec-drift/<scopeId>.json`, `xbrief/PROJECT-DEFINITION.xbrief.json`.",
+        "Completion PRs pass today only when the brief listed `PROJECT-DEFINITION.xbrief.json` and its row file in `file_scope` before activation (#6754, #6757).",
+        "Briefs activated before #6689 do not, so about 20 OVPR briefs cannot be completed.",
+        "Fix 1.",
+        "A completion-move change set (only lifecycle briefs, changelog entry paths, the spec-drift ledger and row files, and `xbrief/PROJECT-DEFINITION.xbrief.json`, with at least one brief under `completed/`) is lifecycle-only for both `verify:changelog-unreleased` and `verify:scope-provenance` membership.",
+        "`PROJECT-DEFINITION.xbrief.json` is admitted only under that completion-move shape.",
+        "A change set that edits it together with any product file still needs a changelog entry and is still fenced by membership.",
+        "`swarm:finalize-cohort` stages `PROJECT-DEFINITION.xbrief.json` with the completed briefs when the sweep changed it, so its lifecycle commit has the same shape.",
+        "Acceptance Criteria - A change set of one brief rename `xbrief/active/` to `xbrief/completed/`, its spec-drift row file and `xbrief/PROJECT-DEFINITION.xbrief.json` passes `verify:changelog-unreleased` with no new changelog entry.",
+        "The same change set passes `verify:scope-provenance` membership with no `file_scope` entry for the row file or `PROJECT-DEFINITION.xbrief.json`.",
+        "A change set that edits `xbrief/PROJECT-DEFINITION.xbrief.json` together with a production source file still fails `verify:changelog-unreleased` without an entry, and the production file is still checked against `file_scope`.",
+        "A change set that edits only `xbrief/PROJECT-DEFINITION.xbrief.json`, with no brief under `completed/`, is not lifecycle-only.",
+        "`swarm:finalize-cohort` commits `xbrief/PROJECT-DEFINITION.xbrief.json` in its lifecycle commit when the sweep changed it.",
+        "A change set of one brief rename `xbrief/active/` to `xbrief/completed/`, its spec-drift row file and `xbrief/PROJECT-DEFINITION.xbrief.json` passes `verify:changelog-unreleased` with no new changelog entry."
+      ],
+      "admitted_source_sentences": [
+        "Problem Since #6689, `scope:complete` also rewrites `xbrief/PROJECT-DEFINITION.xbrief.json` (the open-scope list) when it moves a brief to `completed/`.",
+        "That file is not in the lifecycle-only path family (`isDeliveryBriefLandPath` in `packages/core/src/scope/delivery-evidence.ts`).",
+        "So a post-merge completion PR that holds only what the lifecycle verb wrote cannot pass the merge gate: - Without a changelog fragment, `verify:changelog-unreleased` fails: \"change set adds neither a CHANGELOG.md [Unreleased] line nor a changelog.d/ fragment\".",
+        "With a fragment, `verify:scope-provenance` fails: the spec-drift row file and `PROJECT-DEFINITION.xbrief.json` are \"outside membership allowlist\", because the row file is admitted only when the whole change set is a completion move.",
+        "Evidence: PR #6755 (complete the P2-U0 brief after #6662).",
+        "Head a8cdaf759 (no fragment): merge gate fails on `verify:changelog-unreleased`.",
+        "Head 2a7e0420b (with fragment): merge gate fails on `verify:scope-provenance`.",
+        "The change set is exactly the verb output: brief rename `active/` to `completed/`, `xbrief/.audit/spec-drift/<scopeId>.json`, `xbrief/PROJECT-DEFINITION.xbrief.json`.",
+        "Completion PRs pass today only when the brief listed `PROJECT-DEFINITION.xbrief.json` and its row file in `file_scope` before activation (#6754, #6757).",
+        "Briefs activated before #6689 do not, so about 20 OVPR briefs cannot be completed.",
+        "Fix 1.",
+        "A completion-move change set (only lifecycle briefs, changelog entry paths, the spec-drift ledger and row files, and `xbrief/PROJECT-DEFINITION.xbrief.json`, with at least one brief under `completed/`) is lifecycle-only for both `verify:changelog-unreleased` and `verify:scope-provenance` membership.",
+        "`PROJECT-DEFINITION.xbrief.json` is admitted only under that completion-move shape.",
+        "A change set that edits it together with any product file still needs a changelog entry and is still fenced by membership.",
+        "`swarm:finalize-cohort` stages `PROJECT-DEFINITION.xbrief.json` with the completed briefs when the sweep changed it, so its lifecycle commit has the same shape.",
+        "Acceptance Criteria - A change set of one brief rename `xbrief/active/` to `xbrief/completed/`, its spec-drift row file and `xbrief/PROJECT-DEFINITION.xbrief.json` passes `verify:changelog-unreleased` with no new changelog entry.",
+        "The same change set passes `verify:scope-provenance` membership with no `file_scope` entry for the row file or `PROJECT-DEFINITION.xbrief.json`.",
+        "A change set that edits `xbrief/PROJECT-DEFINITION.xbrief.json` together with a production source file still fails `verify:changelog-unreleased` without an entry, and the production file is still checked against `file_scope`.",
+        "A change set that edits only `xbrief/PROJECT-DEFINITION.xbrief.json`, with no brief under `completed/`, is not lifecycle-only.",
+        "`swarm:finalize-cohort` commits `xbrief/PROJECT-DEFINITION.xbrief.json` in its lifecycle commit when the sweep changed it."
+      ],
+      "admitted_source_digest": "71ab130f3330c11164ceea7887ebd2d24ffa2460afc64d823d6fcc32bb8d6e9b",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "fix(lifecycle): completion PRs fail the merge gate because scope:complete now also writes PROJECT-DEFINITION",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Problem Since #6689, `scope:complete` also rewrites `xbrief/PROJECT-DEFINITION.xbrief.json` (the open-scope list) when it moves a brief to `completed/`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "That file is not in the lifecycle-only path family (`isDeliveryBriefLandPath` in `packages/core/src/scope/delivery-evidence.ts`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "So a post-merge completion PR that holds only what the lifecycle verb wrote cannot pass the merge gate: - Without a changelog fragment, `verify:changelog-unreleased` fails: \"change set adds neither a CHANGELOG.md [Unreleased] line nor a changelog.d/ fragment\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "With a fragment, `verify:scope-provenance` fails: the spec-drift row file and `PROJECT-DEFINITION.xbrief.json` are \"outside membership allowlist\", because the row file is admitted only when the whole change set is a completion move.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Evidence: PR #6755 (complete the P2-U0 brief after #6662).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Head a8cdaf759 (no fragment): merge gate fails on `verify:changelog-unreleased`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Head 2a7e0420b (with fragment): merge gate fails on `verify:scope-provenance`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The change set is exactly the verb output: brief rename `active/` to `completed/`, `xbrief/.audit/spec-drift/<scopeId>.json`, `xbrief/PROJECT-DEFINITION.xbrief.json`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Completion PRs pass today only when the brief listed `PROJECT-DEFINITION.xbrief.json` and its row file in `file_scope` before activation (#6754, #6757).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Briefs activated before #6689 do not, so about 20 OVPR briefs cannot be completed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Fix 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "A completion-move change set (only lifecycle briefs, changelog entry paths, the spec-drift ledger and row files, and `xbrief/PROJECT-DEFINITION.xbrief.json`, with at least one brief under `completed/`) is lifecycle-only for both `verify:changelog-unreleased` and `verify:scope-provenance` membership.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "`PROJECT-DEFINITION.xbrief.json` is admitted only under that completion-move shape.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "A change set that edits it together with any product file still needs a changelog entry and is still fenced by membership.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`swarm:finalize-cohort` stages `PROJECT-DEFINITION.xbrief.json` with the completed briefs when the sweep changed it, so its lifecycle commit has the same shape.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Acceptance Criteria - A change set of one brief rename `xbrief/active/` to `xbrief/completed/`, its spec-drift row file and `xbrief/PROJECT-DEFINITION.xbrief.json` passes `verify:changelog-unreleased` with no new changelog entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The same change set passes `verify:scope-provenance` membership with no `file_scope` entry for the row file or `PROJECT-DEFINITION.xbrief.json`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "A change set that edits `xbrief/PROJECT-DEFINITION.xbrief.json` together with a production source file still fails `verify:changelog-unreleased` without an entry, and the production file is still checked against `file_scope`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "A change set that edits only `xbrief/PROJECT-DEFINITION.xbrief.json`, with no brief under `completed/`, is not lifecycle-only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "`swarm:finalize-cohort` commits `xbrief/PROJECT-DEFINITION.xbrief.json` in its lifecycle commit when the sweep changed it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "A change set of one brief rename `xbrief/active/` to `xbrief/completed/`, its spec-drift row file and `xbrief/PROJECT-DEFINITION.xbrief.json` passes `verify:changelog-unreleased` with no new changelog entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope-provenance/base-fence.ts",
+          "packages/core/src/scope-provenance/base-fence.test.ts",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/task-surface/index.test.ts",
+          "changelog.d/6764-completion-prs-pass-with-project-definition.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6483053628.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts packages/core/src/scope-provenance/base-fence.test.ts packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/task-surface/index.test.ts"
+        ],
+        "Traces": [
+          "#6764",
+          "#6755",
+          "#6689"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope-provenance/base-fence.ts",
+          "packages/core/src/scope-provenance/base-fence.test.ts",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/task-surface/index.test.ts",
+          "changelog.d/6764-completion-prs-pass-with-project-definition.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6483053628.json"
+        ],
+        "module_boundary": "lifecycle-only change-set classification (scope/delivery-evidence.ts), scope-provenance membership (scope-provenance/base-fence.ts) and finalize lifecycle staging (swarm/finalize-cohort.ts)",
+        "cohesion_exemption": "xbrief/PROJECT-DEFINITION.xbrief.json and the story's spec-drift row file are scope:complete output, listed so the in-PR or post-merge completion of this story passes membership."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6483053628,
+        "origin": "deftai/directive#6764",
+        "id": "github.issue.6483053628"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "bd80b1a702d79b771c3aa2a87c3b9c6dee335f78",
+        "prNumber": 6772,
+        "prBase": "master",
+        "mergeCommit": "f48af3f67310f41cdcd8908f8f5b14f91c883849",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:38:59Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6769,
+          6770
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:38:59Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:38:59Z"
+      }
+    },
+    "id": "github.issue.6483053628",
+    "updated": "2026-11-19T16:38:59Z"
+  }
+}

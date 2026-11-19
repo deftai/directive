@@ -1,0 +1,594 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5959",
+    "updated": "2026-11-19T16:03:29Z"
+  },
+  "plan": {
+    "title": "Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory",
+    "status": "completed",
+    "narratives": {
+      "Description": "OVPR fix plan group G-H (story id ovpr-g-subfolder-hook): unit P4-U5, issue #5959. Directive registers Claude hooks as `node .claude/deft-hook-<sha8>.mjs ...`, a path relative to the folder the host runs the hook in. The 2026-11-18 repro showed Claude's hook folder follows the agent's `cd`, so from a subfolder Node fails with MODULE_NOT_FOUND (exit 1) and the outer never starts. Under the approved RC-08 rule (Claude half = step 2), first do Step C's checks (Windows path check; the #6185 / #6206 launch-root check stays meaningful); if they hold, register Claude hooks in Claude's no-shell exec form with `${CLAUDE_PROJECT_DIR}` so the outer is found from any subfolder. Codex and Grok: no code change; their residual is a docs-only item handled in group G-J.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5959",
+      "Overview": "Observed on a consumer repo upgraded to `@deftai/directive` 0.127.0 (OVPR layout) with a pnpm install.\n\n## What happens\n\n`directive install` / `upgrade` writes the Claude host hook commands into `.claude/settings.json` as:\n\n```\nnode node_modules/@deftai/directive-runtime/dist/hook-bin.js --host claude --event tool.before\n```\n\n(and the same shape for `session.start` and the other events). The path is relative to the process working directory. Started from a directory that does not contain `node_modules` (a subdirectory such as a workspace package, or a fresh worktree before the first install), node fails with `MODULE_NOT_FOUND`. Checked directly: running that command from a directory without `node_modules` exits with status 1.\n\n## Why it matters\n\nFor Claude Code hooks only exit status 2 blocks an action; other non-zero statuses are reported as a non-blocking error. So the tool gate (occupancy, edit and merge gating) would silently stop applying whenever the hook runs from such a directory. The Cursor entries carry `failClosed: true` and are not affected. Before OVPR the command was a bare `deft-hook` resolved from PATH, which did not depend on the working directory (though it also failed open on exit 127).\n\n## Suggested fix\n\nAnchor the path to the project root, for example with the host's project-directory variable (`\"${CLAUDE_PROJECT_DIR:-.}/node_modules/@deftai/directive-runtime/dist/hook-bin.js\"` in quotes), or have the launcher resolve the runtime from the repo root. `directive doctor` could also flag a hook command that is not anchored.\n\nI did not edit the generated file in the consumer repo, since a repair would overwrite it.\n\n",
+      "Labels": "bug, triaged",
+      "UserStory": "As a developer whose Claude Code agent changes into a subfolder (for example a workspace package), I want Directive's hooks to still start and decide, so that rule checking does not silently stop when the agent leaves the repo root.",
+      "StoryId": "ovpr-g-subfolder-hook (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P4-U5-hook-command-from-subfolder.md (read in full; 'Update' banners win) and drafts/RC-08-09-rules.md (RC-08 rule, approved by polfer under D-030). Repro evidence: RUN-LOG-2026-11-18.md ('#5959 reproduces on Claude (Windows)').",
+      "ImplementationPlan": "1. Step C checks first (no production change): (a) on Windows, the exec form `\"command\": \"node\"`, `\"args\": [\"${CLAUDE_PROJECT_DIR}/.claude/deft-hook-<sha8>.mjs\", \"--host\", \"claude\", \"--event\", \"<event>\"]` resolves the outer after substitution (path separators, spaces in the path); (b) the #6185 / #6206 launch-root check in hook-dispatch.ts still compares the payload root with the launching checkout (the outer still finds its root from its own location). Record the results in the PR body. If either check fails, stop and report; do not ship the form change.\n2. If both hold: packages/core/src/init-deposit/agent-hooks.ts writes Claude entries (settings.json, every event) in the exec form above; keep `timeout`; no `onFailure` (D-019, option C2 not used). Codex, Grok and Cursor keep today's form.\n3. Recognition: deposit inspection (`inspectAgentHookDeposit`, nested registration matching), refresh/self-complete, doctor and owned-path / uninstall-strip code accept the new Claude form as Directive's and treat the old relative form as out-of-date wiring to be rewritten (AC8.6). host-hook-outer.ts gains a Claude exec-form builder next to `hostHookOuterCommand` if needed; the outer source and sha8 do not change.\n4. Regenerate this repo's .claude/settings.json (ordinary repair output).\n5. Tests per the spec; changelog fragment changelog.d/5959-claude-hooks-from-subfolder.md.\n6. Hand back to the orchestrator that the RC-08 docs PR is due (the exact AC9.1 replacement text in drafts/RC-08-09-rules.md, rule step 2). Per the change gate, this PR may be opened and reviewed but must not merge before that docs PR merges.",
+      "Constraint": "- Implement only the approved RC-08 step 2 form for Claude: `\"command\": \"node\"`, `\"args\": [\"${CLAUDE_PROJECT_DIR}/.claude/deft-hook-<sha8>.mjs\", \"--host\", \"claude\", \"--event\", \"<event>\"]`. No shell string, no `$CLAUDE_PROJECT_DIR` inside a shell command, no `.sh` wrapper, no bare `deft-hook`, no direct `hook-bin.js`.\n- Do not add Claude's `\"onFailure\": \"block\"` (D-019: option C2 not used).\n- Codex and Grok: no code change (RC-08 rule step 3: §A9 residual, documented on the known-limitations page by group G-J).\n- Do not change the outer's source text or sha8 naming, its root discovery, or the #6185 / #6206 launch-root check.\n- Change gate step 6: this code may not merge until the RC-08 docs PR (exact text from drafts/RC-08-09-rules.md) has merged; report to the orchestrator so it opens that PR. If the Step C checks fail, stop that part and report.\n- Do not edit packages/core/src/hooks/dispatcher.ts (Scott).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: P1-U1 (merged), the 2026-11-18 Claude repro (done), the RC-08 docs PR (to be opened by the orchestrator; must merge before this PR merges). Blocks: none. Codex/Grok residual docs go to G-J. Shares packages/core/src/init-deposit/host-hook-outer.ts with G-G (conflict group hook-entry).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and its unit specs already decide the design (polfer decisions D-001, D-008, D-037)",
+      "Traces": "Closes #5959. Refs #6185, #6206, #6201."
+    },
+    "items": [
+      {
+        "title": "Step C checks are recorded before any form change: the Claude exec form resolves the outer on Windows after substitution, and the #6185 / #6206 launch-root check stays meaningful.",
+        "status": "completed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given the exec form with `${CLAUDE_PROJECT_DIR}`, when it is checked on Windows (path separators, a path with spaces) and against the launch-root check in hook-dispatch.ts, then both results are written in the PR body, and if either fails no form change ships."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Claude hook entries are written in the no-shell exec form: `\"command\": \"node\"` with `args` starting `${CLAUDE_PROJECT_DIR}/.claude/deft-hook-<sha8>.mjs`, `--host claude`, `--event <event>`.",
+        "status": "completed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given `directive install` or repair in a project, when `.claude/settings.json` is written, then every Directive entry has `\"command\": \"node\"` and `args` `[\"${CLAUDE_PROJECT_DIR}/.claude/deft-hook-<sha8>.mjs\", \"--host\", \"claude\", \"--event\", \"<event>\"]`, no `onFailure`, and Codex, Cursor and Grok entries are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "A Claude hook run from a subfolder reaches a Directive decision.",
+        "status": "completed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a project with a workspace package `packages/app` and `CLAUDE_PROJECT_DIR` set to the root, when the registered Claude command is run with a PreToolUse payload from `packages/app`, then the outer starts and returns a Directive decision instead of MODULE_NOT_FOUND."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Deposit inspection, doctor and refresh accept the new Claude form and rewrite the old relative form as out-of-date wiring.",
+        "status": "completed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a `.claude/settings.json` with the old `node .claude/deft-hook-<sha8>.mjs` entries, when deposit inspection or automatic setup runs, then the old entries are reported as out-of-date and rewritten to the exec form; given the new form, then inspection reports it as Directive's and current."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Uninstall removes the new Claude entries and keeps user-owned entries.",
+        "status": "completed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given `.claude/settings.json` with Directive's exec-form entries and one user-owned hook entry, when `directive uninstall` runs, then Directive's entries are removed and the user entry stays."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+          "recorded_at": "2026-11-19T16:03:29Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "triaged"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5959",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5959: Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6185",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6185"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6206",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6206"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host claude --event tool.before",
+          "reason": "node is limited to --test (other interpreter modes denied for ambient-authority)",
+          "sourceSpan": "fence@L9"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/install-health/index.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          ".claude/settings.json",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/init-deposit/init-deposit.test.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/verify-env/agent-hooks.test.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/hook-dispatch-worktree.test.ts",
+          "packages/core/src/init-deposit/claude-hook-subfolder.test.ts",
+          "changelog.d/5959-claude-hooks-from-subfolder.md",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/install-health/wiring.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/uninstall.ts",
+          "packages/cli/src/uninstall-map.ts",
+          "content/docs/known-limitations.md",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/install-health/wiring.test.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/runtime/src/uninstall.test.ts",
+          "packages/cli/src/uninstall-bookend.test.ts",
+          "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm test"
+        ],
+        "Traces": [
+          "#5959",
+          "#6185",
+          "#6206"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "hook-entry",
+        "expected_outputs": [
+          "Step C checks are recorded before any form change: the Claude exec form resolves the outer on Windows after substitution, and the #6185 / #6206 launch-root check stays meaningful.",
+          "Claude hook entries are written in the no-shell exec form: `\"command\": \"node\"` with `args` starting `${CLAUDE_PROJECT_DIR}/.claude/deft-hook-<sha8>.mjs`, `--host claude`, `--event <event>`.",
+          "A Claude hook run from a subfolder reaches a Directive decision.",
+          "Deposit inspection, doctor and refresh accept the new Claude form and rewrite the old relative form as out-of-date wiring.",
+          "Uninstall removes the new Claude entries and keeps user-owned entries.",
+          "one changelog fragment changelog.d/5959-claude-hooks-from-subfolder.md"
+        ],
+        "acceptance_criteria_justification": "Five items: P4-U5 Step C checks (RC-08 rule step 2 precondition), the approved Claude exec form, the spec's 'hook from a subfolder reaches a Directive decision' test, and the deposit-inspection and uninstall-strip tests the spec lists for Step C. Step A (repro) is done (RUN-LOG 2026-11-18); Codex/Grok are docs-only (G-J)."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/install-health/index.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          ".claude/settings.json",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/init-deposit/init-deposit.test.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/verify-env/agent-hooks.test.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/hook-dispatch-worktree.test.ts",
+          "packages/core/src/init-deposit/claude-hook-subfolder.test.ts",
+          "changelog.d/5959-claude-hooks-from-subfolder.md"
+        ],
+        "module_boundary": "The Claude hook registration form: how agent-hooks.ts writes, recognises and strips Claude entries, and the code that inspects them (refresh, doctor, owned paths, verify-env). The outer's source, root discovery and the launch-root check do not change. No Codex, Cursor or Grok change.",
+        "cohesion_exemption": "packages/core/src/init-deposit/agent-hooks.ts (1228 lines), packages/core/src/init-deposit/refresh.ts (2104 lines) and packages/runtime/src/setup-wiring.ts (1433 lines) already exceed the review trigger. This group changes the Claude entry builder and its matchers only; splitting those files is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "Retested on 0.129.1 (real `directive upgrade --target-version 0.129.1` in a scratch copy of the same repo): the generated `.claude/settings.json` commands are still `node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host claude --event ...` (cwd-relative), so this reproduces unchanged.\n\n",
+          "id": 6443643713,
+          "html_url": "https://github.com/deftai/directive/issues/5959#issuecomment-6443643713",
+          "user": {
+            "login": "rockbox37",
+            "id": 32502675,
+            "node_id": "MDQ6VXNlcjMyNTAyNjc1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/32502675?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/rockbox37",
+            "html_url": "https://github.com/rockbox37",
+            "followers_url": "https://api.github.com/users/rockbox37/followers",
+            "following_url": "https://api.github.com/users/rockbox37/following{/other_user}",
+            "gists_url": "https://api.github.com/users/rockbox37/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/rockbox37/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/rockbox37/subscriptions",
+            "organizations_url": "https://api.github.com/users/rockbox37/orgs",
+            "repos_url": "https://api.github.com/users/rockbox37/repos",
+            "events_url": "https://api.github.com/users/rockbox37/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/rockbox37/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-27T13:52:56Z",
+          "updated_at": "2026-10-27T13:52:56Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6059937919,
+        "origin": "deftai/directive#5959",
+        "id": "github.issue.6059937919"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2a4d27627aac8c684e54fe455d33d46aca83a975",
+        "prNumber": 6767,
+        "prBase": "master",
+        "mergeCommit": "381b4e1e2577413b7942d297f6dbb1a7ea0f6d7e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:03:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6761,
+          6768
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:03:29Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:03:29Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/refresh.test.ts packages/core/src/init-deposit/init-deposit.test.ts packages/core/src/init-deposit/host-tool-coverage.test.ts packages/core/src/init-deposit/claude-hook-subfolder.test.ts packages/core/src/install-health/owned-paths.test.ts packages/core/src/verify-env packages/runtime/src/setup-wiring.test.ts packages/runtime/src/hook-dispatch-worktree.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (13), in order (#6333)",
+      "sentences": [
+        "Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory",
+        "Observed on a consumer repo upgraded to `@deftai/directive` 0.127.0 (OVPR layout) with a pnpm install.",
+        "What happens `directive install` / `upgrade` writes the Claude host hook commands into `.claude/settings.json` as: (and the same shape for `session.start` and the other events).",
+        "The path is relative to the process working directory.",
+        "Started from a directory that does not contain `node_modules` (a subdirectory such as a workspace package, or a fresh worktree before the first install), node fails with `MODULE_NOT_FOUND`.",
+        "Checked directly: running that command from a directory without `node_modules` exits with status 1.",
+        "Why it matters For Claude Code hooks only exit status 2 blocks an action; other non-zero statuses are reported as a non-blocking error.",
+        "So the tool gate (occupancy, edit and merge gating) would silently stop applying whenever the hook runs from such a directory.",
+        "The Cursor entries carry `failClosed: true` and are not affected.",
+        "Before OVPR the command was a bare `deft-hook` resolved from PATH, which did not depend on the working directory (though it also failed open on exit 127).",
+        "Suggested fix Anchor the path to the project root, for example with the host's project-directory variable (`\"${CLAUDE_PROJECT_DIR:-.}/node_modules/@deftai/directive-runtime/dist/hook-bin.js\"` in quotes), or have the launcher resolve the runtime from the repo root.",
+        "`directive doctor` could also flag a hook command that is not anchored.",
+        "I did not edit the generated file in the consumer repo, since a repair would overwrite it."
+      ],
+      "admitted_source_sentences": [
+        "Observed on a consumer repo upgraded to `@deftai/directive` 0.127.0 (OVPR layout) with a pnpm install.",
+        "What happens `directive install` / `upgrade` writes the Claude host hook commands into `.claude/settings.json` as: (and the same shape for `session.start` and the other events).",
+        "The path is relative to the process working directory.",
+        "Started from a directory that does not contain `node_modules` (a subdirectory such as a workspace package, or a fresh worktree before the first install), node fails with `MODULE_NOT_FOUND`.",
+        "Checked directly: running that command from a directory without `node_modules` exits with status 1.",
+        "Why it matters For Claude Code hooks only exit status 2 blocks an action; other non-zero statuses are reported as a non-blocking error.",
+        "So the tool gate (occupancy, edit and merge gating) would silently stop applying whenever the hook runs from such a directory.",
+        "The Cursor entries carry `failClosed: true` and are not affected.",
+        "Before OVPR the command was a bare `deft-hook` resolved from PATH, which did not depend on the working directory (though it also failed open on exit 127).",
+        "Suggested fix Anchor the path to the project root, for example with the host's project-directory variable (`\"${CLAUDE_PROJECT_DIR:-.}/node_modules/@deftai/directive-runtime/dist/hook-bin.js\"` in quotes), or have the launcher resolve the runtime from the repo root.",
+        "`directive doctor` could also flag a hook command that is not anchored.",
+        "I did not edit the generated file in the consumer repo, since a repair would overwrite it."
+      ],
+      "admitted_source_digest": "284aaed97087ea6430cba473074372c69db0a0ece141ce8ed0b66b29f9d7bb44",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Observed on a consumer repo upgraded to `@deftai/directive` 0.127.0 (OVPR layout) with a pnpm install.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "What happens `directive install` / `upgrade` writes the Claude host hook commands into `.claude/settings.json` as: (and the same shape for `session.start` and the other events).",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 4,
+          "text": "The path is relative to the process working directory.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 5,
+          "text": "Started from a directory that does not contain `node_modules` (a subdirectory such as a workspace package, or a fresh worktree before the first install), node fails with `MODULE_NOT_FOUND`.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 6,
+          "text": "Checked directly: running that command from a directory without `node_modules` exits with status 1.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 7,
+          "text": "Why it matters For Claude Code hooks only exit status 2 blocks an action; other non-zero statuses are reported as a non-blocking error.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 8,
+          "text": "So the tool gate (occupancy, edit and merge gating) would silently stop applying whenever the hook runs from such a directory.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 9,
+          "text": "The Cursor entries carry `failClosed: true` and are not affected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Before OVPR the command was a bare `deft-hook` resolved from PATH, which did not depend on the working directory (though it also failed open on exit 127).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Suggested fix Anchor the path to the project root, for example with the host's project-directory variable (`\"${CLAUDE_PROJECT_DIR:-.}/node_modules/@deftai/directive-runtime/dist/hook-bin.js\"` in quotes), or have the launcher resolve the runtime from the repo root.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`directive doctor` could also flag a hook command that is not anchored.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "I did not edit the generated file in the consumer repo, since a repair would overwrite it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "id": "github.issue.6059937919",
+    "updated": "2026-11-19T16:03:29Z"
+  }
+}

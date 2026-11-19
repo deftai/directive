@@ -1,0 +1,488 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6141",
+    "updated": "2026-11-19T16:26:38Z"
+  },
+  "plan": {
+    "title": "bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty)",
+    "status": "completed",
+    "narratives": {
+      "Description": "OVPR fix plan unit P2-U10 (story id ovpr-p2-u10), spec units/P2-U10-split-registry-install-repair.md, issue #6141, decision D-009 (message only). When `@deftai:registry` points at a private registry, Directive's two public packages 404 and `directive upgrade --dry-run` fails before any plan with npm's raw E404 (reproduced on 0.129.14), while doctor advises remapping the whole scope, which breaks the project's other @deftai packages. Doctor gets a split-scope finding, the launcher adds a hint (cause, do not remap the scope, the one-run `npm_config_@deftai:registry` override) on a real registry miss, and UPGRADING.md lists only the two published packages.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6141",
+      "Overview": "## Summary\n\nRepos whose `.npmrc` maps the entire `@deftai` scope to GitHub Packages (for an internal package such as `@deftai/rivet-os`) cannot install or repair `@deftai/directive` / `@deftai/directive-runtime` from the public npm registry. Doctor `npm-registry-mirror` steers “point `@deftai` at registry.npmjs.org,” which would break the internal package.\n\n## Source\n\nBroken out from closed multi-finding bag **#5845** (2026-11-09). One issue → one ticket.\n\n## Expected\n\nOVPR install/repair/doctor messaging works with a **split** registry: public packages (`@deftai/directive`, `@deftai/directive-runtime`) from registry.npmjs.org; other `@deftai/*` may stay on GitHub Packages. Prefer lockfile / package-specific registry guidance over “remap the whole scope.”\n\n## Actual\n\n`directive install --repair` / launcher fetches hit `npm.pkg.github.com` for `directive-runtime` → 404. Doctor recovery fights the consumer’s legitimate split.\n\n## Ownership\n\nOVPR / installer — assignee polfer.\n\n## Refs\n\n#5845 (closed glom); related doctor registry prose.\n\n",
+      "Labels": "bug, adoption-blocker, area:installer, triaged, core-capabilities, promise:lifecycle",
+      "UserStory": "As a developer whose .npmrc routes the whole @deftai scope to a private registry, I want doctor and the launcher to explain the split-scope failure and give an override that does not break my other @deftai packages, so that I can install or upgrade Directive without remapping my scope.",
+      "StoryId": "ovpr-p2-u10 (carried in the file name so the ordered plan can match it; plan.id stays the id minted from the issue, because the brief tools refuse a different plan.id)",
+      "UnitSpec": "~/Projects/directive-ovpr-planning-202611/units/P2-U10-split-registry-install-repair.md (read in full; an 'Update 2026-11-17' banner wins over the text below it).",
+      "ImplementationPlan": "1. packages/core/src/doctor/npm-registry.ts runNpmRegistryMirrorCheck: when the scoped key routes @deftai to a non-public registry and package.json has other @deftai/* dependencies, return a new `split-scope` status with the unit spec's message; never print the configured URL. Other cases keep today's advice but name only @deftai/directive and @deftai/directive-runtime.\n2. New packages/cli/src/registry-hint.ts scopedRegistryHint(projectRoot, blob): only when the effective @deftai:registry is non-public and the blob is a registry miss for a Directive package (E404, 404 Not Found, ERR_PNPM_FETCH_404, ETARGET, ERR_PNPM_NO_MATCHING_VERSION), return one hint: cause, do not remap the scope in .npmrc, the one-run override `npm_config_@deftai:registry=https://registry.npmjs.org/` (POSIX form plus one PowerShell line). Read config with the same no-shell read as doctor.\n3. Call it from bookends.ts reportPmFailure() and from the resolveLatestStableVersion() / resolvePublishedContract() failure paths in runFirstInstall() / runUpgrade(), so `directive upgrade --dry-run` shows the hint. For repair with lockOk the hint names `npm ci` / `pnpm install --frozen-lockfile` first.\n4. content/UPGRADING.md 'Corporate or mirrored npm registry': list only the two published packages, add a split-scope paragraph, and say 'leave the project directory' applies to the global launcher only.\n5. Tests per the spec. Changelog fragment changelog.d/6141-split-registry-hint.md.\nScope: Five production files at most; registry.ts only if the hint is attached there rather than in bookends.ts.",
+      "Constraint": "- Never write `.npmrc`, user npm config, or pnpm config (AC5.8).\n- Never print the configured registry URL or tokens (the public npmjs URL in the override is fine).\n- Do not use `npm ci` for install or upgrade (AC5.11).\n- Do not change `runRepair()` to restore from the lockfile (Q1 = A, D-009).\n- Do not change `RECOVERY_GUIDANCE` or the launcher doctor's missing-runtime text; that is the Rule 3 message table (P4-U3b / P4-U3c).\n- Do not add a \"Directive registry\" setting or any per-package registry mechanism.\n- Do not force npmjs for Directive's own packages in the launcher (rejected in D-009; breaks AC5.8).\n- OVPR change gate: read ~/Projects/directive-ovpr-planning-202611/OVPR-CHANGE-GATE.md. Do not edit docs/installer-refactor-ovpr/ and do not ship behaviour that departs from the written OVPR requirements or architecture; stop that part and hand back a change proposal.\n- Changelog: add the changelog.d fragment named in file_scope; never edit CHANGELOG.md.",
+      "Dependencies": "Depends on: none. Blocks: none. Decision D-009 (message only; publishing to GitHub Packages is deferred ticket #6558, on hold).",
+      "PlanningOrder": "design-critique: not warranted, because the OVPR fix plan and this unit spec already decide the design (polfer decisions D-001, D-008)",
+      "Traces": "Closes #6141. Partly addresses #5845 finding 1. Q2 deferred to #6558."
+    },
+    "items": [
+      {
+        "title": "With `@deftai:registry` set to a non-public URL and another `@deftai/*` dependency in `package.json`, doctor's `npm-registry-mirror` finding never advises remapping `@deftai`, and names the lockfile reinstall plus the two real options.",
+        "status": "completed",
+        "id": "ac.1",
+        "narrative": {
+          "Acceptance": "Given a non-public `@deftai:registry` and an `@deftai/rivet-os` dependency in `package.json`, when `directive doctor` runs, then the `npm-registry-mirror` finding has status `split-scope`, does not advise `@deftai:registry=https://registry.npmjs.org/`, and names the lockfile reinstall plus the proxy-registry and other-scope options."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Doctor output never contains the configured registry URL.",
+        "status": "completed",
+        "id": "ac.2",
+        "narrative": {
+          "Acceptance": "Given a configured non-public registry URL, when `directive doctor` runs, then its output does not contain that URL."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "When install, upgrade or repair fails with a registry miss for the runtime under a non-public `@deftai:registry`, the launcher prints the hint (cause, \"don't remap the scope\", the one-run environment override); it changes no config. `directive upgrade --dry-run` in that setup shows the hint, not a bare `npm view … failed`.",
+        "status": "completed",
+        "id": "ac.3",
+        "narrative": {
+          "Acceptance": "Given a non-public `@deftai:registry` and a registry miss for `@deftai/directive-runtime`, when `directive upgrade --dry-run`, `directive install` or `directive install --repair` runs, then the launcher prints the hint with the cause, \"don't remap the scope\" and the `npm_config_@deftai:registry` override, and `.npmrc` and npm config stay unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "With a non-public `@deftai:registry` whose registry does serve the packages (lookup succeeds), no hint is printed.",
+        "status": "completed",
+        "id": "ac.4",
+        "narrative": {
+          "Acceptance": "Given a non-public `@deftai:registry` that serves both Directive packages, when `directive upgrade` runs, then the version lookup succeeds and no split-scope hint is printed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "`UPGRADING.md` lists only `@deftai/directive` and `@deftai/directive-runtime` as packages to mirror, and has a split-scope paragraph.",
+        "status": "completed",
+        "id": "ac.5",
+        "narrative": {
+          "Acceptance": "Given `content/UPGRADING.md`, when its 'Corporate or mirrored npm registry' section is read, then it names only `@deftai/directive` and `@deftai/directive-runtime` as packages to mirror and includes a split-scope paragraph."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Existing mirror cases (default `registry` non-public, no split) keep a warning with the corrected package list.",
+        "status": "completed",
+        "id": "ac.6",
+        "narrative": {
+          "Acceptance": "Given a non-public default `registry` and no other `@deftai` dependency, when `directive doctor` runs, then it still warns and names only the two published packages."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "103414819a1b68f52bd609300324805becf857c9",
+          "recorded_at": "2026-11-19T16:26:38Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "area:installer",
+      "triaged",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6141",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6141: bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5845",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5845"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6558",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6558"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (10), in order (#6333)",
+      "sentences": [
+        "bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty)",
+        "Summary Repos whose `.npmrc` maps the entire `@deftai` scope to GitHub Packages (for an internal package such as `@deftai/rivet-os`) cannot install or repair `@deftai/directive` / `@deftai/directive-runtime` from the public npm registry.",
+        "Doctor `npm-registry-mirror` steers “point `@deftai` at registry.npmjs.org,” which would break the internal package.",
+        "Source Broken out from closed multi-finding bag #5845 (2026-11-09).",
+        "One issue → one ticket.",
+        "Expected OVPR install/repair/doctor messaging works with a split registry: public packages (`@deftai/directive`, `@deftai/directive-runtime`) from registry.npmjs.org; other `@deftai/*` may stay on GitHub Packages.",
+        "Prefer lockfile / package-specific registry guidance over “remap the whole scope.” ## Actual `directive install --repair` / launcher fetches hit `npm.pkg.github.com` for `directive-runtime` → 404.",
+        "Doctor recovery fights the consumer’s legitimate split.",
+        "Ownership OVPR / installer — assignee polfer.",
+        "Refs #5845 (closed glom); related doctor registry prose."
+      ],
+      "admitted_source_sentences": [
+        "Summary Repos whose `.npmrc` maps the entire `@deftai` scope to GitHub Packages (for an internal package such as `@deftai/rivet-os`) cannot install or repair `@deftai/directive` / `@deftai/directive-runtime` from the public npm registry.",
+        "Doctor `npm-registry-mirror` steers “point `@deftai` at registry.npmjs.org,” which would break the internal package.",
+        "Source Broken out from closed multi-finding bag #5845 (2026-11-09).",
+        "One issue → one ticket.",
+        "Expected OVPR install/repair/doctor messaging works with a split registry: public packages (`@deftai/directive`, `@deftai/directive-runtime`) from registry.npmjs.org; other `@deftai/*` may stay on GitHub Packages.",
+        "Prefer lockfile / package-specific registry guidance over “remap the whole scope.” ## Actual `directive install --repair` / launcher fetches hit `npm.pkg.github.com` for `directive-runtime` → 404.",
+        "Doctor recovery fights the consumer’s legitimate split.",
+        "Ownership OVPR / installer — assignee polfer.",
+        "Refs #5845 (closed glom); related doctor registry prose."
+      ],
+      "admitted_source_digest": "193f36733cced54c5bdde2b7513b35757c2dedd26cfcebf6e3be4494b3d884b4",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Summary Repos whose `.npmrc` maps the entire `@deftai` scope to GitHub Packages (for an internal package such as `@deftai/rivet-os`) cannot install or repair `@deftai/directive` / `@deftai/directive-runtime` from the public npm registry.",
+          "artifact_path": "packages/core/src/doctor/npm-registry.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "source_kind": "defect-description"
+        },
+        {
+          "id": 3,
+          "text": "Doctor `npm-registry-mirror` steers “point `@deftai` at registry.npmjs.org,” which would break the internal package.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Source Broken out from closed multi-finding bag #5845 (2026-11-09).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "One issue → one ticket.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Expected OVPR install/repair/doctor messaging works with a split registry: public packages (`@deftai/directive`, `@deftai/directive-runtime`) from registry.npmjs.org; other `@deftai/*` may stay on GitHub Packages.",
+          "artifact_path": "packages/core/src/doctor/npm-registry.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Prefer lockfile / package-specific registry guidance over “remap the whole scope.” ## Actual `directive install --repair` / launcher fetches hit `npm.pkg.github.com` for `directive-runtime` → 404.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Doctor recovery fights the consumer’s legitimate split.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Ownership OVPR / installer — assignee polfer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Refs #5845 (closed glom); related doctor registry prose.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/doctor/npm-registry.ts",
+          "packages/cli/src/registry-hint.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/registry.ts",
+          "content/UPGRADING.md",
+          "packages/core/src/doctor/npm-registry.test.ts",
+          "packages/cli/src/registry-hint.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "changelog.d/6141-split-registry-hint.md"
+        ],
+        "module_boundary": "Doctor npm-registry check, a new launcher hint module (packages/cli/src/registry-hint.ts) called from the bookends' failure paths, and the UPGRADING registry section. No .npmrc or config writes.",
+        "cohesion_exemption": "bookends.ts (1751 lines) and content/UPGRADING.md (1128 lines) already exceed the review trigger. This fix adds a few call sites and one doc paragraph; the hint lives in its own new module; splitting those files is out of scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "Consumer evidence from `deftai/deftvisage` (2026-11-16). It is stuck on 0.126.2 because of this bug.\n\n## Setup\n\n`.npmrc` sends the whole scope to GitHub Packages for `@deftai/rivet-os`. It also tries to send the directive packages to public npm, one line per package:\n\n```\n@deftai:registry=https://npm.pkg.github.com\n@deftai/directive:registry=https://registry.npmjs.org\n@deftai/directive-core:registry=https://registry.npmjs.org\n@deftai/directive-types:registry=https://registry.npmjs.org\n@deftai/directive-content:registry=https://registry.npmjs.org\n```\n\nnpm ignores registry keys for single packages. Only scope keys work. So every `@deftai/*` package still goes to GitHub Packages. Even `--registry=https://registry.npmjs.org` on the command line loses to the scope key:\n\n```\n$ npm view @deftai/directive-runtime version\nnpm error 404 Not Found - GET https://npm.pkg.github.com/@deftai%2fdirective-runtime - npm package \"directive-runtime\" does not exist under owner \"deftai\"\n\n$ npm view @deftai/directive version --registry=https://registry.npmjs.org\nnpm error 404 Not Found - GET https://npm.pkg.github.com/@deftai%2fdirective\n```\n\n## Current workaround (works only up to 0.126.x)\n\n- `tools/deft-cli/` is a separate package with its own lockfile. It pins `@deftai/directive@^0.126.1`, and its lockfile `resolved` URLs point at `registry.npmjs.org`.\n- CI installs the CLI with `npm i -g \"@deftai/directive@${V}\" \"@deftai/directive-core@${V}\" --@deftai:registry=https://registry.npmjs.org/`.\n\nThis works only while `@deftai/directive` carries `directive-core` and `directive-content` as dependencies. 0.126.2 is the last version that does. From 0.127.0 to 0.129.10 the package is a launcher with `dependencies: {}` that hands off to a project-local `@deftai/directive-runtime`. Installing that runtime uses the project's registry settings and returns the 404 above. So no newer version can be adopted.\n\n## What `deft update` does here\n\nWith the global 0.126.2, `deft update --dry-run` reports `update_state: \"current\"`. It does not offer the move to the runtime layout, and it does not mention the registry split. The project deposit is at `.deft/core/VERSION` `v0.104.0` (`managed_by: npm`).\n\n## What would unblock us\n\nAny one of these:\n1. The launcher installs `@deftai/directive-runtime` with an explicit `--@deftai:registry=https://registry.npmjs.org` for that one install, so the lockfile records the npmjs `resolved` URL and later `npm ci` works.\n2. Directive packages are also published to GitHub Packages under `deftai`, so the whole-scope mapping finds them.\n3. Doctor and repair text describe the split and offer one of the two above. Today they say to move the whole scope to npmjs, which breaks `rivet-os`.\n\nAlso, `classifyPinVersion` in the launcher classifies a tarball URL pin as `invalid`, so pinning the runtime to an npmjs tarball URL in `package.json` is not a workaround either.\n\n",
+          "id": 6930366421,
+          "html_url": "https://github.com/deftai/directive/issues/6141#issuecomment-6930366421",
+          "user": {
+            "login": "abraderAI",
+            "id": 265949360,
+            "node_id": "U_kgDOD9oQsA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/265949360?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/abraderAI",
+            "html_url": "https://github.com/abraderAI",
+            "followers_url": "https://api.github.com/users/abraderAI/followers",
+            "following_url": "https://api.github.com/users/abraderAI/following{/other_user}",
+            "gists_url": "https://api.github.com/users/abraderAI/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/abraderAI/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/abraderAI/subscriptions",
+            "organizations_url": "https://api.github.com/users/abraderAI/orgs",
+            "repos_url": "https://api.github.com/users/abraderAI/repos",
+            "events_url": "https://api.github.com/users/abraderAI/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/abraderAI/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T21:46:58Z",
+          "updated_at": "2026-11-16T21:46:58Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6290290085,
+        "origin": "deftai/directive#6141",
+        "id": "github.issue.6290290085"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/doctor/npm-registry.ts",
+          "packages/cli/src/registry-hint.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/registry.ts",
+          "content/UPGRADING.md",
+          "packages/core/src/doctor/npm-registry.test.ts",
+          "packages/cli/src/registry-hint.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "changelog.d/6141-split-registry-hint.md"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor/npm-registry packages/cli/src"
+        ],
+        "Traces": [
+          "#6141",
+          "#5845",
+          "#6558"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "conflict_group": "cli-bookends",
+        "expected_outputs": [
+          "With `@deftai:registry` set to a non-public URL and another `@deftai/*` dependency in `package.json`, doctor's `npm-registry-mirror` finding never advises remapping `@deftai`, and names the lockfile reinstall plus the two real options.",
+          "Doctor output never contains the configured registry URL.",
+          "When install, upgrade or repair fails with a registry miss for the runtime under a non-public `@deftai:registry`, the launcher prints the hint (cause, \"don't remap the scope\", the one-run environment override); it changes no config. `directive upgrade --dry-run` in that setup shows the hint, not a bare `npm view … failed`.",
+          "With a non-public `@deftai:registry` whose registry does serve the packages (lookup succeeds), no hint is printed.",
+          "`UPGRADING.md` lists only `@deftai/directive` and `@deftai/directive-runtime` as packages to mirror, and has a split-scope paragraph.",
+          "Existing mirror cases (default `registry` non-public, no split) keep a warning with the corrected package list.",
+          "one changelog fragment changelog.d/6141-split-registry-hint.md"
+        ],
+        "acceptance_criteria_justification": "Six items: unit spec P2-U10 acceptance criteria 1, 2, 3, 3a, 4 and 5, one each."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8c085a6f361ab8e0648126dbf234d8b1937fec4c",
+        "prNumber": 6674,
+        "prBase": "master",
+        "mergeCommit": "103414819a1b68f52bd609300324805becf857c9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T16:26:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T16:26:38Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T16:26:38Z"
+      }
+    },
+    "id": "github.issue.6290290085",
+    "updated": "2026-11-19T16:26:38Z"
+  }
+}
