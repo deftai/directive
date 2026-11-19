@@ -1,2 +1,0 @@
-section: Changed
-- CI runs the full TypeScript suite once, in the merge gate, not in both the TypeScript lane and the merge gate. The lane keeps build and lint, and its required check is now `TypeScript (build + lint)`; branch protection must require that name. Artifact-only PR and push runs run no vitest; every merge-queue group run still runs the full suite. The unused release coverage-of-record cite path is removed. Refs #6586.

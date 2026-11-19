@@ -1,2 +1,0 @@
-section: Fixed
-- `scope:record-approved-scope --add-path <p>` (repeatable) widens a story's `file_scope` from its bound worktree: an operator-gated run opens a brief-only PR from a temporary checkout of the delivery tip and leaves the worktree unchanged. A new `acceptance.confessions` entry on a story's own brief no longer reports `intent-drift`, and the `stale-target` ingest refusal now names its three remedies. Refs #6643.

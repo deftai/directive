@@ -7,22 +7,12 @@
 
 ## Active
 
-- **#6301** -- fix(scope): strict acceptance axes should skip text inside backticks and code fences -- `[running]`
-- **#6591** -- fix(scope): warn when a declaration added after activation lowers the evidence a clause requires -- `[running]`
+- **#6567** -- docs(setup): tell users at setup that reduced local gates need the full merge-path stack (#6535) -- `[running]`
 - **#6601** -- bug(swarm): finalize has no route for a long-shipped stranded brief (R7 refuses the product PR, the stamp refuses the activation PR) -- `[running]`
-- **#6201** -- P1-U1: hosts block a tool call when the Directive hook cannot decide (ovpr-p1-u1) -- `[running]`
-- **#5960** -- P1-U2: old (pre-OVPR) repos keep blocking when their hooks reach the new deft-hook (ovpr-p1-u2) -- `[running]`
-- **#6614** -- P1-U3: no-agent fixture test, steps 4 and 6 (missing packages, old layout) (ovpr-p1-u3) -- `[running]`
-- **#6615** -- installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check) -- `[running]`
-- **#5976** -- [framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push -- `[running]`
-- **#6141** -- bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty) -- `[running]`
-- **#5873** -- Drop Node 20 from supported engines (runtime needs Node 22+) -- `[running]`
-- **#6571** -- bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate -- `[running]`
-- **#6616** -- class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026) -- `[running]`
-- **#6001** -- After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version -- `[running]`
-- **#5838** -- [framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path -- `[running]`
-- **#6022** -- bug(installer): `task upgrade` still dispatches the retired `install-upgrade` verb, so it always refuses -- `[running]`
-- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[running]`
+- **#6609** -- bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list -- `[running]`
+- **#6643** -- bug(scope): a story-bound worktree cannot edit its own brief, and an arced issue's criteria have no correction path -- `[running]`
+- **#6644** -- bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses -- `[running]`
+- **#6647** -- enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows -- `[running]`
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
 
 ## Proposed
@@ -56,31 +46,31 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1993 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2029 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
-- **#6602** -- bug(hooks): write fence reads the merge-base PROJECT-DEFINITION with a 1 MiB buffer, so every one-PR story is refused once the file passes 1 MiB -- `[completed]`
-- **#6221** -- bug(scope): a one-file test-only fix outside file_scope needs a widen PR: tests are free on the production fence but refused by membership and the write fence -- `[completed]`
-- **#6362** -- bug(hooks): the commit gate misses commits after a background &, inside subshells, and in sh -c / bash -c wrappers -- `[completed]`
-- **#6599** -- bug(hooks): the root-mismatch refusal blocks its own named recovery, so a worktree session is locked out (#6594 fix 1) -- `[completed]`
-- **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[completed]`
-- **#6264** -- bug(xbrief): xbrief:activate refuses a small-change lane brief that scope:activate admits -- `[completed]`
-- **#6188** -- Kill-switch plant guard (#6136) refuses a read-only existence check of the kill-switch file -- `[completed]`
-- **#6535** -- rfc(hooks): enforce on the merge path where it runs the full gate set; keep a small local hook floor -- `[completed]`
-- **#6275** -- feat(escalation): notify the operator when a worker stops on an operator-only step -- `[completed]`
-- **#6469** -- bug(pre-pr): some merge-gate checks run only in CI, so worker branches fail late -- `[completed]`
-- **#6185** -- One Directive launch root per host session: a worker's session:ready rebinds it and locks the parent and siblings out of their worktrees -- `[completed]`
-- **#6281** -- feat(release): a new default gate ships warn-only for one release, and every refusal names a runnable remedy -- `[completed]`
-- **#5988** -- feat(check): warn when linked worktrees/branches exceed a small hygiene threshold -- `[completed]`
-- **#6471** -- bug(hooks): commit file-set snapshot uses the payload root, so a bound worktree still refuses a subagent's commit -- `[completed]`
-- **#6296** -- feat(release): a maintainer cut needs only the release grant: no policy flip, no direct push, no hotfix label afterwards -- `[completed]`
-- **#6374** -- bug(verify): verify:ac is green before any work exists -- `[completed]`
-- **#6375** -- fix(hooks): pin-mismatch install recovery on a host that reports no run directory (Codex) -- `[completed]`
-- **#6372** -- feat(ingest,scope): ingest and promote write the derivable launch fields -- `[completed]`
-- **#6507** -- bug(hooks): session hook rewrites the tracked AGENTS.md managed section from the pinned runtime in this repo, rolling it back -- `[completed]`
-- **#6467** -- bug(merge): a PR that conflicts with its base is reported as absent-required, not as a conflict -- `[completed]`
-- **#6187** -- Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command -- `[completed]`
-- **#6480** -- bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit -- `[completed]`
-- **#6468** -- bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join -- `[completed]`
-- **#6477** -- bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans -- `[completed]`
-- **#6422** -- bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch -- `[completed]`
+- **#6749** -- ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests -- `[completed]`
+- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[completed]`
+- **#5873** -- Drop Node 20 from supported engines (runtime needs Node 22+) -- `[completed]`
+- **#6616** -- class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026) -- `[completed]`
+- **#5846** -- setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed -- `[completed]`
+- **#6765** -- fix(scope): post-merge completion gives merge evidence to clause items only, never to hand-written acceptance items -- `[completed]`
+- **#6764** -- fix(lifecycle): completion PRs fail the merge gate because scope:complete now also writes PROJECT-DEFINITION -- `[completed]`
+- **#6002** -- Legacy upgrade deletes .deft/core on a dirty tree without warning (successor to #4158) -- `[completed]`
+- **#6022** -- bug(installer): `task upgrade` still dispatches the retired `install-upgrade` verb, so it always refuses -- `[completed]`
+- **#5838** -- [framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path -- `[completed]`
+- **#6001** -- After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version -- `[completed]`
+- **#6571** -- bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate -- `[completed]`
+- **#6141** -- bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty) -- `[completed]`
+- **#5976** -- [framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push -- `[completed]`
+- **#6615** -- installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check) -- `[completed]`
+- **#6614** -- P1-U3: no-agent fixture test, steps 4 and 6 (missing packages, old layout) (ovpr-p1-u3) -- `[completed]`
+- **#5960** -- P1-U2: old (pre-OVPR) repos keep blocking when their hooks reach the new deft-hook (ovpr-p1-u2) -- `[completed]`
+- **#6201** -- P1-U1: hosts block a tool call when the Directive hook cannot decide (ovpr-p1-u1) -- `[completed]`
+- **#6562** -- bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects -- `[completed]`
+- **#5999** -- Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success -- `[completed]`
+- **#5959** -- Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory -- `[completed]`
+- **#6005** -- --root with a lowercase drive letter is rejected as not the Git working-tree root on Windows -- `[completed]`
+- **#6620** -- hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin -- `[completed]`
+- **#6012** -- 0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects -- `[completed]`
+- **#6617** -- doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1) -- `[completed]`
 

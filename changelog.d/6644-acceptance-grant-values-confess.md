@@ -1,2 +1,0 @@
-section: Added
-- `authz:grant --template acceptance-disposition` takes `--disposition deferred|not_applicable|waived`. `scope:complete` leaves a clause that a grant stamped in that run out of the acceptance walk counts, so a story whose clauses are all verified or granted finishes without a command. A refusal lists each clause that is neither. New `scope:confess` writes a non-criterion sentence to `acceptance.confessions` instead of a hand edit. Refs #6644.
