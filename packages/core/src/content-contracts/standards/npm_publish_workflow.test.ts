@@ -148,8 +148,19 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).toContain("post-publish-runner-");
     expect(postPublish).toContain("post-publish-runner-");
     expect(postPublish).toContain("download-artifact");
-    expect(postPublish).toMatch(/path:\s*packages\/core/);
-    expect(postPublish).toContain("--post-publish-two-pass");
+    // #5603: one bundled runner file, so the job needs no node_modules.
+    expect(prepare).toContain("BUNDLER=packages/core/scripts/bundle-post-publish-runner.mjs");
+    expect(prepare).toContain('node "${BUNDLER}" --out post-publish-runner/npm-ops.mjs');
+    // A re-run of an older tag (no bundler in its tree) takes the bundler from the
+    // workflow's own commit; checkout keeps full history so `git show` can read it.
+    expect(prepare).toContain('git show "${WORKFLOW_SHA}:${BUNDLER}" > "${BUNDLER}"');
+    expect(prepare).toMatch(/WORKFLOW_SHA:\s*\$\{\{\s*github\.workflow_sha\s*\}\}/);
+    expect(prepare).toMatch(/fetch-depth:\s*0/);
+    expect(prepare).toMatch(/path:\s*post-publish-runner\/npm-ops\.mjs/);
+    expect(postPublish).toMatch(/path:\s*post-publish-runner\s*$/m);
+    expect(postPublish).toContain("node ./post-publish-runner/npm-ops.mjs --post-publish-two-pass");
+    expect(postPublish).not.toContain("actions/checkout");
+    expect(postPublish).not.toMatch(/continue-on-error/);
     expect(postPublish).not.toMatch(/ref:\s*\$\{\{\s*needs\.prepare\.outputs\.source_sha\s*\}\}/);
     expect(postPublish).not.toMatch(/pnpm install/);
     expect(postPublish).not.toMatch(/pnpm -w run build/);
