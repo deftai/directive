@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6749",
-    "updated": "2026-11-19T18:07:26Z"
+    "updated": "2026-11-19T19:40:19Z"
   },
   "plan": {
     "title": "ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6749",
@@ -17,58 +17,135 @@
     "items": [
       {
         "title": "Path script (P1, P3, P4). A new script `.github/scripts/ovpr-fixture-paths.mjs` reads a newline list of changed paths and prints `ovpr_paths=true` when any path matches the list in item 2, else `ovpr_paths=false`. It exports its matcher so a test can call it.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Path list (P1, P3, P4): `packages/cli/**` (launcher and `deft-hook`), `packages/runtime/**`, `packages/content/**`, `packages/types/**`, `packages/core/package.json`, `packages/core/src/hooks/**`, `packages/core/src/deposit/**`, `packages/core/src/init-deposit/**`, `packages/core/src/install-contract/**`, `packages/core/src/install-health/**`, `packages/core/src/release-e2e/**`, `.github/workflows/ci.yml`, `.github/scripts/ovpr-fixture-paths.mjs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.nvmrc`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`changes` job wiring (P1). A new step and an output `ovpr_paths` on the `changes` job. It runs only on `pull_request`. It lists files with `git diff --name-only --no-renames` between the merge base and the PR head (as `compute-artifact-only.sh` does), loads the script from the base tree with `git show \"${BASE}:<script>\"` (as the artifact-only predicate does), and passes branch names and SHAs through quoted environment variables. If the base is unusable, the script is absent on the base, or the diff fails, it writes `ovpr_paths=true`. It writes `false` only after a successful diff and match.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "ubuntu fixture (P1, P3, P4). `ovpr-fixture` gets `if: always() && needs.changes.outputs.artifact_only != 'true' && (github.event_name != 'pull_request' || needs.changes.outputs.ovpr_paths != 'false')`. A missing or empty output runs the job. Push and merge_group behaviour is unchanged.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Windows fixture (P2, P3). `ovpr-fixture-windows` gets `if: always() && github.event_name == 'push' && needs.changes.outputs.artifact_only != 'true'`. The workflow's push trigger is master only, so it runs on master pushes and not on pull requests or merge_group. Its header comment says it moves to pull requests or required only at the Phase 4 exit.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests (P1-P4). In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`: the `changes` job exposes `ovpr_paths`; both `if:` conditions are as in items 4 and 5; the matcher returns false for a docs-only list and a scope-code list (`packages/core/src/scope/...`), and true for a launcher file (`packages/cli/src/launcher.ts`), a hook file (`packages/core/src/hooks/...`) and a content-staging file (`packages/content/stage-pack.mjs`); the wiring writes `true` when the script is absent on the base or the base is unusable.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, the `changes` job exposes an `ovpr_paths` output computed on pull requests from the merge-base diff by `.github/scripts/ovpr-fixture-paths.mjs` loaded from the base tree, and writes `true` when the base is unusable, the script is absent on the base, or the diff fails.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, `ovpr-fixture` runs on a pull request unless `ovpr_paths` is exactly `false`, and still runs on push and merge_group when the change is not artifact-only.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, `ovpr-fixture-windows` runs only on push events (master), not on pull requests or merge_group.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/scripts/ovpr-fixture-paths.mjs`, the path list covers the launcher, runtime, content and types packages, `packages/core/package.json`, the core hook, deposit, init-deposit, install-contract, install-health and release-e2e folders, `ci.yml`, the script itself, and the root toolchain files.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `ci_lifecycle_lane.test.ts`, tests show a docs-only and a scope-code change set give `ovpr_paths=false`, a launcher, hook or content-staging change set gives `true`, and both job conditions are pinned.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+          "recorded_at": "2026-11-19T19:40:19Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -493,9 +570,38 @@
         "parallel_safe": true,
         "size": "small",
         "file_scope_confidence": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6db4f95bd8d8ba85959be6e51d77db2c75a46526",
+        "prNumber": 6787,
+        "prBase": "master",
+        "mergeCommit": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7c3ecfc2380405badc3754c849fcd8c8906db681",
+        "verifiedAt": "2026-11-19T19:40:19Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6784
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T19:40:19Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T19:40:19Z"
       }
     },
     "id": "github.issue.6481116939",
-    "updated": "2026-11-19T18:07:26Z"
+    "updated": "2026-11-19T19:40:19Z"
   }
 }
