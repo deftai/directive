@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5873",
-    "updated": "2026-11-18T03:05:13Z"
+    "updated": "2026-11-19T17:16:11Z"
   },
   "plan": {
     "title": "Drop Node 20 from supported engines (runtime needs Node 22+)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "OVPR fix plan unit P2-U11 (story id ovpr-p2-u11), spec units/P2-U11-node-20-load-crash.md, issue #5873. The runtime imports `globSync` from `node:fs`, which Node 20 does not have, so it fails at load on Node 20 although `engines.node` says `>=20`. This unit sends every such import through one compatibility helper in packages/core/src/fs/glob-sync.ts and adds a non-blocking Node 20 CI job. `engines.node` stays `>=20`, as the unit spec says; the issue's request to raise it is not taken.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5873",
@@ -24,50 +24,212 @@
     "items": [
       {
         "title": "No production source file outside `fs/glob-sync.ts` imports `globSync` by name from `node:fs`; the guard test enforces it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.1",
         "narrative": {
           "Acceptance": "Given the production sources, when the guard test runs, then it fails if any file outside `fs/glob-sync.ts` imports `globSync` by name from `node:fs`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "On Node 24, `globSyncCompat` returns exactly what `fs.globSync` returns for the parity fixture.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.2",
         "narrative": {
           "Acceptance": "On Node 24, `globSyncCompat` returns exactly what `fs.globSync` returns for the parity fixture."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "With the native function hidden, the fallback returns the same set as `fs.globSync` for the parity fixture.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.3",
         "narrative": {
           "Acceptance": "With the native function hidden, the fallback returns the same set as `fs.globSync` for the parity fixture."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "On Node 20 (CI job), the staged runtime's `dist/bin.js --version` and `dist/hook-bin.js` (empty payload) load without a module-link error.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.4",
         "narrative": {
           "Acceptance": "Given Node 20 in the CI job, when the staged runtime's `dist/bin.js --version` and `dist/hook-bin.js` (empty payload) run, then both load and exit without a module-link error."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`engines.node` stays `>=20` in both published packages.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.5",
         "narrative": {
           "Acceptance": "Given the change set, when the two published package.json files are read, then `engines.node` still shows `>=20` in both."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The Node 20 CI job is non-blocking.",
-        "status": "proposed",
+        "status": "completed",
         "id": "ac.6",
         "narrative": {
           "Acceptance": "Given a failure in the Node 20 CI job, when the PR's required checks are evaluated, then that job does not block the PR (the job is non-blocking)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+          "recorded_at": "2026-11-19T17:16:11Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -260,9 +422,41 @@
         ],
         "acceptance_criteria_justification": "Six items: the six acceptance criteria of unit spec P2-U11, one each."
       },
-      "productPullRequest": 6654
+      "productPullRequest": 6654,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "870588f96b1da4849cad123465dcc13288d4a9c8",
+        "prNumber": 6654,
+        "prBase": "master",
+        "mergeCommit": "9cf8c0ebc9729bf700993a39ed7b55a4df2e8d83",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8a4c6bcd605cd710798c06920b1efc156feef6d6",
+        "verifiedAt": "2026-11-19T17:16:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MGI1YzNiYWMtNzljZS00OWFmLWJjYzEtMjQ3MDA4NjM3M2Nl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6651
+        ],
+        "competingMarkedPrs": [
+          6657
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T17:16:11Z",
+      "completedSessionId": "host:claude:v1:MGI1YzNiYWMtNzljZS00OWFmLWJjYzEtMjQ3MDA4NjM3M2Nl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T17:16:11Z"
+      }
     },
     "id": "github.issue.6005855460",
-    "updated": "2026-11-18T03:05:13Z"
+    "updated": "2026-11-19T17:16:11Z"
   }
 }
