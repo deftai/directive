@@ -283,7 +283,12 @@
           "packages/core/src/hooks/cursor-hooks.test.ts",
           "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
           "packages/core/src/init-deposit/host-tool-coverage.test.ts",
-          "packages/core/src/verify-env/agent-hook-readiness.test.ts"
+          "packages/core/src/verify-env/agent-hook-readiness.test.ts",
+          "main.md",
+          "SKILL.md",
+          "packages/runtime/scripts/stage-bundle.mjs",
+          "packages/runtime/scripts/stage-bundle.test.mjs",
+          "changelog.d/5869-docs-followup.md"
         ],
         "readiness": "ready",
         "depends_on": [
@@ -392,7 +397,12 @@
           "packages/core/src/xbrief-migrate/clause-ids.ts",
           "packages/runtime/src/init-cli/help.ts",
           "packages/runtime/src/install-upgrade.ts",
-          "changelog.d/5869-docs-recovery-and-readme.md"
+          "changelog.d/5869-docs-recovery-and-readme.md",
+          "main.md",
+          "SKILL.md",
+          "packages/runtime/scripts/stage-bundle.mjs",
+          "packages/runtime/scripts/stage-bundle.test.mjs",
+          "changelog.d/5869-docs-followup.md"
         ],
         "module_boundary": "Docs and printed text only: README and user docs under content/, the managed AGENTS template (plus regenerated AGENTS.md), the runtime package description and README, package homepage fields, doctor's never-incepted Next command, and recovery strings that name `deft update`. No behaviour change apart from doctor not printing a non-runnable Next command. Never docs/installer-refactor-ovpr/.",
         "cohesion_exemption": "packages/core/src/doctor/main.ts (2558 lines), packages/core/src/doctor/checks.ts (2280 lines), packages/core/src/init-deposit/refresh.ts (2104 lines), Taskfile.yml (1376 lines), packages/core/src/init-deposit/scaffold.ts (1208 lines), packages/core/src/consumer-check-contract/evaluate.ts (1207 lines), content/UPGRADING.md (1139 lines) and packages/core/src/session/verify-session-ritual.ts (1069 lines) already exceed the review trigger. This group changes text lines in them (recovery strings and one doctor fallback); splitting them is out of scope."
