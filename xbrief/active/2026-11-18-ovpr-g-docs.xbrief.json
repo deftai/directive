@@ -277,7 +277,13 @@
           "packages/runtime/src/init-cli/help.ts",
           "packages/runtime/src/install-upgrade.ts",
           "changelog.d/5869-docs-recovery-and-readme.md",
-          "docs/RULE-MAP.md"
+          "docs/RULE-MAP.md",
+          "changelog.d/5869-docs-recovery-table.md",
+          "packages/core/src/check/consumer-gate-integrity.test.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.test.ts"
         ],
         "readiness": "ready",
         "depends_on": [

@@ -136,7 +136,12 @@ async function resolveEngineContentRoot(): Promise<string | null> {
   }
 }
 
-export async function run(argv: string[]): Promise<number> {
+export interface RunDoctorOptions {
+  /** Extra keys for the `--json` payload (install-sync result, #6004). */
+  readonly extraJson?: Readonly<Record<string, unknown>>;
+}
+
+export async function run(argv: string[], options: RunDoctorOptions = {}): Promise<number> {
   // Human advisory lines stay off --json so the machine report stays one object.
   // Deposit hygiene is still passed into cmdDoctor, including --json (#4812).
   const flags = parseDoctorFlags(argv);
@@ -171,6 +176,7 @@ export async function run(argv: string[]): Promise<number> {
     }
     const closureLine = renderDeclaredDepositClosureLine(closure);
     return cmdDoctor(argv, {
+      ...(options.extraJson ? { extraJson: options.extraJson } : {}),
       depositHygiene: {
         failed: fileSetFailed || closureFailed,
         absent: depositResult.absent,

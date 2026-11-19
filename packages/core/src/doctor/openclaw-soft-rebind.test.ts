@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -41,7 +49,6 @@ describe("runOpenClawSoftRebindCheck (#3171)", () => {
     const home = mkdtempSync(join(tmpdir(), "oc-soft-doc-skip-"));
     runOpenClawSoftRebindCheck(s, (f) => findings.push(f), {
       projectRoot: home,
-      fixMode: false,
       jsonMode: true,
       allAgents: false,
       seams: {
@@ -55,16 +62,14 @@ describe("runOpenClawSoftRebindCheck (#3171)", () => {
     rmSync(home, { recursive: true, force: true });
   });
 
-  it("warns when skill is missing and deposits under fixMode", () => {
+  it("warns when the skill is missing, names repair, and writes nothing (AC12.1, #6622)", () => {
     const state = mkdtempSync(join(tmpdir(), "oc-soft-doc-fix-"));
     const skillsDir = join(state, "workspace", "skills");
     mkdirSync(skillsDir, { recursive: true });
 
     const findings: Finding[] = [];
-    const s = sink();
-    runOpenClawSoftRebindCheck(s, (f) => findings.push(f), {
+    runOpenClawSoftRebindCheck(sink(), (f) => findings.push(f), {
       projectRoot: state,
-      fixMode: true,
       jsonMode: true,
       allAgents: false,
       seams: {
@@ -74,10 +79,9 @@ describe("runOpenClawSoftRebindCheck (#3171)", () => {
       },
     });
 
-    expect(findings.some((f) => f.status === "fixed" || f.status === "present")).toBe(true);
-    const skillPath = join(skillsDir, OPENCLAW_SOFT_REBIND_SKILL_ID, "SKILL.md");
-    const body = readFileSync(skillPath, "utf8");
-    expect(body).toBe(formatOpenClawSoftRebindSkillMarkdown());
+    expect(findings[0]?.status).toBe("incomplete");
+    expect(findings[0]?.suggestion).toBe("directive install --repair");
+    expect(existsSync(join(skillsDir, OPENCLAW_SOFT_REBIND_SKILL_ID, "SKILL.md"))).toBe(false);
 
     rmSync(state, { recursive: true, force: true });
   });
@@ -92,7 +96,6 @@ describe("runOpenClawSoftRebindCheck (#3171)", () => {
     const findings: Finding[] = [];
     runOpenClawSoftRebindCheck(sink(), (f) => findings.push(f), {
       projectRoot: state,
-      fixMode: false,
       jsonMode: true,
       allAgents: false,
       seams: {
@@ -120,7 +123,6 @@ describe("runOpenClawSoftRebindCheck (#3171)", () => {
     const findings: Finding[] = [];
     runOpenClawSoftRebindCheck(sink(), (f) => findings.push(f), {
       projectRoot: state,
-      fixMode: false,
       jsonMode: true,
       allAgents: false,
       seams: {
@@ -133,22 +135,8 @@ describe("runOpenClawSoftRebindCheck (#3171)", () => {
     expect(findings[0]?.status).toBe("incomplete");
     expect(String(findings[0]?.message ?? "")).toMatch(/stale=/i);
 
-    const fixedFindings: Finding[] = [];
-    runOpenClawSoftRebindCheck(sink(), (f) => fixedFindings.push(f), {
-      projectRoot: state,
-      fixMode: true,
-      jsonMode: true,
-      allAgents: false,
-      seams: {
-        openclawEnv: { OPENCLAW_STATE_DIR: state },
-        openclawHomeDir: () => state,
-        isDir,
-      },
-    });
-    expect(fixedFindings.some((f) => f.status === "fixed" || f.status === "present")).toBe(true);
-    expect(readFileSync(join(skillDir, "SKILL.md"), "utf8")).toBe(
-      formatOpenClawSoftRebindSkillMarkdown(),
-    );
+    // Doctor leaves the custom file alone.
+    expect(readFileSync(join(skillDir, "SKILL.md"), "utf8")).toContain("Unrelated consumer skill");
 
     rmSync(state, { recursive: true, force: true });
   });

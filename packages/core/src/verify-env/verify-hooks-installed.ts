@@ -40,9 +40,19 @@ export interface EvaluateResult {
 export const REQUIRED_HOOKS = ["pre-commit", "pre-push"] as const;
 export const REQUIRED_HOOK_SUPPORT_FILES = ["_directive-run.sh"] as const;
 
-/** Substrings each hook must contain when it dispatches through the deft CLI (#2049). */
-export const PRE_COMMIT_DEFT_COMMANDS = ["verify:encoding"] as const;
-export const PRE_PUSH_DEFT_COMMANDS = ["verify:branch"] as const;
+/**
+ * Substrings each hook must contain when it dispatches through the deft CLI
+ * (#2049). They match the deposited templates: the 0.126 commit gates and the
+ * refspec-aware push gate (#5808 / D-021).
+ */
+export const PRE_COMMIT_DEFT_COMMANDS = [
+  "verify:branch",
+  "verify:encoding",
+  "verify:forward-coverage",
+  "verify:vbrief-conformance",
+  "verify:xbrief-drift",
+] as const;
+export const PRE_PUSH_DEFT_COMMANDS = ["preflight-gh --pre-push-stdin"] as const;
 
 /** Patterns that indicate legacy Python-dispatched hooks (pre-#2049). */
 const LEGACY_HOOK_PATTERNS = [

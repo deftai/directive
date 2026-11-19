@@ -8,7 +8,11 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import { MANAGED_SECTION_CLOSE, MANAGED_SECTION_OPEN_PREFIX } from "./ownership.js";
-import { checkWiringTargetsRuntime, hasDirectiveWiringEvidence } from "./wiring.js";
+import {
+  checkWiringTargetsRuntime,
+  hasDirectiveWiringEvidence,
+  WIRING_PROBE_RELS,
+} from "./wiring.js";
 
 const temps: string[] = [];
 
@@ -394,5 +398,52 @@ describe("checkWiringTargetsRuntime companion probes (coverage for #5796 headroo
     });
     expect(result.ok).toBe(false);
     expect(result.mismatched).toContain("Taskfile.yml");
+  });
+});
+
+describe("checkWiringTargetsRuntime git pre-push (#5976)", () => {
+  const helper = `#!/bin/sh\nexec node ./${RUNTIME_PACKAGE_PATH_PREFIX}dist/bin.js "$@"\n`;
+  const shim = '#!/bin/sh\n. "$REPO_ROOT/.githooks/_directive-run.sh"\n';
+
+  function hooks(root: string, files: Readonly<Record<string, string>>): void {
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    for (const [name, body] of Object.entries(files)) {
+      writeFileSync(join(root, ".githooks", name), body, "utf8");
+    }
+  }
+
+  it("probes .githooks/pre-push", () => {
+    expect(WIRING_PROBE_RELS).toContain(".githooks/pre-push");
+    const root = tempRoot("wiring-prepush-ok-");
+    hooks(root, { "_directive-run.sh": helper, "pre-commit": shim, "pre-push": shim });
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(true);
+    expect(result.inspected).toContain(".githooks/pre-push");
+  });
+
+  it("reports a pre-push that is not Directive's", () => {
+    const root = tempRoot("wiring-prepush-foreign-");
+    hooks(root, {
+      "_directive-run.sh": helper,
+      "pre-commit": shim,
+      "pre-push": "#!/bin/sh\nnpx prettier --check .\n",
+    });
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(false);
+    expect(result.mismatched).toEqual([".githooks/pre-push"]);
+  });
+
+  it("reports a missing pre-push next to Directive's hook helper", () => {
+    const root = tempRoot("wiring-prepush-missing-");
+    hooks(root, { "_directive-run.sh": helper, "pre-commit": shim });
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(false);
+    expect(result.mismatched).toEqual([".githooks/pre-push"]);
+  });
+
+  it("does not report missing hooks when no Directive hook helper exists", () => {
+    const root = tempRoot("wiring-prepush-none-");
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.mismatched).toEqual([]);
   });
 });
