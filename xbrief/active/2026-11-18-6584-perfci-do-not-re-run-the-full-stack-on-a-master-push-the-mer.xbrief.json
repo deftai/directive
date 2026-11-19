@@ -116,7 +116,8 @@
           "packages/core/src/init-deposit/ci-watchdog.test.ts",
           "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
           "packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts",
-          "changelog.d/6584-reuse-queue-result-on-master-push.md"
+          "changelog.d/6584-reuse-queue-result-on-master-push.md",
+          "docs/RULE-MAP.md"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",
@@ -149,7 +150,8 @@
           "packages/core/src/init-deposit/ci-watchdog.test.ts",
           "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
           "packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts",
-          "changelog.d/6584-reuse-queue-result-on-master-push.md"
+          "changelog.d/6584-reuse-queue-result-on-master-push.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "The lookup is one new script beside the existing CI helper scripts in .github/scripts, read from the base tree like the artifact-only predicate. The changes job, job conditions and aggregators stay in ci.yml; resolve-ci-authoritative-lane.mjs gains one early-exit branch; tests go beside the existing CI contract tests.",
         "cohesion_exemption": ".github/workflows/ci.yml (about 1088 lines before the Go lane removal) is the single CI workflow file. The story adds one lookup step and job conditions to it; splitting the workflow is out of scope."
