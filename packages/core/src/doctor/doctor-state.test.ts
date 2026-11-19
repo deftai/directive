@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,19 +10,10 @@ import {
   dirtyDoctorHint,
   formatIsoZ,
   readState,
-  rememberedDepositMatches,
   renderDoctorStatusLine,
   statePath,
-  writeState,
 } from "./doctor-state.js";
 import { cmdDoctor } from "./main.js";
-
-const REMEMBERED_CLEAN = {
-  lastRunAt: new Date(),
-  lastExitCode: 0,
-  lastFindingCount: 0,
-  lastErrorCount: 0,
-} as const;
 
 function captureDoctor(
   args: readonly string[],
@@ -187,40 +178,20 @@ describe("doctor-state", () => {
   });
 
   it("readState returns null for corrupt json", () => {
-    expect(readState("/tmp", () => "{bad")).toBeNull();
+    expect(readState(tmpdir(), () => "{bad")).toBeNull();
   });
 
   it("readState parses optional numeric fields", () => {
-    const state = readState("/tmp", () => JSON.stringify({ last_run_at: "2026-01-01T00:00:00Z" }));
+    const state = readState(tmpdir(), () =>
+      JSON.stringify({ last_run_at: "2026-01-01T00:00:00Z" }),
+    );
     expect(state?.lastExitCode).toBe(0);
     expect(state?.lastFindingCount).toBe(0);
     expect(state?.lastErrorCount).toBe(0);
   });
 
   it("readState rejects invalid iso timestamp", () => {
-    expect(readState("/tmp", () => JSON.stringify({ last_run_at: "not-a-date" }))).toBeNull();
-  });
-
-  it("writeState persists on success", () => {
-    const path = writeState(process.cwd(), {
-      exitCode: 0,
-      findingCount: 0,
-      errorCount: 0,
-      now: new Date("2026-01-01T00:00:00Z"),
-    });
-    expect(path).toContain("doctor-state.json");
-  });
-
-  it("doctor-state read/write roundtrip", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-state-"));
-    try {
-      writeState(root, { exitCode: 1, findingCount: 2, errorCount: 1 });
-      const state = readState(root);
-      expect(state?.lastExitCode).toBe(1);
-      expect(decideThrottle(null).skip).toBe(false);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    expect(readState(tmpdir(), () => JSON.stringify({ last_run_at: "not-a-date" }))).toBeNull();
   });
 
   it("formatIsoZ handles null", () => {
@@ -231,7 +202,6 @@ describe("doctor-state", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-missing-core-"));
     try {
       const { code, output } = captureDoctor(["--project-root", root], {
-        readState: () => REMEMBERED_CLEAN,
         now: () => new Date(),
         whichFn: () => "/bin/x",
         engineProbe: () => ({ reachable: false, version: null }),
@@ -250,7 +220,6 @@ describe("doctor-state", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-missing-core-json-"));
     try {
       const { output } = captureDoctor(["--json", "--project-root", root], {
-        readState: () => REMEMBERED_CLEAN,
         now: () => new Date(),
         whichFn: () => "/bin/x",
         engineProbe: () => ({ reachable: false, version: null }),
@@ -262,31 +231,20 @@ describe("doctor-state", () => {
     }
   });
 
-  it("throttle-skip still fires when .deft/core is present (#4723)", () => {
+  it("doctor never throttle-skips, even with .deft/core present (#6617)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-has-core-"));
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
     try {
-      const { code, output } = captureDoctor(["--project-root", root], {
-        readState: () => ({ ...REMEMBERED_CLEAN, lastHasDeftCore: true }),
+      const { output } = captureDoctor(["--project-root", root], {
         now: () => new Date(),
         whichFn: () => "/bin/x",
         engineProbe: () => ({ reachable: false, version: null }),
       });
-      expect(code).toBe(0);
-      expect(output).toContain("[doctor] ran");
-      expect(output).toContain("clean");
+      expect(output).not.toMatch(/\[doctor\] ran/);
+      expect(output).toContain("Checking system dependencies");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
-
-  it("absent deposit bit does not match live core (#4886)", () => {
-    expect(rememberedDepositMatches(undefined, true)).toBe(false);
-    expect(rememberedDepositMatches(undefined, false)).toBe(false);
-    expect(rememberedDepositMatches(false, true)).toBe(false);
-    expect(rememberedDepositMatches(true, true)).toBe(true);
-    expect(rememberedDepositMatches(false, false)).toBe(true);
-    expect(rememberedDepositMatches(true, false)).toBe(false);
   });
 
   it("keeps the dirty window when the last probe found live errors (#4886)", () => {
@@ -307,7 +265,7 @@ describe("doctor-state", () => {
   });
 
   it("readState leaves an absent or non-boolean deposit bit unset (#4886)", () => {
-    const absent = readState("/tmp", () =>
+    const absent = readState(tmpdir(), () =>
       JSON.stringify({
         last_run_at: "2026-01-01T00:00:00Z",
         last_error_count: 1,
@@ -315,32 +273,12 @@ describe("doctor-state", () => {
     );
     expect(absent?.lastErrorCount).toBe(1);
     expect(absent?.lastHasDeftCore).toBeUndefined();
-    const junk = readState("/tmp", () =>
+    const junk = readState(tmpdir(), () =>
       JSON.stringify({
         last_run_at: "2026-01-01T00:00:00Z",
         last_has_deft_core: "yes",
       }),
     );
     expect(junk?.lastHasDeftCore).toBeUndefined();
-  });
-
-  it("persists last_has_deft_core next to last_error_count (#4886)", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-state-bit-"));
-    try {
-      writeState(root, {
-        exitCode: 0,
-        findingCount: 0,
-        errorCount: 0,
-        hasDeftCore: true,
-        now: new Date("2026-01-01T00:00:00Z"),
-      });
-      const state = readState(root);
-      expect(state?.lastHasDeftCore).toBe(true);
-      expect(state?.lastErrorCount).toBe(0);
-      const raw = readFileSync(statePath(root), "utf8");
-      expect(raw.indexOf("last_has_deft_core")).toBeGreaterThan(raw.indexOf("last_error_count"));
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
   });
 });

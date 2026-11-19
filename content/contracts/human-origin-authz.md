@@ -151,8 +151,15 @@ on the covered items instead of merge evidence.
 
 ```bash
 deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> \
-  --story-ids <itemIds> --deferred-to <issue> --reason <text> [--confirm]
+  --story-ids <itemIds> [--disposition deferred|not_applicable|waived] \
+  [--deferred-to <issue>] --reason <text> [--confirm]
 ```
+
+`--disposition` defaults to `deferred` (#6644). `--reason` is required for every value.
+`--deferred-to` is required for `deferred` and refused for `not_applicable` and `waived`.
+A grant minted before #6644 reads as `deferred`. A clause a grant stamps in a
+`scope:complete` run stays in the brief but is left out of the walk counts (#6644);
+a disposition written into the brief by hand never is.
 
 | Rule | Detail |
 | --- | --- |

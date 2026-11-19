@@ -7,27 +7,48 @@ import { readText, repoRoot } from "./_helpers.js";
 const yoloSterile = existsSync(join(repoRoot(), ".no-deft-directive"));
 const itAgents = yoloSterile ? it.skip : it;
 
+/**
+ * The deposited git-hook template, read from setup-wiring.ts (#5808). This repo's
+ * own `.githooks/*` come from the pinned runtime (DOGFOOD), so they change with
+ * the pin bump, not with this source.
+ */
+function hookTemplate(name: "PRE_COMMIT" | "PRE_PUSH"): string {
+  const src = readText("packages/runtime/src/setup-wiring.ts");
+  const open = `const ${name} = \``;
+  const start = src.indexOf(open);
+  expect(start, `${name} template in setup-wiring.ts`).toBeGreaterThanOrEqual(0);
+  const body = src.slice(start + open.length);
+  return body.slice(0, body.indexOf("`;"));
+}
+
 describe("test_branch_gate.py", () => {
   it("test_pre_commit_hook_exists_and_calls_script", () => {
-    const text = readText(".githooks/pre-commit");
+    const text = hookTemplate("PRE_COMMIT");
+    expect(text).toContain("run_directive verify:branch");
     expect(text).toContain("run_directive verify:encoding");
+    expect(text).toContain("run_directive verify:forward-coverage");
     expect(text).toContain("git rev-parse --show-toplevel");
     expect(text).toContain("_directive-run.sh");
     expect(text).not.toContain("preflight_branch.py");
     expect(text).not.toContain("_deft-run.sh");
   });
   it("test_pre_push_hook_exists_and_calls_script", () => {
-    const text = readText(".githooks/pre-push");
-    expect(text).toContain("run_directive verify:branch");
+    // Refspec-aware push gate only, as in 0.126 (#5808 / D-021).
+    const text = hookTemplate("PRE_PUSH");
+    expect(text).toContain("run_directive preflight-gh --pre-push-stdin");
+    expect(text).not.toContain("verify:branch");
+    expect(text).not.toContain("pre-pr:run");
     expect(text).toContain("_directive-run.sh");
     expect(text).not.toContain("preflight_branch.py");
     expect(text).not.toContain("_deft-run.sh");
   });
   it("test_pre_commit_xbrief_drift_guarded_like_conformance (#2406)", () => {
-    // OVPR tip pre-commit is encoding-only; xbrief drift is outside this hook (#5802).
-    const text = readText(".githooks/pre-commit");
-    expect(text).toContain("run_directive verify:encoding");
-    expect(text).not.toContain("verify:xbrief-drift");
+    // Both brief gates run only when xbrief/ or vbrief/ exists (#5808).
+    const text = hookTemplate("PRE_COMMIT");
+    const guard = text.indexOf('if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then');
+    expect(guard).toBeGreaterThanOrEqual(0);
+    expect(text.indexOf("verify:vbrief-conformance --staged")).toBeGreaterThan(guard);
+    expect(text.indexOf("verify:xbrief-drift --staged")).toBeGreaterThan(guard);
   });
   it("test_deft_run_sh_falls_back_to_local_cli", () => {
     const text = readText(".githooks/_directive-run.sh");

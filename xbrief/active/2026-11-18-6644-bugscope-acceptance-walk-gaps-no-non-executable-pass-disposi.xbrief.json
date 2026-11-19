@@ -270,7 +270,8 @@
           "tasks/scope.yml",
           "content/commands.md",
           "content/contracts/human-origin-authz.md",
-          "changelog.d/6644-acceptance-grant-values-confess.md"
+          "changelog.d/6644-acceptance-grant-values-confess.md",
+          "docs/RULE-MAP.md"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",
@@ -308,7 +309,8 @@
           "packages/core/src/product-first-done-gate/evaluate.ts",
           "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
           "packages/runtime/src/cli-router/route-argv.ts",
-          "changelog.d/6644-acceptance-grant-values-confess.md"
+          "changelog.d/6644-acceptance-grant-values-confess.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "The grant value, reader, record and remint text stay in packages/core/src/policy/acceptance-disposition-grant.ts, which already owns the acceptance-disposition grant; the CLI flag stays in packages/runtime/src/authz.ts. The completion walk change stays where the walk lives: the clause-walk omission in product-first-done-gate/evaluate.ts, the lead in acceptance-resolver.ts, the zero-verified decision and refusal text in scope/acceptance-evidence.ts, and one argument pass-through in scope/transition.ts. The new verb is one new module, scope/confess.ts, wired like scope:bind-clause (main.ts, index.ts, route-argv.ts, tasks/scope.yml). New behaviour tests go in new files so the large existing test files change only where an assertion changes.",
         "cohesion_exemption": "These existing files are over the size trigger and are the single home of the behaviour this story narrows: packages/core/src/product-first-done-gate/evaluate.ts (2329 lines, clause walk), packages/core/src/scope/acceptance-evidence.ts (2185 lines, completion walk), packages/core/src/scope/transition.ts (1625 lines, complete prep), packages/runtime/src/authz.ts (1185 lines, authz:grant CLI) and the test files packages/core/src/scope/acceptance-evidence.test.ts, packages/core/src/scope/transition.test.ts and packages/runtime/src/authz.test.ts. Each change is a small edit in place (an option, a count, a flag, one argument); splitting those files is out of scope for this fix, and the new logic that can stand alone is in new files."

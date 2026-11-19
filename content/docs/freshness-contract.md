@@ -43,14 +43,10 @@ labels plus empty ls-remote of the fallback name are unreadable, not absence.
 A missing local token against a known tip stamps tip+1 (init does not propose 1).
 Empty-directory init stamps or keeps prior; dest-plan cannot skip the gate.
 Bind never mints a missing token. Dry-run does not fetch: it reports that live
-apply performs an invocation-owned refresh. Deposited `deft-core-guard` requires
-head generation to be an integer >= 1, including when the origin base blob is
-absent.
+apply performs an invocation-owned refresh.
 
 Monotonic means monotonic relative to the current default-branch base
-(`origin/$BASE_REF`), not a global counter. When `.deft/GENERATION.json` changes,
-deposited `deft-core-guard` requires `head.generation` greater than that base
-blob whether or not `.deft/core/**` changed.
+(`origin/$BASE_REF`), not a global counter.
 
 
 ## Session bind

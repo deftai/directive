@@ -147,10 +147,14 @@ describe("verify-tools branches", () => {
 
 describe("verify-hooks-installed branches", () => {
   const deftPreCommit = `#!/usr/bin/env sh
+run_directive verify:branch --project-root "$REPO_ROOT"
 run_directive verify:encoding --staged --project-root "$REPO_ROOT"
+run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT"
+run_directive verify:vbrief-conformance --staged --project-root "$REPO_ROOT"
+run_directive verify:xbrief-drift --staged --project-root "$REPO_ROOT"
 `;
   const deftPrePush = `#!/usr/bin/env sh
-run_directive verify:branch --project-root "$REPO_ROOT"
+run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT"
 `;
 
   function writeDeftHooks(hooksDir: string, mode = 0o755): void {
@@ -212,7 +216,7 @@ run_directive verify:branch --project-root "$REPO_ROOT"
     const partial = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
-    expect(partial.message).toContain("verify:branch");
+    expect(partial.message).toContain("preflight-gh --pre-push-stdin");
   });
 
   it("reads hooks path via git config", () => {

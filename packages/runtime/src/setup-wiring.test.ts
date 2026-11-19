@@ -1,7 +1,7 @@
 /**
  * Wave 2c package-relative wiring owner tests (R9 / AC13.1 / AC9.*).
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -15,7 +15,6 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   hostHookOuterCommand,
   hostHookOuterSha8,
 } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
@@ -37,6 +36,7 @@ import {
   resolveRuntimeAgentsEntryTemplatePath,
   SKILL_HOST_ROOTS,
   SKILL_POINTER_INVENTORY,
+  SKILL_POINTER_RECOVERY,
   yamlScalar,
 } from "./setup-wiring.js";
 
@@ -99,7 +99,8 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     const skill = readFileSync(join(root, ".agents", "skills", "deft", "SKILL.md"), "utf8");
     expect(skill).toContain(RUNTIME_PREFIX);
     expect(skill).toContain("SKILL.md");
-    expect(skill).toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(skill).toContain(`Recovery: ${SKILL_POINTER_RECOVERY}`);
+    expect(skill).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(skill).not.toContain(".deft/core/");
     expect(skill).not.toMatch(/\d+\.\d+\.\d+/); // no version in pointer
     const setupSkill = readFileSync(
@@ -311,10 +312,32 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     const preCommit = readFileSync(join(root, ".githooks", "pre-commit"), "utf8");
     const helper = readFileSync(join(root, ".githooks", "_directive-run.sh"), "utf8");
     expect(helper).toContain(`${RUNTIME_PREFIX}dist/bin.js`);
-    expect(helper).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
     expect(helper).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(helper).not.toContain("or yarn");
     expect(preCommit).toContain("_directive-run.sh");
     expect(helper).not.toContain(".deft/core/");
+    // The disable check comes before the runtime check (AC9.12).
+    expect(helper.indexOf("_kill=")).toBeLessThan(helper.indexOf('if [ ! -f "$RUNTIME_BIN" ]'));
+  });
+
+  it.each([
+    ["pnpm-lock.yaml", "`pnpm install --frozen-lockfile`"],
+    ["package-lock.json", "`npm install`"],
+    [null, "`npm install` (or `pnpm install --frozen-lockfile`)"],
+  ])("git hook helper with no runtime and lockfile %s names %s (#6620)", (lockfile, command) => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    if (lockfile !== null) writeFileSync(join(root, lockfile), "", "utf8");
+    const result = spawnSync(
+      "sh",
+      ["-c", `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive verify:encoding`],
+      { encoding: "utf8", cwd: root, env: { ...process.env, REPO_ROOT: root } },
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `Directive can't run: @deftai/directive-runtime is not installed in this project. Run ${command} in a terminal in this project.`,
+    );
+    expect(result.stderr).not.toMatch(/yarn|npm i -g|install --repair/);
   });
 
   it("git hook helper short-circuits on local .deft-directive-disable (#5543 / #3039)", () => {

@@ -74,6 +74,26 @@ function gitInit(repo: string): void {
   execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, encoding: "utf8" });
 }
 
+/** gitInit plus a committed runtime pin and runtime, so worktree prep skips install (#6562). */
+function gitInitPinned(repo: string): void {
+  gitInit(repo);
+  writeFileSync(
+    join(repo, "package.json"),
+    JSON.stringify({ name: "deep", devDependencies: { "@deftai/directive-runtime": "1.0.0" } }),
+    "utf8",
+  );
+  const runtime = join(repo, "node_modules", "@deftai", "directive-runtime");
+  mkdirSync(join(runtime, "dist"), { recursive: true });
+  writeFileSync(
+    join(runtime, "package.json"),
+    JSON.stringify({ name: "@deftai/directive-runtime", version: "1.0.0" }),
+    "utf8",
+  );
+  writeFileSync(join(runtime, "dist", "hook-bin.js"), "export {};\n", "utf8");
+  execFileSync("git", ["add", "-A", "-f"], { cwd: repo, encoding: "utf8" });
+  execFileSync("git", ["commit", "-q", "-m", "pin"], { cwd: repo, encoding: "utf8" });
+}
+
 function writeProjectDef(project: string, backend = "grok-build"): void {
   gitInitIfNeeded(project);
   mkdirSync(join(project, "xbrief"), { recursive: true });
@@ -1012,7 +1032,7 @@ describe("swarm worktrees deep coverage", () => {
 
   it("worktreesMain success and config errors", () => {
     const repo = mkdtempSync(join(tmpdir(), "sw-wtcli-"));
-    gitInit(repo);
+    gitInitPinned(repo);
     const mapPath = join(repo, "map.json");
     const wt = join(repo, "wt-ok");
     writeFileSync(mapPath, JSON.stringify([{ story_id: "s1", worktree_path: wt }]), "utf8");

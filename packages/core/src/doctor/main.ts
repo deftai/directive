@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import {
@@ -65,12 +65,10 @@ import {
   checkDanglingNodeModulesLinks,
   checkWslOwnershipGuard,
   checkXbriefEnvelopeMajorVersion,
-  DANGLING_NODE_MODULES_LINKS_CHECK,
   DOCTOR_ADVISORY_FAIL_CHECKS,
   isDoctorAdvisoryFail,
   prefixCanonicalVendoredSignpostWarn,
   runChecks,
-  SIGNPOST_ADVISORY_LABEL,
   XBRIEF_ENVELOPE_MAJOR_CHECK,
   XBRIEF_ENVELOPE_MIGRATE_COMMAND,
 } from "./checks.js";
@@ -91,21 +89,13 @@ import {
   type LayoutTree,
   NETWORK_DISCLOSURE_LINE,
   PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE,
+  RECOVERY_LADDER_INSTALL_REPAIR,
   recoveryLadderFields,
   recoveryLadderProse,
   TASKFILE_INCLUDE_SNIPPET,
   UV_INSTALL_URL,
   unreadableAgentsRecovery,
 } from "./constants.js";
-import {
-  decideThrottle,
-  dirtyDoctorHint,
-  formatIsoZ,
-  readState,
-  rememberedDepositMatches,
-  renderDoctorStatusLine,
-  writeState,
-} from "./doctor-state.js";
 import { formatAllowedFlagsHint, formatUnknownFlagsError, parseDoctorFlags } from "./flags.js";
 import { formatDoctorHelp } from "./help.js";
 import { pythonJsonDump } from "./json.js";
@@ -136,13 +126,13 @@ import {
   shouldEmitSessionCodaLine,
   utcDateYmd,
 } from "./session-coda.js";
-import { runLocalSignpostChecks } from "./signpost-checks.js";
 import {
   classifyTaskfileInclude,
   formatGatesSurfaceDualRemediation,
   formatMissingIncludeSnippet,
   GATES_SURFACE_DEFT_REMEDIATION,
   includesBlockHasDeftTaskfile,
+  RUNTIME_TASKFILE_INCLUDE_LINE,
   resolveConsumerTaskfile,
 } from "./taskfile.js";
 import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
@@ -603,6 +593,15 @@ function collectKillSwitchSessionStartNoticeLines(
   }
 }
 
+/** Merge `seams.extraJson` into a `--json` payload without replacing doctor's own keys (#6004). */
+function withExtraJson(
+  payload: Record<string, unknown>,
+  seams: DoctorSeams,
+): Record<string, unknown> {
+  if (!seams.extraJson) return payload;
+  return { ...seams.extraJson, ...payload };
+}
+
 export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): number {
   const flags = parseDoctorFlags(args);
   if (flags.unknown.length > 0) {
@@ -661,7 +660,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         permanent_opt_out_also_present: optOutAlso.present,
         message: fullMessage,
       };
-      process.stdout.write(`${pythonJsonDump(payload)}\n`);
+      process.stdout.write(`${pythonJsonDump(withExtraJson(payload, seams))}\n`);
     } else if (!quietMode) {
       process.stdout.write(`${fullMessage}\n`);
     }
@@ -692,7 +691,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
             },
           ],
         };
-        process.stdout.write(`${pythonJsonDump(payload)}\n`);
+        process.stdout.write(`${pythonJsonDump(withExtraJson(payload, seams))}\n`);
       } else if (!quietMode) {
         process.stderr.write(`${message} [policy=${NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY}]\n`);
       }
@@ -707,131 +706,16 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         deposit_present: false,
         message: NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
       };
-      process.stdout.write(`${pythonJsonDump(payload)}\n`);
+      process.stdout.write(`${pythonJsonDump(withExtraJson(payload, seams))}\n`);
     } else if (!quietMode) {
       process.stdout.write(`${NO_DEFT_DIRECTIVE_DISABLED_MESSAGE}\n`);
     }
     return 0;
   }
 
-  if (!fullMode) {
-    const state = (seams.readState ?? readState)(projectRoot);
-    const decision = decideThrottle(state, nowFn());
-    const liveHasDeftCore = classify(projectRoot, seams).hasDeftCore;
-    // Missing .deft/core cannot inherit a remembered-clean skip (#4723).
-    // Skip only when the remembered deposit bit matches that live core (#4886).
-    // Absent bit falls through once; the completed probe persists it.
-    if (
-      decision.skip &&
-      liveHasDeftCore &&
-      rememberedDepositMatches(state?.lastHasDeftCore, liveHasDeftCore)
-    ) {
-      const throttleFindings: Finding[] = [];
-      const throttleSink = createPlainSink({ jsonMode, quietMode });
-      runLocalSignpostChecks(
-        projectRoot,
-        throttleSink,
-        (finding) => {
-          throttleFindings.push(finding);
-        },
-        seams,
-      );
-      // #3749: always-cheap dangling probe when node_modules exists (incl. framework repo).
-      const danglingProbe = seams.checkDanglingNodeModulesLinks ?? checkDanglingNodeModulesLinks;
-      const danglingThrottle = danglingProbe(projectRoot, {
-        packageManager: resolveDoctorPackageManager(projectRoot, seams),
-        ...(seams.isDir ? { isDir: seams.isDir } : {}),
-        ...(seams.isFile ? { isFile: seams.isFile } : {}),
-        ...(seams.readText ? { readText: seams.readText } : {}),
-      });
-      if (danglingThrottle.status === "fail") {
-        const danglingAdvisory = isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data);
-        if (danglingAdvisory) {
-          throttleSink.warn(`${danglingThrottle.name}: ${danglingThrottle.detail}`);
-          throttleFindings.push({
-            severity: "warning",
-            message: danglingThrottle.detail,
-            check: danglingThrottle.name,
-            status: danglingThrottle.status,
-            data: danglingThrottle.data ?? {},
-          });
-        } else {
-          throttleSink.error(`${danglingThrottle.name}: fail -- ${danglingThrottle.detail}`);
-          throttleFindings.push({
-            severity: "error",
-            message: danglingThrottle.detail,
-            check: danglingThrottle.name,
-            status: danglingThrottle.status,
-            data: danglingThrottle.data ?? {},
-          });
-        }
-      } else if (danglingThrottle.status === "pass" && !jsonMode && !quietMode) {
-        throttleSink.success(`${danglingThrottle.name}: pass`);
-      }
-      // #6185: runtime linked in from another checkout; one direct path, cheap.
-      const runtimeLinkThrottle = (seams.checkRuntimeLinkOwner ?? checkRuntimeLinkOwner)(
-        projectRoot,
-      );
-      if (runtimeLinkThrottle.status === "fail") {
-        throttleSink.error(`${runtimeLinkThrottle.name}: fail -- ${runtimeLinkThrottle.detail}`);
-        throttleFindings.push({
-          severity: "error",
-          message: runtimeLinkThrottle.detail,
-          check: runtimeLinkThrottle.name,
-          status: runtimeLinkThrottle.status,
-          data: runtimeLinkThrottle.data ?? {},
-        });
-      }
-      const danglingHardFail =
-        runtimeLinkThrottle.status === "fail" ||
-        (danglingThrottle.status === "fail" &&
-          !isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data));
-      const hint = decision.dirty ? dirtyDoctorHint() : "--full forces";
-      const hygieneFailed = depositHygieneFailed(seams);
-      const hygieneJson = depositHygieneJson(seams);
-      if (jsonMode) {
-        const payload = {
-          status: "throttle-skipped",
-          last_run_at: formatIsoZ(decision.lastRunAt),
-          last_exit_code: decision.lastExitCode,
-          last_finding_count: decision.lastFindingCount,
-          last_error_count: decision.lastErrorCount,
-          next_eligible_at: formatIsoZ(decision.nextEligibleAt),
-          hint,
-          ...(throttleFindings.length > 0 ? { signpost_findings: throttleFindings } : {}),
-          ...(hygieneJson
-            ? {
-                deposit_hygiene: hygieneJson,
-                ok: !hygieneFailed && !decision.dirty && !danglingHardFail,
-              }
-            : {}),
-        };
-        process.stdout.write(`${pythonJsonDump(payload)}\n`);
-      } else {
-        process.stdout.write(`${renderDoctorStatusLine(decision, nowFn())}\n`);
-      }
-      // #4667: throttle-skipped runs still surface lease recovery when a file is present.
-      const throttleLeaseTip = occupancyLeaseDoctorTip(projectRoot, nowFn());
-      if (throttleLeaseTip !== null && !jsonMode && !quietMode) {
-        throttleSink.info(throttleLeaseTip);
-      }
-      const signpostWarnings = throttleFindings.filter((f) => f.severity === "warning").length;
-      if ((hygieneFailed || danglingHardFail) && !jsonMode) {
-        throttleSink.finalError(
-          runtimeLinkThrottle.status === "fail"
-            ? `System check failed: the Directive runtime is linked in from another checkout (${runtimeLinkThrottle.name}).`
-            : danglingHardFail
-              ? `System check failed with dangling node_modules link(s) (${DANGLING_NODE_MODULES_LINKS_CHECK}).`
-              : "System check failed with 1 error(s) including deposit hygiene.",
-        );
-      } else if (signpostWarnings > 0 && !jsonMode) {
-        throttleSink.finalWarn(
-          `${SIGNPOST_ADVISORY_LABEL} ${signpostWarnings} local configuration / layout note(s) above (throttle-skipped full probe).`,
-        );
-      }
-      return hygieneFailed || decision.dirty || danglingHardFail ? 1 : 0;
-    }
-  }
+  // AC12.1 / #6617: doctor keeps no throttle state and writes nothing; it never
+  // skips a run. `--full` only adds the live hook probe below. Session start
+  // keeps its own time window in `.deft/orientation-state.json`.
 
   const findings: Finding[] = [];
   const addFinding = (finding: Finding) => {
@@ -1093,7 +977,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     sink.blank();
   }
   sink.info("Checking gates-surface readiness (Taskfile include for deep-think agent gates)...");
-  runTaskfileIncludeCheck(projectRoot, fixMode, jsonMode, sink, addFinding, seams);
+  runTaskfileIncludeCheck(projectRoot, jsonMode, sink, addFinding, seams);
 
   if (!jsonMode) {
     sink.blank();
@@ -1129,7 +1013,6 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   sink.info("Checking OpenClaw soft AGENTS re-bind skill...");
   runOpenClawSoftRebindCheck(sink, addFinding, {
     projectRoot,
-    fixMode,
     jsonMode,
     allAgents: flags.openclawAllAgents,
     seams,
@@ -1141,7 +1024,6 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   sink.info("Checking OpenClaw L2 product-command skills...");
   runOpenClawL2AdapterCheck(sink, addFinding, {
     projectRoot,
-    fixMode,
     jsonMode,
     allAgents: flags.openclawAllAgents,
     seams,
@@ -1168,15 +1050,6 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const errorCount = findingErrors + (hygieneFailed ? 1 : 0);
   const exitCode = errorCount > 0 ? 1 : 0;
   const hygieneJson = depositHygieneJson(seams);
-
-  const persist = seams.writeState ?? writeState;
-  persist(projectRoot, {
-    exitCode,
-    findingCount: findings.filter((f) => f.severity !== "skip").length + (hygieneFailed ? 1 : 0),
-    errorCount,
-    hasDeftCore: classify(projectRoot, seams).hasDeftCore,
-    now: nowFn(),
-  });
 
   if (jsonMode) {
     const payload = {
@@ -1209,7 +1082,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
           }
         : {}),
     };
-    process.stdout.write(`${pythonJsonDump(payload)}\n`);
+    process.stdout.write(`${pythonJsonDump(withExtraJson(payload, seams))}\n`);
     return exitCode;
   }
 
@@ -1857,7 +1730,6 @@ function runConsumerCheckGraphIntegrity(
 
 function runTaskfileIncludeCheck(
   projectRoot: string,
-  fixMode: boolean,
   jsonMode: boolean,
   sink: ReturnType<typeof createPlainSink>,
   addFinding: (f: Finding) => void,
@@ -1883,7 +1755,7 @@ function runTaskfileIncludeCheck(
         text !== null &&
         classifyRootCheckDirective(projectRoot, text).kind === "does-not-invoke"
       ) {
-        // Warning only. Do not write the Taskfile, including when fixMode is set.
+        // Warning only. Doctor never writes the Taskfile (AC12.1).
         sink.warn(ROOT_CHECK_DOES_NOT_INVOKE_MESSAGE);
         addFinding({
           severity: "warning",
@@ -1901,7 +1773,7 @@ function runTaskfileIncludeCheck(
     return;
   }
   if (includeStatus === "missing-file") {
-    let includeMissing = true;
+    // AC12.1 / #6622: doctor only reports; setup (`directive install --repair`) writes the include.
     const target = join(projectRoot, "Taskfile.yml");
     // #2893: elevate to warning — deep-think agent gates need a working invoke path.
     // Dual remediations: (1) deft CLI primary (2) Taskfile include for task deft: verbs.
@@ -1917,35 +1789,43 @@ function runTaskfileIncludeCheck(
       sink.blank();
       sink.raw(TASKFILE_INCLUDE_SNIPPET);
     }
-    const isTty = seams.isTty ?? (() => process.stdin.isTTY === true);
-    const readYn = seams.readYn ?? (() => false);
-    const writeText =
-      seams.writeText ?? ((p: string, c: string) => writeFileSync(p, c, { encoding: "utf8" }));
-    if (fixMode && !jsonMode && isTty()) {
-      if (readYn(`Create ${target} with the canonical include now?`, false)) {
-        try {
-          writeText(target, TASKFILE_INCLUDE_SNIPPET);
-          sink.success(`Wrote ${target}`);
-          includeMissing = false;
-        } catch (exc) {
-          sink.error(`Failed to write ${target}: ${exc}`);
-        }
-      } else {
-        sink.info(
-          "Skipped Taskfile.yml creation -- use `deft <verb>` now, or paste the include snippet when ready.",
-        );
-      }
+    addFinding({
+      severity: "warning",
+      message:
+        "Gates-surface: root Taskfile.yml missing — deep-think gates need `deft` CLI or `task deft:` include",
+      check: "taskfile-include",
+      file: target,
+      suggestion: formatGatesSurfaceDualRemediation("missing-file"),
+    });
+    return;
+  }
+  if (includeStatus === "legacy-include") {
+    // #5967 item 1: the include still points at the old layout, which upgrade removed.
+    const tf = resolveConsumerTaskfile(projectRoot);
+    let tfText = "";
+    try {
+      tfText = tf === null ? "" : readFileSync(tf, "utf8");
+    } catch {
+      tfText = "";
     }
-    if (includeMissing) {
-      addFinding({
-        severity: "warning",
-        message:
-          "Gates-surface: root Taskfile.yml missing — deep-think gates need `deft` CLI or `task deft:` include",
-        check: "taskfile-include",
-        file: target,
-        suggestion: formatGatesSurfaceDualRemediation("missing-file"),
-      });
-    }
+    // Setup (`ensureTaskfileInclude`) rewrites only the `./.deft/core/Taskfile.yml`
+    // form; any other old form (`deft/`, `.yaml`) needs a hand edit.
+    const repairable = /taskfile:\s*\.\/\.deft\/core\/Taskfile\.yml/.test(tfText);
+    const fix = repairable
+      ? `Run \`${RECOVERY_LADDER_INSTALL_REPAIR}\`.`
+      : `Change that include to \`${RUNTIME_TASKFILE_INCLUDE_LINE}\`.`;
+    const message =
+      "Gates-surface readiness: root Taskfile.yml still includes the old `.deft/core` (or `deft/`) " +
+      `Taskfile, which no longer exists. Directive wiring is damaged. ${fix}`;
+    sink.warn(message);
+    addFinding({
+      severity: "warning",
+      message,
+      check: "taskfile-include",
+      status: "legacy-include",
+      file: tf,
+      suggestion: repairable ? RECOVERY_LADDER_INSTALL_REPAIR : RUNTIME_TASKFILE_INCLUDE_LINE,
+    });
     return;
   }
   if (includeStatus === "missing-include") {

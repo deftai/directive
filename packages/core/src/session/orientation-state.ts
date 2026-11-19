@@ -21,6 +21,10 @@ export interface OrientationSurfaceRecord {
   readonly ts: string;
   readonly exit_code: number;
   readonly message?: string;
+  /** Doctor only: error count of the run this record describes (#6617 throttle). */
+  readonly error_count?: number;
+  /** Doctor only: finding count (errors + warnings) of that run. */
+  readonly finding_count?: number;
 }
 
 export interface OrientationState {
@@ -48,6 +52,8 @@ function parseRecord(raw: unknown): OrientationSurfaceRecord | undefined {
     ts: rec.ts,
     exit_code: exit,
     message: typeof rec.message === "string" ? rec.message : undefined,
+    ...(typeof rec.error_count === "number" ? { error_count: rec.error_count } : {}),
+    ...(typeof rec.finding_count === "number" ? { finding_count: rec.finding_count } : {}),
   };
 }
 

@@ -1,6 +1,7 @@
 /**
  * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -8,7 +9,6 @@ import {
   EXIT_CODES,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
   LAUNCHER_PACKAGE_NAME,
-  RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
 import {
@@ -20,6 +20,11 @@ import {
   setupArgv,
   uninstallArgv,
 } from "./contract-invoke.js";
+import {
+  classifyLauncherSituation,
+  formatEntryGuardMessage,
+  projectInstallCommand,
+} from "./entry-guard.js";
 import { type InteractiveLine, readInteractiveLine } from "./interactive-stdin.js";
 import {
   formatShapeRecoveryMessage,
@@ -82,10 +87,17 @@ import {
   validateTargetVersionSpec,
 } from "./registry.js";
 import { type RegistryHintVerb, scopedRegistryHint } from "./registry-hint.js";
+import { filesWithDirectiveLines } from "./retired-lines.js";
 import {
   applyLauncherCleanup,
   cleanupHooksPath,
   discoverUninstallFootprint,
+  listKeptDirectiveData,
+  registeredWorktreesInsideProject,
+  removeSoleAuthorManifest,
+  restoreManifestFiles,
+  siblingWorktreesNeedingHooksPath,
+  snapshotManifestFiles,
   type UninstallDiscovery,
   verifyUninstallComplete,
 } from "./uninstall-map.js";
@@ -146,8 +158,46 @@ export interface InstallDeps {
   readonly readScopedRegistry?: (projectRoot: string, env: NodeJS.ProcessEnv) => string | null;
 }
 
+/**
+ * Read-only: paths Git reports as modified or untracked under `.deft/core`
+ * (AC10.6 / RC-03, #6002). Empty when there is no Git repo, Git is missing,
+ * or `.deft/core` is ignored or clean. Never blocks the upgrade.
+ */
+export function listDeftCoreGitEdits(projectRoot: string): string[] {
+  if (!existsSync(join(projectRoot, ".deft", "core"))) return [];
+  const result = spawnSync(
+    "git",
+    [
+      "-C",
+      projectRoot,
+      "status",
+      "--porcelain=v1",
+      "-z",
+      "--untracked-files=all",
+      "--",
+      ".deft/core",
+    ],
+    // Read-only: no optional index refresh writes; bounded so a slow Git never stalls the plan.
+    { encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" }, timeout: 5000 },
+  );
+  if (result.error || result.status !== 0 || typeof result.stdout !== "string") return [];
+  const tokens = result.stdout.split("\0");
+  const paths: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const entry = tokens[i] ?? "";
+    if (entry.length < 4) continue;
+    const xy = entry.slice(0, 2);
+    paths.push(entry.slice(3));
+    // Rename / copy entries carry the original path as the next token.
+    if (xy.includes("R") || xy.includes("C")) i++;
+  }
+  return paths;
+}
+
 /** Testable seams for upgrade (extends install seams). */
 export interface UpgradeDeps extends InstallDeps {
+  /** Override the read-only `.deft/core` Git edit listing (#6002 tests). */
+  readonly listDeftCoreGitEdits?: (projectRoot: string) => readonly string[];
   readonly resolvePublishedContract?: (
     version: string,
   ) => { ok: true; contract: number } | { ok: false; message: string };
@@ -181,6 +231,8 @@ export interface UninstallDeps {
     discovery: UninstallDiscovery,
   ) => ReturnType<typeof applyLauncherCleanup>;
   readonly cleanupHooksPath?: (projectRoot: string) => ReturnType<typeof cleanupHooksPath>;
+  /** Other worktrees that still use Directive hooks (report for `preserved-sibling`). */
+  readonly siblingWorktrees?: (projectRoot: string) => string[];
 }
 
 const CANCELLED_NO_CHANGES = "Cancelled. No project files were changed.";
@@ -827,7 +879,8 @@ function runRepair(
   const installed = readInstalledRuntime(projectRoot);
   if (installed === null || installed.version !== pinVersion) {
     io.writeErr(
-      `Repair verification failed: expected installed ${pinVersion}, found ${installed?.version ?? "nothing"}. ${RECOVERY_GUIDANCE}\n`,
+      `Repair could not install the pinned runtime (expected ${pinVersion}, found ${installed?.version ?? "nothing"}). ` +
+        `Run ${projectInstallCommand(projectRoot)} and read its output.\n`,
     );
     return EXIT_CODES.FAILURE;
   }
@@ -1194,8 +1247,10 @@ export function runUpgrade(
 
   if (!versionChange) {
     if (state.installed === null || !state.pinMatchesInstalled || !state.contractSupported) {
+      const blocked = classifyLauncherSituation(projectRoot, state);
       io.writeErr(
-        `Equal-version upgrade requires the pinned runtime installed and contract-supported. ${RECOVERY_GUIDANCE}\n`,
+        `Equal-version upgrade needs the pinned runtime installed. ${blocked?.message ?? ""}`.trimEnd() +
+          "\n",
       );
       return EXIT_CODES.FAILURE;
     }
@@ -1243,6 +1298,11 @@ export function runUpgrade(
     needMigrate,
     oldStyle: state.oldStyle,
     convertShapeId: convertViaRemovals ? upgradeShape?.shapeId : null,
+    willCreatePkg: convertViaRemovals && !existsSync(join(projectRoot, "package.json")),
+    deftCoreGitEdits:
+      state.oldStyle || convertViaRemovals
+        ? (deps.listDeftCoreGitEdits ?? listDeftCoreGitEdits)(projectRoot)
+        : null,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
@@ -1277,6 +1337,7 @@ export function runUpgrade(
       // no-op and drop the private greenfield marker.
       if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
         ensurePackageJson(projectRoot);
+        io.writeOut('Created package.json { "private": true }\n');
       }
       // Strip launcher pin + retired triad before PM add (wave4e / AC10.3).
       // Upgrade must not require old triad tarballs on the registry.
@@ -1304,6 +1365,7 @@ export function runUpgrade(
     // Convert shapes may lack a package.json (rare); ensure before PM add.
     if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
       ensurePackageJson(projectRoot);
+      io.writeOut('Created package.json { "private": true }\n');
     }
     const add =
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
@@ -1555,6 +1617,10 @@ export function runUninstall(
         ]
       : undefined;
 
+  // Shown at default verbosity: what uninstall edits in shared files, what it
+  // keeps, and the worktrees it leaves alone (AC11.3 / #6007 / D-025).
+  const directiveLineFiles = filesWithDirectiveLines(projectRoot);
+  const worktrees = registeredWorktreesInsideProject(projectRoot);
   presentUninstallPlan(io, {
     projectRoot,
     pm: pmDetect.ok ? pmDetect.pm : null,
@@ -1564,6 +1630,9 @@ export function runUninstall(
     verbosity: flags.verbosity,
     removal,
     extraHumanLines,
+    directiveLineFiles,
+    keptData: listKeptDirectiveData(projectRoot).filter((k) => !keepPaths.includes(k)),
+    worktrees,
   });
 
   if (flags.dryRun) {
@@ -1583,6 +1652,9 @@ export function runUninstall(
   );
   if (approval !== null) return approval;
 
+  // The package manager needs package.json for its remove. An older pinned
+  // runtime's uninstaller deletes it first (#5999), so keep the bytes to restore.
+  const manifestSnapshot = snapshotManifestFiles(projectRoot);
   let runtimeUninstallAttempted = false;
   let runtimeUninstallFailed = false;
   if (state.installed && state.contractSupported) {
@@ -1625,11 +1697,21 @@ export function runUninstall(
     }
   }
 
-  // PM remove after wiring cleanup (AC11.6).
+  const restored = restoreManifestFiles(projectRoot, manifestSnapshot);
+  if (restored.length > 0 && flags.verbosity >= 1) {
+    io.writeOut(`Restored ${restored.join(", ")} for the package manager remove.\n`);
+  }
+
+  // PM remove after wiring cleanup (AC11.6). Track the real result (#5999).
+  const pmLeftovers = new Map<string, string>();
+  let pinRemoved = false;
   if (packagesToRemove.length > 0) {
     if (!pmDetect.ok) {
       io.writeErr(`${pmDetect.message}\n`);
       io.writeErr("Could not remove package dependency via PM; pin may remain.\n");
+      for (const packageName of packagesToRemove) {
+        pmLeftovers.set(packageName, "no package manager found");
+      }
     } else {
       for (const packageName of packagesToRemove) {
         if (packageName === LAUNCHER_PACKAGE_NAME) {
@@ -1648,39 +1730,91 @@ export function runUninstall(
           io.writeErr(
             `PM remove of ${packageName} failed; continuing remaining uninstall steps.\n`,
           );
+          pmLeftovers.set(packageName, rm.message);
         } else if (flags.verbosity >= 1) {
           io.writeOut(`Removed ${packageName} via ${pmDetect.pm}.\n`);
         }
       }
     }
+    pinRemoved = pmLeftovers.size === 0;
   }
 
-  const hooksPathResult = deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot);
+  // Sole-author manifest goes only after the package manager is done with it (F-013 / #5999).
+  const manifestRemoved = pmLeftovers.size === 0 ? removeSoleAuthorManifest(projectRoot) : [];
+
+  // core.hooksPath is touched only with evidence that Directive was installed
+  // here: its hook files, its ownership record, or its pin (a retry after an
+  // interrupted package-manager remove still has the pin). Lines left in shared
+  // files alone are not that evidence: `.githooks` may be the user's own (AC11.6).
+  const directiveHooksEvidence =
+    discovery.ownershipInspection !== "absent" ||
+    discovery.hasRuntimePin ||
+    discovery.hasLegacyLauncherPin ||
+    discovery.hasLegacyCore ||
+    discovery.artifacts.some((a) => a.path.startsWith(".githooks/"));
+  const hooksPathResult = directiveHooksEvidence
+    ? (deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot))
+    : "absent";
   if (flags.verbosity >= 1) {
     io.writeOut(`core.hooksPath: ${hooksPathResult}\n`);
   }
+  const siblings =
+    hooksPathResult === "preserved-sibling"
+      ? (deps.siblingWorktrees?.(projectRoot) ?? siblingWorktreesNeedingHooksPath(projectRoot))
+      : [];
 
   const verification = verifyUninstallComplete(projectRoot);
-  // Legacy launcher pin leftover only matters for old-style; modern projects should not have it.
-  const filteredLeftovers = verification.leftovers.filter((l) => {
+  const leftovers: string[] = [];
+  for (const l of verification.leftovers) {
+    // Legacy launcher pin leftover only matters for old-style; modern projects should not have it.
     if (
       l === `package.json#${LAUNCHER_PACKAGE_NAME}` &&
       !state.oldStyle &&
       !discovery.hasLegacyLauncherPin
     ) {
-      return false;
+      continue;
     }
-    return true;
-  });
-  const complete = filteredLeftovers.length === 0;
+    const pkg = l.startsWith("package.json#") ? l.slice("package.json#".length) : null;
+    const why = pkg !== null ? pmLeftovers.get(pkg) : undefined;
+    leftovers.push(why !== undefined ? `${l} (${why})` : l);
+  }
+  for (const [pkg, why] of pmLeftovers) {
+    if (!leftovers.some((l) => l.startsWith(`package.json#${pkg}`))) {
+      leftovers.push(`package.json#${pkg} (${why})`);
+    }
+  }
+  // AC5.16: never list node_modules; name the package instead.
+  if (
+    pinRemoved &&
+    packagesToRemove.includes(RUNTIME_PACKAGE_NAME) &&
+    existsSync(join(projectRoot, "node_modules", "@deftai", "directive-runtime"))
+  ) {
+    leftovers.push(`Directive package still installed (${RUNTIME_PACKAGE_NAME})`);
+  }
+  if (hooksPathResult === "unchanged") leftovers.push("core.hooksPath (could not unset)");
+  for (const l of cleanup.leftovers) {
+    if (!leftovers.includes(l)) leftovers.push(l);
+  }
+  // AC11.11: any leftover, failed PM remove or still-installed package is partial.
+  const complete = leftovers.length === 0;
 
+  const linesRemoved = cleanup.modified
+    .filter((m) => m.endsWith("#directive-lines"))
+    .map((m) => m.slice(0, -"#directive-lines".length));
+  const keptLabels = cleanup.preserved.length > 0 ? cleanup.preserved : keepPaths;
   presentUninstallSuccess(io, {
     projectRoot,
     complete,
     removal,
-    removedPaths: cleanup.removed,
-    preserved: cleanup.preserved.length > 0 ? cleanup.preserved : keepPaths,
-    leftovers: filteredLeftovers,
+    removedPaths: [...cleanup.removed, ...manifestRemoved],
+    preserved: keptLabels,
+    leftovers,
+    uncertainty: cleanup.uncertainty,
+    pinRemoved,
+    directiveLineFiles: linesRemoved,
+    hooksPath: { result: hooksPathResult, siblings },
+    keptData: listKeptDirectiveData(projectRoot).filter((k) => !keptLabels.includes(k)),
+    worktrees,
     verbosity: flags.verbosity,
   });
   if (runtimeUninstallAttempted && runtimeUninstallFailed && complete) {
@@ -1699,6 +1833,14 @@ export function runUninstall(
 export const runUninstallStub = runUninstall;
 
 /**
+ * `directive doctor --json` writes exactly one JSON document to stdout in every
+ * launcher-only state (#6004). Human text goes to stderr or is omitted.
+ */
+function writeDoctorJson(io: BookendIo, payload: Record<string, unknown>): void {
+  io.writeOut(`${JSON.stringify({ entry: "doctor", launcher_only: true, ...payload })}\n`);
+}
+
+/**
  * Launcher doctor bookend (R12 / AC12.4 / AC3.15).
  * When the runtime can run: full read-only diagnosis.
  * When missing/broken: basic §A5.6 diagnosis ending in AC9.7.
@@ -1712,46 +1854,64 @@ export function runDoctor(
   io: BookendIo = defaultIo(),
 ): number {
   const { flags } = parseFlags(argv);
+  const json = argv.includes("--json");
   const node = checkNodeVersion();
-  if (node.warning) io.writeOut(`${node.warning}\n`);
+  if (node.warning) {
+    if (json) io.writeErr(`${node.warning}\n`);
+    else io.writeOut(`${node.warning}\n`);
+  }
 
   // AC14.27 / A5.6: no project → non-zero + directive install.
   if (projectRoot === null || state === null) {
     io.writeErr("No Directive project here. Run `directive install`.\n");
+    if (json) writeDoctorJson(io, { status: "no-project", recovery: "directive install" });
     return EXIT_CODES.FAILURE;
   }
 
   if (state.oldStyle) {
-    io.writeOut("This project uses an older Directive layout. Run `directive upgrade`.\n");
+    const message = "This project uses an older Directive layout. Run `directive upgrade`.";
+    if (json) {
+      writeDoctorJson(io, { status: "old-layout", message, recovery: "directive upgrade" });
+    } else {
+      io.writeOut(`${message}\n`);
+    }
     return EXIT_CODES.FAILURE;
   }
 
   // Bare --root / cwd with no Directive pin is still "not a project" (AC14.27).
   if (state.pin.kind === "none") {
     io.writeErr("No Directive project here. Run `directive install`.\n");
+    if (json) writeDoctorJson(io, { status: "no-project", recovery: "directive install" });
     return EXIT_CODES.FAILURE;
   }
 
   const pinLabel = state.pin.version ?? state.pin.raw ?? "(none)";
   const installedLabel = state.installed?.version ?? "(missing)";
 
-  // Runtime missing or pin≠installed → launcher basic diagnosis (AC12.4 / A5.6).
+  // Runtime missing or pin≠installed → launcher basic diagnosis ending in one
+  // next command from the shared table (AC12.4 / A5.6 / AC9.7).
   if (state.installed === null || !state.pinMatchesInstalled) {
-    if (state.installed === null) {
-      io.writeOut(
-        `directive doctor: project ${projectRoot}\n` +
-          `  launcher: ${launcherVersion}\n` +
-          `  pin: ${pinLabel} (${state.pin.kind})\n` +
-          `  installed: missing\n` +
-          `Recovery: ${RECOVERY_GUIDANCE}\n`,
-      );
+    const blocked = classifyLauncherSituation(projectRoot, state);
+    const next =
+      blocked?.message ??
+      formatEntryGuardMessage("runtime-missing", { install: projectInstallCommand(projectRoot) });
+    if (json) {
+      writeDoctorJson(io, {
+        status: state.installed === null ? "runtime-missing" : "pin-mismatch",
+        project_root: projectRoot,
+        launcher: launcherVersion,
+        pin: pinLabel,
+        pin_kind: state.pin.kind,
+        installed: state.installed?.version ?? null,
+        recovery: next,
+      });
     } else {
       io.writeOut(
         `directive doctor: project ${projectRoot}\n` +
           `  launcher: ${launcherVersion}\n` +
           `  pin: ${pinLabel} (${state.pin.kind})\n` +
-          `  installed: ${installedLabel} (≠ pin)\n` +
-          `Recovery: ${RECOVERY_GUIDANCE}\n`,
+          `  installed: ${state.installed === null ? "missing" : `${installedLabel} (≠ pin)`}\n` +
+          `Next: ${next}\n`,
       );
     }
     return EXIT_CODES.FAILURE;
@@ -1761,10 +1921,26 @@ export function runDoctor(
     io.writeErr(
       "This launcher is too old for this project. `npm i -g @deftai/directive@latest`.\n",
     );
+    if (json) {
+      writeDoctorJson(io, {
+        status: "launcher-too-old",
+        recovery: "npm i -g @deftai/directive@latest",
+      });
+    }
     return EXIT_CODES.FAILURE;
   }
 
   if (flags.dryRun) {
+    if (json) {
+      writeDoctorJson(io, {
+        status: "dry-run",
+        project_root: projectRoot,
+        launcher: launcherVersion,
+        pin: pinLabel,
+        installed: installedLabel,
+      });
+      return EXIT_CODES.SUCCESS;
+    }
     io.writeOut(
       `directive doctor: project ${projectRoot}\n` +
         `  launcher: ${launcherVersion}\n` +

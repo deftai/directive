@@ -6,12 +6,20 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { writeState } from "../doctor/doctor-state.js";
 import {
   formatOrientationVerboseLines,
   runDoctorOrientationSection,
 } from "./orientation-compression.js";
+import type { OrientationState } from "./orientation-state.js";
 import { isSessionStartAlwaysOnLine, selectSessionStartHumanLines } from "./session-start.js";
+
+/** Session start's record of a clean doctor run 30 minutes before `now` (#6617). */
+const CLEAN_PRIOR: OrientationState = {
+  schema_version: 1,
+  deposit_sha: "abc",
+  updated_at: "2026-01-01T12:00:00Z",
+  doctor: { ok: true, ts: "2026-01-01T12:00:00Z", exit_code: 0, error_count: 0, finding_count: 0 },
+};
 
 const temps: string[] = [];
 afterEach(() => {
@@ -34,14 +42,9 @@ describe("quiet session:start output and the runtime-link failure (#6185)", () =
   it("keeps the cause and recovery in the final quiet output", () => {
     const root = mkdtempSync(join(tmpdir(), "ss-rtlink-"));
     temps.push(root);
-    writeState(root, {
-      exitCode: 0,
-      findingCount: 0,
-      errorCount: 0,
-      now: new Date("2026-01-01T12:00:00Z"),
-    });
     const doctor = runDoctorOrientationSection(root, {
       now: new Date("2026-01-01T12:30:00Z"),
+      prior: CLEAN_PRIOR,
       seams: {
         checkRuntimeLinkOwner: () => ({
           name: "foreign-runtime-link",

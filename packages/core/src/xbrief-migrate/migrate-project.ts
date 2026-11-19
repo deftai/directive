@@ -271,6 +271,45 @@ function ensureArchiveReadme(projectRoot: string, stagedOrMigratedDir: string): 
   });
 }
 
+/**
+ * Decode `bytes` as text only when they are valid UTF-8 with no NUL byte.
+ * Anything else (images, PDFs, archives) is binary and must be copied as-is.
+ */
+function decodeTextOrNull(bytes: Buffer): string | null {
+  if (bytes.includes(0)) return null;
+  try {
+    // ignoreBOM keeps a leading BOM in the text, as readFileSync(path, "utf8") did.
+    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+/** How one legacy file moves: converted/rewritten text, or its exact bytes. */
+type LegacyFileMove =
+  | { readonly kind: "migrate" | "copy"; readonly body: string; readonly raw: Buffer }
+  | { readonly kind: "archive"; readonly raw: Buffer }
+  | { readonly kind: "binary"; readonly raw: Buffer };
+
+/**
+ * Read a legacy file as bytes (#6571). Text goes through
+ * {@link classifyLegacyMigrationFile}; binary content is never decoded, so it
+ * is copied (or, under a lifecycle envelope name, archived) byte for byte.
+ */
+function readLegacyFileMove(srcPath: string): LegacyFileMove {
+  const raw = readFileSync(srcPath);
+  const text = decodeTextOrNull(raw);
+  if (text === null) {
+    const isEnvelope =
+      srcPath.endsWith(LEGACY_ARTIFACT_SUFFIX) || srcPath.endsWith(MIGRATED_ARTIFACT_SUFFIX);
+    return isEnvelope ? { kind: "archive", raw } : { kind: "binary", raw };
+  }
+  const disposition = classifyLegacyMigrationFile(srcPath, text);
+  return disposition.kind === "archive"
+    ? { kind: "archive", raw }
+    : { kind: disposition.kind, body: disposition.body, raw };
+}
+
 function writeMigratedFile(
   projectRoot: string,
   srcPath: string,
@@ -278,14 +317,13 @@ function writeMigratedFile(
   archivePath: string,
 ): "migrated" | "archived" | "copied" {
   const root = resolve(projectRoot);
-  const raw = readFileSync(srcPath, "utf8");
-  const disposition = classifyLegacyMigrationFile(srcPath, raw);
+  const move = readLegacyFileMove(srcPath);
 
-  if (disposition.kind === "archive") {
+  if (move.kind === "archive") {
     containedWrite({
       root,
       target: archivePath,
-      data: raw,
+      data: move.raw,
       mode: "replace",
     });
     return "archived";
@@ -294,10 +332,10 @@ function writeMigratedFile(
   containedWrite({
     root,
     target: destPath,
-    data: disposition.body,
+    data: move.kind === "binary" ? move.raw : move.body,
     mode: "replace",
   });
-  return disposition.kind === "migrate" ? "migrated" : "copied";
+  return move.kind === "migrate" ? "migrated" : "copied";
 }
 
 /** True when declared version is a residual hybrid/orphan rewrite candidate. */
@@ -879,14 +917,6 @@ function collisionArchiveRelative(legacyRel: string): string {
     : rel;
 }
 
-function readTextOrNull(path: string): string | null {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return null;
-  }
-}
-
 function normalizeEol(text: string): string {
   return text.replace(/\r\n/g, "\n");
 }
@@ -924,9 +954,26 @@ function sameMigratedContent(existing: string, wanted: string): boolean {
 
 type FinishMoveWrite = {
   readonly targetRel: string;
-  readonly data: string;
+  /** Converted text, or the legacy file's exact bytes (raw copies and binaries). */
+  readonly data: string | Buffer;
   readonly kind: "migrated" | "archived" | "collision";
 };
+
+function readBytesOrNull(path: string): Buffer | null {
+  try {
+    return readFileSync(path);
+  } catch {
+    return null;
+  }
+}
+
+/** Same bytes, or both text and equal after CRLF to LF (a Windows checkout). */
+function sameRawContent(existing: Buffer, raw: Buffer): boolean {
+  if (existing.equals(raw)) return true;
+  const a = decodeTextOrNull(existing);
+  const b = decodeTextOrNull(raw);
+  return a !== null && b !== null && normalizeEol(a) === normalizeEol(b);
+}
 
 type FinishMovePlan = {
   readonly files: number;
@@ -969,7 +1016,7 @@ function planFinishLegacyMove(
   const archiveRaw = (
     rel: string,
     targetRel: string,
-    raw: string,
+    raw: Buffer,
     kind: "archived" | "collision",
   ): string | null => {
     const claimed = claim(targetRel, rel);
@@ -979,8 +1026,8 @@ function planFinishLegacyMove(
       writes.push({ targetRel, data: raw, kind });
       return null;
     }
-    const existing = readTextOrNull(targetPath);
-    if (existing !== null && normalizeEol(existing) === normalizeEol(raw)) {
+    const existing = readBytesOrNull(targetPath);
+    if (existing !== null && sameRawContent(existing, raw)) {
       alreadyPresent.push(`${MIGRATED_ARTIFACT_DIR}/${targetRel}`);
       return null;
     }
@@ -990,24 +1037,30 @@ function planFinishLegacyMove(
   for (const srcPath of files) {
     const rel = relative(legacyDir, srcPath).replace(/\\/g, "/");
     if (shouldOmitLegacyMigrationFile(rel) || isLegacyRootMarker(legacyDir, rel)) continue;
-    const raw = readFileSync(srcPath, "utf8");
-    const disposition = classifyLegacyMigrationFile(srcPath, raw);
+    const move = readLegacyFileMove(srcPath);
     let refused: string | null = null;
-    if (disposition.kind === "archive") {
-      refused = archiveRaw(rel, archiveDestRelative(rel), raw, "archived");
+    if (move.kind === "archive") {
+      refused = archiveRaw(rel, archiveDestRelative(rel), move.raw, "archived");
     } else {
       const destRel = destRelForLegacy(rel);
       refused = claim(destRel, rel);
       const destPath = join(migratedDir, destRel);
+      const wanted = move.kind === "binary" ? move.raw : move.body;
       if (refused === null && !existsSync(destPath)) {
-        writes.push({ targetRel: destRel, data: disposition.body, kind: "migrated" });
+        writes.push({ targetRel: destRel, data: wanted, kind: "migrated" });
       } else if (refused === null) {
-        const existing = readTextOrNull(destPath);
-        if (existing !== null && sameMigratedContent(existing, disposition.body)) {
+        const existing = readBytesOrNull(destPath);
+        const existingText = existing === null ? null : decodeTextOrNull(existing);
+        const same =
+          existing !== null &&
+          (move.kind === "binary"
+            ? existing.equals(move.raw)
+            : existingText !== null && sameMigratedContent(existingText, move.body));
+        if (same) {
           alreadyPresent.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
         } else {
           // Destination taken with different content: never overwrite xbrief/.
-          refused = archiveRaw(rel, collisionArchiveRelative(rel), raw, "collision");
+          refused = archiveRaw(rel, collisionArchiveRelative(rel), move.raw, "collision");
         }
       }
     }

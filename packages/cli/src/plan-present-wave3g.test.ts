@@ -2,8 +2,12 @@
  * Wave 3g — F-009 / F-011 / F-014 owner-boundary presenter tests.
  * Plain shop-English plan/completion + TTY wrap + uninstall summary.
  */
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  detectRetiredCoreGuard,
   HUMAN_GIT_HOOKS_INACTIVE_LINE,
   HUMAN_INSTALL_SCRIPT_LINE,
   type PresentIo,
@@ -11,8 +15,14 @@ import {
   presentInstallSuccess,
   presentUninstallPlan,
   presentUninstallSuccess,
+  presentUpgradePlan,
+  presentUpgradeSuccess,
+  RETIRED_CORE_GUARD_KEPT_LINE,
+  RETIRED_CORE_GUARD_REMOVED_LINE,
+  RETIRED_CORE_GUARD_WORKFLOW_REL,
   resolveWrapWidth,
   summarizeUninstallRemovals,
+  tryParseSetupSummary,
   type UninstallRemovalSummary,
   wrapWords,
 } from "./plan-present.js";
@@ -250,5 +260,230 @@ describe("F-014 uninstall plan/report summary", () => {
       verbosity: 1,
     });
     expect(cV.out()).toContain(".agents/skills/deft/SKILL.md");
+  });
+});
+
+describe("uninstall report at default verbosity (#6007 / AC11.11)", () => {
+  const summary = summarizeUninstallRemovals([".githooks/pre-commit"], {
+    willRemovePin: true,
+    preserveLabels: ["xbrief"],
+  });
+
+  it("shows the hooksPath outcome, worktrees, kept data, leftovers and uncertainty", () => {
+    const c = capture();
+    presentUninstallSuccess(c.io, {
+      projectRoot: "/tmp/shop",
+      complete: false,
+      removal: summary,
+      preserved: ["xbrief"],
+      leftovers: [".deft/directive/unknown.txt"],
+      uncertainty: ["GENERATION.json absent; used known-artifact map"],
+      pinRemoved: true,
+      hooksPath: {
+        result: "preserved-sibling",
+        siblings: ["/w/a", "/w/b", "/w/c", "/w/d"],
+      },
+      keptData: [".deft/occupancy.json", ".deft-cache/"],
+      worktrees: [".deft-scratch/worktrees/a", ".deft-scratch/worktrees/b", "tools/wt"],
+      verbosity: 0,
+    });
+    const text = c.out();
+    expect(text).toMatch(/partially finished/);
+    expect(text).toContain(
+      "Kept the shared Git hooks setting because 4 other worktrees still use Directive (/w/a, /w/b, /w/c and 1 more). Nothing else to do.",
+    );
+    expect(text).not.toContain("git config --unset core.hooksPath");
+    expect(text).toContain(
+      "Kept (Directive data that uninstall does not delete): .deft/occupancy.json, .deft-cache/.",
+    );
+    expect(text).toContain(
+      "Not touched: 3 registered Git worktrees in .deft-scratch/worktrees/ (2), tools/ (1).",
+    );
+    expect(text).toContain("Known leftovers: .deft/directive/unknown.txt.");
+    expect(text).toContain("Not certain: GENERATION.json absent; used known-artifact map.");
+  });
+
+  it("claims the version removal only when the package manager removed it (#5999)", () => {
+    const failed = capture();
+    presentUninstallSuccess(failed.io, {
+      projectRoot: "/tmp/shop",
+      complete: false,
+      removal: summary,
+      pinRemoved: false,
+      verbosity: 0,
+    });
+    expect(failed.out()).not.toMatch(/Directive version from development tools/);
+    const ok = capture();
+    presentUninstallSuccess(ok.io, {
+      projectRoot: "/tmp/shop",
+      complete: true,
+      removal: summary,
+      pinRemoved: true,
+      hooksPath: { result: "unset" },
+      verbosity: 0,
+    });
+    expect(ok.out()).toMatch(/Directive version from development tools/);
+    expect(ok.out()).toContain("Unset core.hooksPath (it pointed at Directive's .githooks).");
+  });
+
+  it("plan names every worktree and the shared files it edits", () => {
+    const c = capture();
+    presentUninstallPlan(c.io, {
+      projectRoot: "/tmp/shop",
+      pm: "pnpm",
+      pmEvidence: "pnpm-lock.yaml",
+      pinVersion: "1.2.3",
+      pmCommand: null,
+      verbosity: 0,
+      removal: summary,
+      directiveLineFiles: [".gitattributes", "greptile.json"],
+      keptData: [".deft-scratch/"],
+      worktrees: [".deft-scratch/worktrees/a", ".deft-scratch/worktrees/b"],
+    });
+    const text = c.out();
+    expect(text).toContain(
+      "remove the lines Directive wrote in .gitattributes, greptile.json (the files stay)",
+    );
+    expect(text).toContain("Kept (Directive data that uninstall does not delete): .deft-scratch/.");
+    expect(text).toContain("  .deft-scratch/worktrees/a\n  .deft-scratch/worktrees/b\n");
+    expect(text).toMatch(/Don't delete \.deft-scratch\/ while these worktrees are registered/);
+  });
+});
+
+describe("retired deft-core-guard workflow in upgrade output (#5835)", () => {
+  const planBase = {
+    projectRoot: "/tmp/shop",
+    pm: "npm" as const,
+    pmEvidence: "package-lock.json",
+    version: "1.3.0",
+    currentVersion: "1.2.0",
+    targetVersion: "1.3.0",
+    versionChange: true,
+    pmCommand: "npm install --save-exact @deftai/directive-runtime@1.3.0",
+    needSetup: true,
+    needMigrate: true,
+    oldStyle: false,
+    gitHooksInactive: false,
+    nodeWarning: null,
+    verbosity: 0 as const,
+  };
+  const successBase = {
+    version: "1.3.0",
+    versionChange: true,
+    pm: "npm" as const,
+    migrateSummary: null,
+    verbosity: 0 as const,
+  };
+
+  function projectWithGuard(body: string | null): string {
+    const root = mkdtempSync(join(tmpdir(), "p2u4-plan-"));
+    if (body !== null) {
+      mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+      writeFileSync(join(root, RETIRED_CORE_GUARD_WORKFLOW_REL), body);
+    }
+    return root;
+  }
+
+  it("plan announces the removal only when the guard is Directive's file", () => {
+    const roots = [
+      projectWithGuard("name: deft-core-guard\n"),
+      projectWithGuard("name: team-guard\n"),
+      projectWithGuard(null),
+    ];
+    try {
+      const [managedRoot, keptRoot, noneRoot] = roots as [string, string, string];
+      const managed = capture();
+      presentUpgradePlan(managed.io, { ...planBase, projectRoot: managedRoot });
+      expect(managed.out()).toContain(`remove the retired ${RETIRED_CORE_GUARD_WORKFLOW_REL}`);
+
+      const kept = capture();
+      presentUpgradePlan(kept.io, { ...planBase, projectRoot: keptRoot });
+      expect(kept.out()).not.toContain("remove the retired");
+      expect(kept.out()).toContain(`${RETIRED_CORE_GUARD_WORKFLOW_REL} does not look like`);
+
+      const none = capture();
+      presentUpgradePlan(none.io, { ...planBase, projectRoot: noneRoot });
+      expect(none.out()).not.toContain("deft-core-guard");
+
+      // No setup in the plan: nothing is removed, so nothing is announced.
+      const noSetup = capture();
+      presentUpgradePlan(noSetup.io, { ...planBase, projectRoot: managedRoot, needSetup: false });
+      expect(noSetup.out()).not.toContain("deft-core-guard");
+    } finally {
+      for (const root of roots) rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("-v plan lists the removal in the keyed block", () => {
+    const root = projectWithGuard("name: deft-core-guard\n");
+    try {
+      const c = capture();
+      presentUpgradePlan(c.io, { ...planBase, projectRoot: root, verbosity: 1 });
+      expect(c.out()).toContain(`remove: ${RETIRED_CORE_GUARD_WORKFLOW_REL} (retired workflow)`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("success names the deletion and the branch-protection step only when removed", () => {
+    const removed = capture();
+    presentUpgradeSuccess(removed.io, {
+      ...successBase,
+      summary: { created: [], modified: [], removed: [RETIRED_CORE_GUARD_WORKFLOW_REL] },
+    });
+    expect(removed.out()).toContain(`${RETIRED_CORE_GUARD_WORKFLOW_REL} (deleted)`);
+    expect(removed.out()).toContain(RETIRED_CORE_GUARD_REMOVED_LINE);
+    expect(RETIRED_CORE_GUARD_REMOVED_LINE).toContain("required status check");
+
+    const plain = capture();
+    presentUpgradeSuccess(plain.io, {
+      ...successBase,
+      summary: { created: [], modified: [".deft/GENERATION.json"], removed: [] },
+    });
+    expect(plain.out()).not.toContain("deft-core-guard");
+  });
+
+  it("success names a kept user-edited file", () => {
+    const parsed = tryParseSetupSummary(
+      JSON.stringify({
+        created: [],
+        modified: [],
+        removed: [],
+        preserved: [RETIRED_CORE_GUARD_WORKFLOW_REL],
+      }),
+    );
+    expect(parsed?.preserved).toEqual([RETIRED_CORE_GUARD_WORKFLOW_REL]);
+    const c = capture();
+    presentUpgradeSuccess(c.io, { ...successBase, summary: parsed });
+    expect(c.out()).toContain(RETIRED_CORE_GUARD_KEPT_LINE);
+    expect(c.out()).not.toContain(RETIRED_CORE_GUARD_REMOVED_LINE);
+  });
+
+  it("install success (old-layout conversion) shows the same removal notice", () => {
+    const c = capture();
+    presentInstallSuccess(c.io, {
+      version: "1.3.0",
+      projectRoot: "/tmp/shop",
+      pm: "npm",
+      summary: { created: [], modified: [], removed: [RETIRED_CORE_GUARD_WORKFLOW_REL] },
+      verbosity: 0,
+    });
+    expect(c.out()).toContain(`${RETIRED_CORE_GUARD_WORKFLOW_REL} (deleted)`);
+    expect(c.out()).toContain(RETIRED_CORE_GUARD_REMOVED_LINE);
+  });
+
+  it("detectRetiredCoreGuard uses the same ownership test as the removal step", () => {
+    const root = mkdtempSync(join(tmpdir(), "p2u4-detect-"));
+    try {
+      expect(detectRetiredCoreGuard(root)).toBeNull();
+      mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+      const abs = join(root, RETIRED_CORE_GUARD_WORKFLOW_REL);
+      writeFileSync(abs, "name: deft-core-guard\n");
+      expect(detectRetiredCoreGuard(root)).toBe("managed");
+      writeFileSync(abs, "name: team-guard\n");
+      expect(detectRetiredCoreGuard(root)).toBe("kept");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

@@ -6,7 +6,6 @@ import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   type OccupancyDecision,
-  readOccupancy,
   resolveOccupancySessionId,
 } from "./occupancy.js";
 import {
@@ -988,94 +987,25 @@ describe("session:ready presented identity (#4409)", () => {
   });
 });
 
-describe("runSessionReady worktree deposit (#4443)", () => {
-  it("reconstitutes payload before gated inspect", () => {
+describe("runSessionReady linked worktree (#6562)", () => {
+  it("goes from occupancy straight to the ritual check; no .deft/core step", () => {
     const order: string[] = [];
-    const reconstituteWorktreeDeposit = vi.fn(() => {
-      order.push("deposit");
-      return {
-        status: "reconstituted",
-        source: "/payload",
-        dest: "/proj/.deft/core",
-        message: "reconstituted .deft/core from local payload",
-      };
-    });
-    const inspectRitual = vi.fn(() => {
-      order.push("inspect");
-      return okVerify();
-    });
-    const verifyRitual = vi.fn(() => okVerify());
     const result = ready("/proj", {
-      inspectRitual,
-      verifyRitual,
+      inspectRitual: vi.fn(() => {
+        order.push("inspect");
+        return okVerify();
+      }),
+      verifyRitual: vi.fn(() => okVerify()),
       runStart: vi.fn(),
       fetchAll: vi.fn(),
       applyOccupancy: (_projectRoot, input) => {
         if (input.write === true) order.push("occupancy");
         return stubOccupancy();
       },
-      reconstituteWorktreeDeposit,
     });
-    expect(reconstituteWorktreeDeposit).toHaveBeenCalled();
     expect(result.code).toBe(0);
-    expect(result.steps[0]).toBe("worktree-deposit");
-    expect(result.lines.join("\n")).toContain("reconstituted .deft/core");
-    expect(order.slice(0, 3)).toEqual(["occupancy", "deposit", "inspect"]);
-  });
-
-  it("fails closed on a refused deposit without claiming success", () => {
-    const applyOccupancy = vi.fn(() => stubOccupancy());
-    const result = ready("/proj", {
-      applyOccupancy,
-      inspectRitual: vi.fn(() => okVerify()),
-      verifyRitual: vi.fn(() => okVerify()),
-      reconstituteWorktreeDeposit: () => ({
-        status: "refused",
-        source: "/payload",
-        dest: "/proj/.deft/core",
-        message: "deposit refused: symlink escaping the project tree",
-      }),
-    });
-    expect(result.code).toBe(2);
-    expect(result.path).toBe(SESSION_READY_FAILED);
-    expect(result.message).toContain("symlink escaping");
-  });
-
-  it("rolls back a persist-time claim when reconstitution is refused (#3906)", () => {
-    const root = mkdtempSync(join(tmpdir(), "session-ready-rollback-"));
-    const result = runSessionReady(root, {
-      env: {},
-      sessionId: "host:test:v1:ready-refuse",
-      applyOccupancy: (projectRoot, input) => applyWorktreeOccupancy(projectRoot, input),
-      inspectRitual: vi.fn(() => okVerify()),
-      verifyRitual: vi.fn(() => okVerify()),
-      reconstituteWorktreeDeposit: () => ({
-        status: "refused",
-        source: "/payload",
-        dest: join(root, ".deft", "core"),
-        message: "deposit refused: symlink escaping the project tree",
-      }),
-    });
-    expect(result.code).toBe(2);
-    expect(readOccupancy(root)).toBeNull();
-    rmSync(root, { recursive: true, force: true });
-  });
-
-  it("rolls back a persist-time claim when reconstitution throws (#3906)", () => {
-    const root = mkdtempSync(join(tmpdir(), "session-ready-copy-throw-"));
-    const result = runSessionReady(root, {
-      env: {},
-      sessionId: "host:test:v1:ready-copy-throw",
-      applyOccupancy: (projectRoot, input) => applyWorktreeOccupancy(projectRoot, input),
-      inspectRitual: vi.fn(() => okVerify()),
-      verifyRitual: vi.fn(() => okVerify()),
-      reconstituteWorktreeDeposit: () => {
-        throw new Error("ENOSPC: no space left on device");
-      },
-    });
-    expect(result.code).toBe(2);
-    expect(result.message).toContain("ENOSPC");
-    expect(readOccupancy(root)).toBeNull();
-    rmSync(root, { recursive: true, force: true });
+    expect(result.steps).not.toContain("worktree-deposit");
+    expect(result.lines.join("\n")).not.toContain(".deft/core");
+    expect(order.slice(0, 2)).toEqual(["occupancy", "inspect"]);
   });
 });

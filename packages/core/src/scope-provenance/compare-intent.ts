@@ -66,6 +66,14 @@ function narrativesOf(plan: Record<string, unknown>): Record<string, unknown> {
   return asRecord(plan.narratives) ?? {};
 }
 
+/** `plan.acceptance` without its `confessions` entry; other values pass through unchanged. */
+function withoutConfessions(acceptance: unknown): unknown {
+  const rec = asRecord(acceptance);
+  if (rec === null || !("confessions" in rec)) return acceptance;
+  const { confessions: _confessions, ...rest } = rec;
+  return rest;
+}
+
 function compareScalars(
   basePlan: Record<string, unknown>,
   livePlan: Record<string, unknown>,
@@ -84,6 +92,11 @@ function compareScalars(
         });
       }
       continue;
+    }
+    if (key === "acceptance") {
+      // Confessions ride the story's own product PR (#6643); every other field stays pinned.
+      const baseAcc = canon(withoutConfessions(basePlan.acceptance));
+      if (baseAcc === canon(withoutConfessions(livePlan.acceptance))) continue;
     }
     if (canon(basePlan[key]) !== canon(livePlan[key])) {
       findings.push({

@@ -382,36 +382,16 @@ describe("checks", () => {
     expect(result.data?.suggested_fix).toBe("deft update");
   });
 
-  it("missing YAML on eligible linked worktree suggests session:start (#5390)", () => {
+  it("missing YAML never routes to a session:start rebuild of .deft/core (#6562)", () => {
     const result = checkManifestAgreement("/tmp/wt", ".deft/core", {
       isFile: (p) => p.replace(/\\/g, "/").includes("xbrief/.deft-version"),
       readText: (p) =>
         p.replace(/\\/g, "/").includes("xbrief/.deft-version") ? "0.119.13\n" : null,
-      isLinkedWorktree: () => true,
-      isFrameworkSource: () => false,
-      payloadPresent: () => true,
-      resolvePayloadSourceVersion: () => "0.119.13",
-    });
-    expect(result.status).toBe("fail");
-    expect(result.data?.suggested_fix).toBe("deft session:start");
-    expect(result.data?.missing_manifest_reconstitute_eligible).toBe(true);
-    expect(result.detail).toContain("session:start");
-    expect(result.detail).toContain("--rearm");
-  });
-
-  it("missing YAML on non-linked tree keeps deft update (#5390)", () => {
-    const result = checkManifestAgreement("/tmp/primary", ".deft/core", {
-      isFile: (p) => p.replace(/\\/g, "/").includes("xbrief/.deft-version"),
-      readText: (p) =>
-        p.replace(/\\/g, "/").includes("xbrief/.deft-version") ? "0.119.13\n" : null,
-      isLinkedWorktree: () => false,
-      isFrameworkSource: () => false,
-      payloadPresent: () => true,
-      resolvePayloadSourceVersion: () => "0.119.13",
     });
     expect(result.status).toBe("fail");
     expect(result.data?.suggested_fix).toBe("deft update");
-    expect(result.data?.missing_manifest_reconstitute_eligible).toBe(false);
+    expect(result.data).not.toHaveProperty("missing_manifest_reconstitute_eligible");
+    expect(result.detail).not.toContain("session:start");
   });
 
   it("manifest agreement yaml only passes with note", () => {
@@ -757,7 +737,8 @@ describe("checkGitignoreCoverage (#2206)", () => {
   it("skips when .gitignore is absent", () => {
     const result = checkGitignoreCoverage("/proj", seamsFor(null));
     expect(result.status).toBe("skip");
-    expect(result.detail).toContain("directive init");
+    // "/proj" has no runtime pin: old layout → the conversion names upgrade.
+    expect(result.detail).toContain("directive upgrade");
   });
 
   it("passes when all canonical entries are present", () => {
@@ -776,9 +757,11 @@ describe("checkGitignoreCoverage (#2206)", () => {
     const missing = result.data?.missing as string[];
     expect(missing.length).toBeGreaterThan(0);
     expect(missing).toContain(".deft-cache/");
-    expect(result.detail).toContain("directive update");
-    expect(result.detail).toContain("directive update --allow-dirty-no-stage");
-    expect(result.data?.dirty_tree_fix).toBe("directive update --allow-dirty-no-stage");
+    // Old layout (no runtime pin): the conversion is the remedy; never update / --allow-dirty-no-stage.
+    expect(result.detail).toContain("directive upgrade");
+    expect(result.detail).not.toContain("directive update");
+    expect(result.detail).not.toContain("--allow-dirty-no-stage");
+    expect(result.data?.dirty_tree_fix).toBeUndefined();
   });
 
   it("reports xBRIEF-era eval result paths as missing (#2206)", () => {
@@ -1673,7 +1656,8 @@ describe("checkPrePrSecretTracked (#6271)", () => {
     expect(result.detail).toContain("rotate");
     expect(result.detail).toContain("Doctor does not untrack it");
     expect(result.data?.untrack_command).toBe(`git rm --cached -- ${PRE_PR_HMAC_SECRET_REL}`);
-    expect(result.detail).toContain("directive update --allow-dirty-no-stage");
+    expect(result.detail).toContain("directive install --repair");
+    expect(result.detail).not.toContain("--allow-dirty-no-stage");
   });
 
   it("warns on a real tracked secret and leaves the git index unchanged", () => {

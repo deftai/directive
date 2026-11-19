@@ -1,13 +1,20 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { collectPythonArtifacts, isRepoRootPythonRunShim } from "../deposit/python-free.js";
 import { defaultWhich, spawnText } from "../release/spawn.js";
-import { NPM_PUBLISH_PACKAGES } from "./constants.js";
-import { alignNpmPackageVersions, packOvprTarballs, resolvePnpm } from "./npm-ops.js";
+import { resolvePnpm } from "./npm-ops.js";
+import {
+  backupPackageManifests,
+  installPackedConsumer,
+  packAndInstallGlobally,
+  restorePackageManifests,
+  runPackedStep,
+} from "./packed-consumer.js";
 import type { E2ESeams } from "./types.js";
 
 const SMOKE_VERSION = "9.9.9-smoke";
+const PROGRESS_PREFIX = "greenfield smoke";
 
 function pythonFreePathEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const pathKey = base.PATH !== undefined ? "PATH" : base.Path !== undefined ? "Path" : "PATH";
@@ -118,7 +125,9 @@ export function runConsumerDocsImpactSmoke(
     [["config", "user.email", "smoke@example.com"], "user.email"],
     [["config", "user.name", "greenfield-smoke"], "user.name"],
     [["add", "-A"], "add"],
-    [["commit", "--allow-empty", "-m", "docs-impact fixture"], "commit"],
+    // Seed commit on master: the deposited pre-commit runs verify:branch, which
+    // refuses master (#5808), so this fixture setup commit skips hooks.
+    [["commit", "--allow-empty", "--no-verify", "-m", "docs-impact fixture"], "commit"],
     [["update-ref", "refs/remotes/origin/master", "HEAD"], "origin/master"],
     // Leave HEAD off master/main so later task deft:check verify:branch passes.
     [["checkout", "-B", "feat/docs-impact-smoke"], "feature branch"],
@@ -187,42 +196,6 @@ function seedMinimalProjectDefinition(projectDir: string): void {
   );
 }
 
-function runStep(
-  spawn: typeof spawnText,
-  label: string,
-  cmd: string,
-  args: string[],
-  options: { cwd?: string; env?: NodeJS.ProcessEnv; timeoutMs?: number } = {},
-  onProgress?: (message: string) => void,
-): [boolean, string] {
-  onProgress?.(`greenfield smoke: ${label} — starting`);
-  const startedMs = Date.now();
-  const result = spawn(cmd, args, options);
-  const elapsedMs = Date.now() - startedMs;
-  if (result.status !== 0) {
-    const detail = (result.stderr || result.stdout || "").trim();
-    const timeoutHint =
-      options.timeoutMs !== undefined && result.status === 128
-        ? `; subprocess killed after ${elapsedMs}ms (spawn budget ${options.timeoutMs}ms — likely hang or timeout)`
-        : "";
-    onProgress?.(
-      `greenfield smoke: ${label} — failed (exit ${result.status}) after ${elapsedMs}ms`,
-    );
-    // Doctor suites are long; keep the full capture so the hard error is visible.
-    // Other steps keep head+tail to bound CI log size.
-    const clipped =
-      label.includes("doctor") || detail.length <= 4000
-        ? detail
-        : `${detail.slice(0, 1000)}\n…\n${detail.slice(-1000)}`;
-    return [
-      false,
-      `${label} failed (exit ${result.status})${timeoutHint}: ${clipped || "(no captured output)"}`,
-    ];
-  }
-  onProgress?.(`greenfield smoke: ${label} — OK (${elapsedMs}ms)`);
-  return [true, `${label} OK`];
-}
-
 export interface GreenfieldSmokeSeams extends E2ESeams {}
 
 export interface GreenfieldSmokeOptions {
@@ -268,21 +241,16 @@ export function rehearseGreenfieldPythonFreeSmoke(
   const projectDir = join(work, "project");
   const npmPrefix = join(work, "npm-prefix");
   const envBase = { ...process.env, npm_config_prefix: npmPrefix };
-  const manifestBackup = new Map<string, string>();
-  for (const pkg of NPM_PUBLISH_PACKAGES) {
-    const manifestPath = join(repoRoot, "packages", pkg, "package.json");
-    if (existsSync(manifestPath)) {
-      manifestBackup.set(manifestPath, readFileSync(manifestPath, "utf8"));
-    }
-  }
+  const manifestBackup = backupPackageManifests(repoRoot);
 
   try {
     let ok: boolean;
     let reason: string;
 
     if (!options.skipWorkspacePrep) {
-      [ok, reason] = runStep(
+      [ok, reason] = runPackedStep(
         spawn,
+        PROGRESS_PREFIX,
         "pnpm install",
         pnpmCmd,
         [...pnpmArgs, "install", "--frozen-lockfile"],
@@ -295,8 +263,9 @@ export function rehearseGreenfieldPythonFreeSmoke(
       );
       if (!ok) return [false, `greenfield smoke: ${reason}`];
 
-      [ok, reason] = runStep(
+      [ok, reason] = runPackedStep(
         spawn,
+        PROGRESS_PREFIX,
         "pnpm build",
         pnpmCmd,
         [...pnpmArgs, "run", "build"],
@@ -312,37 +281,20 @@ export function rehearseGreenfieldPythonFreeSmoke(
       onProgress?.("greenfield smoke: skipping workspace prep (DEFT_GREENFIELD_SKIP_PREP=1)");
     }
 
-    onProgress?.("greenfield smoke: aligning npm package versions");
-    [ok, reason] = alignNpmPackageVersions(repoRoot, SMOKE_VERSION);
-    if (!ok) return [false, `greenfield smoke: ${reason}`];
-
-    onProgress?.("greenfield smoke: OVPR stage+pack runtime + launcher");
-    const packSeams: E2ESeams = { ...seams, spawnText: spawn, which: seams.which ?? defaultWhich };
-    const packedResult = packOvprTarballs(
+    const packedResult = packAndInstallGlobally({
       repoRoot,
-      SMOKE_VERSION,
+      version: SMOKE_VERSION,
       packDir,
       npm,
-      envBase,
-      packSeams,
-    );
-    if (!packedResult[0]) {
-      return [false, `greenfield smoke: ${packedResult[1]}`];
-    }
-    const packed = packedResult[2];
-
-    [ok, reason] = runStep(
+      env: envBase,
+      seams,
       spawn,
-      "npm install -g",
-      npm,
-      ["install", "-g", ...packed],
-      {
-        env: envBase,
-        timeoutMs: 120_000,
-      },
+      which: seams.which ?? defaultWhich,
+      prefix: PROGRESS_PREFIX,
       onProgress,
-    );
-    if (!ok) return [false, `greenfield smoke: ${reason}`];
+    });
+    if (!packedResult[0]) return [false, `greenfield smoke: ${packedResult[1]}`];
+    const packed = packedResult[2];
 
     const deft = join(npmPrefix, "bin", "deft");
     if (!existsSync(deft)) {
@@ -355,102 +307,20 @@ export function rehearseGreenfieldPythonFreeSmoke(
       ...pyFree,
       PATH: `${installedBin}:${pyFree.PATH ?? ""}`,
     };
-    // Public @deftai/directive-runtime@latest is still a prerelease until GA, so
-    // greenfield smoke installs the packed tip runtime tarball into the consumer
-    // then runs install --repair for OVPR wiring (AC13.4 packed-pair path).
-    mkdirSync(projectDir, { recursive: true });
-    writeFileSync(
-      join(projectDir, "package.json"),
-      `${JSON.stringify(
-        { name: "greenfield-smoke-consumer", private: true, version: "0.0.0" },
-        null,
-        2,
-      )}\n`,
-      "utf8",
-    );
-    const runtimeTgz = packed.find((p) => p.includes("directive-runtime-"));
-    if (runtimeTgz === undefined) {
-      return [false, "greenfield smoke: packed runtime tarball missing from OVPR pack result"];
-    }
-    [ok, reason] = runStep(
+    [ok, reason] = installPackedConsumer({
       spawn,
-      "npm install packed runtime tarball",
+      which,
       npm,
-      ["install", "--save-dev", "--save-exact", runtimeTgz],
-      {
-        cwd: projectDir,
-        env: installedEnv,
-        timeoutMs: 120_000,
-      },
-      onProgress,
-    );
-    if (!ok) return [false, `greenfield smoke: ${reason}`];
-
-    // npm records file:../packs/... for a local tarball; OVPR repair requires an
-    // exact SemVer pin + matching lockfile request. Rewrite both so repair skips
-    // registry PM restore (9.9.9-smoke is not on the public registry).
-    try {
-      const consumerPkgPath = join(projectDir, "package.json");
-      const consumerPkg = JSON.parse(readFileSync(consumerPkgPath, "utf8")) as {
-        devDependencies?: Record<string, string>;
-        dependencies?: Record<string, string>;
-      };
-      const deps = consumerPkg.devDependencies ?? consumerPkg.dependencies ?? {};
-      deps["@deftai/directive-runtime"] = SMOKE_VERSION;
-      consumerPkg.devDependencies = deps;
-      writeFileSync(consumerPkgPath, `${JSON.stringify(consumerPkg, null, 2)}\n`, "utf8");
-
-      const lockPath = join(projectDir, "package-lock.json");
-      if (existsSync(lockPath)) {
-        const lock = JSON.parse(readFileSync(lockPath, "utf8")) as {
-          packages?: Record<string, Record<string, unknown>>;
-        };
-        const root = lock.packages?.[""];
-        if (root && typeof root === "object") {
-          const rootDeps = (root.devDependencies ?? root.dependencies) as
-            | Record<string, string>
-            | undefined;
-          if (rootDeps) rootDeps["@deftai/directive-runtime"] = SMOKE_VERSION;
-          if (!root.devDependencies && rootDeps) root.devDependencies = rootDeps;
-        }
-        const entry = lock.packages?.["node_modules/@deftai/directive-runtime"];
-        if (entry && typeof entry === "object") {
-          entry.version = SMOKE_VERSION;
-        }
-        writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
-      }
-    } catch (exc) {
-      return [false, `greenfield smoke: cannot rewrite exact runtime pin: ${String(exc)}`];
-    }
-
-    // Initialize git before repair so setup can deposit hooks / GENERATION wiring
-    // that doctor and deft:check require. Docs-impact later seeds origin/master.
-    const gitBin = which("git");
-    if (gitBin === null) {
-      return [false, "greenfield smoke: git not on PATH; cannot init consumer repo before repair"];
-    }
-    [ok, reason] = runStep(
-      spawn,
-      "git init consumer",
-      gitBin,
-      ["init"],
-      { cwd: projectDir, env: installedEnv, timeoutMs: 30_000 },
-      onProgress,
-    );
-    if (!ok) return [false, `greenfield smoke: ${reason}`];
-
-    [ok, reason] = runStep(
-      spawn,
-      "directive install --repair",
       deft,
-      ["install", "--repair", "--yes", "--repo-root", projectDir],
-      {
-        cwd: work,
-        env: installedEnv,
-        timeoutMs: 120_000,
-      },
+      projectDir,
+      repairCwd: work,
+      packed,
+      version: SMOKE_VERSION,
+      packageName: "greenfield-smoke-consumer",
+      env: installedEnv,
+      prefix: PROGRESS_PREFIX,
       onProgress,
-    );
+    });
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     onProgress?.("greenfield smoke: seeding fixture PROJECT-DEFINITION");
@@ -484,8 +354,9 @@ export function rehearseGreenfieldPythonFreeSmoke(
 
     // Surface OVPR doctor diagnosis before the heavier deft:check gate so CI
     // failures name the failing surface instead of an opaque engine.yml scrap.
-    [ok, reason] = runStep(
+    [ok, reason] = runPackedStep(
       spawn,
+      PROGRESS_PREFIX,
       "directive doctor",
       deft,
       ["doctor", "--root", projectDir],
@@ -499,8 +370,9 @@ export function rehearseGreenfieldPythonFreeSmoke(
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     onProgress?.("greenfield smoke: running consumer task deft:check (engine-invoke path)");
-    [ok, reason] = runStep(
+    [ok, reason] = runPackedStep(
       spawn,
+      PROGRESS_PREFIX,
       "task deft:check",
       task,
       ["deft:check"],
@@ -519,9 +391,7 @@ export function rehearseGreenfieldPythonFreeSmoke(
       "greenfield-python-free-smoke: directive init + verify:docs-impact --body-file + task deft:check passed with Python absent from PATH",
     ];
   } finally {
-    for (const [manifestPath, contents] of manifestBackup) {
-      writeFileSync(manifestPath, contents, "utf8");
-    }
+    restorePackageManifests(manifestBackup);
     if (process.env.DEFT_GREENFIELD_KEEP_WORK !== "1") {
       rmSync(work, { recursive: true, force: true });
     }

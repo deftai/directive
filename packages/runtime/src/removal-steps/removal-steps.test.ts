@@ -3,6 +3,7 @@
  * pruneEmptyAncestors / removeSoleAuthorHusks (F-012 / F-013).
  */
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -27,7 +28,9 @@ import {
   removeDeftFrameworkTree,
   removeLegacyBareVersionMarkers,
   removeOrphanDeftVersion,
+  removeRetiredCoreGuardWorkflow,
   removeSoleAuthorHusks,
+  removeSoleAuthorManifest,
   runStep,
 } from "./steps.js";
 import { runStrategy, STRATEGIES, strategyForShape } from "./strategies.js";
@@ -100,9 +103,10 @@ describe("pruneEmptyAncestors (C4 / F-012)", () => {
 });
 
 describe("removeSoleAuthorHusks (C5 / F-013)", () => {
-  it("removes {private:true}-only package.json and {} hooks we created", () => {
+  it("removes {} hooks we created and leaves package.json for the package manager (#5999)", () => {
     const root = tempRoot();
     writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+    writeFileSync(join(root, "package-lock.json"), "{}\n");
     mkdirSync(join(root, ".cursor"), { recursive: true });
     writeFileSync(join(root, ".cursor", "hooks.json"), "{}\n");
     // User content must stay.
@@ -114,11 +118,24 @@ describe("removeSoleAuthorHusks (C5 / F-013)", () => {
     );
 
     const removed = removeSoleAuthorHusks(root);
-    expect(removed).toEqual(expect.arrayContaining(["package.json", ".cursor/hooks.json"]));
-    expect(existsSync(join(root, "package.json"))).toBe(false);
+    expect(removed).toContain(".cursor/hooks.json");
+    expect(removed).not.toContain("package.json");
+    expect(removed).not.toContain("package-lock.json");
+    expect(existsSync(join(root, "package.json"))).toBe(true);
+    expect(existsSync(join(root, "package-lock.json"))).toBe(true);
     expect(existsSync(join(root, ".cursor", "hooks.json"))).toBe(false);
     expect(existsSync(join(root, "xbrief", "keep.txt"))).toBe(true);
     expect(JSON.parse(readFileSync(join(root, "real-pkg.json"), "utf8")).name).toBe("app");
+  });
+
+  it("removes a near-empty lockfile left with no package.json", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "package-lock.json"),
+      `${JSON.stringify({ name: "t", lockfileVersion: 3, requires: true, packages: { "": {} } }, null, 2)}\n`,
+    );
+    expect(removeSoleAuthorHusks(root)).toContain("package-lock.json");
+    expect(existsSync(join(root, "package-lock.json"))).toBe(false);
   });
 
   it("removes install-seeded AGENTS stub but preserves user body", () => {
@@ -165,7 +182,7 @@ describe("removeSoleAuthorHusks (C5 / F-013)", () => {
       )}\n`,
     );
 
-    const removed = removeSoleAuthorHusks(root);
+    const removed = removeSoleAuthorManifest(root);
     expect(removed).toEqual(expect.arrayContaining(["package.json", "package-lock.json"]));
     expect(existsSync(join(root, "package.json"))).toBe(false);
     expect(existsSync(join(root, "package-lock.json"))).toBe(false);
@@ -464,5 +481,79 @@ describe("runStrategy (ordered convert)", () => {
 
   it("RemovalStepError is the fail-closed type for unsafe gitlink", () => {
     expect(new RemovalStepError("normalizeGitmodules", "boom").stepId).toBe("normalizeGitmodules");
+  });
+});
+
+describe("removeRetiredCoreGuardWorkflow (#5835 / AC8.10)", () => {
+  const guardRel = ".github/workflows/deft-core-guard.yml";
+
+  function writeWorkflow(root: string, name: string, body: string): void {
+    mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+    writeFileSync(join(root, ".github", "workflows", name), body);
+  }
+
+  it("removes Directive's guard and leaves other workflows alone", () => {
+    const root = tempRoot("p2u4-guard-managed");
+    writeWorkflow(root, "deft-core-guard.yml", "name: deft-core-guard\non:\n  pull_request:\n");
+    writeWorkflow(root, "ci.yml", "name: ci\n");
+    expect(removeRetiredCoreGuardWorkflow(root)).toEqual({
+      removed: [guardRel],
+      kept: [],
+      failed: [],
+    });
+    expect(existsSync(join(root, guardRel))).toBe(false);
+    expect(readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8")).toBe("name: ci\n");
+  });
+
+  it("keeps and names a file at that path without the deft-core-guard name line", () => {
+    const root = tempRoot("p2u4-guard-user");
+    writeWorkflow(root, "deft-core-guard.yml", "name: my-own-guard\n");
+    expect(removeRetiredCoreGuardWorkflow(root)).toEqual({
+      removed: [],
+      kept: [guardRel],
+      failed: [],
+    });
+    expect(readFileSync(join(root, guardRel), "utf8")).toBe("name: my-own-guard\n");
+  });
+
+  it("does nothing when the file is absent or is not a regular file", () => {
+    const root = tempRoot("p2u4-guard-absent");
+    expect(removeRetiredCoreGuardWorkflow(root)).toEqual({ removed: [], kept: [], failed: [] });
+    mkdirSync(join(root, guardRel), { recursive: true });
+    expect(removeRetiredCoreGuardWorkflow(root)).toEqual({ removed: [], kept: [], failed: [] });
+    expect(existsSync(join(root, guardRel))).toBe(true);
+  });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "reports an unreadable guard as failed, not as user-edited",
+    () => {
+      const root = tempRoot("p2u4-guard-unreadable");
+      writeWorkflow(root, "deft-core-guard.yml", "name: deft-core-guard\n");
+      chmodSync(join(root, guardRel), 0o000);
+      try {
+        expect(removeRetiredCoreGuardWorkflow(root)).toEqual({
+          removed: [],
+          kept: [],
+          failed: [guardRel],
+        });
+      } finally {
+        chmodSync(join(root, guardRel), 0o644);
+      }
+    },
+  );
+
+  it("every convert strategy removes a managed guard", () => {
+    for (const [shapeId, strategy] of Object.entries(STRATEGIES)) {
+      if (strategy.steps.length === 0) continue;
+      expect(strategy.steps, shapeId).toContain("removeRetiredCoreGuardWorkflow");
+    }
+    const root = tempRoot("p2u4-guard-strategy");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# c\n");
+    writeWorkflow(root, "deft-core-guard.yml", "name: deft-core-guard\n");
+    const result = runStrategy("vendored-core-go", root);
+    expect(result.ok).toBe(true);
+    expect(result.removed).toContain(guardRel);
+    expect(existsSync(join(root, guardRel))).toBe(false);
   });
 });

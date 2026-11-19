@@ -29,12 +29,16 @@ import {
   isUpgradePinPathContentAllowed,
   PACKAGE_JSON_DEP_FIELDS,
 } from "../init-deposit/hygiene.js";
-import { PRETTIERIGNORE_DEFT_CORE_LINE } from "../init-deposit/prettierignore.js";
+import {
+  isRetiredGitattributesLine,
+  PRETTIERIGNORE_HOOK_FILES_LINE,
+  PRETTIERIGNORE_MANAGED_HEADER,
+  RETIRED_PRETTIERIGNORE_HEADER,
+  RETIRED_PRETTIERIGNORE_LINES,
+} from "../init-deposit/retired-copy-model-lines.js";
 import {
   DESIRED_GITATTRIBUTES_LINES,
   gitattributesDepositComment,
-  LEGACY_CORE_TEXT_EOL_LF,
-  MANAGED_WIRING_GITATTRIBUTES_LINES,
 } from "../init-deposit/scaffold.js";
 import { CONSUMER_SKILL_DISCOVERY_INVENTORY } from "../init-deposit/skill-discovery-deposit.js";
 import { slashCommandManagedExactPaths } from "../init-deposit/slash-deposit.js";
@@ -101,10 +105,20 @@ export interface DirectiveOwnedPathsInspection {
 
 export type DirectiveOwnedChange = "directive-only" | "mixed" | "not-owned";
 
-/** `.gitignore` lines setup adds (AC8.5). Setup and this API share this one copy. */
+/**
+ * `.gitignore` lines setup adds (AC8.5, v261118): the package folder, the
+ * readiness markers, and the named per-checkout runtime files (one holds the
+ * pre-PR signing secret). Setup, doctor and this API share this one copy.
+ * Adding a path here is a requirements change (AC8.5).
+ */
 export const DIRECTIVE_GITIGNORE_LINES = [
   "node_modules/",
   ".deft/directive/wiring-ready.*.json",
+  ".deft/pre-pr-execution-private/",
+  ".deft/plan-sequence.json.generation",
+  ".deft/plan-sequence.json.lock",
+  ".deft/plan-sequence.json.lock.claim-*",
+  ".deft/orientation-state.json",
 ] as const;
 
 /** `Taskfile.yml` that setup writes when the project has none. */
@@ -598,54 +612,38 @@ function classifyTaskfile(before: string | null, after: string | null): Directiv
     : "mixed";
 }
 
-let gitattributesCommentLines: ReadonlySet<string> | null = null;
-
-/** Every comment line `ensureGitattributes` can write above its additions. */
-function gitattributesDepositCommentLines(): ReadonlySet<string> {
-  if (gitattributesCommentLines !== null) return gitattributesCommentLines;
-  const lines = new Set<string>();
-  const samples: ReadonlyArray<readonly string[]> = [
-    DESIRED_GITATTRIBUTES_LINES,
-    DESIRED_GITATTRIBUTES_LINES.filter((l) => l.includes("text=auto eol=lf")),
-    MANAGED_WIRING_GITATTRIBUTES_LINES,
-    [],
-  ];
-  for (const sample of samples) {
-    for (const line of gitattributesDepositComment(sample).split("\n")) {
-      if (line.trim()) lines.add(line.trim());
-    }
-  }
-  gitattributesCommentLines = lines;
-  return lines;
-}
-
-/** Directive lines (and deposit comments) per managed-lines file. */
-function directiveLinesFor(rel: ManagedLineRel): ReadonlySet<string> {
+/**
+ * True for a Directive line (or deposit comment) in a managed-lines file.
+ * Includes the retired `.deft/core` lines, so removing them is Directive-only.
+ */
+function isDirectiveLine(rel: ManagedLineRel, line: string): boolean {
   switch (rel) {
     case ".gitignore":
-      return new Set<string>(DIRECTIVE_GITIGNORE_LINES);
+      return (DIRECTIVE_GITIGNORE_LINES as readonly string[]).includes(line);
     case ".gitattributes":
-      return new Set<string>([
-        ...DESIRED_GITATTRIBUTES_LINES,
-        LEGACY_CORE_TEXT_EOL_LF,
-        ...gitattributesDepositCommentLines(),
-      ]);
+      return (
+        DESIRED_GITATTRIBUTES_LINES.includes(line) ||
+        gitattributesDepositComment().split("\n").includes(line) ||
+        isRetiredGitattributesLine(line)
+      );
     case ".prettierignore":
-      return new Set<string>([
-        PRETTIERIGNORE_DEFT_CORE_LINE,
-        "# Deft framework: the vendored payload is outside the consumer Prettier gate (#2534).",
-      ]);
+      return (
+        line === PRETTIERIGNORE_HOOK_FILES_LINE ||
+        line === PRETTIERIGNORE_MANAGED_HEADER ||
+        RETIRED_PRETTIERIGNORE_LINES.includes(line) ||
+        line === RETIRED_PRETTIERIGNORE_HEADER
+      );
   }
 }
 
 /** Non-blank lines that are not Directive's, in file order. */
-function userLines(text: string | null, directive: ReadonlySet<string>): string[] {
+function userLines(text: string | null, isDirective: (line: string) => boolean): string[] {
   if (text === null) return [];
   // Keep the user's order: ignore and attribute rules depend on it (`!` negation, later lines win).
   return normalizeEol(text)
     .split("\n")
     .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !directive.has(l));
+    .filter((l) => l.length > 0 && !isDirective(l));
 }
 
 function classifyManagedLines(
@@ -653,9 +651,9 @@ function classifyManagedLines(
   before: string | null,
   after: string | null,
 ): DirectiveOwnedChange {
-  const directive = directiveLinesFor(rel);
-  const b = userLines(before, directive);
-  const a = userLines(after, directive);
+  const isDirective = (line: string): boolean => isDirectiveLine(rel, line);
+  const b = userLines(before, isDirective);
+  const a = userLines(after, isDirective);
   return b.length === a.length && b.every((l, i) => l === a[i]) ? "directive-only" : "mixed";
 }
 

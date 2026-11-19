@@ -5,7 +5,7 @@ This page is a **symptom index**. It is not a second recovery ladder.
 - If `directive` (or the `deft` alias) will not start, use the [README cold-start](https://github.com/deftai/directive/blob/master/README.md). That committed block is the only payload-independent command ladder.
 - If the CLI runs, start with `directive doctor --full`. Follow its one `Next command:`. Do not pick a competing command from this page.
 
-Doctor caches a clean run for 24 hours and a dirty run for 4 hours. `--full` bypasses that throttle.
+Doctor writes nothing and always runs every check. Session start skips its own doctor step for 24 hours after a clean run (4 hours after a failing one) and keeps that time in `.deft/orientation-state.json`.
 
 Specialist pages below are pointers. Recovery command bytes stay in doctor and the README cold-start.
 
