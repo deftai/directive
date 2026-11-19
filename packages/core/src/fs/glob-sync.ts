@@ -52,7 +52,19 @@ export function globSyncCompat(pattern: string, options?: GlobSyncCompatOptions)
 // port follows the newer behaviour.
 // ---------------------------------------------------------------------------
 
-type PatternPart = string | typeof GLOBSTAR | RegExp;
+/**
+ * A compiled path segment. minimatch 10 yields a `RegExp`; minimatch 11 yields
+ * a `Matcher` object with the same `test(name)` call.
+ */
+interface SegmentMatcher {
+  test(name: string): boolean;
+}
+
+type PatternPart = string | typeof GLOBSTAR | SegmentMatcher;
+
+function isSegmentMatcher(part: PatternPart | undefined): part is SegmentMatcher {
+  return typeof part === "object" && part !== null && typeof part.test === "function";
+}
 
 interface EntryLike {
   readonly name: string;
@@ -181,7 +193,7 @@ class GlobPattern {
     const part = this.#parts[index];
     if (part === GLOBSTAR) return true;
     if (typeof part === "string") return part === name;
-    if (part instanceof RegExp) return part.test(name);
+    if (isSegmentMatcher(part)) return part.test(name);
     return false;
   }
 
@@ -366,7 +378,7 @@ class FallbackGlob {
             else subPatterns.add(nextIndex + 1);
           }
         }
-        if (current instanceof RegExp && pattern.test(index, entry.name)) {
+        if (isSegmentMatcher(current) && pattern.test(index, entry.name)) {
           if (index === last) this.#results.add(entryPath);
           else if (entryIsDirectory) subPatterns.add(nextIndex);
         }
