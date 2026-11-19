@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6584",
-    "updated": "2026-11-18T19:01:06Z"
+    "updated": "2026-11-19T04:18:25Z"
   },
   "plan": {
     "title": "perf(ci): do not re-run the full stack on a master push the merge queue already passed",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "perf(ci): do not re-run the full stack on a master push the merge queue already passed",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6584",
@@ -17,48 +17,111 @@
     "items": [
       {
         "title": "Lookup (one decision). In `.github/workflows/ci.yml`, the `changes` job gains one step that runs only on `push`. It runs a lookup script read from the push's base tree (as the artifact-only predicate is), using `GH_TOKEN` with the existing `actions: read`. It lists runs of the current run's `workflow_id` with `event=merge_group` and `head_sha == github.sha`, takes the newest such run at its latest attempt, and reads that attempt's jobs (`actions/runs/{id}/attempts/{n}/jobs`). It outputs `queue_passed=true`, `queue_run_id` and `queue_run_attempt` only when that attempt is completed with conclusion success and the jobs named `TypeScript (build + lint + test)` and `Merge gate (task check)` in it are completed success. Any other state (no run, in progress, failure, cancelled, an API error, the script absent on the base tree, a non-push event) outputs `queue_passed=false`.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Skip. `ts-primary` gains `needs: [changes]` and `if: always() && needs.changes.outputs.queue_passed != 'true'`. The other heavy jobs (`merge-gate-primary`, `windows-task-dispatch`, and `go-primary` while it exists) add `&& needs.changes.outputs.queue_passed != 'true'` to their existing `always()` conditions. `capacity-watchdog`, `capacity-arm` and the failover jobs add the same clause. When `changes` fails, its outputs are empty, so every job runs as today.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Aggregators. `ts`, `merge-gate` and `go` (while it exists) keep their names. Each gains `changes` in `needs`; `merge-gate` and `go` change their condition to `always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')`. Each passes `QUEUE_PASSED`, `QUEUE_RUN_ID` and `QUEUE_RUN_ATTEMPT` to `.github/scripts/resolve-ci-authoritative-lane.mjs`, which, when `QUEUE_PASSED` is `true` and the id and attempt are set, exits 0 and logs the queue run URL and attempt; it makes no second API read. Otherwise it behaves as today.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Gate change named. The `ci.yml` header comment and the Framework CI runners lines of `content/scm/github.md` state that on a master push the two required aggregators are green either because this run passed or because the named queue run attempt of this workflow passed this exact commit, and that any lookup doubt runs the full stack.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, the `changes` job outputs `queue_passed=true` with the queue run id and attempt only for a push whose exact SHA has a latest-attempt `merge_group` run of this workflow that completed success with `TypeScript (build + lint + test)` and `Merge gate (task check)` successful, using a lookup read from the base tree, and outputs `queue_passed=false` in every other case.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, when `queue_passed` is true the primaries, Windows job, capacity watchdog, capacity arm and failovers skip, and when it is not true (including a failed `changes` job) they run as today.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, the `ts`, `merge-gate` and (while present) `go` aggregators keep their names, run whenever `queue_passed` is true regardless of the artifact-only result, and receive the queue run id and attempt.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/scripts/resolve-ci-authoritative-lane.mjs`, `QUEUE_PASSED=true` with a queue run id and attempt exits 0 and logs the queue run URL and attempt without a second lookup, and every other input behaves as today.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `content/scm/github.md`, the Framework CI runners lines name the new meaning of a green required aggregator on a master push and the full-run fallback.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+          "recorded_at": "2026-11-19T04:18:25Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -385,6 +448,36 @@
         "leanCommentId": 6988101713,
         "harvestDigest": "e611ed703ff9430704b5cb6eab3516184093019d73f6cb17f16e2ef26e000e5d",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "24530b9be1fde0ad5288a576da7bfc9e53af72dd",
+        "prNumber": 6752,
+        "prBase": "master",
+        "mergeCommit": "6d0d7e21e957e04e23aeefdf72853936f5e78a1f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "eb0c45fe8d97023d8167dfb7d45480c6ac78a383",
+        "verifiedAt": "2026-11-19T04:18:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6692,
+          6753
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T04:18:25Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T04:18:25Z"
       }
     },
     "acceptance": {
@@ -483,6 +576,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6454551314",
-    "updated": "2026-11-18T19:01:06Z"
+    "updated": "2026-11-19T04:18:25Z"
   }
 }

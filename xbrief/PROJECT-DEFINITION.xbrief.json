@@ -669,10 +669,10 @@
       {
         "id": "2026-11-18-6584-perfci-do-not-re-run-the-full-stack-on-a-master-push-the-mer",
         "title": "perf(ci): do not re-run the full stack on a master push the merge queue already passed",
-        "status": "running",
+        "status": "completed",
         "metadata": {
-          "source_path": "active/2026-11-18-6584-perfci-do-not-re-run-the-full-stack-on-a-master-push-the-mer.xbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "completed/2026-11-18-6584-perfci-do-not-re-run-the-full-stack-on-a-master-push-the-mer.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/6584",
