@@ -5,7 +5,12 @@
  */
 import { readProjectDataStatus } from "./data-status.js";
 import { run as runProductDoctor } from "./doctor.js";
-import { formatDoctorReport, runDoctorDiagnosis } from "./doctor-diagnose.js";
+import {
+  doctorDiagnosisJson,
+  formatDoctorOverallLine,
+  formatDoctorReport,
+  runDoctorDiagnosis,
+} from "./doctor-diagnose.js";
 import { runMigrate } from "./migrate.js";
 import { runSetup } from "./setup.js";
 import { runUninstall } from "./uninstall.js";
@@ -66,8 +71,9 @@ export async function handleContractEntrypoint(argv: readonly string[]): Promise
       operation: operation as "install" | "repair" | "upgrade",
       from,
       root,
-      // Explicit pre-write operator force only (#5837); self-complete never forces.
-      forceGitHooks: hasFlag(argv, "--force-githooks"),
+      // Launcher passes this only after the install/repair plan approval that
+      // disclosed the takeover (#4960); self-complete never does.
+      takeOverHooksPath: hasFlag(argv, "--take-over-hooks-path"),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.conflicts.length > 0) return 1;
@@ -124,19 +130,32 @@ export async function handleContractEntrypoint(argv: readonly string[]): Promise
       launcherPresent,
       probeHooks: true,
     });
+    // Prefer install-sync exit when unhealthy; otherwise surface product suite status.
+    const exitFor = (productCode: number): number =>
+      diag.exitCode !== 0 ? diag.exitCode : productCode;
+
+    // #6004: with --json, stdout is exactly one JSON document. The install-sync
+    // result rides inside the product doctor payload; no human text is written.
+    if (hasFlag(argv, "--json")) {
+      const productCode = await runProductDoctor(buildProductDoctorArgv(argv, root), {
+        extraJson: {
+          contract: 1,
+          entry: "doctor",
+          dataStatus: diag.dataStatus,
+          install_sync: doctorDiagnosisJson(diag),
+        },
+      });
+      return exitFor(productCode);
+    }
+
     process.stdout.write(formatDoctorReport(diag));
     process.stdout.write(`\n${DOCTOR_PRODUCT_SECTION_SEPARATOR}\n`);
 
     const productCode = await runProductDoctor(buildProductDoctorArgv(argv, root));
 
-    // Trailing machine line keeps older parsers that read last JSON tolerant.
-    process.stdout.write(
-      `${JSON.stringify({ contract: 1, dataStatus: diag.dataStatus, entry: "doctor" })}\n`,
-    );
-
-    // Prefer install-sync exit when unhealthy; otherwise surface product suite status.
-    if (diag.exitCode !== 0) return diag.exitCode;
-    return productCode;
+    // One overall verdict from the worse of the two sections (#5967 / #6003).
+    process.stdout.write(`\n${formatDoctorOverallLine(diag.exitCode, productCode)}\n`);
+    return exitFor(productCode);
   }
 
   return null;

@@ -11,7 +11,17 @@ import {
   runInstall,
   runUpgrade,
 } from "./bookends.js";
+import { RUNTIME_PACKAGE_NAME } from "./constants.js";
 import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
+import {
+  presentRepairSuccess,
+  presentUninstallPlan,
+  presentUpgradeSuccess,
+  readGitHookPlan,
+  summarizeUninstallRemovals,
+  tryParseSetupSummary,
+  UPGRADE_CREATE_PKG_BULLET,
+} from "./plan-present.js";
 import { compareExactVersions, resolvePublishedContract, unwrapNpmViewJson } from "./registry.js";
 
 const TEMPS: string[] = [];
@@ -1034,5 +1044,247 @@ describe("split @deftai registry hint (#6141)", () => {
     expect(count(err, HINT_MARK)).toBe(1);
     expect(err).toContain("run `npm ci` in this project, then `directive install --repair`");
     expect(err).toContain(`${OVERRIDE} directive install --repair`);
+  });
+});
+
+/**
+ * #5965 / AC5.10: converting an old layout with no package.json creates `{ "private": true }`.
+ * The plan must say so in plain words, and the run must say it did.
+ */
+describe("#5965 upgrade convert with no package.json", () => {
+  /** Copied `.deft/core` and no exact pin: the vendored-core-go convert shape. */
+  function convertRoot(withPackageJson: boolean): string {
+    const root = withPackageJson
+      ? tempProject("u1a-5965")
+      : mkdtempSync(join(tmpdir(), "u1a-5965-"));
+    if (!withPackageJson) TEMPS.push(root);
+    mkdirSync(join(root, ".git"), { recursive: true });
+    writeFileSync(join(root, ".git", "HEAD"), "ref: refs/heads/main\n");
+    const core = join(root, ".deft", "core");
+    mkdirSync(core, { recursive: true });
+    writeFileSync(join(core, "VERSION"), "ref: 'v0.40.0'\ninstall_root: '.deft/core'\n");
+    writeFileSync(
+      join(core, "package.json"),
+      `${JSON.stringify({ name: "@deftai/directive-content", version: "0.40.0", deftConsumerDeposit: true })}\n`,
+    );
+    writeFileSync(join(core, "main.md"), "# deposited main\n");
+    return root;
+  }
+
+  function convertDeps(root: string) {
+    return {
+      resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+      runPmRemove: () => ({ ok: true as const }),
+      runPmAdd: ({ version }: { version: string }) => {
+        const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+          devDependencies?: Record<string, string>;
+        };
+        pkg.devDependencies = { ...(pkg.devDependencies ?? {}), [RUNTIME_PACKAGE_NAME]: version };
+        writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+        const nm = join(root, "node_modules", "@deftai", "directive-runtime");
+        mkdirSync(join(nm, "dist"), { recursive: true });
+        writeFileSync(
+          join(nm, "package.json"),
+          `${JSON.stringify({ name: RUNTIME_PACKAGE_NAME, version, directive: { contract: 1 } })}\n`,
+        );
+        writeFileSync(join(nm, "dist", "bin.js"), "process.exit(0);\n");
+        writeFileSync(
+          join(root, "package-lock.json"),
+          `${JSON.stringify({
+            lockfileVersion: 3,
+            packages: {
+              "": { devDependencies: { [RUNTIME_PACKAGE_NAME]: version } },
+              [`node_modules/${RUNTIME_PACKAGE_NAME}`]: { version },
+            },
+          })}\n`,
+        );
+        return { ok: true as const };
+      },
+      invokeSetup: () => ({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          contract: 1,
+          entry: "setup",
+          created: [".deft/GENERATION.json"],
+          modified: [],
+          removed: [],
+          conflicts: [],
+        }),
+        stderr: "",
+        message: null,
+      }),
+      invokeMigrate: () => ({
+        exitCode: 0,
+        stdout: JSON.stringify({ contract: 1, entry: "migrate", migrated: [] }),
+        stderr: "",
+        message: null,
+      }),
+    };
+  }
+
+  it("the plan names the new package.json (default and -v); dry-run creates nothing", () => {
+    const root = convertRoot(false);
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--dry-run", "-v", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      convertDeps(root),
+    );
+    expect(code, c.err()).toBe(0);
+    expect(c.out()).toContain(UPGRADE_CREATE_PKG_BULLET);
+    expect(c.out()).toContain('manifest: create package.json { "private": true }');
+    expect(c.out()).not.toMatch(/Created package\.json/);
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+  });
+
+  it("the run creates { private: true } and says so once", () => {
+    const root = convertRoot(false);
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      convertDeps(root),
+    );
+    expect(code, c.err()).toBe(0);
+    expect(c.out()).toContain(`• ${UPGRADE_CREATE_PKG_BULLET}`);
+    expect(c.out().match(/Created package\.json \{ "private": true \}/g)?.length).toBe(1);
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      private?: boolean;
+    };
+    expect(pkg.private).toBe(true);
+  });
+
+  it("with an existing package.json the plan does not mention creating one", () => {
+    const root = convertRoot(true);
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--dry-run", "-v", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      convertDeps(root),
+    );
+    expect(code, c.err()).toBe(0);
+    expect(c.out()).not.toContain(UPGRADE_CREATE_PKG_BULLET);
+    expect(c.out()).not.toMatch(/manifest: create package\.json/);
+  });
+});
+
+/** Directive git hooks in the plan and the report (#5976 / D-023). */
+describe("git hooks in upgrade, repair and uninstall output (D-023)", () => {
+  function seedHooks(root: string, rels: readonly string[]): void {
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    for (const rel of rels) writeFileSync(join(root, rel), "#!/usr/bin/env sh\n");
+  }
+
+  it("--dry-run upgrade plan lists every git hook it will write, replace or remove", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    seedHooks(root, [".githooks/pre-commit", ".githooks/pre-push", ".githooks/_deft-run.sh"]);
+    const before = readFileSync(join(root, ".githooks/pre-push"), "utf8");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
+      },
+    );
+    expect(code).toBe(0);
+    const out = c.out().replace(/\s+/g, " ");
+    expect(out).toContain("write git hooks .githooks/_directive-run.sh");
+    expect(out).toContain(
+      "replace git hooks .githooks/pre-commit, .githooks/pre-push where they differ from this version, even if edited",
+    );
+    expect(out).toContain("remove the old git-hook helper .githooks/_deft-run.sh");
+    expect(readFileSync(join(root, ".githooks/pre-push"), "utf8")).toBe(before);
+    expect(existsSync(join(root, ".githooks/_directive-run.sh"))).toBe(false);
+  });
+
+  it("readGitHookPlan reads a project with no hooks as three writes", () => {
+    const root = tempProject();
+    expect(readGitHookPlan(root)).toEqual({
+      write: [".githooks/_directive-run.sh", ".githooks/pre-commit", ".githooks/pre-push"],
+      replace: [],
+      remove: [],
+    });
+  });
+
+  const setupStdout = JSON.stringify({
+    contract: 1,
+    entry: "setup",
+    created: [],
+    modified: [".githooks/pre-push"],
+    removed: [".githooks/_deft-run.sh"],
+    conflicts: [],
+    gitHookUpdates: [
+      "Updated `.githooks/pre-push`; your earlier version is in git history.",
+      "Removed `.githooks/_deft-run.sh`; your earlier version is in git history.",
+    ],
+  });
+
+  it("upgrade report names each replaced hook and lists it under Review and commit", () => {
+    const c = capture();
+    presentUpgradeSuccess(c.io, {
+      version: "2.0.0",
+      versionChange: true,
+      pm: "npm",
+      summary: tryParseSetupSummary(setupStdout),
+      migrateSummary: null,
+      verbosity: 0,
+    });
+    const out = c.out();
+    expect(out).toContain("Updated `.githooks/pre-push`; your earlier version is in git history.");
+    expect(out).toContain(
+      "Removed `.githooks/_deft-run.sh`; your earlier version is in git history.",
+    );
+    const review = out.slice(out.indexOf("Review and commit:"));
+    expect(review).toContain("  .githooks/pre-push\n");
+    expect(review).toContain("  .githooks/_deft-run.sh\n");
+  });
+
+  it("repair report names each replaced hook", () => {
+    const c = capture();
+    presentRepairSuccess(c.io, {
+      version: "2.0.0",
+      restoredPackage: false,
+      summary: tryParseSetupSummary(setupStdout),
+      verbosity: 0,
+    });
+    expect(c.out()).toContain(
+      "Updated `.githooks/pre-push`; your earlier version is in git history.",
+    );
+  });
+
+  it("uninstall plan names the git hooks it will remove", () => {
+    const c = capture();
+    presentUninstallPlan(c.io, {
+      projectRoot: "/p",
+      pm: "npm",
+      pmEvidence: "package-lock.json",
+      pinVersion: "2.0.0",
+      pmCommand: null,
+      verbosity: 0,
+      removal: summarizeUninstallRemovals(
+        [".githooks/pre-commit", ".githooks/pre-push", ".githooks/_directive-run.sh"],
+        { willRemovePin: true },
+      ),
+    });
+    expect(c.out().replace(/\s+/g, " ")).toContain(
+      "remove git hooks .githooks/pre-commit, .githooks/pre-push, .githooks/_directive-run.sh",
+    );
   });
 });

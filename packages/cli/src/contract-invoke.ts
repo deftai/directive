@@ -88,13 +88,22 @@ export function invokeRuntime(options: InvokeOptions): InvokeResult {
   };
 }
 
-/** Build Contract 1 setup argv. */
+/**
+ * Build Contract 1 setup argv. `takeOverHooksPath` adds `--take-over-hooks-path`
+ * only for install/repair, after the plan that disclosed it was approved (#4960).
+ * An older runtime ignores the flag and keeps refusing (safe).
+ */
 export function setupArgv(
   operation: "install" | "repair" | "upgrade",
   from: string,
   root: string,
+  options: { readonly takeOverHooksPath?: boolean } = {},
 ): string[] {
-  return ["setup", "--operation", operation, "--from", from, "--root", root];
+  const argv = ["setup", "--operation", operation, "--from", from, "--root", root];
+  if (options.takeOverHooksPath === true && operation !== "upgrade") {
+    argv.push("--take-over-hooks-path");
+  }
+  return argv;
 }
 
 export function migrateArgv(from: string, root: string): string[] {

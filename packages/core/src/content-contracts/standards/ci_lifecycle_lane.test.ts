@@ -151,7 +151,7 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
 
   it("exactly one job publishes the required TypeScript check name", () => {
     const ci = readText(".github/workflows/ci.yml");
-    const matches = ci.match(/name:\s*TypeScript \(build \+ lint \+ test\)/g) ?? [];
+    const matches = ci.match(/name:\s*TypeScript \(build \+ lint\)/g) ?? [];
     expect(matches).toHaveLength(1);
     expect(ci).toContain("  ts:");
   });
@@ -166,17 +166,12 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     expect(github).toContain("#4912");
   });
 
-  it("required-check comment map matches live protection (only TypeScript is YES)", () => {
+  it("required-check comment map matches live protection (TypeScript and Merge gate are YES)", () => {
     const ci = readText(".github/workflows/ci.yml");
     expect(ci).toMatch(
-      /\|\s*Aggregator\s*\|\s*ts\s+\|\s*TypeScript \(build \+ lint \+ test\)\s+\|\s*YES\s+\|/,
+      /\|\s*Aggregator\s*\|\s*ts\s+\|\s*TypeScript \(build \+ lint\)\s+\|\s*YES\s+\|/,
     );
-    expect(ci).toMatch(/\|\s*Aggregator\s*\|\s*go\s+\|\s*Go \(test \+ build\)\s+\|\s*no\s+\|/);
     expect(ci).toMatch(
-      /\|\s*Aggregator\s*\|\s*merge-gate\s+\|\s*Merge gate \(task check\)\s+\|\s*no\s+\|/,
-    );
-    expect(ci).not.toMatch(/\|\s*Aggregator\s*\|\s*go\s+\|\s*Go \(test \+ build\)\s+\|\s*YES\s+\|/);
-    expect(ci).not.toMatch(
       /\|\s*Aggregator\s*\|\s*merge-gate\s+\|\s*Merge gate \(task check\)\s+\|\s*YES\s+\|/,
     );
   });
@@ -184,15 +179,12 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
   it("non-required ci.yml jobs gate on the artifact-only output", () => {
     const ci = readText(".github/workflows/ci.yml");
     const skipIf = "if: always() && needs.changes.outputs.artifact_only != 'true'";
-    expect(ci).toContain("  go-primary:");
     expect(ci).toContain("  merge-gate-primary:");
     expect(ci).toContain("  windows-task-dispatch:");
-    const goPrimary = jobBlock(ci, "go-primary");
     const mergePrimary = jobBlock(ci, "merge-gate-primary");
     const windows = jobBlock(ci, "windows-task-dispatch");
-    const goAgg = jobBlock(ci, "go");
     const mergeAgg = jobBlock(ci, "merge-gate");
-    for (const block of [goPrimary, mergePrimary, windows, goAgg, mergeAgg]) {
+    for (const block of [mergePrimary, windows, mergeAgg]) {
       expect(block).toContain(skipIf);
       expect(block).toMatch(/needs:\s*\[changes/);
     }
@@ -217,12 +209,12 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
   it("TypeScript aggregator stays ungated by the artifact-only predicate", () => {
     const ci = readText(".github/workflows/ci.yml");
     const job = jobBlock(ci, "ts");
-    expect(job).toContain("name: TypeScript (build + lint + test)");
+    expect(job).toContain("name: TypeScript (build + lint)");
     expect(job).toContain("if: always()");
     expect(job).not.toContain("artifact_only");
   });
 
-  it("watchdog and arm do not treat skipped Go/merge-gate as capacity death on artifact-only", () => {
+  it("watchdog and arm do not treat skipped merge-gate as capacity death on artifact-only", () => {
     const ci = readText(".github/workflows/ci.yml");
     expect(ci).toContain("ARTIFACT_ONLY:");
     expect(ci).toContain("needs.changes.outputs.artifact_only");

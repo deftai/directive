@@ -48,6 +48,7 @@ import {
   removeRetiredCoreGuardWorkflow,
 } from "./removal-steps/steps.js";
 import {
+  DIRECTIVE_GIT_HOOK_BODIES,
   ensureAgentsManagedSection,
   ensureGitHooks,
   ensureHostHooks,
@@ -76,10 +77,22 @@ export interface SetupResult {
   readonly removed: string[];
   readonly conflicts: string[];
   /**
-   * Files kept in place; non-failure, present only when non-empty. Tracked divergent
-   * managed hooks (#5837) and a user-edited retired core-guard workflow (#5835).
+   * One plain line per existing Directive git hook that setup replaced or removed
+   * (D-023); present only when non-empty.
+   */
+  readonly gitHookUpdates?: string[];
+  /**
+   * Files kept in place; non-failure, present only when non-empty: a user-edited
+   * retired core-guard workflow (#5835). Git hooks are never kept (D-023).
    */
   readonly preserved?: string[];
+  /**
+   * Set when this run replaced another `core.hooksPath` with `.githooks` after the
+   * install/repair plan's approval (#4960, ledger Problem 20). Present only then.
+   */
+  readonly hooksPathTakenOver?: { readonly previous: string; readonly scope: string | null };
+  /** Why Git hooks are not active (no `.git`, another hooks folder); present only then. */
+  readonly gitHooksInactive?: string;
   readonly message: string;
 }
 
@@ -181,7 +194,7 @@ function invalidateReadinessMarkers(
   }
 }
 
-/** Ensure .gitignore has node_modules and wiring-ready ignore entries (AC8.5). */
+/** Ensure .gitignore has the entries AC8.5 names (package folder, readiness, per-checkout runtime files). */
 function ensureGitignore(projectRoot: string): { created: boolean; modified: boolean } {
   const rel = ".gitignore";
   const needed: readonly string[] = DIRECTIVE_GITIGNORE_LINES;
@@ -352,9 +365,11 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       });
     }
   }
-  for (const rel of [".githooks/pre-commit", ".githooks/pre-push", ".githooks/_directive-run.sh"]) {
+  // Record only hook bodies Directive wrote: a hook left alone as a conflict
+  // (not Directive's) is never claimed (#5976).
+  for (const [rel, template] of Object.entries(DIRECTIVE_GIT_HOOK_BODIES)) {
     const body = readText(join(projectRoot, rel));
-    if (body !== null) {
+    if (body !== null && body === template) {
       artifacts.push({
         path: rel,
         kind: "whole-file",
@@ -422,16 +437,25 @@ export function runSetup(options: {
   readonly operation: SetupOperation;
   readonly from: string;
   readonly root: string;
-  /** Explicit pre-write operator force to replace tracked divergent managed hooks (#5837). */
-  readonly forceGitHooks?: boolean;
+  /**
+   * The operator approved an install/repair plan that disclosed taking over another
+   * `core.hooksPath` (#4960). Automatic setup and upgrade never pass this.
+   */
+  readonly takeOverHooksPath?: boolean;
 }): SetupResult {
   const { operation, from, root } = options;
-  let preserved: string[] = [];
+  let gitHookUpdates: string[] = [];
   const keptRetired: string[] = [];
-  const withPreserved = (): { preserved?: string[] } => {
-    const all = [...preserved, ...keptRetired];
-    return all.length > 0 ? { preserved: all } : {};
-  };
+  let hooksTakenOver: { previous: string; scope: string | null } | null = null;
+  const withKeptAndUpdated = (): {
+    gitHookUpdates?: string[];
+    preserved?: string[];
+    hooksPathTakenOver?: { previous: string; scope: string | null };
+  } => ({
+    ...(gitHookUpdates.length > 0 ? { gitHookUpdates } : {}),
+    ...(keptRetired.length > 0 ? { preserved: [...keptRetired] } : {}),
+    ...(hooksTakenOver !== null ? { hooksPathTakenOver: hooksTakenOver } : {}),
+  });
   const created: string[] = [];
   const modified: string[] = [];
   const removed: string[] = [];
@@ -540,10 +564,16 @@ export function runSetup(options: {
     created.push(...hooks.created);
     modified.push(...hooks.modified);
 
-    const githooks = ensureGitHooks(root, { forceTrackedReplace: options.forceGitHooks === true });
-    preserved = githooks.preserved;
+    const githooks = ensureGitHooks(root, {
+      takeOverHooksPath: options.takeOverHooksPath === true,
+    });
+    if (githooks.hooksPathTakenOver !== null) {
+      hooksTakenOver = githooks.hooksPathTakenOver;
+    }
+    gitHookUpdates = githooks.updated;
     created.push(...githooks.created);
     modified.push(...githooks.modified);
+    removed.push(...githooks.removed);
     conflicts.push(...githooks.conflicts);
 
     const taskfile = ensureTaskfileInclude(root);
@@ -624,7 +654,7 @@ export function runSetup(options: {
         modified,
         removed,
         conflicts,
-        ...withPreserved(),
+        ...withKeptAndUpdated(),
         message: "setup completed with conflicts",
       };
     }
@@ -648,7 +678,8 @@ export function runSetup(options: {
         modified,
         removed,
         conflicts,
-        ...withPreserved(),
+        ...withKeptAndUpdated(),
+        gitHooksInactive: disclosure,
         message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX}); ${disclosure}`,
       };
     }
@@ -668,7 +699,7 @@ export function runSetup(options: {
       modified,
       removed,
       conflicts,
-      ...withPreserved(),
+      ...withKeptAndUpdated(),
       message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX})`,
     };
   } catch (err) {

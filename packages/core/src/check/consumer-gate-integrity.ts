@@ -24,8 +24,8 @@ export type CheckGraphNamespace = (typeof CHECK_GRAPH_REQUIRED_NAMESPACES)[numbe
 
 export const CONSUMER_GATE_INTEGRITY_RECOVERY =
   "Incomplete Deft deposit: check-graph Taskfile include(s) missing or incomplete. " +
-  "Run `deft update` (or `npm i -g @deftai/directive@latest` then `deft update`) " +
-  "to restore `.deft/core/tasks/` (including `tasks/verify.yml` for `verify:orphan-active`). " +
+  "Run `directive install --repair` to restore the Directive Taskfile include " +
+  "(including `tasks/verify.yml` for `verify:orphan-active`). " +
   "See UPGRADING.md.";
 
 export interface ConsumerGateIntegrityFinding {

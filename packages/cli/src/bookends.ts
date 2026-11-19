@@ -1,9 +1,9 @@
 /**
  * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   CONTRACT_NUMBER,
   EXIT_CODES,
@@ -35,6 +35,7 @@ import { checkNodeVersion } from "./node-check.js";
 import type { ProjectInstallState } from "./pin.js";
 import { isContractSupported, readInstalledRuntime, readProjectInstallState } from "./pin.js";
 import {
+  type HooksTakeover,
   parseVerbosityFlags,
   presentAmbiguousYes,
   presentFirstInstallPlan,
@@ -347,6 +348,72 @@ function _appendGitHooksPlanDisclosure(lines: string[], projectRoot: string): vo
   if (!existsSync(join(projectRoot, ".git"))) {
     lines.push(GIT_HOOKS_INACTIVE_PLAN_LINE);
   }
+}
+
+function gitOut(projectRoot: string, args: readonly string[]): string | null {
+  try {
+    return execFileSync("git", ["-C", projectRoot, ...args], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+}
+
+function samePath(a: string, b: string): boolean {
+  if (a === b) return true;
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * #4960 / ledger Problem 20 — read-only check, before the install/repair plan, for
+ * Git hooks that `.githooks` would replace in this repository. Returns null when
+ * nothing would be replaced (no `.git`, hooks already Directive's, or nothing set).
+ * Never writes Git config (safe for `--dry-run`).
+ */
+export function detectHooksTakeover(projectRoot: string): HooksTakeover | null {
+  if (!existsSync(join(projectRoot, ".git"))) return null;
+  const ours = resolve(projectRoot, ".githooks");
+  const raw = gitOut(projectRoot, ["config", "--show-scope", "--get", "core.hooksPath"]);
+  if (raw !== null) {
+    const line = raw.replace(/\r?\n$/, "");
+    const tab = line.indexOf("\t");
+    const scope = tab >= 0 ? line.slice(0, tab) : "";
+    const value = (tab >= 0 ? line.slice(tab + 1) : line).trim();
+    if (value !== "") {
+      if (value === ".githooks" || value === ".githooks/") return null;
+      if (samePath(resolve(projectRoot, value), ours)) return null;
+      return { previous: value, scope: scope === "" ? null : scope, hooks: [] };
+    }
+  }
+  // Unset: Git's default hooks folder; only sample files mean nothing is replaced.
+  const hooksDirRaw = gitOut(projectRoot, ["rev-parse", "--git-path", "hooks"]);
+  if (hooksDirRaw === null) return null;
+  const hooksDirRel = hooksDirRaw.trim();
+  if (hooksDirRel === "") return null;
+  const hooksDir = resolve(projectRoot, hooksDirRel);
+  let names: string[];
+  try {
+    names = readdirSync(hooksDir)
+      .filter((n) => !n.endsWith(".sample"))
+      .filter((n) => {
+        try {
+          return statSync(join(hooksDir, n)).isFile();
+        } catch {
+          return false;
+        }
+      })
+      .sort();
+  } catch {
+    return null;
+  }
+  if (names.length === 0) return null;
+  return { previous: hooksDirRel, scope: "default", hooks: names };
 }
 
 /** AC5.8 / AC14.45 — fail before mutation when the selected PM is not on PATH. */
@@ -704,6 +771,8 @@ function runFirstInstall(
 
   const willCreatePkg = !existsSync(join(projectRoot, "package.json"));
   const pmCmd = formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot);
+  // #4960 / Problem 20: disclose a hooks takeover inside this one plan.
+  const hooksTakeover = detectHooksTakeover(projectRoot);
 
   presentFirstInstallPlan(io, {
     projectRoot,
@@ -713,6 +782,7 @@ function runFirstInstall(
     pmCommand: pmCmd,
     willCreatePkg,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
+    hooksTakeover,
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
@@ -780,6 +850,7 @@ function runFirstInstall(
     verbosity: flags.verbosity,
     pm: pmDetect.pm,
     pnpmWorkspaceChanged,
+    hooksTakeover,
   }).exitCode;
 }
 
@@ -821,6 +892,8 @@ function runRepair(
   const restoreReason = lockOk
     ? "installed package mismatch/missing"
     : "lockfile missing/unusable/disagree";
+  // #4960 / Problem 20: disclose a hooks takeover inside this one plan.
+  const hooksTakeover = detectHooksTakeover(projectRoot);
 
   presentRepairPlan(io, {
     projectRoot,
@@ -831,6 +904,7 @@ function runRepair(
     pmCommand: needsPmRestore ? pmCmd : null,
     restoreReason: needsPmRestore ? restoreReason : null,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
+    hooksTakeover,
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
@@ -903,6 +977,7 @@ function runRepair(
     pm: pmDetect.pm,
     restoredPackage: needsPmRestore,
     pnpmWorkspaceChanged,
+    hooksTakeover,
   }).exitCode;
 }
 
@@ -948,8 +1023,16 @@ function handOffSetup(opts: {
   restoredPackage?: boolean;
   /** pnpm changed pnpm-workspace.yaml during the PM add (#5854 / #6006). */
   pnpmWorkspaceChanged?: boolean;
+  /**
+   * Hooks takeover disclosed in the approved install/repair plan (#4960). Only
+   * then does setup get --take-over-hooks-path; upgrade never passes it.
+   */
+  hooksTakeover?: HooksTakeover | null;
 }): { exitCode: number; summary: SetupSummary | null } {
-  const argv = setupArgv(opts.operation, opts.from, opts.projectRoot);
+  const hooksTakeover = opts.operation === "upgrade" ? null : (opts.hooksTakeover ?? null);
+  const argv = setupArgv(opts.operation, opts.from, opts.projectRoot, {
+    takeOverHooksPath: hooksTakeover !== null,
+  });
   const result =
     opts.deps.invokeSetup?.(argv) ??
     invokeRuntime({
@@ -979,6 +1062,7 @@ function handOffSetup(opts: {
         summary,
         verbosity: opts.verbosity,
         pnpmWorkspaceChanged: opts.pnpmWorkspaceChanged ?? false,
+        hooksTakeover,
       });
     } else if (opts.operation === "repair") {
       presentRepairSuccess(opts.io, {
@@ -988,6 +1072,7 @@ function handOffSetup(opts: {
         verbosity: opts.verbosity,
         pm: opts.pm,
         pnpmWorkspaceChanged: opts.pnpmWorkspaceChanged ?? false,
+        hooksTakeover,
       });
     }
     // upgrade: caller presents after migrate
@@ -1298,6 +1383,7 @@ export function runUpgrade(
     needMigrate,
     oldStyle: state.oldStyle,
     convertShapeId: convertViaRemovals ? upgradeShape?.shapeId : null,
+    willCreatePkg: convertViaRemovals && !existsSync(join(projectRoot, "package.json")),
     deftCoreGitEdits:
       state.oldStyle || convertViaRemovals
         ? (deps.listDeftCoreGitEdits ?? listDeftCoreGitEdits)(projectRoot)
@@ -1336,6 +1422,7 @@ export function runUpgrade(
       // no-op and drop the private greenfield marker.
       if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
         ensurePackageJson(projectRoot);
+        io.writeOut('Created package.json { "private": true }\n');
       }
       // Strip launcher pin + retired triad before PM add (wave4e / AC10.3).
       // Upgrade must not require old triad tarballs on the registry.
@@ -1363,6 +1450,7 @@ export function runUpgrade(
     // Convert shapes may lack a package.json (rare); ensure before PM add.
     if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
       ensurePackageJson(projectRoot);
+      io.writeOut('Created package.json { "private": true }\n');
     }
     const add =
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
@@ -1830,6 +1918,14 @@ export function runUninstall(
 export const runUninstallStub = runUninstall;
 
 /**
+ * `directive doctor --json` writes exactly one JSON document to stdout in every
+ * launcher-only state (#6004). Human text goes to stderr or is omitted.
+ */
+function writeDoctorJson(io: BookendIo, payload: Record<string, unknown>): void {
+  io.writeOut(`${JSON.stringify({ entry: "doctor", launcher_only: true, ...payload })}\n`);
+}
+
+/**
  * Launcher doctor bookend (R12 / AC12.4 / AC3.15).
  * When the runtime can run: full read-only diagnosis.
  * When missing/broken: basic §A5.6 diagnosis ending in AC9.7.
@@ -1843,23 +1939,34 @@ export function runDoctor(
   io: BookendIo = defaultIo(),
 ): number {
   const { flags } = parseFlags(argv);
+  const json = argv.includes("--json");
   const node = checkNodeVersion();
-  if (node.warning) io.writeOut(`${node.warning}\n`);
+  if (node.warning) {
+    if (json) io.writeErr(`${node.warning}\n`);
+    else io.writeOut(`${node.warning}\n`);
+  }
 
   // AC14.27 / A5.6: no project → non-zero + directive install.
   if (projectRoot === null || state === null) {
     io.writeErr("No Directive project here. Run `directive install`.\n");
+    if (json) writeDoctorJson(io, { status: "no-project", recovery: "directive install" });
     return EXIT_CODES.FAILURE;
   }
 
   if (state.oldStyle) {
-    io.writeOut("This project uses an older Directive layout. Run `directive upgrade`.\n");
+    const message = "This project uses an older Directive layout. Run `directive upgrade`.";
+    if (json) {
+      writeDoctorJson(io, { status: "old-layout", message, recovery: "directive upgrade" });
+    } else {
+      io.writeOut(`${message}\n`);
+    }
     return EXIT_CODES.FAILURE;
   }
 
   // Bare --root / cwd with no Directive pin is still "not a project" (AC14.27).
   if (state.pin.kind === "none") {
     io.writeErr("No Directive project here. Run `directive install`.\n");
+    if (json) writeDoctorJson(io, { status: "no-project", recovery: "directive install" });
     return EXIT_CODES.FAILURE;
   }
 
@@ -1870,13 +1977,28 @@ export function runDoctor(
   // next command from the shared table (AC12.4 / A5.6 / AC9.7).
   if (state.installed === null || !state.pinMatchesInstalled) {
     const blocked = classifyLauncherSituation(projectRoot, state);
-    io.writeOut(
-      `directive doctor: project ${projectRoot}\n` +
-        `  launcher: ${launcherVersion}\n` +
-        `  pin: ${pinLabel} (${state.pin.kind})\n` +
-        `  installed: ${state.installed === null ? "missing" : `${installedLabel} (≠ pin)`}\n` +
-        `Next: ${blocked?.message ?? formatEntryGuardMessage("runtime-missing", { install: projectInstallCommand(projectRoot) })}\n`,
-    );
+    const next =
+      blocked?.message ??
+      formatEntryGuardMessage("runtime-missing", { install: projectInstallCommand(projectRoot) });
+    if (json) {
+      writeDoctorJson(io, {
+        status: state.installed === null ? "runtime-missing" : "pin-mismatch",
+        project_root: projectRoot,
+        launcher: launcherVersion,
+        pin: pinLabel,
+        pin_kind: state.pin.kind,
+        installed: state.installed?.version ?? null,
+        recovery: next,
+      });
+    } else {
+      io.writeOut(
+        `directive doctor: project ${projectRoot}\n` +
+          `  launcher: ${launcherVersion}\n` +
+          `  pin: ${pinLabel} (${state.pin.kind})\n` +
+          `  installed: ${state.installed === null ? "missing" : `${installedLabel} (≠ pin)`}\n` +
+          `Next: ${next}\n`,
+      );
+    }
     return EXIT_CODES.FAILURE;
   }
 
@@ -1884,10 +2006,26 @@ export function runDoctor(
     io.writeErr(
       "This launcher is too old for this project. `npm i -g @deftai/directive@latest`.\n",
     );
+    if (json) {
+      writeDoctorJson(io, {
+        status: "launcher-too-old",
+        recovery: "npm i -g @deftai/directive@latest",
+      });
+    }
     return EXIT_CODES.FAILURE;
   }
 
   if (flags.dryRun) {
+    if (json) {
+      writeDoctorJson(io, {
+        status: "dry-run",
+        project_root: projectRoot,
+        launcher: launcherVersion,
+        pin: pinLabel,
+        installed: installedLabel,
+      });
+      return EXIT_CODES.SUCCESS;
+    }
     io.writeOut(
       `directive doctor: project ${projectRoot}\n` +
         `  launcher: ${launcherVersion}\n` +

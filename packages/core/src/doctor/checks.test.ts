@@ -379,7 +379,7 @@ describe("checks", () => {
       readText: (p) => (p.includes(".deft-version") ? "0.1.0\n" : null),
     });
     expect(result.status).toBe("fail");
-    expect(result.data?.suggested_fix).toBe("deft update");
+    expect(result.data?.suggested_fix).toBe("directive upgrade");
   });
 
   it("missing YAML never routes to a session:start rebuild of .deft/core (#6562)", () => {
@@ -389,7 +389,7 @@ describe("checks", () => {
         p.replace(/\\/g, "/").includes("xbrief/.deft-version") ? "0.119.13\n" : null,
     });
     expect(result.status).toBe("fail");
-    expect(result.data?.suggested_fix).toBe("deft update");
+    expect(result.data?.suggested_fix).toBe("directive upgrade");
     expect(result.data).not.toHaveProperty("missing_manifest_reconstitute_eligible");
     expect(result.detail).not.toContain("session:start");
   });
@@ -633,7 +633,7 @@ describe("checks", () => {
         });
         expect(result.status).toBe("fail");
         expect(result.detail).toContain("Bare .deft-version exists");
-        expect(result.data?.suggested_fix).toBe("deft update");
+        expect(result.data?.suggested_fix).toBe("directive upgrade");
       } finally {
         rmSync(root, { recursive: true, force: true });
       }
@@ -648,7 +648,7 @@ describe("checks", () => {
           isLinkedWorktree: () => false,
         });
         expect(result.status).toBe("fail");
-        expect(result.data?.suggested_fix).toBe("deft update");
+        expect(result.data?.suggested_fix).toBe("directive upgrade");
       } finally {
         rmSync(root, { recursive: true, force: true });
       }
@@ -737,7 +737,8 @@ describe("checkGitignoreCoverage (#2206)", () => {
   it("skips when .gitignore is absent", () => {
     const result = checkGitignoreCoverage("/proj", seamsFor(null));
     expect(result.status).toBe("skip");
-    expect(result.detail).toContain("directive init");
+    // "/proj" has no runtime pin: old layout → the conversion names upgrade.
+    expect(result.detail).toContain("directive upgrade");
   });
 
   it("passes when all canonical entries are present", () => {
@@ -756,9 +757,11 @@ describe("checkGitignoreCoverage (#2206)", () => {
     const missing = result.data?.missing as string[];
     expect(missing.length).toBeGreaterThan(0);
     expect(missing).toContain(".deft-cache/");
-    expect(result.detail).toContain("directive update");
-    expect(result.detail).toContain("directive update --allow-dirty-no-stage");
-    expect(result.data?.dirty_tree_fix).toBe("directive update --allow-dirty-no-stage");
+    // Old layout (no runtime pin): the conversion is the remedy; never update / --allow-dirty-no-stage.
+    expect(result.detail).toContain("directive upgrade");
+    expect(result.detail).not.toContain("directive update");
+    expect(result.detail).not.toContain("--allow-dirty-no-stage");
+    expect(result.data?.dirty_tree_fix).toBeUndefined();
   });
 
   it("reports xBRIEF-era eval result paths as missing (#2206)", () => {
@@ -1653,7 +1656,8 @@ describe("checkPrePrSecretTracked (#6271)", () => {
     expect(result.detail).toContain("rotate");
     expect(result.detail).toContain("Doctor does not untrack it");
     expect(result.data?.untrack_command).toBe(`git rm --cached -- ${PRE_PR_HMAC_SECRET_REL}`);
-    expect(result.detail).toContain("directive update --allow-dirty-no-stage");
+    expect(result.detail).toContain("directive install --repair");
+    expect(result.detail).not.toContain("--allow-dirty-no-stage");
   });
 
   it("warns on a real tracked secret and leaves the git index unchanged", () => {

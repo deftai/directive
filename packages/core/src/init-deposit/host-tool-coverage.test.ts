@@ -150,8 +150,9 @@ describe("agent_hooks fail still surfaces pin/engine skew (#4692)", () => {
     expect(result.message).toContain("drifted");
     expect(result.message).toContain("0.114.0");
     expect(result.message).toMatch(/Pin\/engine skew is also present/);
-    expect(result.message).toContain("Recovery: run `deft update`");
-    expect(result.message).toContain("is not the skew fix");
+    expect(result.message).toContain("directive install --repair");
+    expect(result.message).toContain("the skew fix is the project install");
+    expect(result.message).not.toContain("deft update");
   });
 
   it("hook-drift recovery remains when pin matches the engine", () => {
@@ -161,7 +162,7 @@ describe("agent_hooks fail still surfaces pin/engine skew (#4692)", () => {
     const result = evaluateAgentHooks(root);
     expect(result.code).toBe(1);
     expect(result.registrations.find((entry) => entry.host === "grok")?.status).toBe("drifted");
-    expect(result.message).toContain("Recovery: run `deft update`");
+    expect(result.message).toContain("directive install --repair");
     expect(result.message).not.toMatch(/Pin\/engine skew is also present/);
   });
 

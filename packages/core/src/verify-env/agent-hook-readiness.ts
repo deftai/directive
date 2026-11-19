@@ -228,7 +228,7 @@ export function evaluateAgentHookReadiness(
   // Missing-runtime tip only: do not restore UNUSED_HOST_HOOKS_RECOVERY for matcher drift.
   const missingRuntimeTip =
     liveStatus === "unavailable"
-      ? "\n  Recovery: install the Directive runtime so `deft-hook` is on PATH (`npm i -g @deftai/directive`), then run `deft doctor --full` / `deft update`."
+      ? "\n  Recovery: `deft-hook` is not on PATH; it comes from the global launcher, so a person runs `npm i -g @deftai/directive`, then `directive doctor` to confirm."
       : "";
   return {
     code: liveProbe.code,

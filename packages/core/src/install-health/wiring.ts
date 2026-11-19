@@ -41,6 +41,7 @@ export const WIRING_PROBE_RELS: readonly string[] = [
   ".grok/hooks/deft.json",
   "Taskfile.yml",
   ".githooks/pre-commit",
+  ".githooks/pre-push",
   ".githooks/_directive-run.sh",
 ];
 
@@ -264,7 +265,8 @@ export function hasDirectiveWiringEvidence(projectRoot: string, seams: FsSeams =
 
 /**
  * Structural wiring check against the Wave 2c probe inventory.
- * Missing probes do not fail. Present mismatched probes fail.
+ * Missing probes do not fail, except a missing pre-commit or pre-push next to
+ * Directive's hook helper. Present mismatched probes fail.
  */
 export function checkWiringTargetsRuntime(
   projectRoot: string,
@@ -275,9 +277,17 @@ export function checkWiringTargetsRuntime(
   const inspected: string[] = [];
   const mismatched: string[] = [];
 
+  // With Directive's hook helper present, a missing pre-commit or pre-push
+  // means a gate is off, so it counts as a mismatch (#5976).
+  const helperPresent = isFile(join(projectRoot, ".githooks/_directive-run.sh"));
   for (const rel of WIRING_PROBE_RELS) {
     const path = join(projectRoot, rel);
-    if (!isFile(path)) continue;
+    if (!isFile(path)) {
+      if (helperPresent && (rel === ".githooks/pre-commit" || rel === ".githooks/pre-push")) {
+        mismatched.push(rel);
+      }
+      continue;
+    }
     inspected.push(rel);
     const text = readText(path);
     if (text === null) {

@@ -1251,7 +1251,6 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "echo x > .deft/authz-backup/story.json",
       "echo x > .deft/foo/../authz-backup/story.json",
       "aws s3 cp .deft/authz/x /tmp/out",
-      "env aws s3 cp .deft-directive-disable /tmp/out",
       "env aws s3 cp .deft/authz/x /tmp/out",
       "FOO=1 aws s3 cp .deft/authz/x /tmp/out",
       "env -C /tmp aws s3 cp .deft/authz/x /tmp/out",
@@ -1261,7 +1260,6 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "convert .deft/authz/x /tmp/out",
       "magick .deft/authz/x /tmp/out",
       "aws s3 cp .deft/approved-scope/x /tmp/out",
-      "convert .deft-directive-disable /tmp/out",
     ]) {
       const decision = decideHook(
         {
@@ -1277,6 +1275,26 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       );
       expect(decision.verdict, command).toBe("allow");
       expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+    // #6681 mention rule: a non-read command that names the kill-switch file is refused,
+    // even when the name is only a source. Over-refusal is accepted (allowed before #6681).
+    for (const command of [
+      "env aws s3 cp .deft-directive-disable /tmp/out",
+      "convert .deft-directive-disable /tmp/out",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
     }
   });
 });
@@ -1797,7 +1815,6 @@ describe("destination-visible empty-op fallback (#4005)", () => {
       "cat .deft/authz/state.json",
       "echo ok",
       "zip /tmp/backup.zip .deft/authz/state.json",
-      "zip /tmp/backup.zip .deft-directive-disable",
       "zip /tmp/backup.zip .deft/approved-scope/story.json",
       "(zip .deft/authz/grants/grouped-no-input.zip)",
       "{ zip .deft/authz/grants/brace-grouped-no-input.zip; }",
@@ -1831,6 +1848,21 @@ describe("destination-visible empty-op fallback (#4005)", () => {
       expect(decision.verdict, command).toBe("allow");
       expect(decision.code, command).toBe("shell-op-unclassifiable");
     }
+    // #6681 mention rule: zip is not a plain read, so naming the kill-switch file as an input
+    // is refused. Over-refusal is accepted (allowed before #6681).
+    const refused = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "zip /tmp/backup.zip .deft-directive-disable" },
+        },
+      },
+      seams,
+    );
+    expect(refused.verdict).toBe("deny");
   });
 });
 

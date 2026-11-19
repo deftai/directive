@@ -51,13 +51,13 @@ The typed opt-out is `deft policy:disable-host-hooks --host <host> --confirm`. I
 deft policy:show --field=hostHooks
 ```
 
-Only enabled hosts can fail readiness. An opted-out host reports `registration=disabled`, `functionality=disabled`, `trust=disabled`, and `interception=disabled`; it is not probed and repair output must not tell the operator to reinstall that host. When a failed enabled host is unused, recovery copy names the confirm-gated disable verb and the guardrail cost — not ungated hand-edit. Hand-edit of `plan.policy.hostHooks` plus `deft update` still strips (human high-trust bypass). Timeout is not unused-host opt-out.
+Only enabled hosts can fail readiness. An opted-out host reports `registration=disabled`, `functionality=disabled`, `trust=disabled`, and `interception=disabled`; it is not probed and repair output must not tell the operator to reinstall that host. When a failed enabled host is unused, recovery copy names the confirm-gated disable verb and the guardrail cost — not ungated hand-edit. Hand-edit of `plan.policy.hostHooks` plus `directive install --repair` still strips (human high-trust bypass). Timeout is not unused-host opt-out.
 
 This policy is independent of `.githooks/` and `hostSlashCommands`.
 
 ## Mutation-path wiring
 
-- `directive init` and `deft update` run and report readiness after depositing hooks. A readiness failure returns non-zero without rolling back the completed deposit; JSON reports `deposit_completed: true` separately from `success` and `agent_hook_readiness.ready`.
+- `directive install` and `directive install --repair` run and report readiness after depositing hooks. A readiness failure returns non-zero without rolling back the completed deposit; JSON reports `deposit_completed: true` separately from `success` and `agent_hook_readiness.ready`.
 - `deft verify:session-ritual -- --tier=gated` owns a non-deferrable `agent_hooks` step that invokes the canonical live command. It does not route through doctor.
 - `deft session:ready` forces that gated hook check once even when cached gated state looked fresh, so later registration drift cannot be hidden by the fast path.
 - Cold `deft session:start` does not run the live probe. It remains the quick-tier ceremony and does not record an `agent_hooks` success.

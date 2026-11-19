@@ -277,7 +277,7 @@ When the Control UI / parent seat is stuck replaying the same progress sentence 
 1. **Abort the parent turn** (Control UI stop / interrupt / cancel generation). Do **not** wait for length-cap.
 2. **Do not assume leaves failed.** Check worktrees, open PRs, and xBRIEF state with a **tool-first** batch from a fresh parent turn (`gh` / `git` / files). Leaves may already be DONE or mid-review.
 3. **Resume with a legal shape only:** tool-first ground truth, `sessions_yield`, or one short non-repeated answer. ⊗ Restart by pasting more “checking next…” prose.
-4. **If the hang returns immediately:** refresh Directive deposit (`npm i -g @deftai/directive@latest` then `directive update` / `deft update` / `deft doctor --fix` for OpenClaw skill pins — see § Wire skills into OpenClaw workspace), re-open the parent with current `openclaw-agent-host` + swarm host adapter text, and re-dispatch only after ground truth.
+4. **If the hang returns immediately:** refresh Directive deposit (`directive install --repair` for OpenClaw skill pins — see § Wire skills into OpenClaw workspace), re-open the parent with current `openclaw-agent-host` + swarm host adapter text, and re-dispatch only after ground truth.
 5. **Host pin note:** On OpenClaw beta pins that do not yet call `evaluateParentTurnShape` in the stream, the operator abort in step 1 **is** the hard stop. Directive still ships the machine-check library + skill/docs so soft prose is not the only mitigation once the host wires it (or an agent-side gate evaluates a recorded turn). Surface `FC14` in notes when reporting the incident.
 
 ## Anti-patterns

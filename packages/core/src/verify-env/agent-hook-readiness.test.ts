@@ -198,7 +198,8 @@ describe("evaluateAgentHookReadiness", () => {
       "unavailable",
     );
     expect(result.message).toContain("npm i -g @deftai/directive");
-    expect(result.message).toContain("deft doctor --full");
+    expect(result.message).not.toContain("deft update");
+    expect(result.message).toContain("directive doctor");
     expect(result.message).not.toContain("disable-host-hooks");
     expect(result.message).not.toContain("hostHooks.<host>");
   });

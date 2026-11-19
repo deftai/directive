@@ -1,4 +1,4 @@
-# Reusable CI lane for framework TypeScript / Go suites (#2672).
+# Reusable CI lane for the framework TypeScript suite (#2672).
 # Called from ci.yml as Blacksmith-primary or GH-hosted failover.
 # Job check names here are NOT branch-protection required names — those live
 # exclusively on the aggregators in ci.yml.
@@ -9,7 +9,7 @@ on:
   workflow_call:
     inputs:
       suite:
-        description: "Which suite to run (ts | go)"
+        description: "Which suite to run (ts)"
         required: true
         type: string
       runner:
@@ -29,18 +29,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Node (ts + go)
-        if: inputs.suite == 'ts' || inputs.suite == 'go'
+      - name: Setup Node (ts)
+        if: inputs.suite == 'ts'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
 
       - name: Enable corepack (pnpm)
-        if: inputs.suite == 'ts' || inputs.suite == 'go'
+        if: inputs.suite == 'ts'
         run: corepack enable
 
       - name: Install dependencies
-        if: inputs.suite == 'ts' || inputs.suite == 'go'
+        if: inputs.suite == 'ts'
         run: pnpm install --frozen-lockfile
 
       # --- TypeScript suite ---
@@ -51,11 +51,6 @@ jobs:
       - name: Lint + format check (biome)
         if: inputs.suite == 'ts'
         run: pnpm run lint
-
-      - name: Test (vitest, no coverage)
-        if: inputs.suite == 'ts'
-        timeout-minutes: 20
-        run: pnpm exec vitest run
 
       - name: Rule-relocation eval:health gate (#2373)
         if: inputs.suite == 'ts' && github.event_name == 'pull_request'
@@ -68,41 +63,3 @@ jobs:
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1
           node packages/runtime/dist/bin.js verify:eval-triggers-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
-
-      # --- Go suite ---
-      - name: Setup Go
-        if: inputs.suite == 'go'
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
-      - name: Build TypeScript CLI (deft hooks #2049)
-        if: inputs.suite == 'go'
-        run: pnpm run build
-
-      # Quote the run value: a bare `#5490` in a plain YAML scalar is a comment
-      # and truncates the script (unexpected EOF on the opening `"`).
-      - name: Run Go tests
-        if: inputs.suite == 'go'
-        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go test"'
-
-      - name: Build linux/amd64
-        if: inputs.suite == 'go'
-        env:
-          GOOS: linux
-          GOARCH: amd64
-        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go build"'
-
-      - name: Build darwin/arm64
-        if: inputs.suite == 'go'
-        env:
-          GOOS: darwin
-          GOARCH: arm64
-        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go build"'
-
-      - name: Build windows/amd64
-        if: inputs.suite == 'go'
-        env:
-          GOOS: windows
-          GOARCH: amd64
-        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go build"'

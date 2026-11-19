@@ -23,12 +23,28 @@ afterEach(() => {
 });
 
 const DEFT_PRE_COMMIT = `#!/usr/bin/env sh
-run_directive verify:encoding --staged --project-root "$REPO_ROOT"
+run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
+run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
+run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
+if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
+  run_directive verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
+  run_directive verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
+fi
 `;
 
 const DEFT_PRE_PUSH = `#!/usr/bin/env sh
-run_directive verify:branch --project-root "$REPO_ROOT"
+run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit $?
 `;
+
+/** The deposited git-hook template from setup-wiring.ts (#5808). */
+function hookTemplate(name: "GITHOOK_HELPER" | "PRE_COMMIT" | "PRE_PUSH"): string {
+  const src = readFileSync(join(REPO_ROOT, "packages/runtime/src/setup-wiring.ts"), "utf8");
+  const open = `const ${name} = \``;
+  const start = src.indexOf(open);
+  expect(start, `${name} template in setup-wiring.ts`).toBeGreaterThanOrEqual(0);
+  const body = src.slice(start + open.length);
+  return body.slice(0, body.indexOf("`;"));
+}
 
 const LEGACY_PYTHON_PRE_COMMIT = `#!/usr/bin/env sh
 python3 scripts/preflight_branch.py --project-root "$REPO_ROOT"
@@ -122,7 +138,7 @@ describe("evaluate", () => {
     expect(result.message).toContain("verify:encoding");
   });
 
-  it("fails when pre-push omits verify:branch", () => {
+  it("fails when pre-push omits preflight-gh --pre-push-stdin", () => {
     const root = makeRepo();
     const hooks = join(root, ".githooks");
     mkdirSync(hooks, { recursive: true });
@@ -135,7 +151,22 @@ describe("evaluate", () => {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
     expect(result.code).toBe(1);
-    expect(result.message).toContain("verify:branch");
+    expect(result.message).toContain("preflight-gh --pre-push-stdin");
+  });
+
+  it("fails on the thin 0.127 pre-commit that dropped the brief gates (#5808)", () => {
+    const root = makeRepo();
+    const hooks = makeDeftHooks(root);
+    writeFileSync(
+      join(hooks, "pre-commit"),
+      '#!/usr/bin/env sh\nrun_directive verify:encoding --staged --project-root "$REPO_ROOT"\n',
+      "utf8",
+    );
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("verify:forward-coverage");
   });
 
   it("fails when hooks wired but directory missing", () => {
@@ -242,7 +273,7 @@ describe("evaluate", () => {
     expect(result.message).toContain("Python scripts");
   });
 
-  it("allows pre-push verify:branch under OVPR tip hooks (#5802 / retires #1814 ban)", () => {
+  it("passes the refspec-aware pre-push (#5808 / D-021)", () => {
     const root = makeRepo();
     makeDeftHooks(root);
     const result = evaluate(root, {
@@ -304,21 +335,10 @@ describe("evaluate", () => {
     const root = makeRepo();
     const hooks = join(root, ".githooks");
     mkdirSync(hooks, { recursive: true });
-    writeFileSync(
-      join(hooks, "pre-commit"),
-      readFileSync(join(REPO_ROOT, ".githooks/pre-commit"), "utf8"),
-      "utf8",
-    );
-    writeFileSync(
-      join(hooks, "pre-push"),
-      readFileSync(join(REPO_ROOT, ".githooks/pre-push"), "utf8"),
-      "utf8",
-    );
-    writeFileSync(
-      join(hooks, "_directive-run.sh"),
-      readFileSync(join(REPO_ROOT, ".githooks/_directive-run.sh"), "utf8"),
-      "utf8",
-    );
+    // The templates setup deposits, not this repo's pinned copies (DOGFOOD).
+    writeFileSync(join(hooks, "pre-commit"), hookTemplate("PRE_COMMIT"), "utf8");
+    writeFileSync(join(hooks, "pre-push"), hookTemplate("PRE_PUSH"), "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), hookTemplate("GITHOOK_HELPER"), "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o755);
     chmodSync(join(hooks, "pre-push"), 0o755);
     const result = evaluate(root, {

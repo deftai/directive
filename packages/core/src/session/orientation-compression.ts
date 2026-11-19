@@ -14,7 +14,7 @@ import {
   renderDoctorStatusLine,
 } from "../doctor/doctor-state.js";
 import { cmdDoctor } from "../doctor/main.js";
-import type { DoctorSeams } from "../doctor/types.js";
+import type { DoctorSeams, DoctorState } from "../doctor/types.js";
 import { checkRuntimeLinkOwner } from "../install-health/runtime-link.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
 import {
@@ -203,9 +203,67 @@ export function formatOrientationVerboseLines(
   return out;
 }
 
+function parseRecordTs(ts: string): Date | null {
+  const parsed = new Date(ts.trim());
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Throttle input from session start's own doctor record (#6617). Only a real
+ * doctor result (exit 0 or 1) counts; an errored run (exit 2) never skips.
+ */
+export function doctorStateFromOrientationRecord(
+  record: OrientationSurfaceRecord | undefined,
+): DoctorState | null {
+  if (!record) return null;
+  if (record.exit_code !== 0 && record.exit_code !== 1) return null;
+  const lastRunAt = parseRecordTs(record.ts);
+  if (!lastRunAt) return null;
+  const lastErrorCount = record.error_count ?? (record.exit_code === 0 ? 0 : 1);
+  return {
+    lastRunAt,
+    lastExitCode: record.exit_code,
+    lastErrorCount,
+    lastFindingCount: Math.max(record.finding_count ?? lastErrorCount, lastErrorCount),
+  };
+}
+
+/**
+ * Which doctor run the session-start time window counts from (#6617).
+ * Session start's own record wins. The legacy `doctor-state.json` (no longer
+ * written by doctor, AC12.1) is read only when that record is absent.
+ */
+export function resolveDoctorThrottleState(
+  projectRoot: string,
+  prior: OrientationState | null,
+): DoctorState | null {
+  if (prior?.doctor) return doctorStateFromOrientationRecord(prior.doctor);
+  return readDoctorState(projectRoot);
+}
+
+/** Error and finding counts from captured `doctor --json` output, when parseable. */
+function doctorCountsFromJson(
+  captured: string,
+): { errorCount: number; findingCount: number } | null {
+  const start = captured.indexOf("{");
+  if (start < 0) return null;
+  try {
+    const parsed = JSON.parse(captured.slice(start)) as Record<string, unknown>;
+    const summary = parsed.summary as Record<string, unknown> | undefined;
+    if (!summary || typeof summary.errors !== "number" || typeof summary.warnings !== "number") {
+      return null;
+    }
+    return { errorCount: summary.errors, findingCount: summary.errors + summary.warnings };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Doctor orientation section — throttle status when clean/recent; otherwise
  * run doctor and surface a per-section status line (#3286 compose).
+ * The window comes from session start's own record (#6617); doctor itself
+ * keeps no state.
  */
 export function runDoctorOrientationSection(
   projectRoot: string,
@@ -213,6 +271,8 @@ export function runDoctorOrientationSection(
     now?: Date;
     seams?: DoctorSeams;
     doctorRunner?: (args: readonly string[], seams?: DoctorSeams) => number;
+    /** Orientation state read at session start; defaults to reading it now. */
+    prior?: OrientationState | null;
   } = {},
 ): OrientationSectionResult {
   const started = performance.now();
@@ -227,7 +287,8 @@ export function runDoctorOrientationSection(
     const runtimeLinkLines = runtimeLinkFailed
       ? [`[deft doctor] ${runtimeLink.name}: fail -- ${runtimeLink.detail}`]
       : [];
-    const state = readDoctorState(projectRoot);
+    const prior = options.prior !== undefined ? options.prior : readOrientationState(projectRoot);
+    const state = resolveDoctorThrottleState(projectRoot, prior);
     const decision = decideThrottle(state, now);
     if (decision.skip) {
       const dirty = decision.dirty || runtimeLinkFailed;
@@ -267,6 +328,7 @@ export function runDoctorOrientationSection(
       process.stdout.write = prevOut;
       process.stderr.write = prevErr;
     }
+    const counts = doctorCountsFromJson(captured.join(""));
     const status: OrientationSectionStatus = code === 0 ? "ok" : code === 1 ? "dirty" : "error";
     const summary =
       code === 0 ? "[deft doctor] status: ok" : `[deft doctor] status: ${status} (exit ${code})`;
@@ -278,7 +340,11 @@ export function runDoctorOrientationSection(
       lines: [summary, ...runtimeLinkLines],
       shaMatch: false,
       durationMs: elapsedMs(started),
-      detail: { throttle_skipped: false, captured_len: captured.join("").length },
+      detail: {
+        throttle_skipped: false,
+        captured_len: captured.join("").length,
+        ...(counts ? { error_count: counts.errorCount, finding_count: counts.findingCount } : {}),
+      },
     };
   } catch (exc) {
     // Session:start continues, but do not persist as a successful gated doctor
@@ -523,6 +589,29 @@ function toSurface(section: OrientationSectionResult, now: Date): OrientationSur
 }
 
 /**
+ * Doctor record for the next session (#6617). A throttle-skipped section keeps
+ * the previous record unchanged, so a skip never extends the window; a new
+ * timestamp is stamped only when doctor actually ran.
+ */
+function doctorSurface(
+  section: OrientationSectionResult,
+  prior: OrientationState | null,
+  now: Date,
+): OrientationSurfaceRecord | null {
+  if (section.detail?.throttle_skipped === true) {
+    return prior?.doctor ?? null;
+  }
+  const base = toSurface(section, now);
+  const errorCount = section.detail?.error_count;
+  const findingCount = section.detail?.finding_count;
+  return {
+    ...base,
+    ...(typeof errorCount === "number" ? { error_count: errorCount } : {}),
+    ...(typeof findingCount === "number" ? { finding_count: findingCount } : {}),
+  };
+}
+
+/**
  * Run the composed orientation sections for a mutation cold session:start.
  */
 export function runOrientationCompression(options: RunOrientationOptions): OrientationBundle {
@@ -545,6 +634,7 @@ export function runOrientationCompression(options: RunOrientationOptions): Orien
         : runDoctorOrientationSection(projectRoot, {
             now,
             seams: options.doctorSeams,
+            prior,
           });
     if (doctor !== null) sections.push(doctor);
   }
@@ -589,6 +679,10 @@ export function runOrientationCompression(options: RunOrientationOptions): Orien
     : formatOrientationVerboseLines(sections);
 
   const byName = (n: OrientationSectionName) => sections.find((s) => s.name === n);
+  const doctorSection = byName("doctor");
+  const doctorRecord = doctorSection
+    ? doctorSurface(doctorSection, prior, now)
+    : (prior?.doctor ?? null);
   const state: OrientationState = {
     schema_version: 1,
     deposit_sha: depositSha,
@@ -599,9 +693,7 @@ export function runOrientationCompression(options: RunOrientationOptions): Orien
     ...(byName("cache_fresh")
       ? { cache_fresh: toSurface(byName("cache_fresh") as OrientationSectionResult, now) }
       : {}),
-    ...(byName("doctor")
-      ? { doctor: toSurface(byName("doctor") as OrientationSectionResult, now) }
-      : {}),
+    ...(doctorRecord ? { doctor: doctorRecord } : {}),
     ...(byName("preflight")
       ? { preflight: toSurface(byName("preflight") as OrientationSectionResult, now) }
       : {}),

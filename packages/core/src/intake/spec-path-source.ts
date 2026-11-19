@@ -17,6 +17,11 @@ import {
 import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import {
+  commentsForArcRead,
+  criteriaListUnits,
+  mayWriteCriteriaOnlyRecord,
+} from "./admitted-source-units.js";
+import {
   type CheckboxItem,
   extractBoundRemedyHarvest,
   hasWrappedListItem,
@@ -41,7 +46,16 @@ export interface SpecPathSourceRecord {
   readonly harvestDigest: string;
   /** Slice label, or null for the issue's own (unlabeled) harvest. */
   readonly slice: string | null;
+  /**
+   * `criteria-only` when `leanCommentId` is a not-warranted record comment that
+   * carries an Acceptance Criteria list (#6609 item 6). A record without `kind`
+   * is a lean record, as before.
+   */
+  readonly kind?: "criteria-only";
 }
+
+/** `kind` of a criteria-only record (#6609 item 6). */
+export const SPEC_PATH_SOURCE_KIND_CRITERIA_ONLY = "criteria-only" as const;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -55,7 +69,10 @@ export function readSpecPathSourceRecord(plan: unknown): SpecPathSourceRecord | 
   if (raw === null || raw.schema !== SPEC_PATH_SOURCE_SCHEMA) {
     return null;
   }
-  const { repo, issue, leanCommentId, harvestDigest, slice } = raw;
+  const { repo, issue, leanCommentId, harvestDigest, slice, kind } = raw;
+  if (kind !== undefined && kind !== SPEC_PATH_SOURCE_KIND_CRITERIA_ONLY) {
+    return null;
+  }
   if (
     typeof repo !== "string" ||
     !/^[^/\s]+\/[^/\s]+$/.test(repo) ||
@@ -71,7 +88,14 @@ export function readSpecPathSourceRecord(plan: unknown): SpecPathSourceRecord | 
   ) {
     return null;
   }
-  return { repo, issue, leanCommentId, harvestDigest, slice };
+  return {
+    repo,
+    issue,
+    leanCommentId,
+    harvestDigest,
+    slice,
+    ...(kind === SPEC_PATH_SOURCE_KIND_CRITERIA_ONLY ? { kind } : {}),
+  };
 }
 
 /** Write the source record onto plan.metadata (#6333 item 4). */
@@ -87,6 +111,7 @@ export function attachSpecPathSourceRecord(
     leanCommentId: record.leanCommentId,
     harvestDigest: record.harvestDigest,
     slice: record.slice,
+    ...(record.kind !== undefined ? { kind: record.kind } : {}),
   };
   plan.metadata = meta;
 }
@@ -240,8 +265,10 @@ export function resolveSpecPathLiveIdentities(input: {
   readonly record: SpecPathSourceRecord;
 }): SpecPathLiveIdentities {
   const { record } = input;
+  // The same arc reader as ingest (#6609): a later criteria-only record comment
+  // is not a successor lean, so it must not break an unchanged brief.
   const verdict = evaluateCompletedArcRecord({
-    comments: input.comments,
+    comments: commentsForArcRead(input.comments),
     issueNumber: record.issue,
   });
   if (verdict.status !== "complete") {
@@ -351,11 +378,175 @@ export function fetchSpecPathSourceComments(
   return { ok: false, reason: `comments for #${record.issue} exceed the page cap` };
 }
 
+function readRestJson(
+  fetchPage: SpecPathCommentPageFetch,
+  path: string,
+):
+  | { readonly ok: true; readonly value: unknown }
+  | { readonly ok: false; readonly reason: string } {
+  let result: CompletedProcess;
+  try {
+    result = fetchPage(path);
+  } catch (exc) {
+    return {
+      ok: false,
+      reason: `forge outage: ${exc instanceof Error ? exc.message : String(exc)}`,
+    };
+  }
+  if (result.returncode !== 0) {
+    return {
+      ok: false,
+      reason: `forge outage: ${(result.stderr || "").trim() || `exit ${result.returncode}`}`,
+    };
+  }
+  try {
+    return { ok: true, value: JSON.parse(result.stdout) as unknown };
+  } catch {
+    return { ok: false, reason: `${path} is not JSON` };
+  }
+}
+
+function loginOf(row: Record<string, unknown> | null): string | null {
+  const login = asRecord(row?.user)?.login;
+  return typeof login === "string" && login.length > 0 ? login : null;
+}
+
+/**
+ * Live identities of a criteria-only record (#6609 item 6): fetch the record
+ * comment by id, check it still has the recorded harvest digest, that its
+ * author is the issue's author or still has write access (the existing
+ * collaborator-permission lookup), and read its items with the same unit rule
+ * ingest used. Each item gets the ingest quarantine transform.
+ */
+export function fetchCriteriaOnlyLiveIdentities(
+  record: SpecPathSourceRecord,
+  fetchPage: SpecPathCommentPageFetch = defaultCommentPageFetch,
+): SpecPathLiveIdentities {
+  const commentRead = readRestJson(
+    fetchPage,
+    `repos/${record.repo}/issues/comments/${record.leanCommentId}`,
+  );
+  if (!commentRead.ok) {
+    return { ok: false, kind: "unavailable", reason: commentRead.reason };
+  }
+  const comment = asRecord(commentRead.value);
+  const body = typeof comment?.body === "string" ? comment.body : null;
+  if (body === null) {
+    return {
+      ok: false,
+      kind: "mismatch",
+      reason: `criteria-only record comment ${record.leanCommentId} of #${record.issue} has no body`,
+    };
+  }
+  const issueRead = readRestJson(fetchPage, `repos/${record.repo}/issues/${record.issue}`);
+  if (!issueRead.ok) {
+    return { ok: false, kind: "unavailable", reason: issueRead.reason };
+  }
+  const allowed = mayWriteCriteriaOnlyRecord({
+    login: loginOf(comment),
+    issueAuthor: loginOf(asRecord(issueRead.value)),
+    repo: record.repo,
+    reader: {
+      getJson: (path) => {
+        const read = readRestJson(fetchPage, path);
+        return read.ok ? { ok: true, value: read.value } : { ok: false, detail: read.reason };
+      },
+    },
+  });
+  if (!allowed) {
+    return {
+      ok: false,
+      kind: "mismatch",
+      reason:
+        `criteria-only record comment ${record.leanCommentId} of #${record.issue} is not by the ` +
+        "issue's author or an account with write access",
+    };
+  }
+  const digest = hashHarvestIdentity(body);
+  if (digest !== record.harvestDigest) {
+    return {
+      ok: false,
+      kind: "mismatch",
+      reason:
+        `criteria-only record ${record.leanCommentId} of #${record.issue} changed after ingest ` +
+        `(harvest digest ${digest.slice(0, 12)} is not the recorded ${record.harvestDigest.slice(0, 12)})`,
+    };
+  }
+  const items = criteriaListUnits(body);
+  if (items.length === 0) {
+    return {
+      ok: false,
+      kind: "mismatch",
+      reason: `criteria-only record ${record.leanCommentId} of #${record.issue} has no Acceptance Criteria list`,
+    };
+  }
+  const identities: string[] = [];
+  for (const item of items) {
+    const scanned = scan(item);
+    if (scanned.flags.some((flag) => flag.severity === "hard-fail")) {
+      return {
+        ok: false,
+        kind: "mismatch",
+        reason: "quarantine scanner hard-fail on a criteria-only record item",
+      };
+    }
+    identities.push(scanned.transformed_content);
+  }
+  return { ok: true, identities };
+}
+
+/**
+ * Live admitted-source text of a brief for the activation check (#6609 item 7),
+ * as `verify:ac` fetches it: a Spec-path brief reads its Overview harvest, a
+ * body-route brief the live origin issue body over REST. Failure is returned.
+ */
+export function fetchPlanAdmittedSourceText(
+  plan: Record<string, unknown>,
+  fetchPage: SpecPathCommentPageFetch = defaultCommentPageFetch,
+): { readonly ok: true; readonly text: string } | { readonly ok: false; readonly reason: string } {
+  const meta = asRecord(plan.metadata);
+  if (meta !== null && Object.hasOwn(meta, "issueBody") && typeof meta.issueBody === "string") {
+    const overview = asRecord(plan.narratives)?.Overview;
+    return typeof overview === "string" && overview.trim().length > 0
+      ? { ok: true, text: overview }
+      : {
+          ok: false,
+          reason:
+            "Spec-path Bound-remedy harvest unavailable (Overview empty); refuse offline / restore from git",
+        };
+  }
+  const refs = Array.isArray(plan.references) ? plan.references : [];
+  let issueUri: string | null = null;
+  for (const entry of refs) {
+    const row = asRecord(entry);
+    if (row?.type === "x-xbrief/github-issue" && typeof row.uri === "string") {
+      issueUri = row.uri;
+      break;
+    }
+  }
+  if (issueUri === null) {
+    return { ok: false, reason: "no github-issue reference on the brief for live REST" };
+  }
+  const match = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/i.exec(issueUri);
+  if (match === null) {
+    return { ok: false, reason: `unparseable github-issue uri: ${issueUri}` };
+  }
+  const read = readRestJson(fetchPage, `repos/${match[1]}/${match[2]}/issues/${match[3]}`);
+  if (!read.ok) {
+    return { ok: false, reason: read.reason };
+  }
+  const body = asRecord(read.value)?.body;
+  return { ok: true, text: typeof body === "string" ? body : "" };
+}
+
 /** Default verify:ac live resolver: REST thread, then the resolver above (#6333). */
 export function fetchSpecPathLiveIdentities(
   record: SpecPathSourceRecord,
   fetchPage?: SpecPathCommentPageFetch,
 ): SpecPathLiveIdentities {
+  if (record.kind === SPEC_PATH_SOURCE_KIND_CRITERIA_ONLY) {
+    return fetchCriteriaOnlyLiveIdentities(record, fetchPage);
+  }
   const thread = fetchSpecPathSourceComments(record, fetchPage);
   if (!thread.ok) {
     return { ok: false, kind: "unavailable", reason: thread.reason };

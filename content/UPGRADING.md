@@ -14,13 +14,14 @@ Two packages: global `@deftai/directive` (launcher) and project-pinned `@deftai/
 
 | Your situation | Run this |
 | --- | --- |
-| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` (`update` is an alias) |
-| Wiring broken; pin should stay | `npm i -g @deftai/directive`, then `directive install --repair` |
-| Fresh clone / new worktree | Project `pnpm install` / `npm install`, then first eligible runtime command or hook |
-| Not sure | `directive doctor` (read-only) |
-| First-time adoption | `directive install` (`init` alias) |
-| Supported latest legacy (pre-split pin + `.deft/core`) | `directive upgrade` |
-| Remove project wiring | `directive uninstall` (`remove` alias) |
+| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` |
+| Runtime missing or not the pinned version (fresh clone, new worktree, deleted `node_modules`) | The project install: `npm install`, or `pnpm install --frozen-lockfile` for pnpm. The first runtime command or hook then finishes local setup |
+| Wiring damaged with the right runtime installed | `directive install --repair` |
+| Project data behind, or an older Directive layout (pre-split pin + `.deft/core`) | `directive upgrade` |
+| `directive` command missing | `npm i -g @deftai/directive` |
+| Not sure | `directive doctor` (read-only; names one of the commands above) |
+| First-time adoption | `directive install` |
+| Remove project wiring | `directive uninstall` |
 
 Do not teach `npx`/`pnpm exec` as ongoing identity. Retired verbs (`migrate`, `bootstrap`, …) are unknown commands.
 
@@ -39,7 +40,18 @@ Directive commits one hook file per host (`deft-hook-<hash>.mjs` under `.claude/
 { ignores: ["**/deft-hook-*.mjs"] }
 ```
 
-Walkthrough history below keeps existing `UPGRADING.md#` anchors. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
+Walkthrough history below keeps existing `UPGRADING.md#` anchors. Older sections may say `deft update`; that command is retired as a recovery step, so use the table above instead. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
+
+---
+
+## Git hooks and `core.hooksPath` (#4960)
+
+Git runs hooks from one folder only. Directive keeps its hooks in the committed `.githooks` folder and sets this repository's `core.hooksPath` to `.githooks`. That replaces Git's default `.git/hooks` folder and any global `core.hooksPath`, for this repository only.
+
+- **`directive install` and `directive install --repair`:** when your repository already uses other hooks (a global or local `core.hooksPath`, or hook files in `.git/hooks`), the plan says so before you approve. Approve to switch this repository to `.githooks`; the earlier hooks (for example `commit-msg`) then do not run here. Decline to change nothing. `--yes` prints the same plan. There is no second question.
+- **After a switch,** the output says which hooks no longer run. To keep them, copy them into `.githooks`, or use a hook manager such as [Husky](https://typicode.github.io/husky/) or [Lefthook](https://github.com/evilmartians/lefthook). Directive does not chain other hooks or install these tools.
+- **`directive upgrade` and automatic setup** never change another `core.hooksPath`. Directive's Git hooks then stay inactive, setup is not marked ready, and the output and `directive doctor` name the fix: `directive install --repair`.
+- Directive only writes this repository's Git config, never your global or system config. `directive uninstall` leaves a `core.hooksPath` that is not Directive's alone.
 
 ---
 
@@ -148,7 +160,7 @@ Commit `pnpm-workspace.yaml` when it changes. On older pnpm 11 releases, CI `pnp
 **What to do:**
 
 1. Prefer `xbrief/` and `.xbrief.json` in all new docs, skills, CLI help, and agent prose.
-2. On projects still on disk under `vbrief/`, run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+2. On projects still on disk under `vbrief/`, run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` signposts unmigrated layouts; `directive upgrade` migrates them.
 3. Do **not** tell users to “prefer vBRIEF” or treat xbrief and vBRIEF as two current models.
 4. Deep schema conventions still live under `content/vbrief/` (path name is historical for the schema package); public work-state name remains xBRIEF.
 

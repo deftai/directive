@@ -3,7 +3,7 @@
  * Wave 3g: F-009 plain shop English, F-011 TTY word-wrap, F-014 uninstall summaries.
  * Default stdout is prose + labels; keyed machine dumps stay behind verbosity ≥1.
  */
-import { lstatSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PackageManager } from "./pm.js";
 import { INSTALL_SCRIPT_POLICY_PLAN_LINE } from "./pm.js";
@@ -43,6 +43,105 @@ export const PM_WILL_RUN_LABEL = "Package manager will run:";
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
   "Incomplete install: this folder is not a git repository yet, so git hooks will not be installed. After you run git init, run directive install --repair so hooks get installed.";
 
+/** Directive's git hooks, in the order setup writes them (D-023). */
+export const DIRECTIVE_GIT_HOOK_PATHS: readonly string[] = [
+  ".githooks/_directive-run.sh",
+  ".githooks/pre-commit",
+  ".githooks/pre-push",
+];
+
+/** The old git-hook helper that setup removes once no hook uses it. */
+export const LEGACY_GIT_HOOK_HELPER = ".githooks/_deft-run.sh";
+
+/** Git hooks a setup run will write, replace or remove (D-023). */
+export interface GitHookPlan {
+  readonly write: readonly string[];
+  readonly replace: readonly string[];
+  readonly remove: readonly string[];
+}
+
+/** Read which Directive git hooks exist, to list them in the plan (D-023). */
+export function readGitHookPlan(projectRoot: string): GitHookPlan {
+  const present = (rel: string): boolean => {
+    try {
+      return existsSync(join(projectRoot, rel));
+    } catch {
+      return false;
+    }
+  };
+  return {
+    write: DIRECTIVE_GIT_HOOK_PATHS.filter((rel) => !present(rel)),
+    replace: DIRECTIVE_GIT_HOOK_PATHS.filter((rel) => present(rel)),
+    remove: present(LEGACY_GIT_HOOK_HELPER) ? [LEGACY_GIT_HOOK_HELPER] : [],
+  };
+}
+
+function writeGitHookPlanBullets(io: PresentIo, plan: GitHookPlan): void {
+  if (plan.write.length > 0) {
+    writeBullet(io, `write git hooks ${plan.write.join(", ")}`);
+  }
+  if (plan.replace.length > 0) {
+    writeBullet(
+      io,
+      `replace git hooks ${plan.replace.join(", ")} where they differ from this version, even if edited (a hook that is not Directive's is left as it is and reported)`,
+    );
+  }
+  for (const rel of plan.remove) {
+    writeBullet(io, `remove the old git-hook helper ${rel} if no other hook uses it`);
+  }
+}
+
+/**
+ * #4960 / ledger Problem 20 — Git hooks that Directive's `.githooks` would replace.
+ * `scope` is the Git config scope of `core.hooksPath` (`global`, `system`, `local`,
+ * `worktree`), or `default` when it is unset and Git's own hooks folder has hooks.
+ */
+export interface HooksTakeover {
+  readonly previous: string;
+  readonly scope: string | null;
+  /** Hook file names found in Git's default hooks folder (scope `default` only). */
+  readonly hooks: readonly string[];
+}
+
+function describeHooksSource(t: HooksTakeover): string {
+  switch (t.scope) {
+    case "default":
+      return `this repository's own hooks folder (${t.previous}: ${t.hooks.join(", ")})`;
+    case "global":
+      return `${t.previous} (set in your global Git config)`;
+    case "system":
+      return `${t.previous} (set in your system Git config)`;
+    case "local":
+    case "worktree":
+      return `${t.previous} (set in this repository's Git config)`;
+    default:
+      return `${t.previous} (set in your Git config)`;
+  }
+}
+
+/** Plan warning (same plan, same approval; no second prompt — Problem 20). */
+export function formatHooksTakeoverPlanWarning(t: HooksTakeover): string {
+  return (
+    `Git hooks: this repository currently runs Git hooks from ${describeHooksSource(t)}. ` +
+    "Git runs hooks from one folder only. If you approve, this repository will use " +
+    "Directive's .githooks folder instead, so those earlier hooks (for example commit-msg, " +
+    "pre-commit or pre-push) will not run here unless you move them into .githooks or use " +
+    "a hook manager. To keep things as they are, decline."
+  );
+}
+
+/** Post-op statement after a takeover. */
+export function formatHooksTakeoverDone(t: HooksTakeover): string {
+  return (
+    "This repository now uses Directive's .githooks folder. Hooks from " +
+    `${describeHooksSource(t)} no longer run here.`
+  );
+}
+
+/** Optional one-line tip (Problem 20: link only; Directive never installs these). */
+export const HOOK_MANAGER_TIP_LINE =
+  "Tip: to run hooks from several tools together, use a hook manager such as Husky (https://typicode.github.io/husky/) or Lefthook (https://github.com/evilmartians/lefthook).";
+
 export function lockfileNameFor(pm: PackageManager): string {
   return pm === "pnpm" ? "pnpm-lock.yaml" : "package-lock.json";
 }
@@ -80,17 +179,27 @@ export interface CommonPlanFields {
   readonly gitHooksInactive: boolean;
   readonly nodeWarning: string | null;
   readonly verbosity: Verbosity;
+  /** Git hooks setup will write, replace or remove; read from the project when absent. */
+  readonly gitHooks?: GitHookPlan;
+}
+
+function gitHookPlanFor(fields: CommonPlanFields): GitHookPlan {
+  return fields.gitHooks ?? readGitHookPlan(fields.projectRoot);
 }
 
 export interface FirstInstallPlanFields extends CommonPlanFields {
   readonly pmCommand: string;
   readonly willCreatePkg: boolean;
+  /** #4960: hooks this install would replace; null/absent when none. */
+  readonly hooksTakeover?: HooksTakeover | null;
 }
 
 export interface RepairPlanFields extends CommonPlanFields {
   readonly needsPmRestore: boolean;
   readonly pmCommand: string | null;
   readonly restoreReason: string | null;
+  /** #4960: hooks this repair would replace; null/absent when none. */
+  readonly hooksTakeover?: HooksTakeover | null;
 }
 
 export interface UpgradePlanFields extends CommonPlanFields {
@@ -103,6 +212,8 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly oldStyle: boolean;
   /** WAVE3-V2 convert-via-removals shape id when upgrading a historical layout. */
   readonly convertShapeId?: string | null;
+  /** Convert shape with no package.json: upgrade creates `{ "private": true }` (#5965). */
+  readonly willCreatePkg?: boolean;
   /**
    * Paths Git reports as modified or untracked under `.deft/core` (AC10.6 /
    * RC-03, #6002). Listed in the conversion plan before removal; no prompt.
@@ -351,6 +462,12 @@ function writeGitHooksDisclosure(io: PresentIo, inactive: boolean): void {
   writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
 }
 
+function writeHooksTakeoverWarning(io: PresentIo, t: HooksTakeover | null | undefined): void {
+  if (!t) return;
+  writeHumanParagraph(io, formatHooksTakeoverPlanWarning(t));
+  writeBlank(io);
+}
+
 function writeNodeWarning(io: PresentIo, warning: string | null): void {
   if (!warning) return;
   writeHumanParagraph(io, warning);
@@ -421,9 +538,11 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
   );
   writeBullet(io, `update ${lock}`);
   writeBullet(io, "create Directive's project files for this folder");
+  writeGitHookPlanBullets(io, gitHookPlanFor(fields));
   writeBlank(io);
   writeHumanParagraph(io, "Your other project files stay as they are.");
   writeBlank(io);
+  writeHooksTakeoverWarning(io, fields.hooksTakeover);
   writeDisclosures(io, fields);
   writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
 
@@ -447,10 +566,15 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
         "Git hooks: not installed until git init + directive install --repair (cannot set core.hooksPath=.githooks yet)",
       );
     }
+    if (fields.hooksTakeover) keyed.push(hooksTakeoverKeyedLine(fields.hooksTakeover));
     if (fields.nodeWarning) keyed.push(`node: ${fields.nodeWarning}`);
     writeKeyedBlock(io, keyed);
     writeBlank(io);
   }
+}
+
+function hooksTakeoverKeyedLine(t: HooksTakeover): string {
+  return `git hooks: set core.hooksPath=.githooks in repository config (replaces ${t.previous}; ${t.scope ?? "unknown"} scope)`;
 }
 
 /** §C9 Example B — repair plan (wave 4g). */
@@ -467,6 +591,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeHumanParagraph(io, "You may still refresh the setup. If you approve, Directive will:");
     writeBullet(io, `check this project's Directive-managed files for ${fields.version}`);
     writeBullet(io, "write only what is missing or out of date");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBullet(io, "leave matching files and your other project files alone");
   } else {
     writeHumanParagraph(
@@ -477,10 +602,12 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     io.writeOut("If you approve, Directive will:\n");
     writeBullet(io, `reinstall Directive ${fields.version} with ${fields.pm}`);
     writeBullet(io, "rerun project setup");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing settings and other files stay as they are.");
   }
   writeBlank(io);
+  writeHooksTakeoverWarning(io, fields.hooksTakeover);
   writeDisclosures(io, fields);
   writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
 
@@ -505,11 +632,16 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
         "Git hooks: not installed until git init + directive install --repair (cannot set core.hooksPath=.githooks yet)",
       );
     }
+    if (fields.hooksTakeover) keyed.push(hooksTakeoverKeyedLine(fields.hooksTakeover));
     if (fields.nodeWarning) keyed.push(`node: ${fields.nodeWarning}`);
     writeKeyedBlock(io, keyed);
     writeBlank(io);
   }
 }
+
+/** Plain-language upgrade plan bullet for a project with no package.json (#5965 / AC5.10). */
+export const UPGRADE_CREATE_PKG_BULLET =
+  "create a minimal package.json for this project (Directive needs one even when the project is not a JavaScript project)";
 
 /** §C9 Example C — upgrade plan (wave 4g). */
 export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): void {
@@ -532,6 +664,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     );
     writeBlank(io);
     io.writeOut("If you approve, Directive will:\n");
+    if (fields.willCreatePkg) writeBullet(io, UPGRADE_CREATE_PKG_BULLET);
     writeBullet(io, "remove the copied .deft/core tree (including any local edits there)");
     writeBullet(
       io,
@@ -539,6 +672,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     );
     writeBullet(io, `update ${lock}`);
     writeBullet(io, "run setup and any needed data updates for that version");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeDeftCoreGitEdits(io, fields.deftCoreGitEdits);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
@@ -548,6 +682,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     writeBullet(io, `change this project's Directive version to ${fields.targetVersion}`);
     writeBullet(io, `update ${lock}`);
     writeBullet(io, "run project setup and any needed data updates for that version");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
   } else {
@@ -557,6 +692,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
       `finish equal-version work for Directive ${fields.targetVersion}` +
         (fields.needSetup ? " (setup, then migration as needed)" : " (migration as needed)"),
     );
+    if (fields.needSetup) writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
   }
@@ -617,6 +753,9 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
       keyed.push(`remove: ${RETIRED_CORE_GUARD_WORKFLOW_REL} (retired workflow)`);
     } else if (retiredCoreGuard === "kept") {
       keyed.push(`keep: ${RETIRED_CORE_GUARD_WORKFLOW_REL} (not Directive's file)`);
+    }
+    if (fields.willCreatePkg) {
+      keyed.splice(5, 0, `manifest: create package.json { "private": true }`);
     }
     if (fields.gitHooksInactive) {
       keyed.push(
@@ -734,8 +873,14 @@ function writeUninstallActionBullets(
       `clear Directive entries from ${removal.hostHooks} host hook config${removal.hostHooks === 1 ? "" : "s"}`,
     );
   }
+  const gitHookPaths = removal.pathInventory
+    .map((p) => p.replace(/\s*\(.*\)$/, ""))
+    .filter((p) => classifyUninstallPath(p) === "git-hook");
+  if (gitHookPaths.length > 0) {
+    writeBullet(io, `remove git hooks ${gitHookPaths.join(", ")}`);
+  }
   const wiringBits: string[] = [];
-  if (removal.gitHooks > 0) wiringBits.push("git hooks");
+  if (removal.gitHooks > 0 && gitHookPaths.length === 0) wiringBits.push("git hooks");
   if (removal.projectWiring > 0) wiringBits.push("GENERATION and project wiring");
   if (removal.legacyCore) wiringBits.push("legacy .deft/core");
   if (wiringBits.length > 0) {
@@ -757,6 +902,7 @@ function writeUninstallActionBullets(
   if (
     removal.skillPointers === 0 &&
     removal.hostHooks === 0 &&
+    gitHookPaths.length === 0 &&
     wiringBits.length === 0 &&
     !removal.willRemovePin &&
     removal.other === 0
@@ -853,9 +999,23 @@ export interface SetupSummary {
   /** Unknowable / corrupt envelopes copied under xbrief/archive/ (F-017). */
   readonly archived?: readonly string[];
   readonly conflicts?: readonly string[];
+  /** One line per existing Directive git hook setup replaced or removed (D-023). */
+  readonly gitHookUpdates?: readonly string[];
   /** Files setup kept in place (non-failure). */
   readonly preserved?: readonly string[];
+  /** Setup replaced another core.hooksPath with .githooks (#4960). */
+  readonly hooksPathTakenOver?: { readonly previous: string; readonly scope: string | null };
+  /** Why Git hooks are not active, when they are not. */
+  readonly gitHooksInactive?: string;
   readonly message?: string;
+}
+
+/** Name each git hook setup replaced or removed (D-023). */
+function writeGitHookUpdates(io: PresentIo, summary: SetupSummary | null | undefined): void {
+  const lines = summary?.gitHookUpdates ?? [];
+  if (lines.length === 0) return;
+  writeBlank(io);
+  for (const line of lines) io.writeOut(`${line}\n`);
 }
 
 /** Default: short human summary; -v counts; -vv full JSON arrays. */
@@ -897,9 +1057,50 @@ export function presentPathSummary(
   }
 }
 
+/**
+ * Disclosure when Git hooks stay inactive because another hooks folder is set
+ * (#4960 / #5846); null otherwise. Names `directive install --repair`.
+ */
+export function foreignHooksInactiveFromSummary(
+  summary: SetupSummary | null | undefined,
+): string | null {
+  const text = summary?.gitHooksInactive ?? "";
+  return /core\.hooksPath is (still )?'|could not set core\.hooksPath/.test(text) ? text : null;
+}
+
+/** No-`.git` case only (F-010); the other-hooks-folder case has its own text. */
 function gitHooksInactiveFromSummary(summary: SetupSummary | null | undefined): boolean {
+  if (foreignHooksInactiveFromSummary(summary) !== null) return false;
   const msg = summary?.message ?? "";
   return /Git hooks inactive/i.test(msg);
+}
+
+/**
+ * Post-op after install/repair: the takeover statement plus the hook-manager tip
+ * (#4960, Problem 20), or the inactive disclosure when hooks are still not active.
+ */
+function writeHooksPostOp(
+  io: PresentIo,
+  summary: SetupSummary | null | undefined,
+  planned: HooksTakeover | null | undefined,
+): void {
+  const foreign = foreignHooksInactiveFromSummary(summary);
+  if (foreign !== null) {
+    writeBlank(io);
+    writeHumanParagraph(io, foreign);
+    return;
+  }
+  if (gitHooksInactiveFromSummary(summary)) return;
+  // The plan's view names default-folder hook files; the runtime's confirms a
+  // core.hooksPath replacement even if the plan saw none.
+  const fromRuntime = summary?.hooksPathTakenOver;
+  const taken: HooksTakeover | null =
+    planned ??
+    (fromRuntime ? { previous: fromRuntime.previous, scope: fromRuntime.scope, hooks: [] } : null);
+  if (taken === null) return;
+  writeBlank(io);
+  writeHumanParagraph(io, formatHooksTakeoverDone(taken));
+  writeHumanParagraph(io, HOOK_MANAGER_TIP_LINE);
 }
 
 /**
@@ -918,6 +1119,8 @@ export function presentInstallSuccess(
     summary: SetupSummary | null;
     verbosity: Verbosity;
     pnpmWorkspaceChanged?: boolean;
+    /** #4960: takeover disclosed in the approved plan. */
+    hooksTakeover?: HooksTakeover | null;
   },
 ): void {
   const lock = lockfileNameFor(opts.pm);
@@ -933,23 +1136,34 @@ export function presentInstallSuccess(
   if (hooksInactive) {
     writeHumanParagraph(io, `Directive ${opts.version} is installed in ${opts.projectRoot}.`);
     writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
+  } else if (foreignHooksInactiveFromSummary(opts.summary) !== null) {
+    writeHumanParagraph(io, `Directive ${opts.version} is installed in ${opts.projectRoot}.`);
   } else {
     writeHumanParagraph(io, `Directive ${opts.version} is ready in ${opts.projectRoot}.`);
   }
+  writeHooksPostOp(io, opts.summary, opts.hooksTakeover);
   writeBlank(io);
   io.writeOut("Next:\n");
   if (hooksInactive) {
     io.writeOut("  git init\n");
     io.writeOut("  directive install --repair\n");
+  } else if (foreignHooksInactiveFromSummary(opts.summary) !== null) {
+    io.writeOut("  directive install --repair\n");
   } else {
     io.writeOut("  directive --help\n");
   }
+  writeGitHookUpdates(io, opts.summary);
   writeBlank(io);
   io.writeOut("Review and commit:\n");
   io.writeOut("  package.json\n");
   io.writeOut(`  ${lock}\n`);
   if (opts.pnpmWorkspaceChanged) io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
-  const review = collectReviewPaths(opts.summary);
+  const review = collectReviewPaths(
+    [opts.summary],
+    opts.pnpmWorkspaceChanged
+      ? ["package.json", lock, "pnpm-workspace.yaml"]
+      : ["package.json", lock],
+  );
   for (const p of review) {
     io.writeOut(`  ${p}\n`);
   }
@@ -974,9 +1188,12 @@ export function presentRepairSuccess(
     verbosity: Verbosity;
     pm?: PackageManager;
     pnpmWorkspaceChanged?: boolean;
+    /** #4960: takeover disclosed in the approved plan. */
+    hooksTakeover?: HooksTakeover | null;
   },
 ): void {
   const hooksInactive = gitHooksInactiveFromSummary(opts.summary);
+  const foreignInactive = foreignHooksInactiveFromSummary(opts.summary);
   if (opts.restoredPackage) {
     io.writeOut(`✓ Restored the installed Directive ${opts.version} package\n`);
   } else {
@@ -994,16 +1211,23 @@ export function presentRepairSuccess(
     io.writeOut("Next:\n");
     io.writeOut("  git init\n");
     io.writeOut("  directive install --repair\n");
+  } else if (foreignInactive !== null) {
+    writeHumanParagraph(io, `Directive ${opts.version} setup finished.`);
   } else {
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
   }
   writeHumanParagraph(io, "The project version has not changed.");
-  const review = collectReviewPaths(opts.summary);
-  if (opts.restoredPackage && opts.pm) {
-    const lock = lockfileNameFor(opts.pm);
-    if (!review.includes("package.json")) review.unshift("package.json");
-    if (!review.includes(lock)) review.splice(1, 0, lock);
-  }
+  writeGitHookUpdates(io, opts.summary);
+  writeHooksPostOp(io, opts.summary, opts.hooksTakeover);
+  const pkgFiles =
+    opts.restoredPackage && opts.pm ? ["package.json", lockfileNameFor(opts.pm)] : [];
+  const review = [
+    ...pkgFiles,
+    ...collectReviewPaths(
+      [opts.summary],
+      opts.pnpmWorkspaceChanged ? [...pkgFiles, "pnpm-workspace.yaml"] : pkgFiles,
+    ),
+  ];
   if (opts.pnpmWorkspaceChanged) review.push(PNPM_WORKSPACE_REVIEW_LINE);
   if (review.length > 0) {
     writeBlank(io);
@@ -1035,27 +1259,45 @@ export function presentUpgradeSuccess(
     io.writeOut(`✓ Installed Directive ${opts.version}\n`);
   }
   io.writeOut(`✓ Completed project setup\n`);
-  io.writeOut(`✓ Verified the project-local installation\n`);
+  // #5846 / P20: upgrade never takes over another hooks folder; it names the fix.
+  const foreignInactive = foreignHooksInactiveFromSummary(opts.summary);
+  if (foreignInactive !== null) {
+    io.writeOut(`✓ Verified the project-local installation (git hooks not active)\n`);
+  } else {
+    io.writeOut(`✓ Verified the project-local installation\n`);
+  }
   writeBlank(io);
   if (opts.versionChange) {
     writeHumanParagraph(io, `This project now uses Directive ${opts.version}.`);
     writeHumanParagraph(io, "The global launcher was not changed.");
+  } else if (foreignInactive !== null) {
+    writeHumanParagraph(io, `Directive ${opts.version} setup finished.`);
+    writeHumanParagraph(io, "The project version has not changed.");
   } else {
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
     writeHumanParagraph(io, "The project version has not changed.");
   }
+  writeGitHookUpdates(io, opts.summary);
+  if (foreignInactive !== null) {
+    writeBlank(io);
+    writeHumanParagraph(io, foreignInactive);
+    writeBlank(io);
+    io.writeOut("Next:\n");
+    io.writeOut("  directive install --repair\n");
+  }
   writeBlank(io);
   io.writeOut("Review and commit:\n");
+  const printed: string[] = [];
   if (opts.versionChange) {
+    printed.push("package.json", lockfileNameFor(opts.pm));
     io.writeOut("  package.json\n");
     io.writeOut(`  ${lockfileNameFor(opts.pm)}\n`);
   }
-  if (opts.pnpmWorkspaceChanged) io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
-  const review = [...collectReviewPaths(opts.summary), ...collectReviewPaths(opts.migrateSummary)];
-  const seen = new Set<string>();
-  for (const p of review) {
-    if (seen.has(p)) continue;
-    seen.add(p);
+  if (opts.pnpmWorkspaceChanged) {
+    printed.push("pnpm-workspace.yaml");
+    io.writeOut(`  ${PNPM_WORKSPACE_REVIEW_LINE}\n`);
+  }
+  for (const p of collectReviewPaths([opts.summary, opts.migrateSummary], printed)) {
     io.writeOut(`  ${p}\n`);
   }
   writeRetiredCoreGuardOutcome(io, opts.summary);
@@ -1324,35 +1566,92 @@ function writeBlankErr(io: PresentIo): void {
   io.writeErr("\n");
 }
 
+/** Headline files listed first in "Review and commit" (AC5.16). */
+const REVIEW_HEADLINE_PATHS = ["AGENTS.md", ".gitignore", "Taskfile.yml", ".deft/GENERATION.json"];
+
+/** A folder with more than this many changed files is shown as one grouped line. */
+const REVIEW_GROUP_THRESHOLD = 3;
+
+/** Never offered for commit: installed packages and ignored readiness markers (AC5.16). */
+function isNeverReviewPath(p: string): boolean {
+  const norm = p.replace(/\\/g, "/");
+  if (
+    norm === "node_modules" ||
+    norm.startsWith("node_modules/") ||
+    norm.includes("/node_modules/")
+  ) {
+    return true;
+  }
+  return /^\.deft\/directive\/wiring-ready\.[^/]*\.json$/.test(norm);
+}
+
+function commonFolder(paths: readonly string[]): string {
+  const dirs = paths.map((p) => p.split("/").slice(0, -1));
+  let prefix = dirs[0] ?? [];
+  for (const d of dirs.slice(1)) {
+    let i = 0;
+    while (i < prefix.length && i < d.length && prefix[i] === d[i]) i++;
+    prefix = prefix.slice(0, i);
+  }
+  return `${prefix.join("/")}/`;
+}
+
 /**
- * Prefer a short, human review list — skip noisy skill forests on default.
- * Always include migrated paths (AC5.16 / Greptile): e.g. data-schema.json.
+ * Complete "Review and commit" list (AC5.16 / #6006): every created, modified, removed,
+ * migrated and archived path, with the headline files first. Removed paths are listed
+ * too, so the deletions (for example an old `.deft/core` or a replaced `.githooks/` file)
+ * get committed with the rest. A top-level folder with more than a few changed files
+ * prints as one line (`.agents/skills/ (12 files)`), so nothing is hidden and skill
+ * folders stay short. `skip` holds paths the caller already printed.
  */
-function collectReviewPaths(summary: SetupSummary | null | undefined): string[] {
-  if (!summary) return [];
-  const prefer = ["AGENTS.md", ".gitignore", "Taskfile.yml", ".deft/GENERATION.json"];
-  const migrated = summary.migrated ?? [];
-  const archived = summary.archived ?? [];
-  const all = [...summary.created, ...summary.modified, ...migrated, ...archived];
-  const out: string[] = [];
-  for (const p of prefer) {
-    if (all.includes(p)) out.push(p);
-  }
-  for (const p of [...migrated, ...archived]) {
-    if (!out.includes(p)) out.push(p);
-  }
-  for (const p of all) {
-    if (out.includes(p)) continue;
-    if (
-      p === ".claude/settings.json" ||
-      p === ".cursor/hooks.json" ||
-      p === ".codex/hooks.json" ||
-      p === ".grok/hooks/deft.json"
-    ) {
-      out.push(p);
+export function collectReviewPaths(
+  summaries: readonly (SetupSummary | null | undefined)[],
+  skip: readonly string[] = [],
+): string[] {
+  const seen = new Set<string>(skip);
+  const all: string[] = [];
+  for (const summary of summaries) {
+    if (!summary) continue;
+    for (const raw of [
+      ...summary.created,
+      ...summary.modified,
+      ...(summary.removed ?? []),
+      ...(summary.migrated ?? []),
+      ...(summary.archived ?? []),
+    ]) {
+      const p = raw.replace(/\\/g, "/");
+      if (seen.has(p) || isNeverReviewPath(p)) continue;
+      seen.add(p);
+      all.push(p);
     }
   }
-  return out.slice(0, 16);
+  const out: string[] = REVIEW_HEADLINE_PATHS.filter((p) => all.includes(p));
+  const rest = all.filter((p) => !REVIEW_HEADLINE_PATHS.includes(p));
+  const byTop = new Map<string, string[]>();
+  for (const p of rest) {
+    const slash = p.indexOf("/");
+    const key = slash === -1 ? p : p.slice(0, slash + 1);
+    const members = byTop.get(key) ?? [];
+    members.push(p);
+    byTop.set(key, members);
+  }
+  for (const [key, members] of byTop) {
+    if (key.endsWith("/") && members.length > REVIEW_GROUP_THRESHOLD) {
+      out.push(`${commonFolder(members)} (${members.length} files)`);
+    } else {
+      out.push(...members);
+    }
+  }
+  return out;
+}
+
+function parseHooksPathTakenOver(
+  raw: unknown,
+): { previous: string; scope: string | null } | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const rec = raw as Record<string, unknown>;
+  if (typeof rec.previous !== "string") return undefined;
+  return { previous: rec.previous, scope: typeof rec.scope === "string" ? rec.scope : null };
 }
 
 export function tryParseSetupSummary(stdout: string): SetupSummary | null {
@@ -1370,7 +1669,12 @@ export function tryParseSetupSummary(stdout: string): SetupSummary | null {
       migrated: Array.isArray(rec.migrated) ? (rec.migrated as string[]) : undefined,
       archived: Array.isArray(rec.archived) ? (rec.archived as string[]) : undefined,
       conflicts: Array.isArray(rec.conflicts) ? (rec.conflicts as string[]) : undefined,
+      gitHookUpdates: Array.isArray(rec.gitHookUpdates)
+        ? (rec.gitHookUpdates as string[])
+        : undefined,
       preserved: Array.isArray(rec.preserved) ? (rec.preserved as string[]) : undefined,
+      hooksPathTakenOver: parseHooksPathTakenOver(rec.hooksPathTakenOver),
+      gitHooksInactive: typeof rec.gitHooksInactive === "string" ? rec.gitHooksInactive : undefined,
       message: typeof rec.message === "string" ? rec.message : undefined,
     };
   } catch {

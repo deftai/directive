@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6082666530",
+  "xbriefRelPath": "xbrief/active/2026-11-18-ovpr-g-small-fixes.xbrief.json",
+  "approvedAt": "2026-11-18T22:28:41Z",
+  "constraints": [
+    {
+      "value": "3",
+      "unit": "numeric-const",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "polfer",
+    "mintedAt": "2026-11-18T22:28:41Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "4bdc29df6f45b3576293334ffb7364e2dfb386644f02da8bb2dc28bafa687325"
+}

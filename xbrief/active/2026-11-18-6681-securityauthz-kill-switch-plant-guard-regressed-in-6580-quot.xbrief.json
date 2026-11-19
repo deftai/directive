@@ -152,7 +152,11 @@
           "packages/core/src/authz/classify.ts",
           "packages/core/src/authz/classify.test.ts",
           "packages/core/src/authz/evaluate.test.ts",
-          "changelog.d/6681-killswitch-plant-guard-regression.md"
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "changelog.d/6681-killswitch-plant-guard-regression.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6473935252.json"
         ],
         "module_boundary": "packages/core/src/authz/classify.ts keeps owning the shell-op classification and the kill-switch plant scan; the change widens what that scan sees (quoted launcher payloads, xargs pipelines). No new module; new tests go in classify.test.ts and evaluate.test.ts.",
         "cohesion_exemption": "packages/core/src/authz/classify.ts and its test files are the existing home of shell-op classification. The story adds a scoped scan inside the existing plant guard and test cases only; splitting those files is out of scope for a security hotfix."
@@ -162,7 +166,11 @@
           "packages/core/src/authz/classify.ts",
           "packages/core/src/authz/classify.test.ts",
           "packages/core/src/authz/evaluate.test.ts",
-          "changelog.d/6681-killswitch-plant-guard-regression.md"
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "changelog.d/6681-killswitch-plant-guard-regression.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6473935252.json"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",

@@ -63,7 +63,7 @@ See `skills/deft-directive-release/SKILL.md` § Release through a PR (#6296) for
 
 ## Merge queue on master (#6295)
 
-`master` requires a GitHub merge queue (squash is the queue's merge method), and the repository allows auto-merge. Required checks: `TypeScript (build + lint + test)` and `Merge gate (task check)` from `ci.yml` (it also runs on `merge_group`), and `Greptile Review` (the org ruleset). On the group commit, `Greptile Review` comes from `.github/workflows/greptile-review-merge-group.yml`.
+`master` requires a GitHub merge queue (squash is the queue's merge method), and the repository allows auto-merge. Required checks: `TypeScript (build + lint)` and `Merge gate (task check)` from `ci.yml` (it also runs on `merge_group`), and `Greptile Review` (the org ruleset). On the group commit, `Greptile Review` comes from `.github/workflows/greptile-review-merge-group.yml`.
 
 - Release and policy commits land through the queue as PRs: `task release` opens the release PR from `release/vX.Y.Z`, it merges with `task pr:wait-mergeable-and-merge -- <N>`, and `task release -- --finish X.Y.Z` tags the merge commit (§ Release through a PR (#6296)). The normal path has no policy commit.
 - Direct pushes to `master` are not part of the normal path. The direct-commit steps in § Break-glass: base-branch release above are break-glass only, for when the queue itself is broken, and need an operator with ruleset bypass.

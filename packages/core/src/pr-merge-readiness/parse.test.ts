@@ -418,7 +418,7 @@ describe("computeGateResult layered fallbacks", () => {
                 stdout: JSON.stringify({
                   check_runs: [
                     {
-                      name: "TypeScript (build + lint + test)",
+                      name: "TypeScript (build + lint)",
                       status: "completed",
                       conclusion: "success",
                     },
@@ -501,7 +501,7 @@ describe("computeGateResult layered fallbacks", () => {
           stdout: JSON.stringify({
             check_runs: [
               {
-                name: "TypeScript (build + lint + test)",
+                name: "TypeScript (build + lint)",
                 status: "completed",
                 conclusion: "failure",
               },
@@ -524,7 +524,7 @@ describe("computeGateResult layered fallbacks", () => {
           returncode: 0,
           stdout: JSON.stringify({
             check_runs: [
-              { name: "TypeScript (build + lint + test)", status: "in_progress", conclusion: null },
+              { name: "TypeScript (build + lint)", status: "in_progress", conclusion: null },
             ],
           }),
         },

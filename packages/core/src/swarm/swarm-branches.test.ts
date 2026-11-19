@@ -55,7 +55,7 @@ describe("swarm verify-review-clean", () => {
           stdout: JSON.stringify({
             check_runs: [
               {
-                name: "TypeScript (build + lint + test)",
+                name: "TypeScript (build + lint)",
                 status: "completed",
                 conclusion: "success",
               },

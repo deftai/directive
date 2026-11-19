@@ -125,7 +125,7 @@ Where the host supports hooks, **deny writes to directive-managed paths** withou
 
 ⊗ Claim that pins alone stop Continual-Harness-class host refine.
 
-Named hook home for managed-path deny: **Tier-1 host hooks** (`packages/core/src/hooks/`, deposit via `hostHooks` / `deft update`, readiness via `verify:hooks-installed --scope=agent`). Residual path policy rides runtime authority / path write fence when enabled.
+Named hook home for managed-path deny: **Tier-1 host hooks** (`packages/core/src/hooks/`, deposit via `hostHooks` / `directive install --repair`, readiness via `verify:hooks-installed --scope=agent`). Residual path policy rides runtime authority / path write fence when enabled.
 
 ---
 
