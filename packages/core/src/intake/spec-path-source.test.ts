@@ -10,6 +10,7 @@ import type { CompletedProcess } from "../scm/call.js";
 import { extractBoundRemedyHarvest, hasWrappedListItem } from "./markdown-scanners.js";
 import {
   attachSpecPathSourceRecord,
+  fetchPlanAdmittedSourceText,
   fetchSpecPathLiveIdentities,
   fetchSpecPathSourceComments,
   findSpecPathSliceHolders,
@@ -448,5 +449,168 @@ describe("findSpecPathSliceHolders (#6333 item 6)", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("criteria-only source record and live identities (#6609 item 6)", () => {
+  const COMMENT_ID = 7200000001;
+  const NW = "design-critique: not warranted, because the criteria are the whole change";
+  const body = (items: readonly string[] = ["Crit one.", "Crit two."]): string =>
+    `${NW}\n\nTarget-digest: sha256:${"b".repeat(64)}\n\n## Acceptance Criteria\n` +
+    `${items.map((item) => `- ${item}`).join("\n")}\n`;
+  const CRITERIA_RECORD: SpecPathSourceRecord = {
+    repo: "o/r",
+    issue: 77,
+    leanCommentId: COMMENT_ID,
+    harvestDigest: hashHarvestIdentity(body()),
+    slice: null,
+    kind: "criteria-only",
+  };
+
+  function forge(options: {
+    commentBody?: string;
+    commentLogin?: string;
+    issueLogin?: string;
+    permission?: string | null;
+    outage?: boolean;
+  }) {
+    return (path: string): CompletedProcess => {
+      if (options.outage === true) {
+        return { args: [], returncode: 1, stdout: "", stderr: "502" };
+      }
+      const ok = (value: unknown): CompletedProcess => ({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify(value),
+        stderr: "",
+      });
+      if (path === `repos/o/r/issues/comments/${COMMENT_ID}`) {
+        return ok({
+          id: COMMENT_ID,
+          body: options.commentBody ?? body(),
+          user: { login: options.commentLogin ?? "author" },
+        });
+      }
+      if (path === "repos/o/r/issues/77") {
+        return ok({ number: 77, user: { login: options.issueLogin ?? "author" } });
+      }
+      if (path.includes("/collaborators/")) {
+        return options.permission === null || options.permission === undefined
+          ? { args: [], returncode: 1, stdout: "", stderr: "404" }
+          : ok({ permission: options.permission });
+      }
+      return { args: [], returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+  }
+
+  it("round-trips kind and reads a record without kind as a lean record", () => {
+    const plan: Record<string, unknown> = {};
+    attachSpecPathSourceRecord(plan, CRITERIA_RECORD);
+    expect(readSpecPathSourceRecord(plan)).toEqual(CRITERIA_RECORD);
+    const lean: Record<string, unknown> = {};
+    attachSpecPathSourceRecord(lean, { ...CRITERIA_RECORD, kind: undefined });
+    expect(readSpecPathSourceRecord(lean)?.kind).toBeUndefined();
+    const meta = (plan.metadata as Record<string, Record<string, unknown>>)[SPEC_PATH_SOURCE_KEY];
+    (meta as Record<string, unknown>).kind = "other";
+    expect(readSpecPathSourceRecord(plan)).toBeNull();
+  });
+
+  it("resolves the items of the record comment by its author", () => {
+    expect(fetchSpecPathLiveIdentities(CRITERIA_RECORD, forge({}))).toEqual({
+      ok: true,
+      identities: ["Crit one.", "Crit two."],
+    });
+  });
+
+  it("accepts a writer who is not the author and refuses one who lost access", () => {
+    const base = { commentLogin: "maintainer" };
+    expect(
+      fetchSpecPathLiveIdentities(CRITERIA_RECORD, forge({ ...base, permission: "write" })).ok,
+    ).toBe(true);
+    const lost = fetchSpecPathLiveIdentities(
+      CRITERIA_RECORD,
+      forge({ ...base, permission: "read" }),
+    );
+    expect(lost).toMatchObject({ ok: false, kind: "mismatch" });
+    expect(
+      fetchSpecPathLiveIdentities(CRITERIA_RECORD, forge({ ...base, permission: null })),
+    ).toMatchObject({ ok: false, kind: "mismatch" });
+  });
+
+  it("refuses an edited record comment and an empty list", () => {
+    const edited = fetchSpecPathLiveIdentities(
+      CRITERIA_RECORD,
+      forge({ commentBody: body(["Crit one.", "Crit two.", "Crit three."]) }),
+    );
+    expect(edited).toMatchObject({ ok: false, kind: "mismatch" });
+    const emptied = fetchSpecPathLiveIdentities(
+      { ...CRITERIA_RECORD, harvestDigest: hashHarvestIdentity(`${NW}\n`) },
+      forge({ commentBody: `${NW}\n` }),
+    );
+    expect(emptied).toMatchObject({ ok: false, kind: "mismatch" });
+  });
+
+  it("reports a forge outage as unavailable, not as a mismatch", () => {
+    expect(fetchSpecPathLiveIdentities(CRITERIA_RECORD, forge({ outage: true }))).toMatchObject({
+      ok: false,
+      kind: "unavailable",
+    });
+  });
+});
+
+describe("fetchPlanAdmittedSourceText (#6609 item 7)", () => {
+  const ok = (value: unknown): CompletedProcess => ({
+    args: [],
+    returncode: 0,
+    stdout: JSON.stringify(value),
+    stderr: "",
+  });
+  const issuePlan = {
+    references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/12" }],
+  };
+
+  it("reads the live body of the origin issue for a body-route brief", () => {
+    let asked = "";
+    const result = fetchPlanAdmittedSourceText(issuePlan, (path) => {
+      asked = path;
+      return ok({ body: "Live body." });
+    });
+    expect(asked).toBe("repos/o/r/issues/12");
+    expect(result).toEqual({ ok: true, text: "Live body." });
+    expect(fetchPlanAdmittedSourceText(issuePlan, () => ok({ body: null }))).toEqual({
+      ok: true,
+      text: "",
+    });
+  });
+
+  it("reads the Overview harvest for a Spec-path brief, and fails closed when it is empty", () => {
+    const specPath = (overview: string) => ({
+      ...issuePlan,
+      metadata: { issueBody: "refused" },
+      narratives: { Overview: overview },
+    });
+    expect(fetchPlanAdmittedSourceText(specPath("- item"), () => ok({}))).toEqual({
+      ok: true,
+      text: "- item",
+    });
+    expect(fetchPlanAdmittedSourceText(specPath("  "), () => ok({})).ok).toBe(false);
+  });
+
+  it("fails on a missing or odd reference and on an outage", () => {
+    expect(fetchPlanAdmittedSourceText({}, () => ok({})).ok).toBe(false);
+    expect(
+      fetchPlanAdmittedSourceText(
+        { references: [{ type: "x-xbrief/github-issue", uri: "https://example.com/x" }] },
+        () => ok({}),
+      ).ok,
+    ).toBe(false);
+    expect(
+      fetchPlanAdmittedSourceText(issuePlan, () => ({
+        args: [],
+        returncode: 1,
+        stdout: "",
+        stderr: "down",
+      })),
+    ).toMatchObject({ ok: false });
   });
 });

@@ -1,0 +1,2 @@
+section: Fixed
+- The git hooks Directive sets up check commits and pushes again, as they did in 0.126. At commit: the branch check, the encoding check, forward coverage and, when the project has `xbrief/` or `vbrief/`, brief conformance and brief drift. At push: only the default-branch check on the refs being pushed (`preflight-gh --pre-push-stdin`), so a push to `main` from a feature branch is refused. The pre-push hook no longer runs `verify:branch` or the bound pre-PR gate; projects that want that gate set `plan.policy.requireBoundPrePrPush`. Refs #5808.

@@ -7,12 +7,20 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { writeState } from "../doctor/doctor-state.js";
 import type { CheckResult } from "../doctor/types.js";
 import {
   formatOrientationCompactLines,
   runDoctorOrientationSection,
 } from "./orientation-compression.js";
+import type { OrientationState } from "./orientation-state.js";
+
+/** Session start's record of a clean doctor run 30 minutes before `now` (#6617). */
+const CLEAN_PRIOR: OrientationState = {
+  schema_version: 1,
+  deposit_sha: "abc",
+  updated_at: "2026-01-01T12:00:00Z",
+  doctor: { ok: true, ts: "2026-01-01T12:00:00Z", exit_code: 0, error_count: 0, finding_count: 0 },
+};
 
 const temps: string[] = [];
 afterEach(() => {
@@ -38,10 +46,9 @@ const PASS: CheckResult = { name: "foreign-runtime-link", status: "pass", detail
 describe("orientation doctor section runtime-link check (#6185)", () => {
   it("reports the failure when doctor is throttle-skipped", () => {
     const root = tempRoot();
-    const now = new Date("2026-01-01T12:00:00Z");
-    writeState(root, { exitCode: 0, findingCount: 0, errorCount: 0, now });
     const section = runDoctorOrientationSection(root, {
       now: new Date("2026-01-01T12:30:00Z"),
+      prior: CLEAN_PRIOR,
       seams: { checkRuntimeLinkOwner: () => FAIL },
       doctorRunner: () => {
         throw new Error("doctor must stay throttle-skipped");
@@ -57,14 +64,9 @@ describe("orientation doctor section runtime-link check (#6185)", () => {
 
   it("stays ok when doctor is throttle-skipped and the runtime is owned", () => {
     const root = tempRoot();
-    writeState(root, {
-      exitCode: 0,
-      findingCount: 0,
-      errorCount: 0,
-      now: new Date("2026-01-01T12:00:00Z"),
-    });
     const section = runDoctorOrientationSection(root, {
       now: new Date("2026-01-01T12:30:00Z"),
+      prior: CLEAN_PRIOR,
       seams: { checkRuntimeLinkOwner: () => PASS },
     });
     expect(section.ok).toBe(true);
@@ -73,14 +75,9 @@ describe("orientation doctor section runtime-link check (#6185)", () => {
 
   it("keeps the failure line in compact formatting", () => {
     const root = tempRoot();
-    writeState(root, {
-      exitCode: 0,
-      findingCount: 0,
-      errorCount: 0,
-      now: new Date("2026-01-01T12:00:00Z"),
-    });
     const section = runDoctorOrientationSection(root, {
       now: new Date("2026-01-01T12:30:00Z"),
+      prior: CLEAN_PRIOR,
       seams: { checkRuntimeLinkOwner: () => FAIL },
     });
     const compact = formatOrientationCompactLines([section]);
