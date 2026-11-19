@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6615",
-    "updated": "2026-11-18T03:05:09Z"
+    "updated": "2026-11-19T03:48:19Z"
   },
   "plan": {
     "title": "installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "OVPR fix plan unit P2-U0 (story id ovpr-p2-u0), spec units/P2-U0-publish-ownership-record-api.md. A new read-only module, packages/core/src/install-health/owned-paths.ts, lists what Directive owns in a project (listDirectiveOwnedPaths) and says whether a file change is Directive-only (classifyDirectiveOwnedChange). Setup also records the four deft-hook-<sha8>.mjs hook files in GENERATION.json, and both uninstallers learn to match the .mjs hook command, so uninstall removes the registrations and then the files. The commit gate (P4-U1), doctor and uninstall read this API later instead of keeping their own lists.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6615",
@@ -24,58 +24,995 @@
     "items": [
       {
         "title": "After `directive install` in a fixture, `GENERATION.json` lists every `deft-hook-<sha8>.mjs` that setup wrote, as `whole-file`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.61",
         "narrative": {
           "Acceptance": "Given a fixture project, when `directive install` runs, then `GENERATION.json` records every `deft-hook-<sha8>.mjs` that setup wrote as `whole-file`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`listDirectiveOwnedPaths(root)` returns: hook `.mjs`, host configs, `.githooks/*`, `GENERATION.json`, `data-schema.json`, the `AGENTS.md` block, skill pointers, slash wrappers, managed `.gitignore` / `.gitattributes` / `.prettierignore` lines, `package.json` / lockfile dependency entries, and readiness markers with `mustCommit: false`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.62",
         "narrative": {
           "Acceptance": "`listDirectiveOwnedPaths(root)` returns every item in the list (hook `.mjs`, host configs, `.githooks/*`, `GENERATION.json`, `data-schema.json`, `AGENTS.md` block, skill pointers, slash wrappers, managed `.gitignore` / `.gitattributes` / `.prettierignore` lines, `package.json` / lockfile dependency entries), and readiness markers with `mustCommit: false`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`listDirectiveOwnedPaths` and `classifyDirectiveOwnedChange` perform no file or git writes (tested on a read-only fixture directory).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.63",
         "narrative": {
           "Acceptance": "Given a read-only fixture directory, when `listDirectiveOwnedPaths` and `classifyDirectiveOwnedChange` run, then they return their results and make no file or git writes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`classifyDirectiveOwnedChange` returns the documented result for each test case: new `package.json` from install; `package.json` with an extra user script (`mixed`); `pnpm-lock.yaml` follow-through; `AGENTS.md` with user edits outside the block (`mixed`); `.claude/settings.json` with a user hook added (`mixed`); `.cursor/hooks/consumer-custom.mjs` (`not-owned`); old-sha8 `.mjs` deletion (`directive-only`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.64",
         "narrative": {
           "Acceptance": "`classifyDirectiveOwnedChange` returns the documented result for each test case in the unit spec."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A record entry outside the known Directive path classes is ignored.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.65",
         "narrative": {
           "Acceptance": "Given a record entry outside the known Directive path classes, when `listDirectiveOwnedPaths` runs, then it ignores that entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`directive uninstall` on a current install removes all `.mjs` registrations before removing the `.mjs` files, and reports none left (AC11.4). Same through the launcher fallback with the record deleted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.66",
         "narrative": {
           "Acceptance": "Given a current install, when `directive uninstall` runs, then it removes all `.mjs` registrations before it deletes the `.mjs` files, and reports none left (AC11.4)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Running setup twice with no change leaves `GENERATION.json` byte-identical.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.68",
         "narrative": {
           "Acceptance": "Given a set-up project with no change, when setup runs a second time, then `GENERATION.json` stays byte-identical."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.26",
+        "title": "clause.26",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.27",
+        "title": "clause.27",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.28",
+        "title": "clause.28",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.29",
+        "title": "clause.29",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.30",
+        "title": "clause.30",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.31",
+        "title": "clause.31",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.32",
+        "title": "clause.32",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.33",
+        "title": "clause.33",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.34",
+        "title": "clause.34",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.35",
+        "title": "clause.35",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.36",
+        "title": "clause.36",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.37",
+        "title": "clause.37",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.38",
+        "title": "clause.38",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.39",
+        "title": "clause.39",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.40",
+        "title": "clause.40",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.41",
+        "title": "clause.41",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.42",
+        "title": "clause.42",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.43",
+        "title": "clause.43",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.44",
+        "title": "clause.44",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.45",
+        "title": "clause.45",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.46",
+        "title": "clause.46",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.47",
+        "title": "clause.47",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.48",
+        "title": "clause.48",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.49",
+        "title": "clause.49",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.50",
+        "title": "clause.50",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.51",
+        "title": "clause.51",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.52",
+        "title": "clause.52",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.53",
+        "title": "clause.53",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.54",
+        "title": "clause.54",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.55",
+        "title": "clause.55",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.56",
+        "title": "clause.56",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.57",
+        "title": "clause.57",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.58",
+        "title": "clause.58",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.59",
+        "title": "clause.59",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.60",
+        "title": "clause.60",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.67",
+        "title": "clause.67",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.69",
+        "title": "clause.69",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.70",
+        "title": "clause.70",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.71",
+        "title": "clause.71",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.72",
+        "title": "clause.72",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.73",
+        "title": "clause.73",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.74",
+        "title": "clause.74",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.75",
+        "title": "clause.75",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.76",
+        "title": "clause.76",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.77",
+        "title": "clause.77",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.78",
+        "title": "clause.78",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.79",
+        "title": "clause.79",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.80",
+        "title": "clause.80",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.81",
+        "title": "clause.81",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2ff4efe8636ffddad770fa613de76a326060238d",
+          "recorded_at": "2026-11-19T03:48:19Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -212,7 +1149,34 @@
         "origin": "deftai/directive#6615",
         "id": "github.issue.6458882573"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ffaf331571423f810fe1cd76bb887f0ceb44c812",
+        "prNumber": 6662,
+        "prBase": "master",
+        "mergeCommit": "2ff4efe8636ffddad770fa613de76a326060238d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "44457f4ea8b1d01cb4d1878e60fc0be583126498",
+        "verifiedAt": "2026-11-19T03:48:19Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6658
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T03:48:19Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T03:48:19Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -966,6 +1930,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6458882573",
-    "updated": "2026-11-18T03:05:09Z"
+    "updated": "2026-11-19T03:48:19Z"
   }
 }

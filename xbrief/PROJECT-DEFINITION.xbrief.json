@@ -1252,10 +1252,10 @@
       {
         "id": "2026-11-18-ovpr-p2-u0",
         "title": "installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check)",
-        "status": "running",
+        "status": "completed",
         "metadata": {
-          "source_path": "active/2026-11-18-ovpr-p2-u0.xbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "completed/2026-11-18-ovpr-p2-u0.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/6615",
