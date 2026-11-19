@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Project definition -- current Deft Directive identity, policy, scope registry, and authored architecture metadata.",
-    "updated": "2026-11-18T20:35:45Z"
+    "updated": "2026-11-19T02:55:27Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -777,6 +777,27 @@
         }
       },
       {
+        "id": "2026-11-18-6643-bugscope-a-story-bound-worktree-cannot-edit-its-own-brief-an",
+        "title": "bug(scope): a story-bound worktree cannot edit its own brief, and an arced issue's criteria have no correction path",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-18-6643-bugscope-a-story-bound-worktree-cannot-edit-its-own-brief-an.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6643",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6643: bug(scope): a story-bound worktree cannot edit its own brief, and an arced issue's criteria have no correction path"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6601",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6601"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-11-18-6644-bugscope-acceptance-walk-gaps-no-non-executable-pass-disposi",
         "title": "bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses",
         "status": "running",
@@ -809,27 +830,6 @@
               "uri": "https://github.com/deftai/directive/issues/6647",
               "type": "x-xbrief/github-issue",
               "title": "Issue #6647: enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-11-18-6648-enhancementxbrief-project-definition-has-grown-past-1-mib-wi",
-        "title": "enhancement(xbrief): PROJECT-DEFINITION has grown past 1 MiB with no bound or pruning path",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-11-18-6648-enhancementxbrief-project-definition-has-grown-past-1-mib-wi.xbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/6648",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #6648: enhancement(xbrief): PROJECT-DEFINITION has grown past 1 MiB with no bound or pruning path"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6602",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6602"
             }
           ]
         }
@@ -1586,7 +1586,7 @@
         "Narrative 'OpenQuestions' may be stale: 40 completed scope(s) share topics (open, questions)",
         "Narrative 'Overview' may be stale: 3 completed scope(s) share topics (overview)",
         "Narrative 'ProblemStatement' may be stale: 5 completed scope(s) share topics (problem, statement)",
-        "Narrative 'ProjectConfig' may be stale: 74 completed scope(s) share topics (config, project)",
+        "Narrative 'ProjectConfig' may be stale: 75 completed scope(s) share topics (config, project)",
         "Narrative 'SuccessMetrics' may be stale: 6 completed scope(s) share topics (metrics, success)",
         "Narrative 'UserStories' may be stale: 33 completed scope(s) share topics (stories, user)",
         "Narrative 'tech stack' may be stale: 1 completed scope(s) share topics (stack, tech)"
