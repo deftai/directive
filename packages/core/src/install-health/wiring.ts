@@ -10,7 +10,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseTaskfileIncludes } from "../check/consumer-gate-integrity.js";
-import { isHostHookOuterCommand } from "../init-deposit/host-hook-outer.js";
+import {
+  hostHookConfigEntryLines,
+  isHostHookOuterCommand,
+} from "../init-deposit/host-hook-outer.js";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import {
   MANAGED_SECTION_CLOSE,
@@ -226,7 +229,7 @@ function inspectProbe(rel: string, text: string): boolean {
   }
   if (isGitHookShim(rel, text)) return true;
   if (HOST_HOOK_REGISTRATION_RELS.has(rel)) {
-    return isHostHookOuterRegistration(text);
+    return isHostHookOuterRegistration(hostHookConfigEntryLines(text));
   }
   return targetsRuntime(text);
 }

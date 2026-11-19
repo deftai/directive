@@ -911,10 +911,11 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     const root = tempProject("mjs-chained");
     writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
     runSetup({ operation: "install", from: "none", root });
-    const rel = join(root, ".claude", "settings.json");
+    // Codex keeps the string form; Claude's no-shell entry has no shell to chain onto.
+    const rel = join(root, ".codex", "hooks.json");
     const body = readFileSync(rel, "utf8");
     const chained = body.replace(
-      /("command": "node \.claude\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
+      /("command": "node \.codex\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
       '$1 && node scripts/check.mjs"',
     );
     expect(chained).not.toBe(body);
@@ -923,7 +924,7 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
     expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
     expect(outersOnDisk(root)).toHaveLength(4);
-    expect(report.leftovers).toEqual(expect.arrayContaining([".claude/settings.json#hooks"]));
+    expect(report.leftovers).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
   });
 
   it("keeps the .mjs files as leftovers when a registration cannot be removed", () => {

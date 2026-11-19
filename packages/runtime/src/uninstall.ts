@@ -7,6 +7,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { hostHookEntryText } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   type DirectiveOwnedPath,
   HOST_HOOK_OUTER_DIRS,
@@ -144,12 +145,13 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
         filtered.push(entry);
         continue;
       }
-      if (typeof e.command === "string" && isManagedHookCommand(e.command)) continue;
+      const entryText = hostHookEntryText(e);
+      if (entryText !== null && isManagedHookCommand(entryText)) continue;
       if (Array.isArray(e.hooks)) {
         // Drop only Directive commands; keep a group that still holds user commands.
         const kept = e.hooks.filter((h) => {
-          const hook = object(h);
-          return !(typeof hook?.command === "string" && isManagedHookCommand(hook.command));
+          const text = hostHookEntryText(h);
+          return !(text !== null && isManagedHookCommand(text));
         });
         if (kept.length === e.hooks.length) filtered.push(entry);
         else if (kept.length > 0) filtered.push({ ...e, hooks: kept });

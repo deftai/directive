@@ -549,6 +549,24 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+/**
+ * Command text of one hook entry. The no-shell locator entry
+ * (`"command": "node", "args": ["-e", <locator>, "--", <outer rel>, …]`,
+ * AC9.1 v261119) reads as `node <outer rel> …`, so it matches like the outer
+ * form. Mirrors core `hostHookEntryText` (AC3.1: no core import).
+ */
+function hookEntryCommandText(value: unknown): string | null {
+  const hook = object(value);
+  if (hook === null || typeof hook.command !== "string") return null;
+  const { command, args } = hook;
+  if (args === undefined) return command;
+  if (!Array.isArray(args) || !args.every((a) => typeof a === "string")) return null;
+  if (command === "node" && args[0] === "-e" && args[2] === "--") {
+    return ["node", ...args.slice(3)].join(" ");
+  }
+  return [command, ...args].join(" ");
+}
+
 function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
   const hooks = object(cfg.hooks);
   if (hooks === null) return cfg;
@@ -565,12 +583,13 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
         filtered.push(entry);
         continue;
       }
-      if (typeof e.command === "string" && isManagedHookCommand(e.command)) continue;
+      const entryText = hookEntryCommandText(e);
+      if (entryText !== null && isManagedHookCommand(entryText)) continue;
       if (Array.isArray(e.hooks)) {
         // Drop only Directive commands; keep a group that still holds user commands.
         const kept = e.hooks.filter((h) => {
-          const hook = object(h);
-          return !(typeof hook?.command === "string" && isManagedHookCommand(hook.command));
+          const text = hookEntryCommandText(h);
+          return !(text !== null && isManagedHookCommand(text));
         });
         if (kept.length === e.hooks.length) filtered.push(entry);
         else if (kept.length > 0) filtered.push({ ...e, hooks: kept });

@@ -7,6 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import {
+  hostHookConfigEntryLines,
   hostHookOuterRelPath,
   hostHookOuterSha8,
   isHostHookOuterCommand,
@@ -391,7 +392,7 @@ function inspectHookAndSkillForm(projectRoot: string): {
     if (!existsSync(abs)) continue;
     sawHook = true;
     try {
-      const text = readFileSync(abs, "utf8");
+      const text = hostHookConfigEntryLines(readFileSync(abs, "utf8"));
       // #5994 / AC9.1: v261027 host `.mjs` outer is the registered form; pin hook-bin is spawned inside.
       const hasOuter = isHostHookOuterCommand(text);
       const hasPkg = text.includes(prefix) && text.includes("hook-bin");

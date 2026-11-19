@@ -46,7 +46,7 @@ import {
   SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
 } from "./agent-hooks.js";
-import { hostHookOuterCommand, hostHookOuterSha8 } from "./host-hook-outer.js";
+import { hostHookEntryPrefix, hostHookEntryText, hostHookOuterSha8 } from "./host-hook-outer.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -82,7 +82,24 @@ function writeProjectDefinition(root: string, hostHooks: Record<string, boolean>
 }
 
 function expectedOuterCmd(host: "claude" | "grok" | "cursor" | "codex", event: string): string {
-  return `${hostHookOuterCommand(host, hostHookOuterSha8())} --host ${host} --event ${event}`;
+  return `${hostHookEntryPrefix(host, hostHookOuterSha8())} --host ${host} --event ${event}`;
+}
+
+/** Text form of every hook entry in a host config (no-shell entries included). */
+function entryTexts(path: string): string[] {
+  const out: string[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item);
+      return;
+    }
+    if (value === null || typeof value !== "object") return;
+    const text = hostHookEntryText(value);
+    if (text !== null) out.push(text);
+    for (const child of Object.values(value)) walk(child);
+  };
+  walk(JSON.parse(readFileSync(path, "utf8")));
+  return out;
 }
 
 describe("writeAgentHookDeposit", () => {
@@ -94,7 +111,7 @@ describe("writeAgentHookDeposit", () => {
     };
     expect(claude.hooks.SessionEnd).toHaveLength(1);
     expect(claude.hooks.SessionEnd?.[0]?.matcher).toBeUndefined();
-    expect(claude.hooks.SessionEnd?.[0]?.hooks[0]?.command).toBe(
+    expect(hostHookEntryText(claude.hooks.SessionEnd?.[0]?.hooks[0])).toBe(
       expectedOuterCmd("claude", "session.end"),
     );
     for (const path of [".grok/hooks/deft.json", ".cursor/hooks.json", ".codex/hooks.json"]) {
@@ -145,7 +162,9 @@ describe("writeAgentHookDeposit", () => {
     writeAgentHookDeposit(root);
     const afterShared = readFileSync(path, "utf8");
     expect(afterShared).toContain("node user-cleanup.mjs");
-    expect(afterShared.split(expectedOuterCmd("claude", "session.end"))).toHaveLength(2);
+    expect(
+      entryTexts(path).filter((text) => text === expectedOuterCmd("claude", "session.end")),
+    ).toHaveLength(1);
     // Opting Claude out strips only the managed command, never the user's.
     writeProjectDefinition(root, { claude: false });
     writeAgentHookDeposit(root);
@@ -173,8 +192,8 @@ describe("writeAgentHookDeposit", () => {
 
     expect(result.changed).toBe(true);
     expect(result.changedPaths).toEqual([...AGENT_HOOK_PATHS]);
-    expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toContain(
-      "--host claude --event tool.before",
+    expect(entryTexts(join(root, ".claude/settings.json"))).toContain(
+      expectedOuterCmd("claude", "tool.before"),
     );
     expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toContain(
       "--host grok --event session.start",
@@ -226,8 +245,8 @@ describe("writeAgentHookDeposit", () => {
       `"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`,
     );
     expect(existsSync(join(root, ".cursor/hooks/deft-cursor-hook-adapter.mjs"))).toBe(false);
-    expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toContain(
-      "--host claude --event session.compact",
+    expect(entryTexts(join(root, ".claude/settings.json"))).toContain(
+      expectedOuterCmd("claude", "session.compact"),
     );
     expect(readFileSync(join(root, ".codex/hooks.json"), "utf8")).not.toContain("session.compact");
     expect(DIRECT_WRITE_HOOK_MATCHER.split("|")).toEqual([...DIRECT_WRITE_TOOL_NAMES]);
@@ -476,7 +495,11 @@ describe("writeAgentHookDeposit", () => {
     for (const path of AGENT_HOOK_PATHS) {
       const deposit = readFileSync(join(root, path), "utf8");
       expect(deposit.split(DIRECT_WRITE_HOOK_MATCHER)).toHaveLength(2);
-      expect(deposit).toMatch(/node \S*deft-hook-[a-f0-9]{8}\.mjs --host/);
+      expect(
+        entryTexts(join(root, path)).some((text) =>
+          /node (?:-e <locator> -- )?\S*deft-hook-[a-f0-9]{8}\.mjs --host/.test(text),
+        ),
+      ).toBe(true);
       expect(deposit).not.toContain("deft-pretooluse-wrapper.sh");
     }
   });
@@ -485,7 +508,9 @@ describe("writeAgentHookDeposit", () => {
     const root = project({ withRuntime: false });
     writeAgentHookDeposit(root);
     const claude = readFileSync(join(root, ".claude/settings.json"), "utf8");
-    expect(claude).toMatch(/node \.claude\/deft-hook-[a-f0-9]{8}\.mjs --host claude/);
+    expect(entryTexts(join(root, ".claude/settings.json"))).toContain(
+      expectedOuterCmd("claude", "tool.before"),
+    );
     expect(claude).not.toContain("deft-pretooluse-wrapper.sh");
   });
 

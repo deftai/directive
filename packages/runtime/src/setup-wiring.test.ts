@@ -15,7 +15,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  hostHookOuterCommand,
+  hostHookConfigEntryLines,
+  hostHookEntryPrefix,
   hostHookOuterSha8,
 } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
@@ -45,7 +46,7 @@ const RUNTIME_PREFIX = "node_modules/@deftai/directive-runtime/";
 const HOOK_BIN = `node ${RUNTIME_PREFIX}dist/hook-bin.js`;
 const OUTER_SHA = hostHookOuterSha8();
 function outerCmd(host: "claude" | "cursor" | "codex" | "grok", event: string): string {
-  return `${hostHookOuterCommand(host, OUTER_SHA)} --host ${host} --event ${event}`;
+  return `${hostHookEntryPrefix(host, OUTER_SHA)} --host ${host} --event ${event}`;
 }
 
 function tempRoot(): string {
@@ -287,7 +288,7 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     runSetup({ operation: "install", from: "none", root });
 
     const claude = readFileSync(join(root, ".claude", "settings.json"), "utf8");
-    expect(claude).toContain(outerCmd("claude", "session.start"));
+    expect(hostHookConfigEntryLines(claude)).toContain(outerCmd("claude", "session.start"));
     expect(claude).not.toContain(HOOK_BIN);
     expect(claude).not.toMatch(/(^|[\s"`'])deft-hook([\s"`']|$)/);
 

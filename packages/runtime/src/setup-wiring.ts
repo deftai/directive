@@ -23,6 +23,9 @@ import {
 } from "@deftai/directive-core/dist/hooks/tools.js";
 import {
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+  hostHookEntryFields,
+  hostHookEntryPrefix,
+  hostHookEntryText,
   hostHookOuterCommand,
   hostHookOuterRelPath,
   hostHookOuterSha8,
@@ -717,7 +720,7 @@ export function ensureOpenClawIntegrations(projectRoot: string): {
 
 function hookCommand(host: string, event: string): string {
   const sha8 = hostHookOuterSha8();
-  return `${hostHookOuterCommand(host as HookHost, sha8)} --host ${host} --event ${event}`;
+  return `${hostHookEntryPrefix(host as HookHost, sha8)} --host ${host} --event ${event}`;
 }
 
 /** Rewrite bare `deft-hook` / legacy `deft hook:dispatch` to package-relative (AC9.2). */
@@ -821,10 +824,10 @@ function filterManagedCommandsInNestedGroup(
   const group = object(value);
   if (group === null || !Array.isArray(group.hooks)) return value;
   const keptHooks = group.hooks.filter((h) => {
-    const hook = object(h);
-    if (typeof hook?.command !== "string") return true;
-    if (options.hostAgnostic) return !isManagedHookCommand(hook.command);
-    return !isManagedNestedHookCommand(hook.command, host);
+    const text = hostHookEntryText(h);
+    if (text === null) return true;
+    if (options.hostAgnostic) return !isManagedHookCommand(text);
+    return !isManagedNestedHookCommand(text, host);
   });
   if (keptHooks.length === 0) return null;
   return { ...group, hooks: keptHooks };
@@ -846,7 +849,7 @@ function nestedGroup(host: string, event: string, matcher?: string): Record<stri
     hooks: [
       {
         type: "command",
-        command: nestedToolCommand(host, event),
+        ...hostHookEntryFields(nestedToolCommand(host, event)),
         timeout: event === "tool.before" ? 30 : 5,
       },
     ],

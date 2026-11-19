@@ -206,10 +206,11 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
   it("keeps a Directive command that a user chained another command onto", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });
-    const rel = join(root, ".claude", "settings.json");
+    // Codex keeps the string form; Claude's no-shell entry has no shell to chain onto.
+    const rel = join(root, ".codex", "hooks.json");
     const body = readFileSync(rel, "utf8");
     const chained = body.replace(
-      /("command": "node \.claude\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
+      /("command": "node \.codex\/deft-hook-[a-f0-9]{8}\.mjs[^"]*)"/,
       '$1 && node scripts/check.mjs"',
     );
     expect(chained).not.toBe(body);
@@ -218,7 +219,7 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
     // Still registered by the user's entry: the .mjs files stay and are reported.
     expect(mjsOuters(root)).toHaveLength(4);
-    expect(result.remaining).toEqual(expect.arrayContaining([".claude/settings.json#hooks"]));
+    expect(result.remaining).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
   });
 
   it("keeps the .mjs files and reports them when a registration cannot be removed", () => {
