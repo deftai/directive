@@ -88,7 +88,9 @@
           ".github/workflows/ci-lane.yml",
           "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
           "content/scm/github.md",
-          "changelog.d/6585-retire-go-lane.md"
+          "changelog.d/6585-retire-go-lane.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6454553483.json"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",
@@ -118,7 +120,9 @@
           ".github/workflows/ci-lane.yml",
           "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
           "content/scm/github.md",
-          "changelog.d/6585-retire-go-lane.md"
+          "changelog.d/6585-retire-go-lane.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6454553483.json"
         ],
         "module_boundary": "The change only deletes Go wiring from the two CI workflow files, drops the matching assertions from the existing contract test and the matching lines from the existing CI doc. No new module, job or check name.",
         "cohesion_exemption": ".github/workflows/ci.yml (1088 lines) is the single CI workflow file. This story only deletes Go jobs and Go operands from it, so it shrinks; splitting the workflow is out of scope for a removal."
