@@ -1,7 +1,7 @@
 <!-- DEFT-PREAMBLE-V1 -->
 <!--
 ! Cold-start check: deft runs from the npm-installed engine (`npm i -g @deftai/directive`). If neither `deft` nor `directive` will run on this machine, do not proceed with the instructions below -- recover first (#1933 Option 1, deprecate-by-disuse).
-! To recover: install/update the global launcher, then repair wiring — `npm i -g @deftai/directive`, then `directive install --repair`. PATH `directive --version` / `deft --version` confirms the launcher. No runtime pin yet: `directive install`. Then `directive doctor` (read-only). ⊗ never recover via `npx` / `pnpm exec`; ⊗ never recover by reading an undeposited README block (#2273 / #4430 / AC9.7).
+! To recover (AC9.7): no `directive` → `npm i -g @deftai/directive`; runtime missing or not the pin → a person runs `npm install` / `pnpm install --frozen-lockfile`; wiring → `directive install --repair`; data → `directive upgrade`. PATH `directive --version` / `deft --version` confirms the launcher. No runtime pin yet: `directive install`. Then `directive doctor` (read-only). ⊗ never recover via `npx` / `pnpm exec`; ⊗ never recover by reading an undeposited README block (#2273 / #4430 / AC9.7).
 ! Respect any "Restart required" directive -- if present, stop and tell the user to start a fresh session after cleanup commands complete. Otherwise continue.
 -->
 ---
