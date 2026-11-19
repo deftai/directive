@@ -41,6 +41,25 @@ function realpathOrResolve(path: string): string {
   }
 }
 
+/**
+ * Compare two absolute root paths (#6005). Windows paths are case-insensitive and
+ * accept either separator, so `e:\\repo` and `E:/repo` name the same folder there.
+ * Elsewhere the comparison stays exact.
+ */
+export function sameRootPath(
+  a: string,
+  b: string,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  if (platform !== "win32") return a === b;
+  const norm = (p: string): string => {
+    const slashed = p.replace(/\//g, "\\");
+    const trimmed = /^[A-Za-z]:\\$/.test(slashed) ? slashed : slashed.replace(/\\+$/, "");
+    return trimmed.toLowerCase();
+  };
+  return norm(a) === norm(b);
+}
+
 function isFilesystemRoot(path: string): boolean {
   const resolved = realpathOrResolve(path);
   // Unix `/` or Windows `C:\`
@@ -121,13 +140,21 @@ export function discoverProject(options: DiscoverOptions = {}): DiscoverResult {
     const git = runGitShowToplevel(rootFlagLexical);
     if (git.code === 0 && git.stdout.length > 0) {
       const toplevel = realpathOrResolve(git.stdout);
-      if (toplevel !== rootFlag) {
+      if (!sameRootPath(toplevel, rootFlag)) {
         return {
           ok: false,
           kind: "root_not_git_toplevel",
           message: `--root must be the Git working-tree root (${toplevel}); got ${rootFlagLexical}.`,
         };
       }
+      // Use git's own spelling so later steps see one canonical root (#6005).
+      return {
+        ok: true,
+        root: toplevel,
+        movedUp:
+          !sameRootPath(toplevel, realpathOrResolve(cwd)) && !sameRootPath(rootFlagLexical, cwd),
+        viaGit: true,
+      };
     }
     return {
       ok: true,

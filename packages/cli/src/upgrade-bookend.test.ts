@@ -11,6 +11,7 @@ import {
   runInstall,
   runUpgrade,
 } from "./bookends.js";
+import { RUNTIME_PACKAGE_NAME } from "./constants.js";
 import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
 import {
   presentRepairSuccess,
@@ -19,6 +20,7 @@ import {
   readGitHookPlan,
   summarizeUninstallRemovals,
   tryParseSetupSummary,
+  UPGRADE_CREATE_PKG_BULLET,
 } from "./plan-present.js";
 import { compareExactVersions, resolvePublishedContract, unwrapNpmViewJson } from "./registry.js";
 
@@ -1042,6 +1044,136 @@ describe("split @deftai registry hint (#6141)", () => {
     expect(count(err, HINT_MARK)).toBe(1);
     expect(err).toContain("run `npm ci` in this project, then `directive install --repair`");
     expect(err).toContain(`${OVERRIDE} directive install --repair`);
+  });
+});
+
+/**
+ * #5965 / AC5.10: converting an old layout with no package.json creates `{ "private": true }`.
+ * The plan must say so in plain words, and the run must say it did.
+ */
+describe("#5965 upgrade convert with no package.json", () => {
+  /** Copied `.deft/core` and no exact pin: the vendored-core-go convert shape. */
+  function convertRoot(withPackageJson: boolean): string {
+    const root = withPackageJson
+      ? tempProject("u1a-5965")
+      : mkdtempSync(join(tmpdir(), "u1a-5965-"));
+    if (!withPackageJson) TEMPS.push(root);
+    mkdirSync(join(root, ".git"), { recursive: true });
+    writeFileSync(join(root, ".git", "HEAD"), "ref: refs/heads/main\n");
+    const core = join(root, ".deft", "core");
+    mkdirSync(core, { recursive: true });
+    writeFileSync(join(core, "VERSION"), "ref: 'v0.40.0'\ninstall_root: '.deft/core'\n");
+    writeFileSync(
+      join(core, "package.json"),
+      `${JSON.stringify({ name: "@deftai/directive-content", version: "0.40.0", deftConsumerDeposit: true })}\n`,
+    );
+    writeFileSync(join(core, "main.md"), "# deposited main\n");
+    return root;
+  }
+
+  function convertDeps(root: string) {
+    return {
+      resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+      runPmRemove: () => ({ ok: true as const }),
+      runPmAdd: ({ version }: { version: string }) => {
+        const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+          devDependencies?: Record<string, string>;
+        };
+        pkg.devDependencies = { ...(pkg.devDependencies ?? {}), [RUNTIME_PACKAGE_NAME]: version };
+        writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+        const nm = join(root, "node_modules", "@deftai", "directive-runtime");
+        mkdirSync(join(nm, "dist"), { recursive: true });
+        writeFileSync(
+          join(nm, "package.json"),
+          `${JSON.stringify({ name: RUNTIME_PACKAGE_NAME, version, directive: { contract: 1 } })}\n`,
+        );
+        writeFileSync(join(nm, "dist", "bin.js"), "process.exit(0);\n");
+        writeFileSync(
+          join(root, "package-lock.json"),
+          `${JSON.stringify({
+            lockfileVersion: 3,
+            packages: {
+              "": { devDependencies: { [RUNTIME_PACKAGE_NAME]: version } },
+              [`node_modules/${RUNTIME_PACKAGE_NAME}`]: { version },
+            },
+          })}\n`,
+        );
+        return { ok: true as const };
+      },
+      invokeSetup: () => ({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          contract: 1,
+          entry: "setup",
+          created: [".deft/GENERATION.json"],
+          modified: [],
+          removed: [],
+          conflicts: [],
+        }),
+        stderr: "",
+        message: null,
+      }),
+      invokeMigrate: () => ({
+        exitCode: 0,
+        stdout: JSON.stringify({ contract: 1, entry: "migrate", migrated: [] }),
+        stderr: "",
+        message: null,
+      }),
+    };
+  }
+
+  it("the plan names the new package.json (default and -v); dry-run creates nothing", () => {
+    const root = convertRoot(false);
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--dry-run", "-v", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      convertDeps(root),
+    );
+    expect(code, c.err()).toBe(0);
+    expect(c.out()).toContain(UPGRADE_CREATE_PKG_BULLET);
+    expect(c.out()).toContain('manifest: create package.json { "private": true }');
+    expect(c.out()).not.toMatch(/Created package\.json/);
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+  });
+
+  it("the run creates { private: true } and says so once", () => {
+    const root = convertRoot(false);
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      convertDeps(root),
+    );
+    expect(code, c.err()).toBe(0);
+    expect(c.out()).toContain(`• ${UPGRADE_CREATE_PKG_BULLET}`);
+    expect(c.out().match(/Created package\.json \{ "private": true \}/g)?.length).toBe(1);
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      private?: boolean;
+    };
+    expect(pkg.private).toBe(true);
+  });
+
+  it("with an existing package.json the plan does not mention creating one", () => {
+    const root = convertRoot(true);
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--dry-run", "-v", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      convertDeps(root),
+    );
+    expect(code, c.err()).toBe(0);
+    expect(c.out()).not.toContain(UPGRADE_CREATE_PKG_BULLET);
+    expect(c.out()).not.toMatch(/manifest: create package\.json/);
   });
 });
 
