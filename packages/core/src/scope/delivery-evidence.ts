@@ -1015,8 +1015,55 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-/** PROJECT-DEFINITION without the parts a lifecycle move rewrites, or null when unreadable. */
-function projectDefinitionWithoutRegistry(text: string): string | null {
+/** File name of a brief under `xbrief|vbrief/<lifecycle>/`, else null. */
+function lifecycleBriefName(path: string): string | null {
+  const parts = path.replace(/\\/g, "/").split("/");
+  if (
+    parts.length >= 3 &&
+    (parts[0] === "xbrief" || parts[0] === "vbrief") &&
+    LIFECYCLE_FOLDER_SET.has(parts[1] ?? "")
+  ) {
+    const name = parts[parts.length - 1] ?? "";
+    return name.length > 0 ? name : null;
+  }
+  return null;
+}
+
+/** File names of the briefs a change set moves between lifecycle folders (#6764). */
+export function movedBriefNamesFromPaths(paths: readonly string[]): ReadonlySet<string> {
+  const names = new Set<string>();
+  for (const path of paths) {
+    const name = lifecycleBriefName(path);
+    if (name !== null) names.add(name);
+  }
+  return names;
+}
+
+function lastUriSegment(uri: string): string {
+  const parts = uri.split("/");
+  return parts[parts.length - 1] ?? "";
+}
+
+/** True when a registry row names one of the moved briefs (by id or source path). */
+function itemNamesMovedBrief(item: unknown, moved: ReadonlySet<string>): boolean {
+  if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+  const row = item as Record<string, unknown>;
+  if (typeof row.id === "string" && moved.has(`${row.id}.xbrief.json`)) return true;
+  const meta = row.metadata;
+  if (meta !== null && typeof meta === "object" && !Array.isArray(meta)) {
+    const source = (meta as Record<string, unknown>).source_path;
+    if (typeof source === "string" && moved.has(lastUriSegment(source))) return true;
+  }
+  return false;
+}
+
+/**
+ * PROJECT-DEFINITION without the parts a move of `moved` briefs rewrites, or
+ * null when unreadable: `updated` stamps, registry rows for the moved briefs,
+ * and the lifecycle folder in a plan reference to a moved brief. Rows and
+ * references for any other brief stay, so an edit to them still counts.
+ */
+function projectDefinitionWithoutRegistry(text: string, moved: ReadonlySet<string>): string | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -1036,25 +1083,25 @@ function projectDefinitionWithoutRegistry(text: string): string | null {
   }
   const plan = root.plan;
   if (plan !== null && typeof plan === "object" && !Array.isArray(plan)) {
-    const { items: _items, updated: _planUpdated, ...rest } = plan as Record<string, unknown>;
-    // A lifecycle move also rewrites a plan reference to the moved brief
-    // (`file://active/x` -> `file://completed/x`); compare references with the
-    // lifecycle folder masked, so every other reference edit still counts.
+    const { updated: _planUpdated, ...rest } = plan as Record<string, unknown>;
+    if (Array.isArray(rest.items)) {
+      rest.items = rest.items.filter((item) => !itemNamesMovedBrief(item, moved));
+    }
     if (Array.isArray(rest.references)) {
-      rest.references = rest.references.map((ref) => maskLifecycleFolderInReference(ref));
+      rest.references = rest.references.map((ref) => maskMovedBriefFolder(ref, moved));
     }
     root.plan = rest;
   }
   return canonicalJson(root);
 }
 
-/** A plan reference with the lifecycle folder in its `uri` replaced by a placeholder. */
-function maskLifecycleFolderInReference(ref: unknown): unknown {
+/** A plan reference to a moved brief with its lifecycle folder masked; others unchanged. */
+function maskMovedBriefFolder(ref: unknown, moved: ReadonlySet<string>): unknown {
   if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
     return ref;
   }
   const obj = ref as Record<string, unknown>;
-  if (typeof obj.uri !== "string") {
+  if (typeof obj.uri !== "string" || !moved.has(lastUriSegment(obj.uri))) {
     return ref;
   }
   const masked = obj.uri
@@ -1065,21 +1112,22 @@ function maskLifecycleFolderInReference(ref: unknown): unknown {
 }
 
 /**
- * True when a PROJECT-DEFINITION change touches only the open-scope registry a
- * lifecycle move rewrites (`plan.items`, `updated` stamps, and the lifecycle
- * folder in a plan reference to a moved brief). Any other edit,
- * such as a `plan.policy` change, is false, as is a missing or unparsable side
- * (#6764, fail closed).
+ * True when a PROJECT-DEFINITION change touches only what moving the briefs in
+ * `movedBriefNames` rewrites: their registry rows, the lifecycle folder in a
+ * plan reference to them, and `updated` stamps. Any other edit, such as a
+ * `plan.policy` change or a row or reference for a brief that did not move, is
+ * false, as is a missing or unparsable side (#6764, fail closed).
  */
 export function isProjectDefinitionRegistryOnlyChange(
   baseText: string | null,
   headText: string | null,
+  movedBriefNames: ReadonlySet<string>,
 ): boolean {
   if (baseText === null || headText === null) {
     return false;
   }
-  const base = projectDefinitionWithoutRegistry(baseText);
-  const head = projectDefinitionWithoutRegistry(headText);
+  const base = projectDefinitionWithoutRegistry(baseText, movedBriefNames);
+  const head = projectDefinitionWithoutRegistry(headText, movedBriefNames);
   return base !== null && head !== null && base === head;
 }
 

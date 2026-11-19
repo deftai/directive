@@ -40,6 +40,7 @@ import {
   MERGE_TIME_SCAN_WALL_CLOCK_MS,
   type MergedPrListNode,
   type MergeTimeForge,
+  movedBriefNamesFromPaths,
   NON_DELIVERY_DISPOSITIONS,
   PR_FILES_LISTING_CAP,
   PROJECT_DEFINITION_REGISTRY_REL,
@@ -3721,52 +3722,49 @@ describe("completion move carries the PROJECT-DEFINITION registry (#6764)", () =
     expect(isDeliveryBriefLandExcluded([rename, rowEntry, pdEntry])).toBe(false);
   });
 
-  it("proves a PROJECT-DEFINITION change registry-only by content", () => {
-    const base = {
-      xBRIEFInfo: { version: "0.8", updated: "2026-11-18T00:00:00Z" },
+  it("proves a PROJECT-DEFINITION change registry-only for the moved briefs only", () => {
+    const moved = movedBriefNamesFromPaths([
+      "xbrief/active/a.xbrief.json",
+      "xbrief/completed/a.xbrief.json",
+      "xbrief/.audit/spec-drift/github.issue.1.json",
+    ]);
+    expect([...moved]).toEqual(["a.xbrief.json"]);
+    const rowA = { id: "a", status: "running", metadata: { source_path: "active/a.xbrief.json" } };
+    const rowB = { id: "b", status: "running", metadata: { source_path: "active/b.xbrief.json" } };
+    const doc = (items: unknown[], refs: string[], requireHumanMerge = true, updated = "t1") => ({
+      xBRIEFInfo: { version: "0.8", updated },
       plan: {
         title: "p",
-        updated: "2026-11-18T00:00:00Z",
-        policy: { requireHumanMerge: true },
-        items: [{ id: "a", status: "running" }],
+        updated,
+        policy: { requireHumanMerge },
+        items,
+        references: refs.map((uri) => ({ uri, type: "x-xbrief/plan", title: "r" })),
       },
-    };
-    const itemsOnly = {
-      xBRIEFInfo: { version: "0.8", updated: "2026-11-19T00:00:00Z" },
-      plan: { ...base.plan, updated: "2026-11-19T00:00:00Z", items: [] },
-    };
-    const policyEdit = {
-      ...itemsOnly,
-      plan: { ...itemsOnly.plan, policy: { requireHumanMerge: false } },
-    };
-    const text = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
-    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(itemsOnly))).toBe(true);
-    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(policyEdit))).toBe(false);
-    expect(isProjectDefinitionRegistryOnlyChange(null, text(itemsOnly))).toBe(false);
-    // A moved brief's plan reference changes folder only (Greptile P1 on #6772).
-    const withRef = (uri: string, title = "top") => ({
-      ...base,
-      plan: { ...base.plan, references: [{ uri, type: "x-xbrief/plan", title }] },
     });
-    expect(
-      isProjectDefinitionRegistryOnlyChange(
-        text(withRef("file://active/top.xbrief.json")),
-        text(withRef("file://completed/top.xbrief.json")),
-      ),
-    ).toBe(true);
-    expect(
-      isProjectDefinitionRegistryOnlyChange(
-        text(withRef("file://active/top.xbrief.json")),
-        text(withRef("file://completed/other.xbrief.json")),
-      ),
-    ).toBe(false);
-    expect(
-      isProjectDefinitionRegistryOnlyChange(
-        text(withRef("file://active/top.xbrief.json")),
-        text(withRef("file://completed/top.xbrief.json", "renamed")),
-      ),
-    ).toBe(false);
-    expect(isProjectDefinitionRegistryOnlyChange(text(base), "{not json")).toBe(false);
+    const text = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
+    const base = doc([rowA, rowB], ["file://active/a.xbrief.json", "file://active/b.xbrief.json"]);
+    // The move of a: its row goes, its reference changes folder, stamps change.
+    const moveA = doc(
+      [rowB],
+      ["file://completed/a.xbrief.json", "file://active/b.xbrief.json"],
+      true,
+      "t2",
+    );
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(moveA), moved)).toBe(true);
+    // A policy edit beside the move is not registry-only.
+    const policy = doc(
+      [rowB],
+      ["file://completed/a.xbrief.json", "file://active/b.xbrief.json"],
+      false,
+    );
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(policy), moved)).toBe(false);
+    // Rows and references of a brief that did not move still count (Greptile P1 on #6772).
+    const refB = doc([rowB], ["file://completed/a.xbrief.json", "file://completed/b.xbrief.json"]);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(refB), moved)).toBe(false);
+    const rowBGone = doc([], ["file://completed/a.xbrief.json", "file://active/b.xbrief.json"]);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), text(rowBGone), moved)).toBe(false);
+    expect(isProjectDefinitionRegistryOnlyChange(null, text(moveA), moved)).toBe(false);
+    expect(isProjectDefinitionRegistryOnlyChange(text(base), "{not json", moved)).toBe(false);
   });
 
   it("does not treat the registry with product code, or without a completed brief, as lifecycle-only", () => {

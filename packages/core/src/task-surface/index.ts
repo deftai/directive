@@ -26,6 +26,7 @@ import {
   isDeliveryBriefLandExcluded,
   isProjectDefinitionRegistryOnlyChange,
   isProjectDefinitionRegistryPath,
+  movedBriefNamesFromPaths,
   PROJECT_DEFINITION_REGISTRY_REL,
 } from "../scope/delivery-evidence.js";
 
@@ -160,6 +161,7 @@ function isDeliveryBriefLandChangeSet(
     isProjectDefinitionRegistryOnlyChange(
       gitText(root, ["show", `${mergeBaseSha}:${PROJECT_DEFINITION_REGISTRY_REL}`]),
       gitText(root, ["show", `HEAD:${PROJECT_DEFINITION_REGISTRY_REL}`]),
+      movedBriefNamesFromPaths(rows.map((row) => row.path)),
     );
   return isDeliveryBriefLandExcluded(
     rows.map((row) => ({ status: "modified", filename: row.path })),

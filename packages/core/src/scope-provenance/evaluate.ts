@@ -67,6 +67,7 @@ import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import {
   isProjectDefinitionRegistryOnlyChange,
   isProjectDefinitionRegistryPath,
+  movedBriefNamesFromPaths,
 } from "../scope/delivery-evidence.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
 import { parseGitHubRepoSlug } from "../text/redos-safe.js";
@@ -1161,7 +1162,7 @@ function evaluateWithRunner(
   // against the merge base is registry-only. Same base and head reads as the
   // one-PR policy gate below.
   let registryOnlyMemo: boolean | null = null;
-  const projectDefinitionRegistryOnly = (): boolean => {
+  const projectDefinitionRegistryOnly = (changedPaths: readonly string[]): boolean => {
     if (registryOnlyMemo !== null) return registryOnlyMemo;
     const baseRead = readPolicyAtMergeBase();
     let headRaw: string | null = null;
@@ -1175,7 +1176,12 @@ function evaluateWithRunner(
       }
     }
     registryOnlyMemo =
-      baseRead.kind === "text" && isProjectDefinitionRegistryOnlyChange(baseRead.text, headRaw);
+      baseRead.kind === "text" &&
+      isProjectDefinitionRegistryOnlyChange(
+        baseRead.text,
+        headRaw,
+        movedBriefNamesFromPaths(changedPaths),
+      );
     return registryOnlyMemo;
   };
   let onePrGate: OnePrScopeProofGate | null = null;
@@ -1701,7 +1707,7 @@ function evaluateWithRunner(
 
     const membershipInput = {
       projectDefinitionRegistryOnly: changed.some((p) => isProjectDefinitionRegistryPath(p))
-        ? projectDefinitionRegistryOnly()
+        ? projectDefinitionRegistryOnly(changed)
         : false,
       ...(membershipAllowanceScope !== undefined
         ? { allowanceScope: membershipAllowanceScope }
