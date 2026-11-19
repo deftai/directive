@@ -1,0 +1,13 @@
+{
+  "scopeId": "github.issue.6454551314",
+  "unresolved": [
+    {
+      "scopeId": "github.issue.6454551314",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-19T04:20:55Z"
+    }
+  ],
+  "coverage": [],
+  "shadowFindings": []
+}
