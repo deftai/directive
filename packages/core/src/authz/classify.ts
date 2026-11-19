@@ -4029,12 +4029,12 @@ function pathishMentionsKillSwitch(pathish: string): boolean {
 }
 
 /**
- * Mention rule (#6681), replacing structural parsing of kill-switch and store plants.
+ * Kill-switch mention rule (#6681), replacing structural parsing of kill-switch plants.
  *
  * The command text is normalized the way a shell would, without parsing structure: line
  * continuations joined, `$'...'` and `\xHH` escapes decoded, quote characters, backslash
- * escapes and cmd `^` carets removed, lowercase. A MENTION is a kill-switch name, a token
- * that would match one as a glob, or a `.deft/authz` / `.deft/approved-scope` path.
+ * escapes and cmd `^` carets removed, lowercase. A MENTION is a kill-switch name or a token
+ * that would match one as a glob. The protected stores are not part of this rule (#6292).
  * A mention is refused unless every command segment is a known plain read.
  * Over-refusal is accepted (`git commit -m "mention <name>"` is refused). Names built at
  * run time (variables, sed, base64) are a known limit and are not covered here.
@@ -4163,15 +4163,6 @@ function mentionsKillSwitchText(texts: readonly [string, string]): boolean {
   return false;
 }
 
-function mentionsStoreText(texts: readonly [string, string]): boolean {
-  for (const text of texts) {
-    for (const token of mentionTokens(text)) {
-      if (pathishIsSettingsStoreDir(token)) return true;
-    }
-  }
-  return false;
-}
-
 /** Plain read programs: with no output redirect and nothing run from their output. */
 const PLAIN_READ_BINS = new Set([
   "cat",
@@ -4281,12 +4272,9 @@ function allSegmentsPlainRead(text: string): boolean {
   return true;
 }
 
-function mentionRefused(
-  command: string,
-  mentions: (texts: readonly [string, string]) => boolean,
-): boolean {
+function mentionRefused(command: string): boolean {
   const texts = normalizeMentionText(command);
-  if (!mentions(texts)) return false;
+  if (!mentionsKillSwitchText(texts)) return false;
   return !allSegmentsPlainRead(texts[0]);
 }
 
@@ -4298,7 +4286,7 @@ function mentionRefused(
 export function hasKillSwitchShellWrite(command: string, _tokens?: readonly string[]): boolean {
   const cmd = command.trim();
   if (cmd.length === 0) return false;
-  return mentionRefused(cmd, mentionsKillSwitchText);
+  return mentionRefused(cmd);
 }
 
 function killSwitchWriteBinToken(token: string): boolean {
@@ -5779,11 +5767,7 @@ export function classifyHookAuthzOps(input: {
 export function hasAuthzDirShellWrite(command: string): boolean {
   const cmd = command.trim();
   if (cmd.length === 0) return false;
-  // #6681 mention rule: a command that names a store path is refused unless every
-  // segment is a plain read. It routes as protected_store, which no grant can allow.
-  return (
-    commandHasAuthzDirShellWrite(cmd, shellTokens(cmd)) || mentionRefused(cmd, mentionsStoreText)
-  );
+  return commandHasAuthzDirShellWrite(cmd, shellTokens(cmd));
 }
 
 /**

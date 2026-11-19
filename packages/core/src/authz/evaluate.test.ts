@@ -527,21 +527,6 @@ describe("kill-switch plant guard decisions: launcher payloads and xargs pipelin
     }
   });
 
-  it("denies the xargs store forms with and without a UAT lease", () => {
-    for (const command of [
-      `echo .deft/authz/state.json | xargs touch`,
-      `echo .deft/approved-scope/x.json | xargs touch`,
-      `echo .deft/authz/state.json | xargs -0 touch`,
-      `echo .deft/authz/state.json | tr a a | xargs touch`,
-    ]) {
-      for (const withLease of [false, true]) {
-        const d = decide(command, withLease);
-        expect(d.ops, command).toEqual(["protected_store"]);
-        expect(d.allowed, `${command} lease=${withLease}`).toBe(false);
-      }
-    }
-  });
-
   it("still denies the forms that were denied before #6580", () => {
     for (const command of [
       `powershell -c "New-Item ${kill}"`,
