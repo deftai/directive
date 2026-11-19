@@ -414,6 +414,7 @@
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
+          "xbrief/.audit/spec-drift/github.issue.6460189342.json",
           "packages/core/src/scope/undo.ts",
           "packages/core/src/scope/undo.test.ts",
           "packages/core/src/render/project-render.ts",
@@ -436,6 +437,7 @@
       },
       "swarm": {
         "file_scope": [
+          "xbrief/.audit/spec-drift/github.issue.6460189342.json",
           "packages/core/src/scope/undo.ts",
           "packages/core/src/scope/undo.test.ts",
           "packages/core/src/render/project-render.ts",
