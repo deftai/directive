@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6681",
-    "updated": "2026-11-18T18:29:24Z"
+    "updated": "2026-11-19T03:26:13Z"
   },
   "plan": {
     "title": "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6681",
@@ -16,23 +16,123 @@
     "items": [
       {
         "title": "A shell launcher wrapper whose quoted payload redirects into the kill-switch file is refused again, as it was before #6580.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A pipeline that feeds the kill-switch filename to a writer through xargs is refused again, as it was before #6580.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The same pipeline shape aimed at the protected stores is refused.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Every probe form that was denied before #6580 is still denied, pinned by regression tests in the authz classify and evaluate tests.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "74b2619a1992e504afefe758f86a0c926e04f012",
+          "recorded_at": "2026-11-19T03:26:13Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -197,9 +297,40 @@
         "github_issue_id": 6473935252,
         "origin": "deftai/directive#6681",
         "id": "github.issue.6473935252"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ec4b48a6f53ca79f65b43ed69c0229efaa8df27a",
+        "prNumber": 6697,
+        "prBase": "master",
+        "mergeCommit": "74b2619a1992e504afefe758f86a0c926e04f012",
+        "deliveryBranch": "master",
+        "deliveryCommit": "104aebdaa39ac142da00bf928adb9961a3fb3dd3",
+        "verifiedAt": "2026-11-19T03:26:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6683,
+          6742,
+          6745
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T03:26:13Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T03:26:13Z"
       }
     },
     "id": "github.issue.6473935252",
-    "updated": "2026-11-18T18:29:24Z"
+    "updated": "2026-11-19T03:26:13Z"
   }
 }
