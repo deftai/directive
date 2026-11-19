@@ -837,10 +837,10 @@
       {
         "id": "2026-11-18-6681-securityauthz-kill-switch-plant-guard-regressed-in-6580-quot",
         "title": "security(authz): kill-switch plant guard regressed in #6580 (quoted launcher payload and xargs pipeline forms)",
-        "status": "running",
+        "status": "completed",
         "metadata": {
-          "source_path": "active/2026-11-18-6681-securityauthz-kill-switch-plant-guard-regressed-in-6580-quot.xbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "completed/2026-11-18-6681-securityauthz-kill-switch-plant-guard-regressed-in-6580-quot.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/6681",
