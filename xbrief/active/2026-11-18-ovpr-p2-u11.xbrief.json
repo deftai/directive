@@ -259,7 +259,8 @@
           "one changelog fragment changelog.d/5873-node-20-loads-again.md"
         ],
         "acceptance_criteria_justification": "Six items: the six acceptance criteria of unit spec P2-U11, one each."
-      }
+      },
+      "productPullRequest": 6654
     },
     "id": "github.issue.6005855460",
     "updated": "2026-11-18T03:05:13Z"
