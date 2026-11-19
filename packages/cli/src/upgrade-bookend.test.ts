@@ -12,6 +12,14 @@ import {
   runUpgrade,
 } from "./bookends.js";
 import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
+import {
+  presentRepairSuccess,
+  presentUninstallPlan,
+  presentUpgradeSuccess,
+  readGitHookPlan,
+  summarizeUninstallRemovals,
+  tryParseSetupSummary,
+} from "./plan-present.js";
 import { compareExactVersions, resolvePublishedContract, unwrapNpmViewJson } from "./registry.js";
 
 const TEMPS: string[] = [];
@@ -1034,5 +1042,117 @@ describe("split @deftai registry hint (#6141)", () => {
     expect(count(err, HINT_MARK)).toBe(1);
     expect(err).toContain("run `npm ci` in this project, then `directive install --repair`");
     expect(err).toContain(`${OVERRIDE} directive install --repair`);
+  });
+});
+
+/** Directive git hooks in the plan and the report (#5976 / D-023). */
+describe("git hooks in upgrade, repair and uninstall output (D-023)", () => {
+  function seedHooks(root: string, rels: readonly string[]): void {
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    for (const rel of rels) writeFileSync(join(root, rel), "#!/usr/bin/env sh\n");
+  }
+
+  it("--dry-run upgrade plan lists every git hook it will write, replace or remove", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    seedHooks(root, [".githooks/pre-commit", ".githooks/pre-push", ".githooks/_deft-run.sh"]);
+    const before = readFileSync(join(root, ".githooks/pre-push"), "utf8");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
+      },
+    );
+    expect(code).toBe(0);
+    const out = c.out().replace(/\s+/g, " ");
+    expect(out).toContain("write git hooks .githooks/_directive-run.sh");
+    expect(out).toContain(
+      "replace git hooks .githooks/pre-commit, .githooks/pre-push where they differ from this version, even if edited",
+    );
+    expect(out).toContain("remove the old git-hook helper .githooks/_deft-run.sh");
+    expect(readFileSync(join(root, ".githooks/pre-push"), "utf8")).toBe(before);
+    expect(existsSync(join(root, ".githooks/_directive-run.sh"))).toBe(false);
+  });
+
+  it("readGitHookPlan reads a project with no hooks as three writes", () => {
+    const root = tempProject();
+    expect(readGitHookPlan(root)).toEqual({
+      write: [".githooks/_directive-run.sh", ".githooks/pre-commit", ".githooks/pre-push"],
+      replace: [],
+      remove: [],
+    });
+  });
+
+  const setupStdout = JSON.stringify({
+    contract: 1,
+    entry: "setup",
+    created: [],
+    modified: [".githooks/pre-push"],
+    removed: [".githooks/_deft-run.sh"],
+    conflicts: [],
+    gitHookUpdates: [
+      "Updated `.githooks/pre-push`; your earlier version is in git history.",
+      "Removed `.githooks/_deft-run.sh`; your earlier version is in git history.",
+    ],
+  });
+
+  it("upgrade report names each replaced hook and lists it under Review and commit", () => {
+    const c = capture();
+    presentUpgradeSuccess(c.io, {
+      version: "2.0.0",
+      versionChange: true,
+      pm: "npm",
+      summary: tryParseSetupSummary(setupStdout),
+      migrateSummary: null,
+      verbosity: 0,
+    });
+    const out = c.out();
+    expect(out).toContain("Updated `.githooks/pre-push`; your earlier version is in git history.");
+    expect(out).toContain(
+      "Removed `.githooks/_deft-run.sh`; your earlier version is in git history.",
+    );
+    const review = out.slice(out.indexOf("Review and commit:"));
+    expect(review).toContain("  .githooks/pre-push\n");
+    expect(review).toContain("  .githooks/_deft-run.sh\n");
+  });
+
+  it("repair report names each replaced hook", () => {
+    const c = capture();
+    presentRepairSuccess(c.io, {
+      version: "2.0.0",
+      restoredPackage: false,
+      summary: tryParseSetupSummary(setupStdout),
+      verbosity: 0,
+    });
+    expect(c.out()).toContain(
+      "Updated `.githooks/pre-push`; your earlier version is in git history.",
+    );
+  });
+
+  it("uninstall plan names the git hooks it will remove", () => {
+    const c = capture();
+    presentUninstallPlan(c.io, {
+      projectRoot: "/p",
+      pm: "npm",
+      pmEvidence: "package-lock.json",
+      pinVersion: "2.0.0",
+      pmCommand: null,
+      verbosity: 0,
+      removal: summarizeUninstallRemovals(
+        [".githooks/pre-commit", ".githooks/pre-push", ".githooks/_directive-run.sh"],
+        { willRemovePin: true },
+      ),
+    });
+    expect(c.out().replace(/\s+/g, " ")).toContain(
+      "remove git hooks .githooks/pre-commit, .githooks/pre-push, .githooks/_directive-run.sh",
+    );
   });
 });

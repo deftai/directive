@@ -54,11 +54,28 @@ const FOREIGN_PRETTIER_PRE_COMMIT = `#!/usr/bin/env sh
 npx prettier --check .
 `;
 
+/** Seed and commit the legacy hooks: customers' hooks are tracked (#5976). */
 function seedLegacyDeftHooks(root: string): void {
   mkdirSync(join(root, ".githooks"), { recursive: true });
   writeFileSync(join(root, ".githooks", "_deft-run.sh"), LEGACY_DEFT_RUN, "utf8");
   writeFileSync(join(root, ".githooks", "pre-commit"), LEGACY_PRE_COMMIT, "utf8");
   writeFileSync(join(root, ".githooks", "pre-push"), LEGACY_PRE_PUSH, "utf8");
+  execFileSync("git", ["add", "--", ".githooks"], { cwd: root });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.email=t@example.com",
+      "-c",
+      "user.name=t",
+      "commit",
+      "-q",
+      "--no-verify",
+      "-m",
+      "legacy hooks",
+    ],
+    { cwd: root },
+  );
 }
 
 afterEach(() => {
@@ -90,6 +107,10 @@ describe("ensureGitHooks legacy _deft-run / run_deft (wave4e)", () => {
 
     expect(existsSync(join(root, ".githooks", "_directive-run.sh"))).toBe(true);
     expect(existsSync(join(root, ".githooks", "_deft-run.sh"))).toBe(false);
+    expect(result.removed).toEqual([".githooks/_deft-run.sh"]);
+    expect(result.updated).toContain(
+      "Updated `.githooks/pre-commit`; your earlier version is in git history.",
+    );
   });
 
   it("refuses to overwrite a foreign pre-commit (prettier-only)", () => {

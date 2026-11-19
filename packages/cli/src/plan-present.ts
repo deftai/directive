@@ -3,7 +3,7 @@
  * Wave 3g: F-009 plain shop English, F-011 TTY word-wrap, F-014 uninstall summaries.
  * Default stdout is prose + labels; keyed machine dumps stay behind verbosity ≥1.
  */
-import { lstatSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PackageManager } from "./pm.js";
 import { INSTALL_SCRIPT_POLICY_PLAN_LINE } from "./pm.js";
@@ -43,6 +43,54 @@ export const PM_WILL_RUN_LABEL = "Package manager will run:";
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
   "Incomplete install: this folder is not a git repository yet, so git hooks will not be installed. After you run git init, run directive install --repair so hooks get installed.";
 
+/** Directive's git hooks, in the order setup writes them (D-023). */
+export const DIRECTIVE_GIT_HOOK_PATHS: readonly string[] = [
+  ".githooks/_directive-run.sh",
+  ".githooks/pre-commit",
+  ".githooks/pre-push",
+];
+
+/** The old git-hook helper that setup removes once no hook uses it. */
+export const LEGACY_GIT_HOOK_HELPER = ".githooks/_deft-run.sh";
+
+/** Git hooks a setup run will write, replace or remove (D-023). */
+export interface GitHookPlan {
+  readonly write: readonly string[];
+  readonly replace: readonly string[];
+  readonly remove: readonly string[];
+}
+
+/** Read which Directive git hooks exist, to list them in the plan (D-023). */
+export function readGitHookPlan(projectRoot: string): GitHookPlan {
+  const present = (rel: string): boolean => {
+    try {
+      return existsSync(join(projectRoot, rel));
+    } catch {
+      return false;
+    }
+  };
+  return {
+    write: DIRECTIVE_GIT_HOOK_PATHS.filter((rel) => !present(rel)),
+    replace: DIRECTIVE_GIT_HOOK_PATHS.filter((rel) => present(rel)),
+    remove: present(LEGACY_GIT_HOOK_HELPER) ? [LEGACY_GIT_HOOK_HELPER] : [],
+  };
+}
+
+function writeGitHookPlanBullets(io: PresentIo, plan: GitHookPlan): void {
+  if (plan.write.length > 0) {
+    writeBullet(io, `write git hooks ${plan.write.join(", ")}`);
+  }
+  if (plan.replace.length > 0) {
+    writeBullet(
+      io,
+      `replace git hooks ${plan.replace.join(", ")} where they differ from this version, even if edited (a hook that is not Directive's is left as it is and reported)`,
+    );
+  }
+  for (const rel of plan.remove) {
+    writeBullet(io, `remove the old git-hook helper ${rel} if no other hook uses it`);
+  }
+}
+
 export function lockfileNameFor(pm: PackageManager): string {
   return pm === "pnpm" ? "pnpm-lock.yaml" : "package-lock.json";
 }
@@ -80,6 +128,12 @@ export interface CommonPlanFields {
   readonly gitHooksInactive: boolean;
   readonly nodeWarning: string | null;
   readonly verbosity: Verbosity;
+  /** Git hooks setup will write, replace or remove; read from the project when absent. */
+  readonly gitHooks?: GitHookPlan;
+}
+
+function gitHookPlanFor(fields: CommonPlanFields): GitHookPlan {
+  return fields.gitHooks ?? readGitHookPlan(fields.projectRoot);
 }
 
 export interface FirstInstallPlanFields extends CommonPlanFields {
@@ -421,6 +475,7 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
   );
   writeBullet(io, `update ${lock}`);
   writeBullet(io, "create Directive's project files for this folder");
+  writeGitHookPlanBullets(io, gitHookPlanFor(fields));
   writeBlank(io);
   writeHumanParagraph(io, "Your other project files stay as they are.");
   writeBlank(io);
@@ -467,6 +522,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeHumanParagraph(io, "You may still refresh the setup. If you approve, Directive will:");
     writeBullet(io, `check this project's Directive-managed files for ${fields.version}`);
     writeBullet(io, "write only what is missing or out of date");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBullet(io, "leave matching files and your other project files alone");
   } else {
     writeHumanParagraph(
@@ -477,6 +533,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     io.writeOut("If you approve, Directive will:\n");
     writeBullet(io, `reinstall Directive ${fields.version} with ${fields.pm}`);
     writeBullet(io, "rerun project setup");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing settings and other files stay as they are.");
   }
@@ -539,6 +596,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     );
     writeBullet(io, `update ${lock}`);
     writeBullet(io, "run setup and any needed data updates for that version");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeDeftCoreGitEdits(io, fields.deftCoreGitEdits);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
@@ -548,6 +606,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     writeBullet(io, `change this project's Directive version to ${fields.targetVersion}`);
     writeBullet(io, `update ${lock}`);
     writeBullet(io, "run project setup and any needed data updates for that version");
+    writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
   } else {
@@ -557,6 +616,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
       `finish equal-version work for Directive ${fields.targetVersion}` +
         (fields.needSetup ? " (setup, then migration as needed)" : " (migration as needed)"),
     );
+    if (fields.needSetup) writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
   }
@@ -734,8 +794,14 @@ function writeUninstallActionBullets(
       `clear Directive entries from ${removal.hostHooks} host hook config${removal.hostHooks === 1 ? "" : "s"}`,
     );
   }
+  const gitHookPaths = removal.pathInventory
+    .map((p) => p.replace(/\s*\(.*\)$/, ""))
+    .filter((p) => classifyUninstallPath(p) === "git-hook");
+  if (gitHookPaths.length > 0) {
+    writeBullet(io, `remove git hooks ${gitHookPaths.join(", ")}`);
+  }
   const wiringBits: string[] = [];
-  if (removal.gitHooks > 0) wiringBits.push("git hooks");
+  if (removal.gitHooks > 0 && gitHookPaths.length === 0) wiringBits.push("git hooks");
   if (removal.projectWiring > 0) wiringBits.push("GENERATION and project wiring");
   if (removal.legacyCore) wiringBits.push("legacy .deft/core");
   if (wiringBits.length > 0) {
@@ -757,6 +823,7 @@ function writeUninstallActionBullets(
   if (
     removal.skillPointers === 0 &&
     removal.hostHooks === 0 &&
+    gitHookPaths.length === 0 &&
     wiringBits.length === 0 &&
     !removal.willRemovePin &&
     removal.other === 0
@@ -853,9 +920,19 @@ export interface SetupSummary {
   /** Unknowable / corrupt envelopes copied under xbrief/archive/ (F-017). */
   readonly archived?: readonly string[];
   readonly conflicts?: readonly string[];
+  /** One line per existing Directive git hook setup replaced or removed (D-023). */
+  readonly gitHookUpdates?: readonly string[];
   /** Files setup kept in place (non-failure). */
   readonly preserved?: readonly string[];
   readonly message?: string;
+}
+
+/** Name each git hook setup replaced or removed (D-023). */
+function writeGitHookUpdates(io: PresentIo, summary: SetupSummary | null | undefined): void {
+  const lines = summary?.gitHookUpdates ?? [];
+  if (lines.length === 0) return;
+  writeBlank(io);
+  for (const line of lines) io.writeOut(`${line}\n`);
 }
 
 /** Default: short human summary; -v counts; -vv full JSON arrays. */
@@ -944,6 +1021,7 @@ export function presentInstallSuccess(
   } else {
     io.writeOut("  directive --help\n");
   }
+  writeGitHookUpdates(io, opts.summary);
   writeBlank(io);
   io.writeOut("Review and commit:\n");
   io.writeOut("  package.json\n");
@@ -998,6 +1076,7 @@ export function presentRepairSuccess(
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
   }
   writeHumanParagraph(io, "The project version has not changed.");
+  writeGitHookUpdates(io, opts.summary);
   const review = collectReviewPaths(opts.summary);
   if (opts.restoredPackage && opts.pm) {
     const lock = lockfileNameFor(opts.pm);
@@ -1044,6 +1123,7 @@ export function presentUpgradeSuccess(
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
     writeHumanParagraph(io, "The project version has not changed.");
   }
+  writeGitHookUpdates(io, opts.summary);
   writeBlank(io);
   io.writeOut("Review and commit:\n");
   if (opts.versionChange) {
@@ -1334,6 +1414,7 @@ function collectReviewPaths(summary: SetupSummary | null | undefined): string[] 
   const migrated = summary.migrated ?? [];
   const archived = summary.archived ?? [];
   const all = [...summary.created, ...summary.modified, ...migrated, ...archived];
+  const removedHooks = (summary.removed ?? []).filter((p) => p.startsWith(".githooks/"));
   const out: string[] = [];
   for (const p of prefer) {
     if (all.includes(p)) out.push(p);
@@ -1347,10 +1428,14 @@ function collectReviewPaths(summary: SetupSummary | null | undefined): string[] 
       p === ".claude/settings.json" ||
       p === ".cursor/hooks.json" ||
       p === ".codex/hooks.json" ||
-      p === ".grok/hooks/deft.json"
+      p === ".grok/hooks/deft.json" ||
+      p.startsWith(".githooks/")
     ) {
       out.push(p);
     }
+  }
+  for (const p of removedHooks) {
+    if (!out.includes(p)) out.push(p);
   }
   return out.slice(0, 16);
 }
@@ -1370,6 +1455,9 @@ export function tryParseSetupSummary(stdout: string): SetupSummary | null {
       migrated: Array.isArray(rec.migrated) ? (rec.migrated as string[]) : undefined,
       archived: Array.isArray(rec.archived) ? (rec.archived as string[]) : undefined,
       conflicts: Array.isArray(rec.conflicts) ? (rec.conflicts as string[]) : undefined,
+      gitHookUpdates: Array.isArray(rec.gitHookUpdates)
+        ? (rec.gitHookUpdates as string[])
+        : undefined,
       preserved: Array.isArray(rec.preserved) ? (rec.preserved as string[]) : undefined,
       message: typeof rec.message === "string" ? rec.message : undefined,
     };

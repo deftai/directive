@@ -70,7 +70,11 @@ import {
   snapshotSpecDriftLedger,
   spentGrantIdsSinceSnapshot,
 } from "../verify-source/spec-drift.js";
-import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
+import {
+  type AdmittedSourceActivateOptions,
+  evaluateAcceptanceActivateGate,
+  evaluateAdmittedSourceActivateGate,
+} from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
   evaluateAcceptanceEvidenceGate,
@@ -194,6 +198,8 @@ export interface TransitionOptions {
   readonly hasCompletedTipTwin?: (ref: IssueRef) => CompletedTipTwinResult;
   /** Test seams for the post-complete plan cursor catch-up (#6205). */
   readonly planAdvanceSeams?: CompleteAdvanceSeams;
+  /** Test seams for the admitted-source check at activate (#6609). Production leaves this unset. */
+  readonly admittedSourceActivation?: AdmittedSourceActivateOptions;
 }
 
 /** REST node_id for one-PR-unit binding; mirrors pr-closing-keywords live path. */
@@ -762,6 +768,15 @@ export function runTransition(
     const acceptanceGate = evaluateAcceptanceActivateGate(planObj);
     if (!acceptanceGate.ok) {
       return { ok: false, message: acceptanceGate.message };
+    }
+    // #6609 item 7: the admitted-source check and sentence floor run here, not only at complete.
+    const admittedGate = evaluateAdmittedSourceActivateGate(planObj, {
+      projectRoot,
+      briefPath: resolvedPath,
+      seams: options.admittedSourceActivation,
+    });
+    if (!admittedGate.ok) {
+      return { ok: false, message: admittedGate.message };
     }
   }
 

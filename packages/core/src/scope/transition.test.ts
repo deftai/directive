@@ -18,6 +18,7 @@ import * as clauseDerivation from "../intake/clause-derivation.js";
 import { mintAcceptanceDispositionTemplateGrant } from "../policy/acceptance-disposition-grant.js";
 import { mintDeliveryIdentityAttestTemplateGrant } from "../policy/delivery-identity-attest-grant.js";
 import * as specGuardMod from "../policy/spec-guard.js";
+import { digestAdmittedSourceSentences } from "../product-first-done-gate/acceptance.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import type { GitRunner } from "../session/git.js";
 import { withAppendLock } from "../slice/lock.js";
@@ -219,6 +220,67 @@ describe("runTransition", () => {
     const result = runTransition("activate", file);
     expect(result.ok).toBe(true);
     expect(existsSync(join(root, "xbrief", "active", "2026-01-01-story.xbrief.json"))).toBe(true);
+  });
+
+  describe("admitted-source check at activate (#6609 item 7)", () => {
+    const BODY = "## Acceptance Criteria\n- One holds.\n- Two holds.\n";
+    const PINNED = ["One holds.", "Two holds."];
+    const seams = {
+      briefOnMergeBase: false,
+      admittedSourceMergeBase: null,
+      fetchAdmittedSourceText: () => ({ ok: true as const, text: BODY }),
+    };
+    const pinnedAcceptance = (keepSentences: readonly string[]): Record<string, unknown> => ({
+      commands: [],
+      none_stated: true,
+      source_rung: "derived",
+      ambiguity_attestation: "none_found",
+      sentences: [...keepSentences],
+      clauses: keepSentences.map((text, index) => ({
+        id: index + 1,
+        text,
+        artifact_path: null,
+        ambiguous: false,
+      })),
+      admitted_source_sentences: PINNED,
+      admitted_source_digest: digestAdmittedSourceSentences(PINNED),
+      admitted_source_extractor: 2,
+    });
+
+    it("activates an unchanged ingested brief", () => {
+      root = makeRepo();
+      const file = writeVbrief(
+        root,
+        "pending",
+        "pending",
+        "2026-01-01-pin-ok.xbrief.json",
+        pinnedAcceptance(PINNED),
+      );
+      const result = runTransition("activate", file, new Date(), {
+        admittedSourceActivation: seams,
+      });
+      expect(result.ok).toBe(true);
+      expect(existsSync(join(root, "xbrief", "active", "2026-01-01-pin-ok.xbrief.json"))).toBe(
+        true,
+      );
+    });
+
+    it("refuses with the verify:ac identity message when a pinned clause was deleted", () => {
+      root = makeRepo();
+      const file = writeVbrief(
+        root,
+        "pending",
+        "pending",
+        "2026-01-01-pin-cut.xbrief.json",
+        pinnedAcceptance(PINNED.slice(0, 1)),
+      );
+      const result = runTransition("activate", file, new Date(), {
+        admittedSourceActivation: seams,
+      });
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("verify:ac admitted-source identity (#5055)");
+      expect(existsSync(file)).toBe(true);
+    });
   });
 
   it("refuses activate when a plan item has effort XL (#1581)", () => {

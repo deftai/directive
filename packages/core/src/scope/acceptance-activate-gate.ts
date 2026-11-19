@@ -13,6 +13,7 @@
 
 import { applyClauseDerivationToPlan } from "../intake/clause-derivation.js";
 import { validatePlanAcceptance } from "../product-first-done-gate/acceptance.js";
+import { evaluateAdmittedSourceAtActivation } from "../product-first-done-gate/evaluate.js";
 import {
   DECLARED_ACCEPTANCE_NARRATIVE_KEYS,
   formatZeroClauseAcceptanceShapedNotice,
@@ -103,6 +104,34 @@ export function evaluateAcceptanceActivateGate(
       `the criteria are in the wrong, non-executable field.`,
     hits,
   };
+}
+
+export type AdmittedSourceActivateOptions = Omit<
+  Parameters<typeof evaluateAdmittedSourceAtActivation>[1],
+  "projectRoot" | "xbriefPath"
+>;
+
+/**
+ * Item 7 of #6609: the existing `verify:ac` admitted-source identity check
+ * (#5055) and sentence floor (#3550) run when a brief enters `xbrief/active/`,
+ * not only at completion. The clause oracle walk does not run. A failure
+ * carries the same `verify:ac` message `scope:complete` would print; there is
+ * no new cause, refusal text or flag.
+ */
+export function evaluateAdmittedSourceActivateGate(
+  plan: Record<string, unknown>,
+  options: {
+    readonly projectRoot: string;
+    readonly briefPath: string;
+    readonly seams?: AdmittedSourceActivateOptions;
+  },
+): { readonly ok: boolean; readonly message: string } {
+  const result = evaluateAdmittedSourceAtActivation(plan, {
+    ...options.seams,
+    projectRoot: options.projectRoot,
+    xbriefPath: options.briefPath,
+  });
+  return { ok: result.ok, message: result.message };
 }
 
 function commandCount(acceptance: unknown): number {
