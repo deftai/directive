@@ -3,6 +3,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -28,7 +29,7 @@ import { type BookendIo, runUninstall, type UninstallDeps } from "./bookends.js"
 import type { ProjectInstallState } from "./pin.js";
 import {
   applyLauncherCleanup,
-  DIRECTIVE_HOOK_LOCATOR_SOURCE,
+  DIRECTIVE_HOOK_LOCATOR_SHA256,
   discoverKnownArtifacts,
   discoverUninstallFootprint,
   HOST_HOOK_OUTER_DIRS,
@@ -891,8 +892,10 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     );
   });
 
-  it("keeps the launcher's locator copy equal to core's (AC3.1)", () => {
-    expect(DIRECTIVE_HOOK_LOCATOR_SOURCE).toBe(HOST_HOOK_LOCATOR_SOURCE);
+  it("keeps the launcher's locator hash equal to core's source (AC3.1)", () => {
+    expect(DIRECTIVE_HOOK_LOCATOR_SHA256).toBe(
+      createHash("sha256").update(HOST_HOOK_LOCATOR_SOURCE, "utf8").digest("hex"),
+    );
   });
 
   it("removes Directive's locator entries but keeps a user's own node -e hook", () => {
@@ -904,7 +907,7 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
       hooks: Record<string, Array<{ hooks: Array<{ command: string; args?: string[] }> }>>;
     };
     const directive = cfg.hooks.PreToolUse?.[0]?.hooks[0];
-    expect(directive?.args?.[1]).toBe(DIRECTIVE_HOOK_LOCATOR_SOURCE);
+    expect(directive?.args?.[1]).toBe(HOST_HOOK_LOCATOR_SOURCE);
     const userArgs = [
       "-e",
       "require('fs').appendFileSync('mine.log','x')",

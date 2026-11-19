@@ -9,6 +9,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -550,11 +551,19 @@ function object(value: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Directive's no-shell hook locator source (AC9.1 v261119). A copy of core
- * `HOST_HOOK_LOCATOR_SOURCE` (AC3.1: no core import); a test keeps them equal.
+ * SHA-256 of Directive's no-shell hook locator source (AC9.1 v261119), core
+ * `HOST_HOOK_LOCATOR_SOURCE`. The launcher keeps only the hash (AC3.1: no
+ * core import; the bundle stays free of the locator's code); a test keeps it
+ * equal to core's.
  */
-export const DIRECTIVE_HOOK_LOCATOR_SOURCE =
-  'const f=require("node:fs"),p=require("node:path"),u=require("node:url");const [r,...a]=process.argv.slice(1);let d=process.cwd();for(;!f.existsSync(p.join(d,".git"));d=p.dirname(d))if(p.dirname(d)===d)process.exit(1);const o=p.join(d,r);const no=m=>{process.stderr.write(m+"\\n");process.exit(2)};if(!f.existsSync(o))no("No Directive project here. Run `directive install`."+" ("+d+")");process.argv=[process.argv[0],o,...a];import(u.pathToFileURL(o).href).catch(e=>no(String(e)));';
+export const DIRECTIVE_HOOK_LOCATOR_SHA256 =
+  "e3b58aa1a0311f26d8c74ff56ceb335f4653cabc09c979ef7b13403f12fd5d66";
+
+function isDirectiveHookLocator(source: string): boolean {
+  return (
+    createHash("sha256").update(source, "utf8").digest("hex") === DIRECTIVE_HOOK_LOCATOR_SHA256
+  );
+}
 
 /**
  * Command text of one hook entry. Directive's locator entry
@@ -572,7 +581,7 @@ function hookEntryCommandText(value: unknown): string | null {
   if (
     command === "node" &&
     args[0] === "-e" &&
-    args[1] === DIRECTIVE_HOOK_LOCATOR_SOURCE &&
+    isDirectiveHookLocator(args[1] ?? "") &&
     args[2] === "--"
   ) {
     return ["node", ...args.slice(3)].join(" ");
