@@ -132,12 +132,14 @@
           "packages/runtime/src/uninstall.test.ts",
           "packages/cli/src/uninstall-bookend.test.ts",
           "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
-          "packages/runtime/src/setup.test.ts"
+          "packages/runtime/src/setup.test.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.ts",
+          "packages/core/src/release-e2e/ovpr-lifecycle-fixture.test.ts"
         ],
         "readiness": "ready",
         "depends_on": [],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/refresh.test.ts packages/core/src/init-deposit/init-deposit.test.ts packages/core/src/init-deposit/host-tool-coverage.test.ts packages/core/src/init-deposit/claude-hook-subfolder.test.ts packages/core/src/install-health/owned-paths.test.ts packages/core/src/verify-env packages/runtime/src/setup-wiring.test.ts packages/runtime/src/hook-dispatch-worktree.test.ts"
+          "pnpm test"
         ],
         "Traces": [
           "#5959",
