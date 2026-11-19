@@ -454,7 +454,7 @@
     "@deftai/directive-content": "workspace:*",
     "@deftai/directive-types": "workspace:*",
     "archiver": "^8.0.0",
-    "minimatch": "^10.2.5",
+    "minimatch": "^11.0.1",
     "parse5": "^7.3.0",
     "typescript": "^5.9.3"
   },
