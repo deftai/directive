@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6585",
-    "updated": "2026-11-18T18:55:17Z"
+    "updated": "2026-11-19T03:31:53Z"
   },
   "plan": {
     "title": "chore(ci): retire the no-op Go lane",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(ci): retire the no-op Go lane",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6585",
@@ -17,43 +17,99 @@
     "items": [
       {
         "title": "Jobs. In `.github/workflows/ci.yml`, delete the `go-primary`, `go-failover` and `go` jobs. In `capacity-watchdog` and `capacity-arm`, delete every Go variable, output, classify call and cancel call, and remove only the Go operand from each shared condition (the poll loop ends when the TypeScript and merge-gate primaries are not pending; cancel and notice lines cover the two remaining flags). Remove the Go rows and Go words from the header table and the watchdog comments. TypeScript and merge-gate behaviour is unchanged.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Lane. In `.github/workflows/ci-lane.yml`, delete the Go steps, change the three `inputs.suite == 'ts' || inputs.suite == 'go'` conditions to `inputs.suite == 'ts'`, rename the step `Setup Node (ts + go)` to drop Go, and drop Go from the header comment and the `suite` input description. The `suite` input stays.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Contract test. In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, drop the Go aggregator row assertions, drop `go-primary` and `go` from the artifact-only skip test while keeping the merge-gate and Windows checks, and drop Go from the watchdog test title.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs. In `content/scm/github.md`, drop Go from the Blacksmith runner line, the watchdog line and the required-check name list.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, the `go-primary`, `go-failover` and `go` jobs and every Go output, operand, classify and cancel call in `capacity-watchdog` and `capacity-arm` are gone, and the TypeScript and merge-gate arms behave as before.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci-lane.yml`, the Go steps are gone and the setup steps run only for `suite: ts`.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`, no assertion requires a Go job or the Go aggregator row, and the merge-gate and Windows artifact-only checks remain.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `content/scm/github.md`, the CI runner, watchdog and required-check lines no longer name Go or `Go (test + build)`.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+          "recorded_at": "2026-11-19T03:31:53Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -352,6 +408,36 @@
         "leanCommentId": 6987929723,
         "harvestDigest": "0287c68bd38e301d18296804897587d510caa70ad9aa6e9a942bbbb142951d92",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "7da94352277eda5c7cad0ed4101ac10aed8c6659",
+        "prNumber": 6748,
+        "prBase": "master",
+        "mergeCommit": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "44457f4ea8b1d01cb4d1878e60fc0be583126498",
+        "verifiedAt": "2026-11-19T03:31:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6690,
+          6750
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T03:31:53Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T03:31:53Z"
       }
     },
     "acceptance": {
@@ -441,6 +527,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6454553483",
-    "updated": "2026-11-18T18:55:17Z"
+    "updated": "2026-11-19T03:31:53Z"
   }
 }
