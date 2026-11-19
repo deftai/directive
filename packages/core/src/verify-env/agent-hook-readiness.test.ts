@@ -197,7 +197,7 @@ describe("evaluateAgentHookReadiness", () => {
     expect(result.hosts.find((entry) => entry.host === "cursor")?.functionality).toBe(
       "unavailable",
     );
-    expect(result.message).toContain("a person runs the project install");
+    expect(result.message).toContain("npm i -g @deftai/directive");
     expect(result.message).not.toContain("deft update");
     expect(result.message).toContain("directive doctor");
     expect(result.message).not.toContain("disable-host-hooks");

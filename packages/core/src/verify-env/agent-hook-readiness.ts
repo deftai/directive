@@ -228,7 +228,7 @@ export function evaluateAgentHookReadiness(
   // Missing-runtime tip only: do not restore UNUSED_HOST_HOOKS_RECOVERY for matcher drift.
   const missingRuntimeTip =
     liveStatus === "unavailable"
-      ? "\n  Recovery: a person runs the project install in a terminal (`npm install`, or `pnpm install --frozen-lockfile` for pnpm), then `directive doctor` to confirm."
+      ? "\n  Recovery: `deft-hook` is not on PATH; it comes from the global launcher, so a person runs `npm i -g @deftai/directive`, then `directive doctor` to confirm."
       : "";
   return {
     code: liveProbe.code,

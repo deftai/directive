@@ -88,7 +88,7 @@ Setting `failClosed: false` in `.cursor/hooks.json` clears the block exactly onc
 
 ## Absent, crashed, and timed out
 
-When the hook file runs, a missing runtime, a crash or malformed output becomes a block in the host's own form (exit 2 on Claude Code and Codex, a deny on Cursor and Grok). When the hook file never starts, the host decides: Cursor blocks through `failClosed: true`; Claude Code and Codex carry on.
+When the hook file runs, a missing runtime or a crash becomes a block in the host's own form (exit 2 on Claude Code and Codex, a deny on Cursor and Grok). Malformed output is checked only for Grok, where it becomes a deny; on the other hosts a successful runtime's output is passed through, and the host decides what malformed output means. When the hook file never starts, the host decides: Cursor blocks through `failClosed: true`; Claude Code and Codex carry on.
 
 Directive blocks rather than allows on a missing runtime because fail-open-on-absence is a bypass primitive, not a lenience: removing `node_modules/@deftai/directive-runtime` is an ordinary filesystem operation, so treating absence as allow would convert a self-inflicted denial into a bypass of the write fence, the intent ceiling, the session ritual, and the occupancy lease ([#3156](https://github.com/deftai/directive/issues/3156)). A hook that never starts is outside that guarantee on Claude Code and Codex — see the table above.
 

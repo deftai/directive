@@ -71,7 +71,7 @@ The same setup flow then interviews you about what to build and writes a **scope
 ```
 Read xbrief/PROJECT-DEFINITION.xbrief.json and the scope xBRIEFs in
 xbrief/active/ (or xbrief/pending/ if none are active yet) and implement
-the project following main.md standards.
+the project following node_modules/@deftai/directive-runtime/main.md.
 ```
 
 ## Getting help
