@@ -272,6 +272,37 @@ describe("task-surface", () => {
     expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(0);
   });
 
+  it("against-merge-base exempts a completion that also rewrites PROJECT-DEFINITION (#6764)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    execFileSync("git", ["checkout", "-q", "-b", "lifecycle-pd"], { cwd: project });
+    commitNested(project, "xbrief/completed/story.xbrief.json", "{}\n");
+    commitNested(project, "xbrief/.audit/spec-drift/story.json", "{}\n");
+    commitNested(project, "xbrief/PROJECT-DEFINITION.xbrief.json", "{}\n");
+    const { io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(0);
+  });
+
+  it("against-merge-base keeps the new entry for PROJECT-DEFINITION beside product code (#6764)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    execFileSync("git", ["checkout", "-q", "-b", "pd-mixed"], { cwd: project });
+    commitNested(project, "xbrief/completed/story.xbrief.json", "{}\n");
+    commitNested(project, "xbrief/PROJECT-DEFINITION.xbrief.json", "{}\n");
+    commitNested(project, "packages/core/src/x.ts", "export {};\n");
+    const { io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
+  });
+
+  it("against-merge-base keeps the new entry for a PROJECT-DEFINITION-only change (#6764)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    execFileSync("git", ["checkout", "-q", "-b", "pd-only"], { cwd: project });
+    commitNested(project, "xbrief/PROJECT-DEFINITION.xbrief.json", "{}\n");
+    const { io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
+  });
+
   it("against-merge-base keeps the new entry for a brief plus product change (#680 P4)", () => {
     const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
     const project = initChangelogGit(existing);

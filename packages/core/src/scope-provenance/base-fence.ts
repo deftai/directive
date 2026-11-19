@@ -32,6 +32,7 @@ import { matchAny, matchPath } from "../orchestration/pathspec.js";
 import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import {
   isCompletionMoveShaped,
+  isProjectDefinitionRegistryPath,
   isSpecDriftRowFilePath,
   SPEC_DRIFT_LEDGER_REL,
 } from "../scope/delivery-evidence.js";
@@ -419,7 +420,8 @@ export function evaluateApprovedScopeMembership(
   // #680 P5 / #6231: the spec-drift ledger is scope:complete verb output. It is
   // free only when the whole change set is a completion move (delivery-brief-land
   // paths with a completed/ brief), so it never carries other paths past membership.
-  // The per-story row files under xbrief/.audit/spec-drift/ join it (#6335).
+  // The per-story row files under xbrief/.audit/spec-drift/ join it (#6335), and
+  // so does the PROJECT-DEFINITION registry that the move rewrites (#6764).
   const ledgerFree = isCompletionMoveShaped(
     input.changedFiles.map((raw) => normalizeMembershipRel(raw)).filter((rel) => rel.length > 0),
   );
@@ -429,7 +431,14 @@ export function evaluateApprovedScopeMembership(
     if (isChangelogEntryPath(rel)) return true;
     if (peerXbriefs.has(rel)) return true;
     if (lifecycleExempt.has(rel)) return true;
-    if (ledgerFree && (rel === SPEC_DRIFT_LEDGER_REL || isSpecDriftRowFilePath(rel))) return true;
+    if (
+      ledgerFree &&
+      (rel === SPEC_DRIFT_LEDGER_REL ||
+        isSpecDriftRowFilePath(rel) ||
+        isProjectDefinitionRegistryPath(rel))
+    ) {
+      return true;
+    }
     return false;
   };
 

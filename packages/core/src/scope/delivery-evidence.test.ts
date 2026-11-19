@@ -33,6 +33,7 @@ import {
   isDeliveryBriefLandExcluded,
   isDeliveryBriefLandPath,
   isEligibleStoredDeliveryDisposition,
+  isProjectDefinitionRegistryPath,
   isSpecDriftRowFilePath,
   liveRunGh,
   MERGE_TIME_SCAN_WALL_CLOCK_MS,
@@ -40,6 +41,7 @@ import {
   type MergeTimeForge,
   NON_DELIVERY_DISPOSITIONS,
   PR_FILES_LISTING_CAP,
+  PROJECT_DEFINITION_REGISTRY_REL,
   type PrBodyRevision,
   type PrConnectionEvent,
   type PrFileEntry,
@@ -3686,5 +3688,51 @@ describe("isDeliveryBriefLandPath changelog entry paths (#6314)", () => {
     expect(isDeliveryBriefLandPath("changelog.d/sub/x.md")).toBe(false);
     expect(isDeliveryBriefLandPath("changelog.d/X.md")).toBe(false);
     expect(isDeliveryBriefLandPath("docs/CHANGELOG.md")).toBe(false);
+  });
+});
+
+describe("completion move carries the PROJECT-DEFINITION registry (#6764)", () => {
+  const pd = PROJECT_DEFINITION_REGISTRY_REL;
+  const row = "xbrief/.audit/spec-drift/github.issue.1.json";
+  const pdEntry: PrFileEntry = { status: "modified", filename: pd };
+  const rowEntry: PrFileEntry = { status: "added", filename: row };
+  const rename: PrFileEntry = {
+    status: "renamed",
+    filename: "xbrief/completed/a.xbrief.json",
+    previousFilename: "xbrief/active/a.xbrief.json",
+  };
+  const product: PrFileEntry = { status: "modified", filename: "packages/core/src/x.ts" };
+
+  it("names only the xbrief registry and keeps it out of the family on its own", () => {
+    expect(pd).toBe("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(isProjectDefinitionRegistryPath("xbrief\\PROJECT-DEFINITION.xbrief.json")).toBe(true);
+    expect(isProjectDefinitionRegistryPath("xbrief/specification.xbrief.json")).toBe(false);
+    expect(isDeliveryBriefLandPath(pd)).toBe(false);
+  });
+
+  it("treats brief move + row file + registry as a completion move", () => {
+    expect(
+      isCompletionMoveShaped(["xbrief/active/a.json", "xbrief/completed/a.json", row, pd]),
+    ).toBe(true);
+    expect(isDeliveryBriefLandExcluded([rename, rowEntry, pdEntry])).toBe(true);
+  });
+
+  it("does not treat the registry with product code, or without a completed brief, as lifecycle-only", () => {
+    expect(isCompletionMoveShaped(["xbrief/completed/a.json", pd, "src/x.ts"])).toBe(false);
+    expect(isDeliveryBriefLandExcluded([rename, pdEntry, product])).toBe(false);
+    expect(isDeliveryBriefLandExcluded([pdEntry])).toBe(false);
+    expect(
+      isDeliveryBriefLandExcluded([
+        { status: "modified", filename: "xbrief/active/a.json" },
+        pdEntry,
+      ]),
+    ).toBe(false);
+    // A product file renamed into completed/ is still refused.
+    expect(
+      isDeliveryBriefLandExcluded([
+        { status: "renamed", filename: "xbrief/completed/a.json", previousFilename: "src/a.ts" },
+        pdEntry,
+      ]),
+    ).toBe(false);
   });
 });

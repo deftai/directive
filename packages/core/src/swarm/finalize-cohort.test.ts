@@ -877,6 +877,8 @@ describe("finalizeCohort", () => {
     expect(rels).toContain("xbrief/completed/child.xbrief.json");
     expect(rels).toContain("xbrief/completed/epic.xbrief.json");
     expect(rels).toContain("xbrief/active/epic.xbrief.json");
+    // #6764: the completion move also rewrites the PROJECT-DEFINITION registry.
+    expect(rels).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
     expect(rels.some((rel) => !rel.startsWith("xbrief/"))).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
@@ -1927,6 +1929,15 @@ describe("finalizeCohort", () => {
         { status: "added", filename: "xbrief/active/a.json" },
         { status: "modified", filename: "packages/core/src/a.ts" },
       ],
+      [
+        { status: "added", filename: "xbrief/completed/a.json" },
+        { status: "removed", filename: "xbrief/active/a.json" },
+        { status: "modified", filename: "xbrief/PROJECT-DEFINITION.xbrief.json" },
+      ],
+      [
+        { status: "modified", filename: "xbrief/PROJECT-DEFINITION.xbrief.json" },
+        { status: "modified", filename: "packages/core/src/a.ts" },
+      ],
     ];
     for (const files of samples) {
       expect(isLifecycleShapedPr(files)).toBe(isDeliveryBriefLandExcluded(files));
@@ -1934,6 +1945,9 @@ describe("finalizeCohort", () => {
     // #6335: completed brief + row files is lifecycle-shaped; an authority record is not.
     expect(isLifecycleShapedPr(samples[3] ?? [])).toBe(true);
     expect(isLifecycleShapedPr(samples[4] ?? [])).toBe(false);
+    // #6764: completion move + registry is lifecycle-shaped; registry + product is not.
+    expect(isLifecycleShapedPr(samples[10] ?? [])).toBe(true);
+    expect(isLifecycleShapedPr(samples[11] ?? [])).toBe(false);
   });
 
   it("does not bind an operator-story mark on a brief-plus-ledger-only PR (#680 F1)", () => {

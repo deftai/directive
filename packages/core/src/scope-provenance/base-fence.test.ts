@@ -315,6 +315,40 @@ describe("spec-drift ledger membership under the completion-move shape (#680 P5 
     });
     expect(withProduct?.expandedPaths).toEqual([ROW]);
   });
+
+  it("admits PROJECT-DEFINITION beside the completed brief move, not beside product code (#6764)", () => {
+    const PD = "xbrief/PROJECT-DEFINITION.xbrief.json";
+    const ROW = "xbrief/.audit/spec-drift/story-1.json";
+    expect(
+      evaluateApprovedScopeMembership({
+        ...base,
+        changedFiles: [
+          "xbrief/active/story.xbrief.json",
+          "xbrief/completed/story.xbrief.json",
+          ROW,
+          PD,
+        ],
+      }),
+    ).toBeNull();
+    const withProduct = evaluateApprovedScopeMembership({
+      ...base,
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        ROW,
+        PD,
+        "packages/core/src/a.ts",
+      ],
+    });
+    expect(withProduct?.expandedPaths).toEqual(expect.arrayContaining([ROW, PD]));
+    expect(withProduct?.expandedPaths).toHaveLength(2);
+    const noCompletion = evaluateApprovedScopeMembership({
+      ...base,
+      exemptRelPaths: [],
+      changedFiles: ["xbrief/active/story.xbrief.json", PD],
+    });
+    expect(noCompletion?.expandedPaths).toEqual([PD]);
+  });
 });
 
 describe("evaluateApprovedScopeMembership (#4774)", () => {

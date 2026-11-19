@@ -990,15 +990,28 @@ export function isDeliveryBriefLandPath(path: string): boolean {
   );
 }
 
+/** Open-scope registry that a lifecycle move rewrites (#6689 / #6764). */
+export const PROJECT_DEFINITION_REGISTRY_REL = "xbrief/PROJECT-DEFINITION.xbrief.json";
+
 /**
- * Completion-move shape (#680 P5): a non-empty change set of delivery-brief-land
- * paths with at least one brief under `completed/`. Membership admits the
- * ledger only under this shape.
+ * True for the PROJECT-DEFINITION registry. It is not in the delivery-brief-land
+ * family on its own: it is lifecycle output only beside a completion move
+ * (`isCompletionMoveShaped`), so an edit to it with product code stays fenced.
+ */
+export function isProjectDefinitionRegistryPath(path: string): boolean {
+  return path.replace(/\\/g, "/") === PROJECT_DEFINITION_REGISTRY_REL;
+}
+
+/**
+ * Completion-move shape (#680 P5 / #6764): a non-empty change set of
+ * delivery-brief-land paths, plus the PROJECT-DEFINITION registry that
+ * scope:complete rewrites, with at least one brief under `completed/`.
+ * Membership admits the ledger, row files and the registry only under this shape.
  */
 export function isCompletionMoveShaped(paths: readonly string[]): boolean {
   return (
     paths.length > 0 &&
-    paths.every((p) => isDeliveryBriefLandPath(p)) &&
+    paths.every((p) => isDeliveryBriefLandPath(p) || isProjectDefinitionRegistryPath(p)) &&
     paths.some((p) => /^(?:xbrief|vbrief)\/completed\/./.test(p.replace(/\\/g, "/")))
   );
 }
@@ -1015,15 +1028,30 @@ export function isCompletionMoveShaped(paths: readonly string[]): boolean {
  * non-removed nonterminal brief.
  */
 export function isDeliveryBriefLandExcluded(files: readonly PrFileEntry[]): boolean {
-  return (
-    files.length > 0 &&
+  if (files.length === 0) {
+    return false;
+  }
+  if (
     files.every(
       (file) =>
         isDeliveryBriefLandPath(file.filename) &&
         ((file.previousFilename ?? "").length === 0 ||
           isDeliveryBriefLandPath(file.previousFilename ?? "")),
     )
-  );
+  ) {
+    return true;
+  }
+  // #6764: a completion move also rewrites the PROJECT-DEFINITION registry.
+  // Rename sources count as paths, so a product file renamed into completed/
+  // is never excluded.
+  const paths: string[] = [];
+  for (const file of files) {
+    paths.push(file.filename);
+    if ((file.previousFilename ?? "").length > 0) {
+      paths.push(file.previousFilename ?? "");
+    }
+  }
+  return isCompletionMoveShaped(paths);
 }
 
 /** The single distinct `deft-story` mark in a body, or null when zero or several (#5710). */
