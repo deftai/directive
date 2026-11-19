@@ -158,7 +158,9 @@
           "packages/core/src/release/preflight.test.ts",
           "packages/core/src/swarm/swarm-branches.test.ts",
           "packages/core/src/swarm/swarm-deep-coverage.test.ts",
-          "changelog.d/6586-ts-lane-drops-vitest.md"
+          "changelog.d/6586-ts-lane-drops-vitest.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6454555211.json"
         ],
         "file_scope_confidence": "high",
         "readiness": "ready",
@@ -194,7 +196,9 @@
           "content/scm/github.md",
           "content/docs/github-merge-queue-setup.md",
           "docs/RELEASING.md",
-          "changelog.d/6586-ts-lane-drops-vitest.md"
+          "changelog.d/6586-ts-lane-drops-vitest.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6454555211.json"
         ],
         "module_boundary": "No new module. The lane change stays in .github/workflows/ci-lane.yml and the aggregator rename in .github/workflows/ci.yml. The check-name matcher stays in pr-merge-readiness/ci-gate.ts (isAuthoritativeSuiteAggregator). The retired coverage-of-record path is deleted from release/preflight.ts and its seam from release/types.ts; nothing moves. Tests and fixtures change only where they cite the old check name or the removed path.",
         "cohesion_exemption": ".github/workflows/ci.yml (1088 lines) is the single home of the `ts` aggregator whose name this story changes. The change is a one-line name edit plus header-comment text in place; splitting the workflow is out of scope for this fix."
