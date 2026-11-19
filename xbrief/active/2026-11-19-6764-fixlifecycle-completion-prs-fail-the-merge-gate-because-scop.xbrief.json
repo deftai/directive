@@ -257,6 +257,29 @@
       "ambiguity_attestation": "none_found"
     },
     "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope-provenance/base-fence.ts",
+          "packages/core/src/scope-provenance/base-fence.test.ts",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/task-surface/index.test.ts",
+          "changelog.d/6764-completion-prs-pass-with-project-definition.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6483053628.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts packages/core/src/scope-provenance/base-fence.test.ts packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/task-surface/index.test.ts"
+        ],
+        "Traces": ["#6764", "#6755", "#6689"],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high"
+      },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [

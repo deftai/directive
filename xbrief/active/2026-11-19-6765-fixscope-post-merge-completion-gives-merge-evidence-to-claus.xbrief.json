@@ -51,7 +51,24 @@
           "sourceSpan": "inline@L5"
         }
       ],
-      "swarm": {},
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "changelog.d/6765-merge-evidence-for-hand-written-items.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6483053822.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts"
+        ],
+        "Traces": ["#6765"],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high"
+      },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
