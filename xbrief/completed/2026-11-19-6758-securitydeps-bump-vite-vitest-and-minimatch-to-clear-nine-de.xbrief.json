@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6758",
-    "updated": "2026-11-19T04:32:47Z"
+    "updated": "2026-11-19T15:32:54Z"
   },
   "plan": {
     "title": "security(deps): bump vite, vitest and minimatch to clear nine Dependabot alerts",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(deps): bump vite, vitest and minimatch to clear nine Dependabot alerts",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6758",
@@ -17,78 +17,183 @@
     "items": [
       {
         "title": "vite (P1). In `pnpm-workspace.yaml`, the `vite` override becomes `^7.3.7`.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "vitest (P2). In the root `package.json`, `vitest` and `@vitest/coverage-v8` become `^4.1.12`; `@vitest/mocker` follows vitest in the lockfile.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "minimatch direct (P3). In `packages/core/package.json`, `minimatch` becomes `^11.0.1`. `packages/core/src/fs/glob-sync.ts` changes only if minimatch 11 changes `Minimatch`, `GLOBSTAR`, the options it passes, `matcher.set` or `matcher.globParts`; its existing tests, including the fallback parity and missing-native-glob cases, pass unchanged.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "minimatch through archiver (P3). The `archiver → readdir-glob → minimatch` path moves to 11.0.1 or later: by bumping `archiver` (or its `readdir-glob`) to a release that already depends on minimatch 11 when one exists, otherwise by an override `\"readdir-glob>minimatch\": \"^11.0.1\"` in `pnpm-workspace.yaml` with a comment naming alerts #29 and #31. Either way the archiver-backed tests (`packages/core/src/release/build-dist.test.ts`) pass. The brace-expansion override comment is updated if minimatch 11 pulls a different brace-expansion major.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Lockfile check (P1-P3). `pnpm-lock.yaml` is regenerated with `pnpm install` under the workspace settings, and it contains no `vite` below 7.3.7, no `vitest`, `@vitest/mocker` or `@vitest/coverage-v8` below 4.1.12, and no `minimatch` below 11.0.1.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Release-age exclusion (P4). `vite@7.3.6` is removed from `minimumReleaseAgeExclude`; an exclusion is added only for a bumped version younger than the minimum release age, with a comment saying so.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Evidence (P5). The full suite passes in the merge gate before merge, and the existing non-blocking Node 20 runtime-load job's result is reported in the PR. The story is complete only when all nine named alerts (#20-#26, #29, #31) are observed closed after merge. Until Dependabot rescans the merged revision, open alerts are reported as pending, an interim state that is not completion. An alert still open after that rescan stays unresolved with its observed status, and is reported, not answered with speculative dependency changes.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `pnpm-workspace.yaml`, the `vite` override is `^7.3.7`.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `package.json`, `vitest` and `@vitest/coverage-v8` are `^4.1.12`.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `packages/core/package.json`, `minimatch` is `^11.0.1`, and `packages/core/src/fs/glob-sync.ts` passes its existing tests, including fallback parity, on minimatch 11.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `packages/core/package.json` or `pnpm-workspace.yaml`, the `archiver → readdir-glob` path resolves minimatch 11.0.1 or later, by an upstream bump or a `readdir-glob>minimatch` override, with `packages/core/src/release/build-dist.test.ts` passing.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `pnpm-lock.yaml`, no vite node is below 7.3.7, no vitest, `@vitest/mocker` or `@vitest/coverage-v8` node is below 4.1.12, and no minimatch node is below 11.0.1.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `pnpm-workspace.yaml`, `vite@7.3.6` is removed from `minimumReleaseAgeExclude`, and any new exclusion names a bumped version younger than the minimum release age.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In the PR, the full suite passes in the merge gate and the Node 20 runtime-load result is reported.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "After merge, the story completes only when all nine named Dependabot alerts (#20-#26, #29, #31) are observed closed; pending is an interim state, and an alert still open after a rescan stays unresolved.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+          "recorded_at": "2026-11-19T15:32:54Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -687,9 +792,38 @@
           "xbrief/.audit/spec-drift/github.issue.6482252831.json"
         ],
         "file_scope_confidence": "medium"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6c6cdec0cc7e83ae6a73a8dd92666b58f4c1c49b",
+        "prNumber": 6762,
+        "prBase": "master",
+        "mergeCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0fa3d9fbd92748015f07848124ccea3503543f4a",
+        "verifiedAt": "2026-11-19T15:32:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6760
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T15:32:54Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T15:32:54Z"
       }
     },
     "id": "github.issue.6482252831",
-    "updated": "2026-11-19T04:32:47Z"
+    "updated": "2026-11-19T15:32:54Z"
   }
 }
