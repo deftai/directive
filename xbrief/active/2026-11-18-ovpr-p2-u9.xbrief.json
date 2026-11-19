@@ -702,8 +702,7 @@
         ],
         "acceptance_criteria_justification": "Five items: the five Outcome B acceptance criteria of unit spec P2-U9, one each (D-027)."
       },
-      "kind": "story",
-      "productPullRequest": 6664
+      "kind": "story"
     },
     "id": "github.issue.5991776980",
     "updated": "2026-11-18T14:47:23Z"
