@@ -555,10 +555,28 @@ describe("runRefreshDeposit", () => {
     expect(out).not.toContain("framework deposit commit");
   });
 
+  /**
+   * Seed from the templates in setup-wiring.ts, not this repo's own `.githooks/*`:
+   * those come from the pinned runtime (DOGFOOD) and lag the source (#5808).
+   */
   function seedDepositGithooks(deftDir: string): void {
     mkdirSync(join(deftDir, ".githooks"), { recursive: true });
+    const src = readFileSync(
+      join(process.cwd(), "packages", "runtime", "src", "setup-wiring.ts"),
+      "utf8",
+    );
+    const template = (constName: string): string => {
+      const open = `const ${constName} = \``;
+      const body = src.slice(src.indexOf(open) + open.length);
+      return body.slice(0, body.indexOf("`;"));
+    };
+    const consts = {
+      "pre-commit": "PRE_COMMIT",
+      "pre-push": "PRE_PUSH",
+      "_directive-run.sh": "GITHOOK_HELPER",
+    } as const;
     for (const name of ["pre-commit", "pre-push", "_directive-run.sh"] as const) {
-      copyFileSync(join(process.cwd(), ".githooks", name), join(deftDir, ".githooks", name));
+      writeFileSync(join(deftDir, ".githooks", name), template(consts[name]), "utf8");
       if (name !== "_directive-run.sh") {
         chmodSync(join(deftDir, ".githooks", name), 0o755);
       }

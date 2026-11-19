@@ -184,6 +184,17 @@ describe("checkFullInSync (AC2.1)", () => {
         "",
       ].join("\n"),
     );
+    // Doctor reports a missing pre-push next to the helper (#5976).
+    writeFileSync(
+      join(root, ".githooks", "pre-push"),
+      [
+        "#!/usr/bin/env sh",
+        'REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1',
+        '. "$REPO_ROOT/.githooks/_directive-run.sh"',
+        'run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit $?',
+        "",
+      ].join("\n"),
+    );
     writeFileSync(
       join(root, ".githooks", "_directive-run.sh"),
       [
