@@ -184,10 +184,15 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     const mergePrimary = jobBlock(ci, "merge-gate-primary");
     const windows = jobBlock(ci, "windows-task-dispatch");
     const mergeAgg = jobBlock(ci, "merge-gate");
-    for (const block of [mergePrimary, windows, mergeAgg]) {
+    for (const block of [mergePrimary, windows]) {
       expect(block).toContain(skipIf);
       expect(block).toMatch(/needs:\s*\[changes/);
     }
+    // #6584: queue reuse overrides the artifact-only skip on the aggregator.
+    expect(mergeAgg).toContain(
+      "if: always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')",
+    );
+    expect(mergeAgg).toMatch(/needs:\s*\[changes/);
   });
 
   it("windows-task-dispatch promote fixture has a derivable list item (#4768 / #577)", () => {
