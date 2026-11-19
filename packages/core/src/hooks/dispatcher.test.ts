@@ -8447,6 +8447,8 @@ describe("always-on kill-switch plant deny (#6136)", () => {
       `printf '%s' 'example > ${kill}'`,
       `node -e "console.log('${kill}')"`,
       `python -c "print('${kill}')"`,
+      // xxd writes its output file (reverse mode), so it is not a plain read, outside UAT too.
+      `xxd -r /dev/null ${kill}`,
       `echo x > "$(printf ${kill})"`,
       `echo x > \`printf ${kill}\``,
       `echo x > "\${VAR}${kill}"`,

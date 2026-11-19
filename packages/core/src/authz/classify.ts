@@ -4195,7 +4195,6 @@ const PLAIN_READ_BINS = new Set([
   // Compare, hash and dump programs only print; navigation and no-ops change nothing.
   "diff",
   "cmp",
-  "xxd",
   "od",
   "strings",
   "sha256sum",
@@ -4229,15 +4228,57 @@ function readBinName(word: string): string {
   return base.endsWith(".exe") ? base.slice(0, -4) : base;
 }
 
+/**
+ * Programs in the plain-read set that have a write or run mode behind a flag. A line
+ * that uses one of these flags is not a plain read (flags are lowercased by normalization,
+ * so `-C` and `-c` are one flag here: fail closed). `xxd` is not in the set at all:
+ * `xxd -r in out` and `xxd in out` write the output file.
+ */
+const PLAIN_READ_UNSAFE_FLAGS: Readonly<Record<string, readonly string[]>> = {
+  file: ["-c", "--compile"],
+  less: ["-o", "--log-file", "--lesskey-file", "-k"],
+  more: ["-o"],
+  rg: ["--pre"],
+};
+
+/** git global options that only change how output is shown or where it runs. */
+const GIT_SAFE_GLOBAL_OPTIONS = new Set([
+  "--no-pager",
+  "--no-optional-locks",
+  "--no-replace-objects",
+  "--literal-pathspecs",
+  "--no-lazy-fetch",
+  "--paginate",
+  "-p",
+]);
+
 function wordsAreGitRead(words: readonly string[], at: number): boolean {
-  // Skip git's global options (`--no-pager`; `-C dir` and `-c k=v` take a value).
+  // Skip git's global options. `-C dir` takes a value (`-c` is the same flag once
+  // lowercased); `-c key=value` injects config (core.fsmonitor and friends run commands).
+  // Any other global option is not known to be safe, so the line is not a plain read.
   let i = at + 1;
   while (i < words.length && (words[i] as string).startsWith("-")) {
-    i += words[i] === "-c" || words[i] === "-C" ? 2 : 1;
+    const opt = words[i] as string;
+    if (opt === "-c") {
+      if ((words[i + 1] ?? "").includes("=")) return false;
+      i += 2;
+    } else if (GIT_SAFE_GLOBAL_OPTIONS.has(opt)) {
+      i += 1;
+    } else {
+      return false;
+    }
   }
   const sub = words[i];
   if (sub === undefined || !PLAIN_READ_GIT_SUBCOMMANDS.has(sub)) return false;
   return !words.some((w) => w.startsWith("--output"));
+}
+
+function usesUnsafeReadFlag(bin: string, words: readonly string[]): boolean {
+  const flags = PLAIN_READ_UNSAFE_FLAGS[bin];
+  if (flags === undefined) return false;
+  return words.some((w) =>
+    flags.some((f) => w === f || (f.startsWith("--") && w.startsWith(`${f}=`))),
+  );
 }
 
 /** One command segment is a plain read (xargs feeding a read program counts). */
@@ -4252,7 +4293,7 @@ function segmentIsPlainRead(words: readonly string[]): boolean {
   }
   const bin = readBinName(words[at] as string);
   if (bin === "git") return wordsAreGitRead(words, at);
-  return PLAIN_READ_BINS.has(bin);
+  return PLAIN_READ_BINS.has(bin) && !usesUnsafeReadFlag(bin, words);
 }
 
 /** True when every command segment of the line is a known plain read. */

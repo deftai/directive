@@ -3151,6 +3151,40 @@ describe("kill-switch plant guard: launcher payloads and xargs pipelines (#6681)
     }
   });
 
+  it("does not treat a program with a write or run mode as a plain read", () => {
+    // xxd writes its output file (reverse mode or a second operand), so it is not a read.
+    for (const command of [
+      `xxd -r /dev/null ${kill}`,
+      `xxd -r ${opt}`,
+      `xxd ${kill}`,
+      `echo ${kill} | xargs xxd -r`,
+      // file -C compiles a magic file, less -o logs its input, rg --pre runs a command.
+      `file -C -m magic ${kill}`,
+      `less -o /tmp/log ${kill}`,
+      `less --log-file=/tmp/log ${kill}`,
+      `rg --pre touch x ${kill}`,
+      // git config injection and unknown global options run or change things.
+      `git -c core.fsmonitor=touch status -- ${kill}`,
+      `git --exec-path=/tmp log -- ${kill}`,
+      `git --git-dir=/tmp/x log -- ${kill}`,
+    ]) {
+      expectPlant(command);
+    }
+    // The same programs without the write flag are still plain reads.
+    for (const command of [
+      `file ${kill}`,
+      `less ${kill}`,
+      `rg x ${kill}`,
+      `git -C /tmp status -- ${kill}`,
+      `git --no-pager log -1 -- ${kill}`,
+      `od ${kill}`,
+      `cmp ${kill} /tmp/x`,
+      `sha256sum ${kill}`,
+    ]) {
+      expectNoPlant(command);
+    }
+  });
+
   it("leaves the protected stores to their own rules (#6292), not this mention rule", () => {
     // Same answers as master: a store path piped to xargs is not refused here.
     expect(inactiveShellTargetsProtectedStore(`echo ${authz} | xargs touch`)).toBe(false);

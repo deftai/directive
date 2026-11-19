@@ -554,6 +554,8 @@ describe("kill-switch plant guard decisions: launcher payloads and xargs pipelin
       `find . -name '.deft-directive-*' -print0 | xargs -0 touch`,
       `cmd /c "echo x > .deft-dir^ective-disable"`,
       `# note \\\nxargs touch <<EOF\n${kill}\nEOF`,
+      // xxd -r writes its output file, so it is not a plain read.
+      `xxd -r /dev/null ${kill}`,
     ]) {
       const d = decide(command);
       expect(d.ops, command).toContain("settings");
