@@ -161,13 +161,17 @@ function matcherMatches(matcher: unknown, toolName: string): boolean {
   }
 }
 
-export type CommandLookup = { ok: true; command: string } | { ok: false; reason: string };
+export type CommandLookup =
+  | { ok: true; command: string; args?: string[] }
+  | { ok: false; reason: string };
 
 /**
  * The command a host would run for `event` and `toolName`, read from the
  * config Directive deposited. Cursor lists entries directly; the other hosts
  * nest `hooks[].command` in matcher groups. Grok resolves a relative command
- * beside its config file, so a `./x` command is made absolute here.
+ * beside its config file, so a `./x` command is made absolute here. An entry
+ * with `args` is the host's no-shell form (Claude's locator, AC9.1 v261119);
+ * its `args` are returned so the harness runs it without a shell.
  */
 export function registeredHookCommand(
   fixtureDir: string,
@@ -191,12 +195,17 @@ export function registeredHookCommand(
   for (const raw of entries) {
     const entry = asObject(raw);
     if (entry === null || !matcherMatches(entry.matcher, toolName)) continue;
-    let command: unknown = entry.command;
+    let hook: Record<string, unknown> | null = entry;
     if (host !== "cursor") {
       const nested = Array.isArray(entry.hooks) ? entry.hooks.map(asObject) : [];
-      command = nested.find((h) => typeof h?.command === "string")?.command;
+      hook = nested.find((h) => typeof h?.command === "string") ?? null;
     }
+    let command: unknown = hook?.command;
     if (typeof command !== "string" || command.trim() === "") continue;
+    const args = hook?.args;
+    if (Array.isArray(args) && args.every((a) => typeof a === "string")) {
+      return { ok: true, command, args: args as string[] };
+    }
     if (host === "grok" && command.startsWith("./")) {
       // Forward slashes so `sh -c` keeps the path on Windows too.
       command = resolve(dirname(path), command).replaceAll("\\", "/");
@@ -256,10 +265,15 @@ export function runRegisteredHook(
   const toolName = typeof payload.tool_name === "string" ? payload.tool_name : "";
   const lookup = registeredHookCommand(fixtureDir, host, event, toolName);
   if (!lookup.ok) return lookup;
-  // Grok on Windows starts the command directly, with no shell (#5955), so the
-  // harness does the same there; every other host runs it through `sh -c`.
+  // A no-shell entry (`command` + `args`) and Grok on Windows (#5955) start
+  // the command directly, as the host does; every other entry runs through `sh -c`.
   const direct = process.platform === "win32" && host === "grok";
-  const argv = direct ? lookup.command.trim().split(/\s+/) : [hookShell(), "-c", lookup.command];
+  const argv =
+    lookup.args !== undefined
+      ? [lookup.command === "node" ? process.execPath : lookup.command, ...lookup.args]
+      : direct
+        ? lookup.command.trim().split(/\s+/)
+        : [hookShell(), "-c", lookup.command];
   const [file = "", ...args] = argv;
   const result = spawnSync(file, args, {
     cwd: fixtureDir,
@@ -735,7 +749,8 @@ export const hookRefreshStep: FixtureStep = {
         "tool.before",
         String(shellToolPayload(host, dir).tool_name),
       );
-      const outer = found.ok ? /\S+\.mjs/.exec(found.command)?.[0] : undefined;
+      const text = found.ok ? [found.command, ...(found.args ?? [])].join(" ") : "";
+      const outer = /[^\s"]+\.mjs/.exec(text)?.[0];
       if (outer === undefined || !existsSync(join(dir, ...outer.split("/")))) {
         failures.push(
           `${host}: registered outer missing (${found.ok ? found.command : found.reason})`,
