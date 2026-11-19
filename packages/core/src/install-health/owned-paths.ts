@@ -23,7 +23,10 @@
  * Keep the exported names and result values stable.
  */
 
-import { GROK_PRETOOLUSE_WRAPPER_REL_PATH, hostHookEntryText } from "../init-deposit/agent-hooks.js";
+import {
+  GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+  hostHookEntryText,
+} from "../init-deposit/agent-hooks.js";
 import {
   isDirectiveDependencyKey,
   isUpgradePinPathContentAllowed,
