@@ -180,6 +180,81 @@ describe("release through a PR docs (#6296 items 9 and 10)", () => {
   });
 });
 
+describe("stable cut runbook (#6793)", () => {
+  const runbook = releaseSkillText.slice(
+    releaseSkillText.indexOf("## Stable cut runbook"),
+    releaseSkillText.indexOf("## Branch-Protection Policy Guard"),
+  );
+
+  it("sits after the release-PR section with one numbered list of fifteen steps", () => {
+    expect(releaseSkillText.indexOf("## Release through a PR (#6296)")).toBeGreaterThanOrEqual(0);
+    expect(releaseSkillText.indexOf("## Stable cut runbook")).toBeGreaterThan(
+      releaseSkillText.indexOf("## Release through a PR (#6296)"),
+    );
+    const steps = [...runbook.matchAll(/^(\d+)\. \[(operator|agent)\] /gm)].map((m) =>
+      Number(m[1]),
+    );
+    expect(steps).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
+  });
+
+  it("states the role key: the TTY grant is the one human-authority act", () => {
+    expect(runbook).toContain("`[operator]` marks the one human-authority act (the TTY grant");
+    expect(runbook).toContain("session that owns the primary checkout");
+    expect(runbook).toContain("`[agent]` marks reads, watches and steps");
+  });
+
+  it("switches branch before the session claim, and claims before the cache refresh", () => {
+    const sw = runbook.indexOf("git switch -c release/v<version> origin/master");
+    const claim = runbook.indexOf("deft session:start --primary-claim-exception=release-cut");
+    const cache = runbook.indexOf("Then `deft cache fetch-all`");
+    expect(sw).toBeGreaterThanOrEqual(0);
+    expect(claim).toBeGreaterThan(sw);
+    expect(cache).toBeGreaterThan(claim);
+    expect(runbook).toContain("#6293");
+  });
+
+  it("states the merge freeze as a coordination rule with both cases", () => {
+    expect(runbook).toContain("**Merge freeze.**");
+    expect(runbook).toContain("operator coordination rule, not a refusal");
+    expect(runbook).toContain("Before M:");
+    expect(runbook).toContain("After M:");
+    expect(runbook).toContain("no other PR merged since the release PR");
+  });
+
+  it("documents the incident-only skip flags and links #6791", () => {
+    expect(runbook).toContain("**Skip path (incident only).**");
+    expect(runbook).toContain("--skip-ci --allow-skip-ci=#N");
+    expect(runbook).toContain("--allow-unpaid-skip-ci=#N");
+    expect(runbook).toContain("#6791");
+  });
+
+  it("publishes stable to maintainer and promotes latest with its own grant", () => {
+    expect(runbook).toContain("A stable publish goes to the `maintainer` dist-tag");
+    expect(runbook).toContain("release-promote-latest");
+    expect(runbook).toContain("step-8 baseline");
+  });
+
+  it("states the pin PR facts (#5656 / #5771)", () => {
+    expect(runbook).toContain("operator commits the pin from their own terminal until #5771 lands");
+    expect(runbook).toContain("the pin PR carries that deposit");
+  });
+
+  it("links the runbook from RELEASING.md, which keeps no direct-tag section", () => {
+    expect(releasingDocText).toContain("§ Stable cut runbook");
+    expect(releasingDocText).not.toContain("## Release Process");
+    expect(releasingDocText).not.toMatch(/git tag v1\.2\.3/);
+    expect(releasingDocText).toContain("`TypeScript (build + lint)`");
+    expect(releasingDocText).toContain("`Merge gate (task check)`");
+  });
+
+  it("keeps the .agents copy a pointer stub", () => {
+    const stub = readText(".agents/skills/deft-directive-release/SKILL.md");
+    expect(stub).toContain("Read and follow: skills/deft-directive-release/SKILL.md");
+    expect(stub).not.toContain("## Stable cut runbook");
+    expect(stub.split("\n").length).toBeLessThan(20);
+  });
+});
+
 describe("#1987 freeze-gate graceful skip", () => {
   it("freeze-gate job declares the frozen_skip output from the gate step", () => {
     expect(workflowText).toContain("frozen_skip: $" + "{{ steps.gate.outputs.frozen_skip }}");

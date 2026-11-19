@@ -12,6 +12,8 @@ The interactive operator-side workflow (`task release` / `task release:publish` 
 
 A maintainer cut needs one human act: the release grant. Branch protection stays on, nothing is pushed to `master` directly, and the next PR needs no `hotfix` label.
 
+For the full stable-cut order, including quiescence, the cut context, the merge freeze and the pin steps, follow `skills/deft-directive-release/SKILL.md` § Stable cut runbook (#6793).
+
 1. Make the release branch from the fetched tip: `git fetch origin master && git switch -c release/vX.Y.Z origin/master`.
 2. Run `task release -- X.Y.Z`. Step 2 accepts only `release/vX.Y.Z` at the fetched `origin/master` tip. It refuses `master` (and every other branch) and names the release branch; it refuses a `release/vX.Y.Z` that already exists on origin or no longer sits at the tip (an earlier attempt) and names the recovery. Steps 3 to 9 are unchanged. In place of the old Steps 10 and 11, the cut pushes `release/vX.Y.Z` and opens the release PR. The generated body carries the version and the documentation-impact block, and no closing keyword or release notes. The cut then stops and prints the finish command.
 3. Merge the release PR through the merge queue like any PR: `task pr:wait-mergeable-and-merge -- <N> --wait`.
@@ -252,18 +254,9 @@ gh workflow run release.yml --ref <branch> -R deftai/directive
 
 Manual runs skip the release job automatically (guarded by `if: startsWith(github.ref, 'refs/tags/v')`).
 
-## Release Process
+## Stable cut order
 
-1. Merge the feature branch PR into `master`
-2. Tag `master` with a semantic version:
-   ```bash
-   git checkout master
-   git pull origin master
-   git tag v1.2.3
-   git push origin v1.2.3
-   ```
-3. npm publish runs from `.github/workflows/npm-publish.yml` (canonical channel). The Go build job in `release.yml` is skipped (`if: false` / AC10.10).
-4. Verify the published packages on the registry and any GitHub Release notes draft.
+Do not tag `master` by hand. A stable cut follows `skills/deft-directive-release/SKILL.md` § Stable cut runbook, which links back here for the mechanics (#6793).
 
 > **Canonical consumer install:** `npm i -g @deftai/directive` then `directive install` / `upgrade` / `install --repair` / `doctor`. Do **not** download deleted `install-*` / `deft-install` binaries.
 
