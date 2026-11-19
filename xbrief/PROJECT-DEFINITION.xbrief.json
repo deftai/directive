@@ -867,37 +867,6 @@
         }
       },
       {
-        "id": "2026-11-18-ovpr-p2-u14",
-        "title": "class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-11-18-ovpr-p2-u14.xbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/6616",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #6616: class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/4980",
-              "type": "x-xbrief/refs",
-              "title": "Issue #4980"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6336",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6336"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6615",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6615"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-11-18-ovpr-p2-u9",
         "title": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
         "status": "running",
