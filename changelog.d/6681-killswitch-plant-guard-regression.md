@@ -1,0 +1,2 @@
+section: Fixed
+- Security: the kill-switch plant guard refuses a shell command that names `.deft-directive-disable` or `.no-deft-directive` (literal, shell-decoded or glob form) unless every segment is a plain read, so quoted `cmd /c` payloads and `xargs` pipelines are refused again (regressed in #6580). Over-refusal is accepted: for example `git commit -m "mention <name>"` is refused. Names built at run time are not covered. Refs #6681.

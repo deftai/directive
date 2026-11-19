@@ -24,6 +24,7 @@ function startUatLease(...args: Parameters<typeof startUatLeaseResult>): {
   return { state: r.state, lease: r.lease };
 }
 
+import { classifyHookAuthzOps } from "./classify.js";
 import { evaluateAuthzMutation } from "./evaluate.js";
 import { listActiveHumanGrants, loadAuthzState, saveGrant } from "./store.js";
 import type { AuthzState, HumanOriginGrant } from "./types.js";
@@ -481,4 +482,84 @@ describe("inactive grant-store deny (#4709)", () => {
       expect(d.code).toBe("authz-uat-deny");
     },
   );
+});
+
+describe("kill-switch plant guard decisions: launcher payloads and xargs pipelines (#6681)", () => {
+  const kill = ".deft-directive-disable";
+
+  function decide(command: string, withLease = true): { ops: string[]; allowed: boolean } {
+    const ops = classifyHookAuthzOps({
+      toolName: "Bash",
+      shellCommand: command,
+      isDirectWrite: false,
+    });
+    // The dispatcher gates a kill-switch plant (a `settings` op) behind a human-origin
+    // grant through a synthetic UAT lease (#6136); no grant on file means deny.
+    // `withLease: false` is the state outside UAT, where a store write must still deny.
+    let state = inactiveState();
+    if (withLease) {
+      const root = tempRoot();
+      startUatLease({
+        projectRoot: root,
+        campaignId: "always-on-kill-switch-plant",
+        actor: "test",
+      });
+      state = loadAuthzState(root);
+    }
+    const allowed = ops.every(
+      (op) => evaluateAuthzMutation({ state, grants: [], op, path: null }).allowed,
+    );
+    return { ops, allowed };
+  }
+
+  it("denies the kill-switch forms that regressed in #6580", () => {
+    for (const command of [
+      `cmd /c "echo x > ${kill}"`,
+      `cmd /c "type nul > ${kill}"`,
+      `echo ${kill} | xargs touch`,
+      `printf '%s' ${kill} | xargs -I{} touch {}`,
+      `echo ${kill} | sh -c 'xargs touch'`,
+      `xargs touch <<EOF\n${kill}\nEOF`,
+    ]) {
+      const d = decide(command);
+      expect(d.ops, command).toContain("settings");
+      expect(d.allowed, command).toBe(false);
+    }
+  });
+
+  it("still denies the forms that were denied before #6580", () => {
+    for (const command of [
+      `powershell -c "New-Item ${kill}"`,
+      `bash -c "touch ${kill}"`,
+      `find . -exec touch ${kill} \\;`,
+      `cmd /c "echo x > .deft/authz/state.json"`,
+      `cmd /c "echo x > .deft/approved-scope/x.json"`,
+    ]) {
+      expect(decide(command).allowed, command).toBe(false);
+    }
+  });
+
+  it("allows plain reads that mention the name", () => {
+    for (const command of [`cat ${kill}`, `git status`, `echo ${kill} | xargs cat`]) {
+      expect(decide(command).allowed, command).toBe(true);
+    }
+  });
+
+  it("refuses a mention in a non-read command, glob and caret forms included (#6681 mention rule)", () => {
+    // `git commit -m "mention <name>"` is refused: over-refusal is accepted (#6188 class).
+    for (const command of [
+      `git commit -m "mention ${kill}"`,
+      `cmd /c "type ${kill}"`,
+      `touch .deft-dir*able`,
+      `find . -name '.deft-directive-*' -print0 | xargs -0 touch`,
+      `cmd /c "echo x > .deft-dir^ective-disable"`,
+      `# note \\\nxargs touch <<EOF\n${kill}\nEOF`,
+      // xxd -r writes its output file, so it is not a plain read.
+      `xxd -r /dev/null ${kill}`,
+    ]) {
+      const d = decide(command);
+      expect(d.ops, command).toContain("settings");
+      expect(d.allowed, command).toBe(false);
+    }
+  });
 });

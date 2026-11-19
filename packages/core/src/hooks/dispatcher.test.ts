@@ -8382,10 +8382,6 @@ describe("always-on kill-switch plant deny (#6136)", () => {
       `Test-Path ${kill} 2>$null`,
       `Get-Item ${kill} 2>$null`,
       `ls 2>/dev/null ${kill}`,
-      `touch /tmp/ordinary-file; ls ${kill}`,
-      `printf '%s' 'example > ${kill}'`,
-      `node -e "console.log('${kill}')"`,
-      `python -c "print('${kill}')"`,
     ];
     for (const seams of [inactiveAuthzSeams(), activeUatSeams()]) {
       for (const command of allows) {
@@ -8445,6 +8441,14 @@ describe("always-on kill-switch plant deny (#6136)", () => {
       `touch ${kill}; true`,
       `touch ${kill}&& true`,
       `cp x ${kill};ls`,
+      // #6681 mention rule: a non-read command that names the file is refused, even when it
+      // only prints or reads the name. Over-refusal is accepted (these were allowed in #6188).
+      `touch /tmp/ordinary-file; ls ${kill}`,
+      `printf '%s' 'example > ${kill}'`,
+      `node -e "console.log('${kill}')"`,
+      `python -c "print('${kill}')"`,
+      // xxd writes its output file (reverse mode), so it is not a plain read, outside UAT too.
+      `xxd -r /dev/null ${kill}`,
       `echo x > "$(printf ${kill})"`,
       `echo x > \`printf ${kill}\``,
       `echo x > "\${VAR}${kill}"`,

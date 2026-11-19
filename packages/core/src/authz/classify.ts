@@ -4029,18 +4029,305 @@ function pathishMentionsKillSwitch(pathish: string): boolean {
 }
 
 /**
- * Shell write targeting `.deft-directive-disable` / `.no-deft-directive` (#3186 / #3039 / #3213 / #6136).
- * Always-on grant-gated plant deny (not UAT-only). Includes symlink plant bins
- * (`ln`/`link`/`mklink`) and quote-split-resistant basename checks.
- * #6188: plant only when the basename is a same-segment write destination
- * (redirect operand, dest flag, or dest positional). A stderr redirect or a
- * later read of the basename is not a plant. Literal console.log/print is not.
+ * Kill-switch mention rule (#6681), replacing structural parsing of kill-switch plants.
+ *
+ * The command text is normalized the way a shell would, without parsing structure: line
+ * continuations joined, `$'...'` and `\xHH` escapes decoded, quote characters, backslash
+ * escapes and cmd `^` carets removed, lowercase. A MENTION is a kill-switch name or a token
+ * that would match one as a glob. The protected stores are not part of this rule (#6292).
+ * A mention is refused unless every command segment is a known plain read.
+ * Over-refusal is accepted (`git commit -m "mention <name>"` is refused). Names built at
+ * run time (variables, sed, base64) are a known limit and are not covered here.
  */
-export function hasKillSwitchShellWrite(command: string, tokens?: readonly string[]): boolean {
+function normalizeMentionText(command: string): readonly [string, string] {
+  let text = stripLineContinuations(command);
+  text = decodeBackslashCodes(decodeAnsiCQuotes(text));
+  // Variant A drops backslash escapes; variant B reads a backslash as a Windows separator.
+  const dropped = text
+    .replace(/\\([\s\S])/g, "$1")
+    .replace(/['"^]/g, "")
+    .toLowerCase();
+  const slashed = text.replace(/['"^]/g, "").replace(/\\/g, "/").toLowerCase();
+  return [dropped, slashed];
+}
+
+function decodeBackslashCodes(text: string): string {
+  return text
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/\\([0-7]{3})/g, (_m, oct: string) => String.fromCharCode(parseInt(oct, 8)));
+}
+
+/** Replace `$'...'` with its decoded body. */
+function decodeAnsiCQuotes(text: string): string {
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "$" && text[i + 1] === "'") {
+      let j = i + 2;
+      let body = "";
+      while (j < text.length && text[j] !== "'") {
+        if (text[j] === "\\" && j + 1 < text.length) {
+          body += (text[j] as string) + (text[j + 1] as string);
+          j += 2;
+        } else {
+          body += text[j] as string;
+          j++;
+        }
+      }
+      out += decodeBackslashCodes(body);
+      i = j + 1;
+      continue;
+    }
+    out += text[i] as string;
+    i++;
+  }
+  return out;
+}
+
+/**
+ * Glob match of `name` against `pattern` (`*`, `?`, `[...]`, `{...}` read as `*`).
+ * A pattern must start with a literal dot to match a dotfile, as in a shell.
+ * Iterative with one backtrack point, so it stays polynomial on hostile input.
+ */
+function globMatchesName(pattern: string, name: string): boolean {
+  if (!pattern.startsWith(".")) return false;
+  const pat = pattern.replace(/\{[^{}]*\}/g, "*");
+  let pi = 0;
+  let ni = 0;
+  let starPi = -1;
+  let starNi = 0;
+  while (ni < name.length) {
+    const next = pi < pat.length && pat[pi] !== "*" ? globUnitEnd(pat, pi, name[ni] as string) : -1;
+    if (pi < pat.length && pat[pi] === "*") {
+      starPi = pi;
+      pi++;
+      starNi = ni;
+    } else if (next >= 0) {
+      pi = next;
+      ni++;
+    } else if (starPi >= 0) {
+      pi = starPi + 1;
+      starNi++;
+      ni = starNi;
+    } else {
+      return false;
+    }
+  }
+  while (pi < pat.length && pat[pi] === "*") pi++;
+  return pi === pat.length;
+}
+
+/** Index after one pattern unit if it matches `ch`, else -1. */
+function globUnitEnd(pat: string, pi: number, ch: string): number {
+  const p = pat[pi] as string;
+  if (p === "?") return pi + 1;
+  if (p === "[") {
+    const close = pat.indexOf("]", pi + 2);
+    if (close > 0) {
+      let set = pat.slice(pi + 1, close);
+      const negate = set.startsWith("!");
+      if (negate) set = set.slice(1);
+      let hit = false;
+      for (let k = 0; k < set.length; k++) {
+        if (set[k + 1] === "-" && k + 2 < set.length) {
+          if (ch >= (set[k] as string) && ch <= (set[k + 2] as string)) hit = true;
+          k += 2;
+        } else if (set[k] === ch) {
+          hit = true;
+        }
+      }
+      return hit !== negate ? close + 1 : -1;
+    }
+  }
+  return p === ch ? pi + 1 : -1;
+}
+
+function mentionTokens(text: string): string[] {
+  return text.split(/[\s;&|<>()=:]+/).filter((t) => t.length > 0);
+}
+
+function mentionsKillSwitchText(texts: readonly [string, string]): boolean {
+  for (const text of texts) {
+    for (const name of KILL_SWITCH_BASENAMES) {
+      if (text.includes(name)) return true;
+    }
+    for (const token of mentionTokens(text)) {
+      if (!/[*?[{]/.test(token)) continue;
+      const base = token.slice(token.lastIndexOf("/") + 1);
+      for (const name of KILL_SWITCH_BASENAMES) {
+        if (globMatchesName(base, name)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Plain read programs: with no output redirect and nothing run from their output. */
+const PLAIN_READ_BINS = new Set([
+  "cat",
+  "type",
+  "ls",
+  "dir",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "head",
+  "tail",
+  "less",
+  "more",
+  "wc",
+  "file",
+  "stat",
+  "test",
+  "findstr",
+  "echo",
+  "printf",
+  "test-path",
+  "get-content",
+  "get-childitem",
+  "get-item",
+  "select-string",
+  "gc",
+  "gci",
+  "sls",
+  // Compare, hash and dump programs only print; navigation and no-ops change nothing.
+  "diff",
+  "cmp",
+  "od",
+  "strings",
+  "sha256sum",
+  "md5sum",
+  "cd",
+  "pushd",
+  "popd",
+  "pwd",
+  "set-location",
+  "true",
+  "false",
+  ":",
+]);
+const PLAIN_READ_GIT_SUBCOMMANDS = new Set([
+  "show",
+  "log",
+  "diff",
+  "status",
+  "rev-parse",
+  "rev-list",
+  "ls-files",
+  "cat-file",
+  "blame",
+  "describe",
+]);
+/** xargs options that take a separate value (lowercased: a value is skipped, never a program). */
+const XARGS_VALUE_OPTIONS = new Set(["-i", "-n", "-l", "-p", "-s", "-e", "-d", "-a", "-j"]);
+
+function readBinName(word: string): string {
+  const base = word.slice(word.lastIndexOf("/") + 1);
+  return base.endsWith(".exe") ? base.slice(0, -4) : base;
+}
+
+/**
+ * Programs in the plain-read set that have a write or run mode behind a flag. A line
+ * that uses one of these flags is not a plain read (flags are lowercased by normalization,
+ * so `-C` and `-c` are one flag here: fail closed). `xxd` is not in the set at all:
+ * `xxd -r in out` and `xxd in out` write the output file.
+ */
+const PLAIN_READ_UNSAFE_FLAGS: Readonly<Record<string, readonly string[]>> = {
+  file: ["-c", "--compile"],
+  less: ["-o", "--log-file", "--lesskey-file", "-k"],
+  more: ["-o"],
+  rg: ["--pre"],
+};
+
+/** git global options that only change how output is shown or where it runs. */
+const GIT_SAFE_GLOBAL_OPTIONS = new Set([
+  "--no-pager",
+  "--no-optional-locks",
+  "--no-replace-objects",
+  "--literal-pathspecs",
+  "--no-lazy-fetch",
+  "--paginate",
+  "-p",
+]);
+
+function wordsAreGitRead(words: readonly string[], at: number): boolean {
+  // Skip git's global options. `-C dir` takes a value (`-c` is the same flag once
+  // lowercased); `-c key=value` injects config (core.fsmonitor and friends run commands).
+  // Any other global option is not known to be safe, so the line is not a plain read.
+  let i = at + 1;
+  while (i < words.length && (words[i] as string).startsWith("-")) {
+    const opt = words[i] as string;
+    if (opt === "-c") {
+      if ((words[i + 1] ?? "").includes("=")) return false;
+      i += 2;
+    } else if (GIT_SAFE_GLOBAL_OPTIONS.has(opt)) {
+      i += 1;
+    } else {
+      return false;
+    }
+  }
+  const sub = words[i];
+  if (sub === undefined || !PLAIN_READ_GIT_SUBCOMMANDS.has(sub)) return false;
+  return !words.some((w) => w.startsWith("--output"));
+}
+
+function usesUnsafeReadFlag(bin: string, words: readonly string[]): boolean {
+  const flags = PLAIN_READ_UNSAFE_FLAGS[bin];
+  if (flags === undefined) return false;
+  return words.some((w) =>
+    flags.some((f) => w === f || (f.startsWith("--") && w.startsWith(`${f}=`))),
+  );
+}
+
+/** One command segment is a plain read (xargs feeding a read program counts). */
+function segmentIsPlainRead(words: readonly string[]): boolean {
+  let at = 0;
+  if (readBinName(words[at] as string) === "xargs") {
+    at++;
+    while (at < words.length && (words[at] as string).startsWith("-")) {
+      at += XARGS_VALUE_OPTIONS.has(words[at] as string) ? 2 : 1;
+    }
+    if (at >= words.length) return false;
+  }
+  const bin = readBinName(words[at] as string);
+  if (bin === "git") return wordsAreGitRead(words, at);
+  return PLAIN_READ_BINS.has(bin) && !usesUnsafeReadFlag(bin, words);
+}
+
+/** True when every command segment of the line is a known plain read. */
+function allSegmentsPlainRead(text: string): boolean {
+  // Command substitution and process substitution run something else: unsure, not a read.
+  if (text.includes("`") || text.includes("$(") || text.includes("<(")) return false;
+  // Discarding or duplicating output is not a write.
+  const quiet = text
+    .replace(/\d*>{1,2}\s*(?:\/dev\/null|\$null|nul)(?![\w./-])/g, " ")
+    .replace(/\d*>&\d+/g, " ");
+  if (quiet.includes(">")) return false;
+  for (const segment of quiet.split(/[;&|\n\r]+/)) {
+    const words = segment.split(/\s+/).filter((w) => w.length > 0);
+    if (words.length === 0) continue;
+    if (!segmentIsPlainRead(words)) return false;
+  }
+  return true;
+}
+
+function mentionRefused(command: string): boolean {
+  const texts = normalizeMentionText(command);
+  if (!mentionsKillSwitchText(texts)) return false;
+  return !allSegmentsPlainRead(texts[0]);
+}
+
+/**
+ * Shell command that mentions `.deft-directive-disable` / `.no-deft-directive` (#3186 /
+ * #3039 / #6136 / #6681). Always-on grant-gated plant deny (not UAT-only). See the
+ * mention rule above: a mention is refused unless every segment is a plain read.
+ */
+export function hasKillSwitchShellWrite(command: string, _tokens?: readonly string[]): boolean {
   const cmd = command.trim();
   if (cmd.length === 0) return false;
-  const resolvedTokens = tokens ?? shellTokens(cmd);
-  return hasKillSwitchShellWriteInner(cmd, resolvedTokens);
+  return mentionRefused(cmd);
 }
 
 function killSwitchWriteBinToken(token: string): boolean {
@@ -4070,6 +4357,42 @@ function tokenPlantsKillSwitch(token: string): boolean {
   return false;
 }
 
+/**
+ * Remove backslash-newline pairs (line continuations). Bash drops them before it decides
+ * what is a comment, a quote or a word, so every scan below works on the joined text.
+ * An even run of backslashes before a newline escapes itself, so that newline stays.
+ */
+function stripLineContinuations(text: string): string {
+  if (!text.includes("\\")) return text;
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] !== "\\") {
+      out += text[i];
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < text.length && text[j] === "\\") j++;
+    let newline = 0;
+    if (text[j] === "\n") newline = 1;
+    else if (text[j] === "\r" && text[j + 1] === "\n") newline = 2;
+    if (newline > 0 && (j - i) % 2 === 1) {
+      out += text.slice(i, j - 1);
+      i = j + newline;
+    } else {
+      out += text.slice(i, j);
+      i = j;
+    }
+  }
+  return out;
+}
+
+/**
+ * Structural kill-switch write shapes (#3213 / #3245 / #6188). These keep their op class
+ * (`settings`, or grant-immune `unknown` for dest-of-write forms). Refusal is decided by
+ * the mention rule above, not by this scan.
+ */
 function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Quote-stripped form so `'.deft'-directive-disable`-class splits still match (#3213).
@@ -5088,7 +5411,9 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (commandHasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
   // #3186 / #6136: kill-switch plant + policy authority mutators → settings
   // (always-on grant-gated via dispatcher; not UAT-only).
-  if (hasKillSwitchShellWrite(cmd, tokens)) found.add("settings");
+  // The structural shapes keep their op classes (`settings`, or grant-immune `unknown` below).
+  // The #6681 mention rule is added after those classes are known.
+  if (hasKillSwitchShellWriteInner(cmd, tokens)) found.add("settings");
   if (hasPolicyAuthorityMutator(tokens)) found.add("settings");
   // Split path write: `cd .deft && echo x > authz/state.json` OR `cd .deft/authz && echo x > state.json`
   // OR `cd .deft/authz && cp … grants/x` (write bin without redirect).
@@ -5156,6 +5481,11 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
     (!found.has("settings") || attachedProtected)
   ) {
     found.add("unknown");
+  }
+  // #6681 mention rule: any other command that names a kill-switch file is a plant unless
+  // every segment is a plain read. Structural classes above are left as they were.
+  if (!found.has("settings") && !found.has("unknown") && hasKillSwitchShellWrite(cmd)) {
+    found.add("settings");
   }
 
   return [...found];
