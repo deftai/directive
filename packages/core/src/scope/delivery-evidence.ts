@@ -1037,14 +1037,37 @@ function projectDefinitionWithoutRegistry(text: string): string | null {
   const plan = root.plan;
   if (plan !== null && typeof plan === "object" && !Array.isArray(plan)) {
     const { items: _items, updated: _planUpdated, ...rest } = plan as Record<string, unknown>;
+    // A lifecycle move also rewrites a plan reference to the moved brief
+    // (`file://active/x` -> `file://completed/x`); compare references with the
+    // lifecycle folder masked, so every other reference edit still counts.
+    if (Array.isArray(rest.references)) {
+      rest.references = rest.references.map((ref) => maskLifecycleFolderInReference(ref));
+    }
     root.plan = rest;
   }
   return canonicalJson(root);
 }
 
+/** A plan reference with the lifecycle folder in its `uri` replaced by a placeholder. */
+function maskLifecycleFolderInReference(ref: unknown): unknown {
+  if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
+    return ref;
+  }
+  const obj = ref as Record<string, unknown>;
+  if (typeof obj.uri !== "string") {
+    return ref;
+  }
+  const masked = obj.uri
+    .split("/")
+    .map((segment) => (LIFECYCLE_FOLDER_SET.has(segment) ? "<lifecycle>" : segment))
+    .join("/");
+  return { ...obj, uri: masked };
+}
+
 /**
  * True when a PROJECT-DEFINITION change touches only the open-scope registry a
- * lifecycle move rewrites (`plan.items` and `updated` stamps). Any other edit,
+ * lifecycle move rewrites (`plan.items`, `updated` stamps, and the lifecycle
+ * folder in a plan reference to a moved brief). Any other edit,
  * such as a `plan.policy` change, is false, as is a missing or unparsable side
  * (#6764, fail closed).
  */

@@ -3743,6 +3743,29 @@ describe("completion move carries the PROJECT-DEFINITION registry (#6764)", () =
     expect(isProjectDefinitionRegistryOnlyChange(text(base), text(itemsOnly))).toBe(true);
     expect(isProjectDefinitionRegistryOnlyChange(text(base), text(policyEdit))).toBe(false);
     expect(isProjectDefinitionRegistryOnlyChange(null, text(itemsOnly))).toBe(false);
+    // A moved brief's plan reference changes folder only (Greptile P1 on #6772).
+    const withRef = (uri: string, title = "top") => ({
+      ...base,
+      plan: { ...base.plan, references: [{ uri, type: "x-xbrief/plan", title }] },
+    });
+    expect(
+      isProjectDefinitionRegistryOnlyChange(
+        text(withRef("file://active/top.xbrief.json")),
+        text(withRef("file://completed/top.xbrief.json")),
+      ),
+    ).toBe(true);
+    expect(
+      isProjectDefinitionRegistryOnlyChange(
+        text(withRef("file://active/top.xbrief.json")),
+        text(withRef("file://completed/other.xbrief.json")),
+      ),
+    ).toBe(false);
+    expect(
+      isProjectDefinitionRegistryOnlyChange(
+        text(withRef("file://active/top.xbrief.json")),
+        text(withRef("file://completed/top.xbrief.json", "renamed")),
+      ),
+    ).toBe(false);
     expect(isProjectDefinitionRegistryOnlyChange(text(base), "{not json")).toBe(false);
   });
 
