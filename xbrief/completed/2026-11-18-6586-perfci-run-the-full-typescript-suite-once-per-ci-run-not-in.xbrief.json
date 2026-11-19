@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6586",
-    "updated": "2026-11-18T18:57:49Z"
+    "updated": "2026-11-19T02:48:44Z"
   },
   "plan": {
     "title": "perf(ci): run the full TypeScript suite once per CI run, not in both the TS lane and the merge gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "perf(ci): run the full TypeScript suite once per CI run, not in both the TS lane and the merge gate",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6586",
@@ -17,83 +17,195 @@
     "items": [
       {
         "title": "Lane. In `.github/workflows/ci-lane.yml`, delete the `Test (vitest, no coverage)` step. The TypeScript lane keeps install, build, lint and the two `pull_request` relocation gates. No other job changes.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "New meaning, named. On full-stack runs the suite runs once, in the merge gate. Every `merge_group` run is full-stack (`ci.yml` `changes` job, #6295), so every commit that lands on `master` has passed the suite. Pull-request and `push` runs whose diff is artifact-only (#3678 allowlist: `xbrief/completed/**`, `CHANGELOG.md`, `changelog.d/*.md`) run no vitest; a green `TypeScript (build + lint)` there proves build and lint only.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Rename. In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)`. The header comments and check-name table (lines 7-8, 62, 66) name the new check and the live required list (`TypeScript (build + lint)`, `Merge gate (task check)`).",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Name matcher. In `packages/core/src/pr-merge-readiness/ci-gate.ts` `isAuthoritativeSuiteAggregator`, the exact TypeScript match is `typescript (build + lint)` and the tolerant TypeScript branch requires \"build\" and \"lint\" only, so a green renamed aggregator still clears a cancelled TypeScript primary.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Unused cite removed. In `packages/core/src/release/preflight.ts`, remove the retired tip-SHA coverage-of-record path (`isCoverageOfRecordCheckName`, `evaluateTipShaCoverageOfRecord`, `defaultResolveCoverageOfRecord`, `formatCoverageOfRecordCite` and their private helpers and types) and the `resolveCoverageOfRecord` seams in `preflight.ts` and `packages/core/src/release/types.ts`, after confirming no production reference. Host coverage in release Step 5 and the named `Merge gate (task check)` read (#6071) are unchanged.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs. `content/scm/github.md`, `content/docs/github-merge-queue-setup.md` and `docs/RELEASING.md` name `TypeScript (build + lint)` and the live required list.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests. Every test and fixture under `packages/` that cites the old name uses the new one; tests for the removed cite path are deleted with it.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Rollout order (operator, not code). The build PR may not merge until branch protection requires `TypeScript (build + lint)` and no longer requires `TypeScript (build + lint + test)`; otherwise the old required check never reports and the PR cannot merge. Order: (a) the build PR's own CI is green and shows `TypeScript (build + lint)` and `Merge gate (task check)`; (b) the queue is empty; (c) the operator sets the required checks to `TypeScript (build + lint)` and `Merge gate (task check)`, both `app_id` 15368, `strict` false; (d) the build PR goes through the queue and its group run shows the new name; (e) every PR opened before the merge takes a new revision that contains the changed workflow (update branch or rebase), because re-running an old revision still emits the old name. This one-time stall is a migration cost, not a steady-state slowdown.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci-lane.yml`, the TypeScript lane runs install, build, lint and the two `pull_request` relocation gates, and no vitest step.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `.github/workflows/ci.yml`, the `ts` aggregator is named `TypeScript (build + lint)` and the header comments name that check and the live required list.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `packages/core/src/pr-merge-readiness/ci-gate.ts`, `isAuthoritativeSuiteAggregator` accepts `TypeScript (build + lint)` and its tolerant TypeScript branch does not require \"test\".",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `packages/core/src/release/preflight.ts` and `packages/core/src/release/types.ts`, the unused tip-SHA coverage-of-record cite path and its `resolveCoverageOfRecord` seams are removed.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `content/scm/github.md`, the required-check names and the merge-gate enrollment note name `TypeScript (build + lint)` and `Merge gate (task check)` as the live required checks.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `content/docs/github-merge-queue-setup.md`, the protection example and the reference setup name `TypeScript (build + lint)`.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In `docs/RELEASING.md`, the merge-queue required checks name `TypeScript (build + lint)`.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In every test and fixture under `packages/` (including `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`), the old check name is replaced by `TypeScript (build + lint)` and tests of the removed cite path are deleted.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "342400b0229cda3303d19a71ae08de08e7bac746",
+          "recorded_at": "2026-11-19T02:48:44Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -428,6 +540,34 @@
         "leanCommentId": 6987991475,
         "harvestDigest": "223a29ed4dc5c45b855fcab4ddd815b8b1c86865cb5980dc99ac0e83a7b90e33",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "561245ae93b3012d766cf4ff7b1a5e3966e3183f",
+        "prNumber": 6717,
+        "prBase": "master",
+        "mergeCommit": "342400b0229cda3303d19a71ae08de08e7bac746",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a2b756a4f79e8675ae816254084a3963fa8e96cb",
+        "verifiedAt": "2026-11-19T02:48:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6693,
+          6747
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-19T02:48:44Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-19T02:48:44Z"
       }
     },
     "acceptance": {
@@ -589,6 +729,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6454555211",
-    "updated": "2026-11-18T18:57:49Z"
+    "updated": "2026-11-19T02:48:44Z"
   }
 }
