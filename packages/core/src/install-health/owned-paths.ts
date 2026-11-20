@@ -119,10 +119,14 @@ export type DirectiveOwnedChange = "directive-only" | "mixed" | "not-owned";
  * commits trackable. Order matters: each `!` line must come after `.deft/*`,
  * and each temp-file ignore after the `!` line for its folder. Setup appends
  * the block in this order; doctor checks the order.
+ *
+ * #6842: `.deft/directive/` holds committed Directive files
+ * (`data-schema.json`), so it is kept trackable; its readiness markers are
+ * ignored again after its `!` lines. These lines close the block, so a
+ * 0.130.1 `.gitignore` gets only them appended on repair.
  */
 export const DIRECTIVE_GITIGNORE_LINES = [
   "node_modules/",
-  ".deft/directive/wiring-ready.*.json",
   ".deft/pre-pr-execution-private/",
   ".deft/plan-sequence.json.generation",
   ".deft/plan-sequence.json.lock",
@@ -147,6 +151,9 @@ export const DIRECTIVE_GITIGNORE_LINES = [
   ".deft/approved-scope/.*.publishing.bak",
   ".deft/intent-constraint/*.bak",
   ".deft/intent-constraint/*.next.tmp",
+  "!.deft/directive/",
+  "!.deft/directive/**",
+  ".deft/directive/wiring-ready.*.json",
   ".deft-cache/",
 ] as const;
 

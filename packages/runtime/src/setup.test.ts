@@ -104,6 +104,8 @@ describe("runSetup install|repair (R8 / AC8.*)", { timeout: 30_000 }, () => {
       ".deft/approved-scope/story.json.bak",
       ".deft/intent-constraint/story.json.next.tmp",
       ".deft-cache/github-issue/1.json",
+      // #6842: readiness markers stay ignored after the `!.deft/directive/` lines.
+      ".deft/directive/wiring-ready.1.2.3.json",
     ]) {
       expect(ignored(rel), rel).toBe(true);
     }
@@ -113,6 +115,7 @@ describe("runSetup install|repair (R8 / AC8.*)", { timeout: 30_000 }, () => {
       ".deft/approved-scope/story.json",
       ".deft/intent-constraint/story.json",
       ".deft/observable-scope/story.json",
+      DATA_SCHEMA_MARKER_REL,
     ]) {
       expect(ignored(rel), rel).toBe(false);
     }
@@ -121,6 +124,23 @@ describe("runSetup install|repair (R8 / AC8.*)", { timeout: 30_000 }, () => {
     const before = readFileSync(join(root, ".gitignore"), "utf8");
     runSetup({ operation: "repair", from: "0.0.0", root });
     expect(readFileSync(join(root, ".gitignore"), "utf8")).toBe(before);
+  });
+
+  it("repair of a 0.130.1 .gitignore appends only the `.deft/directive/` lines (#6842)", () => {
+    const root = tempRoot();
+    initGit(root);
+    runSetup({ operation: "install", from: "none", root });
+    // The 0.130.1 deposit: wiring-ready before `.deft/*`, no `.deft/directive/` lines.
+    const old = readFileSync(join(root, ".gitignore"), "utf8")
+      .split("\n")
+      .filter((l) => !l.startsWith("!.deft/directive/") && !l.startsWith(".deft/directive/"));
+    old.splice(1, 0, ".deft/directive/wiring-ready.*.json");
+    const oldText = old.join("\n");
+    writeFileSync(join(root, ".gitignore"), oldText);
+    runSetup({ operation: "repair", from: "0.130.1", root });
+    expect(readFileSync(join(root, ".gitignore"), "utf8")).toBe(
+      `${oldText}!.deft/directive/\n!.deft/directive/**\n.deft/directive/wiring-ready.*.json\n`,
+    );
   });
 
   it("repair does not create seed placeholders (AC8.4)", () => {
