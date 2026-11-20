@@ -146,6 +146,22 @@ describe("deposited git-hook templates (#5808 / D-021)", () => {
     expect(body).not.toContain("run_deft");
   });
 
+  it("pre-commit runs forward coverage warn-only: findings print, the commit is not failed (#6807)", () => {
+    const body = DIRECTIVE_GIT_HOOK_BODIES[".githooks/pre-commit"] ?? "";
+    const line = body
+      .split("\n")
+      .find((l) => l.startsWith("run_directive verify:forward-coverage"));
+    expect(line).toBe(
+      'run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || echo "directive hooks: forward coverage is advisory here; CI and the merge gate still enforce it." >&2',
+    );
+    expect(line).not.toContain("exit $?");
+    expect(line).not.toContain("--enforce");
+    for (const verb of ["verify:branch", "verify:encoding"]) {
+      const gate = body.split("\n").find((l) => l.startsWith(`run_directive ${verb}`));
+      expect(gate).toMatch(/\|\| exit \$\?$/);
+    }
+  });
+
   it("pre-push runs only preflight-gh --pre-push-stdin and carries no #5804 marker", () => {
     const body = DIRECTIVE_GIT_HOOK_BODIES[".githooks/pre-push"] ?? "";
     const calls = body.split("\n").filter((l) => l.startsWith("run_directive "));
@@ -340,6 +356,17 @@ describe("deposited hooks stop a bad commit and a default-branch push (#5808)", 
     expect(out.status, out.output).toBe(0);
     expect(out.output).toContain("verify_forward_coverage");
     expect(out.output).not.toContain("verify_vbrief_conformance");
+  }, 120_000);
+
+  it("a new source file with no paired test prints the finding and still commits (#6807)", () => {
+    const root = fixture();
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.ts"), "export const answer = 42;\n");
+    git(root, "add", "-A");
+    const out = commit(root, "scaffold");
+    expect(out.status, out.output).toBe(0);
+    expect(out.output).toContain("src/app.ts");
+    expect(out.output).toContain("forward coverage is advisory here");
   }, 120_000);
 
   it("with xbrief/ a commit that adds an invalid brief fails at pre-commit", () => {

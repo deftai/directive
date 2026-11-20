@@ -144,14 +144,16 @@ Setup Phase 3 writes the first scope xBRIEF to `xbrief/proposed/` with `plan.sta
 
 ### 6. Git: feature branch and a clean tree
 
-Story-ready fails when the tree is not Git, when it is dirty, or when you are on the default branch under the default branch policy. Commit the generated setup artifacts, then leave `master` / `main`:
+Story-ready fails when the tree is not Git, when it is dirty, or when you are on the default branch under the default branch policy. The commit gate also refuses commits on `master` / `main`, so create the feature branch first, then commit the generated setup artifacts on it:
 
 ```bash
-git add AGENTS.md Taskfile.yml xbrief .gitignore
-git commit -m "chore: deposit Directive and first proposed scope"
 git switch -c feat/first-project
 deft verify:branch
+git add AGENTS.md Taskfile.yml xbrief .gitignore
+git commit -m "chore: deposit Directive and first proposed scope"
 ```
+
+The deposited `.gitignore` ignores Directive's runtime state under `.deft/` and `.deft-cache/`, so `session:start` does not dirty the tree. Records a story commits, such as `.deft/approved-scope/` and `.deft/intent-constraint/`, stay trackable.
 
 `--allow-dirty` on story-ready is an intentional exception, not the happy path.
 

@@ -40,6 +40,10 @@ import {
   readOwnershipRecord,
   writeOwnershipRecord,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import {
+  directiveGitignoreOrderedBlock,
+  gitignoreOrderedPrefixLength,
+} from "@deftai/directive-core/dist/install-health/owned-paths.js";
 import { assertInventoryCompleteness } from "./installer-output-inventory.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { isConvertStrategyFrom, runStrategy } from "./removal-steps/index.js";
@@ -203,13 +207,18 @@ function ensureGitignore(projectRoot: string): { created: boolean; modified: boo
     writeContained(projectRoot, rel, `${needed.join("\n")}\n`);
     return { created: true, modified: false };
   }
-  const lines = new Set(
-    existing
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean),
-  );
+  const ordered = existing
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const lines = new Set(ordered);
+  // #6795: the `.deft/*` block is order-sensitive (`!` lines after `.deft/*`,
+  // temp-file ignores after their `!` line). Re-append the block from the first
+  // line that is missing or out of order; appended lines follow every existing one.
+  const block = directiveGitignoreOrderedBlock();
+  const reappend = new Set(block.slice(gitignoreOrderedPrefixLength(ordered, block)));
   const missing = needed.filter((n) => {
+    if (reappend.has(n)) return true;
     if (lines.has(n)) return false;
     if (n === "node_modules/" && (lines.has("node_modules") || lines.has("/node_modules/"))) {
       return false;

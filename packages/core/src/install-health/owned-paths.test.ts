@@ -9,8 +9,11 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   classifyDirectiveOwnedChange,
+  DIRECTIVE_GITIGNORE_DEFT_BLOCK_START,
   DIRECTIVE_GITIGNORE_LINES,
+  directiveGitignoreOrderedBlock,
   directiveOwnedPathMatches,
+  gitignoreOrderedPrefixLength,
   inspectDirectiveOwnedPaths,
   isDirectiveHookCommand,
   listDirectiveOwnedPaths,
@@ -328,6 +331,50 @@ describe("classifyDirectiveOwnedChange (AC4)", () => {
     ).toBe("directive-only");
     expect(
       classifyDirectiveOwnedChange("Taskfile.yml", null, `${MINIMAL_TASKFILE}tasks: {}\n`),
+    ).toBe("mixed");
+  });
+
+  it("gitignore block: `.deft/*` first, `!` lines after it, temp ignores after their folder (#6795)", () => {
+    const block = directiveGitignoreOrderedBlock();
+    expect(block[0]).toBe(DIRECTIVE_GITIGNORE_DEFT_BLOCK_START);
+    for (const kept of [
+      "!.deft/plan-sequence.json",
+      "!.deft/GENERATION.json",
+      "!.deft/approved-scope/",
+      "!.deft/approved-scope/**",
+      "!.deft/intent-constraint/",
+      "!.deft/intent-constraint/**",
+    ]) {
+      expect(block.indexOf(kept)).toBeGreaterThan(0);
+    }
+    expect(block.indexOf(".deft/approved-scope/*.bak")).toBeGreaterThan(
+      block.indexOf("!.deft/approved-scope/**"),
+    );
+    expect(block.indexOf(".deft/intent-constraint/*.next.tmp")).toBeGreaterThan(
+      block.indexOf("!.deft/intent-constraint/**"),
+    );
+    expect(DIRECTIVE_GITIGNORE_LINES).toContain(".deft-cache/");
+    expect(block).not.toContain(".deft-cache/");
+  });
+
+  it("gitignoreOrderedPrefixLength stops at the first missing or out-of-order line (#6795)", () => {
+    const block = [".deft/*", "!a", "!b"];
+    expect(gitignoreOrderedPrefixLength([], block)).toBe(0);
+    expect(gitignoreOrderedPrefixLength(["x", ".deft/*", "y", "!a", "!b"], block)).toBe(3);
+    expect(gitignoreOrderedPrefixLength(["!a", ".deft/*", "!b"], block)).toBe(1);
+    expect(gitignoreOrderedPrefixLength([".deft/*", "!b"], block)).toBe(1);
+  });
+
+  it("managed lines: the `!` lines and `.deft/*` are Directive lines for uninstall (#6795)", () => {
+    expect(
+      classifyDirectiveOwnedChange(
+        ".gitignore",
+        "dist/\n",
+        "dist/\n.deft/*\n!.deft/approved-scope/\n!.deft/approved-scope/**\n.deft-cache/\n",
+      ),
+    ).toBe("directive-only");
+    expect(
+      classifyDirectiveOwnedChange(".gitignore", "dist/\n", "dist/\n!.deft/my-own-file.json\n"),
     ).toBe("mixed");
   });
 

@@ -113,6 +113,12 @@ export type DirectiveOwnedChange = "directive-only" | "mixed" | "not-owned";
  * readiness markers, and the named per-checkout runtime files (one holds the
  * pre-PR signing secret). Setup, doctor and this API share this one copy.
  * Adding a path here is a requirements change (AC8.5).
+ *
+ * #6795: after the named lines, `.deft/*` ignores the rest of Directive's
+ * runtime state, and the `!` lines that follow keep the records a project
+ * commits trackable. Order matters: each `!` line must come after `.deft/*`,
+ * and each temp-file ignore after the `!` line for its folder. Setup appends
+ * the block in this order; doctor checks the order.
  */
 export const DIRECTIVE_GITIGNORE_LINES = [
   "node_modules/",
@@ -122,7 +128,58 @@ export const DIRECTIVE_GITIGNORE_LINES = [
   ".deft/plan-sequence.json.lock",
   ".deft/plan-sequence.json.lock.claim-*",
   ".deft/orientation-state.json",
+  ".deft/*",
+  "!.deft/plan-sequence.json",
+  "!.deft/GENERATION.json",
+  "!.deft/approved-scope/",
+  "!.deft/approved-scope/**",
+  "!.deft/intent-constraint/",
+  "!.deft/intent-constraint/**",
+  "!.deft/observable-scope/",
+  "!.deft/observable-scope/**",
+  "!.deft/observable-ui.policy.json",
+  "!.deft/presentation-ceiling.json",
+  "!.deft/test-boundary.policy.json",
+  ".deft/approved-scope/*.bak",
+  ".deft/approved-scope/*.next.tmp",
+  ".deft/approved-scope/.*.pair.lock.tmp",
+  ".deft/approved-scope/.*.pair.lock.tmp.stale",
+  ".deft/approved-scope/.*.publishing.bak",
+  ".deft/intent-constraint/*.bak",
+  ".deft/intent-constraint/*.next.tmp",
+  ".deft-cache/",
 ] as const;
+
+/** First line of the order-sensitive `.deft/` block in {@link DIRECTIVE_GITIGNORE_LINES} (#6795). */
+export const DIRECTIVE_GITIGNORE_DEFT_BLOCK_START = ".deft/*" as const;
+
+/**
+ * The order-sensitive tail of {@link DIRECTIVE_GITIGNORE_LINES}: `.deft/*`, the
+ * `!` lines, and the temp-file ignores under the kept folders (#6795).
+ */
+export function directiveGitignoreOrderedBlock(): readonly string[] {
+  const lines = DIRECTIVE_GITIGNORE_LINES as readonly string[];
+  const start = lines.indexOf(DIRECTIVE_GITIGNORE_DEFT_BLOCK_START);
+  const end = lines.indexOf(".deft-cache/");
+  return lines.slice(start, end);
+}
+
+/**
+ * Length of the longest prefix of `block` that appears in `lines` in order
+ * (an ordered subsequence, other lines allowed between). Lines from the
+ * returned index on are missing or out of order and must be re-appended after
+ * every existing line for git to apply them as intended (#6795).
+ */
+export function gitignoreOrderedPrefixLength(
+  lines: readonly string[],
+  block: readonly string[],
+): number {
+  let matched = 0;
+  for (const line of lines) {
+    if (matched < block.length && line === block[matched]) matched += 1;
+  }
+  return matched;
+}
 
 /** `Taskfile.yml` that setup writes when the project has none. */
 export const MINIMAL_TASKFILE = `version: '3'
