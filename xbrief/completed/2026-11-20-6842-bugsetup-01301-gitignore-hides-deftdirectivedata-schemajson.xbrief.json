@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6842",
-    "updated": "2026-11-20T05:44:14Z"
+    "updated": "2026-11-20T07:06:45Z"
   },
   "plan": {
     "title": "bug(setup): 0.130.1 .gitignore hides .deft/directive/data-schema.json from fresh-install commits",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The 0.130.1 consumer .gitignore block adds .deft/*, which also hides .deft/directive/data-schema.json, so a fresh install leaves that Directive file out of its first commit. The fix adds !.deft/directive/ and !.deft/directive/** to the block and re-ignores .deft/directive/wiring-ready.*.json after them. Setup, doctor and uninstall handle the new lines like the other ! lines, and a fresh-install test proves the file is committed and doctor reports no hidden Directive file.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6842",
@@ -19,34 +19,66 @@
     "items": [
       {
         "title": "The deposited `.gitignore` keeps `.deft/directive/` trackable (`!.deft/directive/` and `!.deft/directive/**`), then re-ignores `.deft/directive/wiring-ready.*.json` after those lines.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When setup writes the consumer .gitignore, then .deft/directive/ is trackable through !.deft/directive/ and !.deft/directive/**, and .deft/directive/wiring-ready.*.json is ignored again after those lines."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3f6c85feb431485d193ddd05146b0452247df1d",
+          "recorded_at": "2026-11-20T07:06:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Setup, doctor and uninstall handle the new lines the same way as the other `!` lines in the block.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When setup re-appends the block, doctor checks its order, or uninstall classifies .gitignore lines, then the new lines are handled the same way as the other ! lines in the block."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3f6c85feb431485d193ddd05146b0452247df1d",
+          "recorded_at": "2026-11-20T07:06:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A test runs a fresh install, commits the deposit, and asserts that `.deft/directive/data-schema.json` is in the commit and that `directive doctor --full` reports no hidden Directive file.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a test runs a fresh install and commits the deposit, then .deft/directive/data-schema.json is in the commit and directive doctor --full reports no hidden Directive file."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3f6c85feb431485d193ddd05146b0452247df1d",
+          "recorded_at": "2026-11-20T07:06:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One CHANGELOG fragment states the fix in one line, with no file lists, referencing this issue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the product PR merges, then one CHANGELOG fragment states the fix in one line with no file lists and references #6842."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3f6c85feb431485d193ddd05146b0452247df1d",
+          "recorded_at": "2026-11-20T07:06:45Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -177,9 +209,39 @@
         "conflict_group": "runtime-setup",
         "model_tier": "high"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e9fd59d87a7f6e44f09d942f64b0607e4537257e",
+        "prNumber": 6857,
+        "prBase": "master",
+        "mergeCommit": "c3f6c85feb431485d193ddd05146b0452247df1d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c3f6c85feb431485d193ddd05146b0452247df1d",
+        "verifiedAt": "2026-11-20T07:06:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6843
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T07:06:45Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T07:06:45Z"
+      }
     },
     "id": "github.issue.6505591079",
-    "updated": "2026-11-20T05:44:14Z"
+    "updated": "2026-11-20T07:06:45Z",
+    "x-directive/specImpact": "delta"
   }
 }
