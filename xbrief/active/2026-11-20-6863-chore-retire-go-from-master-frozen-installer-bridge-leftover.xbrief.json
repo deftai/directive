@@ -189,7 +189,8 @@
           "packages/core/src/content-contracts/standards/COVERAGE-MAP.md",
           "content/templates/agents-entry.placeholders.md",
           ".deft/approved-scope/github.issue.6515010072.json",
-          ".deft/approved-scope/github.issue.6515010072.intent.json"
+          ".deft/approved-scope/github.issue.6515010072.intent.json",
+          "xbrief/evaluator-surface-disposition.json"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",
