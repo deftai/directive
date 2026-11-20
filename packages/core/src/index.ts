@@ -65,7 +65,6 @@ export {
 export * as handoffEvidence from "./handoff-evidence/index.js";
 export * as intake from "./intake/index.js";
 export * as layout from "./layout/index.js";
-export * as legacyBridge from "./legacy-bridge/index.js";
 export * as lifecycle from "./lifecycle/index.js";
 export * as literalAcceptance from "./literal-acceptance/index.js";
 export * as metrics from "./metrics/index.js";

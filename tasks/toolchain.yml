@@ -5,7 +5,7 @@ vars:
 
 tasks:
   check:
-    desc: Verify required maintainer toolchain is installed (go, uv, git, gh, node, pnpm)
+    desc: Verify required maintainer toolchain is installed (uv, git, gh, node, pnpm)
     cmds:
       - task: :engine:invoke
         vars:

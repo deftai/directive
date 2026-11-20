@@ -68,7 +68,6 @@ The following five tokens are part of the v2 contract (token set unchanged from 
 ## Cross-references
 
 - Template: [`./agents-entry.md`](./agents-entry.md)
-- Go installer embed: [`./embed.go`](./embed.go)
 - Python reference implementation: `cmd_agents_refresh` in the `run` CLI script (root `run`)
 - Conformance test: [`../tests/content/test_agents_entry_contract.py`](../../tests/content/test_agents_entry_contract.py)
 - Universal upgrade gate: `cmd_gate` in the `run` CLI script (root `run`)

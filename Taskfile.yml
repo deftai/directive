@@ -454,8 +454,6 @@ tasks:
       - verify:contract-drift
       - verify:cursor-tier1
       - verify:openclaw-tier1
-      - verify:go-freeze
-      - verify:bridge-drift
       - verify:branch
       - verify:encoding
       # Keep local uncached closing-keyword checks (#5736 Greptile); CI branch-gate

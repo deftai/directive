@@ -87,15 +87,6 @@
             "owner": "directive"
           },
           {
-            "id": "go-module",
-            "name": "Go Module Metadata",
-            "purpose": "Root go.mod retained for residual content/templates embed helpers. The Go installer binary (cmd/deft-install) is deleted; OVPR npm packages own install/upgrade.",
-            "pathGlobs": [
-              "go.mod"
-            ],
-            "owner": "directive"
-          },
-          {
             "id": "vbrief-metadata",
             "name": "vBRIEF Metadata",
             "purpose": "Structured project, scope, schema, lifecycle, and architecture metadata.",

@@ -20,7 +20,7 @@
 | `test_taskfile_uv_project_pin.py` | `taskfile_uv_project_pin.test.ts` | Bucket A: mechanical content assertion port |
 | `test_taskfile_zip_parity.py` | `taskfile_zip_parity.test.ts` | Bucket A: mechanical content assertion port |
 | `test_structure.py` | `structure.test.ts` | Bucket A: mechanical content assertion port |
-| `test_shape.py` | `shape.test.ts` | Bucket B: shape schemas in _shapes.ts (was tests/fixtures/shapes.py) |
+| `test_shape.py` | `shape.test.ts` | Bucket B: shape schemas in _shapes.ts (was the Python shapes fixture, deleted in #1860) |
 | `test_code_structure_profile.py` | `code_structure_profile.test.ts` | Bucket B: CODE_STRUCTURE_VERSION + validateFile from verify-source/code-structure-validate.ts |
 | `test_pyproject_version_freshness.py` | `pyproject_version_freshness.test.ts` | Bucket B: toPep440 + latestLocalPublishableTag from platform/resolve-version.ts (offline tag lookup, no ls-remote -- #2256) |
 | `test_consumer_config_example.py` | `consumer_config_example.test.ts` | Bucket A: mechanical content assertion port |
@@ -29,7 +29,6 @@
 | `test_upgrading_bigjump_triage.py` | `upgrading_bigjump_triage.test.ts` | Bucket A: mechanical content assertion port |
 | `test_upgrading_sections.py` | `upgrading_sections.test.ts` | Bucket A: mechanical content assertion port |
 | `test_quickstart_combined_remediation.py` | `quickstart_combined_remediation.test.ts` | Bucket A: mechanical content assertion port |
-| `test_release_workflow.py` | `release_workflow.test.ts` | Bucket A: mechanical content assertion port |
 | `test_vbrief_model.py` | `vbrief_model.test.ts` | Bucket A: mechanical content assertion port |
 | `test_vbrief_schema.py` | `vbrief_schema.test.ts` | Bucket B: validateVbriefSchema + VALID_STATUSES from vbrief-validate |
 | `test_strategy_chaining.py` | `strategy_chaining.test.ts` | Bucket A: mechanical content assertion port |

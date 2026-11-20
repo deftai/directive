@@ -98,7 +98,7 @@ flowchart LR
 | Framework content | `AGENTS.md`, `main.md`, `content/`, `docs/` | Agent guidance, skills, standards, and documentation. Shipped guidance lives under `content/`; `docs/` is repo-dev orientation. |
 | Task runner | `Taskfile.yml`, `tasks/*.yml` | Repository command facade: deterministic command contract and composable namespaces. |
 | TypeScript packages | `packages/`, `package.json`, `pnpm-workspace.yaml`, `tsconfig*.json`, `vitest.config.ts` | Implementation and runtime owner for gates, the `deft` / `directive` CLI, and `deft-hook`. |
-| Go installer (deleted) | `cmd/deft-install/` (absent), `go.mod` (husk) | **Deleted / archaeology only (AC10.10).** Do not run `deft-install` or teach it as a current path. Current install is OVPR: global `@deftai/directive` + `directive install` / `upgrade` / `uninstall` / `doctor`. Standard recovery: `npm i -g @deftai/directive` then `directive install --repair` (AC9.7). |
+| Go installer (deleted) | `cmd/deft-install/` (absent) | **Deleted / archaeology only (AC10.10); no Go on master (#6863).** Do not run `deft-install` or teach it as a current path. Current install is OVPR: global `@deftai/directive` + `directive install` / `upgrade` / `uninstall` / `doctor`. Standard recovery: `npm i -g @deftai/directive` then `directive install --repair` (AC9.7). |
 | xBRIEF metadata | `xbrief/**/*.json`, `xbrief/**/*.md` | Project identity, scope lifecycle, schemas, policy, specification source, and authored `codeStructure`. |
 | Content packs | `content/packs/` | Curated agent memory packs rendered and checked through `task packs:*`. |
 | CI/release automation | `.github/`, `.githooks/`, `tasks/pr.yml` | Branch policy, PR readiness, release, publish, rollback, and local hook enforcement. |
@@ -158,7 +158,7 @@ Key properties:
 
 ### Go installer — deleted (AC10.10)
 
-> **Historical / archaeology only.** `cmd/deft-install/` and the Go installer binaries (`deft-install`, platform `install-*`) are **deleted**. Do not download, run, or teach `deft-install gate` (or any Go installer command) as a current path. Repo-root `go.mod` may remain as a husk for legacy CI pins; it is not a current installer module. Current recovery is OVPR only: `npm i -g @deftai/directive` then `directive install --repair` (AC9.7).
+> **Historical / archaeology only.** `cmd/deft-install/` and the Go installer binaries (`deft-install`, platform `install-*`) are **deleted**. Do not download, run, or teach `deft-install gate` (or any Go installer command) as a current path. Master carries no `go.mod` or Go build (#6863); the frozen bridge binaries stay on the v0.58.0 release. Current recovery is OVPR only: `npm i -g @deftai/directive` then `directive install --repair` (AC9.7).
 
 ## Command Surface
 

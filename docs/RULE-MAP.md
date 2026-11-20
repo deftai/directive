@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 25 groupings, 293 documents
-- **Tasks:** 66 namespaces, 293 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 66 namespaces, 291 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -453,7 +453,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | spec | Specification render/validate tasks (vBRIEF -> SPECIFICATION). | 4 |
 | subagent | Fail-closed query-before-cancel gate (#5278). Exit 0 only via status steer ack/observed window, heartbeat STALE/missing under grace, or… | 2 |
 | swarm | Report whether story vBRIEFs are ready for concurrent swarm allocation | 7 |
-| toolchain | Verify required maintainer toolchain is installed (go, uv, git, gh, node, pnpm) | 2 |
+| toolchain | Verify required maintainer toolchain is installed (uv, git, gh, node, pnpm) | 2 |
 | triage-actions | Accept an issue for triage. Records an audit entry. (#845 Story 3) | 8 |
 | triage-bootstrap | Triage v1 bootstrap fragment (#845 Story 6). | 1 |
 | triage-bulk | Story 4 of #845 + #915 cache-walk re-enable. | 5 |
@@ -473,7 +473,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO \| --json \| --strict]. Does NOT… | 1 |
 | value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d\|30d] [--format=text\|json] | 1 |
 | vbrief | Validate and manage vBRIEF lifecycle state and structure. | 6 |
-| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 75 |
+| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 73 |
 | xbrief | Validate xBRIEF lifecycle folder structure and cross-file consistency. Alias of vbrief:validate with xbrief-first naming (#3483). | 3 |
 
 ## Lifecycle

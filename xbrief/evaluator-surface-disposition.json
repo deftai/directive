@@ -1,10 +1,13 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6022,
+  "issue": 6863,
   "surfaces": [
     "Taskfile.yml",
+    "packages/core/src/check/gate-lists.ts",
+    "tasks/verify.yml",
+    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6022: in the root Taskfile.yml, the `upgrade` and `uninstall` alias descriptions now say the task is retired and name `directive upgrade` / `directive uninstall` (matching tasks/install.yml after #6661). The stale comment above `upgrade` that named `install-upgrade` is removed. The aliases still run the retired install:upgrade / install:uninstall tasks; no command, verifier or threshold changes. Disclosure only; not #3164 authorization. Refs #6022."
+  "note": "Disclosure for #6863 (operator decision: retire Go fully). The verify:go-freeze and verify:bridge-drift gates are removed with the legacy Go-installer bridge they guarded: their tasks in tasks/verify.yml, their entries in the root Taskfile.yml check list and in gate-lists.ts, and the two cited-skip baseline rows for the deleted --legacy-bridge e2e test. The vitest.config.ts alias for the deleted legacy-bridge module is dropped. No other gate, verifier or threshold changes. Disclosure only; not #3164 authorization. Refs #6863."
 }

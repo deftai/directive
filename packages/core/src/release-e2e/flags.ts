@@ -35,7 +35,6 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
   let destroyRepo = false;
   let projectRoot: string | null = null;
   let skipNpm = false;
-  let legacyBridge = false;
   const unknown: string[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -49,8 +48,6 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
       destroyRepo = true;
     } else if (arg === "--skip-npm") {
       skipNpm = true;
-    } else if (arg === "--legacy-bridge") {
-      legacyBridge = true;
     } else if (arg === "--owner") {
       const next = argv[i + 1];
       if (next === undefined || next.startsWith("-")) {
@@ -78,5 +75,5 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
     }
   }
 
-  return { help, owner, dryRun, destroyRepo, projectRoot, skipNpm, legacyBridge, unknown };
+  return { help, owner, dryRun, destroyRepo, projectRoot, skipNpm, unknown };
 }

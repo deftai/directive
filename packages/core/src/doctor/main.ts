@@ -767,7 +767,6 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (!consumerContext) {
     checkCommand("uv", "uv (Astral Python runner)", true, UV_INSTALL_URL);
     checkCommand("python3", "python3");
-    checkCommand("go", "go");
   }
   checkCommand("git", "git", true);
   checkCommand("node", "node", consumerContext);

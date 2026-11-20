@@ -1252,9 +1252,9 @@ describe("cited-skip scanner (#6071)", () => {
     expect(listing).toContain("a.test.ts:3");
   });
 
-  it("pins four-site baseline including yoloSterile aliases", () => {
-    expect(CITED_SKIP_BASELINE).toHaveLength(5);
-    expect(CITED_SKIP_BASELINE.filter((b) => b.file.includes("legacy-bridge-leg")).length).toBe(2);
+  it("pins the cited-skip baseline including yoloSterile aliases", () => {
+    expect(CITED_SKIP_BASELINE).toHaveLength(3);
+    expect(CITED_SKIP_BASELINE.filter((b) => b.file.includes("legacy-bridge-leg")).length).toBe(0);
     expect(CITED_SKIP_BASELINE.filter((b) => b.dynamicTitle).length).toBe(2);
   });
 

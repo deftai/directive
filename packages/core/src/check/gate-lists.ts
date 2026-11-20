@@ -127,8 +127,6 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:semantic-single-source",
   "verify:cursor-tier1",
   "verify:openclaw-tier1",
-  "verify:go-freeze",
-  "verify:bridge-drift",
   "verify:forward-coverage",
   // #633: reuse changelog-check Unreleased language on the framework-source conjunct.
   "verify:changelog-unreleased",
@@ -256,22 +254,12 @@ export interface CitedSkipSite {
   readonly line: number;
 }
 
-/** Four-site baseline allowlist (legacy-bridge describe.skip+it.skip + two yoloSterile aliases). */
+/** Cited-skip baseline allowlist. */
 export const CITED_SKIP_BASELINE: readonly {
   readonly file: string;
   readonly kind: CitedSkipSite["kind"];
   readonly dynamicTitle: boolean;
 }[] = [
-  {
-    file: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
-    kind: "describe.skip",
-    dynamicTitle: false,
-  },
-  {
-    file: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
-    kind: "it.skip",
-    dynamicTitle: false,
-  },
   {
     file: "packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
     kind: "it.skip",

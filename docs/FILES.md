@@ -30,7 +30,6 @@ deft/
 ├── SECURITY.md            # Security policy
 ├── COST-ESTIMATE.md       # Pre-build cost transparency
 ├── Taskfile.yml           # Root deterministic command graph
-├── go.mod                 # Archaeology husk only (Go installer deleted; AC10.10)
 ├── package.json           # TypeScript workspace scripts and package metadata
 ├── pnpm-lock.yaml         # TypeScript dependency lock
 ├── pnpm-workspace.yaml    # TypeScript workspace layout
@@ -218,6 +217,8 @@ When Deft is installed into another project, the important locations are:
 - `%APPDATA%\deft\USER.md` -- consumer-install personal preferences (Windows)
 
 > **Historical (legacy consumer layout):** older installs used `vbrief/` as the lifecycle root and a tracked `deft/` payload. Current consumer writes use `xbrief/`; `.deft/core/` is the canonical installed framework path.
+
+> **Historical only (deleted AC10.10):** `cmd/deft-install/` and the Go installer are gone, and master has no `go.mod` or Go sources (#6863). The frozen bridge binaries stay on the v0.58.0 release.
 
 > **Historical:** `tasks/release.yml` was listed as a Taskfile include; that file is not in the current tree. Release work uses `task release:*`.
 
