@@ -271,11 +271,6 @@
       "note": "Biome formatter/linter config for the TS engine."
     },
     {
-      "path": "go.mod",
-      "bucket": "harness",
-      "note": "Go module definition for the installer build."
-    },
-    {
       "path": "package.json",
       "bucket": "harness",
       "note": "Root pnpm workspace manifest for the TS engine build/test."
