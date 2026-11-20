@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6863",
-    "updated": "2026-11-20T19:09:18Z"
+    "updated": "2026-11-20T21:59:42Z"
   },
   "plan": {
     "title": "chore: retire Go from master (frozen installer bridge leftovers in toolchain:check, CI and CodeQL)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Remove the last Go surfaces from master: go.mod, the two content/templates embed Go files, the go probe in toolchain:check and doctor, the Go text in setup:toolchain, both setup-go steps in ci.yml, the Go-only release.yml workflow, and the gomod Dependabot entry. Retire the legacy Go-installer bridge apparatus that only served Go builds: the lastGoInstaller SoT (packages/core/src/legacy-bridge), the verify:go-freeze and verify:bridge-drift gates and their CLI verbs, and the skipped --legacy-bridge release-e2e leg. Docs stop pointing at removed files and say the frozen bridge binaries stay on the published v0.58.0 release.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6863",
@@ -20,34 +20,73 @@
     "items": [
       {
         "title": "`task check` passes on a machine without Go installed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When task check runs on a machine without Go, then toolchain:check and doctor do not probe go and the check passes."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "34785ac742c31087aac2aa8ccb7356cc93c1de81",
+          "recorded_at": "2026-11-20T21:54:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "No `setup-go` step and no CodeQL Go analysis run on PRs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a PR runs CI, then ci.yml shows no setup-go step and no release.yml Go job runs; the operator drops go from CodeQL default setup."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "34785ac742c31087aac2aa8ccb7356cc93c1de81",
+          "recorded_at": "2026-11-20T21:54:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`git ls-files '*.go' go.mod` returns nothing on master, or the issue records why the bridge sources stay.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When git ls-files '*.go' go.mod runs on master, then it returns nothing."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Clause met: go.mod and all *.go deleted in #6900; go_retired_6863.test.ts asserts it. Clause was bound to the deleted go.mod path and bind-clause cannot rebind it (#4986).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-20T21:58:22Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261120215822-4e2605"
+          },
+          "recorded_at": "2026-11-20T21:59:42Z"
         }
       },
       {
         "title": "The frozen bridge binary that existing users depend on is still downloadable from its published release.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a user opens the v0.58.0 release, then it shows its five install-* assets, and docs/RELEASING.md says they stay there."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "34785ac742c31087aac2aa8ccb7356cc93c1de81",
+          "recorded_at": "2026-11-20T21:54:03Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -212,9 +251,40 @@
           "go_retired_6863.test.ts guards the removal",
           "one changelog fragment changelog.d/6863-retire-go.md"
         ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "b581f8aa040615f210e110d5132b34b69c721624",
+        "prNumber": 6900,
+        "prBase": "master",
+        "mergeCommit": "34785ac742c31087aac2aa8ccb7356cc93c1de81",
+        "deliveryBranch": "master",
+        "deliveryCommit": "880c91ed079578e900c1f2ef680efbfa6e6d61af",
+        "verifiedAt": "2026-11-20T21:59:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6881,
+          6889,
+          6895
+        ]
+      },
+      "completedAt": "2026-11-20T21:59:42Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T21:59:42Z"
       }
     },
     "id": "github.issue.6515010072",
-    "updated": "2026-11-20T19:09:18Z"
+    "updated": "2026-11-20T21:59:42Z"
   }
 }
