@@ -1,0 +1,283 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6791",
+    "updated": "2026-11-20T19:26:41Z"
+  },
+  "plan": {
+    "title": "release: reuse the green CI merge gate on an identical tree instead of re-running task check in Step 5",
+    "status": "running",
+    "narratives": {
+      "Description": "Release Step 5 (release/pipeline.ts) always runs the full local task check with host coverage, which takes up to about an hour, even when the release branch tree equals a delivery-branch tip that CI already passed. This story adds a reuse rule: when the clean Step 5 input tree is identical to the tree of the fetched delivery-branch tip and the latest attempt of each required check (TypeScript (build + lint), Merge gate (task check)) on that tip is success, Step 5 reuses CI with no flag, citation or prompt, prints the tip SHA and the check-run URLs, and runs only a short host smoke check. Otherwise Step 5 prints the decision and runs the full local check as today. Per operator ruling B (comment 7048518461), a reused cut runs no host coverage; #6849 closes that gap. The --skip-ci incident path is unchanged. This is S1 of the #6845 split and has no dependencies; the readiness half of clause 1 lands with #6876.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6791",
+      "Overview": "## Problem\n\n`task release` Step 5 runs the full local `task check` with host coverage (up to about 60 minutes), even when the release branch tree is identical to a delivery-branch tip that already passed the required CI checks. The only skip is the incident path `--skip-ci --allow-skip-ci=#N`, which marks the build untested.\n\n## Acceptance Criteria\n\n- [ ] CI reuse. Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched delivery-branch tip, and the latest run of each required check (`TypeScript (build + lint)`, `Merge gate (task check)`) on that tip SHA completed `success`. Reuse needs no flag, no citation and no prompt, and prints the SHA and the check-run URLs. A missing, pending, failed or re-running latest attempt never reuses an older success. Readiness evaluates the same rule and always prints that reuse is provisional and about how long the full local `task check` takes; when the rule does not hold at readiness, it says before the mint that the full check will run. Step 5 evaluates the rule again, prints any changed decision, and continues either way without a prompt. This builds the #6791 reuse rule, including its short host smoke check; a reused cut runs no host coverage.\n- [ ] Given a fetched tip whose latest required check runs concluded `success` and a clean Step 5 input tree identical to that tip, when the run reaches Step 5, then it reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs.\n- [ ] Given green checks at readiness and a new pending or failed attempt at Step 5, also when an older attempt succeeded, then Step 5 prints the changed decision and runs the full local check without a prompt.\n\n## Background\n\nFor the 0.130.0 cut, the release branch came from origin/master `131be9c51`, where `Merge gate (task check)` and `TypeScript (build + lint)` had both passed. The operator skipped Step 5 with this issue as the citation, because re-running the same suite on the same tree cost about an hour for little new signal. The criteria above are lean clauses 3, 12 and 14 of the #6845 completed arc (bound lean 7032154033), copied verbatim; they narrow the first draft of this issue (comment 7048161400). The readiness half of clause 3 lands with #6876. Host coverage on a reused cut returns through #6849 (operator ruling B, comment 7048518461).\n\nRefs #6845\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As a release operator, I want Step 5 to reuse green CI on a release tree identical to the fetched delivery-branch tip, so that a routine cut does not wait about an hour to re-run the same suite or need the incident skip path.",
+      "ImplementationPlan": "- packages/core/src/release/ci-reuse.ts (new): evaluateStep5CiReuse(projectRoot, repo, seams) returns a decision object: reuse with the tip SHA and check-run URLs, or full-run with a reason (tree differs, tree dirty, a required check missing, pending, failed or re-running). Compare git rev-parse HEAD^{tree} with the tree of the fetched delivery-branch tip; read check runs for the tip SHA with the existing fetchCheckRunsRest (latest attempt per name). Required names: MERGE_GATE_TASK_CHECK_NAME plus a named string constant for TypeScript (build + lint). Export the rule so the S3 readiness phase can call it.\n- ci-reuse.ts also defines and runs the short host smoke check (build plus a fixed small host-assertion set, listed in one exported constant). Reuse the existing Step 5 hang detector RELEASE_CHECK_TIMEOUT_MS for it (same Step 5 action); do not add a new timeout constant.\n- packages/core/src/release/pipeline.ts Step 5: before the suite-stamp and full-run paths, evaluate the rule. On reuse, print the tip SHA and check-run URLs, run the smoke check and emit OK without host coverage. On no reuse, print the decision and run the full local check unchanged. Accept an optional prior decision so a changed decision is printed (S3 supplies the readiness decision). --skip-ci and the dry-run text stay as today.\n- packages/core/src/release/types.ts: add one optional seam for the reuse evaluator and the smoke runner (shared conflict group release-core with S2).\n- packages/core/src/release/pipeline-fixture.ts: default no-reuse seam so existing pipeline tests stay hermetic.\n- docs/RELEASING.md: Step 5 notes the reuse path, the smoke check contents and that a reused cut runs no host coverage; --skip-ci stays incident-only.\n- A failed check-run read or git read is a returned full-run decision, not a throw. No new throw sites and no new numeric constants expected.\n- Tests: ci-reuse.test.ts (identical tree + green latest = reuse; failed, missing, pending or re-running latest with older success = full run; different tree = full run) and pipeline-ci-reuse.test.ts (Step 5 prints SHA and URLs on reuse; prints a changed decision and runs the full check without a prompt).",
+      "Traces": "#6791, #6845"
+    },
+    "items": [
+      {
+        "title": "CI reuse. Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched delivery-branch tip, and the latest run of each required check (`TypeScript (build + lint)`, `Merge gate (task check)`) on that tip SHA completed `success`. Reuse needs no flag, no citation and no prompt, and prints the SHA and the check-run URLs. A missing, pending, failed or re-running latest attempt never reuses an older success. Readiness evaluates the same rule and always prints that reuse is provisional and about how long the full local `task check` takes; when the rule does not hold at readiness, it says before the mint that the full check will run. Step 5 evaluates the rule again, prints any changed decision, and continues either way without a prompt. This builds the #6791 reuse rule, including its short host smoke check; a reused cut runs no host coverage.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Step 5 reuses CI only when the clean Step 5 input tree equals the fetched delivery-branch tip tree and the latest attempt of TypeScript (build + lint) and Merge gate (task check) on that tip is success; a missing, pending, failed or re-running latest attempt never reuses an older success; reuse needs no flag, citation or prompt, prints the SHA and check-run URLs, runs the short host smoke check and no host coverage."
+        }
+      },
+      {
+        "title": "Given a fetched tip whose latest required check runs concluded `success` and a clean Step 5 input tree identical to that tip, when the run reaches Step 5, then it reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a fetched tip with green latest required checks and an identical clean Step 5 input tree, Step 5 reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs."
+        }
+      },
+      {
+        "title": "Given green checks at readiness and a new pending or failed attempt at Step 5, also when an older attempt succeeded, then Step 5 prints the changed decision and runs the full local check without a prompt.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given green checks at readiness and a new pending or failed latest attempt at Step 5, also when an older attempt succeeded, Step 5 prints the changed decision and runs the full local check without a prompt."
+        }
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6791",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6791: release: reuse the green CI merge gate on an identical tree instead of re-running task check in Step 5"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6845",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6845"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "TypeScript (build + lint)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/ci-reuse.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/types.ts",
+          "packages/core/src/release/pipeline-fixture.ts",
+          "docs/RELEASING.md",
+          "packages/core/src/release/ci-reuse.test.ts",
+          "packages/core/src/release/pipeline-ci-reuse.test.ts",
+          "packages/core/src/release/pipeline.test.ts",
+          "changelog.d/6791-release-step5-ci-reuse.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6498677316.json"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/ci-reuse.test.ts packages/core/src/release/pipeline-ci-reuse.test.ts",
+          "pnpm exec vitest run packages/core/src/release/pipeline.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "acceptance_criteria_justification": "Three criteria, copied verbatim from the #6845 completed-arc lean (bound lean 7032154033): clause 1 states the Step 5 reuse rule and clauses 2 and 3 are its Given/When/Then cases. The readiness half of clause 1 lands with #6876 (S3); this story exports the rule so readiness can call it. Operator ruling B (comment 7048518461): a reused cut runs no host coverage, only the short host smoke check.",
+        "expected_outputs": [
+          "packages/core/src/release/ci-reuse.ts evaluates the reuse rule (clean Step 5 input tree identical to the fetched delivery-branch tip tree; latest attempt of each required check on that tip is success) and defines and runs the short host smoke check",
+          "packages/core/src/release/pipeline.ts Step 5 reuses CI with no flag, citation or prompt, prints the tip SHA and check-run URLs, runs the smoke check, prints any changed decision and otherwise runs the full local check",
+          "changelog.d/6791-release-step5-ci-reuse.md"
+        ],
+        "conflict_group": "release-core",
+        "model_tier": "high"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "During the 0.130.0 cut, skipping Step 5 on an identical tree took two override flags: `--allow-skip-ci=#6791` and then `--allow-unpaid-skip-ci=#6791`, because a cited issue that is still open counts as \"unpaid\" (#5239 / #5526). The reuse rule here would remove both for the identical-tree case.",
+          "id": 7021724175,
+          "html_url": "https://github.com/deftai/directive/issues/6791#issuecomment-7021724175",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-19T20:44:37Z",
+          "updated_at": "2026-11-19T20:44:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "This issue is S1 of the #6845 split (`deft release:run`). Its acceptance criteria are lean clauses 3, 12 and 14 of the #6845 completed arc, copied verbatim. Source: accepted synthesis https://github.com/deftai/directive/issues/6845#issuecomment-7032191525, bound lean https://github.com/deftai/directive/issues/6845#issuecomment-7032154033, verified-claims table https://github.com/deftai/directive/issues/6845#issuecomment-7032191283.\n\n## Acceptance criteria from the #6845 arc\n\n- [ ] CI reuse. Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched delivery-branch tip, and the latest run of each required check (`TypeScript (build + lint)`, `Merge gate (task check)`) on that tip SHA completed `success`. Reuse needs no flag, no citation and no prompt, and prints the SHA and the check-run URLs. A missing, pending, failed or re-running latest attempt never reuses an older success. Readiness evaluates the same rule and always prints that reuse is provisional and about how long the full local `task check` takes; when the rule does not hold at readiness, it says before the mint that the full check will run. Step 5 evaluates the rule again, prints any changed decision, and continues either way without a prompt. This builds the #6791 reuse rule, including its short host smoke check; a reused cut runs no host coverage.\n- [ ] Given a fetched tip whose latest required check runs concluded `success` and a clean Step 5 input tree identical to that tip, when the run reaches Step 5, then it reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs.\n- [ ] Given green checks at readiness and a new pending or failed attempt at Step 5, also when an older attempt succeeded, then Step 5 prints the changed decision and runs the full local check without a prompt.\n\nHow these relate to the body above:\n- They narrow it. The body reuses CI for \"a commit on the delivery branch\"; the arc reuses only for the fetched delivery-branch tip, and only when the latest attempt of each required check is `success` (a pending, re-running, failed or missing latest attempt never reuses an older success).\n- The short host smoke check from the body stays. The readiness half of clause 3 lands with S3 (#6876), which adds readiness.\n- Open item for the operator: a reused cut runs no host coverage. Coverage and the full Windows suite then return through #6849.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7048161400,
+          "html_url": "https://github.com/deftai/directive/issues/6791#issuecomment-7048161400",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:03:26Z",
+          "updated_at": "2026-11-20T19:03:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Operator ruling on the open host-coverage item (2026-11-20)\n\nScott chose option **B**: a reused cut runs **no** host coverage. Only the short host smoke check of this issue runs at Step 5.\n\nWhat this means:\n- When Step 5 reuses CI (clean Step 5 input tree identical to the fetched delivery-branch tip, latest `TypeScript (build + lint)` and `Merge gate (task check)` attempts `success`), the release runs the host smoke check only. It does not run host coverage.\n- Scott accepts this gap. #6849 (the nightly coverage lane) is built right after this story to close it.\n- Lean clause 3 of #6845 (bound lean 7032154033) stands as written; no later arc is needed for item 3.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7048518461,
+          "html_url": "https://github.com/deftai/directive/issues/6791#issuecomment-7048518461",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:20:47Z",
+          "updated_at": "2026-11-20T19:20:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: not warranted, because these clauses come verbatim from the #6845 completed arc (bound lean 7032154033)\n\n",
+          "id": 7048586498,
+          "html_url": "https://github.com/deftai/directive/issues/6791#issuecomment-7048586498",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:23:45Z",
+          "updated_at": "2026-11-20T19:23:45Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6498677316,
+        "origin": "deftai/directive#6791",
+        "id": "github.issue.6498677316"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "CI reuse. Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched delivery-branch tip, and the latest run of each required check (`TypeScript (build + lint)`, `Merge gate (task check)`) on that tip SHA completed `success`. Reuse needs no flag, no citation and no prompt, and prints the SHA and the check-run URLs. A missing, pending, failed or re-running latest attempt never reuses an older success. Readiness evaluates the same rule and always prints that reuse is provisional and about how long the full local `task check` takes; when the rule does not hold at readiness, it says before the mint that the full check will run. Step 5 evaluates the rule again, prints any changed decision, and continues either way without a prompt. This builds the #6791 reuse rule, including its short host smoke check; a reused cut runs no host coverage.",
+        "Given a fetched tip whose latest required check runs concluded `success` and a clean Step 5 input tree identical to that tip, when the run reaches Step 5, then it reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs.",
+        "Given green checks at readiness and a new pending or failed attempt at Step 5, also when an older attempt succeeded, then Step 5 prints the changed decision and runs the full local check without a prompt."
+      ],
+      "admitted_source_sentences": [
+        "CI reuse. Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched delivery-branch tip, and the latest run of each required check (`TypeScript (build + lint)`, `Merge gate (task check)`) on that tip SHA completed `success`. Reuse needs no flag, no citation and no prompt, and prints the SHA and the check-run URLs. A missing, pending, failed or re-running latest attempt never reuses an older success. Readiness evaluates the same rule and always prints that reuse is provisional and about how long the full local `task check` takes; when the rule does not hold at readiness, it says before the mint that the full check will run. Step 5 evaluates the rule again, prints any changed decision, and continues either way without a prompt. This builds the #6791 reuse rule, including its short host smoke check; a reused cut runs no host coverage.",
+        "Given a fetched tip whose latest required check runs concluded `success` and a clean Step 5 input tree identical to that tip, when the run reaches Step 5, then it reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs.",
+        "Given green checks at readiness and a new pending or failed attempt at Step 5, also when an older attempt succeeded, then Step 5 prints the changed decision and runs the full local check without a prompt."
+      ],
+      "admitted_source_digest": "ad085b0774c197ec29e7cb3a3fe62800492cb93b40dde60dfc021bc1077bdaa9",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CI reuse. Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched delivery-branch tip, and the latest run of each required check (`TypeScript (build + lint)`, `Merge gate (task check)`) on that tip SHA completed `success`. Reuse needs no flag, no citation and no prompt, and prints the SHA and the check-run URLs. A missing, pending, failed or re-running latest attempt never reuses an older success. Readiness evaluates the same rule and always prints that reuse is provisional and about how long the full local `task check` takes; when the rule does not hold at readiness, it says before the mint that the full check will run. Step 5 evaluates the rule again, prints any changed decision, and continues either way without a prompt. This builds the #6791 reuse rule, including its short host smoke check; a reused cut runs no host coverage.",
+          "artifact_path": "packages/core/src/release/ci-reuse.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given a fetched tip whose latest required check runs concluded `success` and a clean Step 5 input tree identical to that tip, when the run reaches Step 5, then it reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs.",
+          "artifact_path": "packages/core/src/release/pipeline.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given green checks at readiness and a new pending or failed attempt at Step 5, also when an older attempt succeeded, then Step 5 prints the changed decision and runs the full local check without a prompt.",
+          "artifact_path": "packages/core/src/release/pipeline.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6498677316",
+    "updated": "2026-11-20T19:26:41Z"
+  }
+}
