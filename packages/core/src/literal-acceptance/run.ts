@@ -148,6 +148,20 @@ function containmentRefusalRun(
   };
 }
 
+/**
+ * True when the row is the run-time containment refusal (#6886 item 2). It is
+ * not a command-form refusal: it never joins the rejected ledger and it keeps
+ * exit 2, even when it fires after an earlier command ran.
+ */
+export function isContainmentRefusalRun(
+  run: Pick<LiteralAcceptanceRunResult, "exitCode" | "detail">,
+): boolean {
+  return (
+    isSafetyRefusalRun(run) &&
+    run.detail.includes(`deft gate ${ACCEPTANCE_CWD_CONTAINMENT_REFUSAL_ID} `)
+  );
+}
+
 function nonEmptyExpectedStdout(cmd: LiteralAcceptanceCommand): string {
   return cmd.expectedStdout !== null &&
     cmd.expectedStdout !== undefined &&
@@ -458,6 +472,9 @@ export function runLiteralAcceptanceCommands(
       }
     }
     runs.push(run);
+    // A directory that an earlier command removed or replaced is refused at
+    // its own spawn; that refusal stays a containment refusal (#6886).
+    if (isContainmentRefusalRun(run)) continue;
     if (isSafetyRefusalRun(run)) {
       rejected.push({
         command: run.command,
@@ -465,6 +482,22 @@ export function runLiteralAcceptanceCommands(
         sourceSpan: cmd.sourceSpan ?? null,
       });
     }
+  }
+
+  const lateContainment = runs.filter(isContainmentRefusalRun);
+  if (lateContainment.length > 0) {
+    return {
+      ok: false,
+      code: 2,
+      message:
+        `Literal acceptance-command gate refused (#6886): ${lateContainment.length} ` +
+        `command(s) had a working directory that was missing or outside the repository ` +
+        `when their turn came; those commands were not spawned.\n` +
+        runs.map((r) => `  ${r.ok ? "✓" : "✗"} ${r.command} — ${r.detail}`).join("\n"),
+      commands,
+      runs,
+      rejected: rejected.length > 0 ? rejected : undefined,
+    };
   }
 
   const failed = runs.filter((r) => !r.ok);

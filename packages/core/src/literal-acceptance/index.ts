@@ -42,6 +42,7 @@ export {
   formatAcceptanceCwdContainmentRefusal,
   formatUnpromotedCaptureOnlyMessage,
   formatUnpromotedCaptureOnlyRecord,
+  isContainmentRefusalRun,
   isSafetyRefusalRun,
   runLiteralAcceptanceCommand,
   runLiteralAcceptanceCommands,

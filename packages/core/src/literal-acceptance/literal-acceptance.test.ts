@@ -2,7 +2,7 @@
  * Tests for literal acceptance-command capture + verbatim run (#3267).
  */
 
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,6 +12,7 @@ import {
   captureLiteralAcceptanceCommands,
   evaluateLiteralAcceptanceFromPath,
   evaluateLiteralAcceptanceFromPlan,
+  isContainmentRefusalRun,
   isLiteralAcceptanceRequiredAtCeremonyDepth,
   readStoredLiteralAcceptanceCommands,
   runLiteralAcceptanceCommand,
@@ -799,6 +800,33 @@ describe("run-time cwd containment (#6886 item 2)", () => {
     );
     expect(result.ok).toBe(true);
     expect(used).toBe(join(root, "web"));
+  });
+
+  it("keeps exit 2 and leaves the rejected ledger alone when a later cwd vanishes mid-run", () => {
+    const root = rootWithWeb();
+    mkdirSync(join(root, "later"));
+    const spawned: string[] = [];
+    const result = runLiteralAcceptanceCommands(
+      [
+        { command: "task web:test", source: "explicit", cwd: "web" },
+        { command: "task check", source: "explicit", cwd: "later" },
+      ],
+      {
+        projectRoot: root,
+        runner: (input) => {
+          spawned.push(input.command);
+          rmSync(join(root, "later"), { recursive: true, force: true });
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+    expect(spawned).toEqual(["task web:test"]);
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(2);
+    expect(result.rejected).toBeUndefined();
+    expect(result.runs).toHaveLength(2);
+    expect(isContainmentRefusalRun(result.runs[1] ?? { exitCode: 0, detail: "" })).toBe(true);
+    expect(result.message).toContain("were not spawned");
   });
 
   it("refuses in the single-command runner too", () => {
