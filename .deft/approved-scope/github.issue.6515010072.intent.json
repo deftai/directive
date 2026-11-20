@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "chore: retire Go from master (frozen installer bridge leftovers in toolchain:check, CI and CodeQL)",
+    "narratives": {
+      "Description": "Remove the last Go surfaces from master: go.mod, the two content/templates embed Go files, the go probe in toolchain:check and doctor, the Go text in setup:toolchain, both setup-go steps in ci.yml, the Go-only release.yml workflow, and the gomod Dependabot entry. Retire the legacy Go-installer bridge apparatus that only served Go builds: the lastGoInstaller SoT (packages/core/src/legacy-bridge), the verify:go-freeze and verify:bridge-drift gates and their CLI verbs, and the skipped --legacy-bridge release-e2e leg. Docs stop pointing at removed files and say the frozen bridge binaries stay on the published v0.58.0 release.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6863",
+      "Overview": "## Problem\n\nThe Go installer was frozen as the legacy stage-1 bridge (#1912, closed), and releases above the bridge tag already skip the Go build. Go still costs every CI run and still blocks local maintainer setup:\n\n- `task check` runs `toolchain:check`, and that task still requires `go` (`tasks/toolchain.yml`).\n- Both merge-gate jobs in `.github/workflows/ci.yml` run `actions/setup-go` only to satisfy that check.\n- CodeQL still runs `Analyze (go)` twice per PR.\n- `task setup:toolchain` installs Go on Windows maintainer machines.\n- The only Go sources left are `go.mod`, `content/templates/embed.go` and `content/templates/embed_test.go`.\n\n## Proposed fix\n\nDecide whether the frozen bridge still needs to be buildable from master. If it does not:\n- remove `go.mod` and the two `embed*.go` files;\n- remove `go` from `toolchain:check` and `setup:toolchain`;\n- remove both `setup-go` steps from `ci.yml` and the Go job from `release.yml`;\n- drop `go` from the CodeQL language matrix;\n- keep `verify:go-installer-bridge` only if a surface still reads `lastGoInstaller`; otherwise retire it too.\n\nIf the bridge must stay buildable, keep it on its own tag or branch, and still remove Go from the master gates.\n\n## Acceptance Criteria\n\n- [ ] `task check` passes on a machine without Go installed.\n- [ ] No `setup-go` step and no CodeQL Go analysis run on PRs.\n- [ ] `git ls-files '*.go' go.mod` returns nothing on master, or the issue records why the bridge sources stay.\n- [ ] The frozen bridge binary that existing users depend on is still downloadable from its published release.\n\nRefs #1912, #1972\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As a Directive maintainer, I want master to have no Go toolchain, CI or source surfaces, so that task check, CI and local setup run without Go and stop paying for a frozen bridge.",
+      "Constraint": "Operator decision (Scott, 2026-11-20): \"Retire Go fully\". master does not need to build the frozen Go installer bridge. The bridge binaries stay downloadable from the published v0.58.0 GitHub release (install-linux-amd64, install-linux-arm64, install-macos-universal, install-windows-amd64.exe, install-windows-arm64.exe), and can be rebuilt from that tag if ever needed. Never delete release assets or tags. CodeQL runs as GitHub default setup (a repository setting, not a workflow file): the operator removes go from its languages; workers never change repository settings, rulesets or branch protection. No Go-related check is required on master (required: Merge gate (task check), TypeScript (build + lint), Greptile Review), so the removal blocks no merge.",
+      "ImplementationPlan": "1. Go sources: delete go.mod, content/templates/embed.go and content/templates/embed_test.go.\n2. Toolchain: drop go from MAINTAINER_TOOLS in packages/core/src/verify-env/toolchain-check.ts and from the maintainer probes in packages/core/src/doctor/main.ts; drop Go from the toolchain:check desc (tasks/toolchain.yml) and the setup:toolchain desc (tasks/setup.yml); update toolchain-check.test.ts, verify-env-cli.test.ts and retarget-dispatch.test.ts so they no longer use go as a probed tool.\n3. CI: delete both Setup Go steps in .github/workflows/ci.yml; delete .github/workflows/release.yml (every job builds, smokes or uploads Go binaries, and verify-run-version only runs behind the disabled build); delete packages/core/src/content-contracts/standards/release_workflow.test.ts; drop the gomod entry and Go comment lines from .github/dependabot.yml.\n4. Bridge gates: delete packages/core/src/legacy-bridge/, packages/runtime/src/gates-cli/verify-go-freeze.* and verify-bridge-drift.*, and packages/core/src/release-e2e/legacy-bridge-leg.*; remove their wiring in packages/core/package.json (./legacy-bridge export), packages/core/src/index.ts, packages/runtime/src/dispatch.ts, tasks/verify.yml, Taskfile.yml, check/gate-lists.ts, check/context.ts (CITED_SKIP_BASELINE rows), check/named-cause.ts, product-first-done-gate/types.ts, and release-e2e main.ts, flags.ts and types.ts (--legacy-bridge flag); fix check/orchestrator.test.ts for the smaller baseline; drop the LAST_GO_INSTALLER comment in init-deposit/hygiene.ts.\n5. Docs: docs/RELEASING.md and the release skill (content/skills/deft-directive-release/SKILL.md, then regenerate content/packs/skills/skills-pack-0.1.json) say the bridge binaries stay on the v0.58.0 release and Go is gone from master; docs/FILES.md and docs/ARCHITECTURE.md stop listing go.mod.\n6. Add packages/core/src/content-contracts/standards/go_retired_6863.test.ts asserting: no tracked *.go or go.mod; no setup-go in ci.yml; no release.yml; MAINTAINER_TOOLS has no go; no gomod in dependabot.yml; no packages/core/src/legacy-bridge directory.\n7. One changelog fragment changelog.d/6863-retire-go.md.",
+      "Traces": "#6863"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "`task check` passes on a machine without Go installed.",
+        "narrative": {
+          "Acceptance": "When task check runs on a machine without Go, then toolchain:check and doctor do not probe go and the check passes."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "No `setup-go` step and no CodeQL Go analysis run on PRs.",
+        "narrative": {
+          "Acceptance": "When a PR runs CI, then ci.yml shows no setup-go step and no release.yml Go job runs; the operator drops go from CodeQL default setup."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "`git ls-files '*.go' go.mod` returns nothing on master, or the issue records why the bridge sources stay.",
+        "narrative": {
+          "Acceptance": "When git ls-files '*.go' go.mod runs on master, then it returns nothing."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "The frozen bridge binary that existing users depend on is still downloadable from its published release.",
+        "narrative": {
+          "Acceptance": "When a user opens the v0.58.0 release, then it shows its five install-* assets, and docs/RELEASING.md says they stay there."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6863",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6863: chore: retire Go from master (frozen installer bridge leftovers in toolchain:check, CI and CodeQL)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1912"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (4), in order (#6333)",
+      "sentences": [
+        "`task check` passes on a machine without Go installed.",
+        "No `setup-go` step and no CodeQL Go analysis run on PRs.",
+        "`git ls-files '*.go' go.mod` returns nothing on master, or the issue records why the bridge sources stay.",
+        "The frozen bridge binary that existing users depend on is still downloadable from its published release."
+      ],
+      "admitted_source_sentences": [
+        "`task check` passes on a machine without Go installed.",
+        "No `setup-go` step and no CodeQL Go analysis run on PRs.",
+        "`git ls-files '*.go' go.mod` returns nothing on master, or the issue records why the bridge sources stay.",
+        "The frozen bridge binary that existing users depend on is still downloadable from its published release."
+      ],
+      "admitted_source_digest": "d8fb6be9904ce9238ab4e0ebb45e26bf55278b11bdd82268d6dadaab4decab9a",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`task check` passes on a machine without Go installed.",
+          "artifact_path": "packages/core/src/verify-env/toolchain-check.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "No `setup-go` step and no CodeQL Go analysis run on PRs.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`git ls-files '*.go' go.mod` returns nothing on master, or the issue records why the bridge sources stay.",
+          "artifact_path": "go.mod",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The frozen bridge binary that existing users depend on is still downloadable from its published release.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6515010072,
+        "origin": "deftai/directive#6863",
+        "id": "github.issue.6515010072"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "go.mod",
+          "content/templates/embed.go",
+          "content/templates/embed_test.go",
+          "tasks/toolchain.yml",
+          "tasks/setup.yml",
+          "packages/core/src/verify-env/toolchain-check.ts",
+          "packages/core/src/verify-env/toolchain-check.test.ts",
+          "packages/runtime/src/gates-cli/verify-env-cli.test.ts",
+          "packages/runtime/src/install-cli/retarget-dispatch.test.ts",
+          "packages/core/src/doctor/main.ts",
+          ".github/workflows/ci.yml",
+          ".github/workflows/release.yml",
+          ".github/dependabot.yml",
+          "packages/core/src/content-contracts/standards/release_workflow.test.ts",
+          "packages/core/src/legacy-bridge/index.ts",
+          "packages/core/src/legacy-bridge/sot.ts",
+          "packages/core/src/legacy-bridge/sot.test.ts",
+          "packages/core/src/legacy-bridge/freeze-gate.ts",
+          "packages/core/src/legacy-bridge/freeze-gate.test.ts",
+          "packages/core/src/legacy-bridge/bridge-drift.ts",
+          "packages/core/src/legacy-bridge/bridge-drift.test.ts",
+          "packages/core/package.json",
+          "packages/core/src/index.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/context.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/core/src/product-first-done-gate/types.ts",
+          "packages/core/src/release-e2e/legacy-bridge-leg.ts",
+          "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
+          "packages/core/src/release-e2e/main.ts",
+          "packages/core/src/release-e2e/flags.ts",
+          "packages/core/src/release-e2e/types.ts",
+          "packages/runtime/src/gates-cli/verify-go-freeze.ts",
+          "packages/runtime/src/gates-cli/verify-go-freeze.test.ts",
+          "packages/runtime/src/gates-cli/verify-bridge-drift.ts",
+          "packages/runtime/src/gates-cli/verify-bridge-drift.test.ts",
+          "packages/runtime/src/dispatch.ts",
+          "tasks/verify.yml",
+          "Taskfile.yml",
+          "docs/RELEASING.md",
+          "docs/FILES.md",
+          "docs/ARCHITECTURE.md",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/standards/go_retired_6863.test.ts",
+          "changelog.d/6863-retire-go.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6515010072.json",
+          "docs/RULE-MAP.md",
+          "vitest.config.ts",
+          "content/conventions/content-manifest.json",
+          "packages/core/src/content-contracts/standards/COVERAGE-MAP.md",
+          "content/templates/agents-entry.placeholders.md",
+          ".deft/approved-scope/github.issue.6515010072.json",
+          ".deft/approved-scope/github.issue.6515010072.intent.json"
+        ]
+      }
+    },
+    "id": "github.issue.6515010072"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.kind",
+    "metadata.x-directive/plan-id"
+  ]
+}

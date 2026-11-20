@@ -182,7 +182,14 @@
           "packages/core/src/content-contracts/standards/go_retired_6863.test.ts",
           "changelog.d/6863-retire-go.md",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
-          "xbrief/.audit/spec-drift/github.issue.6515010072.json"
+          "xbrief/.audit/spec-drift/github.issue.6515010072.json",
+          "docs/RULE-MAP.md",
+          "vitest.config.ts",
+          "content/conventions/content-manifest.json",
+          "packages/core/src/content-contracts/standards/COVERAGE-MAP.md",
+          "content/templates/agents-entry.placeholders.md",
+          ".deft/approved-scope/github.issue.6515010072.json",
+          ".deft/approved-scope/github.issue.6515010072.intent.json"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",
