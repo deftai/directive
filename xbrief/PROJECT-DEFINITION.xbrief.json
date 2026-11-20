@@ -865,27 +865,6 @@
             }
           ]
         }
-      },
-      {
-        "id": "2026-11-19-6793-docsrelease-release-skill-predates-the-release-pr-flow-docum",
-        "title": "docs(release): release skill predates the release-PR flow; document the full cut sequence",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-11-19-6793-docsrelease-release-skill-predates-the-release-pr-flow-docum.xbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/6793",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #6793: docs(release): release skill predates the release-PR flow; document the full cut sequence"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6296",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6296"
-            }
-          ]
-        }
       }
     ],
     "metadata": {

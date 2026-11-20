@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6793",
-    "updated": "2026-11-19T22:57:14Z"
+    "updated": "2026-11-20T00:32:32Z"
   },
   "plan": {
     "title": "docs(release): release skill predates the release-PR flow; document the full cut sequence",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "docs(release): release skill predates the release-PR flow; document the full cut sequence",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6793",
@@ -17,158 +17,375 @@
     "items": [
       {
         "title": "Runbook (P1, P4, P7). In `content/packs/skills/skills-pack-0.1.json`, the release skill body gains `## Stable cut runbook` directly after `## Release through a PR (#6296)`. A two-line key: `[operator]` marks the one human-authority act (the TTY grant) and steps run in the session that owns the primary checkout (ritual, cut, finish, cut context, local update, `npm i -g`); `[agent]` marks reads, watches and steps with no human-authority basis. Steps, each naming the phase that holds the detail:",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] Quiescence: report open PRs, armed auto-merge and running workers; each agent releases its own lease on the primary (`occupancy:release` or `session:end`) and clears story bindings for merged work. The operator decides on any finding.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] Readiness on an `origin/master` snapshot: Phase 2 dry run (with the optional `--summary`), pending `changelog.d/` fragments, version files consistent, the two CI checks green on the tip (`Greptile Review` stays a separate ruleset requirement), tag `v<version>` not on origin; Phase 3 `task release:e2e` or its recent-success exception. The operator confirms the plan.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[operator] Clean the primary; `git fetch origin master && git switch -c release/v<version> origin/master`. This comes before step 4 on purpose: a branch switch after `session:start` forces a cold restart of the ritual (#6293).",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[operator] `deft session:start --primary-claim-exception=release-cut` before any Directive state-changing step; then `deft cache fetch-all` (no `--force`) if `cache_fresh` is dirty; `deft verify:session-ritual -- --tier=gated`; `task materialize:cut-context`.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] Incident path only: identical-tree check. The release branch HEAD tree equals the tree of the master tip on which the two CI checks are green. Equality does not replace incident review.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[operator] `task release -- <version>` (plus `--summary` if collected). It pushes the branch and opens the release PR. The freeze starts.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] Review watch through the review-cycle monitoring tiers (`review-monitor:register` and a `pr:watch` child where the host can spawn one; otherwise the owning-agent path) until CLEAN; findings, errors and timeouts go back to review-cycle. Merge with `task pr:wait-mergeable-and-merge -- <N> --wait` (the operator merged at 0.130.0; `plan.policy.requireHumanMerge` is false, so an agent may run it).",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] Freeze observation before finish: the release merge commit M is the delivery-branch tip and no other PR merged since the release PR; record each package's `latest` dist-tag as the baseline for step 11.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[operator] `deft authz:grant -- --template release-publish --target <version> --confirm`, then type `mint` at the TTY.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[operator] `task release -- --finish <version>`, then `task materialize:clear-cut-context`. The freeze ends.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] `gh run watch` on the tag-triggered `npm-publish.yml` run; `task release:wait-npm -- <version>` (report-only); on both packages `maintainer` is `<version>` and `latest` equals the step-8 baseline; the `promote-latest` job is skipped; the `post-publish` fixture job is green; Phase 5 draft QA.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] `task release:publish -- <version>` (Phase 6 happy path; the operator ran it at 0.130.0). REST check: the release is not a draft and `GET /repos/<o>/<r>/releases/latest` is not this tag.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] Phase 7 closeout (issue auto-close checks, roadmap render, umbrella reopen sweep).",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[agent] Pin PR with the four #6673 changes (pin, `minimumReleaseAgeExclude` row, lockfile, one changelog line) merged through the queue; the runbook links the 0.130.0 pin PR as the worked example. Two facts the step states: the agent commit gate refuses a dogfood pin commit (#5656 prospective scope-cover; `package.json` and the lockfiles are not exempt), so the operator commits the pin from their own terminal until #5771 lands; and installing the new version re-deposits host files (hooks, skill copies, host configs, `.gitignore`) on the first commit, so the pin PR carries that deposit. [operator] Switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "[operator] `latest` decision (Phase 7): promote now with the `release-promote-latest` grant and `deft release-publish --promote-latest <version>`, or record \"latest stays at <prior version>\".",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Freeze (P2). One paragraph under the runbook. The freeze runs from step 6 until step 10 pushes the tag, as an operator coordination rule. Before M: a PR that adds a changelog entry or fragment and merges before the release PR check fails the release rule (close the release PR, delete the branch, cut again); one that lands ahead in the queue leaves leftovers at M and `--finish` refuses. After M: a merge breaks the rule but does not make `--finish` refuse, because it tags M by SHA. A failed step-8 observation is reported and handled by recovery by state.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Skip path (P3). Under step 6: incident-only `--skip-ci --allow-skip-ci=#N`, plus `--allow-unpaid-skip-ci=#N` citing the same issue when that issue is open or unknown or its spend record is reused; only after step 5; until #6791 ships. Phase 4 \"NO `--skip-ci`\" gains \"except the incident path in the runbook\".",
-        "status": "proposed",
-        "id": "clause.18"
+        "status": "completed",
+        "id": "clause.18",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "RELEASING.md (P5). Replace `## Release Process` (255-266) with a two-line pointer to the skill runbook. Add one sentence to `## Release through a PR` linking the runbook for quiescence, cut context, the freeze and the pin steps. Keep line 66 (the real required checks).",
-        "status": "proposed",
-        "id": "clause.19"
+        "status": "completed",
+        "id": "clause.19",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Stale copy (P6). `content/.agents/skills/deft-directive-release/SKILL.md` becomes a pointer stub in the sibling form (frontmatter plus \"Read and follow: skills/deft-directive-release/SKILL.md\"). Regenerate with `task packs:render`; `task packs:render -- --check` is clean.",
-        "status": "proposed",
-        "id": "clause.20"
+        "status": "completed",
+        "id": "clause.20",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests and note (P1-P7). `release_workflow.test.ts` pins the runbook heading, the `[operator]`/`[agent]` key, the branch switch before session start, session start before cache refresh, the freeze paragraph, `--allow-unpaid-skip-ci`, `#6791`, the `maintainer` line, the RELEASING.md link and the pointer stub. One `changelog.d/` fragment.",
-        "status": "proposed",
-        "id": "clause.21"
+        "status": "completed",
+        "id": "clause.21",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The release skill has a `## Stable cut runbook` section after `## Release through a PR (#6296)`, rendered from the pack source, with one numbered list covering quiescence, readiness and dry run, E2E rehearsal, release branch, session start, cache refresh, cut context, identical-tree check, `task release`, review watch and merge, freeze observation, grant, `--finish`, clearing cut context, publish checks, `release:publish` and its REST check, closeout, pin PR, local update, `npm i -g`, and the `latest` decision.",
-        "status": "proposed",
-        "id": "clause.22"
+        "status": "completed",
+        "id": "clause.22",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Each runbook step is tagged `[operator]` or `[agent]`, and a key says the TTY grant is the one human-authority act and that other operator steps run in the session that owns the primary.",
-        "status": "proposed",
-        "id": "clause.23"
+        "status": "completed",
+        "id": "clause.23",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "In the runbook, the operator cleans the primary and switches to the release branch before `session:start --primary-claim-exception=release-cut`, the step says a later switch forces a cold restart (#6293), and the session claim comes before `deft cache fetch-all` and every other Directive state-changing step.",
-        "status": "proposed",
-        "id": "clause.24"
+        "status": "completed",
+        "id": "clause.24",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The skill states the merge freeze from `task release` until `--finish` pushes the tag as a coordination rule, states the cases before and after the release merge commit, and its pre-finish observation checks that no other PR merged since the release PR.",
-        "status": "proposed",
-        "id": "clause.25"
+        "status": "completed",
+        "id": "clause.25",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The skill documents `--skip-ci --allow-skip-ci=#N` and `--allow-unpaid-skip-ci=#N` as incident-only after the identical-tree check, and links #6791.",
-        "status": "proposed",
-        "id": "clause.26"
+        "status": "completed",
+        "id": "clause.26",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The skill states that a stable publish goes to the `maintainer` dist-tag, that the cut checks `latest` against a recorded baseline, and that promote to `latest` needs the `release-promote-latest` grant.",
-        "status": "proposed",
-        "id": "clause.27"
+        "status": "completed",
+        "id": "clause.27",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The runbook pin-PR step states that the operator commits the pin from their own terminal until #5771 lands (#5656), and that the pin PR carries the host-file re-deposit.",
-        "status": "proposed",
-        "id": "clause.28"
+        "status": "completed",
+        "id": "clause.28",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`docs/RELEASING.md` has no direct-tag `## Release Process` section, links the skill runbook, and still names `TypeScript (build + lint)` and `Merge gate (task check)`.",
-        "status": "proposed",
-        "id": "clause.29"
+        "status": "completed",
+        "id": "clause.29",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`content/.agents/skills/deft-directive-release/SKILL.md` is a pointer stub to `skills/deft-directive-release/SKILL.md`, and `task packs:render -- --check` is clean.",
-        "status": "proposed",
-        "id": "clause.30"
+        "status": "completed",
+        "id": "clause.30",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`release_workflow.test.ts` pins the runbook heading, the role key, the freeze, the skip flags, `#6791` and the pointer stub.",
-        "status": "proposed",
-        "id": "clause.31"
+        "status": "completed",
+        "id": "clause.31",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+          "recorded_at": "2026-11-20T00:32:32Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -668,6 +885,32 @@
         "leanCommentId": 7023179808,
         "harvestDigest": "722285c8753c8704fc20dc053eb737a8b32852c414d4937a682cd3f8dd27c3c3",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "319246fddafcb5e64a45a977d294542ef66071a6",
+        "prNumber": 6802,
+        "prBase": "master",
+        "mergeCommit": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7abe1ee80fd20a4188030f9a790fb5a93c5a0d5a",
+        "verifiedAt": "2026-11-20T00:32:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T00:32:32Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T00:32:32Z"
       }
     },
     "acceptance": {
@@ -964,6 +1207,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6499352631",
-    "updated": "2026-11-19T22:57:14Z"
+    "updated": "2026-11-20T00:32:32Z"
   }
 }
