@@ -256,6 +256,7 @@
           "sourceSpan": "inline@L28"
         }
       ],
+      "productPullRequest": 6802,
       "swarm": {
         "file_scope": [
           "xbrief/active/2026-11-19-6793-docsrelease-release-skill-predates-the-release-pr-flow-docum.xbrief.json",
