@@ -19,7 +19,12 @@ import {
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
 } from "../init-deposit/migrate.js";
-import { DIRECTIVE_GITIGNORE_LINES } from "../install-health/owned-paths.js";
+import {
+  DIRECTIVE_GITIGNORE_DEFT_BLOCK_START,
+  DIRECTIVE_GITIGNORE_LINES,
+  directiveGitignoreOrderedBlock,
+  gitignoreOrderedPrefixLength,
+} from "../install-health/owned-paths.js";
 import { readRuntimePin } from "../install-health/readers.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
@@ -1750,29 +1755,49 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
   const required: readonly string[] = runtimePinned
     ? DIRECTIVE_GITIGNORE_LINES
     : CANONICAL_GITIGNORE_BASELINE;
+  // #6795: the `.deft/*` block is order-sensitive. A block line present only
+  // before `.deft/*` (or before its `!` line) does not apply, so it counts as
+  // missing until it is re-added in order.
+  const orderedLines = text
+    .split("\n")
+    .map((raw) => stripGitignoreInlineComment(raw))
+    .filter((line) => line.length > 0);
+  const block = runtimePinned ? directiveGitignoreOrderedBlock() : [];
+  const outOfOrder = new Set(block.slice(gitignoreOrderedPrefixLength(orderedLines, block)));
   const missing: string[] = [];
   for (const line of required) {
     if (line === "node_modules/" && gitignoreNodeModulesCovered(present)) continue;
-    if (!gitignoreLineIsCovered(present, line)) {
+    if (!gitignoreLineIsCovered(present, line) || outOfOrder.has(line)) {
       missing.push(line);
     }
   }
+  // A bare `.deft/` ignores the folder itself; git cannot re-include files under
+  // an ignored folder, so the `!` lines cannot apply while it is present.
+  const wholeFolderIgnored =
+    runtimePinned && [".deft/", ".deft", "/.deft/", "/.deft"].some((v) => present.has(v));
   // Information only (runtime pin): old-baseline lines setup does not own.
+  // `.deft/*` already covers the old baseline's `.deft/` runtime paths.
   const optional: string[] = [];
   if (runtimePinned) {
     const requiredSet = new Set<string>(required);
+    const deftBlockActive = present.has(DIRECTIVE_GITIGNORE_DEFT_BLOCK_START);
     for (const line of CANONICAL_GITIGNORE_BASELINE) {
       if (requiredSet.has(line) || gitignoreLineIsCovered(present, line)) continue;
+      if (deftBlockActive && line.startsWith(".deft/")) continue;
       optional.push(line);
     }
   }
+  const wholeFolderNote = wholeFolderIgnored
+    ? " `.deft/` in .gitignore ignores the whole folder, so the `!.deft/...` lines cannot keep " +
+      "committed records trackable; replace it with Directive's `.deft/*` block."
+    : "";
   const optionalNote =
     optional.length > 0
       ? ` Information: other local files you may want to ignore: ${optional.join(", ")}. ` +
         "Add these to .gitignore if you don't want to see them in `git status`."
       : "";
 
-  if (missing.length === 0) {
+  if (missing.length === 0 && !wholeFolderIgnored) {
     return {
       name: "gitignore-coverage",
       status: "pass",
@@ -1781,17 +1806,21 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
     };
   }
 
+  const missingNote =
+    missing.length > 0
+      ? `Directive .gitignore entries missing or out of order: ${missing.join(", ")}. ` +
+        `Run \`${fix}\` to add them.`
+      : "Directive .gitignore entries are present.";
   return {
     name: "gitignore-coverage",
     status: "fail",
-    detail:
-      `Directive .gitignore entries missing: ${missing.join(", ")}. ` +
-      `Run \`${fix}\` to add them.${optionalNote}`,
+    detail: `${missingNote}${wholeFolderNote}${optionalNote}`,
     data: stampAdvisory({
       gitignore_path: gitignorePath,
       missing,
       optional,
       suggested_fix: fix,
+      whole_deft_folder_ignored: wholeFolderIgnored,
     }),
   };
 }

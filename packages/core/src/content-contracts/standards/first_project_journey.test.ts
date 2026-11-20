@@ -126,6 +126,14 @@ describe("first-project journey on a staged deposit (#4097)", () => {
     expect(first).not.toMatch(/^task (?!deft:)/m);
   });
 
+  it("creates the feature branch before the deposit commit (#6800)", () => {
+    const first = sectionBody(readDepositJourney(packRoot), "First Project");
+    const branch = first.search(/git switch -c|git checkout -b/);
+    const depositCommit = first.indexOf('git commit -m "chore: deposit Directive');
+    expect(branch).toBeGreaterThanOrEqual(0);
+    expect(depositCommit).toBeGreaterThan(branch);
+  });
+
   it("locks directive/deft vocabulary and does not teach hop-1 migrate:vbrief", () => {
     const text = readDepositJourney(packRoot);
     const first = sectionBody(text, "First Project");

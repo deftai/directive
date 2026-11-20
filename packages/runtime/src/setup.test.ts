@@ -71,6 +71,58 @@ describe("runSetup install|repair (R8 / AC8.*)", { timeout: 30_000 }, () => {
     expect(result.created.length).toBeGreaterThan(0);
   });
 
+  it("install deposits the .deft/* block: runtime state ignored, committed records trackable (#6795)", () => {
+    const root = tempRoot();
+    initGit(root);
+    // A `!` line placed before `.deft/*` would not apply; setup re-appends it in order.
+    writeFileSync(join(root, ".gitignore"), "dist/\n!.deft/plan-sequence.json\n");
+    runSetup({ operation: "install", from: "none", root });
+    const lines = readFileSync(join(root, ".gitignore"), "utf8").split("\n");
+    expect(lines[0]).toBe("dist/");
+    const star = lines.lastIndexOf(".deft/*");
+    expect(star).toBeGreaterThan(0);
+    expect(lines.lastIndexOf("!.deft/plan-sequence.json")).toBeGreaterThan(star);
+    expect(lines.lastIndexOf("!.deft/approved-scope/**")).toBeGreaterThan(star);
+    expect(lines.lastIndexOf(".deft/approved-scope/*.bak")).toBeGreaterThan(
+      lines.lastIndexOf("!.deft/approved-scope/**"),
+    );
+    expect(lines).toContain(".deft-cache/");
+
+    const ignored = (rel: string): boolean => {
+      try {
+        execFileSync("git", ["check-ignore", "-q", "--no-index", rel], { cwd: root });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    for (const rel of [
+      ".deft/occupancy.json",
+      ".deft/ritual-state.json",
+      ".deft/applying-host.json",
+      ".deft/authz/grants/x.json",
+      ".deft/approved-scope/story.json.bak",
+      ".deft/intent-constraint/story.json.next.tmp",
+      ".deft-cache/github-issue/1.json",
+    ]) {
+      expect(ignored(rel), rel).toBe(true);
+    }
+    for (const rel of [
+      ".deft/plan-sequence.json",
+      ".deft/GENERATION.json",
+      ".deft/approved-scope/story.json",
+      ".deft/intent-constraint/story.json",
+      ".deft/observable-scope/story.json",
+    ]) {
+      expect(ignored(rel), rel).toBe(false);
+    }
+
+    // A second run finds the block in order and adds nothing.
+    const before = readFileSync(join(root, ".gitignore"), "utf8");
+    runSetup({ operation: "repair", from: "0.0.0", root });
+    expect(readFileSync(join(root, ".gitignore"), "utf8")).toBe(before);
+  });
+
   it("repair does not create seed placeholders (AC8.4)", () => {
     const root = tempRoot();
     initGit(root);

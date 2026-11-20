@@ -136,6 +136,30 @@ describe("gitignore coverage (#5967 item 2 / #6618 Part C)", () => {
     expect(result.data?.suggested_fix).toBe("directive install --repair");
   });
 
+  it("a `!` line before `.deft/*` counts as out of order (#6795)", () => {
+    const root = temp();
+    pinned(root);
+    const lines = DIRECTIVE_GITIGNORE_LINES.filter((l) => l !== "!.deft/GENERATION.json");
+    writeFileSync(join(root, ".gitignore"), `!.deft/GENERATION.json\n${lines.join("\n")}\n`);
+    const result = checkGitignoreCoverage(root);
+    expect(result.status).toBe("fail");
+    expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(true);
+    expect(result.detail).toContain("missing or out of order");
+    expect(result.data?.missing as string[]).toContain("!.deft/GENERATION.json");
+    expect(result.data?.missing as string[]).not.toContain(".deft/*");
+  });
+
+  it("a bare `.deft/` that defeats the `!` lines fails with a note (#6795)", () => {
+    const root = temp();
+    pinned(root);
+    writeFileSync(join(root, ".gitignore"), `.deft/\n${DIRECTIVE_GITIGNORE_LINES.join("\n")}\n`);
+    const result = checkGitignoreCoverage(root);
+    expect(result.status).toBe("fail");
+    expect(result.data?.missing).toEqual([]);
+    expect(result.data?.whole_deft_folder_ignored).toBe(true);
+    expect(result.detail).toContain("ignores the whole folder");
+  });
+
   it("old-layout project (no runtime pin) names directive upgrade", () => {
     const root = temp();
     writeFileSync(join(root, "package.json"), "{}\n");

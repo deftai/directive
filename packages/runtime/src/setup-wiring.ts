@@ -11,6 +11,7 @@ import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/dist/doctor/
 import {
   containedChmod,
   containedRemove,
+  containedRename,
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
 import type { HookHost } from "@deftai/directive-core/dist/hooks/dispatcher.js";
@@ -1173,7 +1174,8 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 . "$REPO_ROOT/.githooks/_directive-run.sh"
 run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
-run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
+# Forward coverage is warn-only in this hook (#6807); CI and the merge gate still enforce it.
+run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || echo "directive hooks: forward coverage is advisory here; CI and the merge gate still enforce it." >&2
 if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
   run_directive verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
   run_directive verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
@@ -1224,6 +1226,86 @@ function isOurGitHookBody(rel: string, body: string): boolean {
 }
 
 const EXECUTABLE_GITHOOKS = new Set([".githooks/pre-commit", ".githooks/pre-push"]);
+
+/**
+ * #6806: replace a git hook by writing a temp file in the same directory and
+ * renaming it over the target. A shell that is running the old hook keeps its
+ * open file; an in-place truncate would make bash read the new file at the old
+ * byte offset. On Windows a rename onto a file that a running shell holds open
+ * fails, so the open hook is first moved aside (allowed there), then the temp
+ * file takes its name and the moved file is removed. Only when both fail is the
+ * hook written in place as before.
+ */
+function writeGitHookAtomic(projectRoot: string, rel: string, body: string): void {
+  const slash = rel.lastIndexOf("/");
+  const stem = `${rel.slice(0, slash + 1)}.${rel.slice(slash + 1)}.${process.pid}`;
+  const tmpRel = `${stem}.directive-tmp`;
+  const asideRel = `${stem}.directive-old`;
+  const removeQuietly = (target: string): void => {
+    try {
+      containedRemove({ root: projectRoot, target, mutation: false });
+    } catch {
+      /* best-effort cleanup */
+    }
+  };
+  containedWrite({
+    root: projectRoot,
+    target: tmpRel,
+    data: body,
+    mode: "replace",
+    mkdir: true,
+    mutation: false,
+  });
+  if (EXECUTABLE_GITHOOKS.has(rel)) {
+    try {
+      containedChmod({ root: projectRoot, target: tmpRel, mode: 0o755 });
+    } catch {
+      /* best-effort on platforms without chmod */
+    }
+  }
+  try {
+    containedRename({ root: projectRoot, from: tmpRel, to: rel });
+    return;
+  } catch {
+    /* target held open (Windows): move it aside below */
+  }
+  try {
+    containedRename({ root: projectRoot, from: rel, to: asideRel, mutation: false });
+  } catch {
+    removeQuietly(tmpRel);
+    writeContained(projectRoot, rel, body);
+    return;
+  }
+  try {
+    containedRename({ root: projectRoot, from: tmpRel, to: rel });
+  } catch {
+    // Put the old hook back, then fall back to the in-place write.
+    try {
+      containedRename({ root: projectRoot, from: asideRel, to: rel, mutation: false });
+    } catch {
+      /* the in-place write below still leaves a current hook */
+    }
+    removeQuietly(tmpRel);
+    writeContained(projectRoot, rel, body);
+    return;
+  }
+  removeQuietly(asideRel);
+}
+
+/** `trackChange` for git hooks: same skip rules, replacement by rename (#6806). */
+function trackGitHookChange(
+  projectRoot: string,
+  rel: string,
+  prior: string | null,
+  next: string,
+): TrackResult {
+  if (prior === next) return { created: false, modified: false };
+  if (prior !== null && contentsEqualIgnoringEol(prior, next) && !isShellHookEntrypoint(rel)) {
+    return { created: false, modified: false };
+  }
+  writeGitHookAtomic(projectRoot, rel, next);
+  return { created: prior === null, modified: prior !== null };
+}
 
 /** AC8.6 / AC2.5 / F-008 — disclosed when hooks files exist but core.hooksPath cannot activate. */
 export const GIT_HOOKS_INACTIVE_NO_GIT =
@@ -1423,7 +1505,7 @@ export function ensureGitHooks(
       continue;
     }
     const tracked = prior !== null && isGitTrackedPath(projectRoot, rel);
-    const change = trackChange(projectRoot, rel, next);
+    const change = trackGitHookChange(projectRoot, rel, prior, next);
     if (change.created) created.push(rel);
     else if (change.modified) {
       modified.push(rel);

@@ -1,0 +1,5 @@
+section: Fixed
+- Setup now replaces a `.githooks/*` file through a temp file and a rename, so a commit whose `pre-commit` is replaced mid-run after a pin bump no longer fails with `command not found` (#6806).
+- The deposited `pre-commit` runs forward coverage warn-only: a new source file without a paired test prints the finding and the commit goes ahead. CI and `deft check` still enforce it (#6807).
+- `docs/getting-started.md`: the first-project path creates the feature branch before the deposit commit, so the commit gate no longer refuses it (#6800).
+- The deposited `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, so `session:start` leaves a fresh install clean. `!` lines keep `.deft/plan-sequence.json`, `.deft/GENERATION.json`, `.deft/approved-scope/`, `.deft/intent-constraint/`, `.deft/observable-scope/`, `.deft/observable-ui.policy.json`, `.deft/test-boundary.policy.json` and `.deft/presentation-ceiling.json` trackable. Setup re-appends the block in order and doctor flags a misordered block or a bare `.deft/` line (#6795).
