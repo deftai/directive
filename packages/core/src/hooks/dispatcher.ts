@@ -195,6 +195,14 @@ import {
   payloadWithInjectedWriteTarget,
 } from "./dest-form.js";
 import {
+  type BlobReader,
+  type DirectiveOnlyPartition,
+  formatDirectiveOnlyRefusalNote,
+  type HeadTreeReader,
+  normalizeStagedPath,
+  partitionDirectiveOnlyEntries,
+} from "./directive-only-drop.js";
+import {
   decidePlanChoiceWithHatch,
   decideQuestionHatchGate,
   decideQuestionHatchPauseGate,
@@ -839,6 +847,10 @@ export interface HookPolicySeams {
   readonly listStagedIndexEntries?: (projectRoot: string) => ListStagedIndexEntriesResult;
   /** Index blob reader for the planning-publication plan-sequence check (#5839). */
   readonly readStagedBlob?: (projectRoot: string, blob: string) => string | null;
+  /** HEAD tree reader for the Directive-only drop (#5771); defaults to git. */
+  readonly readHeadTree?: HeadTreeReader;
+  /** HEAD blob reader by object id for the Directive-only drop (#5771); defaults to git. */
+  readonly readHeadBlob?: BlobReader;
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -5581,6 +5593,8 @@ function decideProspectiveGitCommitScopeCover(
     stagedRelPaths: staged,
     ...(stagedEntries !== undefined ? { stagedEntries } : {}),
     ...(seams.readStagedBlob !== undefined ? { readStagedBlob: seams.readStagedBlob } : {}),
+    ...(seams.readHeadTree !== undefined ? { readHeadTree: seams.readHeadTree } : {}),
+    ...(seams.readHeadBlob !== undefined ? { readHeadBlob: seams.readHeadBlob } : {}),
     inspectScope: seams.inspectScope,
     loadStoryWriteFence: seams.loadStoryWriteFence,
     ...(seams.resolveStoryWriteAllow !== undefined
@@ -5609,6 +5623,9 @@ function decideProspectiveGitCommitScopeCover(
  * xBRIEF lifecycle commits before the first activate) (#5656 Greptile).
  * A planning-publication staged set (#5839, see ./planning-publication.ts) is
  * admitted before the story binding and ready-scope guard.
+ * Staged entries whose change the ownership API calls Directive-only, and that
+ * pass the raw-path, mode and blob-read safeguards, leave the product set
+ * before the story binding (#5771, see ./directive-only-drop.ts).
  * Reachability residuals: `verify:hooks-installed` and `--no-verify`.
  */
 export interface ProspectiveScopeCoverInput {
@@ -5637,6 +5654,10 @@ export interface ProspectiveScopeCoverInput {
   readonly stagedEntries?: readonly StagedIndexEntry[];
   /** Index blob reader; defaults to `git cat-file blob` on `projectRoot` (#5839). */
   readonly readStagedBlob?: (projectRoot: string, blob: string) => string | null;
+  /** HEAD tree reader for the Directive-only drop (#5771); defaults to git. */
+  readonly readHeadTree?: HeadTreeReader;
+  /** HEAD blob reader by object id for the Directive-only drop (#5771); defaults to git. */
+  readonly readHeadBlob?: BlobReader;
   /** Merge-commit excuse (#6379 item 6); defaults to {@link excuseMergeArrivals}. */
   readonly excuseMergeArrivals?: typeof excuseMergeArrivals;
 }
@@ -5702,7 +5723,7 @@ export function evaluateProspectiveScopeCover(
       scopePath: null,
     };
   }
-  const productStaged = staged.filter((rel) => !isLifecycleOrInstallerRelPath(rel));
+  let productStaged = staged.filter((rel) => !isLifecycleOrInstallerRelPath(rel));
   if (productStaged.length === 0) {
     return {
       ok: true,
@@ -5712,6 +5733,39 @@ export function evaluateProspectiveScopeCover(
       scopePath: null,
     };
   }
+  // #5771: drop Directive-only entries by raw staged entry, after the lifecycle
+  // filter. With no raw staged entries (the listStagedRelPaths seam) nothing drops.
+  let drop: DirectiveOnlyPartition | null = null;
+  if (input.stagedEntries !== undefined) {
+    drop = partitionDirectiveOnlyEntries({
+      projectRoot,
+      entries: input.stagedEntries.filter((entry) => {
+        const rel = normalizeStagedPath(entry.path);
+        return rel.length > 0 && !isLifecycleOrInstallerRelPath(rel);
+      }),
+      readStagedBlob: blobReader,
+      ...(input.readHeadTree !== undefined ? { readHeadTree: input.readHeadTree } : {}),
+      ...(input.readHeadBlob !== undefined ? { readHeadBlob: input.readHeadBlob } : {}),
+    });
+    if (drop.dropped.length > 0) {
+      productStaged = drop.keptEntries
+        .map((entry) => normalizeStagedPath(entry.path))
+        .filter((rel) => rel.length > 0);
+      if (productStaged.length === 0) {
+        return {
+          ok: true,
+          message:
+            "Directive-only staged set; product prospective scope-cover not required (#5771). " +
+            `Directive-only paths: ${drop.dropped.join(", ")}.`,
+          uncovered: [],
+          scopePath: null,
+        };
+      }
+    }
+  }
+  const directiveNote = formatDirectiveOnlyRefusalNote(drop);
+  const withNote = (message: string): string =>
+    directiveNote.length > 0 ? `${message} ${directiveNote}` : message;
   if (planning?.admitted === true) {
     // Before the story binding and ready-scope guard: a planning-only set needs
     // no implementation scope. Stamps nothing; no merge-time credit (#5839).
@@ -5725,7 +5779,7 @@ export function evaluateProspectiveScopeCover(
     // A refusal is not "no binding": never fall back to another eligible story (#6247).
     return {
       ok: false,
-      message: `Prospective scope-cover denied (#6247): ${binding.message}`,
+      message: withNote(`Prospective scope-cover denied (#6247): ${binding.message}`),
       uncovered: productStaged,
       scopePath: null,
     };
@@ -5739,7 +5793,7 @@ export function evaluateProspectiveScopeCover(
     if (!intent.allowed) {
       return {
         ok: false,
-        message: `Prospective scope-cover denied (#6480): ${intent.reason}`,
+        message: withNote(`Prospective scope-cover denied (#6480): ${intent.reason}`),
         uncovered: productStaged,
         scopePath: null,
       };
@@ -5754,9 +5808,14 @@ export function evaluateProspectiveScopeCover(
   if (!scope.ready || scope.path === null) {
     return {
       ok: false,
+      // #5771 / #5949: a set holding Directive paths gets the per-path note
+      // instead of the write-a-brief recovery.
       message:
-        `Prospective scope-cover denied: no ready running scope for staged paths (#5656). ` +
-        `${scope.message} Recovery: ${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}.`,
+        directiveNote.length > 0
+          ? `Prospective scope-cover denied: no ready running scope for staged paths (#5656). ` +
+            `${scope.message} ${directiveNote}`
+          : `Prospective scope-cover denied: no ready running scope for staged paths (#5656). ` +
+            `${scope.message} Recovery: ${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}.`,
       uncovered: productStaged,
       scopePath: null,
     };
@@ -5766,9 +5825,10 @@ export function evaluateProspectiveScopeCover(
   if (isStoryWriteFenceUnreadable(fence)) {
     return {
       ok: false,
-      message:
+      message: withNote(
         `Prospective scope-cover denied: story write fence unreadable (#5656). ` +
-        `${fence.unreadableDetail}${formatStoryWriteFenceBaseNote(fence)}`,
+          `${fence.unreadableDetail}${formatStoryWriteFenceBaseNote(fence)}`,
+      ),
       uncovered: productStaged,
       scopePath: scope.path,
     };
@@ -5776,9 +5836,10 @@ export function evaluateProspectiveScopeCover(
   if (!hasPositiveGoverningStoryAllow(fence)) {
     return {
       ok: false,
-      message:
+      message: withNote(
         `Prospective scope-cover denied: selected scope lacks positive governing ` +
-        `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${formatPositiveGoverningAllowDeny(fence)}`,
+          `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${formatPositiveGoverningAllowDeny(fence)}`,
+      ),
       uncovered: productStaged,
       scopePath: scope.path,
       advisoryCapable: true,
@@ -5841,10 +5902,11 @@ export function evaluateProspectiveScopeCover(
   if (uncovered.length > 0) {
     return {
       ok: false,
-      message:
+      message: withNote(
         `Prospective scope-cover denied: staged path(s) outside governing file_scope ` +
-        `(#5656): ${uncovered.join(", ")}.${extraRefusal} This gate is prospective only — it does not ` +
-        "rewrite or bless earlier uncovered commits. Residuals: verify:hooks-installed; --no-verify.",
+          `(#5656): ${uncovered.join(", ")}.${extraRefusal} This gate is prospective only — it does not ` +
+          "rewrite or bless earlier uncovered commits. Residuals: verify:hooks-installed; --no-verify.",
+      ),
       uncovered,
       scopePath: scope.path,
       advisoryCapable: true,
