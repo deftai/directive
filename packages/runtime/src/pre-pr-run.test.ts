@@ -37,6 +37,9 @@ const START = [
   "PR_1",
 ] as const;
 
+/** Hermetic controller-owned verify:ac pass (#6888): the real run reads the cwd project. */
+const VERIFY_AC_PASS = () => ({ kind: "evaluated-pass" as const, output: "" });
+
 /** Hermetic lint_iteration gate results (#6336): the real gates read the cwd tree. */
 const PASS_GATES = () => [
   { gate: "verify:class-checks" as const, exitCode: 0, message: "verify_class_checks: clean" },
@@ -152,7 +155,10 @@ describe("deft pre-pr:run", () => {
       return true;
     });
     expect(
-      run(["--complete", "--run-id", "ppr_cli_incomplete"], { skipNamedMergeGate: true }),
+      run(["--complete", "--run-id", "ppr_cli_incomplete"], {
+        skipNamedMergeGate: true,
+        verifyAc: VERIFY_AC_PASS,
+      }),
     ).toBe(1);
     expect(err.join("")).toMatch(/required phase|omitted|incomplete/i);
   });
@@ -161,7 +167,10 @@ describe("deft pre-pr:run", () => {
     expect(run([...START, "--run-id", "ppr_happy", "--json"])).toBe(0);
     observeAll("ppr_happy", fixturePath, contentsHash);
     expect(
-      run(["--complete", "--run-id", "ppr_happy", "--json"], { skipNamedMergeGate: true }),
+      run(["--complete", "--run-id", "ppr_happy", "--json"], {
+        skipNamedMergeGate: true,
+        verifyAc: VERIFY_AC_PASS,
+      }),
     ).toBe(0);
     setDefaultPrePrStore(new FileBackedPrePrStore(tmpRoot));
     const out: string[] = [];
@@ -199,7 +208,12 @@ describe("deft pre-pr:run", () => {
   it("evaluate uses live approved criteria so a different digest denies the old pass", () => {
     expect(run([...START, "--run-id", "ppr_weak", "--json"])).toBe(0);
     observeAll("ppr_weak", fixturePath, contentsHash);
-    expect(run(["--complete", "--run-id", "ppr_weak"], { skipNamedMergeGate: true })).toBe(0);
+    expect(
+      run(["--complete", "--run-id", "ppr_weak"], {
+        skipNamedMergeGate: true,
+        verifyAc: VERIFY_AC_PASS,
+      }),
+    ).toBe(0);
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
       err.push(String(chunk));
@@ -738,6 +752,131 @@ describe("deft pre-pr:run", () => {
     expect(parseArgs(["--body-file=b.md", "--part"])).toMatchObject({
       bodyFile: "b.md",
       part: true,
+    });
+  });
+
+  describe("--complete runs verify:ac itself (#6888)", () => {
+    function capture(): { out: string[]; err: string[] } {
+      const out: string[] = [];
+      const err: string[] = [];
+      vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+        out.push(String(chunk));
+        return true;
+      });
+      vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+        err.push(String(chunk));
+        return true;
+      });
+      return { out, err };
+    }
+
+    function readyRun(runId: string): void {
+      expect(run([...START, "--run-id", runId, "--json"])).toBe(0);
+      observeAll(runId, fixturePath, contentsHash);
+    }
+
+    function evaluates(runId: string): number {
+      return run([
+        "--evaluate",
+        "--repo",
+        "deftai/directive",
+        "--base-sha",
+        "aaa",
+        "--head-sha",
+        "bbb",
+        "--pr-body-hash",
+        "ddd",
+        "--pr-node-id",
+        "PR_1",
+        "--approved-revision",
+        "aaa",
+        "--scope",
+        "a.ts",
+        "--acceptance",
+        "ac",
+        "--run-id",
+        runId,
+      ]);
+    }
+
+    it("runs verify:ac on every call, with and without --verify-ac-disposition", () => {
+      readyRun("ppr_6888_calls");
+      const verifyAc = vi.fn(VERIFY_AC_PASS);
+      expect(
+        run(["--complete", "--run-id", "ppr_6888_calls"], { skipNamedMergeGate: true, verifyAc }),
+      ).toBe(0);
+      readyRun("ppr_6888_calls_flag");
+      expect(
+        run(
+          [
+            "--complete",
+            "--run-id",
+            "ppr_6888_calls_flag",
+            "--verify-ac-disposition",
+            "executed-ac",
+          ],
+          { skipNamedMergeGate: true, verifyAc },
+        ),
+      ).toBe(0);
+      expect(verifyAc).toHaveBeenCalledTimes(2);
+    });
+
+    it("a failed verify:ac with no flag exits non-zero, prints the output and stores no pass", () => {
+      readyRun("ppr_6888_fail");
+      const { err } = capture();
+      const verifyAc = () => ({ kind: "fail" as const, output: "verify:ac FAIL: clause 8 failed" });
+      expect(
+        run(["--complete", "--run-id", "ppr_6888_fail"], { skipNamedMergeGate: true, verifyAc }),
+      ).toBe(1);
+      expect(err.join("")).toContain("verify:ac FAIL: clause 8 failed");
+      expect(err.join("")).toContain("verify:ac failed");
+      expect(evaluates("ppr_6888_fail")).toBe(1);
+    });
+
+    it("a failed verify:ac with --verify-ac-disposition executed-ac still refuses", () => {
+      readyRun("ppr_6888_fail_claim");
+      capture();
+      const verifyAc = () => ({ kind: "fail" as const, output: "verify:ac FAIL" });
+      expect(
+        run(
+          [
+            "--complete",
+            "--run-id",
+            "ppr_6888_fail_claim",
+            "--verify-ac-disposition",
+            "executed-ac",
+          ],
+          { skipNamedMergeGate: true, verifyAc },
+        ),
+      ).toBe(1);
+      expect(evaluates("ppr_6888_fail_claim")).toBe(1);
+    });
+
+    it("a --verify-ac-disposition that differs from the result refuses", () => {
+      readyRun("ppr_6888_conflict");
+      const { err } = capture();
+      expect(
+        run(
+          ["--complete", "--run-id", "ppr_6888_conflict", "--verify-ac-disposition", "executed-ac"],
+          {
+            skipNamedMergeGate: true,
+            verifyAc: () => ({ kind: "no-target" as const, output: "" }),
+          },
+        ),
+      ).toBe(1);
+      expect(err.join("")).toContain("differs from the controller's verify:ac result");
+    });
+
+    it("no selected brief completes and says verify:ac had no brief to run", () => {
+      readyRun("ppr_6888_none");
+      const { out } = capture();
+      expect(
+        run(["--complete", "--run-id", "ppr_6888_none"], {
+          skipNamedMergeGate: true,
+          verifyAc: () => ({ kind: "no-target" as const, output: "" }),
+        }),
+      ).toBe(0);
+      expect(out.join("")).toContain("verify:ac had no brief to run");
     });
   });
 });

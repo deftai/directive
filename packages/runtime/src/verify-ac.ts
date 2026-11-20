@@ -16,6 +16,11 @@ import {
   resolveLiteralAcceptanceDetailed,
 } from "@deftai/directive-core/literal-acceptance";
 import {
+  applyAcceptanceDispositionGrants,
+  type GrantedClause,
+} from "@deftai/directive-core/policy";
+import type { ControllerVerifyAcResult } from "@deftai/directive-core/pre-pr-controller";
+import {
   emitVerifyAcTerminalOutcome,
   evaluateVerifyAcFromPath,
   readAdmittedSourceDigest,
@@ -28,6 +33,7 @@ import {
 } from "@deftai/directive-core/product-first-done-gate";
 import {
   discoverLandsWithProductMoves,
+  persistClauseKeyedPendingItems,
   pinNamesLandsWithProductMove,
 } from "@deftai/directive-core/scope";
 
@@ -231,6 +237,39 @@ function fetchAdmittedSourceForPlan(
   return fetchOriginIssueBody(plan);
 }
 
+type AdmittedSourceFetcher = () =>
+  | { readonly ok: true; readonly text: string }
+  | { readonly ok: false; readonly reason: string };
+
+/**
+ * Arm live admitted-source fetch when a pin is present (digest compare), a
+ * digest remains after pin delete (honor recorded digest), or Spec-path
+ * refused-body metadata marks harvest recovery (#5055). Spec-path callbacks
+ * return the Bound-remedy harvest, not the refused raw issue body. Body-
+ * normative both-deleted recovery prefers git HEAD / merge-base so
+ * pre-#5055 briefs without a pin are not suddenly floored by live REST.
+ */
+function admittedSourceFetcherFor(
+  plan: Record<string, unknown> | null,
+): AdmittedSourceFetcher | undefined {
+  if (plan === null) return undefined;
+  const pin = readAdmittedSourceSentences(plan.acceptance);
+  const digest = readAdmittedSourceDigest(plan.acceptance);
+  if (pin !== null || digest !== null || planHasSpecPathRefusedBody(plan)) {
+    return () => fetchAdmittedSourceForPlan(plan);
+  }
+  return undefined;
+}
+
+/** A brief's plan object, or null when the brief is unreadable. */
+function readPlanAt(path: string): Record<string, unknown> | null {
+  try {
+    return asRecord(asRecord(JSON.parse(readFileSync(path, "utf8")) as unknown)?.plan);
+  } catch {
+    return null;
+  }
+}
+
 /** Evaluate one or many xBRIEF paths; return worst non-zero code (fail closed). */
 function evaluatePaths(
   paths: readonly string[],
@@ -248,31 +287,8 @@ function evaluatePaths(
     if (!options.quiet && paths.length > 1) {
       process.stdout.write(`verify:ac — evaluating ${path}\n`);
     }
-    let fetchAdmittedSourceText:
-      | (() =>
-          | { readonly ok: true; readonly text: string }
-          | { readonly ok: false; readonly reason: string })
-      | undefined;
-    try {
-      const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
-      const root = asRecord(raw);
-      const plan = asRecord(root?.plan);
-      // Arm live admitted-source fetch when a pin is present (digest compare), a
-      // digest remains after pin delete (honor recorded digest), or Spec-path
-      // refused-body metadata marks harvest recovery (#5055). Spec-path callbacks
-      // return the Bound-remedy harvest, not the refused raw issue body. Body-
-      // normative both-deleted recovery prefers git HEAD / merge-base so
-      // pre-#5055 briefs without a pin are not suddenly floored by live REST.
-      if (plan !== null) {
-        const pin = readAdmittedSourceSentences(plan.acceptance);
-        const digest = readAdmittedSourceDigest(plan.acceptance);
-        if (pin !== null || digest !== null || planHasSpecPathRefusedBody(plan)) {
-          fetchAdmittedSourceText = () => fetchAdmittedSourceForPlan(plan);
-        }
-      }
-    } catch {
-      // Path evaluation still runs; unreadable brief is handled inside evaluateVerifyAcFromPath.
-    }
+    // Path evaluation still runs on an unreadable brief; evaluateVerifyAcFromPath reports it.
+    const fetchAdmittedSourceText = admittedSourceFetcherFor(readPlanAt(path));
     const result = evaluateVerifyAcFromPath(path, {
       projectRoot: options.projectRoot,
       quiet: options.quiet,
@@ -306,6 +322,117 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
+/** Selection of a just-completed brief when no active brief is selected (#3357 / #5855). */
+type CompletedSelection =
+  | { readonly kind: "paths"; readonly paths: readonly string[]; readonly note: string }
+  | { readonly kind: "refuse"; readonly message: string }
+  | { readonly kind: "none" };
+
+function selectJustCompleted(projectRoot: string, env: NodeJS.ProcessEnv): CompletedSelection {
+  const completed = resolveSessionCompletedVerifyAcTarget({ projectRoot, env });
+  if (completed.kind === "target") {
+    return {
+      kind: "paths",
+      paths: [completed.path],
+      note: `verify:ac targeting just-completed brief (#3357): ${completed.path}`,
+    };
+  }
+  if (completed.kind === "cannot") {
+    return { kind: "refuse", message: completed.message };
+  }
+  return { kind: "none" };
+}
+
+/**
+ * Story selection that `verify:ac --soft-missing-xbrief` runs when no path is
+ * passed (#4285 / #5855 / #6277). `deft check` and `pre-pr:run --complete`
+ * (#6888) share it, so the two cannot select different stories.
+ * - `paths`: evaluate these briefs; `notes` are the selection lines.
+ * - `untied`: admitted untied branch (standalone exit 6, no-obligation).
+ * - `no-target`: no brief to run (standalone soft-missing exit 0).
+ * - `refuse`: selection failed (standalone exit 1).
+ */
+export type SoftMissingSelection =
+  | {
+      readonly kind: "paths";
+      readonly paths: readonly string[];
+      readonly notes: readonly string[];
+    }
+  | { readonly kind: "untied"; readonly message: string }
+  | { readonly kind: "no-target"; readonly message: string }
+  | { readonly kind: "refuse"; readonly message: string };
+
+export function selectSoftMissingVerifyAcTargets(
+  projectRoot: string,
+  env: NodeJS.ProcessEnv = process.env,
+): SoftMissingSelection {
+  // #6277 Bound 6: a change set that moves its story brief to completed/ as
+  // lands-with-product runs that brief's AC, not another active story's. An
+  // explicit DEFT_ACTIVE_SCOPE pin keeps priority unless it names the moved brief.
+  const pin = env.DEFT_ACTIVE_SCOPE?.trim() ?? "";
+  const landed = discoverLandsWithProductMoves(projectRoot).filter(
+    (move) => pin.length === 0 || pinNamesLandsWithProductMove(projectRoot, pin, move),
+  );
+  if (landed.length > 0) {
+    return {
+      kind: "paths",
+      paths: landed.map((move) => join(projectRoot, ...move.completedRel.split("/"))),
+      notes: [
+        `verify:ac targeting lands-with-product brief(s) of this change set (#6277): ${landed
+          .map((move) => move.completedRel)
+          .join(", ")}`,
+      ],
+    };
+  }
+  const found = listActiveXbriefs(projectRoot);
+  if (found.kind === "one") {
+    return { kind: "paths", paths: [found.path], notes: [] };
+  }
+  if (found.kind === "many") {
+    // #4285: soft-missing selects via DEFT_ACTIVE_SCOPE / explicit path
+    // (or fail closed). ALL-paths soft-missing is not the #3284 product bar.
+    const bindContext = readBranchBindContext(projectRoot);
+    const selected = resolveSoftMissingAcTargets(projectRoot, {
+      env,
+      scannedPaths: found.paths,
+      branchBind: { ...bindContext, env, projectRoot },
+    });
+    if (selected.kind === "untied") {
+      // #5855 P3: completed-target precedence, then soft-missing no-obligation.
+      const completed = selectJustCompleted(projectRoot, env);
+      if (completed.kind === "paths") {
+        return { kind: "paths", paths: completed.paths, notes: [completed.note] };
+      }
+      if (completed.kind === "refuse") return completed;
+      return { kind: "untied", message: selected.message };
+    }
+    if (selected.kind === "one") {
+      return {
+        kind: "paths",
+        paths: [selected.path],
+        notes: [`verify:ac soft-missing multi-active (#4285): selected ${selected.path}`],
+      };
+    }
+    return {
+      kind: "refuse",
+      message:
+        `${selected.kind === "need-pin" ? selected.message : "verify_ac: multi-active soft-missing needs a pin"}\n` +
+        "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
+        `  Or set DEFT_ACTIVE_SCOPE to the dispatched story under ${found.dir}\n` +
+        "  Refs #4285 / #3284 product-first done-gate",
+    };
+  }
+  const completed = selectJustCompleted(projectRoot, env);
+  if (completed.kind === "paths") {
+    return { kind: "paths", paths: completed.paths, notes: [completed.note] };
+  }
+  if (completed.kind === "refuse") return completed;
+  return {
+    kind: "no-target",
+    message: "verify:ac skipped (#3284 soft-missing): no active xBRIEF in xbrief/active/",
+  };
+}
+
 /** Run the gate and return the process exit code. */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
@@ -321,34 +448,50 @@ export function run(argv: string[]): number {
 
   const projectRoot = resolve(args.projectRoot);
   let paths: string[] = [];
-  // #6277 Bound 6: a change set that moves its story brief to completed/ as
-  // lands-with-product runs that brief's AC, not another active story's. An
-  // explicit DEFT_ACTIVE_SCOPE pin keeps priority unless it names the moved brief.
-  const pin = process.env.DEFT_ACTIVE_SCOPE?.trim() ?? "";
-  const landed =
-    args.xbriefPath === null && !args.captureOnly
+  if (args.xbriefPath !== null) {
+    paths = [resolve(projectRoot, args.xbriefPath)];
+  } else if (args.softMissingXbrief && !args.captureOnly) {
+    const selection = selectSoftMissingVerifyAcTargets(projectRoot, process.env);
+    if (selection.kind === "refuse") {
+      process.stderr.write(`${selection.message}\n`);
+      emitVerifyAcTerminalOutcome({ projectRoot, env: process.env, outcome: "config-error" });
+      return 1;
+    }
+    if (selection.kind === "untied" || selection.kind === "no-target") {
+      if (!args.quiet) {
+        process.stdout.write(`${selection.message}\n`);
+      }
+      emitVerifyAcTerminalOutcome({ projectRoot, env: process.env, outcome: "soft-missing" });
+      // Distinct non-zero for untied: exit 0 keeps meaning executed AC only (#5855 Recut-8).
+      return selection.kind === "untied" ? VERIFY_AC_NO_OBLIGATION_EXIT : 0;
+    }
+    if (!args.quiet) {
+      for (const note of selection.notes) {
+        process.stdout.write(`${note}\n`);
+      }
+    }
+    paths = [...selection.paths];
+  } else {
+    // #6277 Bound 6: lands-with-product targeting (see selectSoftMissingVerifyAcTargets).
+    const pin = process.env.DEFT_ACTIVE_SCOPE?.trim() ?? "";
+    const landed = !args.captureOnly
       ? discoverLandsWithProductMoves(projectRoot).filter(
           (move) => pin.length === 0 || pinNamesLandsWithProductMove(projectRoot, pin, move),
         )
       : [];
-  if (args.xbriefPath !== null) {
-    paths = [resolve(projectRoot, args.xbriefPath)];
-  } else if (landed.length > 0) {
-    paths = landed.map((move) => join(projectRoot, ...move.completedRel.split("/")));
-    if (!args.quiet) {
-      process.stdout.write(
-        `verify:ac targeting lands-with-product brief(s) of this change set (#6277): ${landed
-          .map((move) => move.completedRel)
-          .join(", ")}\n`,
-      );
-    }
-  } else {
     const found = listActiveXbriefs(projectRoot);
-    if (found.kind === "one") {
+    if (landed.length > 0) {
+      paths = landed.map((move) => join(projectRoot, ...move.completedRel.split("/")));
+      if (!args.quiet) {
+        process.stdout.write(
+          `verify:ac targeting lands-with-product brief(s) of this change set (#6277): ${landed
+            .map((move) => move.completedRel)
+            .join(", ")}\n`,
+        );
+      }
+    } else if (found.kind === "one") {
       paths = [found.path];
     } else if (found.kind === "many") {
-      // #4285: soft-missing selects via DEFT_ACTIVE_SCOPE / explicit path
-      // (or fail closed). ALL-paths soft-missing is not the #3284 product bar.
       // --capture-only still lists every active artifact (inventory, not run).
       if (args.captureOnly) {
         paths = [...found.paths];
@@ -356,59 +499,6 @@ export function run(argv: string[]): number {
           process.stdout.write(
             `verify:ac capture-only multi-active: listing ${paths.length} scopes in ${found.dir}\n`,
           );
-        }
-      } else if (args.softMissingXbrief) {
-        const bindContext = readBranchBindContext(projectRoot);
-        const selected = resolveSoftMissingAcTargets(projectRoot, {
-          env: process.env,
-          scannedPaths: found.paths,
-          branchBind: { ...bindContext, env: process.env, projectRoot },
-        });
-        if (selected.kind === "untied") {
-          // #5855 P3: completed-target precedence, then soft-missing no-obligation.
-          const completed = resolveSessionCompletedVerifyAcTarget({
-            projectRoot,
-            env: process.env,
-          });
-          if (completed.kind === "target") {
-            paths = [completed.path];
-            if (!args.quiet) {
-              process.stdout.write(
-                `verify:ac targeting just-completed brief (#3357): ${completed.path}\n`,
-              );
-            }
-          } else if (completed.kind === "cannot") {
-            process.stderr.write(`${completed.message}\n`);
-            emitVerifyAcTerminalOutcome({ projectRoot, env: process.env, outcome: "config-error" });
-            return 1;
-          } else {
-            if (!args.quiet) {
-              process.stdout.write(`${selected.message}\n`);
-            }
-            emitVerifyAcTerminalOutcome({ projectRoot, env: process.env, outcome: "soft-missing" });
-            // Distinct non-zero: exit 0 keeps meaning executed AC only (#5855 Recut-8).
-            return VERIFY_AC_NO_OBLIGATION_EXIT;
-          }
-        } else if (selected.kind === "one") {
-          paths = [selected.path];
-          if (!args.quiet) {
-            process.stdout.write(
-              `verify:ac soft-missing multi-active (#4285): selected ${selected.path}\n`,
-            );
-          }
-        } else {
-          process.stderr.write(
-            `${selected.kind === "need-pin" ? selected.message : "verify_ac: multi-active soft-missing needs a pin"}\n` +
-              "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
-              `  Or set DEFT_ACTIVE_SCOPE to the dispatched story under ${found.dir}\n` +
-              "  Refs #4285 / #3284 product-first done-gate\n",
-          );
-          emitVerifyAcTerminalOutcome({
-            projectRoot,
-            env: process.env,
-            outcome: "config-error",
-          });
-          return 1;
         }
       } else {
         process.stderr.write(
@@ -425,18 +515,9 @@ export function run(argv: string[]): number {
         return 1;
       }
     } else if (args.softMissingXbrief) {
-      const completed = resolveSessionCompletedVerifyAcTarget({
-        projectRoot,
-        env: process.env,
-      });
-      if (completed.kind === "target") {
-        paths = [completed.path];
-        if (!args.quiet) {
-          process.stdout.write(
-            `verify:ac targeting just-completed brief (#3357): ${completed.path}\n`,
-          );
-        }
-      } else if (completed.kind === "cannot") {
+      // Reached only with --capture-only (the run path selects above).
+      const completed = selectJustCompleted(projectRoot, process.env);
+      if (completed.kind === "refuse") {
         process.stderr.write(`${completed.message}\n`);
         emitVerifyAcTerminalOutcome({
           projectRoot,
@@ -444,12 +525,13 @@ export function run(argv: string[]): number {
           outcome: "config-error",
         });
         return 1;
-      } else if (!args.quiet) {
-        process.stdout.write(
-          "verify:ac skipped (#3284 soft-missing): no active xBRIEF in xbrief/active/\n",
-        );
       }
       if (completed.kind === "none") {
+        if (!args.quiet) {
+          process.stdout.write(
+            "verify:ac skipped (#3284 soft-missing): no active xBRIEF in xbrief/active/\n",
+          );
+        }
         emitVerifyAcTerminalOutcome({
           projectRoot,
           env: process.env,
@@ -457,6 +539,10 @@ export function run(argv: string[]): number {
         });
         return 0;
       }
+      if (!args.quiet) {
+        process.stdout.write(`${completed.note}\n`);
+      }
+      paths = [...completed.paths];
     } else {
       process.stderr.write(
         "verify_ac: pass an xBRIEF path or ensure exactly one artifact in xbrief/active/\n" +
@@ -540,6 +626,83 @@ export function run(argv: string[]): number {
     quiet: args.quiet,
     softMissingXbrief: args.softMissingXbrief,
   });
+}
+
+/** Inputs for the verify:ac run that `pre-pr:run --complete` owns (#6888). */
+export interface ControllerVerifyAcOptions {
+  readonly projectRoot: string;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly now?: Date;
+}
+
+/**
+ * The verify:ac run that `pre-pr:run --complete` owns (#6888). Same story
+ * selection and check-profile evaluation as `verify:ac --soft-missing-xbrief`;
+ * standalone exit codes do not change. Clauses covered by a resolver-accepted
+ * acceptance-disposition grant are left out of the walk, as at scope:complete:
+ * the grants are applied to an in-memory copy of the plan only, so nothing is
+ * written to the brief or the grant store and no grant is marked used. The
+ * evaluator's brief-writing autofix is not used.
+ */
+export function resolveControllerVerifyAc(
+  options: ControllerVerifyAcOptions,
+): ControllerVerifyAcResult {
+  const projectRoot = resolve(options.projectRoot);
+  const env = options.env ?? process.env;
+  const now = options.now ?? new Date();
+  const selection = selectSoftMissingVerifyAcTargets(projectRoot, env);
+  if (selection.kind === "refuse") {
+    return { kind: "fail", output: selection.message };
+  }
+  if (selection.kind === "untied") {
+    return { kind: "untied-no-obligation", output: selection.message };
+  }
+  if (selection.kind === "no-target") {
+    return { kind: "no-target", output: selection.message };
+  }
+  const profile = resolveAcceptanceGateProfile("check");
+  const output: string[] = [...selection.notes];
+  let passed = true;
+  for (const path of selection.paths) {
+    const plan = readPlanAt(path);
+    let grantedClauses: readonly GrantedClause[] = [];
+    if (plan !== null) {
+      const copy = structuredClone(plan);
+      persistClauseKeyedPendingItems(copy);
+      const granted = applyAcceptanceDispositionGrants({
+        projectRoot,
+        plan: copy,
+        now,
+        recordedAt: now.toISOString(),
+      });
+      if (!granted.ok) {
+        output.push(granted.reason);
+        passed = false;
+        continue;
+      }
+      grantedClauses = granted.grantedClauses;
+    }
+    const fetchAdmittedSourceText = admittedSourceFetcherFor(plan);
+    const result = evaluateVerifyAcFromPath(path, {
+      projectRoot,
+      quiet: false,
+      softMissingXbrief: true,
+      checkIntegrated: profile.checkIntegrated,
+      captureFromNarratives: profile.captureFromNarratives,
+      reuseMode: profile.reuseMode,
+      env,
+      grantedClauses,
+      persistRequirementSourcesAutofix: () => {},
+      ...(fetchAdmittedSourceText !== undefined ? { fetchAdmittedSourceText } : {}),
+    });
+    if (result.message.length > 0) {
+      output.push(result.message);
+    }
+    if (clampVerifyAcExit(result.ok, result.code) !== 0) {
+      passed = false;
+    }
+  }
+  return { kind: passed ? "evaluated-pass" : "fail", output: output.join("\n") };
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
