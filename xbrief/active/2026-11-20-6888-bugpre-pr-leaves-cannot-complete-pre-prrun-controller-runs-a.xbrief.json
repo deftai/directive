@@ -1,0 +1,612 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6888",
+    "updated": "2026-11-20T21:27:15Z"
+  },
+  "plan": {
+    "title": "bug(pre-pr): leaves cannot complete pre-pr:run controller runs, and --complete publishes a pass after verify:ac failed",
+    "status": "running",
+    "narratives": {
+      "Description": "pre-pr:run --complete publishes a pre-PR pass and records whatever verify:ac disposition the caller passes, so a leaf could record executed-ac after verify:ac failed (seen on #5771) and a caller with no flag gets a pass without verify:ac at all. This story makes --complete run verify:ac selection and evaluation itself, take the disposition from that result only, refuse on failure, and honour resolver-accepted acceptance-disposition grants in memory.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6888",
+      "Overview": "\n1. Controller-owned `verify:ac` result (P1, P3). On every `--complete`, before publishing, the CLI runs the story selection and evaluation that `verify:ac --soft-missing-xbrief` runs, on the project root, and gets a structured result: `evaluated-pass` (a brief was selected and its evaluation returned ok), `untied-no-obligation` (today's exit 6), `no-target` (no brief selected; today's soft-missing exit 0), or `fail` (any other result, with the `verify:ac` output). Standalone `verify:ac` exit codes do not change.\n2. Disposition from that result only (P1, P3). `evaluated-pass` records `executed-ac`; `untied-no-obligation` records `no-obligation` with the worktree key, as today; `no-target` records no disposition and the output says `verify:ac` had no brief to run; `fail` refuses non-zero and publishes nothing. A `merge_chokepoint` row no longer sets the disposition; a present red row still fails the run as today.\n3. Optional flag (P3). `--verify-ac-disposition` stays accepted and is no longer needed. A value that differs from item 2's disposition, including `executed-ac` with `no-target`, refuses non-zero.\n4. Grants (P2). Before evaluating, the run copies the selected brief's plan in memory, runs `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, and passes the returned `grantedClauses` to the evaluator, as `scope:complete` does. Every grant the resolver accepts counts, a used grant included. A resolver refusal refuses `--complete` with the resolver's message. Nothing is written to the brief or the grant store, and no grant is marked used.\n5. Core requires the result (P1). `completeRun` takes the controller-owned result as a required input; when it is absent or `fail`, it refuses. There is no fallback to a caller-supplied disposition.\n6. Docs (P3). The pre-PR skill and the `pre-pr:run` usage text say that `--complete` runs `verify:ac` itself and that the flag is optional; the pre-push recovery text no longer tells the caller to pass a disposition.\n\n## Acceptance Criteria\n\n- `pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself on every call, with or without `--verify-ac-disposition`.\n- When that evaluation fails, `--complete` exits non-zero, prints the `verify:ac` output, and the store holds no pass for the run.\n- `executed-ac` is recorded only when a brief was selected and its evaluation returned ok; an untied branch records `no-obligation` with the worktree key; no selected brief records no disposition and the output says so.\n- `--verify-ac-disposition` is optional; a value that differs from the recorded disposition, including `executed-ac` when no brief was selected, makes `--complete` exit non-zero.\n- A clause covered by a resolver-accepted acceptance-disposition grant, including a used grant and a clause with no clause-keyed plan item yet, does not make `--complete` refuse; the run writes nothing to the brief or the grant store and marks no grant used.\n- A grant the resolver refuses (expired unused, changed clause text) makes `--complete` exit non-zero with the resolver's message.\n- `completeRun` refuses when the controller-owned `verify:ac` result is absent.\n- Tests cover: failed `verify:ac` with no flag; failed `verify:ac` with `executed-ac`; a pass recording `executed-ac`; untied `no-obligation`; no selected brief; a conflicting flag; a present `merge_chokepoint` row; multi-active selection by branch; a grant-covered clause with no keyed item; and a used grant after in-PR completion.\n\n\n",
+      "Constraint": "Bound contract: lean comment 7049299784 (synthesis 7049355642; clean audit 7049343238; verified-claims table 7049355335). Out of scope: #6888 issue acceptance items 2-4 (leaf finishing without a PR, runnable hash and merge_chokepoint commands, saying when the push is not gated); those are #6893. No new phase, policy flag, gate or CI job. Standalone verify:ac and deft check do not change. executed-ac means the evaluation returned ok (can be empty-pass), not that commands ran. Refusals are returned denies, not new throw sites; any new throw/reject/abort site or numeric const needs an operator intent-constraint mint before the product PR.",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator relying on the bound pre-PR push gate, I want pre-pr:run --complete to run verify:ac itself and refuse when it fails, so that a recorded pre-PR pass cannot outlive a failed acceptance check.",
+      "ImplementationPlan": "1. In packages/runtime/src/verify-ac.ts, expose the selection and evaluation that verify:ac --soft-missing-xbrief runs as a function returning a structured result (evaluated-pass, untied-no-obligation, no-target, fail with output); standalone verify:ac exit codes stay the same (lean item 1).\n2. In packages/runtime/src/pre-pr-run.ts, on every --complete: run that function on the project root; before evaluating, copy the selected brief's plan in memory, run persistClauseKeyedPendingItems then applyAcceptanceDispositionGrants, pass grantedClauses to the evaluator, and pass a no-op persistRequirementSourcesAutofix so nothing is written to the brief; a resolver refusal refuses (lean item 4). Make --verify-ac-disposition optional; a differing value refuses (item 3).\n3. In packages/core/src/pre-pr-controller/controller.ts, completeRun takes the controller-owned result as a required input and refuses when it is absent or fail; the disposition comes from the result only; a merge_chokepoint row no longer sets it, and a present red row still fails the run (items 2 and 5). Export any new type through pre-pr-controller/index.ts.\n4. Update the pre-pr:run usage text, the pre-push recovery text in packages/core/src/preflight-gh/pre-push.ts, the pre-PR skill (regenerate the skills pack and docs/RULE-MAP.md if rule text changes), and content/commands.md / gate-walkthrough.md if they describe the disposition (item 6).\n5. Tests in controller.test.ts, pre-pr-run.test.ts, verify-ac.test.ts and pre-push.test.ts cover the clause 14 list; adapt the existing merge_chokepoint-derived no-obligation test to supply the controller result. Add changelog.d/6888-pre-pr-complete-runs-verify-ac.md.",
+      "Traces": "#6888, #6882, #5771"
+    },
+    "items": [
+      {
+        "title": "Controller-owned `verify:ac` result (P1, P3). On every `--complete`, before publishing, the CLI runs the story selection and evaluation that `verify:ac --soft-missing-xbrief` runs, on the project root, and gets a structured result: `evaluated-pass` (a brief was selected and its evaluation returned ok), `untied-no-obligation` (today's exit 6), `no-target` (no brief selected; today's soft-missing exit 0), or `fail` (any other result, with the `verify:ac` output). Standalone `verify:ac` exit codes do not change.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When pre-pr:run --complete runs, then it obtains a structured verify:ac result (evaluated-pass, untied-no-obligation, no-target or fail) from the same selection and evaluation verify:ac --soft-missing-xbrief uses, and standalone verify:ac exit codes are unchanged."
+        }
+      },
+      {
+        "title": "Disposition from that result only (P1, P3). `evaluated-pass` records `executed-ac`; `untied-no-obligation` records `no-obligation` with the worktree key, as today; `no-target` records no disposition and the output says `verify:ac` had no brief to run; `fail` refuses non-zero and publishes nothing. A `merge_chokepoint` row no longer sets the disposition; a present red row still fails the run as today.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the structured result is evaluated-pass, untied-no-obligation, no-target or fail, then the run records executed-ac, no-obligation with the worktree key, no disposition, or refuses with nothing published; a merge_chokepoint row does not set the disposition."
+        }
+      },
+      {
+        "title": "Optional flag (P3). `--verify-ac-disposition` stays accepted and is no longer needed. A value that differs from item 2's disposition, including `executed-ac` with `no-target`, refuses non-zero.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When --verify-ac-disposition is omitted the run completes on the controller result; when it differs from that result, --complete exits non-zero."
+        }
+      },
+      {
+        "title": "Grants (P2). Before evaluating, the run copies the selected brief's plan in memory, runs `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, and passes the returned `grantedClauses` to the evaluator, as `scope:complete` does. Every grant the resolver accepts counts, a used grant included. A resolver refusal refuses `--complete` with the resolver's message. Nothing is written to the brief or the grant store, and no grant is marked used.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When a clause is covered by a resolver-accepted grant, then the in-memory plan copy is prepared and the grantedClauses set is passed to the evaluator; the brief and the grant store are unchanged and no grant is marked used."
+        }
+      },
+      {
+        "title": "Core requires the result (P1). `completeRun` takes the controller-owned result as a required input; when it is absent or `fail`, it refuses. There is no fallback to a caller-supplied disposition.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When completeRun is called without the controller-owned result, or with a fail result, then it refuses and publishes nothing."
+        }
+      },
+      {
+        "title": "Docs (P3). The pre-PR skill and the `pre-pr:run` usage text say that `--complete` runs `verify:ac` itself and that the flag is optional; the pre-push recovery text no longer tells the caller to pass a disposition.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When a reader opens the pre-PR skill or pre-pr:run usage text, then it says --complete runs verify:ac itself and the flag is optional; the pre-push recovery text no longer asks for a disposition."
+        }
+      },
+      {
+        "title": "`pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself on every call, with or without `--verify-ac-disposition`.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When pre-pr:run --complete runs with or without --verify-ac-disposition, then verify:ac selection and evaluation run."
+        }
+      },
+      {
+        "title": "When that evaluation fails, `--complete` exits non-zero, prints the `verify:ac` output, and the store holds no pass for the run.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When the evaluation fails, then --complete exits non-zero, prints the verify:ac output, and the store holds no pass for the run."
+        }
+      },
+      {
+        "title": "`executed-ac` is recorded only when a brief was selected and its evaluation returned ok; an untied branch records `no-obligation` with the worktree key; no selected brief records no disposition and the output says so.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When a brief is selected and evaluates ok the run records executed-ac; an untied branch records no-obligation with the worktree key; no selected brief records no disposition and the output says so."
+        }
+      },
+      {
+        "title": "`--verify-ac-disposition` is optional; a value that differs from the recorded disposition, including `executed-ac` when no brief was selected, makes `--complete` exit non-zero.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When --verify-ac-disposition differs from the recorded disposition, including executed-ac with no selected brief, then --complete exits non-zero."
+        }
+      },
+      {
+        "title": "A clause covered by a resolver-accepted acceptance-disposition grant, including a used grant and a clause with no clause-keyed plan item yet, does not make `--complete` refuse; the run writes nothing to the brief or the grant store and marks no grant used.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "When a clause is covered by a resolver-accepted grant (a used grant, or a clause with no keyed item yet), then --complete does not refuse and writes nothing to the brief or grant store."
+        }
+      },
+      {
+        "title": "A grant the resolver refuses (expired unused, changed clause text) makes `--complete` exit non-zero with the resolver's message.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When the resolver refuses a grant (expired unused, changed clause text), then --complete exits non-zero with the resolver's message."
+        }
+      },
+      {
+        "title": "`completeRun` refuses when the controller-owned `verify:ac` result is absent.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "When completeRun receives no controller-owned verify:ac result, then it refuses."
+        }
+      },
+      {
+        "title": "Tests cover: failed `verify:ac` with no flag; failed `verify:ac` with `executed-ac`; a pass recording `executed-ac`; untied `no-obligation`; no selected brief; a conflicting flag; a present `merge_chokepoint` row; multi-active selection by branch; a grant-covered clause with no keyed item; and a used grant after in-PR completion.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "When the test suites run, then they cover each listed case: failed verify:ac with no flag and with executed-ac, pass, untied, no target, conflicting flag, merge_chokepoint row, multi-active selection, grant with no keyed item, and used grant."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6888",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6888: bug(pre-pr): leaves cannot complete pre-pr:run controller runs, and --complete publishes a pass after verify:ac failed"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6882",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6882"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "verify:ac --soft-missing-xbrief",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "pre-pr:run --complete",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/index.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "packages/runtime/src/verify-ac.ts",
+          "packages/runtime/src/verify-ac.test.ts",
+          "packages/core/src/preflight-gh/pre-push.ts",
+          "packages/core/src/preflight-gh/pre-push.test.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/commands.md",
+          "content/docs/gate-walkthrough.md",
+          "docs/RULE-MAP.md",
+          "changelog.d/6888-pre-pr-complete-runs-verify-ac.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6518389942.json",
+          "xbrief/evaluator-surface-disposition.json"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "high",
+        "depends_on": [],
+        "conflict_group": "pre-pr-controller",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pre-pr-controller/controller.test.ts packages/core/src/preflight-gh/pre-push.test.ts",
+          "npx vitest run packages/runtime/src/pre-pr-run.test.ts packages/runtime/src/verify-ac.test.ts",
+          "npx vitest run packages/core/src/content-contracts/skills/skills.test.ts"
+        ],
+        "expected_outputs": [
+          "pre-pr:run --complete runs verify:ac selection and evaluation itself and records the disposition from its structured result only",
+          "a failed verify:ac, a conflicting --verify-ac-disposition, an absent controller result or a resolver-refused grant refuses --complete with nothing published",
+          "resolver-accepted acceptance-disposition grants (used ones included) are applied to an in-memory plan copy; nothing is written to the brief or grant store",
+          "pre-PR skill, pre-pr:run usage text and pre-push recovery text say --complete runs verify:ac and the flag is optional; skills pack regenerated",
+          "one changelog fragment changelog.d/6888-pre-pr-complete-runs-verify-ac.md"
+        ],
+        "acceptance_criteria_justification": "The 14 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 7049299784 (synthesis 7049355642), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6888; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what a pre-PR pass means (the controller would run `verify:ac` itself instead of trusting a flag), and it must not block a story whose failing clause the operator has legitimately deferred.\n\nTarget-digest: sha256:89922ebb08dba6fa0f27e43503242b95b73108d65cb06cf7f62cec93b407a225\ndispatch-sha: c9f0737c4e4778d86ab04981ee14298d4adfa38e\ndest: C:/Repos/deft/wt/arc-6888 (pinKind origin-default, guarded-prep, from `deft design-critique:ensure-arc-dest`)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: operator asked for one Codex critic plus one pain audit; a narrow controller fix for the next build.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show c9f0737c4e4778d86ab04981ee14298d4adfa38e: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\n\n## In plain English\n`deft pre-pr:run --complete` publishes a pre-PR pass. When the run has no `merge_chokepoint` row, the `verify:ac` result it records is whatever the caller passes in `--verify-ac-disposition`. Nothing in the controller runs or reads `verify:ac`. So a leaf that passes `executed-ac` gets a pass that says acceptance ran clean, even when `verify:ac` exited 1. That happened on #5771.\n\nThe recommended fix: at `--complete`, the controller runs `verify:ac` itself, the way `deft check` runs it, and works out the disposition from the exit code. A failed run refuses and publishes nothing. A clause the operator deferred with an acceptance-disposition grant is left out of that run, as `scope:complete` already does, so a legitimate deferral still passes. The flag stays accepted but is no longer needed.\n\nProven cause (parent reading at the dispatch SHA, plus one run record):\n- `packages/core/src/pre-pr-controller/controller.ts` 840-891, `deriveVerifyAcDisposition`: with no `merge_chokepoint` row, `fromMerge` is null and the disposition is the caller's `directDisposition`, unchecked.\n- `controller.ts` 1029-1064, `completeRun`: puts that disposition on `pushBinding` and publishes `state: complete`, `outcome: pass`.\n- `packages/runtime/src/pre-pr-run.ts` 379-394 parses the flag; 620-639 passes it to `completeRun`. No code in either file runs or reads `verify:ac`.\n- Run `ppr_d1a06e45743a44ae` (#5771 product branch, head 193f7502b, completed 2026-11-20T19:04:26Z; private store record decoded by the parent, MAC not checked): command rows `branch_policy`, `plan_sequence`, `lint_iteration`, `render_export` (all exit 0), no `merge_chokepoint` row, `pushBinding.verifyAcDisposition: executed-ac`.\n- PR #6879 body (the #5771 product PR): \"`verify:ac` on the active brief reports clauses 8 and 16 as failed. The operator records their disposition at completion.\" The operator saw exit 1. So the failure was a legitimate deferral (item 8 deferred to #6874), not bad code. A fix that only refuses would have blocked this PR.\n- Today a leaf can also pass no flag. Then `completeRun` publishes a pass with no disposition, and `verify:ac` was never required to run (`wantsDisposition` false, 1034-1036).\n\nOperator decisions (Scott, 2026-11-20, relayed by the coordinator):\n- Priority is the false pass. A recorded pass must not outlive a failed `verify:ac`.\n- The leaf-ergonomics half of #6888 is secondary and out of this arc.\n- Prefer designs that remove ceremony over designs that add gates.\n- Next build: keep it narrow and buildable in one PR.\n\n## Pains\n- P1 — `pre-pr:run --complete` does not publish a pass when `verify:ac` fails on the run's tree. The `--verify-ac-disposition` flag cannot turn a failed `verify:ac` into `executed-ac`.\n- P2 — A clause the operator deferred with an acceptance-disposition grant does not make `--complete` refuse.\n- P3 — A leaf does not have to supply the `verify:ac` disposition. Callers that pass `--verify-ac-disposition` with the true value, and the `merge_chokepoint` path, keep working.\n\n## Excluded (not pains, not in this arc)\n- The leaf-ergonomics items of #6888 (issue acceptance items 2-4): finishing a run without a PR, runnable commands for content hashes and `merge_chokepoint`, saying in the output when the push is not gated, the auto-mode classifier refusal, and documenting phase order (operator: secondary).\n- Other command phases also take the caller's `--exit-code` on trust (`pre-pr-run.ts` 492-526). Same class, wider change.\n- Standalone `deft verify:ac` and `deft check` honoring grants; `verify:ac` failing on a brief's own title or the sentence floor (#5856, #6218, #5861); the web acceptance command (#6886); #5933, #4976, #6779.\n- Whether push is gated at all: `requireBoundPrePrPush` is `false` in this repo (`xbrief/PROJECT-DEFINITION.xbrief.json` 1165); consumers vary.\n\n## Constraints (not pains)\n- One PR. Production changes in `controller.ts`, `pre-pr-run.ts` and, if needed, `verify-ac.ts`, plus tests. No new phase id, policy flag, gate or CI job.\n- Nothing is written to the grant store, and a pre-PR read does not mark a grant used.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/pre-pr-controller/controller.ts` 130-146 (`runPrePrGateChecks`: the controller already runs `verify:class-checks` and `verify:evaluator-surface` itself for `lint_iteration`, #6336), 840-891, 932-1079.\n- `packages/core/src/pre-pr-controller/phases.ts` 24-35, 47-96 (`merge_chokepoint` is optional, command `deft check`).\n- `packages/runtime/src/pre-pr-run.ts` 379-394, 492-526, 620-639.\n- `packages/runtime/src/verify-ac.ts` 137-142 (exit 0 / 1 / 2 / 6), 235-300 (`evaluatePaths`), 310-535 (story selection: lands-with-product, `--soft-missing-xbrief`, untied returns 6).\n- `packages/core/src/hooks/scope.ts` 625 (`resolveSoftMissingAcTargets`).\n- `packages/core/src/product-first-done-gate/evaluate.ts` 151-158 (`grantedClauses`: \"Only scope:complete passes it\"), 585-594 (granted walks are not cached), 1300-1312 (granted clauses leave the walk).\n- `packages/core/src/scope/transition.ts` 924-934, 978-988 (`scope:complete` applies grants, then walks with `grantedClauses`).\n- `packages/core/src/policy/acceptance-disposition-grant.ts` 1-17, 43-44 (24 h default expiry), 502-560 (`resolveAcceptanceDispositionGrants`: expired-unused refuses with a re-mint command; digest mismatch refuses), 635-683 (`applyAcceptanceDispositionGrants`, in memory).\n- `packages/core/src/preflight-gh/pre-push.ts` 170-187, 438-491 (the push gate reads the disposition only to require `no-obligation` for untied pushes and refuse it for story pushes).\n- `content/skills/deft-directive-pre-pr/SKILL.md` 76-86 (ordinary pre-PR is the loop plus `verify:ac`), 94-103.\n- `packages/core/src/pre-pr-controller/controller.test.ts` 530-620 (existing disposition tests).\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1, P3). On `--complete`, before publishing, the CLI runs `verify:ac` in process with the story selection `deft check` uses (`--soft-missing-xbrief`) on the project root. Exit 0 gives `executed-ac`. Exit 6 (untied, no obligation) gives `no-obligation` with the worktree key, as today. Any other exit refuses non-zero, prints the `verify:ac` output, and publishes nothing. `pushBinding` records the derived disposition. This runs on every `--complete`, with or without the flag.\n- R2 (P1, P3). `--verify-ac-disposition` stays accepted but is optional. A given value that differs from the derived one refuses, as the existing `merge_chokepoint` disagreement rule does. An observed `merge_chokepoint` row keeps its existing meaning and must agree too.\n- R3 (P2). That `verify:ac` run leaves out clauses covered by a live operator acceptance-disposition grant, through the same resolution `scope:complete` uses (`applyAcceptanceDispositionGrants` on an in-memory copy of the plan). Nothing is written and the grant is not marked used. A resolver refusal (expired unused grant, changed clause text) refuses `--complete` with the resolver's re-mint message.\n- R4 (P1, P2, P3). Core `completeRun` takes the `verify:ac` result as an injected input, like `gateChecks` for `lint_iteration`; the CLI always supplies it. Tests: `--complete` after a failed `verify:ac` refuses and publishes nothing; exit 0 records `executed-ac`; `executed-ac` passed with a failed run refuses; a failing clause covered by a grant passes; exit 6 records `no-obligation`.\n\nQuestions for the critic:\n1. Is the false pass proven from code, or does something outside `controller.ts` and `pre-pr-run.ts` check `verify:ac` before or after `--complete`?\n2. Should the controller run `verify:ac` on every `--complete` (R1), or only when the caller claims `executed-ac`? What does the always-run rule do to leaves that complete today with no flag, and to run time?\n3. Is the `deft check` story selection right for this run (multi-active repos, lands-with-product briefs, untied branches)? Does it match what `merge_chokepoint` derives today?\n4. R3: does reading grants before the PR work? The default expiry is 24 hours and an expired unused grant refuses later; the operator in #5771 planned to record the disposition only at completion. Is in-PR completion (#6277) ordered correctly? Should the grant handling sit in the controller run only, or in `verify:ac` generally?\n5. Is it backward compatible, and does it fit one PR for the next build?\n\n",
+          "id": 7049224769,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049224769",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:55:37Z",
+          "updated_at": "2026-11-20T19:55:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7049225111\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: c9f0737c4e4778d86ab04981ee14298d4adfa38e\ndest: C:/Repos/deft/wt/arc-6888\nverification-path: pin-read git show c9f0737c4e4778d86ab04981ee14298d4adfa38e: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7049224769\ncritic-post-cap: 3 (operator-set for this arc: one round-1 critic, one pain audit, one recut audit only if the audit blocks with a narrowable fix)\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7049225111,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049225111",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:55:38Z",
+          "updated_at": "2026-11-20T19:55:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe controller can publish an acceptance disposition supplied by its caller without checking acceptance. The code proves that gap; the specific #5771 incident remains parent-reported because I cannot inspect its private run record or PR #6879 body.\n\nRunning acceptance automatically at completion is the right direction, including when the caller supplies no flag. However, the recommended mechanism cannot bind unchanged: exit 0 does not always mean acceptance ran, and applying grants before completion requires preparation omitted from R3.\n\nThe existing story selector is a reasonable starting point: it handles multiple active stories, lands-with-product moves, and admitted untied branches. It selects from the current project and environment, though, rather than from a story identity recorded on the controller run.\n\nGrant support can stay local to this controller invocation for a narrow first PR. A grant must exist before that invocation; a promise to defer at later completion cannot suffice. Unused grants can expire during review, while grants already used by in-PR completion remain replayable.\n\nThis can fit one PR after those corrections. It preserves flag syntax, but it deliberately changes behavior for callers that currently finish without acceptance evidence. Runtime cost is not necessarily small: the acceptance path can execute commands and fetch source text.\n\nAll source references below were read at `c9f0737c4e4778d86ab04981ee14298d4adfa38e`. No tests, writes, installs, or network requests were performed.\n\n### 1. blocks-the-design — Exit 0 is not sufficient evidence of executed acceptance\n\n**Evidence:** `packages/runtime/src/verify-ac.ts:427–458` returns 0 when there are no active briefs and no session-completed target. It explicitly emits `soft-missing`. Separately, `packages/core/src/product-first-done-gate/evaluate.ts:2213–2216` soft-skips a missing path. The existing check warning documents this behavior in `packages/core/src/check/rapid-soft-missing-no-brief.ts:1–6`.\n\n**Failure mode:** R1 turns these successful skips into `executed-ac`. The proposed fix would still publish a claim that acceptance executed when it did not. Existing `merge_chokepoint` derivation has the same ambiguity: `controller.ts:855–857` interprets aggregate exit 0 as executed acceptance, so agreement with that row does not establish execution.\n\n**Disposition consequence:** R1 needs an explicit treatment of successful skips. A structured outcome from the shared acceptance path can distinguish evaluated acceptance, admitted untied no-obligation, and other soft skips without changing standalone exit codes. Silently mapping every zero to `executed-ac` is not acceptable.\n\n### 2. blocks-the-design — Grant application alone omits completion’s required preparation\n\n**Evidence:** `packages/core/src/scope/transition.ts:922–931` calls `persistClauseKeyedPendingItems` before applying grants. That helper creates missing clause-keyed items and rewrites legacy IDs (`packages/core/src/scope/acceptance-evidence.ts:1442–1470`). `applyAcceptanceDispositionGrants` refuses when a covered item has no carrier (`packages/core/src/policy/acceptance-disposition-grant.ts:644–656`). The underlying apply function searches plan items, not merely acceptance clauses (`acceptance-evidence.ts:1765–1769`).\n\n**Failure mode:** A brief can contain a grant-covered clause without its corresponding plan item. Calling only the helper named in R3 refuses that grant, although the completion path would first create its carrier and accept it. That violates P2.\n\n**Disposition consequence:** R3 must include the same in-memory preparation before application, and pass the returned `grantedClauses` into the evaluator. Merely stamping dispositions onto a copied plan does not exclude clauses: the exclusion reads that explicit option (`product-first-done-gate/evaluate.ts:1304–1312`). A regression case needs a covered clause with no pre-existing keyed item.\n\n### 3. sharpens-framing — The false-pass mechanism is proven; the incident is not independently verified\n\n**Evidence:** `controller.ts:871–890` accepts the direct disposition without execution evidence. Lines 1034–1038 tolerate missing disposition when neither the flag nor a merge row exists; lines 1065–1073 publish the pass. `packages/runtime/src/pre-pr-run.ts:620–638` supplies the parsed flag without running acceptance.\n\nThe downstream evidence evaluator checks bindings, completion, observables, and criteria authority (`packages/core/src/pre-pr-controller/evaluate.ts:75–123`). The push consumer checks disposition categories for multi-active story admission (`packages/core/src/preflight-gh/pre-push.ts:440–491`); it does not recover the missing acceptance result.\n\n**Failure mode:** Treating downstream checks as acceptance verification leaves the unchecked caller claim intact. Conversely, calling the #5771 record independently verified overstates the available evidence.\n\n**Disposition consequence:** The bug warrants fixing independently of that incident. Always-run is preferable to claim-only: claim-only retains the no-flag bypass. The strongest argument for claim-only is compatibility and lower cost, but it would require an explicitly weaker meaning of “pre-PR pass” than P1 requests.\n\n### 4. sharpens-framing — Grant timing changes, and “live grant” excludes valid replay\n\n**Evidence:** The grant resolver accepts either used grants or currently live unused grants (`acceptance-disposition-grant.ts:491–518`), refuses stale unused grants (`520–536`), and checks covered text digests (`548–564`). In-PR completion skips the post-merge delivery gate (`scope/transition.ts:795–827`), still applies acceptance grants (`920–988`), and records their use after successful completion (`1354–1357`).\n\n**Failure mode:** Minting only at eventual completion cannot unblock an earlier controller check. A grant read before review remains unused and can expire before later completion. Conversely, implementing R3’s word “live” literally would reject an expired but already-used grant that the canonical resolver accepts.\n\n**Disposition consequence:** R3 should describe **resolver-accepted grants**, including replay. The supported order is explicit: grant before controller acceptance; or grant, in-PR completion, then controller acceptance of the moved brief. Expiry and re-mint remain real operational costs. The claimed #5771 remedy is conditional on moving the operator’s grant earlier.\n\n### 5. sharpens-framing — Compatibility means preserved syntax, not unchanged completion behavior\n\n**Evidence:** Story selection prioritizes explicit paths, eligible lands-with-product moves, then active-story resolution (`verify-ac.ts:324–425`). Multi-active resolution uses pins and branch binding (`hooks/scope.ts:657–695`); a sole active brief is selected directly (`verify-ac.ts:346–348`). Acceptance evaluation can fetch live source text (`verify-ac.ts:180–218, 266–284`). Grant-covered passes deliberately avoid session-cache persistence (`product-first-done-gate/evaluate.ts:585–593`).\n\n**Failure mode:** Existing no-flag callers newly encounter story-selection failures, acceptance failures, network failures, and potentially repeated command execution. Treating this as fully backward compatible hides the main behavioral change. An optional injected result that falls back to today’s unchecked path would also retain the defect for core callers.\n\n**Disposition consequence:** One-PR scope remains plausible with the shared selector, controller-specific grant handling, and existing evaluator protections retained. R4 should make absent or failed controller-owned acceptance evidence non-passing. Compatibility coverage should include no flag, conflicting flag, optional merge rows, zero-target soft skips, multi-active selection, and completed-brief grant replay. General grant support for standalone `verify:ac` and `deft check` can remain outside this arc.",
+          "id": 7049293783,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049293783",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:59:09Z",
+          "updated_at": "2026-11-20T19:59:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7049224769 (round 1: 1 of 1 critic posted, comment 7049293783)\n\n## In plain English\nProblem: `pre-pr:run --complete` publishes a pre-PR pass and records a `verify:ac` disposition that the caller supplies with `--verify-ac-disposition`. Nothing in the controller runs or reads `verify:ac`, so a caller can record `executed-ac` after `verify:ac` failed, and a caller that passes no flag gets a pass without `verify:ac` at all. The critic confirmed this from the code; the #5771 run record and PR text are parent-supplied evidence it could not read.\n\nWhat the critic found: running `verify:ac` inside `--complete`, on every call, is the right direction. Two parts of the first draft did not hold. First, `verify:ac` exits 0 when it finds no brief to run, so \"exit 0 means executed\" would still record a false `executed-ac`. Second, grants cannot be applied on their own: `scope:complete` first adds the clause-keyed plan items the grants attach to, and the clause walk skips a clause only when it is passed in the granted set. Three points were made sharper: accept every grant the resolver accepts, including one already used by in-PR completion; the operator must mint the grant before the leaf completes its run; and the change keeps the flag syntax but does change behaviour for callers that complete today without a passing `verify:ac`.\n\nSolution this lean proposes: at `--complete`, the controller runs the same story selection and evaluation as `deft check` runs for `verify:ac`, and takes a structured result from it. A selected brief that evaluates clean records `executed-ac`. An admitted untied branch records `no-obligation`, as today. No brief to run records no disposition, and the output says so. Anything else refuses and publishes nothing. Grant-covered clauses are prepared and left out exactly as `scope:complete` does, in memory only. The flag stays accepted and becomes optional; a value that differs from the result refuses.\n\nWhat this adds: no new phase, policy flag, gate or CI job. It removes a step (the leaf no longer supplies the disposition) and a rule (the disposition no longer comes from the `merge_chokepoint` exit code).\n\nWhat it does not do:\n- It does not touch the leaf-ergonomics items of #6888 (finishing without a PR, runnable hash and `merge_chokepoint` commands, saying when the push is not gated, phase order); those are out of this arc by operator decision.\n- It does not change standalone `deft verify:ac` or `deft check`, and other command phases still take the caller's exit code on trust.\n- An operator who defers a clause must mint the grant before the leaf runs `--complete`. An unused grant still expires after 24 hours and may need a re-mint before `scope:complete`.\n- Story selection reads the project and environment at `--complete`, not a story recorded on the run.\n- `--complete` can take longer: `verify:ac` may run acceptance commands and fetch source text.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build inside this arc.\n\nTarget-digest: sha256:89922ebb08dba6fa0f27e43503242b95b73108d65cb06cf7f62cec93b407a225\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7049293783). Panel deposit: comment 7049225111.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Controller-owned `verify:ac` result (P1, P3). On every `--complete`, before publishing, the CLI runs the story selection and evaluation that `verify:ac --soft-missing-xbrief` runs, on the project root, and gets a structured result: `evaluated-pass` (a brief was selected and its evaluation returned ok), `untied-no-obligation` (today's exit 6), `no-target` (no brief selected; today's soft-missing exit 0), or `fail` (any other result, with the `verify:ac` output). Standalone `verify:ac` exit codes do not change.\n2. Disposition from that result only (P1, P3). `evaluated-pass` records `executed-ac`; `untied-no-obligation` records `no-obligation` with the worktree key, as today; `no-target` records no disposition and the output says `verify:ac` had no brief to run; `fail` refuses non-zero and publishes nothing. A `merge_chokepoint` row no longer sets the disposition; a present red row still fails the run as today.\n3. Optional flag (P3). `--verify-ac-disposition` stays accepted and is no longer needed. A value that differs from item 2's disposition, including `executed-ac` with `no-target`, refuses non-zero.\n4. Grants (P2). Before evaluating, the run copies the selected brief's plan in memory, runs `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, and passes the returned `grantedClauses` to the evaluator, as `scope:complete` does. Every grant the resolver accepts counts, a used grant included. A resolver refusal refuses `--complete` with the resolver's message. Nothing is written to the brief or the grant store, and no grant is marked used.\n5. Core requires the result (P1). `completeRun` takes the controller-owned result as a required input; when it is absent or `fail`, it refuses. There is no fallback to a caller-supplied disposition.\n6. Docs (P3). The pre-PR skill and the `pre-pr:run` usage text say that `--complete` runs `verify:ac` itself and that the flag is optional; the pre-push recovery text no longer tells the caller to pass a disposition.\n\n## Acceptance Criteria\n- `pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself on every call, with or without `--verify-ac-disposition`.\n- When that evaluation fails, `--complete` exits non-zero, prints the `verify:ac` output, and the store holds no pass for the run.\n- `executed-ac` is recorded only when a brief was selected and its evaluation returned ok; an untied branch records `no-obligation` with the worktree key; no selected brief records no disposition and the output says so.\n- `--verify-ac-disposition` is optional; a value that differs from the recorded disposition, including `executed-ac` when no brief was selected, makes `--complete` exit non-zero.\n- A clause covered by a resolver-accepted acceptance-disposition grant, including a used grant and a clause with no clause-keyed plan item yet, does not make `--complete` refuse; the run writes nothing to the brief or the grant store and marks no grant used.\n- A grant the resolver refuses (expired unused, changed clause text) makes `--complete` exit non-zero with the resolver's message.\n- `completeRun` refuses when the controller-owned `verify:ac` result is absent.\n- Tests cover: failed `verify:ac` with no flag; failed `verify:ac` with `executed-ac`; a pass recording `executed-ac`; untied `no-obligation`; no selected brief; a conflicting flag; a present `merge_chokepoint` row; multi-active selection by branch; a grant-covered clause with no keyed item; and a used grant after in-PR completion.\n\n## Reject\n- Mapping every `verify:ac` exit 0 to `executed-ac` (comment 7049293783, finding 1: no-target soft skips exit 0).\n- Applying grants without the clause-keyed item preparation, or without passing `grantedClauses` to the evaluator (comment 7049293783, finding 2).\n- Accepting only live unused grants (comment 7049293783, finding 4: rejects replay of a grant used by in-PR completion).\n- Running `verify:ac` only when the caller claims `executed-ac`, or an optional injected result that falls back to the caller's claim (comment 7049293783, findings 3 and 5).\n- Grant handling in standalone `verify:ac` or `deft check` (Stop 1 exclusion).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7049293783 | 1. Exit 0 is not sufficient evidence of executed acceptance | blocks-the-design | accept-into-contract (items 1 and 2) |\n| comment 7049293783 | 2. Grant application alone omits completion's required preparation | blocks-the-design | accept-into-contract (item 4) |\n| comment 7049293783 | 3. The false-pass mechanism is proven; the incident is not independently verified | sharpens-framing | accept-into-contract (plain-English wording; always-run in item 1) |\n| comment 7049293783 | 4. Grant timing changes, and \"live grant\" excludes valid replay | sharpens-framing | accept-into-contract (item 4; limits above) |\n| comment 7049293783 | 5. Compatibility means preserved syntax, not unchanged completion behavior | sharpens-framing | accept-into-contract (item 5; limits above; test list) |\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. Two premises here are the parent's, not the critic's: that a present red `merge_chokepoint` row still fails the run without the disposition rule, and that the clause-keyed item preparation changes only the plan object it is given, so an in-memory copy writes nothing.\naudit:A1 sha=c9f0737c4e4778d86ab04981ee14298d4adfa38e pointer=packages/core/src/pre-pr-controller/controller.ts:766-783 reading=measured\naudit:A2 sha=c9f0737c4e4778d86ab04981ee14298d4adfa38e pointer=packages/core/src/scope/acceptance-evidence.ts:1442-1470 reading=measured\nThe `relieves` cites and A1 and A2 stay open until a later critic targets them.\n\n",
+          "id": 7049299784,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049299784",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:59:28Z",
+          "updated_at": "2026-11-20T19:59:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:279388986bee16bad36821ef99fbd5f633d3f1ba5d364a0e97963c65e25eb494\n\n## In plain English\n\nThe remedy covers the three stated pains. It makes the controller obtain acceptance results itself, preserves legitimate grant exclusions, and removes the need for callers to supply a disposition. Both audited helper claims hold.\n\nOne distinction remains important: a successful evaluation does not necessarily mean acceptance commands executed. The existing evaluator admits some empty results. That does not violate P1’s stated prohibition on publishing after a failed evaluation, but the recorded `executed-ac` label cannot prove that commands ran.\n\nThis was a read-only audit at `c9f0737c4e4778d86ab04981ee14298d4adfa38e`; no tests were run.\n\npain-P1: holds - Required controller-owned results remove both caller-claim bypasses; failures refuse publication. Successful empty evaluations remain possible under the expressly chosen check profile.\npain-P2: holds - Clause-keyed preparation, canonical grant resolution/application, and the returned granted-clause set cover missing carriers and used-grant replay.\npain-P3: holds - Matching flags remain accepted; green merge rows remain satisfied independently of disposition derivation.\nA1: holds - Present red merge rows fail through observable validation independently of `deriveVerifyAcDisposition`.\nA2: holds - Clause-keyed preparation and grant application mutate the supplied plan object; neither writes the brief or marks grants used.\n\n### 1. footnote — Successful evaluation is broader than executed acceptance\n\nAt the dispatch SHA, `packages/runtime/src/verify-ac.ts:324–468` distinguishes selected targets, untied branches, and no-target returns. Lands-with-product and just-completed briefs enter the evaluation path rather than automatically passing. `evaluatePaths` evaluates every selected path and preserves non-zero results (`235–300`). Those branches can supply the proposed structured result without changing standalone exit codes.\n\nHowever, `packages/core/src/product-first-done-gate/evaluate.ts:984–1024` admits check-integrated advisory results with no executable peers. Lines `1085–1108` distinguish `empty-pass` from `verified-pass`; lines `1111–1155` preserve empty success when a suite floor exists and refuse soft-empty otherwise. The existing fixture explicitly expects `ok: true`, code `0`, and `empty-pass` (`empty-resolution.test.ts:77–89`).\n\nThus item 1’s “selected and evaluation returned ok” deliberately maps some empty results to `executed-ac`. It proves the controller evaluated acceptance under the existing policy, not that commands executed. Requiring actual executed or verified acceptance would strengthen the stated pain and change the mechanism; this audit does not silently add that requirement.\n\n### 2. footnote — The no-write guarantee requires care beyond the two grant helpers\n\nPreparation creates missing clause carriers in memory (`packages/core/src/scope/acceptance-evidence.ts:1442–1470`). Application stamps those carriers in memory (`1754–1779`). The resolver accepts used grants, checks expiry for unused grants, and checks covered text digests (`packages/core/src/policy/acceptance-disposition-grant.ts:491–577`). Application returns `grantedClauses` and grant IDs to record, rather than recording their use (`635–684`). This supports A2 and P2.\n\nThe surrounding evaluator is not automatically read-only: `evaluateVerifyAcFromPath` installs a brief-writing autofix callback (`product-first-done-gate/evaluate.ts:2258–2273`), and even the plan evaluator supplies one when given `xbriefPath` without an override (`777–795`). Copying the plan alone therefore does not establish the whole-run no-write guarantee. Item 4 already expressly prohibits these writes; implementation must honor that requirement through the evaluator’s callback boundary.\n\n### 3. footnote — Existing disposition tests need adaptation, not preservation of the old derivation\n\n`controller.ts:720–724, 766–783` independently accepts green merge rows and rejects unsatisfied rows. `evaluateLivePrePrCheck` delegates to evidence validation, which rechecks observables but does not rederive acceptance disposition (`packages/core/src/pre-pr-controller/evaluate.ts:115–149`).\n\nPre-push consumes the stored disposition and worktree key, not its derivation source (`packages/core/src/preflight-gh/pre-push.ts:440–491`). The existing test that derives `no-obligation` solely from a merge row (`controller.test.ts:572–617`) must therefore receive the required controller-owned result after this change. This is consistent with items 2 and 5, not a compatibility blocker.",
+          "id": 7049343238,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049343238",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T20:01:38Z",
+          "updated_at": "2026-11-20T20:01:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7049343238; bind map stays successor lean 7049299784)\n\nThe audit is footnote-only with `harvest-changed: false`, and its harvest digest equals the lean's. It found `pain-P1`, `pain-P2`, `pain-P3`, A1 and A2 hold.\n\n- comment 7049343238, finding 1 (footnote): accepted as a stated limit. `executed-ac` means the controller selected a brief and its `verify:ac` evaluation returned ok under the existing check profile, which can be an `empty-pass`; it does not prove that acceptance commands ran. That is the same meaning a green `merge_chokepoint` row carried before. Requiring executed commands would be a separate change. The Bound remedy is unchanged.\n- comment 7049343238, finding 2 (footnote): accepted as implementation guidance. Item 4's no-write rule covers the whole run: the controller's evaluation must not use the evaluator's brief-writing autofix callback, so nothing is written to the brief. The Bound remedy is unchanged.\n- comment 7049343238, finding 3 (footnote): accepted. The existing test that derives `no-obligation` from a `merge_chokepoint` row is adapted to supply the controller-owned result (items 2 and 5). The Bound remedy is unchanged.\n\n",
+          "id": 7049343568,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049343568",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T20:01:39Z",
+          "updated_at": "2026-11-20T20:01:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7049299784. Dispatch SHA: c9f0737c4e4778d86ab04981ee14298d4adfa38e. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent check and, where marked, a re-check by a Codex critic (a different model family). Both critic posts are from one family, so their agreement is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | With no `merge_chokepoint` row, `completeRun` records the caller's `--verify-ac-disposition` unchecked and publishes a pass | verified | parent pin-read of `controller.ts` 840-891 and 1029-1079 and `pre-pr-run.ts` 379-394, 620-639; critic 7049293783 finding 3 |\n| 2 | Nothing in the controller or the CLI runs or reads `verify:ac`; downstream readers do not recover it | verified | parent pin-read; critic 7049293783 finding 3 (`evaluate.ts` 75-123, `pre-push.ts` 440-491) |\n| 3 | A caller passing no flag also gets a pass without `verify:ac` | verified | `controller.ts` 1034-1038; critic 7049293783 finding 3 |\n| 4 | Run `ppr_d1a06e45743a44ae` on #5771 recorded `executed-ac` with no `merge_chokepoint` row | measured by the parent only | parent decode of the private store record (MAC not checked); the critics could not read it |\n| 5 | On #5771 `verify:ac` failed because of operator-deferred clauses 8 and 16 | parent-reported | PR #6879 body and operator report; not read by the critics |\n| 6 | `verify:ac` exits 0 when no brief is selected, so exit 0 alone is not executed acceptance | verified | critic 7049293783 finding 1 (`verify-ac.ts` 427-458); lean items 1-2 |\n| 7 | Grants need clause-keyed item preparation and an explicit `grantedClauses` set; used grants are replayable | verified | critic 7049293783 findings 2 and 4; audit 7049343238 pain-P2 |\n| 8 | A present red `merge_chokepoint` row fails the run without the disposition rule (A1) | verified | pin-read of `controller.ts` 766-783; audit 7049343238 A1 holds |\n| 9 | Preparation and grant application change only the given plan object (A2) | verified | pin-read of `acceptance-evidence.ts` 1442-1470; audit 7049343238 A2 holds and footnote 2 (the evaluator autofix callback must not be used) |\n| 10 | `executed-ac` proves acceptance commands ran | not claimed | audit 7049343238 footnote 1: it means the evaluation returned ok, which can be `empty-pass` |\n| 11 | The Bound remedy relieves P1-P3 | verified as design coverage | audit 7049343238 on the bound lean (all hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's); follow-through 7049343568 |\n\n",
+          "id": 7049355335,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049355335",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T20:02:14Z",
+          "updated_at": "2026-11-20T20:02:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `pre-pr:run --complete` published a pre-PR pass and recorded whatever `verify:ac` disposition the caller passed. Nothing in the controller ran or read `verify:ac`, so a caller could record `executed-ac` after `verify:ac` failed (seen on #5771), and a caller with no flag got a pass without `verify:ac` at all.\n\nAccepted solution: on every `--complete`, the controller runs the same `verify:ac` story selection and evaluation that `deft check` runs and takes a structured result. A selected brief that evaluates ok records `executed-ac`; an untied branch records `no-obligation`, as today; no selected brief records no disposition and says so; a failure refuses and publishes nothing. Clauses covered by an operator acceptance-disposition grant are prepared and left out the way `scope:complete` does, in memory only, so a legitimate deferral still passes. `--verify-ac-disposition` stays accepted but is optional; a value that differs refuses. The `merge_chokepoint` row no longer sets the disposition.\n\nLimits accepted: `executed-ac` means the evaluation returned ok, not that commands ran. The operator must mint a deferral grant before the leaf completes; an unused grant still expires after 24 hours. `--complete` may take longer. The leaf-ergonomics items of #6888 are out of this arc. It was checked by reading the source at the pinned commit and one decoded run record; no code was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7049299784.\nverified-claims table 7049355335\n\nConfirm conjunct: yolo standing (Stop 1 7049224769, `yolo-standing: on`). Round-1 critic: comment 7049293783, posted by the parent verbatim as disclosed on panel-deposit 7049225111; its five classified findings are accepted on the lean. Clean audit of the bound lean and of markers A1 and A2: comment 7049343238 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7049343568. Not part of this contract: #6888 issue acceptance items 2-4 (leaf finishing without a PR, runnable hash and `merge_chokepoint` commands, saying when the push is not gated). Critic posts used: 2 of 3.\n\n",
+          "id": 7049355642,
+          "html_url": "https://github.com/deftai/directive/issues/6888#issuecomment-7049355642",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T20:02:15Z",
+          "updated_at": "2026-11-20T20:02:15Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nConsumer report #6882 item 5: a leaf cannot finish its own `deft pre-pr:run` controller run.\n\n- Every leaf started a controller run (for example `ppr_ae60e25bd2b39e03`, `ppr_ce3511780ec24d16`). None could record the semantic phases: they need content hashes, `merge_chokepoint` needs `deft check`, and `--complete` needs an open PR.\n- The Claude Code auto-mode classifier also refused a leaf writing its own phase results.\n- The pushes were not refused, so the controller adds ceremony without a gate (consumer report #6882).\n\nAdditional evidence, 2026-11-20: `pre-pr:run --complete` published a pass after `verify:ac` had exited 1 under `--verify-ac-disposition executed-ac`. A recorded pass must not outlive a failed `verify:ac`.\n\nRelated: #5933 (push bind and completeRun as one controller path), #4976 (controller-observed required-check gap), #6779 (printed recovery cannot run as written).\n\n## Acceptance Criteria\n\n- [ ] `pre-pr:run --complete` refuses (non-zero) when the recorded `verify:ac` result is a failure under `--verify-ac-disposition executed-ac`.\n- [ ] A leaf can finish a controller run without a PR, or the controller states which phases need a PR and defers them to the parent.\n- [ ] Each phase the controller needs a leaf to record has a runnable command that computes its own content hashes and `merge_chokepoint` result.\n- [ ] If the controller does not gate the push, the output says so; it does not claim a gate.\n- [ ] A test covers `--complete` after a failed `verify:ac`.\n\nRefs #6882, #5933, #4976, #6779\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6518389942,
+        "origin": "deftai/directive#6888",
+        "id": "github.issue.6518389942"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "89922ebb08dba6fa0f27e43503242b95b73108d65cb06cf7f62cec93b407a225"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6888,
+        "leanCommentId": 7049299784,
+        "harvestDigest": "279388986bee16bad36821ef99fbd5f633d3f1ba5d364a0e97963c65e25eb494",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (14), in list order (#6333)",
+      "sentences": [
+        "Controller-owned `verify:ac` result (P1, P3). On every `--complete`, before publishing, the CLI runs the story selection and evaluation that `verify:ac --soft-missing-xbrief` runs, on the project root, and gets a structured result: `evaluated-pass` (a brief was selected and its evaluation returned ok), `untied-no-obligation` (today's exit 6), `no-target` (no brief selected; today's soft-missing exit 0), or `fail` (any other result, with the `verify:ac` output). Standalone `verify:ac` exit codes do not change.",
+        "Disposition from that result only (P1, P3). `evaluated-pass` records `executed-ac`; `untied-no-obligation` records `no-obligation` with the worktree key, as today; `no-target` records no disposition and the output says `verify:ac` had no brief to run; `fail` refuses non-zero and publishes nothing. A `merge_chokepoint` row no longer sets the disposition; a present red row still fails the run as today.",
+        "Optional flag (P3). `--verify-ac-disposition` stays accepted and is no longer needed. A value that differs from item 2's disposition, including `executed-ac` with `no-target`, refuses non-zero.",
+        "Grants (P2). Before evaluating, the run copies the selected brief's plan in memory, runs `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, and passes the returned `grantedClauses` to the evaluator, as `scope:complete` does. Every grant the resolver accepts counts, a used grant included. A resolver refusal refuses `--complete` with the resolver's message. Nothing is written to the brief or the grant store, and no grant is marked used.",
+        "Core requires the result (P1). `completeRun` takes the controller-owned result as a required input; when it is absent or `fail`, it refuses. There is no fallback to a caller-supplied disposition.",
+        "Docs (P3). The pre-PR skill and the `pre-pr:run` usage text say that `--complete` runs `verify:ac` itself and that the flag is optional; the pre-push recovery text no longer tells the caller to pass a disposition.",
+        "`pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself on every call, with or without `--verify-ac-disposition`.",
+        "When that evaluation fails, `--complete` exits non-zero, prints the `verify:ac` output, and the store holds no pass for the run.",
+        "`executed-ac` is recorded only when a brief was selected and its evaluation returned ok; an untied branch records `no-obligation` with the worktree key; no selected brief records no disposition and the output says so.",
+        "`--verify-ac-disposition` is optional; a value that differs from the recorded disposition, including `executed-ac` when no brief was selected, makes `--complete` exit non-zero.",
+        "A clause covered by a resolver-accepted acceptance-disposition grant, including a used grant and a clause with no clause-keyed plan item yet, does not make `--complete` refuse; the run writes nothing to the brief or the grant store and marks no grant used.",
+        "A grant the resolver refuses (expired unused, changed clause text) makes `--complete` exit non-zero with the resolver's message.",
+        "`completeRun` refuses when the controller-owned `verify:ac` result is absent.",
+        "Tests cover: failed `verify:ac` with no flag; failed `verify:ac` with `executed-ac`; a pass recording `executed-ac`; untied `no-obligation`; no selected brief; a conflicting flag; a present `merge_chokepoint` row; multi-active selection by branch; a grant-covered clause with no keyed item; and a used grant after in-PR completion."
+      ],
+      "admitted_source_sentences": [
+        "Controller-owned `verify:ac` result (P1, P3). On every `--complete`, before publishing, the CLI runs the story selection and evaluation that `verify:ac --soft-missing-xbrief` runs, on the project root, and gets a structured result: `evaluated-pass` (a brief was selected and its evaluation returned ok), `untied-no-obligation` (today's exit 6), `no-target` (no brief selected; today's soft-missing exit 0), or `fail` (any other result, with the `verify:ac` output). Standalone `verify:ac` exit codes do not change.",
+        "Disposition from that result only (P1, P3). `evaluated-pass` records `executed-ac`; `untied-no-obligation` records `no-obligation` with the worktree key, as today; `no-target` records no disposition and the output says `verify:ac` had no brief to run; `fail` refuses non-zero and publishes nothing. A `merge_chokepoint` row no longer sets the disposition; a present red row still fails the run as today.",
+        "Optional flag (P3). `--verify-ac-disposition` stays accepted and is no longer needed. A value that differs from item 2's disposition, including `executed-ac` with `no-target`, refuses non-zero.",
+        "Grants (P2). Before evaluating, the run copies the selected brief's plan in memory, runs `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, and passes the returned `grantedClauses` to the evaluator, as `scope:complete` does. Every grant the resolver accepts counts, a used grant included. A resolver refusal refuses `--complete` with the resolver's message. Nothing is written to the brief or the grant store, and no grant is marked used.",
+        "Core requires the result (P1). `completeRun` takes the controller-owned result as a required input; when it is absent or `fail`, it refuses. There is no fallback to a caller-supplied disposition.",
+        "Docs (P3). The pre-PR skill and the `pre-pr:run` usage text say that `--complete` runs `verify:ac` itself and that the flag is optional; the pre-push recovery text no longer tells the caller to pass a disposition.",
+        "`pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself on every call, with or without `--verify-ac-disposition`.",
+        "When that evaluation fails, `--complete` exits non-zero, prints the `verify:ac` output, and the store holds no pass for the run.",
+        "`executed-ac` is recorded only when a brief was selected and its evaluation returned ok; an untied branch records `no-obligation` with the worktree key; no selected brief records no disposition and the output says so.",
+        "`--verify-ac-disposition` is optional; a value that differs from the recorded disposition, including `executed-ac` when no brief was selected, makes `--complete` exit non-zero.",
+        "A clause covered by a resolver-accepted acceptance-disposition grant, including a used grant and a clause with no clause-keyed plan item yet, does not make `--complete` refuse; the run writes nothing to the brief or the grant store and marks no grant used.",
+        "A grant the resolver refuses (expired unused, changed clause text) makes `--complete` exit non-zero with the resolver's message.",
+        "`completeRun` refuses when the controller-owned `verify:ac` result is absent.",
+        "Tests cover: failed `verify:ac` with no flag; failed `verify:ac` with `executed-ac`; a pass recording `executed-ac`; untied `no-obligation`; no selected brief; a conflicting flag; a present `merge_chokepoint` row; multi-active selection by branch; a grant-covered clause with no keyed item; and a used grant after in-PR completion."
+      ],
+      "admitted_source_digest": "85e8639602df4e07feee4bdcb30d5f57442814988d95e176edb8fd74b85ce7ff",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Controller-owned `verify:ac` result (P1, P3). On every `--complete`, before publishing, the CLI runs the story selection and evaluation that `verify:ac --soft-missing-xbrief` runs, on the project root, and gets a structured result: `evaluated-pass` (a brief was selected and its evaluation returned ok), `untied-no-obligation` (today's exit 6), `no-target` (no brief selected; today's soft-missing exit 0), or `fail` (any other result, with the `verify:ac` output). Standalone `verify:ac` exit codes do not change.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Disposition from that result only (P1, P3). `evaluated-pass` records `executed-ac`; `untied-no-obligation` records `no-obligation` with the worktree key, as today; `no-target` records no disposition and the output says `verify:ac` had no brief to run; `fail` refuses non-zero and publishes nothing. A `merge_chokepoint` row no longer sets the disposition; a present red row still fails the run as today.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Optional flag (P3). `--verify-ac-disposition` stays accepted and is no longer needed. A value that differs from item 2's disposition, including `executed-ac` with `no-target`, refuses non-zero.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Grants (P2). Before evaluating, the run copies the selected brief's plan in memory, runs `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, and passes the returned `grantedClauses` to the evaluator, as `scope:complete` does. Every grant the resolver accepts counts, a used grant included. A resolver refusal refuses `--complete` with the resolver's message. Nothing is written to the brief or the grant store, and no grant is marked used.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Core requires the result (P1). `completeRun` takes the controller-owned result as a required input; when it is absent or `fail`, it refuses. There is no fallback to a caller-supplied disposition.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Docs (P3). The pre-PR skill and the `pre-pr:run` usage text say that `--complete` runs `verify:ac` itself and that the flag is optional; the pre-push recovery text no longer tells the caller to pass a disposition.",
+          "artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself on every call, with or without `--verify-ac-disposition`.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "When that evaluation fails, `--complete` exits non-zero, prints the `verify:ac` output, and the store holds no pass for the run.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "`executed-ac` is recorded only when a brief was selected and its evaluation returned ok; an untied branch records `no-obligation` with the worktree key; no selected brief records no disposition and the output says so.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "`--verify-ac-disposition` is optional; a value that differs from the recorded disposition, including `executed-ac` when no brief was selected, makes `--complete` exit non-zero.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "A clause covered by a resolver-accepted acceptance-disposition grant, including a used grant and a clause with no clause-keyed plan item yet, does not make `--complete` refuse; the run writes nothing to the brief or the grant store and marks no grant used.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "A grant the resolver refuses (expired unused, changed clause text) makes `--complete` exit non-zero with the resolver's message.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`completeRun` refuses when the controller-owned `verify:ac` result is absent.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Tests cover: failed `verify:ac` with no flag; failed `verify:ac` with `executed-ac`; a pass recording `executed-ac`; untied `no-obligation`; no selected brief; a conflicting flag; a present `merge_chokepoint` row; multi-active selection by branch; a grant-covered clause with no keyed item; and a used grant after in-PR completion.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6518389942",
+    "updated": "2026-11-20T21:27:15Z"
+  }
+}
