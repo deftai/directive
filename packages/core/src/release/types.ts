@@ -36,6 +36,12 @@ export interface ReleaseConfig {
    * (a version-only grant still works on the manual `--finish` path).
    */
   readonly runBinding?: ReleaseRunBinding | null;
+  /**
+   * #6791 -- the CI decision readiness recorded (`deft release:run`, #6876).
+   * Step 5 evaluates the reuse rule again and prints the decision when it
+   * changed. Absent: Step 5 prints its own decision only.
+   */
+  readonly ciReuseAtReadiness?: import("./ci-reuse.js").CiReuseKind | null;
 }
 
 /** #6875 -- what a `deft release:run` recorded before the merge. */
@@ -155,6 +161,18 @@ export interface ReleaseSeams {
   readonly skipNamedMergeGate?: boolean;
   readonly namedMergeGateFn?: import("../pr-wait-mergeable/semantic-green.js").NamedMergeGateFn;
   readonly runGh?: import("../pr-merge-readiness/types.js").RunGhFn;
+  /**
+   * #6791 -- Step 5 CI reuse rule. Production uses evaluateCiReuse. When a
+   * caller injects `runCi` without this seam, that caller owns the Step 5 CI
+   * path and the rule is not evaluated (hermetic suites never reach GitHub).
+   */
+  readonly evaluateCiReuse?: (
+    projectRoot: string,
+    repo: string,
+    baseBranch: string,
+  ) => import("./ci-reuse.js").CiReuseDecision;
+  /** #6791 -- host smoke check of a reused cut. Production uses runHostSmokeCheck. */
+  readonly runHostSmoke?: (projectRoot: string) => [boolean, string];
   /**
    * #5239 F1 / #6041 — whether Step 5 child lane wrote local coverage-final.json.
    * Production defaults to true (host coverage at Step 5). Tests inject false

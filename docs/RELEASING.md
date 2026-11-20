@@ -91,9 +91,20 @@ Step 5 Check 5 lists every declared refusal that is new or changed against the t
 
 The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; the refusal line still names the gate id and the remedy. Walkthrough: `content/docs/gate-walkthrough.md`.
 
+## Step 5 CI reuse (#6791)
+
+Step 5 reuses CI, with no flag, citation or prompt, when both hold:
+
+- The clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched `origin/<base>` tip.
+- The latest run of each required check on that tip SHA (`TypeScript (build + lint)`, `Merge gate (task check)`) completed `success`. A missing, pending, failed or re-running latest attempt never reuses an older success.
+
+On reuse, Step 5 prints the tip SHA and the check-run URLs and runs only the **host smoke check**: `pnpm run build`, then `pnpm exec vitest run` without coverage on a fixed small set of host test files (`RELEASE_HOST_SMOKE_TEST_FILES` in `packages/core/src/release/ci-reuse.ts`: release spawn, release paths, the check-lane runner and the reuse rule). It takes a few minutes. A failed smoke check fails Step 5.
+
+**A reused cut runs no host coverage** (operator ruling B on #6791). The nightly coverage lane (#6849) closes that gap. When the rule does not hold, or a read fails, Step 5 prints why and runs the full local check with host coverage as below. Under `deft release:run` (#6876), Step 5 also prints when its decision changed since readiness. `--skip-ci` stays incident-only.
+
 ## Windows Step 5 host coverage decision (#6041; reverses #5026)
 
-**Decision.** PR CI and ordinary `ts:check-lane` run the suite **without** `--coverage`. Release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`) runs host vitest **with** `--coverage` and enforces thresholds on the host. On-demand `task test:coverage` remains. Tip-SHA GHA coverage-of-record cites are retired from Step 5 success, stamp-hit, and auto-hatch paths.
+**Decision.** PR CI and ordinary `ts:check-lane` run the suite **without** `--coverage`. Release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`), when it does not reuse CI (§ Step 5 CI reuse (#6791)), runs host vitest **with** `--coverage` and enforces thresholds on the host. On-demand `task test:coverage` remains. Tip-SHA GHA coverage-of-record cites are retired from Step 5 success, stamp-hit, and auto-hatch paths.
 
 **Rationale.** Owner decision: coverage is not a merge requirement; it runs at release for now, or on demand. The 75% floor is a collapse detector, not a per-PR quality ratchet.
 

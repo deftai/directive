@@ -15,6 +15,13 @@ import {
 } from "./auto-hatch.js";
 import { guardChangelogReadSafety } from "./changelog-read-safety.js";
 import {
+  type CiReuseDecision,
+  evaluateCiReuse,
+  formatCiReuseChange,
+  formatCiReuseDecision,
+  runHostSmokeCheck,
+} from "./ci-reuse.js";
+import {
   emitCliDriftReportBestEffort,
   shouldSkipRegistryPoll,
   type WorkspacePackageName,
@@ -166,6 +173,25 @@ function recordSuiteStamp(
   } catch {
     // Stamp is best-effort; never fail a green/hatch cut on stamp I/O.
   }
+}
+
+/**
+ * #6791: evaluate the Step 5 CI reuse rule and print the decision (and any
+ * change since readiness). Returns null when an injected `runCi` owns the
+ * Step 5 CI path and no `evaluateCiReuse` seam was given.
+ */
+function evaluateStep5CiReuse(config: ReleaseConfig, seams: ReleaseSeams): CiReuseDecision | null {
+  const evaluate =
+    seams.evaluateCiReuse ??
+    (seams.runCi
+      ? null
+      : (root: string, repo: string, base: string) => evaluateCiReuse(root, repo, base, seams));
+  if (evaluate === null) return null;
+  const decision = evaluate(config.projectRoot, config.repo, config.baseBranch);
+  const change = formatCiReuseChange(config.ciReuseAtReadiness, decision);
+  if (change !== null) writeEscapedReleaseLine(change);
+  for (const line of formatCiReuseDecision(decision)) writeEscapedReleaseLine(line);
+  return decision;
 }
 
 /**
@@ -394,6 +420,9 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         fileExists: seams.fileExists,
       },
     });
+    // #6791: on a stamp miss, reuse green CI when the clean tree equals the
+    // fetched tip tree. A reused cut runs no host coverage, only the smoke check.
+    const reuse = stampEval.kind === "hit" ? null : evaluateStep5CiReuse(config, seams);
 
     if (stampEval.kind === "hit") {
       // #6071 Greptile: suite stamp must not skip the always-on named Merge gate.
@@ -421,6 +450,18 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         5,
         label,
         `OK (suite stamp hit at ${stampEval.stamp.headSha.slice(0, 12)}; suite skipped${debtNote}; host coverage witnessed; named Merge gate revalidated)`,
+      );
+    } else if (reuse !== null && reuse.kind === "reuse") {
+      const runSmoke = seams.runHostSmoke ?? ((root: string) => runHostSmokeCheck(root));
+      const [smokeOk, smokeReason] = runSmoke(projectRoot);
+      if (!smokeOk) {
+        emit(5, label, `FAIL (CI reused at tip ${reuse.tipSha.slice(0, 12)}; ${smokeReason})`);
+        return EXIT_VIOLATION;
+      }
+      emit(
+        5,
+        label,
+        `OK (CI reused at tip ${reuse.tipSha.slice(0, 12)}; ${smokeReason}; no host coverage on a reused cut)`,
       );
     } else {
       // Bind auto-hatch coverage-final trust to this suite invocation (#3187).
