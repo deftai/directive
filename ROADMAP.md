@@ -46,8 +46,10 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2029 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2031 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6808** -- 0.130.1: consumer setup fixes (hook rewrite, forward-coverage warn-only, getting-started order, runtime gitignore) -- `[completed]`
+- **#6793** -- docs(release): release skill predates the release-PR flow; document the full cut sequence -- `[completed]`
 - **#6749** -- ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests -- `[completed]`
 - **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[completed]`
 - **#5873** -- Drop Node 20 from supported engines (runtime needs Node 22+) -- `[completed]`
@@ -71,6 +73,4 @@ _Showing 25 of 2029 completed scopes (newest first). Full history: lifecycle `co
 - **#5959** -- Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory -- `[completed]`
 - **#6005** -- --root with a lowercase drive letter is rejected as not the Git working-tree root on Windows -- `[completed]`
 - **#6620** -- hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin -- `[completed]`
-- **#6012** -- 0.129.x upgrade rewrites .deft/GENERATION.json without the integer `generation`, which deft-core-guard then rejects -- `[completed]`
-- **#6617** -- doctor writes xbrief/.triage-cache/doctor-state.json on every full run (AC12.1) -- `[completed]`
 

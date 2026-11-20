@@ -7,14 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.130.0
+- [release-line] v0.130.1
 
 ### Added
 
 ### Changed
-- chore(dogfood): pin Directive to 0.130.0.
 
 ### Fixed
+
+### Removed
+
+## [0.130.1] - 2026-11-20
+### Added
+
+### Changed
+- chore(dogfood): pin Directive to 0.130.0.
+- Cleared the finished OVPR ordered plan, so pre-PR no longer blocks stories outside it.
+- Complete #6793 after merge of #6802.
+- Release skill: a `## Stable cut runbook` gives the full stable-cut order in fifteen operator/agent steps, with the merge freeze, the incident-only skip path and the `latest` decision; `docs/RELEASING.md` links it in place of the old direct-tag section, and the stale `.agents` copy is now a pointer stub (#6793).
+- Complete #6808 after merge of #6834.
+
+### Fixed
+
+- Setup now replaces a `.githooks/*` file through a temp file and a rename, so a commit whose `pre-commit` is replaced mid-run after a pin bump no longer fails with `command not found` (#6806).
+- The deposited `pre-commit` runs forward coverage warn-only: a new source file without a paired test prints the finding and the commit goes ahead. CI and `deft check` still enforce it (#6807).
+- `docs/getting-started.md`: the first-project path creates the feature branch before the deposit commit, so the commit gate no longer refuses it (#6800).
+- The deposited `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, so `session:start` leaves a fresh install clean. `!` lines keep `.deft/plan-sequence.json`, `.deft/GENERATION.json`, `.deft/approved-scope/`, `.deft/intent-constraint/`, `.deft/observable-scope/`, `.deft/observable-ui.policy.json`, `.deft/test-boundary.policy.json` and `.deft/presentation-ceiling.json` trackable. Setup re-appends the block in order and doctor flags a misordered block or a bare `.deft/` line (#6795).
 
 ### Removed
 
@@ -8312,7 +8330,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.130.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.130.1...HEAD
+[0.130.1]: https://github.com/deftai/directive/compare/v0.130.0...v0.130.1
 [0.130.0]: https://github.com/deftai/directive/compare/v0.129.15...v0.130.0
 [0.129.15]: https://github.com/deftai/directive/compare/v0.129.14...v0.129.15
 [0.129.14]: https://github.com/deftai/directive/compare/v0.129.13...v0.129.14
