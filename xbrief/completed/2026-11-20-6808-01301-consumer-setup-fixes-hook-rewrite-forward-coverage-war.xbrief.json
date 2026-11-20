@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6808",
-    "updated": "2026-11-20T00:39:03Z"
+    "updated": "2026-11-20T03:34:18Z"
   },
   "plan": {
     "title": "0.130.1: consumer setup fixes (hook rewrite, forward-coverage warn-only, getting-started order, runtime gitignore)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Four consumer-setup fixes ship in 0.130.1, before 0.130.x is promoted to npm latest. Setup replaces .githooks files by temp file and rename, the deposited pre-commit runs forward coverage warn-only, getting-started creates the feature branch before the deposit commit, and the deposited .gitignore ignores Directive runtime state. Each fix is specified in its own issue: #6806, #6807, #6800 and #6795.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6808",
@@ -19,66 +19,130 @@
     "items": [
       {
         "title": "Setup writes `.githooks/*` replacements to a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When setup replaces a changed .githooks/* file, then it writes a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A test runs the old pre-commit body under bash while self-complete replaces the hooks, and the commit succeeds (#6806).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given the old pre-commit body running under bash, when self-complete replaces the hooks mid-run, then a test shows the commit succeeds (#6806)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The deposited `pre-commit` runs forward coverage warn-only: a missing paired test prints the finding and does not fail the commit. CI and `deft check` behaviour is unchanged (#6807).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a staged new source file has no paired test, then the deposited pre-commit prints the forward-coverage finding and the commit still succeeds; CI and deft check still fail on it (#6807)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The setup hook-body test pins the warn-only forward-coverage form (#6807).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the setup hook-body test runs, then it fails unless the deposited pre-commit carries the warn-only forward-coverage form (#6807)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`content/docs/getting-started.md`, and any setup skill text with the same order, has the first-project path create the feature branch before the deposit commit (#6800).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When a reader follows the first-project path in content/docs/getting-started.md (and any setup skill text with that order), then it creates the feature branch before the deposit commit (#6800)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The deposited consumer `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, while keeping `.deft/approved-scope/` and `.deft/intent-constraint/` trackable (#6795).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When setup writes the consumer .gitignore, then git ignores Directive runtime state under .deft/ and .deft-cache/ while .deft/approved-scope/ and .deft/intent-constraint/ stay trackable (#6795)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A test shows that after `session:start` in a fresh install, `git status --porcelain` lists no Directive runtime file (#6795).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a fresh install, when session:start runs, then a test shows git status --porcelain lists no Directive runtime file (#6795)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One CHANGELOG fragment covers the four consumer-facing changes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the product PR merges, then one CHANGELOG fragment records all four consumer-facing changes."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+          "recorded_at": "2026-11-20T03:34:18Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -274,9 +338,39 @@
         "model_tier": "high",
         "acceptance_criteria_justification": "Eight criteria because the story bundles four small fixes for one patch release, each with its own behaviour and test criterion (#6806 x2, #6807 x2, #6800, #6795 x2) plus one changelog criterion."
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "7b145cf7856cd658e68196f15c7c141146caf8da",
+        "prNumber": 6834,
+        "prBase": "master",
+        "mergeCommit": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "274d0bf14a459a89306cb00b4d677433fff2d37c",
+        "verifiedAt": "2026-11-20T03:34:18Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6814
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T03:34:18Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T03:34:18Z"
+      }
     },
     "id": "github.issue.6502011874",
-    "updated": "2026-11-20T00:39:03Z"
+    "updated": "2026-11-20T03:34:18Z",
+    "x-directive/specImpact": "delta"
   }
 }
