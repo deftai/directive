@@ -2677,8 +2677,9 @@ function provePartLineRoute(
  * closingIssuesReferences alone is insufficient, and `productPullRequest === --pr`
  * is not a proof here. A failed issue-anchored check never falls back to the stamp.
  * #6317: the merge-time body is read before any basis (unreadable refuses), a
- * `deft-story-part: N` body refuses as a partial delivery, two marked PRs settle
- * by the fetched delivery-branch stamp, and (d) an operator attestation grant
+ * `deft-story-part: N` body refuses as a partial delivery (except on the
+ * `scope:complete` part-line route, #6645), two marked PRs settle by the
+ * fetched delivery-branch stamp, and (d) an operator attestation grant
  * recovers merged work with no basis.
  *
  * Issue-less briefs use the PR-only identity (#5710 P1). merge_commit_sha must
