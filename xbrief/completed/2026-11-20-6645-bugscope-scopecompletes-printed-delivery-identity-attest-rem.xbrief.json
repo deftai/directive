@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6645",
-    "updated": "2026-11-20T19:43:38Z"
+    "updated": "2026-11-20T21:04:21Z"
   },
   "plan": {
     "title": "bug(scope): scope:complete's printed delivery-identity-attest remedy is unreachable; story-line marks and orphan check trap stories",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "scope:complete refuses a product PR that carried deft-story-part on every basis and prints an operator-attestation command that the join never reads, so shipped stories cannot complete (seven in deftai/evolution, #6882 item 1). This story makes printed remedies reachable, opens a guarded basis (d) route for a part-line product PR on the scope:complete command only, and reports a shipped brief as pending while its lifecycle PR is open.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6645",
@@ -20,122 +20,242 @@
     "items": [
       {
         "title": "Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a scope:complete refusal prints the attestation command, then this run would have accepted basis (d) with a usable grant; on any other refusal no attestation or re-mint command is printed."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a refusal is not curable by a grant, then its message names its own remedy (retry the named failed read, use the product PR, settle the contested mark, fix the plan id or the grant store)."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page; no body in it carries `deft-story: N`, and every open pull request whose body carries `deft-story-part: N` is not a product part (its changed files, paged, decide; activation, mint and other brief-only or `.deft/`-only open PRs never block). If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a merged or open sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When scope:complete (and only scope:complete) runs on a part-line product PR whose sibling check holds, then basis (d) is the only basis evaluated and a matching grant completes the story."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When content/contracts/human-origin-authz.md is read, then its Admission and Keep-outs rows admit a part-line PR only on the scope:complete command under the sibling check, never on finalize, and keep the contested-sole-mark keep-out."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When an open same-repository PR moves a shipped brief from xbrief/active/ to xbrief/completed/, then verify:orphan-active reports it pending and names the PR instead of failing."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the non-part path runs, then bases (a), (b), (c), brief-in-PR-diff, finalize mark scan, verify:completed-tracked and the pre-merge story-line checks keep their current results."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+          "recorded_at": "2026-11-20T21:04:21Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -827,7 +947,36 @@
         "harvestDigest": "6372e0f14fe2fffa73f4e69d64f52595fd6e7f0d2406693c6c07a4b84c84a6a7",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d98310eea94c1b56e269be6d94d2e640ab74381e",
+        "prNumber": 6896,
+        "prBase": "master",
+        "mergeCommit": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fc038d3b961ca3d48c7b2d9a6a55ebff51f4d951",
+        "verifiedAt": "2026-11-20T21:04:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6890
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T21:04:21Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T21:04:21Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -979,6 +1128,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6460187958",
-    "updated": "2026-11-20T19:43:38Z"
+    "updated": "2026-11-20T21:04:21Z"
   }
 }
