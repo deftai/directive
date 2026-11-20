@@ -4,7 +4,8 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 . "$REPO_ROOT/.githooks/_directive-run.sh"
 run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
-run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
+# Forward coverage is warn-only in this hook (#6807); CI and the merge gate still enforce it.
+run_directive verify:forward-coverage --staged --project-root "$REPO_ROOT" || echo "directive hooks: forward coverage is advisory here; CI and the merge gate still enforce it." >&2
 if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
   run_directive verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
   run_directive verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
