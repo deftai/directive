@@ -1,0 +1,984 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6645",
+    "updated": "2026-11-20T19:43:38Z"
+  },
+  "plan": {
+    "title": "bug(scope): scope:complete's printed delivery-identity-attest remedy is unreachable; story-line marks and orphan check trap stories",
+    "status": "running",
+    "narratives": {
+      "Description": "scope:complete refuses a product PR that carried deft-story-part on every basis and prints an operator-attestation command that the join never reads, so shipped stories cannot complete (seven in deftai/evolution, #6882 item 1). This story makes printed remedies reachable, opens a guarded basis (d) route for a part-line product PR on the scope:complete command only, and reports a shipped brief as pending while its lifecycle PR is open.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6645",
+      "Overview": "\n1. Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.\n2. Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.\n3. Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page; no body in it carries `deft-story: N`, and every open pull request whose body carries `deft-story-part: N` is not a product part (its changed files, paged, decide; activation, mint and other brief-only or `.deft/`-only open PRs never block). If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a merged or open sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.\n4. Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.\n5. Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.\n6. Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.\n\n## Acceptance Criteria\n\n- Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.\n- Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.\n- Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds.\n- Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.\n- Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.\n- Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.\n- Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.\n- Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.\n- Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1.\n\n\n",
+      "Constraint": "Bound contract: lean comment 6984133945 (accepted record 6984264781; clean audit 6984244314). No new gate, grant kind, flag or stored state. Finalize, completeCohort and the in-PR tip proof keep the part-line refusal. Any failed, short or unparseable list or file read is a retry remedy and never completes or clears a verdict. Prefer result objects over new throw sites and inline per_page=100 URLs over new numeric consts; any new throw/reject/abort site or numeric const needs an operator intent-constraint mint. P3 stays in this story: the Spec-path harvest pins all 15 clauses and the lean has no leftover next-build.",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As an operator completing a shipped story, I want scope:complete to accept an operator attestation for a part-line product PR when no other product part exists and to print only remedies that can work, so that merged work does not stay stranded in xbrief/active/.",
+      "ImplementationPlan": "1. In packages/core/src/scope/delivery-evidence.ts, give refuse() a remedy argument and print the attestation command (or expired-grant re-mint text) only when basis (d) would be accepted with a usable grant; run candidateDeliveryRefusal before using the lookup reason in proveAttestedBasis; give every other refusal its own remedy (Bound remedy items 1-2).\n2. Add the optional partLineAttestation join input and the sibling check (merged-PR scan via scanSoleMarkCompetitors plus a paged open-PR list on this repository base, forks included; product part = a path outside isDeliveryBriefLandPath and .deft/). Replace the part-line refusal text with the item 3 outcomes.\n3. Set partLineAttestation only in the scope:complete command entry (packages/core/src/scope/main.ts); packages/core/src/scope/transition.ts forwards it and defaults it off, so completeCohort, swarm:finalize-cohort and the lands-with-product tip proof keep the current refusal.\n4. Edit the Admission and Keep-outs rows of content/contracts/human-origin-authz.md (item 4).\n5. In packages/core/src/orphan-active/evaluate.ts, after the brief loop and only when a brief is shipped, list open same-repository PRs (paged) and their changed files; a rename or remove+add of that exact brief into xbrief/completed/ makes it pending and names the PR; any failed or short read keeps the shipped verdict (item 5).\n6. Add a story-line slot to the worker prompt template in content/skills/deft-directive-swarm/references/core-ops.md: deft-story: N on the PR that completes story N, deft-story-part: N on any other product PR and on activation and mint PRs, matching core-phase-3.md and agent-prompt-preamble.md; regenerate content/packs/skills/skills-pack-0.1.json. Docs only; no PR-open check (#6882 item 1).\n7. Verify with vitest: delivery-evidence.test.ts, transition.test.ts, main.test.ts, finalize-cohort.test.ts and orphan-active/evaluate.test.ts cover each Given/When/Then clause; a content-contract test pins the core-ops slot. Add changelog.d/6645-part-line-attest-route.md.",
+      "Traces": "#6645, #6882"
+    },
+    "items": [
+      {
+        "title": "Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a scope:complete refusal prints the attestation command, then this run would have accepted basis (d) with a usable grant; on any other refusal no attestation or re-mint command is printed."
+        }
+      },
+      {
+        "title": "Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When a refusal is not curable by a grant, then its message names its own remedy (retry the named failed read, use the product PR, settle the contested mark, fix the plan id or the grant store)."
+        }
+      },
+      {
+        "title": "Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page; no body in it carries `deft-story: N`, and every open pull request whose body carries `deft-story-part: N` is not a product part (its changed files, paged, decide; activation, mint and other brief-only or `.deft/`-only open PRs never block). If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a merged or open sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When scope:complete (and only scope:complete) runs on a part-line product PR whose sibling check holds, then basis (d) is the only basis evaluated and a matching grant completes the story."
+        }
+      },
+      {
+        "title": "Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When content/contracts/human-origin-authz.md is read, then its Admission and Keep-outs rows admit a part-line PR only on the scope:complete command under the sibling check, never on finalize, and keep the contested-sole-mark keep-out."
+        }
+      },
+      {
+        "title": "Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When an open same-repository PR moves a shipped brief from xbrief/active/ to xbrief/completed/, then verify:orphan-active reports it pending and names the PR instead of failing."
+        }
+      },
+      {
+        "title": "Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the non-part path runs, then bases (a), (b), (c), brief-in-PR-diff, finalize mark scan, verify:completed-tracked and the pre-merge story-line checks keep their current results."
+        }
+      },
+      {
+        "title": "Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`."
+        }
+      },
+      {
+        "title": "Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes."
+        }
+      },
+      {
+        "title": "Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds."
+        }
+      },
+      {
+        "title": "Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command."
+        }
+      },
+      {
+        "title": "Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not."
+        }
+      },
+      {
+        "title": "Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command."
+        }
+      },
+      {
+        "title": "Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command."
+        }
+      },
+      {
+        "title": "Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add."
+        }
+      },
+      {
+        "title": "Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6645",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6645: bug(scope): scope:complete's printed delivery-identity-attest remedy is unreachable; story-line marks and orphan check trap stories"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6599",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6599"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-story: N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "--pr <n> --merge-commit <sha>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "pending lifecycle PR #M",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "verify:orphan-active -- --issue N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L20"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/main.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/orphan-active/evaluate.ts",
+          "packages/core/src/orphan-active/evaluate.test.ts",
+          "content/contracts/human-origin-authz.md",
+          "content/skills/deft-directive-swarm/references/core-ops.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/skills/swarm_story_line_slot_6645.test.ts",
+          "changelog.d/6645-part-line-attest-route.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6460187958.json"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "high",
+        "depends_on": [],
+        "conflict_group": "scope-delivery-evidence",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/delivery-evidence.test.ts packages/core/src/scope/transition.test.ts packages/core/src/scope/main.test.ts",
+          "npx vitest run packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/orphan-active/evaluate.test.ts packages/core/src/content-contracts/skills/swarm_story_line_slot_6645.test.ts packages/core/src/content-contracts/skills/skills.test.ts"
+        ],
+        "expected_outputs": [
+          "refuse() takes a remedy; the attestation command prints only where basis (d) would accept a usable grant",
+          "scope:complete completes a part-line product PR on basis operator-attested after the sibling check; finalize still refuses it",
+          "human-origin-authz.md Admission and Keep-outs rows describe the scope:complete-only part-line route",
+          "verify:orphan-active reports a shipped brief pending while an open same-repository PR moves it to completed/",
+          "core-ops.md worker template has a story-line slot; skills pack regenerated",
+          "one changelog fragment changelog.d/6645-part-line-attest-route.md"
+        ],
+        "acceptance_criteria_justification": "The 15 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 6984133945, harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6645; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix decides which completion bases a part-line PR may use, when `scope:complete` may print the operator attestation command, and when the orphan check may pass a brief whose issue is closed; each has several plausible shapes, and a wrong rule either strands shipped stories or lets a partial delivery complete one.\n\nTarget-digest: sha256:8e5be95041514f3198941943e67ca2aaa7b7adba1dd1e1c108725cf79e747b9e\ndispatch-sha: e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb\ndest: .deft-scratch/worktrees/arc-6645 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: letting basis (d) attest a part-line PR (an existing grant, no new kind), printing the attestation command only when that grant is the one missing input, and passing an orphan brief whose lifecycle PR is open relieve all three traps without a new gate or grant.\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: three narrow defects on existing gates with one presumed fix each; the operator set N=1 for headless arcs. One critic of a different model family.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nStory #6601 shipped in product PR #6610, whose body said `deft-story-part: 6601`. A part line means \"this PR does not complete the story\", and `scope:complete` refuses such a PR on every basis, operator attestation included. A later brief-only PR (#6639) carried `deft-story: 6601`, but a PR that changes only briefs is not a delivery, so it fails too. The refusal for #6639 printed an attestation command for #6639. The operator minted it, and the same refusal came back, because a PR with the sole mark never reaches the attestation check, and the attestation would fail the delivery check anyway. Nothing completes #6601. Separately, after a product PR merges and its issue is closed, `verify:orphan-active` fails on the still-active brief while the lifecycle PR that moves it is open; the workarounds were reopening the issue, or merging that PR by hand. The recommended fix lets the existing attestation recover a part-line PR, prints the attestation command only where it can work, and lets the orphan check pass a brief whose lifecycle PR is open.\n\n## Pains\n#6645 has no Acceptance Criteria heading. These three pains are derived from its Summary, Evidence and Expected sections.\n- P1 — `scope:complete` prints the `delivery-identity-attest` command on refusals that never read that grant, or where the grant could never be admitted: a sole-mark PR whose mark proof fails (\"(d) not evaluated\"), and a PR that fails the delivery checks the attestation also needs (a brief-only PR). A minted grant then changes nothing (#6601 / #6639).\n- P2 — A story whose product PR merged with `deft-story-part: N` has no sanctioned completion route: the part line refuses every basis, attestation included, and a brief-only follow-up PR with `deft-story: N` is excluded as non-delivery (#6601 / #6610).\n- P3 — After the product PR merges and the issue is closed, `verify:orphan-active` reports the still-active brief as shipped while the lifecycle PR that moves it to `completed/` is open, so the after-merge check and the delivery-tip sweep fail until a human merges that PR (#6599 / #6636).\n\n## Constraints (not pains)\n- Add no gate and no grant kind. Prefer the smallest rule; a fix removes a step or a refusal.\n- Not a pain of this arc: choosing the mark at PR open. A PR-open check of the mark adds a gate; once a wrong part line is recoverable (P2), the mark choice stops being a trap. A part line on a brief-only PR is #6544 and stays there.\n- A part line is still never a finalize close signal and never completes a story on bases (a), (b), (c) or brief-in-PR-diff.\n- `verify:completed-tracked` is unchanged: DONE still waits for the completed brief to land.\n- Running stories not to overlap: #6480 (`hooks/scope.ts`, `hooks/dispatcher.ts`, `scope/lands-with-product.ts`, `policy/write-fence.ts`), #6477 (design-critique gate, intake ingest).\n\n## Anchors at the dispatch SHA\n- `packages/core/src/scope/delivery-evidence.ts` 1955-2063 `proveIssueAnchoredAssociation`: `refuse()` (1965-1974) always appends the attestation command. 1993-2003: a part-line body refuses \"on any basis, operator attestation included\". 2009-2035: a sole-mark body settles only by `proveSoleMarkBasis`; on failure it refuses with \"(b)/(c)/brief-in-PR-diff/(d) not evaluated\" and still prints the command. 2053-2062: (d) runs last on the non-mark path.\n- `delivery-evidence.ts` 1184-1205 `candidateDeliveryRefusal` (zero-file, brief-and-CHANGELOG-only exclusion), shared by (a) at 1233 and (d) at 1936. 1217-1277 `proveSoleMarkBasis` (exclusion, uniqueness scan, delivery-branch stamp). 1913-1941 `proveAttestedBasis`. 760-765 `MERGE_TIME_ASSOCIATION_BASES`.\n- `packages/core/src/policy/delivery-identity-attest-grant.ts` 228-240 `formatDeliveryIdentityAttestCommand`; 248 onward `findDeliveryIdentityAttestation`.\n- `content/contracts/human-origin-authz.md` 124-144: admission requires a merge-time body with no `deft-story-part: N`; keep-outs \"Never attests a part-line PR; never bypasses a PR's own contested sole mark\".\n- `packages/core/src/pr-closing-keywords/main.ts` 937-957 (story-line message: `deft-story` on the completing PR, `deft-story-part` on any other product PR, authority-record PRs carry the part line), 1029-1041 (an in-PR completion with a part line fails).\n- `packages/core/src/orphan-active/evaluate.ts` 244-307 `assessOrphanSignature` (scoped: closed issue → shipped; merged linked PR → shipped), 448-461 (shipped remediation), 607-656 (brief loop). `orphan-active/candidate-scope.ts` 1-15 and `check/gate-lists.ts` 34-50: the merge chokepoint runs `--changed-only`, which falls back to the full sweep at the delivery tip; the `--issue N` form is the after-merge DONE gate.\n- `packages/core/src/swarm/finalize-owed.ts` 595-639 `listOpenFinalizePrs`: an existing one-call open-PR list.\n- Thread facts: #6610 body carries `deft-story-part: 6601` (merged e2e824d1d); #6639 is brief-only with `deft-story: 6601` (merged cff0e85c3); #6636 renames the #6599 brief from `xbrief/active/` to `xbrief/completed/`.\n\n## Recommended mechanism (the thing to critique)\n- M1 (P1). One rule for the join's refusal text: the attestation command is printed only when the grant is the one missing input, that is, the PR has no sole mark for N, passes `candidateDeliveryRefusal`, and the (d) lookup found no usable grant (including an expired one). Every other refusal names the remedy for the reason that refused: a brief-only or zero-file PR is \"not a delivery; run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`)\"; a contested sole mark names the delivery-branch `metadata.productPullRequest` stamp; an unknown uniqueness scan names a retry. `refuse()` takes the remedy as an argument.\n- M2 (P2). A part-line PR still fails bases (a), (b), (c) and brief-in-PR-diff, but (d) is evaluated for it: an operator attestation for that PR, its merge commit and the plan completes the story with basis `operator-attested`. The part-line refusal prints that PR's attestation command beside today's \"merge a PR with the completing mark\" option. The two part-line clauses in `human-origin-authz.md` (admission and keep-out) are removed. No new grant kind; the human mint stays the one step. Finalize never closes on a part line.\n- M3 (P3). In `verify:orphan-active`, a brief that the assessment flags `shipped` is reported as pending and does not fail the run when an open PR in the same repository renames that exact `xbrief/active/<file>` to `xbrief/completed/<file>`. The lookup runs only when a shipped orphan exists: one paged open-PR list, keep the PRs whose body names the brief's issue, then read their files. A failed lookup keeps today's shipped verdict. The output names the pending PR. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.\n- M4. Tests: a part-line PR with a matching grant completes; the same PR without a grant refuses and prints its own command; #6639's shape refuses without an attestation command and names the product-PR remedy; a closed issue with an open renaming PR passes with the pending note, and without it still fails.\n\nQuestions for the critic:\n1. Does letting (d) attest a part-line PR reopen the early-completion hole #6310 closed (PR1 attested while PR2 of the same story is open)? Is the operator mint enough guard, or is there a smaller route with no human step?\n2. For P1, is \"print the attestation command only when the grant is the one missing input\" correct on every refusal path of the join, and which remedy should each other reason name?\n3. For P3, is an open PR that renames the brief into `completed/` the right signal? Does treating it as pending weaken any consumer (the `--changed-only` merge chokepoint, the delivery-tip sweep, `finalize-owed`, the `--issue N` DONE gate)?\n\n",
+          "id": 6969458533,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969458533",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:54:14Z",
+          "updated_at": "2026-11-18T04:54:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6969459002\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: refutation\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb\ndest: .deft-scratch/worktrees/arc-6645\nverification-path: pin-read git show e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6969458533\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Grok, a different model family, run with the launcher above against the dest (permission mode auto, no web search, no sub-agents). The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Grok seat is told not to read GitHub. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration and says so.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6969459002,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969459002",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T04:54:16Z",
+          "updated_at": "2026-11-18T04:54:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nThe shell hook denied every command, including `git show`, because `node_modules/@deftai/directive-runtime` is absent. The worktree HEAD file is `e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb`. The line cites are from that checkout. The suite was not run.\n\n## In plain English\n\nA story whose product pull request was marked `deft-story-part` cannot be completed. The refusal tells the operator to mint a `delivery-identity-attest` grant, and the check never reads that grant when the pull request carries the sole completing mark or changes only briefs. After the product merge closes the issue, the orphan check fails the still-active brief while the pull request that moves it into `completed/` is open.\n\nThe recommended mechanism does not relieve the three traps as written. Letting that existing grant attest a part-line pull request would finish the stuck story, and it would also finish a story that still has another part, including through finalize when that pull request is the one validated `--pr`. The human mint is the confirmation that nothing further is coming. It does not see a sibling that is already open or already merged. No smaller route drops the human step. A part line means further delivery may still arrive, and a brief-only pull request is already allowed to carry the completing mark.\n\nPrinting the attestation command only when a present grant would make this pull request succeed is the right rule. The written test for it (no sole mark, the delivery check passes, no usable grant) is also true when an earlier read failed, when the brief has no plan id, and when the grant store cannot be resolved. Those refusals need their own remedy. A part-line body has to stay on the attestation path alone. Continuing into the keyword, link, and brief-diff bases would complete it with no grant.\n\nAn open pull request that moves that exact brief from `active/` to `completed/` is the right orphan signal, whether git records a rename or a deletion beside an add. The written filter keeps pull requests whose body names the issue. The lifecycle pull request this repository opens names the product pull request numbers in its body, so a successful list drops it and the orphan failure stays. The feature-branch merge check and finalize-owed do not read this verdict. During a real match the delivery-tip sweep and the per-issue orphan check would pass, and that per-issue pass still leaves the completed brief off the delivery branch.\n\nWhat survives is the existing grant, the command printed only on a refusal that grant would turn into success, the contested sole mark settled by the delivery-branch stamp, brief-only and zero-file pull requests left as non-deliveries, the part line left out of finalize's mark scan, and an orphan pass only for a same-repository open pull request that moves that exact file. A failed list stays today's failure.\n\n## 1. Part-line attestation completes an unfinished story blocks-the-design\n\nEvidence: `proveAttestedBasis` checks the grant and `candidateDeliveryRefusal` only (`packages/core/src/scope/delivery-evidence.ts` 1913-1940). The part-line return at 1993-2002 runs before every basis. `scanSoleMarkCompetitors` records another part-line pull request and then skips it as a competitor (1153-1156); the scan is merged pull requests only. `candidateDeliveryRefusal` (1184-1204) treats a `.deft/` authority-record diff as a delivery: `isDeliveryBriefLandExcluded` is false for that diff (test at 2886-2892), and the story-line text says that pull request carries the part line because it is not the completing delivery (`packages/core/src/pr-closing-keywords/main.ts` 951-953). Finalize's mark scan uses `parseAllDeftStoryMarks`, which ignores the part line (`main.ts` 797-805; `packages/core/src/swarm/finalize-cohort.ts` 2028-2088). The single validated `--pr` plus `--stories` still binds that pull request as the story's evidence when it has no closing keyword (finalize-cohort.ts 2414-2434). `evaluateDeliveryGate` is the shared join for `scope:complete` and for finalize (`delivery-evidence.ts` 2794-2813). The locked clause refuses `--pr`, finalize, and a minted grant together (`packages/core/src/scope/transition.test.ts` 3097-3119). The keep-out is the part-line sentence in `content/contracts/human-origin-authz.md` 139 and 144.\n\nFailure: pull request 1 has merged with `deft-story-part: N`, and pull request 2 of the same story is open. The new part-line refusal prints the mint command. The operator mints the existing grant. `scope:complete --pr` on pull request 1 completes the story. `swarm:finalize-cohort --pr` of that same pull request plus `--stories N` completes it too, because that path never reads the part line and the join now accepts the grant. A second merged part-line pull request is already in the scan and is ignored on this basis. A lone authority-record pull request also passes the delivery check, so the same grant completes the story on a pull request the part line was required to keep non-completing. The mint records a human at a terminal. It records nothing about an open or merged sibling.\n\nNo route drops the human step. Completing from \"this is the only merged part-line pull request\" treats a sequel that has not been opened as finished. Completing from a brief-only `deft-story: N` is worse: the pre-merge check already accepts that mark on a brief-only pull request, so a brief repair would close the story. The human mint stays the confirmation that nothing further is coming, and it is sufficient only together with a sibling check.\n\nDisposition: basis (d) may admit a part-line pull request from `scope:complete` when the merged scan completes with no other part-line pull request and no sole-mark competitor, no open pull request carries a story line for N, and the diff contains a product path outside the brief-land family and outside `.deft/`. Finalize's single-PR bind stays off a part-line body, so a grant does not become a finalize close. The mint command is printed on that pull request only when this predicate holds and the usable grant is absent or expired. Any other part-line refusal names the sibling pull requests and the completing mark.\n\n## 2. The lifecycle pull request body carries the product pull request, so the orphan filter misses it blocks-the-design\n\nEvidence: `pushAndOpenPr` writes a body whose only numbers are the product pull request list (`packages/core/src/swarm/finalize-cohort.ts` 1336-1347). `storySlugs` (1009-1015) feeds the title, not that body. `listOpenFinalizePrs` (finalize-owed.ts 595-638) requests one page of 100 open pull requests; the head-filtered URL is built and then voided, and the parser keeps `swarm/finalize/` heads with no body or file read. `evaluate` exits 1 while any shipped orphan remains (`packages/core/src/orphan-active/evaluate.ts` 709-717). The pass headline has no pending slot (724-727). A lands-with-product move is already a rename or a deletion of the same `active/` path beside the add (`packages/core/src/scope/lands-with-product.ts` 300-306).\n\nFailure: the brief's issue is 6601 and the product pull request is 6610. The open lifecycle pull request's body says the cascade is `#6610`. A filter that keeps bodies naming 6601 drops that pull request. The list call succeeded, so the failed-lookup rule does not apply, and the shipped verdict remains. Copying `listOpenFinalizePrs` also drops a lifecycle pull request past the first 100 and any lifecycle pull request whose head is outside `swarm/finalize/`. A completion that rewrites the brief often arrives as a deletion plus an add; a rename-only read misses it. The open-pull-request list includes forks. A fork pull request that mentions the issue and moves the file would silence the delivery-tip sweep if the file check were applied to every open pull request.\n\nDisposition: a shipped brief is pending when an open pull request whose head repository is this repository moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`, rename or paired removal and add. Page the open list to exhaustion; a short page, an empty body, or a list that changes between reads is a failed lookup and stays shipped. The issue number in the body is not the selector. A pending brief leaves the failing list, and the exit-0 text names the pull request number. Another shipped brief with no such pull request still fails the run.\n\n## 3. The mint command is still the remedy on refusals a grant cannot cure sharpens-framing\n\nEvidence: `refuse()` always appends the attestation command (`delivery-evidence.ts` 1965-1974). A sole mark returns at 2009-2034 with \"(d) not evaluated\" and still goes through `refuse()`. `proveKeywordOrConnected` turns an unreadable connection-events page into a null basis and continues (1883-1889), and the non-mark path then reaches (d) (2037-2062). `proveBriefInPrDiff` returns a lookup failure as a reason string (1848-1850) and the same path continues. `proveAttestedBasis` refuses when the lookup is unwired or the plan id is empty before the delivery check (1920-1925). An expired grant's own reason already contains the re-mint command (`packages/core/src/policy/delivery-identity-attest-grant.ts` 290-297). A body with both lines hits the part-line return at 1993 before the sole-mark branch; the pre-merge check rejects that body (`main.ts` 960-965).\n\nFailure: the three-part test prints the command whenever there is no sole mark, the delivery check passes, and no usable grant was found. That includes a failed connection-events or changed-file read, a missing plan id, and a grant store that cannot be resolved. Minting does not make those runs succeed, which is the original unreachable-remedy pain in a new place. Deleting the part-line return so that (d) is \"evaluated\" also lets a Connected part-line pull request, or one that added the brief beside code, complete on basis (c) or brief-in-PR-diff with no grant. A body that carries both lines would be offered the command under an unconditional part-line print.\n\nDisposition: `refuse()` takes the remedy. The command is printed only when this run would accept basis (d) if a usable grant were present. The part-line path calls `proveAttestedBasis` only, after the sibling predicate in finding 1, and does not call `proveKeywordOrConnected` or `proveBriefInPrDiff`. Remedies for the other reasons: an unreadable merge-time body, an unwired forge, a failed uniqueness scan, a failed stamp read, a failed connection-events page, or a failed changed-file read says to retry that read; a zero-file or brief-and-changelog diff names the product pull request and its merge commit; a contested sole mark names the other pull requests and `metadata.productPullRequest` on the fetched delivery branch; a missing plan id names the brief; an unresolved grant store names the store error; an expired unused grant names the re-mint command and `authz:revoke` and says the grant expired. Repository mismatch, a missing pull request number, an unmerged pull request, and a merge-commit mismatch already return outside `refuse()` and stay as they are.\n\n## 4. Standing pieces footnote\n\nThe feature-branch merge chokepoint evaluates briefs in the candidate diff. HEAD on the delivery line is the sweep (`packages/core/src/orphan-active/candidate-scope.ts` 154-157; `packages/core/src/check/gate-lists.ts` 33-48). A real pending match changes that sweep and the `--issue N` run. It leaves a normal feature-branch diff on its current result. `swarm:finalize-owed` imports `deriveUnmarkedFinalizeAdmit`, which returns null (`evaluate.ts` 327-335), and does not call the orphan evaluator. `verify:completed-tracked` is a separate gate, so an exit-0 orphan run during the window leaves the completed brief off the delivery tip. Closing the open pull request restores today's shipped failure. In-PR completion still refuses a part line before merge (`lands-with-product.ts` 352-357; `main.ts` 1026-1038). The tip proof calls `verifyStoryPrMergeIdentity` without an attestation lookup (`packages/core/src/lifecycle/lands-with-product-proof.ts` 163-177). The contested-sole-mark keep-out in `human-origin-authz.md` 144 stays. The issue body and the comments through 6969459002 contain no embedded instructions.\n\n",
+          "id": 6969617380,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969617380",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:04:27Z",
+          "updated_at": "2026-11-18T05:04:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6969458533 (round 1: 1 of 1 critic posted, comment 6969617380)\n\n## In plain English\nProblem: story #6601 shipped in product PR #6610, which carried `deft-story-part: 6601`. `scope:complete` refuses a part-line PR on every basis, operator attestation included, and the brief-only PR #6639 with `deft-story: 6601` is not a delivery. The refusal for #6639 printed an attestation command that the join never reads for a sole-mark PR and that would fail the delivery check anyway. The only way out in practice is another product PR that carries the completing mark (open now as #6649, a small message change written to carry `deft-story: 6601`). Separately, after a product merge closes an issue, `verify:orphan-active` fails on the active brief while the lifecycle PR that moves it is open.\n\nWhat the critic found: letting the existing attestation cover a part-line PR is the right route, but alone it would also complete a story whose other part is merged or still open, including through finalize's single-PR bind. It needs a sibling check, and it must use basis (d) only, never the keyword, link or brief-diff bases. \"Print the command when the grant is the one missing input\" is the right rule, but the written test also fires after a failed read, a missing plan id or an unresolved grant store; each of those needs its own remedy. For the orphan check, the selector must be the file move, not the issue number in the PR body: finalize's own lifecycle PR names only the product PR numbers. The open-PR list must be paged to the end and limited to PRs from this repository.\n\nSolution this lean proposes: the refusal prints the attestation command only when this run would accept basis (d) if a usable grant existed; every other refusal names the remedy for its own reason. On `scope:complete` only, a part-line PR may complete through basis (d) when no other delivery PR of the story is merged with a story line and no open PR carries one; finalize and the in-PR proof keep today's part-line refusal. The orphan check reports a shipped brief as pending, and does not fail, when an open PR from this repository moves that exact brief from `active/` to `completed/`.\n\nWhat this adds: one remedy argument on the join's refusal, one guarded route into an existing basis, and one pending result in the orphan check. No new gate, grant kind, flag or stored state. Two refusals become narrower; none becomes wider.\n\nWhat it does not do:\n- It does not check or derive the story line at PR open, and does not change #6544.\n- It does not let a part line close a story at finalize, or complete on bases (a), (b), (c) or brief-in-PR-diff.\n- It does not change `verify:completed-tracked`: DONE still waits for the completed brief to land.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:8e5be95041514f3198941943e67ca2aaa7b7adba1dd1e1c108725cf79e747b9e\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6969458533. Sibling count: 1 (comment 6969617380). Panel deposit: comment 6969459002.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no grant. An expired unused grant keeps its existing reason (re-mint command and `authz:revoke`).\n2. Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`). A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.\n3. Part-line route (P2). The join input gets one optional field, `partLineAttestation`, set only by the `scope:complete` call. Without it (finalize, the lands-with-product tip proof) a part-line body is refused as today. With it, a part-line body runs no basis but (d), and only after a sibling check holds: (i) the merged-PR scan (`scanSoleMarkCompetitors`) completes and finds no sole-mark competitor and no other part-line PR that passes `candidateDeliveryRefusal`; (ii) the open-PR list (item 5) completes and no open PR body carries `deft-story: N` or `deft-story-part: N`; (iii) the PR's diff has at least one path outside the brief-land family and outside `.deft/`. If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command. If the check fails, the refusal names the sibling PRs and says to complete with a PR that carries `deft-story: N`. A failed scan or list is a retry remedy. A body with both lines keeps today's pre-merge refusal and is not offered the command.\n4. Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on `scope:complete` under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.\n5. Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. Keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.\n6. Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.\n\n## Acceptance Criteria\n- Given a merged part-line product PR with no other delivery PR of the story merged with a story line, no open PR carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.\n- Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.\n- Given the same PR while an open PR carries `deft-story: N`, or another merged delivery PR carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.\n- Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.\n- Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation command.\n- Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.\n- Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.\n- Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1.\n\n## Reject\n- Letting (d) attest any part-line PR with no sibling check (comment 6969617380, finding 1): it completes a story whose other part is open or merged.\n- Running bases (b), (c) or brief-in-PR-diff for a part-line PR (comment 6969617380, finding 3): it would complete with no grant.\n- Letting a grant make a part line a finalize close (comment 6969617380, finding 1).\n- Completing from \"the only merged part-line PR\" with no human step, or from a brief-only `deft-story: N` PR (comment 6969617380, finding 1): a sequel or a brief repair would close the story.\n- Selecting the lifecycle PR by the issue number in its body (comment 6969617380, finding 2): finalize's lifecycle PR names only product PR numbers.\n- A one-page open-PR list, a `swarm/finalize/` head filter, or rename-only file matching (comment 6969617380, finding 2).\n- A PR-open check of the story line (Stop 1 constraint: it adds a gate).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6969617380 | 1. Part-line attestation completes an unfinished story | blocks-the-design | accept-into-contract (items 3 and 4) |\n| comment 6969617380 | 2. The lifecycle pull request body carries the product pull request, so the orphan filter misses it | blocks-the-design | accept-into-contract (item 5) |\n| comment 6969617380 | 3. The mint command is still the remedy on refusals a grant cannot cure | sharpens-framing | accept-into-contract (items 1 to 3) |\n\nFootnote in the census, no take: comment 6969617380 finding 4 (consumers that do not read the orphan verdict; folded into item 6).\n\nRelay: the parent posted the critic body verbatim. It removed only the Grok progress text printed before the `model:` line, as the panel deposit says. The critic reports that its shell refused `git show` because the dest has no runtime installed, and that it read the dest's checked-out files at the dispatch SHA.\n\n- audit:A1 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/swarm/finalize-cohort.ts:1336-1347 reading=asserted\n- audit:A2 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/scope/delivery-evidence.ts:1147-1156 reading=asserted\n\nA1: finalize's lifecycle PR body names the product PR numbers, not the story issue, so item 5 selects by the file move. The parent read these lines.\n\nA2: the merged-PR scan records every part-line PR before any delivery check, so item 3 (i) classifies each with `candidateDeliveryRefusal` and ignores brief-only ones; the #6601 activation PR #6608 carries `deft-story-part: 6601` and changes only the brief. The parent read these lines and the #6608 body and file list.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. A1, A2 and the three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 6969639914,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969639914",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:05:53Z",
+          "updated_at": "2026-11-18T05:05:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\nharvest-digest: sha256:98150adaa66154e59b858478ee8a2a61aa1fa58efab65753eaa01174fbf0bb2e\n\n## In plain English\n\nThe shell hook denied every command, including `git show`, because the runtime pin is missing. The lines below are the checkout whose HEAD and ORIG_HEAD are `e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb`.\n\nThe attestation route for a part-line product pull request is the right kind of fix, and the sibling check around it is the wrong width. `scope:complete` can finish the story while another part is still open on a fork, because that check uses the orphan list and that list drops fork heads. The same route stays closed when another merged part-line pull request only changes `.deft/` authority files, because those files still count as a delivery. Finalize and the lands-with-product tip proof still refuse a part line. The printed grant command is withheld on the sole-mark and brief-only refusals that made it useless, and an expired grant still carries the re-mint command before the delivery check. The orphan check can pass for the open lifecycle pull request that moves the brief, and it stays a failure for a fork, a closed pull request, or a broken list. Nothing here adds a gate or a grant kind.\n\npain-P1: does not hold - an expired unused grant keeps a reason that already contains the re-mint command, and that lookup returns before the delivery check, so the command is printed when a new grant would still be refused.\npain-P2: does not hold - `scope:complete` can complete a story whose other part is an open fork pull request, and it still refuses the product pull request when the other merged part-line pull request is only under `.deft/`. A brief-only part line such as the #6608 shape is ignored, and finalize and the tip proof stay refused.\npain-P3: holds - a same-repository open pull request that removes `xbrief/active/<file>` and adds `xbrief/completed/<file>` drops that shipped verdict, which is the lifecycle commit, and a fork, a closed pull request, or a failed or partial list stays shipped.\nA1: holds - the lifecycle body names the product pull request numbers (`finalize-cohort.ts` 1336-1347), so selecting the file move sees that pull request.\nA2: holds - the merged scan records every other part-line pull request at `delivery-evidence.ts` 1148-1156 before any delivery check, so a later `candidateDeliveryRefusal` drops a brief-land diff. The #6608 file list is not in the snapshot.\n\n## 1. An open fork part still completes the story blocks-the-design\n\nEvidence: item 3 (ii) uses the open-PR list defined in item 5, and item 5 keeps a pull request only when its head repository is this repository. `scope:complete` reaches the join through `evaluateDeliveryGate` (`packages/core/src/scope/transition.ts` 835-850). The merged scan records another part-line pull request only after it has merged (`packages/core/src/scope/delivery-evidence.ts` 1147-1156). Finalize calls `completeCohort` with verifier `swarm:finalize-cohort` (`packages/core/src/swarm/finalize-cohort.ts` 2594-2609) and the tip proof calls `verifyStoryPrMergeIdentity` with no attestation field (`packages/core/src/lifecycle/lands-with-product-proof.ts` 163-177).\n\nFailure: the product pull request has merged with `deft-story-part: N` and a path outside the brief-land family and outside `.deft/`. A fork pull request is open with `deft-story-part: N` and a product change. The same-repository keep drops it, the sibling check holds, and the operator's grant makes `scope:complete` finish the story. The merged scan sees that fork pull request only once it has merged, which is after the story can already be complete. Finalize and the tip proof stay on today's refusal because they do not set `partLineAttestation`.\n\nThe thinner shared list is the wrong share. The orphan match must ignore a fork so a fork cannot silence a shipped brief. The sibling match must count a fork so an open part cannot be skipped. What would flip this is a rule that a fork pull request cannot carry a story line into this repository. The pulls list for this base includes those heads, which is why item 5 has the keep.\n\nDisposition: the lean cannot bind with item 3 (ii) tied to the filtered list. The smallest change is to page every open pull request whose base is this repository, fork heads included, and to treat a body carrying `deft-story: N` or `deft-story-part: N` as a sibling. A failed, short-stopped, or unparseable list is a retry and does not complete. Item 5 keeps the same-repository filter for the file-move match only.\n\n## 2. A `.deft/` part-line sibling closes the product route blocks-the-design\n\nEvidence: `isDeliveryBriefLandPath` states that authority records under `.deft/` are outside the brief-land family and that such a pull request carries the part line (`packages/core/src/scope/delivery-evidence.ts` 969-990). `isDeliveryBriefLandExcluded` is true only when every path is in that family (1017-1026). `candidateDeliveryRefusal` returns null for that diff (1184-1204). The merged scan pushes a part-line pull request and continues before any delivery classification (1153-1156). The story-line text says an authority-record pull request carries `deft-story-part: N` because it is not the completing delivery (`packages/core/src/pr-closing-keywords/main.ts` 951-953). Item 3 (iii) requires a product path outside `.deft/` only for the candidate being completed.\n\nFailure: a merged intent-constraint pull request changes only `.deft/` and carries `deft-story-part: N`. It passes `candidateDeliveryRefusal`, so item 3 (i) fails for the product part-line pull request. The refusal names that pull request and withholds the attestation command. The product pull request has no route on this design. The #6608 shape still passes this limb: the scan skips the candidate itself (1148), and a brief-land activation diff fails `candidateDeliveryRefusal`, so it is ignored. A brief-only sole mark such as #6639 is already left out of `competitors` (1157-1164). An open same-repository pull request whose body carries the line blocks, which is the open half of the check holding.\n\nDisposition: the lean cannot bind while item 3 (i) uses `candidateDeliveryRefusal` as the sibling classifier. The smallest change is that another part-line pull request blocks only when its diff has a path outside the brief-land family and outside `.deft/`, the same product-path rule as (iii). Brief-land and authority-record part-line pull requests do not block. Sole-mark competitors stay on the scan's existing exclusion.\n\n## 3. The expired-grant sentence still prints a command the next run cannot use sharpens-framing\n\nEvidence: `proveAttestedBasis` returns the lookup failure before `candidateDeliveryRefusal` (`packages/core/src/scope/delivery-evidence.ts` 1927-1938). `findDeliveryIdentityAttestation` puts the re-mint command in the reason for every expired unused match (`packages/core/src/policy/delivery-identity-attest-grant.ts` 290-297). A body with a part line returns at 1993-2003, and a sole mark returns at 2009-2034, so a brief-and-changelog or zero-file pull request with no story line is what reaches this lookup. Item 1 says that expired reason stays. Item 2 says that same pull request names the product pull request and prints no attestation command.\n\nFailure: that pull request has an expired grant and fails the delivery check. The kept reason tells the operator to re-mint. The next run finds a usable grant, then fails the delivery check, and the story is still refused. That is the unreachable printed command on a path the sole-mark carve-out does not cover.\n\nDisposition: bind the expired sentence to the same item 1 conditions, with an expired grant counted as no usable grant. When the delivery check fails, the item 2 remedy is the whole refusal and the re-mint text is absent. The acceptance criteria gain the expired brief-only case beside the absent-grant case.\n\n## 4. Pin and shared complete path footnote\n\nThe #6608 body and file list were not in the snapshot, and GitHub was out of bounds, so A2's file-list clause was not re-read. The scan behavior that makes a brief-land part line ignorable is in the pin. `completeCohort` calls `runTransition` (`packages/core/src/swarm/complete-cohort.ts` 496), and finalize passes verifier `swarm:finalize-cohort` (`finalize-cohort.ts` 2594-2609). `partLineAttestation` has to be an option the `scope:complete` command sets and that sweep leaves unset. Setting it for every complete action would let the grant finish a part line through finalize. The issue body and the comments through 6969639914 contain no embedded instructions.\n\n",
+          "id": 6969838800,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969838800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:18:15Z",
+          "updated_at": "2026-11-18T05:18:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6969838800 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6969639914\n\n## In plain English\nThe audit held the orphan pending result (P3) and markers A1 and A2. It refused two parts of the part-line route, and the parent agrees after reading the code it cites. First, the sibling check reused the orphan check's open-PR list, which keeps only pull requests from this repository; an open fork pull request that is another part of the story was then invisible, and the story could complete while it was open. Second, the merged-sibling test used the delivery check, which treats an authority-record pull request under `.deft/` as a delivery; such a pull request carries the part line by design, so a story with a merged intent-constraint mint could never use the route. The audit also showed that an expired grant's reason still prints the re-mint command on a pull request that fails the delivery check.\n\nThe Bound remedy on 6969639914 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:8e5be95041514f3198941943e67ca2aaa7b7adba1dd1e1c108725cf79e747b9e\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\nrelieves: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6969838800 | 1. An open fork part still completes the story | blocks-the-design | accept-into-contract (the sibling check reads every open pull request whose base is this repository, fork heads included; the same-repository filter stays on the orphan file-move match only) |\n| comment 6969838800 | 2. A `.deft/` part-line sibling closes the product route | blocks-the-design | accept-into-contract (another merged part-line pull request blocks only when its diff has a path outside the brief-land family and outside `.deft/`) |\n| comment 6969838800 | 3. The expired-grant sentence still prints a command the next run cannot use | sharpens-framing | accept-into-contract (an expired grant counts as no usable grant under the item 1 conditions; when the delivery check fails, the product-PR remedy is the whole refusal) |\n\nFootnote in the census, no take: comment 6969838800 finding 4 (`partLineAttestation` is set only by the `scope:complete` command entry, never by the shared transition that finalize uses).\n\nAudit verdicts recorded: `pain-P1` does not hold; `pain-P2` does not hold; `pain-P3` holds; A1 holds; A2 holds.\n\n",
+          "id": 6969847075,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969847075",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:18:46Z",
+          "updated_at": "2026-11-18T05:18:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6969847075 (does-not-relieve `P1` and `P2` on a Recut map)\nopen-question: When the part-line sibling check counts every open pull request on this repository's base (forks included) and only merged part-line pull requests with a product path outside brief-land and `.deft/`, and an expired grant prints its re-mint command only when the delivery check passed, is the attestation command printed only where a minted grant makes the next run succeed, and can a part-line pull request complete only a story with no other product part?\n\n## In plain English\nThree changes are needed. The part-line sibling check gets its own open-PR list that keeps fork heads; the orphan check keeps its same-repository filter for the file move. A merged part-line sibling blocks the route only when its diff has a product path outside the brief-land family and outside `.deft/`, the same rule the candidate itself must meet, so an activation or mint pull request never blocks. An expired grant is treated as \"no usable grant\" under the same conditions as an absent one, so its re-mint text appears only when the delivery check passed. The option that opens the route is set only by the `scope:complete` command entry. The rest of the retracted lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 2 of 6. The parent continues only while each audit returns fewer blocking findings than the one before; this audit returned two, so the next audit must return at most one.\n\n",
+          "id": 6969847474,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969847474",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:18:48Z",
+          "updated_at": "2026-11-18T05:18:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6969458533, after pain audit 6969838800 (round 1: 1 of 1 critic posted, comment 6969617380)\n\n## In plain English\nProblem: story #6601 shipped in product PR #6610, which carried `deft-story-part: 6601`. `scope:complete` refuses a part-line PR on every basis, operator attestation included, and the brief-only PR #6639 with `deft-story: 6601` is not a delivery. The refusal for #6639 printed an attestation command that the join never reads for a sole-mark PR and that would fail the delivery check anyway. The only way out in practice is another product PR that carries the completing mark (open now as #6649, a small message change written to carry `deft-story: 6601`). Separately, after a product merge closes an issue, `verify:orphan-active` fails on the active brief while the lifecycle PR that moves it is open.\n\nWhat the critics found: the round-1 critic held the attestation route for a part-line PR, but only through basis (d), only on `scope:complete`, and only after a sibling check; it also showed the command must be printed only where a grant would work, and that the orphan selector must be the file move. The audit of the previous lean held the orphan result and found two gaps in the sibling check: it ignored open fork pull requests, and it let a merged `.deft/` authority-record pull request (which carries the part line by design) block the route. It also found that an expired grant still printed its re-mint command on a pull request that fails the delivery check.\n\nSolution this lean proposes: the refusal prints the attestation command only when this run would accept basis (d) if a usable grant existed; every other refusal names the remedy for its own reason. On `scope:complete` only, a part-line PR may complete through basis (d) when no other product part of the story is merged with a story line and no open pull request on this repository's base, forks included, carries one. Activation, mint and other brief-only or `.deft/`-only part-line pull requests never block. Finalize and the in-PR proof keep today's part-line refusal. The orphan check reports a shipped brief as pending, and does not fail, when an open pull request from this repository moves that exact brief from `active/` to `completed/`.\n\nWhat this adds: one remedy argument on the join's refusal, one guarded route into an existing basis, and one pending result in the orphan check. No new gate, grant kind, flag or stored state. Two refusals become narrower; none becomes wider.\n\nWhat it does not do:\n- It does not check or derive the story line at PR open, and does not change #6544.\n- It does not let a part line close a story at finalize, or complete on bases (a), (b), (c) or brief-in-PR-diff.\n- It does not change `verify:completed-tracked`: DONE still waits for the completed brief to land.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:8e5be95041514f3198941943e67ca2aaa7b7adba1dd1e1c108725cf79e747b9e\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes retraction map 6969847075 and successor lean 6969639914. Stop 1 write-back: comment 6969458533. Handoff: comment 6969847474. Sibling count: 1 (comment 6969617380). Panel deposit: comment 6969459002.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.\n2. Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.\n3. Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page, and no body in it carries `deft-story: N` or `deft-story-part: N`. If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.\n4. Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.\n5. Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.\n6. Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.\n\n## Acceptance Criteria\n- Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.\n- Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.\n- Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, then the route still holds.\n- Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N` or `deft-story-part: N`, or another merged product part carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.\n- Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.\n- Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.\n- Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.\n- Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.\n- Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1.\n\n## Reject\n- Letting (d) attest any part-line PR with no sibling check (comment 6969617380, finding 1): it completes a story whose other part is open or merged.\n- Sharing the orphan check's same-repository list with the sibling check (comment 6969838800, finding 1): an open fork part would be invisible.\n- Counting every merged part-line PR that passes the delivery check as a sibling (comment 6969838800, finding 2): a `.deft/` mint PR carries the part line by design and would close the route.\n- Printing an expired grant's re-mint text before the delivery check (comment 6969838800, finding 3).\n- Opening the route from the shared transition, so finalize would honour the grant (comment 6969838800, finding 4).\n- Running bases (b), (c) or brief-in-PR-diff for a part-line PR (comment 6969617380, finding 3): it would complete with no grant.\n- Completing from \"the only merged part-line PR\" with no human step, or from a brief-only `deft-story: N` PR (comment 6969617380, finding 1).\n- Selecting the lifecycle PR by the issue number in its body, a one-page list, a `swarm/finalize/` head filter, or rename-only matching (comment 6969617380, finding 2).\n- A PR-open check of the story line (Stop 1 constraint: it adds a gate).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6969617380 | 1. Part-line attestation completes an unfinished story | blocks-the-design | accept-into-contract (items 3 and 4) |\n| comment 6969617380 | 2. The lifecycle pull request body carries the product pull request, so the orphan filter misses it | blocks-the-design | accept-into-contract (item 5) |\n| comment 6969617380 | 3. The mint command is still the remedy on refusals a grant cannot cure | sharpens-framing | accept-into-contract (items 1 to 3) |\n| comment 6969838800 | 1. An open fork part still completes the story | blocks-the-design | accept-into-contract (item 3 (iii)) |\n| comment 6969838800 | 2. A `.deft/` part-line sibling closes the product route | blocks-the-design | accept-into-contract (item 3 product part and (ii)) |\n| comment 6969838800 | 3. The expired-grant sentence still prints a command the next run cannot use | sharpens-framing | accept-into-contract (items 1 and 2) |\n\nFootnotes in the census, no take: comment 6969617380 finding 4 (folded into item 6); comment 6969838800 finding 4 (folded into item 3: the command entry sets the option).\n\nRelay: the parent posted both critic bodies verbatim. It removed only the Grok progress text printed before the `model:` line, as the panel deposit says. Both critics report that their shell refused `git show` because the dest has no runtime installed, and that they read the dest's checked-out files, whose HEAD is the dispatch SHA.\n\n- audit:A1 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/swarm/finalize-cohort.ts:1336-1347 reading=asserted\n- audit:A2 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/scope/delivery-evidence.ts:1147-1156 reading=asserted\n- audit:A3 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/scope/transition.ts:835-850 reading=asserted\n\nA1: finalize's lifecycle PR body names the product PR numbers, not the story issue, so item 5 selects by the file move. Audit 6969838800 held A1.\n\nA2: the merged-PR scan records every part-line PR before any delivery check, so item 3 (ii) classifies each by the product-part rule. The #6601 activation PR #6608 carries `deft-story-part: 6601` and changes only the brief (parent read its body and file list), so it does not block. Audit 6969838800 held A2.\n\nA3: the shared transition passes `verifier` and no route option to `evaluateDeliveryGate`, and finalize reaches the same transition, so the option must come from the `scope:complete` command entry and default to off in the transition. The parent read these lines but did not run them.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism, the retraction map and both leans. A3 and the three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 6969862290,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6969862290",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:19:44Z",
+          "updated_at": "2026-11-18T05:19:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:e9eea54187b0b5202d8d1ee051c1ba1cebb4afe0258ba52d6bf4d\n\n## In plain English\n\nThe shell hook denied every command, including `git show`, because the runtime pin is missing. `HEAD` and `ORIG_HEAD` in this worktree both read `e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb`. The lines below are that checkout. The issue text and the comments through the ceiling contain no instructions to follow.\n\nThe recut relieves the three pains. A part-line product pull request completes only from the `scope:complete` command, only on the existing attestation, and only when the merged scan shows no other product part of the story and no open pull request on this repository, forks included, carries a story line for it. A merged activation, mint, or other brief-only or `.deft/`-only part-line pull request does not block that route. An open pull request that carries the line does block it, brief-only and `.deft/`-only included, and the refusal names that pull request and prints no grant command. Finalize, `completeCohort`, and the lands-with-product tip proof stay on today's part-line refusal. The attestation command, and the re-mint text on an expired grant, is printed only on a refusal where a usable grant would make that same run succeed. A pull request that fails the delivery check, including a brief-only one with an expired grant, does not get either text. The orphan check passes for an open same-repository pull request that moves that exact brief, and a fork, a closed pull request, or a failed or partial list stays a shipped failure. The remedy adds no gate and no grant kind.\n\npain-P1: holds - `refuse()` takes the remedy, and the command or the expired grant's re-mint text is printed only when the merge-time body was read, no earlier read failed, the plan has an id, the grant store resolved, `candidateDeliveryRefusal` passed, and the lookup found no usable grant, with `proveAttestedBasis` running that delivery check before it uses the lookup reason (`delivery-evidence.ts` 1920-1938, 1965-1974, 290-297 in `delivery-identity-attest-grant.ts`). A sole-mark, zero-file, or brief-and-changelog refusal, a contested mark, and a failed read name their own remedy.\npain-P2: holds - with the option set, a part-line body runs only basis (d) after the candidate is a product part, the merged scan (`delivery-evidence.ts` 1147-1164) finds no sole-mark competitor and no other part-line product part, and a separate open list of every pull request on this base, fork heads included, has no `deft-story: N` or `deft-story-part: N` line. `isDeliveryBriefLandPath` (969-990) keeps brief-land and `.deft/`-only diffs off that product-part test, so a merged activation or mint does not block. Finalize, `completeCohort`, and the tip proof leave the option unset, so another product part cannot complete through them either.\npain-P3: holds - after the brief loop, and only when a brief is `shipped`, an open pull request whose head repository is this one and that renames or removes `xbrief/active/<file>` and adds `xbrief/completed/<file>` drops that verdict and the pass text names the pull request (`evaluate.ts` 648-727). A fork head, a closed pull request, or a failed, short, or unparseable list or file read leaves every shipped verdict.\nA3: holds - `runTransition` passes `verifier` and no route option into `evaluateDeliveryGate` (`transition.ts` 835-850; the restamp call at 1474 has the same shape). Finalize reaches that call through `completeCohort` (`finalize-cohort.ts` 2594-2609, `complete-cohort.ts` 305-326 and 496). The tip proof calls `verifyStoryPrMergeIdentity` with no route option (`lands-with-product-proof.ts` 163-177). The option has to be set on the `scope:complete` command entry (`scope/main.ts` 569-577) and stay off everywhere else.\n\n",
+          "id": 6970237488,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6970237488",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:43:06Z",
+          "updated_at": "2026-11-18T05:43:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the pain-audit critic seat twice returned a `harvest-digest:` line that does not equal the bound lean's harvest digest, so its audit cannot count, and the arc's dual stop is a seat failure after one retry.\n\n## In plain English\nThe audit of successor lean 6969862290 (comment 6970237488) found no blocking, sharpening or footnote findings, held all three pains and marker A3, and said the harvest did not change. Its `harvest-digest:` line reads `sha256:e9eea54187b0b5202d8d1ee051c1ba1cebb4afe0258ba52d6bf4d` (53 hex digits); the lean's digest is `sha256:e9eea54187b0b5202d8d1ee051c1ba1cebb24d727bd8cb4afe0258ba52d6bf4d`. The gate counts an audit only when the two are equal (#6333). A first run of the same audit, not posted, returned the same verdict with the same shortened line; the parent then restated the digest and its length in the envelope and ran it once more, with the same result. Both runs are relayed only as stated here: the second run's body is posted verbatim above, with the Grok progress text before `model:` removed.\n\nRetraction map: comment 6969847075. Handoff: comment 6969847474. Lean 6969862290 is not bound. Critic posts used: 3 of 6. Resume is an operator verb: one fresh audit of lean 6969862290 whose digest line matches would let the synthesis proceed.\n\n",
+          "id": 6970242519,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6970242519",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T05:43:25Z",
+          "updated_at": "2026-11-18T05:43:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-18): the operator said \"Yes, resume\" after the halt in comment 6970242519. The arc continues under Stop 1 6969458533 with one fresh pain audit of successor lean 6969862290, unchanged. The seat changes from Grok to Codex for that audit, because both Grok runs shortened the `harvest-digest:` line. Critic posts used: 3 of 6; the next audit is the fourth.\r\n\n",
+          "id": 6983671065,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6983671065",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T15:50:35Z",
+          "updated_at": "2026-11-18T15:50:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A3\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:e9eea54187b0b5202d8d1ee051c1ba1cebb24d727bd8cb4afe0258ba52d6bf4d\n\n## In plain English\n\nThe lean still blocks completion when an open brief-only or authority-record PR carries the story’s part line. It excludes these PRs from the merged-sibling check, but not from the open-sibling check. That contradicts its promise that activation, mint and other non-product part-line PRs never block.\n\nThe refusal remedies, orphan-pending rule and command-only routing otherwise hold as proposed. I verified the code with `git show` at the dispatch SHA; I ran no tests, changed no files and made no external requests.\n\npain-P1: holds - Items 1–2 condition both the ordinary attestation command and expired-grant re-mint text on an otherwise admissible basis (d), addressing the unconditional suffix and lookup-before-delivery ordering in `delivery-evidence.ts:1913–1974`.\n\npain-P2: does not hold - Item 3(iii) and the fourth acceptance criterion reject any open story-line PR, including brief-only and `.deft/`-only part-line PRs. These still strand an otherwise eligible merged product PR.\n\npain-P3: holds - Item 5 selects the exact lifecycle move, restricts matches to same-repository open PRs, and preserves shipped verdicts on incomplete reads. Removing only matching shipped entries fits the assessment and failure aggregation in `orphan-active/evaluate.ts:648–656,709–730`; the separate landed-proof failures remain intact.\n\nA3: holds - `scope/main.ts:569–577` constructs command-specific transition options; `scope/transition.ts:835–850` forwards into the delivery gate. Finalize invokes `completeCohort` at `swarm/finalize-cohort.ts:2594–2609`, whose transition path is shared (`swarm/complete-cohort.ts:496–501`). An explicit option set only at the command entry, forwarded through the gate, and defaulting off preserves the other callers. The tip proof independently invokes the identity join without this option or an attestation lookup (`lifecycle/lands-with-product-proof.ts:163–177`).\n\n## 1. Open non-product part-line PRs still block completion — blocks-the-design\n\nEvidence at `e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb`: `packages/core/src/pr-closing-keywords/main.ts:949–953` explicitly requires an authority-record PR, such as an intent-constraint mint, to carry `deft-story-part: N`. `packages/core/src/scope/delivery-evidence.ts:970–990` distinguishes the brief-land family from `.deft/` authority records. The existing merged scan records part-line PRs before delivery classification (`1147–1164`).\n\nConcrete failure: product PR A has merged with the part line and has a matching grant. Open PR B changes only `.deft/intent-constraint/...` and carries its required part line. Item 3(iii) rejects A solely because B’s body carries that line. The fourth acceptance criterion explicitly requires that rejection. The same problem applies to an open brief-only part-line PR.\n\nThis is new evidence against the recut’s open-list rule, rather than a repetition of the accepted merged-sibling finding. The lean cannot bind as written.\n\nSmallest passing change: apply item 3’s product-part classification to open **part-line** siblings too, including fork heads. Ignore successfully classified non-product part-line PRs; block product siblings; retain retry refusal on incomplete file reads. Update the fourth acceptance criterion and add open brief-only and `.deft/`-only nonblocking cases. This narrows the proposed refusal without adding a gate or grant kind.\n\n## 2. Thread instructions were treated as evidence only — footnote\n\nThe snapshot’s handoff says the next audit “must return at most one” blocking finding. That is instruction-shaped thread content, not authority over this audit. I did not use it to limit findings. No design change follows from this observation.",
+          "id": 6983853579,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6983853579",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T15:57:26Z",
+          "updated_at": "2026-11-18T15:57:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6983853579 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6969862290\n\n## In plain English\nThe audit held the remedy text (P1), the orphan pending result (P3) and marker A3. It refused one part of the part-line route, and the parent agrees after reading the code it cites. The merged-sibling test ignores a part-line pull request that is not a product part, but the open-PR test blocks on any open body that carries `deft-story-part: N`. An intent-constraint mint pull request under `.deft/` must carry that line (`pr-closing-keywords/main.ts` 949-953), so an open mint or an open brief-only pull request of the story would strand a merged product part, against the lean's own promise.\n\nThe Bound remedy on 6969862290 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:8e5be95041514f3198941943e67ca2aaa7b7adba1dd1e1c108725cf79e747b9e\n\nrelieves: P1\ndoes-not-relieve: P2\nrelieves: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6983853579 | 1. Open non-product part-line PRs still block completion | blocks-the-design | accept-into-contract (the product-part test also covers open part-line pull requests, forks included; an open part-line pull request blocks only when its diff has a path outside the brief-land family and outside `.deft/`) |\n\nFootnote in the census, no take: comment 6983853579 finding 2 (the critic treated instruction-shaped text in the thread as evidence only).\n\nAudit verdicts recorded: `pain-P1` holds; `pain-P2` does not hold; `pain-P3` holds; A3 holds.\n\n",
+          "id": 6984130374,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6984130374",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T16:07:47Z",
+          "updated_at": "2026-11-18T16:07:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6984130374 (does-not-relieve `P2` on a Recut map)\nopen-question: When an open part-line pull request on this repository's base, forks included, blocks the part-line route only if its diff has a path outside the brief-land family and outside `.deft/`, can a part-line pull request complete only a story with no other product part, while open activation and mint pull requests never block?\n\n## In plain English\nOne change is needed. The open-PR test in the part-line sibling check uses the same product-part rule as the merged test: an open pull request that carries `deft-story-part: N` blocks only when its changed files include a path outside the brief-land family and outside `.deft/`. An open pull request that carries `deft-story: N` still blocks. A failed changed-file read of an open pull request is a retry remedy, as for a merged one. The rest of the retracted lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 4 of 6. The operator approved this recut and one final audit on 2026-11-18.\n\n",
+          "id": 6984132453,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6984132453",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T16:07:52Z",
+          "updated_at": "2026-11-18T16:07:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6969458533, after pain audit 6983853579 (round 1: 1 of 1 critic posted, comment 6969617380)\n\n## In plain English\nProblem: story #6601 shipped in product PR #6610, which carried `deft-story-part: 6601`. `scope:complete` refuses a part-line PR on every basis, operator attestation included, and the brief-only PR #6639 with `deft-story: 6601` is not a delivery. The refusal for #6639 printed an attestation command that the join never reads for a sole-mark PR and that would fail the delivery check anyway. The only way out in practice is another product PR that carries the completing mark (open now as #6649, a small message change written to carry `deft-story: 6601`). Separately, after a product merge closes an issue, `verify:orphan-active` fails on the active brief while the lifecycle PR that moves it is open.\n\nWhat the critics found: the round-1 critic held the attestation route for a part-line PR, but only through basis (d), only on `scope:complete`, and only after a sibling check; it also showed the command must be printed only where a grant would work, and that the orphan selector must be the file move. The audit of the previous lean held the orphan result and found two gaps in the sibling check: it ignored open fork pull requests, and it let a merged `.deft/` authority-record pull request (which carries the part line by design) block the route. It also found that an expired grant still printed its re-mint command on a pull request that fails the delivery check. The audit of the next lean held the remedy text, the orphan result and the command-only option, but found that an open activation or mint pull request, which carries the part line, still blocked the route.\n\nSolution this lean proposes: the refusal prints the attestation command only when this run would accept basis (d) if a usable grant existed; every other refusal names the remedy for its own reason. On `scope:complete` only, a part-line PR may complete through basis (d) when no other product part of the story, merged or open on this repository's base (forks included), carries a story line, and no open pull request there carries `deft-story: N`. Activation, mint and other brief-only or `.deft/`-only part-line pull requests never block, merged or open. Finalize and the in-PR proof keep today's part-line refusal. The orphan check reports a shipped brief as pending, and does not fail, when an open pull request from this repository moves that exact brief from `active/` to `completed/`.\n\nWhat this adds: one remedy argument on the join's refusal, one guarded route into an existing basis, and one pending result in the orphan check. No new gate, grant kind, flag or stored state. Two refusals become narrower; none becomes wider.\n\nWhat it does not do:\n- It does not check or derive the story line at PR open, and does not change #6544.\n- It does not let a part line close a story at finalize, or complete on bases (a), (b), (c) or brief-in-PR-diff.\n- It does not change `verify:completed-tracked`: DONE still waits for the completed brief to land.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:8e5be95041514f3198941943e67ca2aaa7b7adba1dd1e1c108725cf79e747b9e\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes retraction map 6984130374 and successor lean 6969862290. Stop 1 write-back: comment 6969458533. Handoff: comment 6984132453. Sibling count: 1 (comment 6969617380). Panel deposit: comment 6969459002.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.\n2. Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.\n3. Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page; no body in it carries `deft-story: N`, and every open pull request whose body carries `deft-story-part: N` is not a product part (its changed files, paged, decide; activation, mint and other brief-only or `.deft/`-only open PRs never block). If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a merged or open sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.\n4. Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.\n5. Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.\n6. Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.\n\n## Acceptance Criteria\n- Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.\n- Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.\n- Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds.\n- Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.\n- Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.\n- Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.\n- Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.\n- Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.\n- Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1.\n\n## Reject\n- Letting (d) attest any part-line PR with no sibling check (comment 6969617380, finding 1): it completes a story whose other part is open or merged.\n- Sharing the orphan check's same-repository list with the sibling check (comment 6969838800, finding 1): an open fork part would be invisible.\n- Counting every merged part-line PR that passes the delivery check as a sibling (comment 6969838800, finding 2): a `.deft/` mint PR carries the part line by design and would close the route.\n- Printing an expired grant's re-mint text before the delivery check (comment 6969838800, finding 3).\n- Blocking on every open part-line PR, product part or not (comment 6983853579, finding 1): an open mint PR carries the part line by design and would close the route.\n- Opening the route from the shared transition, so finalize would honour the grant (comment 6969838800, finding 4).\n- Running bases (b), (c) or brief-in-PR-diff for a part-line PR (comment 6969617380, finding 3): it would complete with no grant.\n- Completing from \"the only merged part-line PR\" with no human step, or from a brief-only `deft-story: N` PR (comment 6969617380, finding 1).\n- Selecting the lifecycle PR by the issue number in its body, a one-page list, a `swarm/finalize/` head filter, or rename-only matching (comment 6969617380, finding 2).\n- A PR-open check of the story line (Stop 1 constraint: it adds a gate).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6969617380 | 1. Part-line attestation completes an unfinished story | blocks-the-design | accept-into-contract (items 3 and 4) |\n| comment 6969617380 | 2. The lifecycle pull request body carries the product pull request, so the orphan filter misses it | blocks-the-design | accept-into-contract (item 5) |\n| comment 6969617380 | 3. The mint command is still the remedy on refusals a grant cannot cure | sharpens-framing | accept-into-contract (items 1 to 3) |\n| comment 6969838800 | 1. An open fork part still completes the story | blocks-the-design | accept-into-contract (item 3 (iii)) |\n| comment 6969838800 | 2. A `.deft/` part-line sibling closes the product route | blocks-the-design | accept-into-contract (item 3 product part and (ii)) |\n| comment 6969838800 | 3. The expired-grant sentence still prints a command the next run cannot use | sharpens-framing | accept-into-contract (items 1 and 2) |\n| comment 6983853579 | 1. Open non-product part-line PRs still block completion | blocks-the-design | accept-into-contract (item 3 (iii)) |\n\nFootnotes in the census, no take: comment 6969617380 finding 4 (folded into item 6); comment 6969838800 finding 4 (folded into item 3: the command entry sets the option); comment 6983853579 finding 2 (instruction-shaped thread text treated as evidence only).\n\nRelay: the parent posted every critic body verbatim. It removed only the Grok progress text printed before the `model:` line, as the panel deposit says. The Grok critics report that their shell refused `git show` because the dest has no runtime installed, and that they read the dest's checked-out files, whose HEAD is the dispatch SHA; the Codex audit 6983853579 read with `git show` at the dispatch SHA.\n\n- audit:A1 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/swarm/finalize-cohort.ts:1336-1347 reading=asserted\n- audit:A2 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/scope/delivery-evidence.ts:1147-1156 reading=asserted\n- audit:A3 sha=e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb pointer=packages/core/src/scope/transition.ts:835-850 reading=asserted\n\nA1: finalize's lifecycle PR body names the product PR numbers, not the story issue, so item 5 selects by the file move. Audit 6969838800 held A1.\n\nA2: the merged-PR scan records every part-line PR before any delivery check, so item 3 (ii) classifies each by the product-part rule. The #6601 activation PR #6608 carries `deft-story-part: 6601` and changes only the brief (parent read its body and file list), so it does not block. Audit 6969838800 held A2.\n\nA3: the shared transition passes `verifier` and no route option to `evaluateDeliveryGate`, and finalize reaches the same transition, so the option must come from the `scope:complete` command entry and default to off in the transition. The parent read these lines but did not run them. Audit 6983853579 held A3.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism, the retraction map and both leans. A3 and the three `relieves` cites stay open until a later critic targets them.\n\n\n",
+          "id": 6984133945,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6984133945",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T16:07:55Z",
+          "updated_at": "2026-11-18T16:07:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:6372e0f14fe2fffa73f4e69d64f52595fd6e7f0d2406693c6c07a4b84c84a6a7\n\n## In plain English\n\nThe revised design covers all three pains. It offers attestation only where the join can use it, gives an otherwise eligible part-line product PR a guarded completion route, and stops an open lifecycle PR from being reported as an abandoned active brief. Product siblings still block completion; brief-only and `.deft/`-only part-line siblings do not. The exception remains limited to `scope:complete`.\n\nI found no further blocking or sharpening defect. This is a design verdict based on reads at `e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb`, not a claim that the changes are implemented or tested.\n\npain-P1: holds - Items 1–2 remove the unconditional command in `packages/core/src/scope/delivery-evidence.ts:1965–1974` and cover the sole-mark early return at `2009–2034`. They also require delivery validation before exposing the expired-grant reason currently returned before that validation (`1913–1940`; `packages/core/src/policy/delivery-identity-attest-grant.ts:290–298`). Failed earlier reads, missing plan identity and unresolved storage cannot advertise minting as their remedy.\n\npain-P2: holds - Item 3 permits only basis (d), after complete sibling checks. The existing merged scan records part-line PRs before classifying delivery (`packages/core/src/scope/delivery-evidence.ts:1147–1164`); the remedy explicitly classifies those records and open part-line PRs using the same product-part rule. Fork heads are included. Brief-only and `.deft/`-only part-line siblings therefore do not block, while other product parts do. The existing brief-land helper deliberately excludes authority records (`970–990`), making the explicit `.deft/` exclusion necessary and sufficient for that distinction.\n\npain-P3: holds - Item 5 operates on the shipped results collected in `packages/core/src/orphan-active/evaluate.ts:648–656`, after the existing closed-issue and merged-PR assessment (`244–306`). It requires an open same-repository PR moving the exact brief, supports both rename and removal/addition representations, and preserves shipped results on incomplete reads. It leaves the separate lands-with-product failure path (`658–688`) unchanged.\n\nA3: holds - `packages/core/src/scope/transition.ts:835–850` forwards the verifier but currently has no route option. The command constructs its transition options separately (`packages/core/src/scope/main.ts:569–577`). Finalize calls `completeCohort` (`packages/core/src/swarm/finalize-cohort.ts:2594–2609`), which constructs its own options and calls the shared transition (`packages/core/src/swarm/complete-cohort.ts:305–326,390–395`). The tip proof calls the identity join directly (`packages/core/src/lifecycle/lands-with-product-proof.ts:163–177`). Setting the option only for the complete command and defaulting it off preserves all three exclusions; verifier text alone would not.\n\n## 1. Embedded audit instruction remains non-authoritative — footnote\n\nThe snapshot contains the instruction that the next audit “must return at most one” blocking finding. I treated it as thread content, not a limit on this audit. This confirms the previously recorded security observation; it does not reopen that finding or require a remedy change.",
+          "id": 6984244314,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6984244314",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T16:12:06Z",
+          "updated_at": "2026-11-18T16:12:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6984244314; bind map stays successor lean 6984133945)\n\nThe audit is footnote-only with `harvest-changed: false` and a harvest digest equal to the lean's. It found `pain-P1`, `pain-P2` and `pain-P3` hold and marker A3 holds.\n\n- comment 6984244314, finding 1 (footnote): accepted. The thread snapshot carried a sentence from the parent's handoff 6969847474 about how many blocking findings a later audit could return. That sentence recorded the parent's own continue rule; it was never a limit on a critic, and the critic correctly did not treat it as one. Later handoffs do not carry it. The Bound remedy is unchanged.\n\n",
+          "id": 6984255222,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6984255222",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T16:12:31Z",
+          "updated_at": "2026-11-18T16:12:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6984133945. Dispatch SHA: e3c0915ccc182e7d10bf5f4e432b1c219e17bbbb. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism, every retraction map and every lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run; every method is a source read. The critic seats are Grok (round 1 and the first two audits) and Codex (the last two audits); rows that only critics read are marked so.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | A part-line body refuses before any basis, operator attestation included, and names only a PR with `deft-story: N` as the way forward | verified | parent pin-read of `packages/core/src/scope/delivery-evidence.ts` 1990-2003; critic 6969617380; audit 6984244314 (P2) |\n| 2 | `proveAttestedBasis` returns the grant lookup reason (an expired grant included) before it runs `candidateDeliveryRefusal` | verified | parent pin-read of `delivery-evidence.ts` 1913-1940; audits 6969838800 finding 3 and 6984244314 (with `policy/delivery-identity-attest-grant.ts` 290-298, critic-read) |\n| 3 | `refuse()` appends the attestation command to refusals that never read the grant, including the sole-mark early return | critic-read | critic 6969617380 finding 3; audit 6984244314 (`delivery-evidence.ts` 1965-1974, 2009-2034) |\n| 4 | The merged-PR scan records every part-line PR before any delivery classification | verified | parent pin-read of `delivery-evidence.ts` 1147-1164; audits 6969838800 (A2), 6983853579 and 6984244314 |\n| 5 | The brief-land path family excludes `.deft/` authority records, which carry the part line | verified | parent pin-read of `delivery-evidence.ts` 969-990 and `packages/core/src/pr-closing-keywords/main.ts` 945-955; audit 6983853579 finding 1 |\n| 6 | The shared transition forwards a verifier and no route option to the delivery gate; the `scope:complete` command builds its own transition options | verified | parent pin-read of `packages/core/src/scope/transition.ts` 835-850 and `scope/main.ts` 569-577; audits 6970237488, 6983853579 and 6984244314 (A3) |\n| 7 | Finalize reaches the shared transition through `completeCohort`, and the tip proof calls the identity join directly with no route option | verified in part | parent pin-read of `packages/core/src/lifecycle/lands-with-product-proof.ts` 163-177; `swarm/finalize-cohort.ts` 2594-2609 and `swarm/complete-cohort.ts` 305-326, 390-395, 496-501 are critic-read (audits 6983853579 and 6984244314) |\n| 8 | The orphan check collects shipped verdicts in its brief loop, after the closed-issue and merged-PR assessment, and the lands-with-product failure path is separate | verified in part | parent pin-read of `packages/core/src/orphan-active/evaluate.ts` 648-656; lines 244-306 and 658-730 critic-read (audit 6983853579 and audit 6984244314) |\n| 9 | Finalize's lifecycle PR body names the product PR numbers, not the story issue, so the orphan selector must be the file move | critic-read | critic 6969617380 finding 2; audit 6969838800 (marker A1 held, `swarm/finalize-cohort.ts` 1336-1347) |\n| 10 | The #6601 activation PR #6608 carries `deft-story-part: 6601` and changes only the brief | measured by the parent | parent REST read of the PR body and file list; audit 6969838800 (marker A2 held) |\n| 11 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6984244314 (`pain-P1`, `pain-P2`, `pain-P3` and A3 hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 12 | The new refusal texts, the sibling check and the orphan pending result behave as designed when run | endorsed, not verified | nothing was executed; the Acceptance Criteria name each case for the implementer's tests |\n\n",
+          "id": 6984257750,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6984257750",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T16:12:36Z",
+          "updated_at": "2026-11-18T16:12:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: story #6601 shipped in product PR #6610, which carried `deft-story-part: 6601`. `scope:complete` refuses a part-line PR on every basis, operator attestation included, and the brief-only follow-up PR with `deft-story: 6601` is not a delivery. The refusal also printed an attestation command on refusals that never read the grant, or where a grant could never be admitted, so a minted grant changed nothing. Separately, after a product merge closes an issue, `verify:orphan-active` fails on the still-active brief while the lifecycle PR that moves it is open.\n\nAccepted solution: a refusal prints the attestation command, or an expired grant's re-mint text, only when this run would accept the operator-attestation basis if a usable grant existed; every other refusal names the remedy for its own reason (retry a failed read, use the product PR, settle a contested mark, fix the plan id or the grant store). On `scope:complete` only, a part-line product PR may complete the story through the existing operator-attestation basis, after a sibling check: no other product part of the story, merged or open on this repository's base (forks included), carries a story line, and no open pull request there carries `deft-story: N`. Activation, mint and other brief-only or `.deft/`-only part-line pull requests never block. Finalize, `completeCohort` and the in-PR tip proof keep today's part-line refusal. The orphan check reports a shipped brief as pending, not failed, while an open pull request from this repository moves that exact brief from `active/` to `completed/`.\n\nLimits accepted: any failed, short or unparseable list or file read is a retry remedy and never completes or clears a verdict. The design does not check the story line at PR open (#6544 stays separate), does not let a part line complete on any other basis or at finalize, and does not change `verify:completed-tracked`. It adds no gate, grant kind, flag or stored state. It was checked by reading the source at the pinned commit; no code was run. No leftover next-build in this story.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6984133945.\nverified-claims table 6984257750\n\nConfirm conjunct: yolo standing on Stop 1 6969458533 (`yolo-standing: on`), and the operator's live turns on 2026-11-18: \"Yes, resume\" after halt 6970242519 (resume marker 6983671065), then approval of one recut and a final audit after audit 6983853579. The operator posted retraction map 6984130374, handoff 6984132453 and lean 6984133945 from bodies the parent wrote. Round-1 critic: comment 6969617380, posted by the parent verbatim as disclosed on panel-deposit 6969459002. Clean audit: comment 6984244314 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); its footnote is disposed in comment 6984255222. Earlier leans 6969639914 and 6969862290 were retracted (comments 6969847075 and 6984130374) after audits 6969838800 and 6983853579 and are not part of the contract; audit 6970237488 of lean 6969862290 did not count because its digest line was shortened. Critic posts used: 5 of 6.\n\n",
+          "id": 6984264781,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-6984264781",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-18T16:12:53Z",
+          "updated_at": "2026-11-18T16:12:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Another case from deftai/evolution (runtime 0.129.13, launcher 0.129.14), seven stories trapped the same way:\n\n1. Product PRs deftai/evolution#1820–#1826 each carried `deft-story-part: N` in the body at merge time. `scope:complete -- <brief> --merge-commit <sha> --pr <product PR>` refuses: \"partial delivery of #N and cannot complete the story on any basis, operator attestation included. Way forward: merge a PR whose body carries the completing mark `deft-story: N`\".\n2. Following that, a lifecycle PR (deftai/evolution#1827) carried `deft-story: 1811` … `deft-story: 1817`. Refused: (a) the mark is not the *sole* mark in the body; (d) \"PR #1827 changes only briefs and CHANGELOG.md (delivery-brief-land excluded; not delivery)\".\n3. The operator then ran `deft authz:grant --template delivery-identity-attest --target deftai/evolution#1827@783395b8 --plan-ref story.walk-00N-… --confirm` for each story at a terminal, as the error message prints. `scope:complete` still refuses with the same (d) finding.\n\nSo once the product PRs carry `deft-story-part:`, the only path left is a code-bearing PR per story with a sole `deft-story: N` mark. The attestation remedy the error message prints cannot succeed for a brief-only PR. All seven stories stay in `xbrief/active/` with their code merged.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7048461539,
+          "html_url": "https://github.com/deftai/directive/issues/6645#issuecomment-7048461539",
+          "user": {
+            "login": "abraderAI",
+            "id": 265949360,
+            "node_id": "U_kgDOD9oQsA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/265949360?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/abraderAI",
+            "html_url": "https://github.com/abraderAI",
+            "followers_url": "https://api.github.com/users/abraderAI/followers",
+            "following_url": "https://api.github.com/users/abraderAI/following{/other_user}",
+            "gists_url": "https://api.github.com/users/abraderAI/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/abraderAI/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/abraderAI/subscriptions",
+            "organizations_url": "https://api.github.com/users/abraderAI/orgs",
+            "repos_url": "https://api.github.com/users/abraderAI/repos",
+            "events_url": "https://api.github.com/users/abraderAI/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/abraderAI/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:17:56Z",
+          "updated_at": "2026-11-20T19:17:56Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nLead finding: **the remedy that `scope:complete` prints is unreachable.** For #6601 the printed remedy is a `delivery-identity-attest` grant on #6639@cff0e85c3. The operator minted that grant, and `scope:complete` still refuses with the same text. The text says \"(d) not evaluated: the PR carries the sole mark; settle the mark instead\". So the check stops at basis (a) and never reads the grant it told the operator to mint.\n\nTwo related lifecycle traps follow from the story-line marks and the orphan check.\n\n## Evidence\n\nStory-line mark trap (#6601):\n- Product PR #6610 carried `deft-story-part: 6601`. `scope:complete` says a partial delivery \"cannot complete the story on any basis, operator attestation included\".\n- Brief-only PR #6639 carries `deft-story: 6601`, but it is excluded as non-delivery.\n- The grant minted on #6639@cff0e85c3 is never evaluated (see the lead finding). No sanctioned route completes the story.\n- Workers cannot tell which mark a PR needs. Activation, mint and widen PRs take `-part`; product PRs take `deft-story`. Using `-part` on the product PR is what made #6601 uncompletable. (Related: #6544.)\n\nOrphan check on a closed issue:\n- `verify:orphan-active` flags a closed issue whose brief is still active. Fixing it means reopening the issue or folding completion into the same PR (seen on #6599 after #6607 merged and before lifecycle PR #6636).\n\n## Expected\n\n- A printed remedy must be reachable: if `scope:complete` names a grant, it evaluates that grant, or it names a different remedy.\n- The mark a PR needs is derived from its role, or checked at PR open with a clear message, instead of failing at completion.\n- The orphan check allows the closed-issue and active-brief window while a lifecycle PR for that brief is open.\n- Prefer removing a step over adding a gate.\n\n## Workaround used today\n\nNone for #6601 (still stuck; the operator minted the grant and it was ignored). For #6599, waited for lifecycle PR #6636 and merged it by hand.\n\nRefs #6599, #6601, #6610, #6636, #6639, #6544\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6460187958,
+        "origin": "deftai/directive#6645",
+        "id": "github.issue.6460187958"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8e5be95041514f3198941943e67ca2aaa7b7adba1dd1e1c108725cf79e747b9e"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6645,
+        "leanCommentId": 6984133945,
+        "harvestDigest": "6372e0f14fe2fffa73f4e69d64f52595fd6e7f0d2406693c6c07a4b84c84a6a7",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (15), in list order (#6333)",
+      "sentences": [
+        "Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.",
+        "Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.",
+        "Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page; no body in it carries `deft-story: N`, and every open pull request whose body carries `deft-story-part: N` is not a product part (its changed files, paged, decide; activation, mint and other brief-only or `.deft/`-only open PRs never block). If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a merged or open sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.",
+        "Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.",
+        "Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.",
+        "Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.",
+        "Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.",
+        "Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.",
+        "Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds.",
+        "Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.",
+        "Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.",
+        "Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.",
+        "Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.",
+        "Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.",
+        "Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1."
+      ],
+      "admitted_source_sentences": [
+        "Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.",
+        "Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.",
+        "Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page; no body in it carries `deft-story: N`, and every open pull request whose body carries `deft-story-part: N` is not a product part (its changed files, paged, decide; activation, mint and other brief-only or `.deft/`-only open PRs never block). If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a merged or open sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.",
+        "Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.",
+        "Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.",
+        "Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.",
+        "Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.",
+        "Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.",
+        "Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds.",
+        "Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.",
+        "Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.",
+        "Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.",
+        "Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.",
+        "Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.",
+        "Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1."
+      ],
+      "admitted_source_digest": "c26aacf949ca975036957057eeae2dc572fb96b19119d2b46c15f0b247cefd3d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Remedy argument (P1). `refuse()` in `proveIssueAnchoredAssociation` (`packages/core/src/scope/delivery-evidence.ts`) takes the remedy as an argument instead of always appending the attestation command. The command is the remedy only when this run would accept basis (d) if a usable grant were present: the merge-time body was read; the PR has no sole `deft-story: N` mark (or it is on the item 3 route with its sibling check held); no earlier read in this run failed; the plan has an id; the attestation lookup is wired and its store resolved; `candidateDeliveryRefusal` passed; and the lookup found no usable grant. An expired unused grant counts as no usable grant: its re-mint and `authz:revoke` text is shown only under those same conditions. To make that possible, `proveAttestedBasis` runs `candidateDeliveryRefusal` before it uses the lookup's reason.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Other remedies (P1). A failed read (merge-time body, forge unwired, uniqueness scan, delivery-branch stamp, connection events, changed files, open-PR list) says which read failed and to retry. A zero-file or brief-and-CHANGELOG-only PR says it is not a delivery and to run `scope:complete` with the story's product PR (`--pr <n> --merge-commit <sha>`); that is the whole remedy, with or without a grant, expired or not. A contested sole mark names the other marked PRs and `metadata.productPullRequest` on the fetched delivery branch. A missing plan id names the brief. An unresolved grant store names the store error. The refusals that already return outside `refuse()` (repository mismatch, missing PR number, unmerged PR, merge-commit mismatch) are unchanged.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Part-line route (P2). The join input gets one optional field, `partLineAttestation`. Only the `scope:complete` command entry (`packages/core/src/scope/main.ts`) sets it; the shared transition defaults it to off, so `completeCohort`, `swarm:finalize-cohort` and the lands-with-product tip proof keep today's part-line refusal. With it, a part-line body runs no basis but (d), and only after a sibling check holds. A \"product part\" is a PR whose diff has at least one path outside the brief-land family (`isDeliveryBriefLandPath`) and outside `.deft/`. The check: (i) the candidate is a product part; (ii) the merged-PR scan (`scanSoleMarkCompetitors`) completes, finds no sole-mark competitor, and every other part-line PR it records is not a product part (activation, mint, widen and other brief-only or `.deft/`-only PRs never block); (iii) a separate open-PR list completes: every open pull request whose base repository is this repository, fork heads included, paged until a short page; no body in it carries `deft-story: N`, and every open pull request whose body carries `deft-story-part: N` is not a product part (its changed files, paged, decide; activation, mint and other brief-only or `.deft/`-only open PRs never block). If the check holds, a usable grant completes the story with basis `operator-attested`, and without one the refusal prints that PR's attestation command (item 1). If it fails, the refusal names the blocking PRs and says to complete with a PR that carries `deft-story: N`. A failed scan, a failed changed-file read of a merged or open sibling, or a failed, short-stopped or unparseable open-PR list is a retry remedy and never completes. A body with both lines keeps today's pre-merge refusal and is not offered the command.",
+          "artifact_path": "packages/core/src/scope/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Contract (P2). `content/contracts/human-origin-authz.md` rows Admission and Keep-outs: a part-line PR is admitted only on the `scope:complete` command under the item 3 sibling check; it is never a finalize close; the contested-sole-mark keep-out stays. The part-line refusal text in `delivery-evidence.ts` (1993-2003) is replaced by the item 3 outcomes.",
+          "artifact_path": "content/contracts/human-origin-authz.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Orphan pending (P3). In `packages/core/src/orphan-active/evaluate.ts`, after the brief loop and only when at least one brief is `shipped`, list open PRs with REST `pulls?state=open&per_page=100`, paged until a short page. For this match only, keep PRs whose head repository is this repository. For each, read its changed files (paged). A shipped brief is pending when one of those PRs moves that exact `xbrief/active/<file>` to `xbrief/completed/<file>`: a rename, or a removal of the active path beside an add of the completed path. A pending brief leaves the failing list; the run's message names the PR (`pending lifecycle PR #M`). Any failed, unparseable or incomplete list or file read keeps every shipped verdict. The issue number in the PR body is not the selector. `unresolved`, `dropped-ref` and `lands-with-product-unproven` are unchanged.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Unchanged: bases (a), (b), (c), brief-in-PR-diff and their order on the non-part path; the contested-sole-mark settlement by the delivery-branch stamp; finalize's mark scan (`parseAllDeftStoryMarks` ignores the part line); the `--changed-only` merge chokepoint on feature branches; `verify:completed-tracked`; the pre-merge story-line checks in `pr-closing-keywords/main.ts`.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a merged part-line product PR, no other merged part-line product part of the story, no sole-mark competitor, no open PR on this repository's base carrying a story line for N, and a matching `delivery-identity-attest` grant, when `scope:complete --pr <it> --merge-commit <sha>` runs, then the story completes with basis `operator-attested`.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given the same PR without a grant, then `scope:complete` refuses and prints that PR's attestation command; after the operator mints it, the next run completes.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given the same PR while a merged activation PR (brief only) and a merged intent-constraint mint PR (`.deft/` only) of the story both carry `deft-story-part: N`, or an open brief-only or `.deft/`-only PR (fork or this repository) carries `deft-story-part: N`, then the route still holds.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given the same PR while an open PR from a fork, or from this repository, carries `deft-story: N`, or another open or merged product part (fork or this repository) carries `deft-story-part: N`, then the refusal names that PR and prints no attestation command.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given the same part-line PR through `swarm:finalize-cohort --pr <it> --stories N`, then it is refused as today, grant or not.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a brief-only PR with a sole `deft-story: N` mark (the #6639 shape), or a brief-only PR with no story line and an expired grant, then the refusal says it is not a delivery, names the product-PR remedy, and prints no attestation or re-mint command.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a PR with no story line whose connection-events read fails, or whose plan has no id, then the refusal names that cause and prints no attestation command.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given an active brief whose issue is closed, when an open same-repository PR renames that brief into `xbrief/completed/`, then `verify:orphan-active -- --issue N` and the delivery-tip sweep exit 0 and name the pending PR; the same holds for a removal beside an add.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given the same brief when the matching PR is from a fork, is closed, or the open-PR list fails or stops early, then the run still reports it as shipped and exits 1.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6460187958",
+    "updated": "2026-11-20T19:43:38Z"
+  }
+}
