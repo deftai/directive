@@ -357,6 +357,27 @@ describe("classifyDirectiveOwnedChange (AC4)", () => {
     expect(block).not.toContain(".deft-cache/");
   });
 
+  it("gitignore block: `.deft/directive/` kept trackable, wiring-ready re-ignored after it (#6842)", () => {
+    const block = directiveGitignoreOrderedBlock();
+    // The new lines close the block, so a 0.130.1 file gets only them appended.
+    expect(block.slice(-3)).toEqual([
+      "!.deft/directive/",
+      "!.deft/directive/**",
+      ".deft/directive/wiring-ready.*.json",
+    ]);
+    // One copy only: an earlier copy before `.deft/*` would not apply.
+    expect(
+      DIRECTIVE_GITIGNORE_LINES.filter((l) => l === ".deft/directive/wiring-ready.*.json"),
+    ).toHaveLength(1);
+    expect(
+      classifyDirectiveOwnedChange(
+        ".gitignore",
+        "dist/\n",
+        "dist/\n!.deft/directive/\n!.deft/directive/**\n.deft/directive/wiring-ready.*.json\n",
+      ),
+    ).toBe("directive-only");
+  });
+
   it("gitignoreOrderedPrefixLength stops at the first missing or out-of-order line (#6795)", () => {
     const block = [".deft/*", "!a", "!b"];
     expect(gitignoreOrderedPrefixLength([], block)).toBe(0);

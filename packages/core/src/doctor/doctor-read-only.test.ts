@@ -149,6 +149,23 @@ describe("gitignore coverage (#5967 item 2 / #6618 Part C)", () => {
     expect(result.data?.missing as string[]).not.toContain(".deft/*");
   });
 
+  it("a 0.130.1 block (wiring-ready before `.deft/*`) names the `.deft/directive/` lines (#6842)", () => {
+    const root = temp();
+    pinned(root);
+    const lines = DIRECTIVE_GITIGNORE_LINES.filter(
+      (l) => !l.startsWith("!.deft/directive/") && !l.startsWith(".deft/directive/"),
+    );
+    lines.splice(1, 0, ".deft/directive/wiring-ready.*.json");
+    writeFileSync(join(root, ".gitignore"), `${lines.join("\n")}\n`);
+    const result = checkGitignoreCoverage(root);
+    expect(result.status).toBe("fail");
+    expect(result.data?.missing).toEqual([
+      "!.deft/directive/",
+      "!.deft/directive/**",
+      ".deft/directive/wiring-ready.*.json",
+    ]);
+  });
+
   it("a bare `.deft/` that defeats the `!` lines fails with a note (#6795)", () => {
     const root = temp();
     pinned(root);
