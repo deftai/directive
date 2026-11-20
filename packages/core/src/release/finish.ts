@@ -8,6 +8,8 @@
  * Then run the closed-verb gate (the release grant), tag M by its SHA, push only
  * the tag, and run Steps 12 and 13 with the notes read from CHANGELOG.md at M.
  * The grant authorizes the version; it is not evidence about the commit.
+ * Under `deft release:run` (#6875, `config.runBinding`) the parent of M must be
+ * the cut base, and only the run's grant for `<version>@<tree of M>` counts.
  */
 import {
   CHANGELOG_FILE_REL,
@@ -23,7 +25,7 @@ import {
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { evaluateAlwaysOnNamedMergeGate } from "../pr-wait-mergeable/semantic-green.js";
 import { plainGhEnv } from "../subprocess/plain-gh-env.js";
-import { prependUpgradeBanner, sectionForVersion } from "./changelog.js";
+import { prependBannerText, prependUpgradeBanner, sectionForVersion } from "./changelog.js";
 import {
   emitCliDriftReportBestEffort,
   shouldSkipRegistryPoll,
@@ -35,6 +37,7 @@ import {
   EXIT_OK,
   EXIT_VIOLATION,
   TOTAL_STEPS,
+  UPGRADE_BANNER_RELPATH,
   VERIFY_DRAFT_INTERVAL_SECONDS,
   VERIFY_DRAFT_MAX_ATTEMPTS,
 } from "./constants.js";
@@ -244,14 +247,79 @@ export function checkMergeCommit(
 }
 
 /**
+ * #6875 item 7 -- refuse unless the sole parent of merge commit M is the cut
+ * base B. Run before the tag is created and before a local-only tag is pushed:
+ * PRs that landed ahead can leave M with the approved tree and no leftover
+ * entry, and only the parent shows it.
+ */
+export function checkReleaseParent(
+  projectRoot: string,
+  mergeCommit: string,
+  expectedBase: string,
+  seams: ReleaseSeams = {},
+):
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: string; readonly config: boolean } {
+  const parents = gitOut(projectRoot, ["rev-list", "--parents", "-n", "1", mergeCommit], seams);
+  if (!parents.ok) return { ok: false, reason: parents.err, config: true };
+  const [, ...rest] = parents.out.trim().split(/\s+/);
+  const short = mergeCommit.slice(0, 12);
+  const base = expectedBase.trim().toLowerCase();
+  if (rest.length !== 1 || (rest[0] ?? "").toLowerCase() !== base) {
+    const found = rest.length === 0 ? "none" : rest.map((p) => p.slice(0, 12)).join(", ");
+    return {
+      ok: false,
+      reason:
+        `the parent of merge commit ${short} is ${found}, not the cut base ${base.slice(0, 12)}; ` +
+        "a change landed ahead of the release. This release cannot be tagged; undo it with the " +
+        "break-glass path until #6485 ships (docs/RELEASING.md § Recovery)",
+      config: false,
+    };
+  }
+  return { ok: true };
+}
+
+/** #6875 -- tree of merge commit M, read with git (never from a run record). */
+export function readMergeTree(
+  projectRoot: string,
+  mergeCommit: string,
+  seams: ReleaseSeams = {},
+): { readonly ok: true; readonly tree: string } | { readonly ok: false; readonly reason: string } {
+  const tree = gitOut(projectRoot, ["rev-parse", `${mergeCommit}^{tree}`], seams);
+  if (!tree.ok) return { ok: false, reason: tree.err };
+  const value = tree.out.trim();
+  if (value.length === 0) {
+    return { ok: false, reason: `git rev-parse returned no tree for ${mergeCommit.slice(0, 12)}` };
+  }
+  return { ok: true, tree: value };
+}
+
+/**
+ * #6875 -- upgrade banner text at `commit`; null when git cannot show it there
+ * (normally because the file is absent), which leaves the notes unchanged, as
+ * an unreadable local banner did before.
+ */
+function readBannerAtCommit(
+  projectRoot: string,
+  commit: string,
+  seams: ReleaseSeams,
+): string | null {
+  const shown = runGit(projectRoot, ["show", `${commit}:${UPGRADE_BANNER_RELPATH}`], seams);
+  return shown.status === 0 ? shown.stdout : null;
+}
+
+/**
  * Steps 12 and 13 (GitHub release, then the draft-state check), shared by the
  * finish step and the break-glass run. Returns EXIT_OK or EXIT_VIOLATION.
+ * With `notesCommit` (the finish step passes M) the upgrade banner is read from
+ * that commit with `git show`, not from the local checkout (#6875).
  */
 export function runGithubReleaseSteps(
   config: ReleaseConfig,
   changelogText: string,
   seams: ReleaseSeams,
   emit: ReleaseStepEmit = releaseStepEmit,
+  notesCommit: string | null = null,
 ): number {
   const version = config.version;
   const prerelease = isPrereleaseTag(version);
@@ -271,7 +339,14 @@ export function runGithubReleaseSteps(
     );
   } else {
     let notes = sectionForVersion(changelogText, version);
-    notes = prependUpgradeBanner(notes, config.repo, config.projectRoot, readTextFile);
+    notes =
+      notesCommit === null
+        ? prependUpgradeBanner(notes, config.repo, config.projectRoot, readTextFile)
+        : prependBannerText(
+            notes,
+            config.repo,
+            readBannerAtCommit(config.projectRoot, notesCommit, seams),
+          );
     const [ok, reason] = createGithubRelease(
       config.projectRoot,
       version,
@@ -382,6 +457,26 @@ export function runFinish(config: ReleaseConfig, seams: ReleaseSeams = {}): numb
   }
   emitFinish(3, label, "OK");
 
+  // #6875: under `deft release:run`, M must sit directly on the cut base B and
+  // the tag gate evaluates the run's grant against the tree read from M.
+  const binding = config.runBinding ?? null;
+  let mergeTree: string | null = null;
+  if (binding !== null) {
+    label = "Check the parent of the merge commit is the cut base";
+    const parent = checkReleaseParent(projectRoot, merge, binding.expectedBase, seams);
+    if (!parent.ok) {
+      emitFinish(3, label, `FAIL (${parent.reason})`);
+      return parent.config ? EXIT_CONFIG_ERROR : EXIT_VIOLATION;
+    }
+    emitFinish(3, label, `OK (${binding.expectedBase.slice(0, 12)})`);
+    const tree = readMergeTree(projectRoot, merge, seams);
+    if (!tree.ok) {
+      emitFinish(3, "Read the tree of the merge commit", `FAIL (${tree.reason})`);
+      return EXIT_CONFIG_ERROR;
+    }
+    mergeTree = tree.tree;
+  }
+
   label = `Tag ${tag} availability`;
   const checkTag =
     seams.checkTagAvailable ??
@@ -408,7 +503,7 @@ export function runFinish(config: ReleaseConfig, seams: ReleaseSeams = {}): numb
 
   // The release grant authorizes the version (#3527); it is checked last,
   // after the evidence about the commit.
-  const gate = assertTagPushClosedVerb({ ...config, skipTag: false }, seams);
+  const gate = assertTagPushClosedVerb({ ...config, skipTag: false }, seams, mergeTree);
   if (gate !== EXIT_OK) return gate;
 
   label = `Tag ${tag} on the merge commit`;
@@ -436,7 +531,13 @@ export function runFinish(config: ReleaseConfig, seams: ReleaseSeams = {}): numb
   }
   emitFinish(7, label, `OK (pushed refs/tags/${tag})`);
 
-  const published = runGithubReleaseSteps(config, checked.changelogText, seams);
+  const published = runGithubReleaseSteps(
+    config,
+    checked.changelogText,
+    seams,
+    releaseStepEmit,
+    merge,
+  );
   if (published !== EXIT_OK) return published;
   process.stderr.write(`Release ${tag} finished from merge commit ${merge.slice(0, 12)}.\n`);
   emitReleaseDriftReport(config, seams);

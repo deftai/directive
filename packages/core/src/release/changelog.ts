@@ -144,6 +144,17 @@ export function prependUpgradeBanner(
   } catch {
     return notes;
   }
+  return prependBannerText(notes, repo, banner);
+}
+
+/**
+ * Lead the notes with banner text the caller already read, for example from
+ * merge commit M with `git show` (#6875). Same rules as prependUpgradeBanner.
+ */
+export function prependBannerText(notes: string, repo: string, banner: string | null): string {
+  if (repo !== DEFAULT_REPO) {
+    return notes;
+  }
   if (banner === null) {
     return notes;
   }

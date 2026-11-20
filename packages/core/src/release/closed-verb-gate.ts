@@ -10,7 +10,8 @@
  * DEFT_RELEASE_E2E.
  */
 import { closedVerbEnvBypassKey } from "../authz/closed-verb.js";
-import type { ClosedVerbDecision } from "../authz/types.js";
+import { listActiveHumanGrants, loadAuthzState } from "../authz/store.js";
+import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
 import { DEFAULT_OWNER, REHEARSAL_VERSION, REPO_SLUG_PREFIX } from "../release-e2e/constants.js";
 import { evaluateReleasePublishGate } from "../release-publish/pipeline.js";
 import { EXIT_OK, EXIT_VIOLATION, TOTAL_STEPS } from "./constants.js";
@@ -63,14 +64,54 @@ export function isRehearsalClosedVerbExempt(repo: string, version: string): bool
   return normaliseSentinelVersion(version) === REHEARSAL_VERSION;
 }
 
+/**
+ * #6875 -- under `deft release:run`: the grant id the run recorded and the
+ * tree read from merge commit M (never from the run record).
+ */
+export interface ReleaseRunGrant {
+  readonly grantId: string;
+  readonly tree: string;
+}
+
+/** Closed-verb target for a run-bound release grant: `<version>@<tree>` (#6875). */
+export function runBoundTarget(version: string, tree: string): string {
+  return `${version}@${tree}`;
+}
+
+/**
+ * #6875 -- keep only the run's own grant, and only when it names a target.
+ * A grant with empty surfaces would match any tree, so it never counts here.
+ */
+export function runBoundGrants(
+  grants: readonly HumanOriginGrant[],
+  grantId: string,
+): HumanOriginGrant[] {
+  return grants.filter((g) => g.id === grantId && g.scope.surfaces.length > 0);
+}
+
+/**
+ * Tag-push gate. With `runGrant` (#6875) only the run's own grant counts, for
+ * `<version>@<tree of M>`; without it the target is the version (manual path).
+ * The env bypass keeps its break-glass meaning either way.
+ */
 export function evaluateReleaseTagPushGate(
   version: string,
   projectRoot: string,
   seams: ReleaseSeams,
   repo: string,
+  runGrant: ReleaseRunGrant | null = null,
 ): ClosedVerbDecision {
-  return evaluateReleasePublishGate(version, projectRoot, {
-    grants: seams.closedVerbGrants,
+  if (runGrant === null) {
+    return evaluateReleasePublishGate(version, projectRoot, {
+      grants: seams.closedVerbGrants,
+      env: seams.closedVerbEnv,
+      repo,
+    });
+  }
+  const active =
+    seams.closedVerbGrants ?? listActiveHumanGrants(projectRoot, loadAuthzState(projectRoot));
+  return evaluateReleasePublishGate(runBoundTarget(version, runGrant.tree), projectRoot, {
+    grants: runBoundGrants(active, runGrant.grantId),
     env: seams.closedVerbEnv,
     repo,
   });
@@ -83,8 +124,16 @@ export function evaluateReleaseTagPushGate(
  * that path still tags and pushes. Returns EXIT_OK to continue, EXIT_VIOLATION
  * to halt. Never spends the grant — draft-flip `release:publish`
  * still owns markGrantUsed (#1095).
+ *
+ * Under `config.runBinding` (#6875) the caller passes `mergeTree`, the tree read
+ * from merge commit M; without it the gate refuses rather than fall back to a
+ * version-only target.
  */
-export function assertTagPushClosedVerb(config: ReleaseConfig, seams: ReleaseSeams): number {
+export function assertTagPushClosedVerb(
+  config: ReleaseConfig,
+  seams: ReleaseSeams,
+  mergeTree: string | null = null,
+): number {
   if (config.skipTag) {
     return EXIT_OK;
   }
@@ -108,16 +157,33 @@ export function assertTagPushClosedVerb(config: ReleaseConfig, seams: ReleaseSea
       return EXIT_OK;
     }
   }
-  const gate = evaluateReleaseTagPushGate(config.version, config.projectRoot, seams, config.repo);
+  const binding = config.runBinding ?? null;
+  let runGrant: ReleaseRunGrant | null = null;
+  if (binding !== null) {
+    if (mergeTree === null || mergeTree.trim().length === 0) {
+      emitGate(label, "FAIL (run-bound gate needs the tree read from the merge commit)");
+      return EXIT_VIOLATION;
+    }
+    runGrant = { grantId: binding.grantId, tree: mergeTree.trim() };
+  }
+  const gate = evaluateReleaseTagPushGate(
+    config.version,
+    config.projectRoot,
+    seams,
+    config.repo,
+    runGrant,
+  );
   if (!gate.allowed) {
     const bypassKey =
       gate.envBypassKey ??
       closedVerbEnvBypassKey(TAG_PUSH_CLOSED_VERB, config.projectRoot) ??
       "DEFT_ALLOW_RELEASE_PUBLISH";
+    const mintTarget =
+      runGrant === null ? config.version : runBoundTarget(config.version, runGrant.tree);
     emitGate(label, `FAIL (${gate.code}: ${gate.reason})`);
     process.stderr.write(
       `[release] denied code=${gate.code} — set ${bypassKey}=1 or ` +
-        `mint \`deft authz:grant -- --template ${TAG_PUSH_CLOSED_VERB} --target ${config.version}\`\n`,
+        `mint \`deft authz:grant -- --template ${TAG_PUSH_CLOSED_VERB} --target ${mintTarget}\`\n`,
     );
     return EXIT_VIOLATION;
   }
