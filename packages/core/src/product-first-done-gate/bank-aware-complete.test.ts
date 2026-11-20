@@ -1018,7 +1018,10 @@ describe("one-path complete recut (#4060)", () => {
       hasSuiteFloor: true,
     });
     expect(walk.servedFrom).toBe("executed");
-    expect(executions).toBeGreaterThan(0);
+    // #6886: the narrative capture `task doctor` has no promoted peer, so the
+    // one record list refuses it before any run (the bank is still not reused).
+    expect(executions).toBe(0);
+    expect(walk.ok).toBe(false);
   });
 
   it("expectedStdout-only swarm literal change refuses reuse", () => {

@@ -96,6 +96,67 @@ adjudicable `unverifiable`. It keeps `ok` false and never verifies. The
 detail names the forms above; rewrite the clause into one of them. Absence
 proves only that the literal is gone, not that the surrounding text was kept.
 
+## Admitted command forms (#6886)
+
+One record rule covers `plan.acceptance.commands` and
+`plan.metadata.literal_acceptance_commands`. `scope:activate`,
+`xbrief:activate` and `verify:ac` read the same record list and print the same
+reason text.
+
+| First token | Admitted arguments |
+| --- | --- |
+| `task` | `check`, `doctor`, `test`, `verify:*`, `help`, `--version` (arguments may follow), and exactly `<name>:test` with nothing after it (`<name>` matches `[a-z0-9][a-z0-9_-]*`) |
+| `deft`, `directive` | `check`, `doctor`, `test`, `verify:*`, `help`, `--version` (arguments may follow) |
+| `npx` | `vitest run …`, `--version`, `--help` |
+| `pnpm`, `npm`, `yarn`, `bun` | `test`, `exec vitest run …`, `run vitest …`, `run test…`, `run check…`, `--version` |
+| `vitest` | `run …`, `--version` |
+| `python`, `python3`, `py` | `-m pytest …` |
+| `node` | `--test …` |
+
+Shell metacharacters are refused in every form. `task web:test web:deploy`,
+`task web:test --dir x`, `task a:b:test` and `task web:deploy` are refused.
+
+JS workspace example. Either record passes activation and `verify:ac`:
+
+```json
+{ "command": "npx vitest run src/app.test.ts", "cwd": "web" }
+```
+
+```json
+{ "command": "task web:test" }
+```
+
+`pnpm exec vitest run <path>` with `cwd: web` is also admitted.
+
+- **`cwd` grammar (warning).** A `cwd` conforms when it is absent, empty, `.`,
+  or one or more segments joined by `/`, each matching
+  `[A-Za-z0-9_][A-Za-z0-9._-]*`. Any other form (`..`, an absolute or rooted
+  path, `C:x`, a UNC path, a backslash) prints the `acceptance-cwd-grammar`
+  warning at activation and in `verify:ac`. It never refuses.
+- **Run-time check (refusal).** Just before it runs any command, `verify:ac`
+  resolves the real path of the project root and of the `cwd`. When the
+  directory is missing or its real path is outside the project root (a symlink
+  that leaves the root included), `verify:ac` exits 2 with `refused:` and
+  spawns nothing (`acceptance-cwd-containment`, enforce). An absolute `cwd`
+  inside the root runs there, with the grammar warning.
+- **Promotion.** A capture-only record (`source: task_statement`) runs only
+  when an agent-promoted peer with the same command, `cwd` and expected exit
+  exists. Promote the exact record into `plan.metadata.swarm.verify_commands`,
+  or record the string in `plan.metadata.literal_acceptance_not_commands`.
+- **Activation warns.** Activation prints one `acceptance-record-activate` or
+  `acceptance-cwd-grammar` line per record that `verify:ac` would refuse before
+  any run, per unpromoted capture and per `cwd` outside the grammar. It does
+  not refuse on them. The existing refusal for a brief with acceptance-shaped
+  narratives and an invalid `plan.acceptance` is unchanged.
+  `deft verify:ac --capture-only` lists each record and its reason.
+
+This rule is command-form admission and initial working-directory containment,
+under the assumption that repository test code is trusted. It is not
+isolation: a test runner still runs repository code with the inherited
+environment, and runner flags such as `--root` or `--config`, `npx` registry
+fetches, extra arguments after `task test` and `run test*` script names are not
+narrowed.
+
 ## See also
 
 - `task verify:ac` in [`../commands.md`](../commands.md)

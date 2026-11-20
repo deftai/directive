@@ -380,6 +380,57 @@ describe("verify:ac run (#3284)", () => {
     expect(run(["--project-root", root, "--capture-only", path])).toBe(2);
   });
 
+  it("capture-only lists the shared record list with cwd warnings and refused records (#6886)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-cap-6886-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          acceptance: {
+            commands: [{ command: "npx vitest run src/app.test.ts", cwd: "../web" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          metadata: {
+            literal_acceptance_commands: [
+              { command: "task check", source: "explicit" },
+              { command: "task web:deploy", source: "explicit" },
+            ],
+          },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(run(["--project-root", root, "--capture-only", path])).toBe(0);
+    const report = JSON.parse(out.join("")) as {
+      count: number;
+      rejected: { command: string }[];
+      cwd_warnings: { command: string; cwd: string }[];
+    };
+    expect(report.count).toBe(2);
+    expect(report.rejected.map((r) => r.command)).toEqual(["task web:deploy"]);
+    expect(report.cwd_warnings).toEqual([
+      expect.objectContaining({ command: "npx vitest run src/app.test.ts", cwd: "../web" }),
+    ]);
+    expect(err.join("")).toContain("deft gate acceptance-cwd-grammar ");
+  });
+
   it("capture-only includes source_rung from plan.acceptance", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-cap-"));
     const active = join(root, "xbrief", "active");

@@ -72,6 +72,7 @@ import {
 } from "../verify-source/spec-drift.js";
 import {
   type AdmittedSourceActivateOptions,
+  acceptanceRecordActivationWarnings,
   evaluateAcceptanceActivateGate,
   evaluateAdmittedSourceActivateGate,
 } from "./acceptance-activate-gate.js";
@@ -783,6 +784,12 @@ export function runTransition(
     });
     if (!admittedGate.ok) {
       return { ok: false, message: admittedGate.message };
+    }
+    // #6886 item 6: warn (never refuse) on records verify:ac would refuse.
+    const recordWarnings = acceptanceRecordActivationWarnings(planObj);
+    if (recordWarnings.length > 0) {
+      derivationNotice =
+        derivationNotice.length > 0 ? `${derivationNotice}\n${recordWarnings}` : recordWarnings;
     }
   }
 

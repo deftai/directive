@@ -1042,7 +1042,8 @@ describe("safety-refusal is not a product-oracle measurement (#3615)", () => {
       },
     );
     expect(result.ok).toBe(false);
-    expect(runnerCalls).toBe(1);
+    // #6886: a refused plan.acceptance.commands record stops verify:ac before any run.
+    expect(runnerCalls).toBe(0);
     expect(
       verificationLines(path).some(
         (row) => row.event === "verification" && row.payload.outcome === "pass",

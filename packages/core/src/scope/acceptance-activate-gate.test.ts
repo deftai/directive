@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildIssueVbrief } from "../intake/issue-ingest.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import {
+  acceptanceRecordActivationWarnings,
   collectAcceptanceShapedNarrativeKeys,
   evaluateAcceptanceActivateGate,
   evaluateAdmittedSourceActivateGate,
@@ -56,6 +57,36 @@ describe("acceptance-activate-gate (#3334)", () => {
     expect(gate.ok).toBe(false);
     expect(gate.message).toMatch(/plan\.acceptance is present but invalid \(#3334\)/);
     expect(gate.message).toMatch(/none_stated/);
+  });
+
+  it("still refuses a refused plan.acceptance command when narratives are acceptance-shaped (#6886)", () => {
+    const planObj = {
+      narratives: { Test: "the web tests pass" },
+      acceptance: {
+        commands: [{ command: "task web:deploy" }],
+        none_stated: false,
+        source_rung: "stated",
+      },
+    };
+    const gate = evaluateAcceptanceActivateGate(planObj);
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toMatch(/plan\.acceptance is present but invalid \(#3334\)/);
+    expect(gate.message).toContain("wrapper subcommand must be");
+    // The new #6886 warnings sit beside the refusal; they never replace it.
+    expect(acceptanceRecordActivationWarnings(planObj)).toContain(
+      "deft gate acceptance-record-activate ",
+    );
+  });
+
+  it("warns without refusing when the brief has no acceptance-shaped narratives (#6886)", () => {
+    const planObj = {
+      narratives: { Overview: "plain story" },
+      metadata: {
+        literal_acceptance_commands: [{ command: "task web:deploy", source: "explicit" }],
+      },
+    };
+    expect(evaluateAcceptanceActivateGate(planObj).ok).toBe(true);
+    expect(acceptanceRecordActivationWarnings(planObj)).toContain("warns only in this release");
   });
 });
 

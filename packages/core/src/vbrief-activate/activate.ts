@@ -21,6 +21,7 @@ import {
   stampExistingEnvelopes,
 } from "../lifecycle/brief-envelope.js";
 import type { SmallChangeLaneGateOverrides } from "../policy/small-change-lane.js";
+import { acceptanceRecordActivationWarnings } from "../scope/acceptance-activate-gate.js";
 import { evaluateEffortActivateGate } from "../scope/effort-activate-gate.js";
 import { evaluateLaneIngressGate } from "../scope/lane-ingress-gate.js";
 import { utcNowIso } from "../scope/vbrief-json.js";
@@ -204,7 +205,14 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
       }
     }
     const suffix = laneIngress.message.length > 0 ? ` ${laneIngress.message}` : "";
-    return { exitCode: 0, message: `No-op: ${vbriefPath} already active.${suffix}` };
+    // #6886 item 6: the already-active path warns too (never refuses).
+    const recordWarnings = acceptanceRecordActivationWarnings(planObj);
+    return {
+      exitCode: 0,
+      message:
+        `No-op: ${vbriefPath} already active.${suffix}` +
+        (recordWarnings.length > 0 ? `\n${recordWarnings}` : ""),
+    };
   }
 
   if (folder === ACTIVE_FOLDER) {
@@ -264,7 +272,15 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     if (!admission.ok) {
       return { exitCode: 1, message: admission.message };
     }
-    return activateAfterIdentity(vbriefPath, payload, planObj, now, laneIngress.message);
+    return activateAfterIdentity(
+      vbriefPath,
+      payload,
+      planObj,
+      now,
+      laneIngress.message,
+      // #6886 item 6: warn (never refuse) on records verify:ac would refuse.
+      acceptanceRecordActivationWarnings(planObj),
+    );
   };
   try {
     return withPlanIdIdentityLock(vbriefDirEarly, runAdmitted);
@@ -283,6 +299,7 @@ function activateAfterIdentity(
   planObj: Record<string, unknown>,
   now: Date,
   ingressNotice = "",
+  recordWarnings = "",
 ): ActivateResult {
   // Resolve destination early so containment can refuse before any mutation.
   // Parity with scope:activate / #2447: projectRoot is parent of the xbrief/ root.
@@ -376,8 +393,9 @@ function activateAfterIdentity(
   }
 
   const base = `Activated ${fileName}: pending/ -> active/ (status: ${TARGET_STATUS}).`;
+  const withIngress = ingressNotice.length > 0 ? `${base} ${ingressNotice}` : base;
   return {
     exitCode: 0,
-    message: ingressNotice.length > 0 ? `${base} ${ingressNotice}` : base,
+    message: recordWarnings.length > 0 ? `${withIngress}\n${recordWarnings}` : withIngress,
   };
 }

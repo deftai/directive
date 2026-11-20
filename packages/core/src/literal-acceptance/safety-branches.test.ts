@@ -5,10 +5,14 @@ import {
   validatePlanAcceptance,
 } from "../product-first-done-gate/acceptance.js";
 import {
+  ACCEPTANCE_CWD_GRAMMAR_REASON,
+  evaluateAcceptanceCommandRecord,
+  evaluateAcceptanceCwdGrammar,
   evaluateCommandSafety,
   evaluateStampAcceptanceSafety,
   isExecutableLiteralSource,
   REJECTED_NOOP_OUTCOME,
+  WRAPPER_SUBCOMMAND_REFUSAL,
 } from "./safety.js";
 
 /**
@@ -282,5 +286,74 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     expect(isExecutableLiteralSource("verify_commands")).toBe(true);
     expect(isExecutableLiteralSource("task_statement")).toBe(false);
     expect(isExecutableLiteralSource("unknown")).toBe(false);
+  });
+});
+
+describe("JS workspace acceptance forms (#6886)", () => {
+  it("admits task <name>:test only as the whole command", () => {
+    expect(evaluateCommandSafety("task web:test").ok).toBe(true);
+    expect(evaluateCommandSafety("task app_2-x:test").ok).toBe(true);
+    expect(evaluateCommandSafety("task test").ok).toBe(true);
+    for (const command of [
+      "task web:test web:deploy",
+      "task web:test --dir x",
+      "task a:b:test",
+      "task web:deploy",
+      "task WEB:test",
+      "deft web:test",
+      "directive web:test",
+    ]) {
+      const verdict = evaluateCommandSafety(command);
+      expect(verdict.ok, command).toBe(false);
+      expect(verdict.reason, command).toBe(WRAPPER_SUBCOMMAND_REFUSAL);
+    }
+  });
+
+  it("names the admitted list and the vitest workspace form in the wrapper refusal", () => {
+    expect(WRAPPER_SUBCOMMAND_REFUSAL).toContain(
+      "check|doctor|test|<name>:test (task only, nothing after)|verify:*|help|--version",
+    );
+    expect(WRAPPER_SUBCOMMAND_REFUSAL).toContain("npx vitest run <path>");
+    expect(WRAPPER_SUBCOMMAND_REFUSAL).toContain("pnpm exec vitest run <path>");
+    expect(WRAPPER_SUBCOMMAND_REFUSAL).toContain("cwd: <workspace dir>");
+  });
+
+  it("keeps the npx and pnpm exec vitest run forms admitted", () => {
+    expect(evaluateCommandSafety("npx vitest run src/app.test.ts").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm exec vitest run src/app.test.ts").ok).toBe(true);
+  });
+
+  it("cwd grammar: plain relative segments conform, every other form only warns", () => {
+    for (const cwd of [null, undefined, "", " ", ".", "web", "web/sub", "_a/b.c-d"]) {
+      expect(evaluateAcceptanceCwdGrammar(cwd).ok, String(cwd)).toBe(true);
+    }
+    for (const cwd of [
+      "../x",
+      "/x",
+      "C:x",
+      "C:/x",
+      "\\\\srv\\share",
+      "web\\sub",
+      "web/../x",
+      "./web",
+      "web/",
+      ".hidden",
+    ]) {
+      const verdict = evaluateAcceptanceCwdGrammar(cwd);
+      expect(verdict.ok, cwd).toBe(false);
+      expect(verdict.reason, cwd).toBe(ACCEPTANCE_CWD_GRAMMAR_REASON);
+    }
+  });
+
+  it("returns a command verdict and a separate cwd verdict", () => {
+    const both = evaluateAcceptanceCommandRecord({ command: "task web:deploy", cwd: "../x" });
+    expect(both.command.ok).toBe(false);
+    expect(both.cwd.ok).toBe(false);
+    const clean = evaluateAcceptanceCommandRecord({
+      command: "npx vitest run a.test.ts",
+      cwd: "web",
+    });
+    expect(clean.command.ok).toBe(true);
+    expect(clean.cwd).toEqual({ ok: true, reason: null });
   });
 });

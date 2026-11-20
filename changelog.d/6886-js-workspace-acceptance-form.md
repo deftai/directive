@@ -1,0 +1,2 @@
+section: Fixed
+- A JS workspace test runner now has one acceptance command that both activation and `verify:ac` accept: `npx vitest run <path>` or `pnpm exec vitest run <path>` with a `cwd`, or exactly `task <name>:test`. Activation and `verify:ac` read the same command list; activation only warns about commands `verify:ac` would refuse. New refusal, shipped without a warn release because an acceptance command must not be spawned outside the repository: `verify:ac` exits 2 and runs nothing when a command's working directory is missing or outside the repository (#6886).
