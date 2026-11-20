@@ -1,0 +1,561 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6862",
+    "updated": "2026-11-20T16:45:51Z"
+  },
+  "plan": {
+    "title": "ci: taskfile_release_names test intermittently hangs the merge gate (spawns the real release task chain)",
+    "status": "running",
+    "narratives": {
+      "Description": "taskfile_release_names.test.ts runs real task release calls that pull in ts:build, the engine wrapper and the pinned runtime with no time limit, and twice on 2026-11-20 one of them never returned and held the merge gate. The fix, bound by the design-critique lean in comment 7044705026, runs go-task against a temp fixture built from the real tasks/engine.yml, tasks/engine-invoke.cjs and release ENGINE_CMD with a stub dist/bin.js, and puts a 30 s limit on every task spawn in the file. The #2547 apostrophe regression stays covered, and no build or release pipeline runs from this file.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6862",
+      "Overview": "\n1. Fixture helper (P1, P2). A test helper builds a temp dir with copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `tasks/`, a stub `dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and a `Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has one `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task, with no `deps`. If the real `release` task or its `ENGINE_CMD` is missing, the helper fails the test.\n2. #2547 test (P1, P2). Runs `task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element.\n3. Help dispatch test (P1, P4). Replaces the real `release -- --help` call with a fixture run of `release -- --help` and asserts the printed argv starts with `release` and contains `--help`. It is named as dispatch coverage.\n4. Delete the old full dry-run test (P1). No nightly copy.\n5. Bounded runner (P3). Every `task` spawn in the file, the `task --version` probe included, goes through one helper with a 30 s limit and `killSignal: \"SIGKILL\"`. Over the limit, the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated. The probe skips the tests only when the `task` executable is missing (`ENOENT`).\n6. Evidence in the PR (P2, P3, P4). The positive run and a failing run with `{{.ENGINE_CMD}}` wrapped in single quotes in the invoke script of `tasks/engine.yml`, both on Linux; one Linux run of the runner against a child that leaves a grandchild holding the output pipe, with its return time and message; the file vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.\n\n## Acceptance Criteria\n\n- In `taskfile_release_names.test.ts`, no test runs the repository `release` task from `Taskfile.yml` or its `ts:build` dependency; the release tests run go-task against a temp fixture with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD`, and a stub `dist/bin.js`.\n- The #2547 test asserts that `test what's next` arrives as one argv element after `--summary`, and the help dispatch test asserts that `--help` reaches the stub after `release`.\n- The fixture helper fails the test when `Taskfile.yml` has no `release` task or no `ENGINE_CMD` in it.\n- Wrapping `{{.ENGINE_CMD}}` in single quotes in the invoke script of `tasks/engine.yml` makes the #2547 test fail on Linux, and the PR records the passing and failing runs.\n- Every `task` spawn in the file, the `task --version` probe included, has a 30 s limit; over the limit it fails with a message that names the command and the limit; only a missing `task` executable skips.\n- The PR records a Linux run in which a child leaves a grandchild holding the output pipe and the runner returns at the limit with that message.\n- The file finishes in under 10 s in CI, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.\n\n\n",
+      "Constraint": "- Keeping the real `release -- --help` call with only a timeout (comment 7044680806, finding 1: the build stays in the file and a cold build cannot meet 10 s).\n- A probe timeout inside the existing catch, which would turn a hang into skipped tests (comment 7044680806, finding 2).\n- A hard-coded copy of the release `ENGINE_CMD` in the fixture (comment 7044680806, finding 4).\n- Moving the full dry run to a nightly or slow lane (Stop 1 exclusion; CONTRIBUTING § Slow tests).",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a Directive maintainer waiting on the merge gate, I want taskfile_release_names.test.ts to test the #2547 quoting path against a small go-task fixture with bounded spawns, so that the file can no longer hold the merge gate while the #2547 regression stays covered.",
+      "ImplementationPlan": "- Fixture helper and bounded runner: in packages/core/src/content-contracts/standards/taskfile_release_names.test.ts add a helper that builds the temp fixture (copies of tasks/engine.yml and tasks/engine-invoke.cjs, a stub dist/bin.js that prints its argv as JSON, and a Taskfile.yml whose release task calls engine:invoke with the ENGINE_CMD read from the real Taskfile.yml release task, no deps; the helper fails the test when that task or its ENGINE_CMD is missing), and one bounded runner (spawnSync, 30 s timeout, killSignal SIGKILL, a timeout message naming the command and the limit). The task --version probe uses the runner and skips only on ENOENT. The helper stays in the test file, so the story adds no production module.\n- Tests: replace the #2547 dry run and the real release -- --help call with fixture runs that assert the argv the stub prints; keep the --list-all name tests, now through the bounded runner; delete the old full dry-run test with no nightly copy.\n- Evidence for the PR body: on Linux, the positive run, a failing run with {{.ENGINE_CMD}} wrapped in single quotes in the invoke script of tasks/engine.yml (a local edit, not committed), a runner run against a child whose grandchild holds the output pipe (return time and message), and the file vitest time before and after from the PR merge-gate log.\n- Changelog: one fragment changelog.d/6862-release-names-test-hang.md, one line, no file paths, referencing #6862.",
+      "Traces": "#6862, #2547, #6849"
+    },
+    "items": [
+      {
+        "title": "Fixture helper (P1, P2). A test helper builds a temp dir with copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `tasks/`, a stub `dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and a `Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has one `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task, with no `deps`. If the real `release` task or its `ENGINE_CMD` is missing, the helper fails the test.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a test calls the fixture helper, then it creates a temp dir holding copies of the real tasks/engine.yml and tasks/engine-invoke.cjs, a stub dist/bin.js that prints its argv as JSON, and a Taskfile.yml whose release task calls engine:invoke with the ENGINE_CMD read from the real Taskfile.yml, with no deps."
+        }
+      },
+      {
+        "title": "#2547 test (P1, P2). Runs `task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the #2547 test runs task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\", then go-task exits 0 and the printed argv has --summary followed by test what's next as one element."
+        }
+      },
+      {
+        "title": "Help dispatch test (P1, P4). Replaces the real `release -- --help` call with a fixture run of `release -- --help` and asserts the printed argv starts with `release` and contains `--help`. It is named as dispatch coverage.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the help dispatch test runs the fixture release task with --help, then the printed argv starts with release and contains --help, and the test is named as dispatch coverage."
+        }
+      },
+      {
+        "title": "Delete the old full dry-run test (P1). No nightly copy.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the product PR merges, then taskfile_release_names.test.ts no longer has the old full release dry-run test, and no nightly or slow-lane copy of it exists."
+        }
+      },
+      {
+        "title": "Bounded runner (P3). Every `task` spawn in the file, the `task --version` probe included, goes through one helper with a 30 s limit and `killSignal: \"SIGKILL\"`. Over the limit, the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated. The probe skips the tests only when the `task` executable is missing (`ENOENT`).",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When any task spawn in the file runs, the task --version probe included, then it goes through one bounded runner with a 30 s limit and killSignal SIGKILL; over the limit the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated, and the probe skips only on ENOENT."
+        }
+      },
+      {
+        "title": "Evidence in the PR (P2, P3, P4). The positive run and a failing run with `{{.ENGINE_CMD}}` wrapped in single quotes in the invoke script of `tasks/engine.yml`, both on Linux; one Linux run of the runner against a child that leaves a grandchild holding the output pipe, with its return time and message; the file vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the product PR opens, then its body records the Linux positive run, the Linux single-quote-wrap failing run, the Linux grandchild-held-pipe runner run with return time and message, and the file vitest time before and after."
+        }
+      },
+      {
+        "title": "In `taskfile_release_names.test.ts`, no test runs the repository `release` task from `Taskfile.yml` or its `ts:build` dependency; the release tests run go-task against a temp fixture with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD`, and a stub `dist/bin.js`.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When taskfile_release_names.test.ts runs, then no test spawns the repository release task from Taskfile.yml or its ts:build dependency, and the release tests run go-task against a temp fixture with the real tasks/engine.yml, tasks/engine-invoke.cjs, release ENGINE_CMD and a stub dist/bin.js."
+        }
+      },
+      {
+        "title": "The #2547 test asserts that `test what's next` arrives as one argv element after `--summary`, and the help dispatch test asserts that `--help` reaches the stub after `release`.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When the #2547 and help dispatch tests run, then they assert that test what's next arrives as one argv element after --summary and that --help reaches the stub after release."
+        }
+      },
+      {
+        "title": "The fixture helper fails the test when `Taskfile.yml` has no `release` task or no `ENGINE_CMD` in it.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When the real Taskfile.yml has no release task or no ENGINE_CMD in it, then the fixture helper fails the test."
+        }
+      },
+      {
+        "title": "Wrapping `{{.ENGINE_CMD}}` in single quotes in the invoke script of `tasks/engine.yml` makes the #2547 test fail on Linux, and the PR records the passing and failing runs.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When the invoke script of tasks/engine.yml wraps {{.ENGINE_CMD}} in single quotes, then the #2547 test fails on Linux, and the PR records the passing and failing runs."
+        }
+      },
+      {
+        "title": "Every `task` spawn in the file, the `task --version` probe included, has a 30 s limit; over the limit it fails with a message that names the command and the limit; only a missing `task` executable skips.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "When a task spawn in the file, the task --version probe included, exceeds 30 s, then it fails with a message that names the command and the limit; only a missing task executable skips the tests."
+        }
+      },
+      {
+        "title": "The PR records a Linux run in which a child leaves a grandchild holding the output pipe and the runner returns at the limit with that message.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When the bounded runner runs on Linux a child that leaves a grandchild holding the output pipe, then it returns at the limit with the timeout message, and the PR records that run."
+        }
+      },
+      {
+        "title": "The file finishes in under 10 s in CI, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "When the product PR's merge-gate job runs, then taskfile_release_names.test.ts finishes in under 10 s, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6862",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6862: ci: taskfile_release_names test intermittently hangs the merge gate (spawns the real release task chain)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2547",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2547"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "test what's next",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "release -- --help",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "changelog.d/6862-release-names-test-hang.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6515009588.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/taskfile_release_names.test.ts"
+        ],
+        "Traces": [
+          "#6862",
+          "#2547",
+          "#6849"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "expected_outputs": [
+          "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "changelog.d/6862-release-names-test-hang.md"
+        ],
+        "conflict_group": "taskfile-release-tests",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "issue:ingest harvested one clause per bound-lean item: the six Bound remedy steps and the seven Acceptance Criteria of comment 7044705026 (13 in all). The remedy steps overlap the criteria, and no sanctioned verb drops a harvested clause, so all 13 are kept, each with a When/Then acceptance and an artifact_path."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "changelog.d/6862-release-names-test-hang.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "module_boundary": "One content-contract test file (its fixture helper and bounded task runner stay inside it) and one changelog fragment",
+        "cohesion_exemption": "xbrief/PROJECT-DEFINITION.xbrief.json (shared project record) is declared as-is; the story adds no code to it."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6862; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator asked for a thin arc before this goes into the next release, and the fix replaces an end-to-end regression test (#2547) with a narrower one, so whether the replacement still catches the original bug needs an independent check.\n\nTarget-digest: sha256:85fc3cb7a3a906a87fcd8f843fec3fbe50910c6b964eb0fad9e516cf2a050463\ndispatch-sha: f1b769a4a832c4ef8b223a8e82428741fd6608ec\ndest: .deft-scratch/worktrees/arc-6862 (pinKind origin-default, process-only-no-install; under the detached arc worktree `C:/Repos/deft/wt/arc-6862`)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: thin arc by operator request; a one-file test change; one critic of a different model family (Codex) plus one pain audit.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show f1b769a4a832c4ef8b223a8e82428741fd6608ec: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\npain: P4\n\n## In plain English\nOne test in `taskfile_release_names.test.ts` (the #2547 apostrophe test) runs the whole `task release` pipeline in dry-run mode: go-task, a TypeScript build, the engine wrapper, then the pinned runtime. It has no timeout. Usually the whole file takes about 4 seconds, but twice on 2026-11-20 that call never returned and held the merge gate (one job was cancelled after 6 hours). The recommended fix tests the #2547 quoting path directly against a tiny fixture that uses the real engine wiring and a stub binary, so no build or pipeline runs, and puts a timeout on every `task` call left in the file.\n\nRoot cause (corrected before this write-back; the issue body was edited to match):\n- The first guess was that the dry run, lacking `--skip-ci`, runs a nested `task check`. It does not: with `--dry-run`, release step 5 only prints a DRYRUN line (`packages/core/src/release/pipeline.ts` 343-381). A local timed run took 27 s, about 25 s of it a cold `tsc -b` from the `ts:build` dependency, and printed every step as DRYRUN.\n- The cost is not steady. Of the 43 latest completed merge-gate jobs, 42 finished in 12 min or less (median 6.4 min); in sampled job 136352833330 this file took 4254 ms.\n- It is an intermittent hang. Run 44683125022 was cancelled at the 6 h limit with 1621 of 1622 files done and only this file in flight; pin PR #6861 (job 136381045739) shows the same state after 50 min. In the cancelled log the `release -- --help` call output is printed, and `execFileSync` prints a child stderr only after the child exits, so the stuck call came after it: the `--list-all` call or the #2547 dry run.\n- Not known: which process in the chain blocks. At the cancel a node, node, sh chain was still alive and no nested `task` process was listed. The fix does not depend on that answer.\n\nOperator decisions (Scott, 2026-11-20, relayed by the coordinator):\n- Goal: \"we need to speed up the pr runs as well\", and \"we want speed but still need testing\".\n- Keep the #2547 regression covered: a broken `ENGINE_CMD` quote must still fail a test.\n- Ship in the next release: small scope, buildable in one PR.\n- Prefer designs that remove work over designs that add gates.\n- Out of this arc: other slow tests, the #6850 lifecycle fast lane, Go retirement (#6863), and the nightly lane itself (#6849).\n\n## Pains\n- P1 — The merge gate no longer runs a full `task release` pipeline from this file.\n- P2 — The #2547 regression stays covered: wrapping `ENGINE_CMD` in single quotes inside the `engine:invoke` script (the pre-#2547 shape) still fails a test.\n- P3 — A stuck `task` subprocess in this file fails its test within a fixed limit, with a message that names the command and the limit, instead of holding the gate.\n- P4 — The file finishes in under 10 s in CI, and the PR records its before and after times.\n\n## Excluded (not pains, not in this arc)\n- Other slow or spawn-heavy tests, the #6850 lifecycle fast lane, #6863, and the #6849 nightly lane (operator-scoped out above).\n- Moving a full release dry run to a nightly or slow lane. CONTRIBUTING § Slow tests (200-213) says no slow lane exists and forbids hiding flaky tests behind one.\n- A `timeout-minutes` on the merge-gate job in `ci.yml`, and finding which process in the chain blocks. Both are possible later issues; neither is needed to stop this file holding the gate.\n\n## Constraints (not pains)\n- One PR. Changes stay in `taskfile_release_names.test.ts` (and a test helper if needed). No change to `Taskfile.yml`, `tasks/engine.yml`, `tasks/engine-invoke.cjs` or `ci.yml`.\n- No new gate, check, policy flag or CI job.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/content-contracts/standards/taskfile_release_names.test.ts` 23-35 (`--list-all` helper, `execFileSync`, no timeout), 52-66 (`release -- --help`, skipped on win32), 83-111 (#2547: `spawnSync` of `task release -- 0.0.0 --dry-run --skip-tag --skip-release --summary \"test what's next\"`, no timeout).\n- `Taskfile.yml` 797-806: `release` has `deps: [ts:build]` and `ENGINE_CMD: 'release --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`. `tasks/ts.yml` 9-14: `build` runs `pnpm run build` (`tsc -b` plus bundle).\n- `tasks/engine.yml` 13-14 (`DEFT_ROOT` is the parent of the `tasks/` folder), 62-72 (`invoke`; `DEFT_ENGINE_CMD_JSON: '{{ .ENGINE_CMD | toSlash | toJson }}'`), 108-114 (no buildable source and `DEFT_ROOT/dist/bin.js` present: `engine-invoke.cjs vendored \"$bin\"`).\n- `tasks/engine-invoke.cjs` 13-15 (Node built-ins only), 349-366 (reads `DEFT_ENGINE_CMD_JSON`, `shellSplit`).\n- `git show e9943a9bb^:tasks/engine.yml` 200-202: the pre-#2547 script had `engine_cmd='{{.ENGINE_CMD}}'`.\n- `tasks/engine-invoke.test.cjs` 84-90 and 185-200: unit tests of `shellSplit` with apostrophes; they do not run go-task or `engine.yml`.\n- `packages/core/src/release/pipeline.test.ts` 185 and 416: in-process `runPipeline` dry-run coverage.\n- `vitest.config.ts` 294, 304, 336: test timeout 20 s on Linux; it cannot interrupt a synchronous spawn.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1, P2). Replace the #2547 test. A helper builds a temp fixture: copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `<tmp>/tasks/`, a stub `<tmp>/dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and `<tmp>/Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has a `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task (no `deps`). The test runs `task -t <tmp>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element. The fixture has no `packages/` tree, so `engine.yml` takes its `dist/bin.js` branch: no build, no pin, no pipeline.\n- R2 (P1). Delete the old full dry-run test. No nightly copy: the pipeline dry run is covered in-process (anchor above).\n- R3 (P3). One helper runs every `task` spawn in the file with a `timeout` (120 s, which covers a cold `ts:build` in the `--help` test) and `killSignal: \"SIGKILL\"`. On `ETIMEDOUT` it fails with a message such as `task release -- --help did not exit within 120 s and was killed`.\n- R4 (P4). The PR records the file's vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after, from its own merge-gate log.\n\nParent measurement (local, Windows, go-task 3.50.0, not CI): a prototype of the R1 fixture ran in 360 ms and printed `--summary`, `test what's next` as separate argv elements. With the fixture's `engine.yml` changed to wrap `{{.ENGINE_CMD}}` in single quotes in the invoke script, the same command exited 201 with `reached EOF without closing quote`. With the bare inline form `node \"$bin\" {{.ENGINE_CMD}}` it passed, because go-task quotes `CLI_ARGS` itself, so R1 guards the single-quote-wrap class, not every inline form.\n\nQuestions for the critic:\n1. Is the root cause above proven enough to bind this fix, given that the blocking process is not identified?\n2. Does R1 still catch #2547? Is reading `ENGINE_CMD` from the real `Taskfile.yml` worth it, or should the fixture hard-code it? Will the fixture behave the same on Linux CI and on Windows?\n3. Does R3 fail with a clear message in the hang seen in CI? Node closes its pipe ends when a `spawnSync` timeout fires, so a grandchild that holds the pipe should not hold the test; the parent has not measured that on Linux.\n4. The `release -- --help` test still runs the `ts:build` and pin chain. Should it stay in the merge gate with R3's timeout, or change too?\r\n\n",
+          "id": 7044605606,
+          "html_url": "https://github.com/deftai/directive/issues/6862#issuecomment-7044605606",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:19:54Z",
+          "updated_at": "2026-11-20T16:19:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7044616285\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: f1b769a4a832c4ef8b223a8e82428741fd6608ec\ndest: .deft-scratch/worktrees/arc-6862 (under `C:/Repos/deft/wt/arc-6862`)\nverification-path: pin-read git show f1b769a4a832c4ef8b223a8e82428741fd6608ec: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7044605606\ncritic-post-cap: 3 (operator-set for this arc; one round-1 critic, one pain audit, one recut audit if needed)\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit) and reads code with `git show <dispatch-sha>:<path>`. It may run read-only git and file reads in the dest; it cannot run go-task, vitest or network calls.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7044616285,
+          "html_url": "https://github.com/deftai/directive/issues/6862#issuecomment-7044616285",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:20:21Z",
+          "updated_at": "2026-11-20T16:20:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe proposed fixture is a sound way to preserve the apostrophe regression test while removing the release pipeline. Identifying the exact hung process is unnecessary to justify that change.\n\nThe design needs one substantive adjustment: retaining the real release-help invocation retains its build dependency, so the proposed replacement alone does not support the under-10-second goal. Timeout handling also needs to include the availability probe without turning a timeout into skipped tests.\n\nThis review used pinned source reads at `f1b769a4a832c4ef8b223a8e82428741fd6608ec`. No tests, builds, or network requests were run. The reported CI timings and Windows prototype results remain parent-supplied evidence.\n\n### 1. blocks-the-design — The retained help test preserves the expensive build path\n\n**Evidence:** `packages/core/src/content-contracts/standards/taskfile_release_names.test.ts:52–66` invokes the real `release -- --help`. `Taskfile.yml:797–806` gives that task an unconditional `ts:build` dependency; `tasks/ts.yml:9–14` dispatches the build script. The snapshot reports approximately 25 seconds for a cold build.\n\n**Failure mode:** R1 removes the build from the apostrophe test, but the same file still invokes it through the help test. A 120-second timeout limits a failure; it does not make a successful cold build fit within 10 seconds. A warm CI measurement could conceal this retained dependency.\n\n**Disposition consequence:** The design cannot bind as an unconditional P4 remedy while retaining that invocation unchanged. Prefer replacing it with a fixture assertion that the real release command template transports `--help` correctly, and describe the resulting coverage accurately as dispatch coverage. A stub printing “usage” would not test real CLI help.\n\nThe strongest case for retaining the test is its broader build/pin/help integration coverage. That would change my verdict if the scope explicitly accepted that cost and narrowed P4 to a measured warm-CI target. Under the stated speed goal, removing the dependency is the stronger choice.\n\n### 2. sharpens-framing — Availability detection must distinguish absence from timeout\n\n**Evidence:** `taskfile_release_names.test.ts:6–12` runs `execSync(\"task --version\")` without a timeout and catches every error as `taskAvailable = false`. All tests subsequently use that availability flag to skip.\n\n**Failure mode:** Leaving the probe outside R3 preserves an unbounded subprocess. Merely adding a timeout inside the existing catch converts a hung installed tool into an apparently successful suite of skipped tests. Either outcome violates P3.\n\n**Disposition consequence:** R3 can bind with explicit coverage of the availability probe: use the bounded runner there too, skip only for an identified missing executable, and propagate timeout diagnostics. Handle both returned `spawnSync` errors and thrown synchronous-exec errors if both APIs remain.\n\nThe diagnostic should say the command exceeded the limit and was terminated; it should not claim that every descendant was killed.\n\n### 3. sharpens-framing — The first acceptance criterion contradicts the proposed fixture\n\n**Evidence:** The existing version-bearing invocation is at `taskfile_release_names.test.ts:83–111`; the production command template is at `Taskfile.yml:806`. R1 replaces that invocation with another `task … release -- 0.0.0 …`, targeting the temporary Taskfile.\n\n**Failure mode:** The literal criterion “No test … runs `task release` with a version argument” rejects the intended replacement even though it avoids the production pipeline.\n\n**Disposition consequence:** Narrow the criterion to prohibit version-bearing invocation of the **repository’s real release task/pipeline**, while expressly permitting the isolated stub fixture. The mechanism can otherwise bind.\n\n### 4. footnote — The fixture preserves the relevant transport boundary\n\n`tasks/engine.yml:69–72` transports the command through JSON; both runtime branches call the same wrapper (`:107–114`). `tasks/engine-invoke.cjs:349–364` decodes and splits it before spawning. Existing splitter tests (`tasks/engine-invoke.test.cjs:84–90,185–200`) do not exercise go-task’s template rendering.\n\nReading the real release `ENGINE_CMD` is therefore worthwhile. It avoids a copied template silently diverging, provided extraction selects the release task specifically and fails when that structure disappears. The fixture covers the shared quoting boundary, not framework-source pin resolution.\n\nAnswers to the four Stop 1 questions:\n\n1. **Enough to justify the fix, not enough to claim a proven root cause.** Pinned `pipeline.ts:372–381` confirms dry-run does not execute that CI step. Describe the change as removing expensive integration work and bounding subprocess waits; the exact hang source remains unknown.\n2. **Yes, structurally.** R1 exercises the boundary responsible for the single-quote-wrap regression. Keep the real command template. Linux/Windows equivalence remains a verification item: record the positive and quote-mutated negative runs on Linux CI; the supplied Windows prototype is supporting evidence, not Linux proof.\n3. **Plausible, but unverified by this review.** The wrapper uses inherited stdio (`engine-invoke.cjs:386–400`), making the descendant-held-pipe scenario relevant. A bounded Linux experiment with that process shape should confirm return time and the actual timeout diagnostic before claiming P3 proven. This does not require a new CI gate.\n4. **Change it too**, for the reason in finding 1. Preserve a truthful dispatch assertion without retaining the build/pin chain in this file.",
+          "id": 7044680806,
+          "html_url": "https://github.com/deftai/directive/issues/6862#issuecomment-7044680806",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:23:08Z",
+          "updated_at": "2026-11-20T16:23:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7044605606 (round 1: 1 of 1 critic posted, comment 7044680806)\n\n## In plain English\nProblem: `taskfile_release_names.test.ts` starts real `task release` runs that pull in a TypeScript build, the engine wrapper and the pinned runtime, with no time limit. Usually the file takes about 4 seconds, but twice on 2026-11-20 one of those runs never returned and held the merge gate (one job ran 6 hours). What is proven: the dry run does not run a nested `task check`, and the stuck call is the one after the `--help` test. What is not known: which process in that chain blocks.\n\nWhat the critic found: testing the #2547 quoting path against a small fixture is sound, and reading the real release command from `Taskfile.yml` is worth it. One part of the first draft did not hold: the `--help` test also runs the real build and pin chain, so keeping it unchanged leaves the slow and hang-prone path in the file. Two points were made sharper: the `task --version` probe must be bounded too, and a timeout there must fail rather than quietly skip every test; and the first acceptance criterion as worded would forbid the fixture itself.\n\nSolution this lean proposes: both release tests run go-task against a temp fixture that holds copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs`, the real release command read from `Taskfile.yml`, and a stub binary that prints its arguments. The #2547 test checks that `test what's next` arrives as one argument; the help test checks that `--help` reaches the binary. The old full dry run is deleted. Every `task` call in the file, the version probe included, has a 30-second limit and fails with a clear message when it is exceeded.\n\nWhat this adds: no new gate, check, policy flag or CI job. The file loses its only build and pipeline runs.\n\nWhat it does not do:\n- It does not find which process hung, and it does not add a job-level timeout to `ci.yml`.\n- The help test becomes dispatch coverage only; the help text itself stays covered in-process by `packages/core/src/release/flags.test.ts`.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:85fc3cb7a3a906a87fcd8f843fec3fbe50910c6b964eb0fad9e516cf2a050463\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7044680806). Panel deposit: comment 7044616285.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. Fixture helper (P1, P2). A test helper builds a temp dir with copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `tasks/`, a stub `dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and a `Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has one `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task, with no `deps`. If the real `release` task or its `ENGINE_CMD` is missing, the helper fails the test.\n2. #2547 test (P1, P2). Runs `task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element.\n3. Help dispatch test (P1, P4). Replaces the real `release -- --help` call with a fixture run of `release -- --help` and asserts the printed argv starts with `release` and contains `--help`. It is named as dispatch coverage.\n4. Delete the old full dry-run test (P1). No nightly copy.\n5. Bounded runner (P3). Every `task` spawn in the file, the `task --version` probe included, goes through one helper with a 30 s limit and `killSignal: \"SIGKILL\"`. Over the limit, the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated. The probe skips the tests only when the `task` executable is missing (`ENOENT`).\n6. Evidence in the PR (P2, P3, P4). The positive run and a failing run with `{{.ENGINE_CMD}}` wrapped in single quotes in the invoke script of `tasks/engine.yml`, both on Linux; one Linux run of the runner against a child that leaves a grandchild holding the output pipe, with its return time and message; the file vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.\n\n## Acceptance Criteria\n- In `taskfile_release_names.test.ts`, no test runs the repository `release` task from `Taskfile.yml` or its `ts:build` dependency; the release tests run go-task against a temp fixture with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD`, and a stub `dist/bin.js`.\n- The #2547 test asserts that `test what's next` arrives as one argv element after `--summary`, and the help dispatch test asserts that `--help` reaches the stub after `release`.\n- The fixture helper fails the test when `Taskfile.yml` has no `release` task or no `ENGINE_CMD` in it.\n- Wrapping `{{.ENGINE_CMD}}` in single quotes in the invoke script of `tasks/engine.yml` makes the #2547 test fail on Linux, and the PR records the passing and failing runs.\n- Every `task` spawn in the file, the `task --version` probe included, has a 30 s limit; over the limit it fails with a message that names the command and the limit; only a missing `task` executable skips.\n- The PR records a Linux run in which a child leaves a grandchild holding the output pipe and the runner returns at the limit with that message.\n- The file finishes in under 10 s in CI, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.\n\n## Reject\n- Keeping the real `release -- --help` call with only a timeout (comment 7044680806, finding 1: the build stays in the file and a cold build cannot meet 10 s).\n- A probe timeout inside the existing catch, which would turn a hang into skipped tests (comment 7044680806, finding 2).\n- A hard-coded copy of the release `ENGINE_CMD` in the fixture (comment 7044680806, finding 4).\n- Moving the full dry run to a nightly or slow lane (Stop 1 exclusion; CONTRIBUTING § Slow tests).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7044680806 | 1. The retained help test preserves the expensive build path | blocks-the-design | accept-into-contract (items 3 and 6) |\n| comment 7044680806 | 2. Availability detection must distinguish absence from timeout | sharpens-framing | accept-into-contract (item 5) |\n| comment 7044680806 | 3. The first acceptance criterion contradicts the proposed fixture | sharpens-framing | accept-into-contract (first criterion) |\n\nFootnotes in the census, no take: comment 7044680806 finding 4 (reflected in items 1 and 6). The critic's answers to the Stop 1 questions are reflected in the plain-English section (root cause wording) and item 6 (Linux evidence).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. One premise here is the parent's, not the critic's: that the release help text stays covered in-process once the help test becomes dispatch-only.\naudit:A1 sha=f1b769a4a832c4ef8b223a8e82428741fd6608ec pointer=packages/core/src/release/flags.test.ts:145-147 reading=measured\nThe `relieves` cites and A1 stay open until a later critic targets them.\r\n\n",
+          "id": 7044705026,
+          "html_url": "https://github.com/deftai/directive/issues/6862#issuecomment-7044705026",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:24:13Z",
+          "updated_at": "2026-11-20T16:24:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, A1\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:efc5cc3f2be530a873673b08f32b25cd70340cc01bdc4b2b7f888edf9fdc489f\n\n## In plain English\n\nThe successor lean covers all four pains as a design contract. It removes both real release invocations, preserves the relevant quoting boundary, bounds every task invocation including the availability probe, and requires Linux evidence and a measured CI runtime. No change to the Bound remedy or Acceptance Criteria is needed.\n\nThese verdicts assess the proposed mechanism, not completed implementation. Verification used source reads pinned to `f1b769a4a832c4ef8b223a8e82428741fd6608ec`; no tests, builds, or network requests were run.\n\npain-P1: holds - Remedy items 1–4 replace both production release calls with the isolated stub fixture. The pinned `Taskfile.yml:797–806` confirms that removing the real task removes its `ts:build` dependency; `tasks/engine.yml:108–114` selects the fixture’s `dist/bin.js`.\n\npain-P2: holds - The fixture retains the actual command template, go-task rendering, JSON transport, and argument splitting (`Taskfile.yml:806`, `tasks/engine.yml:69–72`, `tasks/engine-invoke.cjs:349–364`). The argv assertion and required Linux single-quote mutation failure directly address the named #2547 regression.\n\npain-P3: holds - Remedy item 5 covers every task spawn, explicitly includes the previously unbounded probe, and distinguishes missing executables from timeouts. The required Linux descendant-held-pipe experiment addresses the relevant inherited-stdio process shape visible at `tasks/engine-invoke.cjs:386–400`.\n\npain-P4: holds - Replacing the real help call removes the remaining build-dependent invocation in `taskfile_release_names.test.ts:52–66`. The final acceptance criterion retains the under-10-second CI requirement and before/after evidence; the design does not substitute the 30-second failure timeout for that performance target.\n\nA1: holds - At the exact cited location, `packages/core/src/release/flags.test.ts:145–147` asserts `formatReleaseHelp()` equals `RELEASE_HELP`. Lines 133–135 separately test help-flag parsing. This supports the stated in-process help coverage, with the limited scope described below.\n\n### 1. footnote — Help coverage remains narrower than CLI integration\n\nThe pinned `formatReleaseHelp()` implementation returns `RELEASE_HELP`, and its test compares that result with the same constant. This verifies the formatter’s return contract; it does not independently validate the wording or prove that the real CLI prints it and exits successfully.\n\nThe lean already labels the replacement as dispatch coverage. A1 holds in that stated, limited sense; it should not be described later as preserving the removed end-to-end help test.\n\n### 2. footnote — Required execution evidence remains outstanding\n\nThe source supports the fixture structure and the need for the timeout experiment. It cannot establish the future Linux mutation result, timeout return time, or CI duration. Those are already explicit acceptance obligations. The parent-supplied Windows prototype is supporting evidence, not a substitute for those results.",
+          "id": 7044746764,
+          "html_url": "https://github.com/deftai/directive/issues/6862#issuecomment-7044746764",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:26:05Z",
+          "updated_at": "2026-11-20T16:26:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7044705026. Dispatch SHA: f1b769a4a832c4ef8b223a8e82428741fd6608ec. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent check and, where marked, a re-check by a Codex critic (a different model family). Both critic posts are from one family, so their agreement is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | With `--dry-run`, release step 5 prints a DRYRUN line and runs no nested `task check` | verified | parent pin-read of `packages/core/src/release/pipeline.ts` 343-381; local timed run of the real command (27 s, all steps DRYRUN); critic 7044680806 answer 1 (372-381) |\n| 2 | The file normally takes about 4 s; the merge-gate job median is 6.4 min | measured | parent read of job 136352833330 log (4254 ms) and of 43 completed merge-gate job durations via the REST API |\n| 3 | The file hung the gate in run 44683125022 (cancelled at 6 h) and is in the same state on PR #6861 | measured | parent read of the run log (1621 of 1622 files, only this file in flight) and job 136381045739 status |\n| 4 | The stuck call came after the `--help` test | measured | the `--help` call stderr is in the cancelled log; `execFileSync` writes child stderr only after exit |\n| 5 | Which process in the chain blocks | not verified | unknown; the fix does not depend on it (critic 7044680806 answer 1) |\n| 6 | The real `release` task and its `ts:build` dependency are the only build path in the file | verified | parent pin-read of `Taskfile.yml` 797-806 and the test file 52-66, 83-111; audit 7044746764 pain-P1 and pain-P4 |\n| 7 | The fixture exercises the real go-task rendering, JSON transport and split, and a single-quote wrap of `ENGINE_CMD` fails it | measured on Windows only | parent prototype (360 ms pass; exit 201 `reached EOF without closing quote` when wrapped); Linux runs are lean item 6 |\n| 8 | Release help text stays covered in-process (A1) | verified, limited | pin-read of `packages/core/src/release/flags.test.ts` 145-147; audit 7044746764 A1 holds and footnote 1 (formatter contract only) |\n| 9 | The Bound remedy relieves P1-P4 | verified as design coverage | audit 7044746764 on the bound lean (all four hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 10 | A `spawnSync` timeout returns when a grandchild holds the output pipe on Linux | endorsed, not verified | lean item 6 requires a Linux run in the PR |\r\n\n",
+          "id": 7044759544,
+          "html_url": "https://github.com/deftai/directive/issues/6862#issuecomment-7044759544",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:26:41Z",
+          "updated_at": "2026-11-20T16:26:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `taskfile_release_names.test.ts` started real `task release` runs that pull in a TypeScript build, the engine wrapper and the pinned runtime, with no time limit. Usually the file takes about 4 seconds, but on 2026-11-20 one of those runs twice never returned and held the merge gate, once for 6 hours. The dry run does not run a nested `task check`; which process blocks is still unknown.\n\nAccepted solution: both release tests run go-task against a small temp fixture built from the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and the release command read from `Taskfile.yml`, with a stub binary that prints its arguments. The #2547 test checks that `test what's next` arrives as one argument, and the help test checks that `--help` reaches the binary. The old full dry run is deleted, with no nightly copy. Every `task` call in the file, the version probe included, has a 30-second limit with a clear failure message, and only a missing `task` skips the tests.\n\nLimits accepted: the help test becomes dispatch coverage; help text stays covered by the in-process formatter test. The hanging process is not identified, and no job-level timeout is added. Linux evidence (the quote-mutation failure, the pipe-held timeout, and before and after times) is required in the build PR. It was checked by reading the source at the pinned commit plus a local Windows prototype.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7044705026.\nverified-claims table 7044759544\n\nConfirm conjunct: yolo standing (Stop 1 7044605606, `yolo-standing: on`). Round-1 critic: comment 7044680806, posted by the parent verbatim as disclosed on panel-deposit 7044616285; its three classified findings are accepted on the lean. Clean audit of the bound lean and of marker A1: comment 7044746764 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 3.\n\n",
+          "id": 7044762613,
+          "html_url": "https://github.com/deftai/directive/issues/6862#issuecomment-7044762613",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:26:49Z",
+          "updated_at": "2026-11-20T16:26:49Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`packages/core/src/content-contracts/standards/taskfile_release_names.test.ts` can hang the CI merge gate (`task check:merge`). Its #2547 test runs a full `task release -- 0.0.0 --dry-run --skip-tag --skip-release --summary \"test what's next\"`: go-task, the `ts:build` dependency (`pnpm run build`), `engine:invoke`, then the pinned runtime. It uses `spawnSync` with no timeout.\n\nEvidence (2026-11-20):\n\n- Of the 43 latest completed merge-gate jobs (Blacksmith primary), 42 finished in 12 min or less (median 6.4 min). In a sampled normal job (136352833330) this file took 4254 ms.\n- Twice it did not finish. Run 44683125022 was cancelled at the 6 h job limit with 1621 of 1622 files done and only this file in flight. Pin PR #6861 (run 44763201751) was in the same state after 50 min. In the cancelled run, the log shows the `release -- --help` call completed. The only calls left after it are a go-task `--list-all` and the #2547 dry run.\n- The dry run does not run a nested `task check`. With `--dry-run`, step 5 only prints `DRYRUN (would run task ci:local ...)`. Locally the call took 27 s, about 25 s of it a cold `tsc -b` from the `ts:build` dependency.\n- Which process in that chain blocks is not known. At the 6 h cancel, a node, node, sh chain was still alive. `spawnSync` waits until every holder of the child's output pipes exits, and the vitest test timeout cannot interrupt a synchronous call.\n\n## Acceptance Criteria\n\n- [ ] No test in `taskfile_release_names.test.ts` runs `task release` with a version argument.\n- [ ] A #2547 test runs real go-task with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD` against a stub bin, and asserts that `test what's next` arrives as one argv element.\n- [ ] Changing `tasks/engine.yml` to wrap `ENGINE_CMD` in single quotes (the pre-#2547 shape) makes that test fail. The PR records that run.\n- [ ] Every `task` spawn in the file has a timeout. On timeout the test fails with a message that names the command and the limit.\n- [ ] The file finishes in under 10 s in CI. The PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after (from the PR's own merge-gate log).\n\nRefs #2547, #6849\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6515009588,
+        "origin": "deftai/directive#6862",
+        "id": "github.issue.6515009588"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "85fc3cb7a3a906a87fcd8f843fec3fbe50910c6b964eb0fad9e516cf2a050463"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6862,
+        "leanCommentId": 7044705026,
+        "harvestDigest": "efc5cc3f2be530a873673b08f32b25cd70340cc01bdc4b2b7f888edf9fdc489f",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (13), in list order (#6333)",
+      "sentences": [
+        "Fixture helper (P1, P2). A test helper builds a temp dir with copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `tasks/`, a stub `dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and a `Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has one `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task, with no `deps`. If the real `release` task or its `ENGINE_CMD` is missing, the helper fails the test.",
+        "#2547 test (P1, P2). Runs `task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element.",
+        "Help dispatch test (P1, P4). Replaces the real `release -- --help` call with a fixture run of `release -- --help` and asserts the printed argv starts with `release` and contains `--help`. It is named as dispatch coverage.",
+        "Delete the old full dry-run test (P1). No nightly copy.",
+        "Bounded runner (P3). Every `task` spawn in the file, the `task --version` probe included, goes through one helper with a 30 s limit and `killSignal: \"SIGKILL\"`. Over the limit, the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated. The probe skips the tests only when the `task` executable is missing (`ENOENT`).",
+        "Evidence in the PR (P2, P3, P4). The positive run and a failing run with `{{.ENGINE_CMD}}` wrapped in single quotes in the invoke script of `tasks/engine.yml`, both on Linux; one Linux run of the runner against a child that leaves a grandchild holding the output pipe, with its return time and message; the file vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
+        "In `taskfile_release_names.test.ts`, no test runs the repository `release` task from `Taskfile.yml` or its `ts:build` dependency; the release tests run go-task against a temp fixture with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD`, and a stub `dist/bin.js`.",
+        "The #2547 test asserts that `test what's next` arrives as one argv element after `--summary`, and the help dispatch test asserts that `--help` reaches the stub after `release`.",
+        "The fixture helper fails the test when `Taskfile.yml` has no `release` task or no `ENGINE_CMD` in it.",
+        "Wrapping `{{.ENGINE_CMD}}` in single quotes in the invoke script of `tasks/engine.yml` makes the #2547 test fail on Linux, and the PR records the passing and failing runs.",
+        "Every `task` spawn in the file, the `task --version` probe included, has a 30 s limit; over the limit it fails with a message that names the command and the limit; only a missing `task` executable skips.",
+        "The PR records a Linux run in which a child leaves a grandchild holding the output pipe and the runner returns at the limit with that message.",
+        "The file finishes in under 10 s in CI, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after."
+      ],
+      "admitted_source_sentences": [
+        "Fixture helper (P1, P2). A test helper builds a temp dir with copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `tasks/`, a stub `dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and a `Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has one `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task, with no `deps`. If the real `release` task or its `ENGINE_CMD` is missing, the helper fails the test.",
+        "#2547 test (P1, P2). Runs `task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element.",
+        "Help dispatch test (P1, P4). Replaces the real `release -- --help` call with a fixture run of `release -- --help` and asserts the printed argv starts with `release` and contains `--help`. It is named as dispatch coverage.",
+        "Delete the old full dry-run test (P1). No nightly copy.",
+        "Bounded runner (P3). Every `task` spawn in the file, the `task --version` probe included, goes through one helper with a 30 s limit and `killSignal: \"SIGKILL\"`. Over the limit, the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated. The probe skips the tests only when the `task` executable is missing (`ENOENT`).",
+        "Evidence in the PR (P2, P3, P4). The positive run and a failing run with `{{.ENGINE_CMD}}` wrapped in single quotes in the invoke script of `tasks/engine.yml`, both on Linux; one Linux run of the runner against a child that leaves a grandchild holding the output pipe, with its return time and message; the file vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
+        "In `taskfile_release_names.test.ts`, no test runs the repository `release` task from `Taskfile.yml` or its `ts:build` dependency; the release tests run go-task against a temp fixture with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD`, and a stub `dist/bin.js`.",
+        "The #2547 test asserts that `test what's next` arrives as one argv element after `--summary`, and the help dispatch test asserts that `--help` reaches the stub after `release`.",
+        "The fixture helper fails the test when `Taskfile.yml` has no `release` task or no `ENGINE_CMD` in it.",
+        "Wrapping `{{.ENGINE_CMD}}` in single quotes in the invoke script of `tasks/engine.yml` makes the #2547 test fail on Linux, and the PR records the passing and failing runs.",
+        "Every `task` spawn in the file, the `task --version` probe included, has a 30 s limit; over the limit it fails with a message that names the command and the limit; only a missing `task` executable skips.",
+        "The PR records a Linux run in which a child leaves a grandchild holding the output pipe and the runner returns at the limit with that message.",
+        "The file finishes in under 10 s in CI, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after."
+      ],
+      "admitted_source_digest": "d6cdedebe078e232b0cfadf187b2117c1c523732e718ed07da39cab252f2ee70",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Fixture helper (P1, P2). A test helper builds a temp dir with copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `tasks/`, a stub `dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and a `Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has one `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task, with no `deps`. If the real `release` task or its `ENGINE_CMD` is missing, the helper fails the test.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "#2547 test (P1, P2). Runs `task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Help dispatch test (P1, P4). Replaces the real `release -- --help` call with a fixture run of `release -- --help` and asserts the printed argv starts with `release` and contains `--help`. It is named as dispatch coverage.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Delete the old full dry-run test (P1). No nightly copy.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Bounded runner (P3). Every `task` spawn in the file, the `task --version` probe included, goes through one helper with a 30 s limit and `killSignal: \"SIGKILL\"`. Over the limit, the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated. The probe skips the tests only when the `task` executable is missing (`ENOENT`).",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Evidence in the PR (P2, P3, P4). The positive run and a failing run with `{{.ENGINE_CMD}}` wrapped in single quotes in the invoke script of `tasks/engine.yml`, both on Linux; one Linux run of the runner against a child that leaves a grandchild holding the output pipe, with its return time and message; the file vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In `taskfile_release_names.test.ts`, no test runs the repository `release` task from `Taskfile.yml` or its `ts:build` dependency; the release tests run go-task against a temp fixture with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD`, and a stub `dist/bin.js`.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The #2547 test asserts that `test what's next` arrives as one argv element after `--summary`, and the help dispatch test asserts that `--help` reaches the stub after `release`.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The fixture helper fails the test when `Taskfile.yml` has no `release` task or no `ENGINE_CMD` in it.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Wrapping `{{.ENGINE_CMD}}` in single quotes in the invoke script of `tasks/engine.yml` makes the #2547 test fail on Linux, and the PR records the passing and failing runs.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Every `task` spawn in the file, the `task --version` probe included, has a 30 s limit; over the limit it fails with a message that names the command and the limit; only a missing `task` executable skips.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The PR records a Linux run in which a child leaves a grandchild holding the output pipe and the runner returns at the limit with that message.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The file finishes in under 10 s in CI, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_names.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6515009588",
+    "updated": "2026-11-20T16:45:51Z"
+  }
+}
