@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6888",
-    "updated": "2026-11-20T21:27:15Z"
+    "updated": "2026-11-20T23:00:13Z"
   },
   "plan": {
     "title": "bug(pre-pr): leaves cannot complete pre-pr:run controller runs, and --complete publishes a pass after verify:ac failed",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "pre-pr:run --complete publishes a pre-PR pass and records whatever verify:ac disposition the caller passes, so a leaf could record executed-ac after verify:ac failed (seen on #5771) and a caller with no flag gets a pass without verify:ac at all. This story makes --complete run verify:ac selection and evaluation itself, take the disposition from that result only, refuse on failure, and honour resolver-accepted acceptance-disposition grants in memory.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6888",
@@ -20,114 +20,226 @@
     "items": [
       {
         "title": "Controller-owned `verify:ac` result (P1, P3). On every `--complete`, before publishing, the CLI runs the story selection and evaluation that `verify:ac --soft-missing-xbrief` runs, on the project root, and gets a structured result: `evaluated-pass` (a brief was selected and its evaluation returned ok), `untied-no-obligation` (today's exit 6), `no-target` (no brief selected; today's soft-missing exit 0), or `fail` (any other result, with the `verify:ac` output). Standalone `verify:ac` exit codes do not change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When pre-pr:run --complete runs, then it obtains a structured verify:ac result (evaluated-pass, untied-no-obligation, no-target or fail) from the same selection and evaluation verify:ac --soft-missing-xbrief uses, and standalone verify:ac exit codes are unchanged."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Disposition from that result only (P1, P3). `evaluated-pass` records `executed-ac`; `untied-no-obligation` records `no-obligation` with the worktree key, as today; `no-target` records no disposition and the output says `verify:ac` had no brief to run; `fail` refuses non-zero and publishes nothing. A `merge_chokepoint` row no longer sets the disposition; a present red row still fails the run as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the structured result is evaluated-pass, untied-no-obligation, no-target or fail, then the run records executed-ac, no-obligation with the worktree key, no disposition, or refuses with nothing published; a merge_chokepoint row does not set the disposition."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Optional flag (P3). `--verify-ac-disposition` stays accepted and is no longer needed. A value that differs from item 2's disposition, including `executed-ac` with `no-target`, refuses non-zero.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When --verify-ac-disposition is omitted the run completes on the controller result; when it differs from that result, --complete exits non-zero."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Grants (P2). Before evaluating, the run copies the selected brief's plan in memory, runs `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, and passes the returned `grantedClauses` to the evaluator, as `scope:complete` does. Every grant the resolver accepts counts, a used grant included. A resolver refusal refuses `--complete` with the resolver's message. Nothing is written to the brief or the grant store, and no grant is marked used.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a clause is covered by a resolver-accepted grant, then the in-memory plan copy is prepared and the grantedClauses set is passed to the evaluator; the brief and the grant store are unchanged and no grant is marked used."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Core requires the result (P1). `completeRun` takes the controller-owned result as a required input; when it is absent or `fail`, it refuses. There is no fallback to a caller-supplied disposition.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When completeRun is called without the controller-owned result, or with a fail result, then it refuses and publishes nothing."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs (P3). The pre-PR skill and the `pre-pr:run` usage text say that `--complete` runs `verify:ac` itself and that the flag is optional; the pre-push recovery text no longer tells the caller to pass a disposition.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When a reader opens the pre-PR skill or pre-pr:run usage text, then it says --complete runs verify:ac itself and the flag is optional; the pre-push recovery text no longer asks for a disposition."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself on every call, with or without `--verify-ac-disposition`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When pre-pr:run --complete runs with or without --verify-ac-disposition, then verify:ac selection and evaluation run."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "When that evaluation fails, `--complete` exits non-zero, prints the `verify:ac` output, and the store holds no pass for the run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the evaluation fails, then --complete exits non-zero, prints the verify:ac output, and the store holds no pass for the run."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`executed-ac` is recorded only when a brief was selected and its evaluation returned ok; an untied branch records `no-obligation` with the worktree key; no selected brief records no disposition and the output says so.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When a brief is selected and evaluates ok the run records executed-ac; an untied branch records no-obligation with the worktree key; no selected brief records no disposition and the output says so."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`--verify-ac-disposition` is optional; a value that differs from the recorded disposition, including `executed-ac` when no brief was selected, makes `--complete` exit non-zero.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When --verify-ac-disposition differs from the recorded disposition, including executed-ac with no selected brief, then --complete exits non-zero."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A clause covered by a resolver-accepted acceptance-disposition grant, including a used grant and a clause with no clause-keyed plan item yet, does not make `--complete` refuse; the run writes nothing to the brief or the grant store and marks no grant used.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When a clause is covered by a resolver-accepted grant (a used grant, or a clause with no keyed item yet), then --complete does not refuse and writes nothing to the brief or grant store."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A grant the resolver refuses (expired unused, changed clause text) makes `--complete` exit non-zero with the resolver's message.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When the resolver refuses a grant (expired unused, changed clause text), then --complete exits non-zero with the resolver's message."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`completeRun` refuses when the controller-owned `verify:ac` result is absent.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When completeRun receives no controller-owned verify:ac result, then it refuses."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests cover: failed `verify:ac` with no flag; failed `verify:ac` with `executed-ac`; a pass recording `executed-ac`; untied `no-obligation`; no selected brief; a conflicting flag; a present `merge_chokepoint` row; multi-active selection by branch; a grant-covered clause with no keyed item; and a used grant after in-PR completion.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "When the test suites run, then they cover each listed case: failed verify:ac with no flag and with executed-ac, pass, untied, no target, conflicting flag, merge_chokepoint row, multi-active selection, grant with no keyed item, and used grant."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+          "recorded_at": "2026-11-20T23:00:13Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -464,7 +576,36 @@
         "harvestDigest": "279388986bee16bad36821ef99fbd5f633d3f1ba5d364a0e97963c65e25eb494",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "735ca18433eee1ee358c2221a0cd9a22171f50c0",
+        "prNumber": 6913,
+        "prBase": "master",
+        "mergeCommit": "9783bb34446becec4ce897832ff8a947fc4f6a39",
+        "deliveryBranch": "master",
+        "deliveryCommit": "aa5495b79d89ad173e67e65b817bd59c08a97a42",
+        "verifiedAt": "2026-11-20T23:00:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6905
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T23:00:13Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T23:00:13Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -607,6 +748,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6518389942",
-    "updated": "2026-11-20T21:27:15Z"
+    "updated": "2026-11-20T23:00:13Z"
   }
 }
