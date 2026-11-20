@@ -32,20 +32,12 @@ describe("retarget: toolchain-check (tests/cli/test_task_scripts.py TestToolchai
   });
 
   it("reports missing tool names in output (mirrors test_missing_tool_reports_name)", () => {
-    let call = 0;
-    const result = runToolchainCheck(
-      (_command) => {
-        call += 1;
-        if (call === 1) {
-          return { returncode: 0, stdout: "ok\n", stderr: "" };
-        }
+    const result = runToolchainCheck((command) => {
+      if (command[0] === "git") {
         return { error: "not-found", message: "" };
-      },
-      [
-        { name: "uv", command: ["uv", "--version"] },
-        { name: "git", command: ["git", "--version"] },
-      ],
-    );
+      }
+      return { returncode: 0, stdout: "ok\n", stderr: "" };
+    });
     expect(result.exitCode).toBe(1);
     expect(result.lines.join("\n")).toContain("git: NOT FOUND");
   });
