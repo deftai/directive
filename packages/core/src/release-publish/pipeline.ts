@@ -21,10 +21,33 @@ export function emit(label: string, status: string): void {
 }
 
 /**
+ * #6875 -- under `deft release:run`: the grant id the run recorded and the
+ * tree read from the commit the remote tag peels to. The tag gate applies the
+ * same rule in release/closed-verb-gate.ts; this copy lives here because
+ * release-publish/ is a protected path that lands in its own PR (class 4).
+ */
+type RunGrant = { readonly grantId: string; readonly tree: string };
+
+/** Closed-verb target for a run-bound release grant: `<version>@<tree>`. */
+function runBoundTarget(version: string, tree: string): string {
+  return `${version}@${tree}`;
+}
+
+/**
+ * Keep only the run's own grant, and only when it names a target. A grant
+ * with empty surfaces would match any tree, so it never counts here.
+ */
+function runBoundGrants(grants: readonly HumanOriginGrant[], grantId: string): HumanOriginGrant[] {
+  return grants.filter((g) => g.id === grantId && g.scope.surfaces.length > 0);
+}
+
+/**
  * Fail-closed gate before draft→public (#1095 Wave 4).
  * Allow only DEFT_ALLOW_RELEASE_PUBLISH=1 or a matching human-origin grant.
  * Loads conventions/verb-classification.json from projectRoot when present.
  * Test seam: pass grants / env via optional overrides on seams when present.
+ * With `runGrant` (#6875) the target is `<version>@<tree>` and only the run's
+ * own grant is evaluated; the env bypass keeps its break-glass meaning.
  */
 export function evaluateReleasePublishGate(
   version: string,
@@ -33,15 +56,18 @@ export function evaluateReleasePublishGate(
     readonly grants?: readonly HumanOriginGrant[];
     readonly env?: EnvMap;
     readonly repo?: string | null;
+    readonly runGrant?: RunGrant | null;
   } = {},
 ): ClosedVerbDecision {
   // Production load of classification SoT (conventions/verb-classification.json).
   const classification = loadVerbClassification(projectRoot);
   const state = loadAuthzState(projectRoot);
-  const grants = options.grants ?? listActiveHumanGrants(projectRoot, state);
+  const active = options.grants ?? listActiveHumanGrants(projectRoot, state);
+  const runGrant = options.runGrant ?? null;
+  const grants = runGrant === null ? active : runBoundGrants(active, runGrant.grantId);
   return evaluateClosedVerb({
     verb: "release-publish",
-    target: version,
+    target: runGrant === null ? version : runBoundTarget(version, runGrant.tree),
     grants,
     env: options.env ?? (process.env as EnvMap),
     projectRoot,
@@ -215,7 +241,103 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
   return EXIT_OK;
 }
 
-export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {}): number {
+type TagTreeResult =
+  | { readonly ok: true; readonly tree: string }
+  | { readonly ok: false; readonly reason: string };
+
+/** One REST GET that must return a JSON object; returned failure otherwise. */
+function ghApiObject(
+  ghPath: string,
+  endpoint: string,
+  seams: ReleasePublishSeams,
+):
+  | { readonly ok: true; readonly value: Record<string, unknown> }
+  | { readonly ok: false; readonly reason: string } {
+  const spawn = seams.spawnText ?? spawnText;
+  let result: SpawnResult;
+  try {
+    // Live gh (not the cached ghx reader), same options as the other gh calls in this file.
+    result = spawn(ghPath, ["api", endpoint], { timeoutMs: 120_000, env: plainGhEnv() });
+  } catch {
+    return { ok: false, reason: "gh CLI not found on PATH" };
+  }
+  if (result.status !== 0) {
+    return { ok: false, reason: `gh api ${endpoint} failed: ${(result.stderr ?? "").trim()}` };
+  }
+  try {
+    const parsed = JSON.parse(result.stdout) as unknown;
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return { ok: true, value: parsed as Record<string, unknown> };
+    }
+  } catch {
+    // fall through to the returned failure below
+  }
+  return { ok: false, reason: `gh api ${endpoint} did not return a JSON object` };
+}
+
+/** `{ type, sha }` of a git object reference in a REST payload, or null. */
+function gitObjectOf(value: unknown): { readonly type: string; readonly sha: string } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { type, sha } = value as { type?: unknown; sha?: unknown };
+  if (typeof type !== "string" || typeof sha !== "string" || sha.trim().length === 0) return null;
+  return { type, sha: sha.trim() };
+}
+
+/**
+ * #6875 -- tree of the commit that tag `tag` points to on `repo`, the repository
+ * the draft flip publishes to. Read through REST only (ref, then the annotated
+ * tag object when there is one, then the commit), so no local fetch, FETCH_HEAD
+ * or origin remote is involved. Anything unexpected is a returned failure.
+ */
+export function publishRepoTagTree(
+  repo: string,
+  tag: string,
+  seams: ReleasePublishSeams = {},
+): TagTreeResult {
+  const ghPath = resolveGh(seams);
+  if (ghPath === null) return { ok: false, reason: "gh CLI not found on PATH" };
+  const ref = ghApiObject(ghPath, `repos/${repo}/git/ref/tags/${tag}`, seams);
+  if (!ref.ok) return ref;
+  let target = gitObjectOf(ref.value.object);
+  if (target === null) {
+    return { ok: false, reason: `tag ${tag} on ${repo} has no object in its ref` };
+  }
+  if (target.type === "tag") {
+    const annotated = ghApiObject(ghPath, `repos/${repo}/git/tags/${target.sha}`, seams);
+    if (!annotated.ok) return annotated;
+    target = gitObjectOf(annotated.value.object);
+    if (target === null) {
+      return { ok: false, reason: `annotated tag ${tag} on ${repo} names no object` };
+    }
+  }
+  if (target.type !== "commit") {
+    return {
+      ok: false,
+      reason: `tag ${tag} on ${repo} points to a ${target.type}, not a commit`,
+    };
+  }
+  const commit = ghApiObject(ghPath, `repos/${repo}/git/commits/${target.sha}`, seams);
+  if (!commit.ok) return commit;
+  const tree = commit.value.tree;
+  const treeSha =
+    typeof tree === "object" && tree !== null ? (tree as { sha?: unknown }).sha : undefined;
+  if (typeof treeSha !== "string" || treeSha.trim().length === 0) {
+    return { ok: false, reason: `commit ${target.sha.slice(0, 12)} on ${repo} has no tree` };
+  }
+  return { ok: true, tree: treeSha.trim() };
+}
+
+/**
+ * Draft flip (#716). With `runBinding` (#6875, set only by `deft release:run`)
+ * the gate evaluates only the run's grant, for `<version>@<tree>` where the tree
+ * is read through REST from the tag on `config.repo` (the repository this flip
+ * publishes to), never from the run record, a local fetch or the origin remote.
+ */
+export function runPublish(
+  config: PublishConfig,
+  seams: ReleasePublishSeams = {},
+  runBinding: { readonly grantId: string } | null = null,
+): number {
   const { version, repo, dryRun, projectRoot } = config;
   const tag = `v${version}`;
 
@@ -253,20 +375,31 @@ export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {
     closedVerbGrants?: readonly HumanOriginGrant[];
     closedVerbEnv?: EnvMap;
   };
+  let runGrant: RunGrant | null = null;
+  if (runBinding !== null) {
+    const peeled = publishRepoTagTree(repo, tag, seams);
+    if (!peeled.ok) {
+      emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${peeled.reason})`);
+      return EXIT_VIOLATION;
+    }
+    runGrant = { grantId: runBinding.grantId, tree: peeled.tree };
+  }
   const gate = evaluateReleasePublishGate(version, projectRoot, {
     grants: gateSeams.closedVerbGrants,
     env: gateSeams.closedVerbEnv,
     repo,
+    runGrant,
   });
   if (!gate.allowed) {
     const bypassKey =
       gate.envBypassKey ??
       closedVerbEnvBypassKey("release-publish", projectRoot) ??
       "DEFT_ALLOW_RELEASE_PUBLISH";
+    const mintTarget = runGrant === null ? version : runBoundTarget(version, runGrant.tree);
     emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${gate.code}: ${gate.reason})`);
     process.stderr.write(
       `[publish] denied code=${gate.code} — set ${bypassKey}=1 or ` +
-        `mint \`deft authz:grant -- --template release-publish --target ${version}\`\n`,
+        `mint \`deft authz:grant -- --template release-publish --target ${mintTarget}\`\n`,
     );
     return EXIT_VIOLATION;
   }
