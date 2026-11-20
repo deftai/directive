@@ -462,7 +462,7 @@ export function evaluateEnrolledBoundPrePrPush(
             disposition.verifyAcDisposition === null
               ? "  Detail: disposition evidence missing (exit-0 alone is not no-obligation)."
               : `  Detail: disposition=${disposition.verifyAcDisposition}.`,
-            "  Recovery: deft pre-pr:run with direct verify:ac disposition (or merge_chokepoint no-obligation skip), then retry.",
+            "  Recovery: deft pre-pr:run --complete on this worktree (it runs verify:ac itself and records no-obligation for an untied branch), then retry.",
           ].join("\n"),
         ];
       }
@@ -486,7 +486,7 @@ export function evaluateEnrolledBoundPrePrPush(
         [
           "deft bound pre-PR push gate: story selection cannot reuse no-obligation disposition (#5855).",
           "  Detail: push-time selection requires a story; stale untied no-obligation evidence is not executed-ac.",
-          "  Recovery: deft pre-pr:run with executed verify:ac for the selected story, then retry.",
+          "  Recovery: deft pre-pr:run --complete for the selected story (it runs verify:ac itself), then retry.",
         ].join("\n"),
       ];
     }

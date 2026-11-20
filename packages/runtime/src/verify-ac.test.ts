@@ -2,9 +2,20 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  listAcceptanceDispositionGrants,
+  mintAcceptanceDispositionTemplateGrant,
+  recordAcceptanceDispositionUse,
+} from "@deftai/directive-core/policy";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { destContentionItTimeout } from "../../core/src/vitest-runner/dest-contention-it-timeout.helper.test.js";
-import { clampVerifyAcExit, parseArgs, run, VERIFY_AC_NO_OBLIGATION_EXIT } from "./verify-ac.js";
+import {
+  clampVerifyAcExit,
+  parseArgs,
+  resolveControllerVerifyAc,
+  run,
+  VERIFY_AC_NO_OBLIGATION_EXIT,
+} from "./verify-ac.js";
 
 describe("clampVerifyAcExit (#3449)", () => {
   it("maps a printed pass to exit 0 even when the raw code is 201", () => {
@@ -541,5 +552,165 @@ describe("verify:ac run (#3284)", () => {
     vi.stubEnv("DEFT_ACTIVE_SCOPE", "xbrief/active/other.xbrief.json");
     run(["--project-root", root, "--soft-missing-xbrief"]);
     expect(chunks.join("")).not.toContain("targeting lands-with-product brief(s)");
+  });
+});
+
+describe("resolveControllerVerifyAc: the verify:ac run pre-pr:run --complete owns (#6888)", () => {
+  const NOW = new Date("2026-11-20T10:00:00Z");
+  const PLAN_ID = "github.issue.6888";
+  const CLAUSE_2 = 'The file contains "ABSENT_NEEDLE_TOKEN" after the change.';
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  function gitRepo(prefix: string, branch = "main"): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    const git = (args: string[]) => execFileSync("git", args, { cwd: root, stdio: "ignore" });
+    git(["init", "-q", "-b", branch]);
+    git(["config", "user.email", "t@example.com"]);
+    git(["config", "user.name", "t"]);
+    writeFileSync(join(root, "README.md"), "x\n", "utf8");
+    git(["add", "README.md"]);
+    git(["commit", "-q", "-m", "init"]);
+    return root;
+  }
+
+  /** Clause 1 verifies (token present in src/a.ts); clause 2 fails (token absent). */
+  function storyPlan(id: string, clause2 = CLAUSE_2): Record<string, unknown> {
+    return {
+      id,
+      title: "controller verify:ac fixture",
+      status: "running",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: 'The file contains "PRESENT_TOKEN" after the change.',
+            artifact_path: "src/a.ts",
+            ambiguous: false,
+          },
+          { id: 2, text: clause2, artifact_path: "src/a.ts", ambiguous: false },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["src/a.ts"] } },
+      items: [],
+    };
+  }
+
+  function writeBrief(root: string, name: string, plan: Record<string, unknown>): string {
+    const dir = join(root, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, name);
+    writeFileSync(path, `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`);
+    return path;
+  }
+
+  function storyRepo(): { root: string; brief: string } {
+    const root = gitRepo("verify-ac-6888-");
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "a.ts"), "export const PRESENT_TOKEN = 1;\n", "utf8");
+    return { root, brief: writeBrief(root, "story.xbrief.json", storyPlan(PLAN_ID)) };
+  }
+
+  function mintClause2(root: string): string {
+    const minted = mintAcceptanceDispositionTemplateGrant({
+      projectRoot: root,
+      planRef: PLAN_ID,
+      storyIds: ["clause.2"],
+      disposition: "not_applicable",
+      reason: "operator dropped clause 2",
+      now: NOW,
+    });
+    if (!minted.ok) throw new Error(minted.reason);
+    return minted.grant.id;
+  }
+
+  function grantUsedAt(root: string, grantId: string): string | null {
+    const listed = listAcceptanceDispositionGrants(root);
+    if (!listed.ok) throw new Error(listed.reason);
+    const row = listed.grants.find((g) => g.id === grantId);
+    if (row === undefined) throw new Error(`grant ${grantId} not listed`);
+    return row.semantics.usedAt;
+  }
+
+  it("no selected brief is no-target and says so", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-6888-none-"));
+    const result = resolveControllerVerifyAc({ projectRoot: root, now: NOW });
+    expect(result.kind).toBe("no-target");
+    expect(result.output).toContain("no active xBRIEF");
+  });
+
+  it("an untied multi-active branch is untied-no-obligation", () => {
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "");
+    vi.stubEnv("DEFT_AGENT_ID", "");
+    vi.stubEnv("DEFT_WORKER_CREDENTIAL_DELIVERY_ID", "");
+    const root = gitRepo("verify-ac-6888-untied-");
+    writeBrief(root, "a.xbrief.json", storyPlan("github.issue.1"));
+    writeBrief(root, "b.xbrief.json", storyPlan("github.issue.2"));
+    const result = resolveControllerVerifyAc({ projectRoot: root, now: NOW });
+    expect(result.kind).toBe("untied-no-obligation");
+  });
+
+  it("a failing clause with no grant fails and carries the verify:ac output", () => {
+    const { root } = storyRepo();
+    const result = resolveControllerVerifyAc({ projectRoot: root, now: NOW });
+    expect(result.kind).toBe("fail");
+    expect(result.output).toContain("clause 2");
+  });
+
+  it("multi-active selection binds the branch to its brief", () => {
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "");
+    const root = gitRepo("verify-ac-6888-branch-", `story/${PLAN_ID}`);
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "a.ts"), "export const PRESENT_TOKEN = 1;\n", "utf8");
+    writeBrief(root, "story.xbrief.json", storyPlan(PLAN_ID));
+    writeBrief(root, "other.xbrief.json", storyPlan("github.issue.1"));
+    const result = resolveControllerVerifyAc({ projectRoot: root, now: NOW });
+    expect(result.output).toContain("selected");
+    expect(result.output).toContain("story.xbrief.json");
+    expect(result.output).not.toContain("other.xbrief.json");
+  });
+
+  it("a grant-covered clause with no clause-keyed item passes and writes nothing", () => {
+    const { root, brief } = storyRepo();
+    const grantId = mintClause2(root);
+    const before = readFileSync(brief, "utf8");
+    const result = resolveControllerVerifyAc({ projectRoot: root, now: NOW });
+    expect(result.kind).toBe("evaluated-pass");
+    expect(readFileSync(brief, "utf8")).toBe(before);
+    expect(grantUsedAt(root, grantId)).toBeNull();
+  });
+
+  it("a used grant (in-PR completion recorded its use) still covers the clause", () => {
+    const { root } = storyRepo();
+    const grantId = mintClause2(root);
+    const used = recordAcceptanceDispositionUse({
+      projectRoot: root,
+      grantIds: [grantId],
+      now: NOW,
+    });
+    expect(used.ok).toBe(true);
+    const later = new Date(NOW.getTime() + 48 * 60 * 60 * 1000);
+    const result = resolveControllerVerifyAc({ projectRoot: root, now: later });
+    expect(result.kind).toBe("evaluated-pass");
+  });
+
+  it("a grant the resolver refuses (changed clause text) fails with the resolver's message", () => {
+    const { root, brief } = storyRepo();
+    mintClause2(root);
+    writeFileSync(
+      brief,
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: storyPlan(PLAN_ID, 'The file contains "OTHER_ABSENT_TOKEN" after the change.') }, null, 2)}\n`,
+    );
+    const result = resolveControllerVerifyAc({ projectRoot: root, now: NOW });
+    expect(result.kind).toBe("fail");
+    expect(result.output).toContain("changed after grant");
+    expect(result.output).toContain("re-mint");
   });
 });

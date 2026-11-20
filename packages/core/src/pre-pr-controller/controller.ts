@@ -834,53 +834,105 @@ export function readPushBindingDisposition(binding: PrePrPushBinding | null | un
 }
 
 /**
- * Re-derive no-obligation from when-present merge_chokepoint, else accept a
- * positively known direct verify:ac disposition (#5855 Recut-8 / #6040).
+ * The verify:ac result that `pre-pr:run --complete` obtains itself (#6888).
+ * - `evaluated-pass`: a brief was selected and its evaluation returned ok.
+ * - `untied-no-obligation`: the branch is admitted untied (standalone exit 6).
+ * - `no-target`: no brief was selected (standalone soft-missing exit 0).
+ * - `fail`: any other result; `output` holds the verify:ac output.
+ */
+export type ControllerVerifyAcResult = {
+  readonly kind: "evaluated-pass" | "untied-no-obligation" | "no-target" | "fail";
+  readonly output: string;
+};
+
+/** Published-message note when verify:ac had no brief to run (#6888). */
+export const VERIFY_AC_NO_TARGET_NOTE =
+  "verify:ac had no brief to run; no verify:ac disposition recorded (#6888)";
+
+/**
+ * Revoke earlier passes when `--complete`'s verify:ac result fails or is absent
+ * (#6888). This run, and every stored pass for the same repository and HEAD,
+ * returns to an unpublished running state with no push binding, so the push
+ * gate and evaluatePrePrEvidence refuse until a later complete passes. A failed
+ * store write is returned, never thrown.
+ */
+export function revokePassesForHead(
+  store: PrePrExecutionStore,
+  current: PrePrExecutionRecord,
+): PrePrDecision {
+  const seen = new Set<string>();
+  const targets = [current, ...store.list()].filter((rec) => {
+    if (seen.has(rec.id)) return false;
+    seen.add(rec.id);
+    return (
+      rec.outcome === "pass" &&
+      (rec.id === current.id || (rec.repo === current.repo && rec.headSha === current.headSha))
+    );
+  });
+  for (const rec of targets) {
+    const put = store.put({
+      ...rec,
+      state: "running",
+      outcome: "none",
+      pushBinding: null,
+      completedAt: null,
+      publishedAt: null,
+    });
+    if (!put.ok) {
+      return deny(
+        "deny-incomplete",
+        `verify:ac did not pass and earlier pass ${rec.id} could not be revoked: ${put.message} (#6888).`,
+      );
+    }
+  }
+  return {
+    ok: true,
+    code: "allow-pass",
+    message: `revoked ${String(targets.length)} earlier pass(es)`,
+  };
+}
+
+/**
+ * Derive the verify:ac disposition from the controller-owned result only
+ * (#6888). A merge_chokepoint row does not set it, and there is no fallback to
+ * a caller-supplied disposition: a claimed value must equal the derived one.
  */
 export function deriveVerifyAcDisposition(input: {
-  readonly record: PrePrExecutionRecord;
+  readonly result: ControllerVerifyAcResult | null | undefined;
   readonly projectRoot?: string;
-  readonly directDisposition?: VerifyAcDispositionKind | null;
+  readonly claimedDisposition?: VerifyAcDispositionKind | null;
 }):
   | {
       readonly ok: true;
-      readonly disposition: VerifyAcDispositionKind;
+      readonly disposition: VerifyAcDispositionKind | null;
       readonly worktreeKey: string | null;
     }
   | { readonly ok: false; readonly message: string } {
-  const mergeRow = input.record.phaseEvidence.commands.find(
-    (c) => c.phaseId === "merge_chokepoint",
-  );
-  let fromMerge: VerifyAcDispositionKind | null = null;
-  if (mergeRow !== undefined) {
-    if (mergeRow.exitCode === 0) {
-      fromMerge = "executed-ac";
-    } else if (
-      mergeRow.exitCode === VERIFY_AC_NO_OBLIGATION_EXIT &&
-      mergeRow.skipReason === MERGE_CHOKPOINT_NO_OBLIGATION_SKIP
-    ) {
-      fromMerge = "no-obligation";
-    } else {
-      return {
-        ok: false,
-        message:
-          "merge_chokepoint observed but disposition is neither exit 0 nor no-obligation skip (#5855).",
-      };
-    }
-  }
-  const direct = input.directDisposition ?? null;
-  if (fromMerge !== null && direct !== null && fromMerge !== direct) {
-    return {
-      ok: false,
-      message: `check-time vs push-time verify:ac disposition disagreement (${fromMerge} vs ${direct}) (#5855).`,
-    };
-  }
-  const disposition = fromMerge ?? direct;
-  if (disposition === null) {
+  const result = input.result ?? null;
+  if (result === null) {
     return {
       ok: false,
       message:
-        "verify:ac disposition evidence missing; refuse no-obligation admit without positively known disposition (#5855).",
+        "controller-owned verify:ac result is missing; pre-pr:run --complete runs verify:ac itself (#6888).",
+    };
+  }
+  if (result.kind === "fail") {
+    return {
+      ok: false,
+      message: "verify:ac failed; no pre-PR pass is published (#6888).",
+    };
+  }
+  const disposition: VerifyAcDispositionKind | null =
+    result.kind === "evaluated-pass"
+      ? "executed-ac"
+      : result.kind === "untied-no-obligation"
+        ? "no-obligation"
+        : null;
+  const claimed = input.claimedDisposition ?? null;
+  if (claimed !== null && claimed !== disposition) {
+    return {
+      ok: false,
+      message: `--verify-ac-disposition ${claimed} differs from the controller's verify:ac result (${disposition ?? "no brief selected, no disposition"}) (#6888).`,
     };
   }
   if (disposition === "no-obligation") {
@@ -937,7 +989,15 @@ export function completeRun(
   options?: {
     readonly projectRoot?: string;
     readonly applicabilityDeps?: CoverageApplicabilityDeps;
-    /** Direct verify:ac disposition for ordinary pre-PR without merge_chokepoint (#5855). */
+    /**
+     * Controller-owned verify:ac result (#6888). Required: when it is absent or
+     * `fail`, completeRun refuses and publishes nothing.
+     */
+    readonly verifyAcResult?: ControllerVerifyAcResult | null;
+    /**
+     * Optional caller claim (#6888). When set, it must equal the disposition
+     * derived from `verifyAcResult`, or completeRun refuses.
+     */
     readonly verifyAcDisposition?: VerifyAcDispositionKind | null;
     /** Always-on named Merge gate (#6071). */
     readonly namedMergeGateFn?: NamedMergeGateFn;
@@ -963,6 +1023,13 @@ export function completeRun(
   const current = store.getById(runId);
   if (current === null) {
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
+  }
+  // #6888: a failed or absent verify:ac result revokes earlier passes for this
+  // HEAD before any other check, so a retry that fails cannot leave one standing.
+  const verifyAcKind = options?.verifyAcResult?.kind ?? null;
+  if (verifyAcKind === null || verifyAcKind === "fail") {
+    const revoked = revokePassesForHead(store, current);
+    if (!revoked.ok) return revoked;
   }
   // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
   // #6336 item 7: a head with no pull request is named as such, with the next command.
@@ -1026,18 +1093,16 @@ export function completeRun(
     current.headSha.length > 0
       ? listDeletedPathsBetween(options.projectRoot, current.baseSha, current.headSha)
       : [];
+  // #6888: the disposition comes from the controller-owned verify:ac result only.
   const derived = deriveVerifyAcDisposition({
-    record: current,
+    result: options?.verifyAcResult,
     projectRoot: options?.projectRoot,
-    directDisposition: options?.verifyAcDisposition ?? null,
+    claimedDisposition: options?.verifyAcDisposition ?? null,
   });
-  const wantsDisposition =
-    options?.verifyAcDisposition !== undefined ||
-    current.phaseEvidence.commands.some((c) => c.phaseId === "merge_chokepoint");
-  if (wantsDisposition && !derived.ok) {
+  if (!derived.ok) {
     return deny("deny-incomplete", derived.message);
   }
-  if (derived.ok && derived.disposition === "no-obligation" && derived.worktreeKey === null) {
+  if (derived.disposition === "no-obligation" && derived.worktreeKey === null) {
     return deny(
       "deny-incomplete",
       "no-obligation disposition requires admittedUntiedWorktreeKey (#5855).",
@@ -1052,7 +1117,7 @@ export function completeRun(
           reviewedDeletedPaths,
         }
       : null;
-  if (pushBinding !== null && derived.ok) {
+  if (pushBinding !== null && derived.disposition !== null) {
     const withDisposition: PrePrPushBindingWithDisposition = {
       ...pushBinding,
       verifyAcDisposition: derived.disposition,
@@ -1071,10 +1136,14 @@ export function completeRun(
     publishedAt: utcIso(now),
   };
   store.put(published);
+  const notes = [
+    ...(options?.verifyAcResult?.kind === "no-target" ? [VERIFY_AC_NO_TARGET_NOTE] : []),
+    ...(noPullRequest === null ? [] : [noPullRequest]),
+  ];
   return {
     ok: true,
     code: "allow-pass",
-    message: noPullRequest === null ? `published ${runId}` : `published ${runId}; ${noPullRequest}`,
+    message: [`published ${runId}`, ...notes].join("; "),
   };
 }
 

@@ -44,7 +44,7 @@ A **declared refusal** is a row in the refusal declaration table (`packages/core
    git push -u origin <branch>
    ```
 
-   - **Bound pre-PR push gate (#5804), declared row `pre-pr-push-gate`.** A push of product or test changes is refused unless a completed pre-PR pass is bound to the pushed HEAD and covers the outgoing paths. Remedy: start a `deft pre-pr:run` controller run for this HEAD (the line fills `--head-sha`), observe every phase in `deft-directive-pre-pr` skill order (`--observe-command` and `--observe-semantic`), run `deft pre-pr:run --complete`, then `git push`. This remedy is not runnable exactly as printed: you fill the angle-bracket values and do the review the semantic phases record. A one-command pre-PR is #5933.
+   - **Bound pre-PR push gate (#5804), declared row `pre-pr-push-gate`.** A push of product or test changes is refused unless a completed pre-PR pass is bound to the pushed HEAD and covers the outgoing paths. Remedy: start a `deft pre-pr:run` controller run for this HEAD (the line fills `--head-sha`), observe every phase in `deft-directive-pre-pr` skill order (`--observe-command` and `--observe-semantic`), run `deft pre-pr:run --complete` (it runs `verify:ac` itself; a failed `verify:ac` refuses, #6888), then `git push`. This remedy is not runnable exactly as printed: you fill the angle-bracket values and do the review the semantic phases record. A one-command pre-PR is #5933.
 
 5. Open the pull request.
 

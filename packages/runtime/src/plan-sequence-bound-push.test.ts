@@ -208,6 +208,9 @@ function prePrThenPush(
   const completed = completeRun(store, controllerPublisher(), runId, undefined, {
     projectRoot: root,
     skipNamedMergeGate: true,
+    // #6888: completeRun requires the controller-owned verify:ac result; no-target keeps
+    // this fixture's binding as before (no disposition).
+    verifyAcResult: { kind: "no-target", output: "" },
   });
   const stdin = `refs/heads/${branch} ${head} refs/heads/${branch} ${ZERO}\n`;
   const [push, pushMessage] = evaluatePrePush(parsePrePushStdin(stdin), {

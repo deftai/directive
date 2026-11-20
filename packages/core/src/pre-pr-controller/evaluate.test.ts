@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  type ControllerVerifyAcResult,
   completeRun,
   interruptRun,
   markComplete,
@@ -25,6 +26,9 @@ import {
   RUN_ID_LOOKUP_HINT,
   SKILL_FILE_OPEN_NOT_COMPLETION,
 } from "./types.js";
+
+/** Controller-owned verify:ac pass that completeRun requires (#6888). */
+const VERIFY_AC_PASS: ControllerVerifyAcResult = { kind: "evaluated-pass", output: "" };
 
 const REPO = "deftai/directive";
 const BASE = "9dc0c3f6cc8108e5caf09b231694bf1af755ec0b";
@@ -97,9 +101,12 @@ describe("Limb 6 pre-PR evidence (identical code/body, different trusted evidenc
     const store = new InProcessPrePrStore();
     const runId = startPassingRun(store);
     const publisher = mintPublisher();
-    expect(completeRun(store, publisher, runId, undefined, { skipNamedMergeGate: true }).ok).toBe(
-      true,
-    );
+    expect(
+      completeRun(store, publisher, runId, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).ok,
+    ).toBe(true);
     const live = {
       repo: REPO,
       baseSha: BASE,
@@ -167,7 +174,10 @@ describe("Limb 6 pre-PR evidence (identical code/body, different trusted evidenc
   it("blocks a replay bound to a different repo or SHA", () => {
     const store = new InProcessPrePrStore();
     const runId = startPassingRun(store, "ppr_replay");
-    completeRun(store, mintPublisher(), runId, undefined, { skipNamedMergeGate: true });
+    completeRun(store, mintPublisher(), runId, undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: VERIFY_AC_PASS,
+    });
     const record = store.getById(runId);
     const crossRepo = evaluatePrePrEvidence({
       record,
@@ -230,9 +240,12 @@ describe("Limb 1 trust boundary", () => {
     });
     const id = started.runId as string;
     const publisher = mintPublisher();
-    expect(completeRun(store, publisher, id, undefined, { skipNamedMergeGate: true }).code).toBe(
-      "deny-omitted-phase",
-    );
+    expect(
+      completeRun(store, publisher, id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
+    ).toBe("deny-omitted-phase");
 
     const record = store.getById(id) as PrePrExecutionRecord;
     observeCommandPhase(store, id, {
@@ -242,15 +255,21 @@ describe("Limb 1 trust boundary", () => {
       inputHash: record.inputHash,
       skipReason: null,
     });
-    expect(completeRun(store, publisher, id, undefined, { skipNamedMergeGate: true }).code).toBe(
-      "deny-failed",
-    );
+    expect(
+      completeRun(store, publisher, id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
+    ).toBe("deny-failed");
 
     const store2 = new InProcessPrePrStore();
     const id2 = startPassingRun(store2, "ppr_int");
     interruptRun(store2, id2);
     expect(
-      completeRun(store2, mintPublisher(), id2, undefined, { skipNamedMergeGate: true }).code,
+      completeRun(store2, mintPublisher(), id2, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
     ).toBe("deny-interrupted");
   });
 
@@ -258,7 +277,10 @@ describe("Limb 1 trust boundary", () => {
     const store = new InProcessPrePrStore();
     const id = startPassingRun(store, "ppr_nopub");
     expect(
-      completeRun(store, { forged: true }, id, undefined, { skipNamedMergeGate: true }).code,
+      completeRun(store, { forged: true }, id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
     ).toBe("deny-publisher-required");
     expect(store.getById(id)?.outcome).toBe("none");
   });
@@ -280,7 +302,10 @@ describe("Limb 4 criteria authority", () => {
   it("rejects head-side weakening, stale generation, and out-of-order older completion", () => {
     const store = new InProcessPrePrStore();
     const id = startPassingRun(store, "ppr_crit");
-    completeRun(store, mintPublisher(), id, undefined, { skipNamedMergeGate: true });
+    completeRun(store, mintPublisher(), id, undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: VERIFY_AC_PASS,
+    });
     const record = store.getById(id);
     const live = {
       repo: REPO,
@@ -418,7 +443,10 @@ describe("PR node identity and body hash", () => {
   it("denies when either side is missing a PR node id or the live body hash drifts", () => {
     const store = new InProcessPrePrStore();
     const nullId = startPassingRun(store, "ppr_null_node", null);
-    completeRun(store, mintPublisher(), nullId, undefined, { skipNamedMergeGate: true });
+    completeRun(store, mintPublisher(), nullId, undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: VERIFY_AC_PASS,
+    });
     const liveWithId = {
       repo: REPO,
       baseSha: BASE,
@@ -436,7 +464,10 @@ describe("PR node identity and body hash", () => {
     ).toBe("deny-binding");
 
     const withId = startPassingRun(store, "ppr_has_node", PR_NODE);
-    completeRun(store, mintPublisher(), withId, undefined, { skipNamedMergeGate: true });
+    completeRun(store, mintPublisher(), withId, undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: VERIFY_AC_PASS,
+    });
     expect(
       evaluatePrePrEvidence({
         record: store.getById(withId),
@@ -470,7 +501,10 @@ describe("PR node identity and body hash", () => {
   it("uses live approved criteria so a same-generation digest update denies the old pass", () => {
     const store = new InProcessPrePrStore();
     const runId = startPassingRun(store, "ppr_headcrit");
-    completeRun(store, mintPublisher(), runId, undefined, { skipNamedMergeGate: true });
+    completeRun(store, mintPublisher(), runId, undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: VERIFY_AC_PASS,
+    });
     const live = {
       repo: REPO,
       baseSha: BASE,

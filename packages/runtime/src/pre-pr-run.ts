@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { writeStoryLineToBodyFile } from "@deftai/directive-core/pr-closing-keywords";
 import { defaultRunGh } from "@deftai/directive-core/pr-merge-readiness";
 import {
+  type ControllerVerifyAcResult,
   completeRun,
   computeControllerObservedHash,
   controllerPublisher,
@@ -30,6 +31,7 @@ import {
 import { evaluatePrePush, parsePrePushStdin } from "@deftai/directive-core/preflight";
 import type { VerifyAcDispositionKind } from "@deftai/directive-core/product-first-done-gate";
 import { isDirectEntrypoint } from "./entrypoint.js";
+import { resolveControllerVerifyAc } from "./verify-ac.js";
 
 const USAGE = `Usage: deft pre-pr:run [options]
 
@@ -50,7 +52,10 @@ Options:
   --skill-version <ver>
   --policy-version <ver>
   --run-id <id>           lookup hint only
-  --complete              publisher-backed complete (fails without observables)
+  --complete              publisher-backed complete (fails without observables).
+                          Runs verify:ac story selection and evaluation itself
+                          and records the disposition from that result; a
+                          failed verify:ac refuses and publishes nothing (#6888)
   --observe-command       record a command-observable phase before --complete
   --observe-semantic      record semantic / final-no-change evidence
   --phase <id>
@@ -65,7 +70,8 @@ Options:
   --reviewed-file <path>  (repeatable)
   --reviewer-report-ref <ref>
   --verify-ac-disposition <executed-ac|no-obligation>
-                          direct verify:ac disposition for ordinary pre-PR (#5855)
+                          optional with --complete; a value that differs from
+                          the controller's verify:ac result refuses (#6888)
   --mark-complete         always refuses; cannot mint a pass
   --skill-open            always refuses; opening the skill is not completion
   --evaluate              evaluate live binding against the private store
@@ -419,6 +425,8 @@ export interface PrePrRunOptions {
     projectRoot: string,
     baseRef: string | null,
   ) => readonly PrePrGateCheckResult[];
+  /** Controller-owned verify:ac seam for hermetic tests (#6888); defaults to resolveControllerVerifyAc. */
+  readonly verifyAc?: (projectRoot: string) => ControllerVerifyAcResult;
 }
 
 /** No start binding beyond --repo (which the story-line step also reads). */
@@ -625,8 +633,17 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     // #5804 / #5994: projectRoot is required so completeRun can stamp
     // pushBinding.reviewedDeletedPaths from base..head.
     const projectRoot = args.projectRoot?.trim() || process.cwd();
+    // #6888: --complete runs verify:ac itself on every call; the caller's
+    // --verify-ac-disposition is only a claim that must match the result.
+    const verifyAcResult = (
+      options.verifyAc ?? ((root: string) => resolveControllerVerifyAc({ projectRoot: root }))
+    )(projectRoot);
+    if (verifyAcResult.kind === "fail" && verifyAcResult.output.length > 0) {
+      process.stderr.write(`${verifyAcResult.output}\n`);
+    }
     const d = completeRun(store, controllerPublisher(), args.runId, undefined, {
       projectRoot,
+      verifyAcResult,
       // #6336 item 7: let the controller look up the head's PR before it says there is none.
       runGh: defaultRunGh,
       ...(options.skipNamedMergeGate === true ? { skipNamedMergeGate: true as const } : {}),

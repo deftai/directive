@@ -21,6 +21,7 @@ import {
 } from "../authz/gate-override.js";
 import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
 import {
+  type ControllerVerifyAcResult,
   completeRun,
   computeControllerObservedHash,
   failRun,
@@ -37,6 +38,7 @@ import {
   runPrePrGateChecks,
   startControllerRun,
   submitReviewerReport,
+  VERIFY_AC_NO_TARGET_NOTE,
 } from "./controller.js";
 import { digestApprovedCriteria } from "./criteria.js";
 import { evaluatePrePrEvidence } from "./evaluate.js";
@@ -66,6 +68,9 @@ const PASS_GATE_CHECKS: readonly PrePrGateCheckResult[] = [
 function gateChecksFor(phaseId: string): { gateChecks?: readonly PrePrGateCheckResult[] } {
   return phaseId === "lint_iteration" ? { gateChecks: PASS_GATE_CHECKS } : {};
 }
+
+/** Controller-owned verify:ac pass that completeRun now requires (#6888). */
+const VERIFY_AC_PASS: ControllerVerifyAcResult = { kind: "evaluated-pass", output: "" };
 
 // Pass-through fs spies so a test can make lstat or open misbehave for the
 // coverage report path only. There is no production hook between the presence
@@ -354,7 +359,10 @@ describe("controller observations", () => {
     ).toBe(true);
     expect(store.getById(rec.id)?.finalNoChange).toBe(false);
     expect(
-      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).ok,
     ).toBe(false);
   });
 
@@ -381,7 +389,10 @@ describe("controller observations", () => {
       }).code,
     ).toBe("deny-missing-record");
     expect(
-      completeRun(store, mintPublisher(), "missing", undefined, { skipNamedMergeGate: true }).code,
+      completeRun(store, mintPublisher(), "missing", undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
     ).toBe("deny-missing-record");
   });
 
@@ -417,7 +428,10 @@ describe("controller observations", () => {
       });
     }
     expect(
-      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).ok,
     ).toBe(true);
     expect(
       observeCommandPhase(store, rec.id, {
@@ -473,7 +487,10 @@ describe("controller observations", () => {
     const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord);
     expect(decided.code).toBe("deny-out-of-order");
     expect(
-      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).code,
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
     ).toBe("deny-out-of-order");
   });
 
@@ -504,7 +521,10 @@ describe("controller observations", () => {
       }
     }
     expect(
-      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).ok,
     ).toBe(true);
     const published = store.getById(rec.id) as PrePrExecutionRecord;
     expect(published.outcome).toBe("pass");
@@ -519,7 +539,7 @@ describe("controller observations", () => {
     );
   });
 
-  it("stamps no-obligation from direct verify:ac disposition without merge_chokepoint (#5855)", () => {
+  it("stamps no-obligation from an untied controller verify:ac result with a matching claim (#5855 / #6888)", () => {
     const store = new InProcessPrePrStore();
     const rec = start(store, "ppr_direct_no_obl");
     const root = mkdtempSync(join(tmpdir(), "pre-pr-no-obl-"));
@@ -557,6 +577,7 @@ describe("controller observations", () => {
       completeRun(store, mintPublisher(), rec.id, undefined, {
         skipNamedMergeGate: true,
         projectRoot: root,
+        verifyAcResult: { kind: "untied-no-obligation", output: "" },
         verifyAcDisposition: "no-obligation",
       }).ok,
     ).toBe(true);
@@ -569,7 +590,7 @@ describe("controller observations", () => {
     );
   });
 
-  it("re-derives no-obligation from merge_chokepoint exit 6 + closed skip (#5855)", () => {
+  it("a merge_chokepoint exit 6 row no longer sets the disposition; the controller result does (#6888)", () => {
     const store = new InProcessPrePrStore();
     const rec = start(store, "ppr_merge_no_obl");
     const root = mkdtempSync(join(tmpdir(), "pre-pr-merge-no-obl-"));
@@ -609,10 +630,11 @@ describe("controller observations", () => {
       completeRun(store, mintPublisher(), rec.id, undefined, {
         skipNamedMergeGate: true,
         projectRoot: root,
+        verifyAcResult: VERIFY_AC_PASS,
       }).ok,
     ).toBe(true);
     expect(readPushBindingDisposition(store.getById(rec.id)?.pushBinding).verifyAcDisposition).toBe(
-      "no-obligation",
+      "executed-ac",
     );
   });
 
@@ -652,7 +674,10 @@ describe("controller observations", () => {
       }).ok,
     ).toBe(true);
     expect(
-      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).code,
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
     ).toBe("deny-failed");
   });
 
@@ -692,7 +717,10 @@ describe("controller observations", () => {
       }).ok,
     ).toBe(true);
     expect(
-      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).code,
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).code,
     ).toBe("deny-failed");
   });
 
@@ -2375,6 +2403,7 @@ describe("pre-PR master Merge gate refusal (#6295 item 6)", () => {
     const rec = start(store, `ppr_6295_${Math.random().toString(36).slice(2)}`);
     return completeRun(store, mintPublisher(), rec.id, undefined, {
       namedMergeGateFn,
+      verifyAcResult: VERIFY_AC_PASS,
       prNumber: 6295,
       ...(mergeQueueFn !== undefined ? { mergeQueueFn } : {}),
     }).code;
@@ -2568,7 +2597,10 @@ describe("pre-PR runs verify:class-checks and verify:evaluator-surface in lint_i
     const store = new InProcessPrePrStore();
     const rec = start(store, "ppr_6336_one");
     observeCommands(store, rec, [PASS_GATE_CHECKS[0] as PrePrGateCheckResult]);
-    const d = completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true });
+    const d = completeRun(store, mintPublisher(), rec.id, undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: VERIFY_AC_PASS,
+    });
     expect(d.code).toBe("deny-omitted-phase");
     expect(d.message).toContain("lint_iteration");
   });
@@ -2577,7 +2609,10 @@ describe("pre-PR runs verify:class-checks and verify:evaluator-surface in lint_i
     const store = new InProcessPrePrStore();
     const rec = start(store, "ppr_6336_redc");
     observeCommands(store, rec, RED_CLASS);
-    const d = completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true });
+    const d = completeRun(store, mintPublisher(), rec.id, undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: VERIFY_AC_PASS,
+    });
     expect(d.code).toBe("deny-omitted-phase");
   });
 
@@ -2586,7 +2621,10 @@ describe("pre-PR runs verify:class-checks and verify:evaluator-surface in lint_i
     const rec = start(store, "ppr_6336_ok");
     observeCommands(store, rec, PASS_GATE_CHECKS);
     expect(
-      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
+      }).ok,
     ).toBe(true);
   });
 
@@ -2623,6 +2661,7 @@ describe("pre-PR runs verify:class-checks and verify:evaluator-surface in lint_i
       expect(skip.ok).toBe(true);
       const d = completeRun(store, mintPublisher(), rec.id, undefined, {
         skipNamedMergeGate: true,
+        verifyAcResult: VERIFY_AC_PASS,
         projectRoot,
       });
       expect(d.code).toBe("deny-omitted-phase");
@@ -2676,6 +2715,7 @@ describe("pre-pr:run --complete on a head with no pull request (#6336 item 7)", 
     });
     return completeRun(store, mintPublisher(), rec.id, undefined, {
       namedMergeGateFn,
+      verifyAcResult: VERIFY_AC_PASS,
       mergeQueueFn: noQueue,
       env: {},
       // The head's PR lookup runs and finds none (commits/<sha>/pulls is empty).
@@ -2737,5 +2777,150 @@ describe("pre-PR body hash normalisation (#6336 item 8)", () => {
       hashPrBody("Refs #6336\n\ndeft-story: 6336"),
     );
     expect(hashPrBody("a\n\nb")).not.toBe(hashPrBody("a\nb"));
+  });
+});
+
+describe("pre-pr:run --complete owns the verify:ac result (#6888)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  });
+
+  /** A run with every required phase observed over a real reviewed file. */
+  function readyRun(runId: string): {
+    store: InProcessPrePrStore;
+    rec: PrePrExecutionRecord;
+    root: string;
+  } {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, runId);
+    const root = mkdtempSync(join(tmpdir(), "pre-pr-6888-"));
+    roots.push(root);
+    writeFileSync(join(root, "a.ts"), "export {}\n");
+    const hash = computeControllerObservedHash({ reviewedFiles: ["a.ts"], cwd: root }) as string;
+    for (const spec of PRE_PR_PHASES) {
+      if (!spec.required) continue;
+      if (spec.kind === "command-observable") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          ...gateChecksFor(spec.id),
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      } else {
+        submitReviewerReport(store, rec.id, {
+          phaseId: spec.id,
+          reviewedFileManifest: ["a.ts"],
+          suppliedContentsHash: hash,
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: hash,
+        });
+      }
+    }
+    return { store, rec, root };
+  }
+
+  function complete(
+    run: { store: InProcessPrePrStore; rec: PrePrExecutionRecord; root: string },
+    extra: {
+      verifyAcResult?: ControllerVerifyAcResult | null;
+      verifyAcDisposition?: "executed-ac" | "no-obligation";
+    },
+  ) {
+    return completeRun(run.store, mintPublisher(), run.rec.id, undefined, {
+      skipNamedMergeGate: true,
+      projectRoot: run.root,
+      ...extra,
+    });
+  }
+
+  function stored(run: { store: InProcessPrePrStore; rec: PrePrExecutionRecord }) {
+    return run.store.getById(run.rec.id) as PrePrExecutionRecord;
+  }
+
+  it("refuses when the controller-owned result is absent and publishes nothing", () => {
+    const run = readyRun("ppr_6888_absent");
+    const d = complete(run, {});
+    expect(d.ok).toBe(false);
+    expect(d.message).toContain("controller-owned verify:ac result is missing");
+    expect(stored(run).outcome).not.toBe("pass");
+    expect(complete(run, { verifyAcResult: null }).ok).toBe(false);
+  });
+
+  it("refuses a failed verify:ac with no flag, and with executed-ac claimed", () => {
+    const fail: ControllerVerifyAcResult = { kind: "fail", output: "verify:ac: clause 3 failed" };
+    const run = readyRun("ppr_6888_fail");
+    const noFlag = complete(run, { verifyAcResult: fail });
+    expect(noFlag.ok).toBe(false);
+    expect(noFlag.message).toContain("verify:ac failed");
+    expect(stored(run).outcome).not.toBe("pass");
+    const claimed = complete(run, { verifyAcResult: fail, verifyAcDisposition: "executed-ac" });
+    expect(claimed.ok).toBe(false);
+    expect(stored(run).outcome).not.toBe("pass");
+    expect(stored(run).pushBinding).toBeNull();
+  });
+
+  it("records executed-ac for a selected brief that evaluates ok", () => {
+    const run = readyRun("ppr_6888_pass");
+    expect(complete(run, { verifyAcResult: VERIFY_AC_PASS }).ok).toBe(true);
+    const disposition = readPushBindingDisposition(stored(run).pushBinding);
+    expect(disposition.verifyAcDisposition).toBe("executed-ac");
+    expect(disposition.admittedUntiedWorktreeKey).toBeNull();
+  });
+
+  it("records no-obligation with the worktree key for an untied branch", () => {
+    const run = readyRun("ppr_6888_untied");
+    expect(
+      complete(run, { verifyAcResult: { kind: "untied-no-obligation", output: "untied" } }).ok,
+    ).toBe(true);
+    const disposition = readPushBindingDisposition(stored(run).pushBinding);
+    expect(disposition.verifyAcDisposition).toBe("no-obligation");
+    expect(disposition.admittedUntiedWorktreeKey).not.toBeNull();
+  });
+
+  it("records no disposition when no brief was selected and says so", () => {
+    const run = readyRun("ppr_6888_none");
+    const d = complete(run, { verifyAcResult: { kind: "no-target", output: "skipped" } });
+    expect(d.ok).toBe(true);
+    expect(d.message).toContain(VERIFY_AC_NO_TARGET_NOTE);
+    expect(stored(run).pushBinding).not.toBeNull();
+    expect(readPushBindingDisposition(stored(run).pushBinding).verifyAcDisposition).toBeNull();
+  });
+
+  it("refuses a --verify-ac-disposition that differs from the result", () => {
+    const run = readyRun("ppr_6888_conflict");
+    const passVsUntied = complete(run, {
+      verifyAcResult: VERIFY_AC_PASS,
+      verifyAcDisposition: "no-obligation",
+    });
+    expect(passVsUntied.ok).toBe(false);
+    expect(passVsUntied.message).toContain("differs from the controller's verify:ac result");
+    const noTarget = complete(run, {
+      verifyAcResult: { kind: "no-target", output: "" },
+      verifyAcDisposition: "executed-ac",
+    });
+    expect(noTarget.ok).toBe(false);
+    expect(noTarget.message).toContain("no brief selected");
+    expect(stored(run).outcome).not.toBe("pass");
+    // A matching claim is accepted.
+    expect(
+      complete(run, { verifyAcResult: VERIFY_AC_PASS, verifyAcDisposition: "executed-ac" }).ok,
+    ).toBe(true);
+  });
+
+  it("a green merge_chokepoint row does not set the disposition", () => {
+    const run = readyRun("ppr_6888_merge_row");
+    observeCommandPhase(run.store, run.rec.id, {
+      phaseId: "merge_chokepoint",
+      command: "deft check",
+      exitCode: 0,
+      inputHash: run.rec.inputHash,
+      skipReason: null,
+    });
+    expect(complete(run, { verifyAcResult: { kind: "no-target", output: "" } }).ok).toBe(true);
+    expect(readPushBindingDisposition(stored(run).pushBinding).verifyAcDisposition).toBeNull();
   });
 });

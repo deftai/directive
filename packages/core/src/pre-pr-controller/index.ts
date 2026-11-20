@@ -1,4 +1,5 @@
 export {
+  type ControllerVerifyAcResult,
   completeRun,
   computeControllerObservedHash,
   controllerPublisher,
@@ -21,6 +22,7 @@ export {
   type StartControllerRunResult,
   startControllerRun,
   submitReviewerReport,
+  VERIFY_AC_NO_TARGET_NOTE,
 } from "./controller.js";
 export {
   bumpGeneration,
