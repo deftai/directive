@@ -18,6 +18,7 @@ import {
   smokeSpawnPlan,
   TYPESCRIPT_BUILD_LINT_CHECK_NAME,
 } from "./ci-reuse.js";
+import { RELEASE_CHECK_TIMEOUT_MS } from "./constants.js";
 import type { ReleaseSeams } from "./types.js";
 
 const REPO = "deftai/directive";
@@ -272,6 +273,41 @@ describe("runHostSmokeCheck (#6791)", () => {
     expect(errOk).toBe(false);
     expect(errReason).toMatch(/ETIMEDOUT/);
     expect(runHostSmokeCheck("/repo", { pnpm: null })[0]).toBe(false);
+  });
+});
+
+describe("smoke check deadline (#6791 Greptile P2)", () => {
+  it("gives the second command only the time left of one shared deadline", () => {
+    let clock = 1_000;
+    const budgets: number[] = [];
+    const [ok] = runHostSmokeCheck("/repo", {
+      pnpm: "pnpm",
+      nowMs: () => clock,
+      runner: (_cmd, _args, _cwd, timeoutMs) => {
+        budgets.push(timeoutMs);
+        clock += timeoutMs - 5;
+        return { status: 0 };
+      },
+    });
+    expect(ok).toBe(true);
+    expect(budgets).toEqual([RELEASE_CHECK_TIMEOUT_MS, 5]);
+  });
+
+  it("stops before the tests when the build used the whole deadline", () => {
+    let clock = 0;
+    let calls = 0;
+    const [ok, reason] = runHostSmokeCheck("/repo", {
+      pnpm: "pnpm",
+      nowMs: () => clock,
+      runner: (_cmd, _args, _cwd, timeoutMs) => {
+        calls += 1;
+        clock += timeoutMs;
+        return { status: 0 };
+      },
+    });
+    expect(ok).toBe(false);
+    expect(reason).toMatch(/ran out of time before pnpm exec vitest run/);
+    expect(calls).toBe(1);
   });
 });
 

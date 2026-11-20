@@ -236,6 +236,7 @@ type SmokeRunner = (
   command: string,
   args: readonly string[],
   cwd: string,
+  timeoutMs: number,
 ) => { status: number | null; error?: Error };
 
 /**
@@ -271,6 +272,7 @@ export function runSmokeCommand(
   command: string,
   args: readonly string[],
   cwd: string,
+  timeoutMs: number = RELEASE_CHECK_TIMEOUT_MS,
 ): { status: number | null; error?: Error } {
   const plan = smokeSpawnPlan(command, args, cwd);
   const result = spawnSync(plan.command, [...plan.args], {
@@ -279,30 +281,42 @@ export function runSmokeCommand(
     stdio: "inherit",
     shell: plan.shell,
     windowsVerbatimArguments: plan.windowsVerbatimArguments,
-    timeout: RELEASE_CHECK_TIMEOUT_MS,
+    timeout: timeoutMs,
   });
   return { status: result.status, error: result.error };
 }
 
 /**
  * Run the short host smoke check: build, then the fixed host test files
- * without coverage. Returns the pipeline's `[ok, message]` tuple.
+ * without coverage. Both commands share one deadline of
+ * RELEASE_CHECK_TIMEOUT_MS from the start, so the smoke check never outlasts
+ * the full check's budget. Returns the pipeline's `[ok, message]` tuple.
  */
 export function runHostSmokeCheck(
   projectRoot: string,
-  options: { readonly pnpm?: string | null; readonly runner?: SmokeRunner } = {},
+  options: {
+    readonly pnpm?: string | null;
+    readonly runner?: SmokeRunner;
+    readonly nowMs?: () => number;
+  } = {},
 ): [boolean, string] {
   const pnpm = options.pnpm !== undefined ? options.pnpm : resolvePnpm();
   if (pnpm === null) {
     return [false, "host smoke check needs pnpm on PATH"];
   }
   const runner = options.runner ?? runSmokeCommand;
+  const nowMs = options.nowMs ?? Date.now;
+  const deadlineMs = nowMs() + RELEASE_CHECK_TIMEOUT_MS;
   const steps: ReadonlyArray<readonly string[]> = [
     ["run", "build"],
     ["exec", "vitest", "run", ...RELEASE_HOST_SMOKE_TEST_FILES],
   ];
   for (const args of steps) {
-    const result = runner(pnpm, args, projectRoot);
+    const remainingMs = deadlineMs - nowMs();
+    if (remainingMs <= 0) {
+      return [false, `host smoke check ran out of time before pnpm ${args.join(" ")}`];
+    }
+    const result = runner(pnpm, args, projectRoot, remainingMs);
     if (result.status !== 0) {
       const why = result.error ? result.error.message : `exit ${result.status ?? "signal"}`;
       return [false, `host smoke check failed at pnpm ${args.join(" ")} (${why})`];
