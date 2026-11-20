@@ -7,13 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.130.1
+- [release-line] v0.130.2
 
 ### Added
 
 ### Changed
 
 ### Fixed
+
+### Removed
+
+## [0.130.2] - 2026-11-20
+### Added
+
+### Changed
+
+- Complete #6842 after merge of #6857.
+
+### Fixed
+
+- A fresh install now commits `.deft/directive/data-schema.json`: the deposited `.gitignore` keeps `.deft/directive/` trackable and still ignores its readiness markers (#6842).
 
 ### Removed
 
@@ -8330,7 +8343,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.130.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.130.2...HEAD
+[0.130.2]: https://github.com/deftai/directive/compare/v0.130.1...v0.130.2
 [0.130.1]: https://github.com/deftai/directive/compare/v0.130.0...v0.130.1
 [0.130.0]: https://github.com/deftai/directive/compare/v0.129.15...v0.130.0
 [0.129.15]: https://github.com/deftai/directive/compare/v0.129.14...v0.129.15

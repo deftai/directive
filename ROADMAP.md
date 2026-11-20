@@ -46,8 +46,9 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2031 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2032 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6842** -- bug(setup): 0.130.1 .gitignore hides .deft/directive/data-schema.json from fresh-install commits -- `[completed]`
 - **#6808** -- 0.130.1: consumer setup fixes (hook rewrite, forward-coverage warn-only, getting-started order, runtime gitignore) -- `[completed]`
 - **#6793** -- docs(release): release skill predates the release-PR flow; document the full cut sequence -- `[completed]`
 - **#6749** -- ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests -- `[completed]`
@@ -72,5 +73,4 @@ _Showing 25 of 2031 completed scopes (newest first). Full history: lifecycle `co
 - **#5999** -- Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success -- `[completed]`
 - **#5959** -- Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory -- `[completed]`
 - **#6005** -- --root with a lowercase drive letter is rejected as not the Git working-tree root on Windows -- `[completed]`
-- **#6620** -- hooks: one start-up guard order and one recovery message table for the host-hook outer, deft-hook and hook-bin -- `[completed]`
 
