@@ -1,0 +1,243 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6875",
+    "updated": "2026-11-20T19:08:01Z"
+  },
+  "plan": {
+    "title": "release:run (#6845 S2): publish gates accept only the run's grant, bound to the merged tree and the cut base",
+    "status": "running",
+    "narratives": {
+      "Description": "The tag gate (release/closed-verb-gate.ts, called from release/finish.ts) and the draft-flip gate (release-publish/pipeline.ts) accept any active release-publish grant for the version, and the finish step does not compare the parent of the merged release commit M with the cut base B. This story adds an optional run binding (the grant id that release:run recorded, and B) that makes both gates evaluate only that grant with target <version>@<tree>, with the tree read from M or from the commit the remote tag peels to, and makes the finish step refuse unless the sole parent of M is B. Release notes and the upgrade banner are read from M. Without the binding, release --finish and release:publish behave as today. This is S2 of the #6845 split and has no dependencies.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6875",
+      "Overview": "The release tag gate and the draft-flip gate accept any active `release-publish` grant for the version, and the finish step does not check that the merged release commit sits directly on the cut base. An up-front approval for `deft release:run` (#6845) needs both gates to accept only the run's own grant, bound to the tree read from the merged commit, and needs the release notes read from that commit. In the clauses, B is the cut base (the fetched delivery-branch tip), T is the tree of the release commit and M is the merged release commit.\n\n## Acceptance Criteria\n\n- [ ] Content-bound gates. Under the run, the tag gate and the draft-flip gate evaluate only the `release-publish` grant whose id the run recorded, with target `<version>@<tree>`. The tree is read from M for the tag gate and from the commit the remote tag peels to for the draft flip, never from the run record. Any other grant, including one with empty surfaces, does not satisfy them, and a version-only target does not match. The `DEFT_ALLOW_RELEASE_PUBLISH=1` env bypass keeps its break-glass meaning.\n- [ ] Given only a version-only `release-publish` grant, when the tag gate runs, then it refuses and no tag is created.\n- [ ] Given a merged release commit whose tree is not T and another active `release-publish` grant with empty surfaces, when the tag gate runs under the run, then it refuses and no tag is pushed.\n- [ ] Given a PR that lands ahead of the release PR, when the finish step runs, then it refuses before the tag and the run stops and names the break-glass recovery.\n- [ ] Given PRs that land ahead and leave the tree of B unchanged, so that M has tree T and no leftover entries, when the finish step runs or `--resume` would push a local-only tag, then it refuses because the parent of M is not B.\n- [ ] Given draft release notes, then the notes and the upgrade banner are read from M.\n\nRefs #6845\n\nDepends on: none.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As a release operator, I want the tag and draft-flip gates to accept only the grant my release run minted for the exact merged tree and cut base, so that an unattended run cannot tag or publish bytes I did not approve.",
+      "ImplementationPlan": "- packages/core/src/release/types.ts: add ReleaseRunBinding { grantId, expectedBase } and an optional runBinding on ReleaseConfig; release-publish/pipeline.ts imports it, so release-publish/types.ts stays unchanged.\n- packages/core/src/release/closed-verb-gate.ts: with a binding, the tag gate keeps only the bound grant id and evaluates target <version>@<tree of M>; any other grant, a grant with empty surfaces or a version-only target refuses; DEFT_ALLOW_RELEASE_PUBLISH=1 keeps its break-glass meaning.\n- packages/core/src/release/finish.ts: with a binding, after checkMergeCommit resolve the sole parent of M and refuse unless it is B, before the tag is created; export that parent check so the S4 resume runs it before pushing a local-only tag; read the tree of M with git rev-parse and pass it to the gate; read the upgrade banner from M with git show (CHANGELOG text is already read from M).\n- packages/core/src/release/changelog.ts: prependUpgradeBanner takes the banner text (or a commit-scoped reader) so the finish step can supply it from M.\n- packages/core/src/release-publish/pipeline.ts: evaluateReleasePublishGate and runPublish take an optional run grant id; the draft flip reads the tree the remote tag v<version> peels to and evaluates <version>@<tree> against only that grant.\n- Refusals are returned failures with string reason text. No new throw sites and no new numeric constants; exit codes reuse EXIT_* from release/constants.ts.\n- Reading of clause 2: the version-only refusal applies under the run binding. The manual release --finish path keeps accepting a version-only grant until S5 (#6878) replaces the runbook.\n- Tests: finish.test.ts, closed-verb-gate.test.ts, release-publish/pipeline.test.ts and changelog.test.ts cover each clause.",
+      "Traces": "#6875, #6845"
+    },
+    "items": [
+      {
+        "title": "Content-bound gates. Under the run, the tag gate and the draft-flip gate evaluate only the `release-publish` grant whose id the run recorded, with target `<version>@<tree>`. The tree is read from M for the tag gate and from the commit the remote tag peels to for the draft flip, never from the run record. Any other grant, including one with empty surfaces, does not satisfy them, and a version-only target does not match. The `DEFT_ALLOW_RELEASE_PUBLISH=1` env bypass keeps its break-glass meaning.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When release:run supplies its recorded grant id, then the tag gate and the draft-flip gate accept only that grant with target <version>@<tree>, read the tree from M or from the commit the remote tag peels to, refuse any other grant, a grant with empty surfaces and a version-only target, and DEFT_ALLOW_RELEASE_PUBLISH=1 still bypasses."
+        }
+      },
+      {
+        "title": "Given only a version-only `release-publish` grant, when the tag gate runs, then it refuses and no tag is created.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the tag gate runs under the run binding and the only release-publish grant has a version-only target, then it refuses and no tag is created."
+        }
+      },
+      {
+        "title": "Given a merged release commit whose tree is not T and another active `release-publish` grant with empty surfaces, when the tag gate runs under the run, then it refuses and no tag is pushed.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the tag gate runs under the run, the tree of M is not T and another active release-publish grant has empty surfaces, then it refuses and no tag is pushed."
+        }
+      },
+      {
+        "title": "Given a PR that lands ahead of the release PR, when the finish step runs, then it refuses before the tag and the run stops and names the break-glass recovery.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the finish step runs with cut base B and a PR landed ahead of the release PR, then it refuses before the tag and names the break-glass recovery."
+        }
+      },
+      {
+        "title": "Given PRs that land ahead and leave the tree of B unchanged, so that M has tree T and no leftover entries, when the finish step runs or `--resume` would push a local-only tag, then it refuses because the parent of M is not B.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When the finish step runs, or a resume would push a local-only tag, and M has tree T and no leftover entries but its parent is not B, then it refuses because the parent of M is not B."
+        }
+      },
+      {
+        "title": "Given draft release notes, then the notes and the upgrade banner are read from M.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the finish step creates the draft release, then the release notes and the upgrade banner are read from M with git show, not from the local checkout."
+        }
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6875",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6875: release:run (#6845 S2): publish gates accept only the run's grant, bound to the merged tree and the cut base"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6845",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6845"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft release:run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L3"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/finish.ts",
+          "packages/core/src/release/closed-verb-gate.ts",
+          "packages/core/src/release/types.ts",
+          "packages/core/src/release/changelog.ts",
+          "packages/core/src/release-publish/pipeline.ts",
+          "packages/core/src/release/finish.test.ts",
+          "packages/core/src/release/closed-verb-gate.test.ts",
+          "packages/core/src/release/changelog.test.ts",
+          "packages/core/src/release-publish/pipeline.test.ts",
+          "changelog.d/6875-release-run-bound-publish-gates.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6517855731.json"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/finish.test.ts packages/core/src/release/closed-verb-gate.test.ts",
+          "pnpm exec vitest run packages/core/src/release-publish/pipeline.test.ts packages/core/src/release/changelog.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "acceptance_criteria_justification": "Six criteria, copied verbatim from the #6845 completed-arc lean (bound lean 7032154033). Clause 1 states the gate rule and clauses 2 to 6 are its Given/When/Then cases; splitting them would separate one gate change from its own tests.",
+        "expected_outputs": [
+          "packages/core/src/release/closed-verb-gate.ts and packages/core/src/release-publish/pipeline.ts evaluate only the run-recorded release-publish grant with target <version>@<tree> when a run binding is given",
+          "packages/core/src/release/finish.ts refuses before the tag unless the sole parent of M is the cut base, and reads the upgrade banner from M",
+          "changelog.d/6875-release-run-bound-publish-gates.md"
+        ],
+        "conflict_group": "release-core",
+        "model_tier": "high"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because these clauses come verbatim from the #6845 completed arc (bound lean 7032154033)\n\n",
+          "id": 7048202730,
+          "html_url": "https://github.com/deftai/directive/issues/6875#issuecomment-7048202730",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T19:05:30Z",
+          "updated_at": "2026-11-20T19:05:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6517855731,
+        "origin": "deftai/directive#6875",
+        "id": "github.issue.6517855731"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (6), in order (#6333)",
+      "sentences": [
+        "Content-bound gates. Under the run, the tag gate and the draft-flip gate evaluate only the `release-publish` grant whose id the run recorded, with target `<version>@<tree>`. The tree is read from M for the tag gate and from the commit the remote tag peels to for the draft flip, never from the run record. Any other grant, including one with empty surfaces, does not satisfy them, and a version-only target does not match. The `DEFT_ALLOW_RELEASE_PUBLISH=1` env bypass keeps its break-glass meaning.",
+        "Given only a version-only `release-publish` grant, when the tag gate runs, then it refuses and no tag is created.",
+        "Given a merged release commit whose tree is not T and another active `release-publish` grant with empty surfaces, when the tag gate runs under the run, then it refuses and no tag is pushed.",
+        "Given a PR that lands ahead of the release PR, when the finish step runs, then it refuses before the tag and the run stops and names the break-glass recovery.",
+        "Given PRs that land ahead and leave the tree of B unchanged, so that M has tree T and no leftover entries, when the finish step runs or `--resume` would push a local-only tag, then it refuses because the parent of M is not B.",
+        "Given draft release notes, then the notes and the upgrade banner are read from M."
+      ],
+      "admitted_source_sentences": [
+        "Content-bound gates. Under the run, the tag gate and the draft-flip gate evaluate only the `release-publish` grant whose id the run recorded, with target `<version>@<tree>`. The tree is read from M for the tag gate and from the commit the remote tag peels to for the draft flip, never from the run record. Any other grant, including one with empty surfaces, does not satisfy them, and a version-only target does not match. The `DEFT_ALLOW_RELEASE_PUBLISH=1` env bypass keeps its break-glass meaning.",
+        "Given only a version-only `release-publish` grant, when the tag gate runs, then it refuses and no tag is created.",
+        "Given a merged release commit whose tree is not T and another active `release-publish` grant with empty surfaces, when the tag gate runs under the run, then it refuses and no tag is pushed.",
+        "Given a PR that lands ahead of the release PR, when the finish step runs, then it refuses before the tag and the run stops and names the break-glass recovery.",
+        "Given PRs that land ahead and leave the tree of B unchanged, so that M has tree T and no leftover entries, when the finish step runs or `--resume` would push a local-only tag, then it refuses because the parent of M is not B.",
+        "Given draft release notes, then the notes and the upgrade banner are read from M."
+      ],
+      "admitted_source_digest": "63030e8dbd3bb95519ef7149cbcc7061d135f940c229e45ba50b6a84921cb49c",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Content-bound gates. Under the run, the tag gate and the draft-flip gate evaluate only the `release-publish` grant whose id the run recorded, with target `<version>@<tree>`. The tree is read from M for the tag gate and from the commit the remote tag peels to for the draft flip, never from the run record. Any other grant, including one with empty surfaces, does not satisfy them, and a version-only target does not match. The `DEFT_ALLOW_RELEASE_PUBLISH=1` env bypass keeps its break-glass meaning.",
+          "artifact_path": "packages/core/src/release/closed-verb-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given only a version-only `release-publish` grant, when the tag gate runs, then it refuses and no tag is created.",
+          "artifact_path": "packages/core/src/release/closed-verb-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given a merged release commit whose tree is not T and another active `release-publish` grant with empty surfaces, when the tag gate runs under the run, then it refuses and no tag is pushed.",
+          "artifact_path": "packages/core/src/release/closed-verb-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given a PR that lands ahead of the release PR, when the finish step runs, then it refuses before the tag and the run stops and names the break-glass recovery.",
+          "artifact_path": "packages/core/src/release/finish.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given PRs that land ahead and leave the tree of B unchanged, so that M has tree T and no leftover entries, when the finish step runs or `--resume` would push a local-only tag, then it refuses because the parent of M is not B.",
+          "artifact_path": "packages/core/src/release/finish.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given draft release notes, then the notes and the upgrade banner are read from M.",
+          "artifact_path": "packages/core/src/release/finish.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6517855731",
+    "updated": "2026-11-20T19:08:01Z"
+  }
+}
