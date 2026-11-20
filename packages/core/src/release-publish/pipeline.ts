@@ -10,7 +10,6 @@ import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
 import { loadVerbClassification } from "../authz/verb-classification.js";
 import { EXIT_OK, EXIT_VIOLATION } from "../release/constants.js";
 import { resolveGh } from "../release/gh.js";
-import { runGit } from "../release/git.js";
 import { spawnText } from "../release/spawn.js";
 import type { SpawnResult } from "../release/types.js";
 import { plainGhEnv } from "../subprocess/plain-gh-env.js";
@@ -242,34 +241,97 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
   return EXIT_OK;
 }
 
+type TagTreeResult =
+  | { readonly ok: true; readonly tree: string }
+  | { readonly ok: false; readonly reason: string };
+
+/** One REST GET that must return a JSON object; returned failure otherwise. */
+function ghApiObject(
+  ghPath: string,
+  endpoint: string,
+  seams: ReleasePublishSeams,
+):
+  | { readonly ok: true; readonly value: Record<string, unknown> }
+  | { readonly ok: false; readonly reason: string } {
+  const spawn = seams.spawnText ?? spawnText;
+  let result: SpawnResult;
+  try {
+    // Live gh (not the cached ghx reader), same options as the other gh calls in this file.
+    result = spawn(ghPath, ["api", endpoint], { timeoutMs: 120_000, env: plainGhEnv() });
+  } catch {
+    return { ok: false, reason: "gh CLI not found on PATH" };
+  }
+  if (result.status !== 0) {
+    return { ok: false, reason: `gh api ${endpoint} failed: ${(result.stderr ?? "").trim()}` };
+  }
+  try {
+    const parsed = JSON.parse(result.stdout) as unknown;
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return { ok: true, value: parsed as Record<string, unknown> };
+    }
+  } catch {
+    // fall through to the returned failure below
+  }
+  return { ok: false, reason: `gh api ${endpoint} did not return a JSON object` };
+}
+
+/** `{ type, sha }` of a git object reference in a REST payload, or null. */
+function gitObjectOf(value: unknown): { readonly type: string; readonly sha: string } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { type, sha } = value as { type?: unknown; sha?: unknown };
+  if (typeof type !== "string" || typeof sha !== "string" || sha.trim().length === 0) return null;
+  return { type, sha: sha.trim() };
+}
+
 /**
- * #6875 -- tree of the commit the remote tag `tag` peels to. Fetches the tag
- * into FETCH_HEAD only (no local ref is written), then peels it to its tree.
+ * #6875 -- tree of the commit that tag `tag` points to on `repo`, the repository
+ * the draft flip publishes to. Read through REST only (ref, then the annotated
+ * tag object when there is one, then the commit), so no local fetch, FETCH_HEAD
+ * or origin remote is involved. Anything unexpected is a returned failure.
  */
-export function remoteTagTree(
-  projectRoot: string,
+export function publishRepoTagTree(
+  repo: string,
   tag: string,
   seams: ReleasePublishSeams = {},
-): { readonly ok: true; readonly tree: string } | { readonly ok: false; readonly reason: string } {
-  const fetched = runGit(projectRoot, ["fetch", "--no-tags", "origin", `refs/tags/${tag}`], seams);
-  if (fetched.status !== 0) {
-    return { ok: false, reason: `git fetch of remote tag ${tag} failed: ${fetched.stderr.trim()}` };
+): TagTreeResult {
+  const ghPath = resolveGh(seams);
+  if (ghPath === null) return { ok: false, reason: "gh CLI not found on PATH" };
+  const ref = ghApiObject(ghPath, `repos/${repo}/git/ref/tags/${tag}`, seams);
+  if (!ref.ok) return ref;
+  let target = gitObjectOf(ref.value.object);
+  if (target === null) {
+    return { ok: false, reason: `tag ${tag} on ${repo} has no object in its ref` };
   }
-  const peeled = runGit(projectRoot, ["rev-parse", "FETCH_HEAD^{tree}"], seams);
-  const tree = peeled.stdout.trim();
-  if (peeled.status !== 0 || tree.length === 0) {
+  if (target.type === "tag") {
+    const annotated = ghApiObject(ghPath, `repos/${repo}/git/tags/${target.sha}`, seams);
+    if (!annotated.ok) return annotated;
+    target = gitObjectOf(annotated.value.object);
+    if (target === null) {
+      return { ok: false, reason: `annotated tag ${tag} on ${repo} names no object` };
+    }
+  }
+  if (target.type !== "commit") {
     return {
       ok: false,
-      reason: `could not read the tree of remote tag ${tag}: ${peeled.stderr.trim()}`,
+      reason: `tag ${tag} on ${repo} points to a ${target.type}, not a commit`,
     };
   }
-  return { ok: true, tree };
+  const commit = ghApiObject(ghPath, `repos/${repo}/git/commits/${target.sha}`, seams);
+  if (!commit.ok) return commit;
+  const tree = commit.value.tree;
+  const treeSha =
+    typeof tree === "object" && tree !== null ? (tree as { sha?: unknown }).sha : undefined;
+  if (typeof treeSha !== "string" || treeSha.trim().length === 0) {
+    return { ok: false, reason: `commit ${target.sha.slice(0, 12)} on ${repo} has no tree` };
+  }
+  return { ok: true, tree: treeSha.trim() };
 }
 
 /**
  * Draft flip (#716). With `runBinding` (#6875, set only by `deft release:run`)
  * the gate evaluates only the run's grant, for `<version>@<tree>` where the tree
- * is read from the commit the remote tag peels to, never from the run record.
+ * is read through REST from the tag on `config.repo` (the repository this flip
+ * publishes to), never from the run record, a local fetch or the origin remote.
  */
 export function runPublish(
   config: PublishConfig,
@@ -315,7 +377,7 @@ export function runPublish(
   };
   let runGrant: RunGrant | null = null;
   if (runBinding !== null) {
-    const peeled = remoteTagTree(projectRoot, tag, seams);
+    const peeled = publishRepoTagTree(repo, tag, seams);
     if (!peeled.ok) {
       emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${peeled.reason})`);
       return EXIT_VIOLATION;
