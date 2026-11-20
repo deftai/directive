@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6862",
-    "updated": "2026-11-20T16:45:51Z"
+    "updated": "2026-11-20T17:39:20Z"
   },
   "plan": {
     "title": "ci: taskfile_release_names test intermittently hangs the merge gate (spawns the real release task chain)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "taskfile_release_names.test.ts runs real task release calls that pull in ts:build, the engine wrapper and the pinned runtime with no time limit, and twice on 2026-11-20 one of them never returned and held the merge gate. The fix, bound by the design-critique lean in comment 7044705026, runs go-task against a temp fixture built from the real tasks/engine.yml, tasks/engine-invoke.cjs and release ENGINE_CMD with a stub dist/bin.js, and puts a 30 s limit on every task spawn in the file. The #2547 apostrophe regression stays covered, and no build or release pipeline runs from this file.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6862",
@@ -20,106 +20,210 @@
     "items": [
       {
         "title": "Fixture helper (P1, P2). A test helper builds a temp dir with copies of the real `tasks/engine.yml` and `tasks/engine-invoke.cjs` in `tasks/`, a stub `dist/bin.js` that prints `JSON.stringify(process.argv.slice(2))`, and a `Taskfile.yml` that includes `engine: ./tasks/engine.yml` and has one `release` task calling `engine:invoke` with the `ENGINE_CMD` value read from the real `Taskfile.yml` `release` task, with no `deps`. If the real `release` task or its `ENGINE_CMD` is missing, the helper fails the test.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a test calls the fixture helper, then it creates a temp dir holding copies of the real tasks/engine.yml and tasks/engine-invoke.cjs, a stub dist/bin.js that prints its argv as JSON, and a Taskfile.yml whose release task calls engine:invoke with the ENGINE_CMD read from the real Taskfile.yml, with no deps."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "#2547 test (P1, P2). Runs `task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\"`, expects exit 0, and asserts the printed argv has `--summary` followed by `test what's next` as one element.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the #2547 test runs task -t <fixture>/Taskfile.yml release -- 0.0.0 --dry-run --summary \"test what's next\", then go-task exits 0 and the printed argv has --summary followed by test what's next as one element."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Help dispatch test (P1, P4). Replaces the real `release -- --help` call with a fixture run of `release -- --help` and asserts the printed argv starts with `release` and contains `--help`. It is named as dispatch coverage.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the help dispatch test runs the fixture release task with --help, then the printed argv starts with release and contains --help, and the test is named as dispatch coverage."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Delete the old full dry-run test (P1). No nightly copy.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the product PR merges, then taskfile_release_names.test.ts no longer has the old full release dry-run test, and no nightly or slow-lane copy of it exists."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Bounded runner (P3). Every `task` spawn in the file, the `task --version` probe included, goes through one helper with a 30 s limit and `killSignal: \"SIGKILL\"`. Over the limit, the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated. The probe skips the tests only when the `task` executable is missing (`ENOENT`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When any task spawn in the file runs, the task --version probe included, then it goes through one bounded runner with a 30 s limit and killSignal SIGKILL; over the limit the test (or, for the probe, the file) fails with a message that the command exceeded 30 s and was terminated, and the probe skips only on ENOENT."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Evidence in the PR (P2, P3, P4). The positive run and a failing run with `{{.ENGINE_CMD}}` wrapped in single quotes in the invoke script of `tasks/engine.yml`, both on Linux; one Linux run of the runner against a child that leaves a grandchild holding the output pipe, with its return time and message; the file vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the product PR opens, then its body records the Linux positive run, the Linux single-quote-wrap failing run, the Linux grandchild-held-pipe runner run with return time and message, and the file vitest time before and after."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `taskfile_release_names.test.ts`, no test runs the repository `release` task from `Taskfile.yml` or its `ts:build` dependency; the release tests run go-task against a temp fixture with the real `tasks/engine.yml`, `tasks/engine-invoke.cjs` and release `ENGINE_CMD`, and a stub `dist/bin.js`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When taskfile_release_names.test.ts runs, then no test spawns the repository release task from Taskfile.yml or its ts:build dependency, and the release tests run go-task against a temp fixture with the real tasks/engine.yml, tasks/engine-invoke.cjs, release ENGINE_CMD and a stub dist/bin.js."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The #2547 test asserts that `test what's next` arrives as one argv element after `--summary`, and the help dispatch test asserts that `--help` reaches the stub after `release`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the #2547 and help dispatch tests run, then they assert that test what's next arrives as one argv element after --summary and that --help reaches the stub after release."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The fixture helper fails the test when `Taskfile.yml` has no `release` task or no `ENGINE_CMD` in it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When the real Taskfile.yml has no release task or no ENGINE_CMD in it, then the fixture helper fails the test."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Wrapping `{{.ENGINE_CMD}}` in single quotes in the invoke script of `tasks/engine.yml` makes the #2547 test fail on Linux, and the PR records the passing and failing runs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When the invoke script of tasks/engine.yml wraps {{.ENGINE_CMD}} in single quotes, then the #2547 test fails on Linux, and the PR records the passing and failing runs."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Every `task` spawn in the file, the `task --version` probe included, has a 30 s limit; over the limit it fails with a message that names the command and the limit; only a missing `task` executable skips.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When a task spawn in the file, the task --version probe included, exceeds 30 s, then it fails with a message that names the command and the limit; only a missing task executable skips the tests."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The PR records a Linux run in which a child leaves a grandchild holding the output pipe and the runner returns at the limit with that message.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When the bounded runner runs on Linux a child that leaves a grandchild holding the output pipe, then it returns at the limit with the timeout message, and the PR records that run."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The file finishes in under 10 s in CI, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When the product PR's merge-gate job runs, then taskfile_release_names.test.ts finishes in under 10 s, and the PR records its vitest time before (4254 ms in job 136352833330; hung in run 44683125022) and after."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+          "recorded_at": "2026-11-20T17:39:20Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -422,7 +526,36 @@
         "harvestDigest": "efc5cc3f2be530a873673b08f32b25cd70340cc01bdc4b2b7f888edf9fdc489f",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "b1fc2742dc3c1f01318bb0aa94d5271d3863c961",
+        "prNumber": 6867,
+        "prBase": "master",
+        "mergeCommit": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8dafd71e37393102dc236c2d93dd5e40b34939d5",
+        "verifiedAt": "2026-11-20T17:39:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6865
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T17:39:20Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T17:39:20Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -556,6 +689,7 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6515009588",
-    "updated": "2026-11-20T16:45:51Z"
+    "updated": "2026-11-20T17:39:20Z",
+    "x-directive/specImpact": "delta"
   }
 }
