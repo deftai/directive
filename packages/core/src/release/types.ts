@@ -29,6 +29,21 @@ export interface ReleaseConfig {
    * `release/v<version>` and opens a release PR.
    */
   readonly breakGlass?: boolean;
+  /**
+   * #6875 -- set only by `deft release:run`. The finish step then refuses
+   * unless the sole parent of M is the cut base, and the tag gate accepts only
+   * the run's own grant for `<version>@<tree of M>`. Absent: today's behaviour
+   * (a version-only grant still works on the manual `--finish` path).
+   */
+  readonly runBinding?: ReleaseRunBinding | null;
+}
+
+/** #6875 -- what a `deft release:run` recorded before the merge. */
+export interface ReleaseRunBinding {
+  /** Id of the `release-publish` grant the run minted; no other grant counts. */
+  readonly grantId: string;
+  /** Cut base B: the fetched delivery-branch tip the release branch was made from. */
+  readonly expectedBase: string;
 }
 
 export interface ReleaseFlags {

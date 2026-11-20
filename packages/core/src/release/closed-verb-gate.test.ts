@@ -436,3 +436,93 @@ describe("tag-push closed-verb gate (#3527)", () => {
     }
   });
 });
+
+describe("run-bound tag gate (#6875)", () => {
+  const T = "t".repeat(40);
+  const RUN_GRANT = "grant-run-6875";
+  const binding = { grantId: RUN_GRANT, expectedBase: "b".repeat(40) };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function grant(id: string, surfaces: string[]): HumanOriginGrant {
+    const base = operatorPublishGrant();
+    return { ...base, id, scope: { ...base.scope, surfaces } };
+  }
+
+  const gateSeams = (grants: HumanOriginGrant[], env = {}): ReleaseSeams => ({
+    closedVerbGrants: grants,
+    closedVerbEnv: env,
+  });
+
+  it("allows only the run's grant for <version>@<tree>", () => {
+    const run = { grantId: RUN_GRANT, tree: T };
+    const ok = evaluateReleaseTagPushGate(
+      V105,
+      ".",
+      gateSeams([grant(RUN_GRANT, [`${V105}@${T}`])]),
+      "deftai/directive",
+      run,
+    );
+    expect(ok.allowed).toBe(true);
+    expect(ok.humanApprovalRef).toBe(RUN_GRANT);
+    const versionOnly = evaluateReleaseTagPushGate(
+      V105,
+      ".",
+      gateSeams([grant(RUN_GRANT, [V105, `v${V105}`])]),
+      "deftai/directive",
+      run,
+    );
+    expect(versionOnly.allowed).toBe(false);
+  });
+
+  it("ignores any other grant, including one with empty surfaces", () => {
+    const run = { grantId: RUN_GRANT, tree: T };
+    for (const grants of [
+      [grant("broad", [])],
+      [grant("other", [`${V105}@${T}`])],
+      [grant(RUN_GRANT, [])],
+    ]) {
+      const decision = evaluateReleaseTagPushGate(
+        V105,
+        ".",
+        gateSeams(grants),
+        "deftai/directive",
+        run,
+      );
+      expect(decision.allowed).toBe(false);
+    }
+  });
+
+  it("keeps the version-only target when no run grant is given (manual path)", () => {
+    const decision = evaluateReleaseTagPushGate(
+      V105,
+      ".",
+      gateSeams([grant("manual", [V105, `v${V105}`])]),
+      "deftai/directive",
+    );
+    expect(decision.allowed).toBe(true);
+  });
+
+  it("refuses under a run binding when the caller passes no tree of M", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const config = v105Config(".", { runBinding: binding, skipRelease: true });
+    const seams = gateSeams([grant(RUN_GRANT, [`${V105}@${T}`])]);
+    expect(assertTagPushClosedVerb(config, seams)).toBe(EXIT_VIOLATION);
+    expect(assertTagPushClosedVerb(config, seams, "  ")).toBe(EXIT_VIOLATION);
+    expect(assertTagPushClosedVerb(config, seams, T)).toBe(EXIT_OK);
+    expect(spy.mock.calls.map((c) => String(c[0])).join("")).toContain(
+      "run-bound gate needs the tree read from the merge commit",
+    );
+  });
+
+  it("names the bound target in the mint hint and keeps the env bypass", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const config = v105Config(".", { runBinding: binding });
+    expect(assertTagPushClosedVerb(config, gateSeams([]), T)).toBe(EXIT_VIOLATION);
+    expect(spy.mock.calls.map((c) => String(c[0])).join("")).toContain(`--target ${V105}@${T}`);
+    const bypass = gateSeams([], { DEFT_ALLOW_RELEASE_PUBLISH: "1" });
+    expect(assertTagPushClosedVerb(config, bypass, T)).toBe(EXIT_OK);
+  });
+});

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { releaseLine, releaseLinesIn, unreleasedEntryLines } from "../changelog/release-line.js";
 import {
   freshUnreleasedBlock,
+  prependBannerText,
+  prependUpgradeBanner,
   promoteChangelog,
   sectionForVersion,
   splitBodyAndLinks,
@@ -132,5 +134,28 @@ describe("sectionForVersion", () => {
       null,
     );
     expect(withEmpty).toBe(without);
+  });
+});
+
+describe("upgrade banner text (#6875)", () => {
+  it("leads deftai/directive notes with the banner text the caller read", () => {
+    expect(prependBannerText("notes", "deftai/directive", "Banner\r\nline\n")).toBe(
+      "Banner\nline\n\nnotes",
+    );
+  });
+
+  it("leaves the notes alone for another repo, no banner or an empty banner", () => {
+    expect(prependBannerText("notes", "o/r", "Banner")).toBe("notes");
+    expect(prependBannerText("notes", "deftai/directive", null)).toBe("notes");
+    expect(prependBannerText("notes", "deftai/directive", "  \n")).toBe("notes");
+  });
+
+  it("keeps prependUpgradeBanner reading the local file through the same rules", () => {
+    const read = (path: string) => (path.endsWith("upgrade-banner.md") ? "Local" : null);
+    expect(prependUpgradeBanner("notes", "deftai/directive", "/p", read)).toBe("Local\n\nnotes");
+    const throws = (): string | null => {
+      throw new Error("unreadable");
+    };
+    expect(prependUpgradeBanner("notes", "deftai/directive", "/p", throws)).toBe("notes");
   });
 });
