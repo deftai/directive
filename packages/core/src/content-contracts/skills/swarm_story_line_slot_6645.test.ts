@@ -37,7 +37,9 @@ describe("swarm worker template story-line slot (#6645)", () => {
 
   it("the template rules require the slot", () => {
     const text = readRepoFile(CORE_OPS);
-    expect(text).toMatch(/- ! Each task MUST name its story line/);
+    expect(text).toMatch(
+      /- ! Each task MUST include its xBRIEF filename, origin issue number and story line/,
+    );
     expect(text).toMatch(/A leaf that delivers a whole story never gets `deft-story-part`/);
   });
 });

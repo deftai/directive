@@ -92,8 +92,7 @@ CONSTRAINTS:
 
 - ! First line MUST start with `TASK:` followed by an imperative statement
 - ! Include a drive-to-completion instruction that is **subordinate to dual-stop** (#2442): complete all steps unless a multi-iteration failure/budget envelope is exhausted — then `BLOCKED` with an operator-visible report (do not use unconditional "DO NOT STOP" language that overrides the failure stop)
-- ! Each task MUST include its xBRIEF filename and origin issue number
-- ! Each task MUST name its story line: `deft-story: N` when the worker's PR completes story N, `deft-story-part: N` only when a later PR completes it (#6316 / #6645). A leaf that delivers a whole story never gets `deft-story-part`
+- ! Each task MUST include its xBRIEF filename, origin issue number and story line: `deft-story: N` when the worker's PR completes story N, `deft-story-part: N` only when a later PR completes it (#6316 / #6645). A leaf that delivers a whole story never gets `deft-story-part`
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ! Multi-iteration prompts MUST name dual-stop defaults (or point at `main.md` / build skill #2442) so workers do not thrash without a failure envelope
