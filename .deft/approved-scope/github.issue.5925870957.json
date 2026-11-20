@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-20-5771-framework-gap-initial-installation-commit-blocked-by-prospec.xbrief.json",
+  "planId": "github.issue.5925870957",
+  "approvedAt": "2026-11-20T19:24:43Z",
+  "fileScope": [
+    ".deft/approved-scope/github.issue.5925870957.intent.json",
+    ".deft/approved-scope/github.issue.5925870957.json",
+    "changelog.d/5771-deposit-commit-scope-cover.md",
+    "packages/core/src/hooks/directive-only-drop.test.ts",
+    "packages/core/src/hooks/directive-only-drop.ts",
+    "packages/core/src/hooks/dispatcher.test.ts",
+    "packages/core/src/hooks/dispatcher.ts",
+    "packages/core/src/hooks/hook-hosts.ts",
+    "packages/core/src/hooks/planning-publication.ts",
+    "packages/core/src/policy/host-hooks.ts",
+    "packages/core/src/scope-provenance/evaluate.ts",
+    "packages/runtime/src/check-merge-deposit-only-5771.test.ts",
+    "packages/runtime/src/setup-deposit-scope-cover-5771.test.ts",
+    "xbrief/.audit/spec-drift/github.issue.5925870957.json",
+    "xbrief/PROJECT-DEFINITION.xbrief.json"
+  ],
+  "fileScopeDigest": "029edcc9e0e1911ba4dacadd85b216aee2251f3dde01092acec7fe7908dd6e8b",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "scott",
+    "mintedAt": "2026-11-20T19:24:35Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "293b5700a8d1e0e769cf5460818ea47de33572ceef9493bd34b05810ab89d9d2",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:62eb1f0378b3a3226ecc621385217cc65e3a00d85cd2c1d7e9933c29bbeea462"
+}
