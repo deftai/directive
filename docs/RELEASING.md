@@ -91,9 +91,20 @@ Step 5 Check 5 lists every declared refusal that is new or changed against the t
 
 The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; the refusal line still names the gate id and the remedy. Walkthrough: `content/docs/gate-walkthrough.md`.
 
+## Step 5 CI reuse (#6791)
+
+Step 5 reuses CI, with no flag, citation or prompt, when both hold:
+
+- The clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched `origin/<base>` tip.
+- The latest run of each required check on that tip SHA (`TypeScript (build + lint)`, `Merge gate (task check)`) completed `success`. A missing, pending, failed or re-running latest attempt never reuses an older success.
+
+On reuse, Step 5 prints the tip SHA and the check-run URLs and runs only the **host smoke check**: `pnpm run build`, then `pnpm exec vitest run` without coverage on a fixed small set of host test files (`RELEASE_HOST_SMOKE_TEST_FILES` in `packages/core/src/release/ci-reuse.ts`: release spawn, release paths, the check-lane runner and the reuse rule). It takes a few minutes. A failed smoke check fails Step 5.
+
+**A reused cut runs no host coverage** (operator ruling B on #6791). The nightly coverage lane (#6849) closes that gap. When the rule does not hold, or a read fails, Step 5 prints why and runs the full local check with host coverage as below. Under `deft release:run` (#6876), Step 5 also prints when its decision changed since readiness. `--skip-ci` stays incident-only.
+
 ## Windows Step 5 host coverage decision (#6041; reverses #5026)
 
-**Decision.** PR CI and ordinary `ts:check-lane` run the suite **without** `--coverage`. Release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`) runs host vitest **with** `--coverage` and enforces thresholds on the host. On-demand `task test:coverage` remains. Tip-SHA GHA coverage-of-record cites are retired from Step 5 success, stamp-hit, and auto-hatch paths.
+**Decision.** PR CI and ordinary `ts:check-lane` run the suite **without** `--coverage`. Release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`), when it does not reuse CI (§ Step 5 CI reuse (#6791)), runs host vitest **with** `--coverage` and enforces thresholds on the host. On-demand `task test:coverage` remains. Tip-SHA GHA coverage-of-record cites are retired from Step 5 success, stamp-hit, and auto-hatch paths.
 
 **Rationale.** Owner decision: coverage is not a merge requirement; it runs at release for now, or on demand. The 75% floor is a collapse detector, not a per-PR quality ratchet.
 
@@ -181,11 +192,11 @@ Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 b
 
 ## Routine vs hard cut for Step 5 (#2953)
 
-Release Step 5 (`task check` with host `--coverage` per #6041) is the longest local gate. Two operator modes share the **same safety bar for tip assertions + host coverage** — they differ in hygiene and intent, not in silent soft-pass.
+Release Step 5 (`task check` with host `--coverage` per #6041) is the longest local gate. When the release tree is identical to a fetched tip whose latest required checks succeeded, Step 5 reuses CI on its own (§ Step 5 CI reuse (#6791)) in either mode: it runs only the host smoke check and no host coverage. Otherwise both modes run the full Step 5; they differ in hygiene and intent, not in silent soft-pass.
 
 ### Hard cut (default)
 
-- Run full Step 5: `task release -- <version>` with **no** `--skip-ci`.
+- Run `task release -- <version>` with **no** `--skip-ci`. Step 5 runs in full unless the CI reuse rule holds.
 - Use when the tip is unproven, the change set is large, or you need maximum local certainty before the tag.
 - Coverage floor is host `--coverage` thresholds (#6041). Branch-hairline auto-hatch / `--allow-coverage-debt` soft-pass applies to the host report.
   - incident hang / untested ship → `--skip-ci` + `--allow-skip-ci=#N` (#2652) only
@@ -196,19 +207,20 @@ Release Step 5 (`task check` with host `--coverage` per #6041) is the longest lo
 Speed comes from **not scanning junk trees** and from **pre-cut hygiene**, not from skipping coverage:
 
 1. **Default-exclude scratch / worktree noise (#2953).** Content, link, stub, codebase-map, and build-dist walks skip `.deft-scratch/` (and legacy `swarm-worktrees/`) by default. Release Step 5 must not enumerate `.deft-scratch/worktrees/**` unless you are deliberately debugging those trees.
-2. **Prefer a clean tip.** Confirm required CI checks are green on the `master` tip you will tag (`gh run list` / required status). Green tip CI is a **precondition for calm routine cuts**, not a substitute for Step 5.
+2. **Prefer a clean tip.** Cut from the fetched `master` tip with green required checks. Step 5 then reuses CI with no flag (§ Step 5 CI reuse (#6791)) and runs only the host smoke check; with any other tip state it runs in full.
 3. **Prune stale worktrees before the cut** when a maintainer clone is heavy: `git worktree list`, remove abandoned `.deft-scratch/worktrees/*` entries, or cut from a clean clone. This is operator hygiene, not a flag.
-4. **Still run full Step 5** (host assertions + host coverage) unless you are in an explicit incident path (`--skip-ci` + `--allow-skip-ci=#N`). Routine does **not** mean “trust CI and skip the host assertion suite.”
+4. **Do not skip Step 5 by hand.** Step 5 itself decides between CI reuse and the full check. The only manual skip is the incident path (`--skip-ci` + `--allow-skip-ci=#N`).
 
 ### Trust CI vs full local check
 
 | Mode | When | Step 5 coverage | Soft-pass rule |
 | --- | --- | --- | --- |
 | **Hard cut** | Default; large / risky tip | Full `task check` assertions + host coverage (#6041) | Host thresholds fail-closed; debt hatch for branch-hairline; #2652 skip-ci with `#N` |
-| **Routine cut** | Calm tip; scratch excluded; CI green on tip | Same host assertions + tip-SHA GHA cite | Same — no silent soft-pass |
+| **CI reuse** | Release tree identical to the fetched tip; latest required checks `success` | Host smoke check only; no host coverage (#6791, ruling B; #6849 closes the gap) | Automatic; no flag or citation; any other state runs the full check |
+| **Routine cut** | Calm tip; scratch excluded; CI green on tip | CI reuse when its rule holds, else full `task check` + host coverage | Same — no silent soft-pass |
 | **Incident skip** | Tracked hang / unblock with review | Skipped via `--skip-ci` | Requires `--allow-skip-ci=#N` + loud WARN |
 
-Optional future: a explicit “trust recent green required checks on tip” flag may land as a separate story. Until then, **hard cut = full Step 5** and **routine cut = full Step 5 + scratch exclude + hygiene**. Do not invent a silent lighter path that skips host coverage.
+CI reuse (#6791) is the only lighter Step 5 path, and it needs no flag: **hard cut and routine cut = CI reuse when its rule holds, else full Step 5**; routine adds scratch exclude and hygiene. Do not invent any other lighter path that skips host coverage.
 
 ### Debugging scratch inclusion
 
