@@ -1,0 +1,185 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6842",
+    "updated": "2026-11-20T05:44:14Z"
+  },
+  "plan": {
+    "title": "bug(setup): 0.130.1 .gitignore hides .deft/directive/data-schema.json from fresh-install commits",
+    "status": "running",
+    "narratives": {
+      "Description": "The 0.130.1 consumer .gitignore block adds .deft/*, which also hides .deft/directive/data-schema.json, so a fresh install leaves that Directive file out of its first commit. The fix adds !.deft/directive/ and !.deft/directive/** to the block and re-ignores .deft/directive/wiring-ready.*.json after them. Setup, doctor and uninstall handle the new lines like the other ! lines, and a fresh-install test proves the file is committed and doctor reports no hidden Directive file.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6842",
+      "Overview": "The 0.130.1 consumer `.gitignore` block (#6834 / #6795) adds `.deft/*`. That rule also hides `.deft/directive/data-schema.json`, a Directive file that must be committed. A fresh 0.130.1 install leaves the file out of its first commit (137 files, no `data-schema.json`; the 0.129.15 deposit includes it), so a clone of the project is missing it. 0.130.1's own doctor reports it:\n\n> warning: Directive file .deft/directive/data-schema.json is hidden from git by .gitignore:8 ('.deft/*'). Directive's own files must stay committable. Remove or narrow that rule.\n\nUpgrades from earlier versions are not affected, because the file was already tracked. Found by a fresh-install consumer check (internal benchmark evidence (private)).\n\n## Acceptance Criteria\n\n- [ ] The deposited `.gitignore` keeps `.deft/directive/` trackable (`!.deft/directive/` and `!.deft/directive/**`), then re-ignores `.deft/directive/wiring-ready.*.json` after those lines.\n- [ ] Setup, doctor and uninstall handle the new lines the same way as the other `!` lines in the block.\n- [ ] A test runs a fresh install, commits the deposit, and asserts that `.deft/directive/data-schema.json` is in the commit and that `directive doctor --full` reports no hidden Directive file.\n- [ ] One CHANGELOG fragment states the fix in one line, with no file lists, referencing this issue.\n\nRefs #6834, #6795, #6808\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "bug, area:installer",
+      "UserStory": "As a Directive consumer doing a fresh install, I want the deposited .gitignore to keep .deft/directive/ trackable, so that my first commit includes .deft/directive/data-schema.json and a clone of my project is complete.",
+      "ImplementationPlan": "- Allow-list (#6842): in packages/core/src/install-health/owned-paths.ts add !.deft/directive/ and !.deft/directive/** to the ordered .deft/* block in DIRECTIVE_GITIGNORE_LINES, then .deft/directive/wiring-ready.*.json after them, so readiness markers stay ignored.\n- Setup and doctor: ensureGitignore (packages/runtime/src/setup.ts) and checkGitignoreCoverage (packages/core/src/doctor/checks.ts) already re-append and order-check the block; adjust only if the moved wiring-ready line needs it. Uninstall classifies the lines through isDirectiveLine in owned-paths.ts.\n- Tests: owned-paths.test.ts and doctor-read-only.test.ts pin the new order; setup.test.ts checks the deposit; session-start-gitignore-6795.test.ts runs a fresh install, commits the deposit, asserts .deft/directive/data-schema.json is in the commit and doctor --full reports no hidden Directive file.\n- Changelog: one fragment changelog.d/6842-gitignore-deft-directive.md.",
+      "Traces": "#6842, #6834, #6795, #6808"
+    },
+    "items": [
+      {
+        "title": "The deposited `.gitignore` keeps `.deft/directive/` trackable (`!.deft/directive/` and `!.deft/directive/**`), then re-ignores `.deft/directive/wiring-ready.*.json` after those lines.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When setup writes the consumer .gitignore, then .deft/directive/ is trackable through !.deft/directive/ and !.deft/directive/**, and .deft/directive/wiring-ready.*.json is ignored again after those lines."
+        }
+      },
+      {
+        "title": "Setup, doctor and uninstall handle the new lines the same way as the other `!` lines in the block.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When setup re-appends the block, doctor checks its order, or uninstall classifies .gitignore lines, then the new lines are handled the same way as the other ! lines in the block."
+        }
+      },
+      {
+        "title": "A test runs a fresh install, commits the deposit, and asserts that `.deft/directive/data-schema.json` is in the commit and that `directive doctor --full` reports no hidden Directive file.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a test runs a fresh install and commits the deposit, then .deft/directive/data-schema.json is in the commit and directive doctor --full reports no hidden Directive file."
+        }
+      },
+      {
+        "title": "One CHANGELOG fragment states the fix in one line, with no file lists, referencing this issue.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the product PR merges, then one CHANGELOG fragment states the fix in one line with no file lists and references #6842."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6842",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6842: bug(setup): 0.130.1 .gitignore hides .deft/directive/data-schema.json from fresh-install commits"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6834",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6834"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (4), in order (#6333)",
+      "sentences": [
+        "The deposited `.gitignore` keeps `.deft/directive/` trackable (`!.deft/directive/` and `!.deft/directive/**`), then re-ignores `.deft/directive/wiring-ready.*.json` after those lines.",
+        "Setup, doctor and uninstall handle the new lines the same way as the other `!` lines in the block.",
+        "A test runs a fresh install, commits the deposit, and asserts that `.deft/directive/data-schema.json` is in the commit and that `directive doctor --full` reports no hidden Directive file.",
+        "One CHANGELOG fragment states the fix in one line, with no file lists, referencing this issue."
+      ],
+      "admitted_source_sentences": [
+        "The deposited `.gitignore` keeps `.deft/directive/` trackable (`!.deft/directive/` and `!.deft/directive/**`), then re-ignores `.deft/directive/wiring-ready.*.json` after those lines.",
+        "Setup, doctor and uninstall handle the new lines the same way as the other `!` lines in the block.",
+        "A test runs a fresh install, commits the deposit, and asserts that `.deft/directive/data-schema.json` is in the commit and that `directive doctor --full` reports no hidden Directive file.",
+        "One CHANGELOG fragment states the fix in one line, with no file lists, referencing this issue."
+      ],
+      "admitted_source_digest": "1ed5d38f11a4005fd4ff86751111e066b7f546ea822282fcf9d5184e71f6cf7b",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The deposited `.gitignore` keeps `.deft/directive/` trackable (`!.deft/directive/` and `!.deft/directive/**`), then re-ignores `.deft/directive/wiring-ready.*.json` after those lines.",
+          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Setup, doctor and uninstall handle the new lines the same way as the other `!` lines in the block.",
+          "artifact_path": "packages/runtime/src/setup.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A test runs a fresh install, commits the deposit, and asserts that `.deft/directive/data-schema.json` is in the commit and that `directive doctor --full` reports no hidden Directive file.",
+          "artifact_path": "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "One CHANGELOG fragment states the fix in one line, with no file lists, referencing this issue.",
+          "artifact_path": "changelog.d/6842-gitignore-deft-directive.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/doctor/doctor-read-only.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "changelog.d/6842-gitignore-deft-directive.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "module_boundary": "Consumer setup deposit: the deposited .gitignore line set (owned-paths, setup re-append, doctor coverage check), its tests, and one changelog fragment",
+        "cohesion_exemption": "xbrief/PROJECT-DEFINITION.xbrief.json (shared project record) is declared as-is; the story adds no code to it."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6505591079,
+        "origin": "deftai/directive#6842",
+        "id": "github.issue.6505591079"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/doctor/doctor-read-only.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "changelog.d/6842-gitignore-deft-directive.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6505591079.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/install-health/owned-paths.test.ts packages/core/src/doctor/doctor-read-only.test.ts",
+          "pnpm exec vitest run packages/runtime/src/setup.test.ts packages/runtime/src/session-start-gitignore-6795.test.ts"
+        ],
+        "Traces": [
+          "#6842",
+          "#6834",
+          "#6795",
+          "#6808"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "expected_outputs": [
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "changelog.d/6842-gitignore-deft-directive.md"
+        ],
+        "conflict_group": "runtime-setup",
+        "model_tier": "high"
+      },
+      "kind": "story"
+    },
+    "id": "github.issue.6505591079",
+    "updated": "2026-11-20T05:44:14Z"
+  }
+}
