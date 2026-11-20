@@ -10,13 +10,10 @@
  * DEFT_RELEASE_E2E.
  */
 import { closedVerbEnvBypassKey } from "../authz/closed-verb.js";
-import type { ClosedVerbDecision } from "../authz/types.js";
+import { listActiveHumanGrants, loadAuthzState } from "../authz/store.js";
+import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
 import { DEFAULT_OWNER, REHEARSAL_VERSION, REPO_SLUG_PREFIX } from "../release-e2e/constants.js";
-import {
-  evaluateReleasePublishGate,
-  type ReleaseRunGrant,
-  runBoundTarget,
-} from "../release-publish/pipeline.js";
+import { evaluateReleasePublishGate } from "../release-publish/pipeline.js";
 import { EXIT_OK, EXIT_VIOLATION, TOTAL_STEPS } from "./constants.js";
 import { runGit } from "./git.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -68,8 +65,34 @@ export function isRehearsalClosedVerbExempt(repo: string, version: string): bool
 }
 
 /**
+ * #6875 -- under `deft release:run`: the grant id the run recorded and the
+ * tree read from merge commit M (never from the run record).
+ */
+export interface ReleaseRunGrant {
+  readonly grantId: string;
+  readonly tree: string;
+}
+
+/** Closed-verb target for a run-bound release grant: `<version>@<tree>` (#6875). */
+export function runBoundTarget(version: string, tree: string): string {
+  return `${version}@${tree}`;
+}
+
+/**
+ * #6875 -- keep only the run's own grant, and only when it names a target.
+ * A grant with empty surfaces would match any tree, so it never counts here.
+ */
+export function runBoundGrants(
+  grants: readonly HumanOriginGrant[],
+  grantId: string,
+): HumanOriginGrant[] {
+  return grants.filter((g) => g.id === grantId && g.scope.surfaces.length > 0);
+}
+
+/**
  * Tag-push gate. With `runGrant` (#6875) only the run's own grant counts, for
  * `<version>@<tree of M>`; without it the target is the version (manual path).
+ * The env bypass keeps its break-glass meaning either way.
  */
 export function evaluateReleaseTagPushGate(
   version: string,
@@ -78,11 +101,19 @@ export function evaluateReleaseTagPushGate(
   repo: string,
   runGrant: ReleaseRunGrant | null = null,
 ): ClosedVerbDecision {
-  return evaluateReleasePublishGate(version, projectRoot, {
-    grants: seams.closedVerbGrants,
+  if (runGrant === null) {
+    return evaluateReleasePublishGate(version, projectRoot, {
+      grants: seams.closedVerbGrants,
+      env: seams.closedVerbEnv,
+      repo,
+    });
+  }
+  const active =
+    seams.closedVerbGrants ?? listActiveHumanGrants(projectRoot, loadAuthzState(projectRoot));
+  return evaluateReleasePublishGate(runBoundTarget(version, runGrant.tree), projectRoot, {
+    grants: runBoundGrants(active, runGrant.grantId),
     env: seams.closedVerbEnv,
     repo,
-    runGrant,
   });
 }
 

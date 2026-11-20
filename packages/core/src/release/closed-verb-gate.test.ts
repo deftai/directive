@@ -1,4 +1,6 @@
-import { rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { evaluateClosedVerb } from "../authz/closed-verb.js";
 import type { HumanOriginGrant } from "../authz/types.js";
@@ -475,6 +477,22 @@ describe("run-bound tag gate (#6875)", () => {
       run,
     );
     expect(versionOnly.allowed).toBe(false);
+  });
+
+  it("reads the active grants from disk when the seam supplies none", () => {
+    const root = mkdtempSync(join(tmpdir(), "tag-gate-6875-"));
+    try {
+      const decision = evaluateReleaseTagPushGate(
+        V105,
+        root,
+        { closedVerbEnv: {} },
+        "deftai/directive",
+        { grantId: RUN_GRANT, tree: T },
+      );
+      expect(decision.allowed).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("ignores any other grant, including one with empty surfaces", () => {

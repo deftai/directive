@@ -10,9 +10,8 @@ import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
 import { loadVerbClassification } from "../authz/verb-classification.js";
 import { EXIT_OK, EXIT_VIOLATION } from "../release/constants.js";
 import { resolveGh } from "../release/gh.js";
-import { runGit } from "../release/git.js";
 import { spawnText } from "../release/spawn.js";
-import type { ReleaseRunBinding, SpawnResult } from "../release/types.js";
+import type { SpawnResult } from "../release/types.js";
 import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { editReleasePublish, viewRelease } from "./gh-api.js";
 import type { PublishConfig, ReleasePublishSeams } from "./types.js";
@@ -22,37 +21,10 @@ export function emit(label: string, status: string): void {
 }
 
 /**
- * #6875 -- under `deft release:run`: the grant id the run recorded and the
- * tree read from the commit (M, or the commit the remote tag peels to).
- */
-export interface ReleaseRunGrant {
-  readonly grantId: string;
-  readonly tree: string;
-}
-
-/** Closed-verb target for a run-bound release grant: `<version>@<tree>` (#6875). */
-export function runBoundTarget(version: string, tree: string): string {
-  return `${version}@${tree}`;
-}
-
-/**
- * #6875 -- keep only the run's own grant, and only when it names a target.
- * A grant with empty surfaces would match any tree, so it never counts here.
- */
-export function runBoundGrants(
-  grants: readonly HumanOriginGrant[],
-  grantId: string,
-): HumanOriginGrant[] {
-  return grants.filter((g) => g.id === grantId && g.scope.surfaces.length > 0);
-}
-
-/**
  * Fail-closed gate before draft→public (#1095 Wave 4).
  * Allow only DEFT_ALLOW_RELEASE_PUBLISH=1 or a matching human-origin grant.
  * Loads conventions/verb-classification.json from projectRoot when present.
  * Test seam: pass grants / env via optional overrides on seams when present.
- * With `runGrant` (#6875) the target is `<version>@<tree>` and only the run's
- * own grant is evaluated; the env bypass keeps its break-glass meaning.
  */
 export function evaluateReleasePublishGate(
   version: string,
@@ -61,18 +33,15 @@ export function evaluateReleasePublishGate(
     readonly grants?: readonly HumanOriginGrant[];
     readonly env?: EnvMap;
     readonly repo?: string | null;
-    readonly runGrant?: ReleaseRunGrant | null;
   } = {},
 ): ClosedVerbDecision {
   // Production load of classification SoT (conventions/verb-classification.json).
   const classification = loadVerbClassification(projectRoot);
   const state = loadAuthzState(projectRoot);
-  const active = options.grants ?? listActiveHumanGrants(projectRoot, state);
-  const runGrant = options.runGrant ?? null;
-  const grants = runGrant === null ? active : runBoundGrants(active, runGrant.grantId);
+  const grants = options.grants ?? listActiveHumanGrants(projectRoot, state);
   return evaluateClosedVerb({
     verb: "release-publish",
-    target: runGrant === null ? version : runBoundTarget(version, runGrant.tree),
+    target: version,
     grants,
     env: options.env ?? (process.env as EnvMap),
     projectRoot,
@@ -246,40 +215,7 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
   return EXIT_OK;
 }
 
-/**
- * #6875 -- tree of the commit the remote tag `tag` peels to. Fetches the tag
- * into FETCH_HEAD only (no local ref is written), then peels it to its tree.
- */
-export function remoteTagTree(
-  projectRoot: string,
-  tag: string,
-  seams: ReleasePublishSeams = {},
-): { readonly ok: true; readonly tree: string } | { readonly ok: false; readonly reason: string } {
-  const fetched = runGit(projectRoot, ["fetch", "--no-tags", "origin", `refs/tags/${tag}`], seams);
-  if (fetched.status !== 0) {
-    return { ok: false, reason: `git fetch of remote tag ${tag} failed: ${fetched.stderr.trim()}` };
-  }
-  const peeled = runGit(projectRoot, ["rev-parse", "FETCH_HEAD^{tree}"], seams);
-  const tree = peeled.stdout.trim();
-  if (peeled.status !== 0 || tree.length === 0) {
-    return {
-      ok: false,
-      reason: `could not read the tree of remote tag ${tag}: ${peeled.stderr.trim()}`,
-    };
-  }
-  return { ok: true, tree };
-}
-
-/**
- * Draft flip (#716). With `runBinding` (#6875, set only by `deft release:run`)
- * the gate evaluates only the run's grant, for `<version>@<tree>` where the tree
- * is read from the commit the remote tag peels to, never from the run record.
- */
-export function runPublish(
-  config: PublishConfig,
-  seams: ReleasePublishSeams = {},
-  runBinding: Pick<ReleaseRunBinding, "grantId"> | null = null,
-): number {
+export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {}): number {
   const { version, repo, dryRun, projectRoot } = config;
   const tag = `v${version}`;
 
@@ -317,31 +253,20 @@ export function runPublish(
     closedVerbGrants?: readonly HumanOriginGrant[];
     closedVerbEnv?: EnvMap;
   };
-  let runGrant: ReleaseRunGrant | null = null;
-  if (runBinding !== null) {
-    const peeled = remoteTagTree(projectRoot, tag, seams);
-    if (!peeled.ok) {
-      emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${peeled.reason})`);
-      return EXIT_VIOLATION;
-    }
-    runGrant = { grantId: runBinding.grantId, tree: peeled.tree };
-  }
   const gate = evaluateReleasePublishGate(version, projectRoot, {
     grants: gateSeams.closedVerbGrants,
     env: gateSeams.closedVerbEnv,
     repo,
-    runGrant,
   });
   if (!gate.allowed) {
     const bypassKey =
       gate.envBypassKey ??
       closedVerbEnvBypassKey("release-publish", projectRoot) ??
       "DEFT_ALLOW_RELEASE_PUBLISH";
-    const mintTarget = runGrant === null ? version : runBoundTarget(version, runGrant.tree);
     emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${gate.code}: ${gate.reason})`);
     process.stderr.write(
       `[publish] denied code=${gate.code} — set ${bypassKey}=1 or ` +
-        `mint \`deft authz:grant -- --template release-publish --target ${mintTarget}\`\n`,
+        `mint \`deft authz:grant -- --template release-publish --target ${version}\`\n`,
     );
     return EXIT_VIOLATION;
   }
