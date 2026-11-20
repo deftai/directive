@@ -14,6 +14,13 @@ import {
 } from "../lifecycle/lands-with-product-proof.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { ScmStubError } from "../scm/errors.js";
+import {
+  defaultMergeTimeForge,
+  type ForgePage,
+  type MergeTimeForge,
+  PR_FILES_LISTING_CAP,
+  type PrFileEntry,
+} from "../scope/delivery-evidence.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import {
@@ -95,6 +102,8 @@ export interface EvaluateResult {
   readonly basis: OrphanActiveBasis;
   /** Null unless `changedOnly` was requested. */
   readonly scope: OrphanActiveScopeSummary | null;
+  /** Shipped briefs reported pending while their lifecycle PR is open (#6645). */
+  readonly pending?: readonly PendingLifecycleBrief[];
 }
 
 export interface EvaluateOptions {
@@ -119,6 +128,17 @@ export interface EvaluateOptions {
   readonly tip?: string | null;
   /** Close proof for lands-with-product briefs (#6277); defaults to the forge-backed join. */
   readonly proveLandsWithProduct?: ProveLandsWithProductFn;
+  /** Test seam: open-PR and changed-file reads for the pending lifecycle check (#6645). */
+  readonly lifecycleForge?: LifecycleForge;
+}
+
+/** Forge reads for the pending lifecycle check (#6645 P3). */
+export type LifecycleForge = Pick<MergeTimeForge, "listOpenPrsPage" | "fetchPrFilesPage">;
+
+/** A shipped brief whose lifecycle PR is open (#6645 P3). */
+export interface PendingLifecycleBrief {
+  readonly path: string;
+  readonly pr: number;
 }
 
 function relBriefPath(path: string, projectRoot: string): string {
@@ -508,6 +528,109 @@ function emptyBasis(budgetMs: number): OrphanActiveBasis {
   };
 }
 
+/** Every page of one forge listing; a failed page or a stuck cursor fails closed (#6645). */
+function collectLifecyclePages<T>(
+  fetchPage: (after: string | null) => ForgePage<T>,
+  label: string,
+): { ok: true; nodes: T[] } | { ok: false; error: string } {
+  const nodes: T[] = [];
+  let after: string | null = null;
+  for (;;) {
+    let page: ForgePage<T>;
+    try {
+      page = fetchPage(after);
+    } catch (err: unknown) {
+      return { ok: false, error: `${label}: ${err instanceof Error ? err.message : String(err)}` };
+    }
+    if (!page.ok) {
+      return { ok: false, error: `${label}: ${page.error}` };
+    }
+    nodes.push(...page.nodes);
+    if (!page.hasNextPage) {
+      return { ok: true, nodes };
+    }
+    const next = page.endCursor?.trim() ?? "";
+    if (next.length === 0 || next === after) {
+      return { ok: false, error: `${label}: incomplete page (hasNextPage without a new cursor)` };
+    }
+    after = next;
+  }
+}
+
+/**
+ * True when the diff moves exactly `<root>/active/<file>` to
+ * `<root>/completed/<file>`: a rename, or a removal of the active path beside
+ * an add of the completed path (#6645 P3).
+ */
+export function diffMovesBriefToCompleted(
+  files: readonly PrFileEntry[],
+  activePath: string,
+): boolean {
+  const normalized = activePath.replace(/\\/g, "/");
+  const match = /^((?:.*\/)?(?:xbrief|vbrief))\/active\/([^/]+)$/.exec(normalized);
+  if (match === null) {
+    return false;
+  }
+  const completedPath = `${match[1]}/completed/${match[2]}`;
+  if (files.some((f) => f.filename === completedPath && f.previousFilename === normalized)) {
+    return true;
+  }
+  const removed = files.some((f) => f.filename === normalized && f.status === "removed");
+  const added = files.some((f) => f.filename === completedPath && f.status === "added");
+  return removed && added;
+}
+
+/**
+ * Pending lifecycle check (#6645 P3). Lists every open PR on `repo` (paged)
+ * and keeps those whose head repository is `repo` (fork heads never match).
+ * A shipped brief is pending when one of them moves that exact brief from
+ * `active/` to `completed/`. The issue number in a PR body is not the
+ * selector. Any failed, unparseable or incomplete read fails the whole check,
+ * so the caller keeps every shipped verdict.
+ */
+export function findPendingLifecyclePrs(input: {
+  readonly repo: string;
+  readonly shippedPaths: readonly string[];
+  readonly forge: LifecycleForge;
+}): { ok: true; pending: Map<string, number> } | { ok: false; error: string } {
+  const { repo, forge } = input;
+  const listOpen = forge.listOpenPrsPage;
+  if (listOpen === undefined) {
+    return { ok: false, error: "open-PR list is unavailable" };
+  }
+  const open = collectLifecyclePages((after) => listOpen(repo, after), "open-PR list");
+  if (!open.ok) {
+    return open;
+  }
+  const pending = new Map<string, number>();
+  const wanted = input.shippedPaths.map((p) => p.replace(/\\/g, "/"));
+  for (const node of open.nodes) {
+    if (pending.size === wanted.length) break;
+    if (node.headRepository === null || node.headRepository.toLowerCase() !== repo.toLowerCase()) {
+      continue;
+    }
+    const files = collectLifecyclePages(
+      (after) => forge.fetchPrFilesPage(repo, node.number, after),
+      `PR #${node.number} changed files`,
+    );
+    if (!files.ok) {
+      return files;
+    }
+    if (files.nodes.length >= PR_FILES_LISTING_CAP) {
+      return {
+        ok: false,
+        error: `PR #${node.number} changed files: listing truncated at the ${PR_FILES_LISTING_CAP}-file cap`,
+      };
+    }
+    for (const path of wanted) {
+      if (!pending.has(path) && diffMovesBriefToCompleted(files.nodes, path)) {
+        pending.set(path, node.number);
+      }
+    }
+  }
+  return { ok: true, pending };
+}
+
 /**
  * Pure evaluator for orphaned active/running xBRIEF detection (#2321 / #3429).
  * Fails when active/ briefs with plan.status==running reference only closed
@@ -655,6 +778,42 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       }
     }
 
+    // #6645 P3: a shipped brief whose lifecycle PR (same repository, open)
+    // moves it to completed/ is pending, not failing. Any failed read, or reads
+    // through the ghx cache, keep every shipped verdict.
+    const pending: PendingLifecycleBrief[] = [];
+    let pendingNote: string | null = null;
+    const shippedPaths = orphans.filter((o) => o.kind === "shipped").map((o) => o.path);
+    if (shippedPaths.length > 0 && !skipGh && defaultRepo !== null) {
+      if (options.lifecycleForge === undefined && runner?.proxied === true) {
+        pendingNote =
+          "pending lifecycle check skipped: reads go through the ghx cache; shipped verdicts kept";
+      } else {
+        const found = findPendingLifecyclePrs({
+          repo: defaultRepo,
+          shippedPaths,
+          forge: options.lifecycleForge ?? defaultMergeTimeForge(runGh),
+        });
+        if (found.ok) {
+          const kept = orphans.filter((o) => {
+            const pr = o.kind === "shipped" ? found.pending.get(o.path) : undefined;
+            if (pr === undefined) return true;
+            pending.push({ path: o.path, pr });
+            return false;
+          });
+          orphans.length = 0;
+          orphans.push(...kept);
+        } else {
+          pendingNote = `pending lifecycle check failed, shipped verdicts kept: ${found.error}`;
+        }
+      }
+    }
+    const pendingLines = [
+      ...pending.map((p) => `verify:orphan-active: ${p.path}: pending lifecycle PR #${p.pr}`),
+      ...(pendingNote === null ? [] : [`verify:orphan-active: ${pendingNote}`]),
+    ];
+    const pendingField = pending.length > 0 ? { pending } : {};
+
     // #6277 Bound 5: a lands-with-product brief on the delivery tip whose close
     // proof fails is listed, so a failed in-PR completion cannot hide outside
     // active/. Only the scoped `--issue N` form (the after-merge close proof)
@@ -709,16 +868,28 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     if (orphans.length > 0) {
       return {
         code: 1,
-        message: formatRefusal(orphans, root, issueFilter, tally, basis, scope, skipped),
+        message: [
+          formatRefusal(orphans, root, issueFilter, tally, basis, scope, skipped),
+          ...pendingLines,
+        ].join("\n"),
         stream: "stderr",
         orphans,
         basis,
         scope: scopeSummary,
+        ...pendingField,
       };
     }
 
     if (quiet) {
-      return { code: 0, message: "", stream: "none", orphans: [], basis, scope: scopeSummary };
+      return {
+        code: 0,
+        message: "",
+        stream: "none",
+        orphans: [],
+        basis,
+        scope: scopeSummary,
+        ...pendingField,
+      };
     }
 
     const issueNote = issueFilter === null ? "" : ` for issue #${issueFilter}`;
@@ -727,11 +898,17 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       `(scanned ${scanned} running brief${scanned === 1 ? "" : "s"} in active/).`;
     return {
       code: 0,
-      message: [headline, ...basisLines(tally, basis), ...scopeLines(scope, skipped)].join("\n"),
+      message: [
+        headline,
+        ...pendingLines,
+        ...basisLines(tally, basis),
+        ...scopeLines(scope, skipped),
+      ].join("\n"),
       stream: "stdout",
       orphans: [],
       basis,
       scope: scopeSummary,
+      ...pendingField,
     };
   } catch (err: unknown) {
     if (err instanceof ScmStubError) {

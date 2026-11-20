@@ -26,7 +26,12 @@ import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import * as specDrift from "../verify-source/spec-drift.js";
 import * as briefIo from "./brief-io.js";
 import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
-import type { MergedPrListNode, MergeTimeForge, PrFileEntry } from "./delivery-evidence.js";
+import type {
+  MergedPrListNode,
+  MergeTimeForge,
+  OpenPrListNode,
+  PrFileEntry,
+} from "./delivery-evidence.js";
 import {
   detectLifecycleFolder,
   publishScopeDestExclusive,
@@ -42,6 +47,7 @@ import { formatBriefJson } from "./vbrief-json.js";
 function staticMergeTimeForge(opts?: {
   readonly merged?: readonly MergedPrListNode[];
   readonly files?: Readonly<Record<number, readonly PrFileEntry[]>>;
+  readonly open?: readonly OpenPrListNode[];
 }): MergeTimeForge {
   const page = <T>(nodes: readonly T[]) => ({
     ok: true as const,
@@ -55,6 +61,7 @@ function staticMergeTimeForge(opts?: {
     fetchConnectionEventsPage: () => page([]),
     fetchPrFilesPage: (_repo, n) =>
       page(opts?.files?.[n] ?? [{ status: "modified", filename: "packages/core/src/x.ts" }]),
+    listOpenPrsPage: () => page(opts?.open ?? []),
     probeRateLimit: () => ({ graphqlRemaining: 5000, coreRemaining: 5000 }),
     nowMs: () => 0,
   };
@@ -3118,6 +3125,9 @@ describe("scope:complete identity join for part-line, same-mark and attested PRs
       pr?: number;
       blob?: number | null | "absent";
       finalize?: boolean;
+      partLine?: boolean;
+      files?: Readonly<Record<number, readonly PrFileEntry[]>>;
+      open?: readonly OpenPrListNode[];
     },
   ) {
     return runTransition("complete", path, new Date("2026-11-15T12:00:00.000Z"), {
@@ -3138,7 +3148,10 @@ describe("scope:complete identity join for part-line, same-mark and attested PRs
       fetchClosingIssueIds: () => [{ repository: REPO, issueNumber: ISSUE }],
       mergeTimeForge: staticMergeTimeForge({
         merged: Object.entries(opts.prs).map(([n, body]) => merged(Number(n), body)),
+        files: opts.files,
+        open: opts.open,
       }),
+      ...(opts.partLine === true ? { partLineAttestation: true } : {}),
       deliveryEvidence:
         opts.pr === undefined
           ? null
@@ -3279,6 +3292,99 @@ describe("scope:complete identity join for part-line, same-mark and attested PRs
     expect(provenance(fin.lifecycle as string)).toMatchObject({
       identityBasis: "operator-attested",
       verifier: "swarm:finalize-cohort",
+    });
+  });
+
+  // #6645 / #6882 item 1 (deftai/evolution): one part-line product PR per
+  // story, no `deft-story` PR, then an operator attestation on that PR.
+  it("#6645: a lone part-line product PR refuses with its attest command, then completes once the grant is minted", () => {
+    const { main } = cloneWithDests();
+    const path = writeStory(main);
+    const prs = { 6301: `Refs #${ISSUE}\n${part}` };
+    const command =
+      `deft authz:grant --template delivery-identity-attest ` +
+      `--target ${REPO}#6301@${SHA(6301)} --plan-ref ${PLAN_ID} --confirm`;
+
+    const before = complete(path, { prs, pr: 6301, partLine: true });
+    expect(before.ok).toBe(false);
+    expect(before.message).toMatch(/sibling check held: no other product part/);
+    expect(before.message).toContain(command);
+    expect(before.message).not.toMatch(/partial delivery/);
+    expect(existsSync(path)).toBe(true);
+
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: main,
+        target: `${REPO}#6301@${SHA(6301)}`,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    const after = complete(path, { prs, pr: 6301, partLine: true });
+    expect(after.ok).toBe(true);
+    expect(provenance(main)).toMatchObject({
+      identityBasis: "operator-attested",
+      prNumber: 6301,
+      attestationGrantId: expect.any(String),
+    });
+  });
+
+  it("#6645: finalize and a default transition keep the part-line refusal even with a grant", () => {
+    const { main } = cloneWithDests();
+    const path = writeStory(main);
+    const prs = { 6301: `Refs #${ISSUE}\n${part}` };
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: main,
+        target: `${REPO}#6301@${SHA(6301)}`,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    for (const result of [
+      complete(path, { prs, pr: 6301, finalize: true }),
+      complete(path, { prs, pr: 6301 }),
+    ]) {
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/partial delivery/);
+      expect(result.message).not.toMatch(/deft authz:grant/);
+    }
+    expect(existsSync(path)).toBe(true);
+  });
+
+  it("#6645: an activation PR and a mint PR with the part line do not block; an open product part does", () => {
+    const prs = {
+      6300: `${part}\nactivation`,
+      6301: `Refs #${ISSUE}\n${part}`,
+      6302: `${part}\nmint`,
+    };
+    const files = {
+      6300: [{ status: "added", filename: `xbrief/active/${name}` }],
+      6302: [{ status: "added", filename: ".deft/intent-constraint/github.issue.6270.json" }],
+    };
+    const { main } = cloneWithDests();
+    const path = writeStory(main);
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: main,
+        target: `${REPO}#6301@${SHA(6301)}`,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    const blocked = complete(path, {
+      prs,
+      pr: 6301,
+      partLine: true,
+      files,
+      open: [{ number: 6310, body: `${part}\nmore code`, headRepository: "fork/directive" }],
+    });
+    expect(blocked.ok).toBe(false);
+    expect(blocked.message).toMatch(/#6310 block the part-line route/);
+    expect(blocked.message).not.toMatch(/deft authz:grant/);
+
+    const held = complete(path, { prs, pr: 6301, partLine: true, files });
+    expect(held.ok).toBe(true);
+    expect(provenance(main)).toMatchObject({
+      identityBasis: "operator-attested",
+      partLinePrs: [6300, 6302],
     });
   });
 });

@@ -3,7 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import { evaluate } from "./evaluate.js";
+import type { OpenPrListNode, PrFileEntry } from "../scope/delivery-evidence.js";
+import {
+  diffMovesBriefToCompleted,
+  evaluate,
+  findPendingLifecyclePrs,
+  type LifecycleForge,
+} from "./evaluate.js";
 import { collectGithubRefs, parseGithubPrUri } from "./refs.js";
 
 const temps: string[] = [];
@@ -1132,3 +1138,167 @@ function stripGhGhxFromPath(): () => void {
     }
   };
 }
+
+describe("pending lifecycle PR (#6645 P3)", () => {
+  const REPO = "deftai/directive";
+  const BRIEF = "xbrief/active/shipped-6645.xbrief.json";
+  const DONE = "xbrief/completed/shipped-6645.xbrief.json";
+  const FAILING_GH: RunGhFn = () => ({ returncode: 1, stdout: "", stderr: "api failed" });
+
+  function shippedRepo(): string {
+    const root = makeRepo();
+    writeBrief(root, "shipped-6645.xbrief.json", {
+      status: "running",
+      references: [
+        { uri: `https://github.com/${REPO}/issues/1001`, type: "x-xbrief/github-issue" },
+      ],
+    });
+    writeCachedIssue(root, REPO, 1001, "closed");
+    return root;
+  }
+
+  function forge(opts: {
+    open?: readonly OpenPrListNode[];
+    files?: Readonly<Record<number, readonly PrFileEntry[] | "fail">>;
+    openFail?: boolean;
+    stuck?: boolean;
+  }): LifecycleForge {
+    return {
+      listOpenPrsPage: (_repo, after) => {
+        if (opts.openFail === true) return { ok: false, error: "open list failed" };
+        if (opts.stuck === true) return { ok: true, nodes: [], hasNextPage: true, endCursor: null };
+        return after === null
+          ? { ok: true, nodes: opts.open ?? [], hasNextPage: false, endCursor: null }
+          : { ok: false, error: "unexpected page" };
+      },
+      fetchPrFilesPage: (_repo, n) => {
+        const files = opts.files?.[n];
+        if (files === "fail") return { ok: false, error: "files read failed" };
+        return { ok: true, nodes: files ?? [], hasNextPage: false, endCursor: null };
+      },
+    };
+  }
+
+  const rename: PrFileEntry[] = [{ status: "renamed", filename: DONE, previousFilename: BRIEF }];
+  const removeAdd: PrFileEntry[] = [
+    { status: "removed", filename: BRIEF },
+    { status: "added", filename: DONE },
+  ];
+
+  it("a same-repository open PR that renames the brief into completed/ makes it pending (--issue and sweep)", () => {
+    for (const issue of [1001, null]) {
+      const root = shippedRepo();
+      const result = evaluate(root, {
+        repo: REPO,
+        runGh: FAILING_GH,
+        issue,
+        lifecycleForge: forge({
+          open: [{ number: 77, body: "Refs #900", headRepository: REPO }],
+          files: { 77: rename },
+        }),
+      });
+      expect(result.code, String(issue)).toBe(0);
+      expect(result.orphans).toEqual([]);
+      expect(result.pending).toEqual([{ path: BRIEF, pr: 77 }]);
+      expect(result.message).toContain(`${BRIEF}: pending lifecycle PR #77`);
+    }
+  });
+
+  it("a removal beside an add of the completed path is pending too", () => {
+    const root = shippedRepo();
+    const result = evaluate(root, {
+      repo: REPO,
+      runGh: FAILING_GH,
+      issue: 1001,
+      lifecycleForge: forge({
+        open: [{ number: 78, body: "", headRepository: REPO }],
+        files: { 78: removeAdd },
+      }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.pending).toEqual([{ path: BRIEF, pr: 78 }]);
+  });
+
+  it("a fork PR, no matching PR, or a failed or stuck read keeps the shipped verdict", () => {
+    const cases: [string, LifecycleForge][] = [
+      [
+        "fork",
+        forge({
+          open: [{ number: 79, body: "", headRepository: "fork/directive" }],
+          files: { 79: rename },
+        }),
+      ],
+      [
+        "deleted fork",
+        forge({ open: [{ number: 80, body: "", headRepository: null }], files: { 80: rename } }),
+      ],
+      ["no move", forge({ open: [{ number: 81, body: "Refs #1001", headRepository: REPO }] })],
+      ["open list fails", forge({ openFail: true })],
+      ["stuck cursor", forge({ stuck: true })],
+      [
+        "files fail",
+        forge({ open: [{ number: 82, body: "", headRepository: REPO }], files: { 82: "fail" } }),
+      ],
+    ];
+    for (const [label, lifecycleForge] of cases) {
+      const root = shippedRepo();
+      const result = evaluate(root, { repo: REPO, runGh: FAILING_GH, issue: 1001, lifecycleForge });
+      expect(result.code, label).toBe(1);
+      expect(result.orphans[0]?.kind, label).toBe("shipped");
+      expect(result.pending, label).toBeUndefined();
+    }
+  });
+
+  it("a failed read names why the shipped verdict was kept", () => {
+    const root = shippedRepo();
+    const result = evaluate(root, {
+      repo: REPO,
+      runGh: FAILING_GH,
+      issue: 1001,
+      lifecycleForge: forge({ openFail: true }),
+    });
+    expect(result.message).toContain("pending lifecycle check failed, shipped verdicts kept");
+  });
+
+  it("an offline run never lists PRs", () => {
+    const root = shippedRepo();
+    const result = evaluate(root, {
+      repo: REPO,
+      skipGh: true,
+      issue: 1001,
+      lifecycleForge: {
+        listOpenPrsPage: () => {
+          throw new Error("must not list");
+        },
+        fetchPrFilesPage: () => {
+          throw new Error("must not read");
+        },
+      },
+    });
+    expect(result.code).toBe(1);
+  });
+
+  it("diffMovesBriefToCompleted matches only the exact brief move", () => {
+    expect(diffMovesBriefToCompleted(rename, BRIEF)).toBe(true);
+    expect(diffMovesBriefToCompleted(removeAdd, BRIEF)).toBe(true);
+    expect(diffMovesBriefToCompleted([{ status: "added", filename: DONE }], BRIEF)).toBe(false);
+    expect(
+      diffMovesBriefToCompleted(
+        [{ status: "renamed", filename: "xbrief/completed/other.json", previousFilename: BRIEF }],
+        BRIEF,
+      ),
+    ).toBe(false);
+    expect(diffMovesBriefToCompleted(rename, "xbrief/pending/shipped-6645.xbrief.json")).toBe(
+      false,
+    );
+  });
+
+  it("findPendingLifecyclePrs refuses when the open list is unavailable", () => {
+    const result = findPendingLifecyclePrs({
+      repo: REPO,
+      shippedPaths: [BRIEF],
+      forge: { fetchPrFilesPage: () => ({ ok: false, error: "x" }) },
+    });
+    expect(result.ok).toBe(false);
+  });
+});

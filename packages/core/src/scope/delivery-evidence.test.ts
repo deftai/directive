@@ -27,6 +27,7 @@ import {
   type FetchPrChangedFilesFn,
   type FetchPrPayloadFn,
   type FindDeliveryAttestationFn,
+  fetchOpenPrsPageLive,
   hasExplicitDeliverySelectors,
   isCodeBearingScope,
   isCompletionMoveShaped,
@@ -42,6 +43,7 @@ import {
   type MergeTimeForge,
   movedBriefNamesFromPaths,
   NON_DELIVERY_DISPOSITIONS,
+  type OpenPrListNode,
   PR_FILES_LISTING_CAP,
   PROJECT_DEFINITION_REGISTRY_REL,
   type PrBodyRevision,
@@ -222,6 +224,12 @@ interface ForgeFixture {
   readonly rates?: readonly (RateLimitSnapshot | null)[];
   /** Clock step added after each nowMs() read. */
   readonly clockStepMs?: number;
+  /** Open PRs on this repository's base (#6645), served as one page. */
+  readonly open?: readonly OpenPrListNode[];
+  /** The open-PR list read fails (#6645). */
+  readonly openFail?: boolean;
+  /** The forge has no open-PR list at all (#6645). */
+  readonly noOpenList?: boolean;
 }
 
 function makeForge(fx: ForgeFixture): MergeTimeForge & { readonly calls: string[] } {
@@ -279,6 +287,15 @@ function makeForge(fx: ForgeFixture): MergeTimeForge & { readonly calls: string[
       }
       return single(files ?? [{ status: "modified", filename: "packages/core/src/x.ts" }]);
     },
+    ...(fx.noOpenList === true
+      ? {}
+      : {
+          listOpenPrsPage: (_repo: string, after: string | null) => {
+            calls.push(after === null ? "open" : `open:${after}`);
+            if (fx.openFail === true) return { ok: false as const, error: "open list failed" };
+            return single(fx.open ?? []);
+          },
+        }),
     probeRateLimit: () => {
       const rates = fx.rates ?? [{ graphqlRemaining: 5000, coreRemaining: 5000 }];
       const rate = rates[Math.min(rateIndex, rates.length - 1)] ?? null;
@@ -2626,7 +2643,20 @@ describe("merge-time association (#5710 P3)", () => {
     expect(stranded.message).toMatch(/\(c\) a Connected issue link/);
     // #6317: the refusal names the operator attestation, not the parked migration.
     expect(stranded.message).not.toMatch(/identity-migration/);
-    expect(stranded.message).toMatch(/deft authz:grant --template delivery-identity-attest/);
+    // #6645: with no lookup wired, (d) cannot run, so no grant command is printed.
+    expect(stranded.message).not.toMatch(/deft authz:grant/);
+    expect(stranded.message).toMatch(
+      /operator attestation lookup \(unwired in this run\) read failed/,
+    );
+    const attestable = verifyStoryPrMergeIdentity({
+      plan: { ...issuePlan(6147), id: "github.issue.6147" },
+      evidence: { prNumber: 6148 },
+      mergeCommit: "mergesha",
+      fetchPrPayload: payloadFor({ 6148: mergedPayload({ body: "Refs #6147" }) }),
+      mergeTimeForge: makeForge({}),
+      findDeliveryAttestation: () => ({ ok: false, reason: "operator-attested: no grant" }),
+    });
+    expect(attestable.message).toMatch(/deft authz:grant --template delivery-identity-attest/);
     // No forge at all: still fails closed with the same named bases.
     const noForge = verifyStoryPrMergeIdentity({
       plan: issuePlan(6147),
@@ -3485,7 +3515,9 @@ describe("identity join reads the merge-time body first (#6317 / #6310 Bound 2)"
 
     const noLookup = join({ pr: 6400, body: "Refs #6212", forge: makeForge({}) });
     expect(noLookup.message).toMatch(/\(d\) operator attestation lookup is unavailable/);
+    expect(noLookup.message).not.toMatch(/deft authz:grant/);
 
+    // #6645 clause 13: a missing plan id names that cause and prints no command.
     const noPlanId = verifyStoryPrMergeIdentity({
       plan: issuePlan(6212),
       evidence: { prNumber: 6400 },
@@ -3493,10 +3525,12 @@ describe("identity join reads the merge-time body first (#6317 / #6310 Bound 2)"
       fetchPrPayload: payloadFor({ 6400: mergedPayload({ body: "Refs #6212" }) }),
       mergeTimeForge: makeForge({}),
       findDeliveryAttestation: attest,
+      briefBasename: "s.xbrief.json",
     });
     expect(noPlanId.ok).toBe(false);
     expect(noPlanId.message).toMatch(/the plan has no id/);
-    expect(noPlanId.message).toMatch(/--plan-ref <scopeId>/);
+    expect(noPlanId.message).toMatch(/the brief s\.xbrief\.json has no plan id/);
+    expect(noPlanId.message).not.toMatch(/deft authz:grant/);
   });
 
   it("evaluateDeliveryGate stores the grant id, part-line and competing PRs in provenance", () => {
@@ -3788,5 +3822,234 @@ describe("completion move carries the PROJECT-DEFINITION registry (#6764)", () =
         proven,
       ),
     ).toBe(false);
+  });
+});
+
+describe("reachable remedies and the scope:complete part-line route (#6645)", () => {
+  const ISSUE = 6212;
+  const mark = `deft-story: ${ISSUE}`;
+  const part = `deft-story-part: ${ISSUE}`;
+  const PLAN_ID = "github.issue.6212";
+  const command = (pr: number) =>
+    `deft authz:grant --template delivery-identity-attest --target ${REPO}#${pr}@mergesha ` +
+    `--plan-ref ${PLAN_ID} --confirm`;
+  const grant: FindDeliveryAttestationFn = () => ({ ok: true, grantId: "g-6645", replay: false });
+  const noGrant: FindDeliveryAttestationFn = () => ({
+    ok: false,
+    reason: `operator-attested: no delivery-identity-attest grant for ${REPO}#6500@mergesha`,
+  });
+  const expired: FindDeliveryAttestationFn = () => ({
+    ok: false,
+    reason: "operator-attested: grant g-old expired; re-mint with `deft authz:grant ...`",
+  });
+  const BRIEF_ONLY: PrFileEntry[] = [{ status: "added", filename: "xbrief/active/s.xbrief.json" }];
+  const DEFT_ONLY: PrFileEntry[] = [
+    { status: "added", filename: ".deft/intent-constraint/github.issue.6212.json" },
+  ];
+  const open = (number: number, body: string, headRepository: string | null = REPO) => ({
+    number,
+    body,
+    headRepository,
+  });
+  const run = (opts: {
+    pr?: number;
+    body: string;
+    forge: MergeTimeForge;
+    attest?: FindDeliveryAttestationFn;
+    partLine?: boolean;
+  }) => {
+    const pr = opts.pr ?? 6500;
+    return verifyStoryPrMergeIdentity({
+      plan: { ...issuePlan(ISSUE), id: PLAN_ID },
+      evidence: { prNumber: pr },
+      mergeCommit: "mergesha",
+      fetchPrPayload: payloadFor({ [pr]: mergedPayload({ body: opts.body }) }),
+      mergeTimeForge: opts.forge,
+      findDeliveryAttestation: opts.attest,
+      partLineAttestation: opts.partLine ?? true,
+    });
+  };
+
+  it("clause 7: a lone part-line product PR completes on (d) with a matching grant", () => {
+    const result = run({ body: `Refs #${ISSUE}\n${part}`, forge: makeForge({}), attest: grant });
+    expect(result.ok).toBe(true);
+    expect(result.identityBasis).toBe("operator-attested");
+    expect(result.attestationGrantId).toBe("g-6645");
+  });
+
+  it("clause 8: without a grant it prints the PR command, and the next run completes", () => {
+    const forge = makeForge({});
+    const refused = run({ body: part, forge, attest: noGrant });
+    expect(refused.ok).toBe(false);
+    expect(refused.message).toContain(command(6500));
+    expect(refused.message).toMatch(/sibling check held/);
+    // Part-line route: no other basis runs.
+    expect(forge.calls.some((c) => c.startsWith("events:"))).toBe(false);
+    expect(run({ body: part, forge: makeForge({}), attest: grant }).ok).toBe(true);
+  });
+
+  it("clause 9: activation, mint and brief-only or .deft/-only open part-line PRs never block", () => {
+    const forge = makeForge({
+      merged: [listed(6490, `${part}\nactivation`), listed(6491, `${part}\nmint`)],
+      files: { 6490: BRIEF_ONLY, 6491: DEFT_ONLY, 6510: BRIEF_ONLY, 6511: DEFT_ONLY },
+      open: [open(6510, part, "fork/directive"), open(6511, part)],
+    });
+    const result = run({ body: part, forge, attest: grant });
+    expect(result.ok).toBe(true);
+    expect(result.partLinePrs).toEqual([6490, 6491]);
+  });
+
+  it("clause 10: an open story line or another product part blocks, names the PR and prints no command", () => {
+    const cases: [ForgeFixture, number][] = [
+      [{ open: [open(6520, mark, "fork/directive")] }, 6520],
+      [{ open: [open(6521, `${mark}\nmore`)] }, 6521],
+      [{ open: [open(6522, part, "fork/directive")] }, 6522],
+      [{ merged: [listed(6523, part)] }, 6523],
+      [{ merged: [listed(6524, mark)] }, 6524],
+    ];
+    for (const [fixture, blocker] of cases) {
+      const result = run({ body: part, forge: makeForge(fixture), attest: grant });
+      expect(result.ok, String(blocker)).toBe(false);
+      expect(result.message).toMatch(new RegExp(`#${blocker} block the part-line route`));
+      expect(result.message).toMatch(/carries `deft-story: 6212`/);
+      expect(result.message).not.toMatch(/deft authz:grant/);
+    }
+  });
+
+  it("clause 11: without the route (finalize), a part-line PR is refused grant or not", () => {
+    for (const attest of [grant, noGrant]) {
+      const result = run({ body: part, forge: makeForge({}), attest, partLine: false });
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/partial delivery/);
+      expect(result.message).not.toMatch(/deft authz:grant/);
+    }
+  });
+
+  it("clause 12: a brief-only PR is not a delivery; no attest or re-mint command", () => {
+    // #6639 shape: brief-only with the sole mark.
+    const soleMark = run({
+      body: mark,
+      forge: makeForge({ files: { 6500: BRIEF_ONLY } }),
+      attest: expired,
+    });
+    expect(soleMark.ok).toBe(false);
+    expect(soleMark.message).toMatch(/not a delivery; run `scope:complete` with the story/);
+    expect(soleMark.message).not.toMatch(/deft authz:grant/);
+    // No story line, expired grant: the delivery check runs before the lookup.
+    const noLine = run({
+      body: `Refs #${ISSUE}`,
+      forge: makeForge({ files: { 6500: BRIEF_ONLY } }),
+      attest: expired,
+    });
+    expect(noLine.ok).toBe(false);
+    expect(noLine.message).toMatch(/not a delivery/);
+    expect(noLine.message).not.toMatch(/re-mint|deft authz:grant/);
+    // A part-line PR that is not a product part is not a delivery either.
+    const partBrief = run({
+      body: part,
+      forge: makeForge({ files: { 6500: BRIEF_ONLY } }),
+      attest: noGrant,
+    });
+    expect(partBrief.message).toMatch(/is not a product part/);
+    expect(partBrief.message).not.toMatch(/deft authz:grant/);
+    // An expired grant on a real delivery shows its re-mint text and the command.
+    const realExpired = run({ body: `Refs #${ISSUE}`, forge: makeForge({}), attest: expired });
+    expect(realExpired.message).toMatch(/re-mint/);
+    expect(realExpired.message).toContain(command(6500));
+  });
+
+  it("clause 13: a failed connection-events read names that read and prints no command", () => {
+    const result = run({
+      body: `Refs #${ISSUE}`,
+      forge: makeForge({ eventsFail: [6500] }),
+      attest: noGrant,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/PR #6500 connection events read failed; retry/);
+    expect(result.message).not.toMatch(/deft authz:grant/);
+  });
+
+  it("failed sibling reads are retry remedies and never complete", () => {
+    const cases: ForgeFixture[] = [
+      { openFail: true },
+      { noOpenList: true },
+      { listFailAtPage: 0 },
+      { merged: [listed(6530, part)], files: { 6530: "fail" } },
+      { open: [open(6531, part)], files: { 6531: "fail" } },
+      { files: { 6500: "fail" } },
+    ];
+    for (const fixture of cases) {
+      const result = run({ body: part, forge: makeForge(fixture), attest: grant });
+      expect(result.ok, JSON.stringify(fixture)).toBe(false);
+      expect(result.message).toMatch(/read failed; retry/);
+      expect(result.message).not.toMatch(/deft authz:grant/);
+    }
+  });
+
+  it("a body with both lines keeps the partial-delivery refusal and is not offered the command", () => {
+    const result = run({ body: `${mark}\n${part}`, forge: makeForge({}), attest: grant });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/partial delivery/);
+    expect(result.message).toMatch(/is neither/);
+    expect(result.message).not.toMatch(/deft authz:grant/);
+  });
+
+  it("an unresolved grant store names the store error and prints no command", () => {
+    const result = run({
+      body: `Refs #${ISSUE}`,
+      forge: makeForge({}),
+      attest: () => ({
+        ok: false,
+        reason: "operator-attested: grant store cannot be resolved",
+        cause: "store-unresolved",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/fix the attestation grant store/);
+    expect(result.message).not.toMatch(/deft authz:grant/);
+  });
+
+  it("a contested sole mark names the other PR and the delivery-branch stamp", () => {
+    const result = run({
+      body: mark,
+      forge: makeForge({ merged: [listed(6540, mark)] }),
+      attest: grant,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/settle the mark\. #6540 also carry/);
+    expect(result.message).toMatch(/metadata\.productPullRequest/);
+    expect(result.message).not.toMatch(/deft authz:grant/);
+  });
+
+  it("the live open-PR page reads REST, keeps fork heads and stops at a short page", () => {
+    const calls: string[] = [];
+    const full = Array.from({ length: 100 }, (_, i) => ({
+      number: i + 1,
+      body: null,
+      head: { repo: { full_name: i === 0 ? "fork/directive" : REPO } },
+    }));
+    const runGh: RunGhFn = (cmd) => {
+      calls.push(cmd.join(" "));
+      const page = cmd.join(" ").endsWith("page=1")
+        ? full
+        : [{ number: 101, body: "x", head: { repo: null } }];
+      return { returncode: 0, stdout: JSON.stringify(page), stderr: "" };
+    };
+    const first = fetchOpenPrsPageLive(runGh, REPO, null);
+    expect(first.ok && first.hasNextPage && first.endCursor === "2").toBe(true);
+    expect(first.ok && first.nodes[0]).toEqual({
+      number: 1,
+      body: "",
+      headRepository: "fork/directive",
+    });
+    const second = fetchOpenPrsPageLive(runGh, REPO, "2");
+    expect(second.ok && !second.hasNextPage).toBe(true);
+    expect(second.ok && second.nodes[0]?.headRepository).toBeNull();
+    expect(calls[0]).toBe(`gh api repos/${REPO}/pulls?state=open&per_page=100&page=1`);
+    const bad: RunGhFn = () => ({ returncode: 0, stdout: "{}", stderr: "" });
+    expect(fetchOpenPrsPageLive(bad, REPO, null).ok).toBe(false);
+    const failing: RunGhFn = () => ({ returncode: 1, stdout: "", stderr: "boom" });
+    expect(fetchOpenPrsPageLive(failing, REPO, null)).toEqual({ ok: false, error: "boom" });
+    expect(defaultMergeTimeForge(runGh).listOpenPrsPage).toBeDefined();
   });
 });

@@ -630,6 +630,8 @@ export function lifecycleMain(argv: string[]): number {
     deliveryEvidence,
     verifier: "scope:complete",
     ...(inPr === true ? { inPr: true } : {}),
+    // #6645: only this command entry opens the part-line route.
+    ...(action === "complete" ? { partLineAttestation: true } : {}),
   };
   // #6272: read before the move; activate does not change item text.
   const activateAdvisory =
