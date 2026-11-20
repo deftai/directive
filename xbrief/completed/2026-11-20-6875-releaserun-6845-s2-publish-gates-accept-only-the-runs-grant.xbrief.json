@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6875",
-    "updated": "2026-11-20T19:08:01Z"
+    "updated": "2026-11-20T21:31:47Z"
   },
   "plan": {
     "title": "release:run (#6845 S2): publish gates accept only the run's grant, bound to the merged tree and the cut base",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The tag gate (release/closed-verb-gate.ts, called from release/finish.ts) and the draft-flip gate (release-publish/pipeline.ts) accept any active release-publish grant for the version, and the finish step does not compare the parent of the merged release commit M with the cut base B. This story adds an optional run binding (the grant id that release:run recorded, and B) that makes both gates evaluate only that grant with target <version>@<tree>, with the tree read from M or from the commit the remote tag peels to, and makes the finish step refuse unless the sole parent of M is B. Release notes and the upgrade banner are read from M. Without the binding, release --finish and release:publish behave as today. This is S2 of the #6845 split and has no dependencies.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6875",
@@ -19,50 +19,98 @@
     "items": [
       {
         "title": "Content-bound gates. Under the run, the tag gate and the draft-flip gate evaluate only the `release-publish` grant whose id the run recorded, with target `<version>@<tree>`. The tree is read from M for the tag gate and from the commit the remote tag peels to for the draft flip, never from the run record. Any other grant, including one with empty surfaces, does not satisfy them, and a version-only target does not match. The `DEFT_ALLOW_RELEASE_PUBLISH=1` env bypass keeps its break-glass meaning.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When release:run supplies its recorded grant id, then the tag gate and the draft-flip gate accept only that grant with target <version>@<tree>, read the tree from M or from the commit the remote tag peels to, refuse any other grant, a grant with empty surfaces and a version-only target, and DEFT_ALLOW_RELEASE_PUBLISH=1 still bypasses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "30503d985e2bcaf0896f045bacd56da282299cec",
+          "recorded_at": "2026-11-20T21:31:47Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given only a version-only `release-publish` grant, when the tag gate runs, then it refuses and no tag is created.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the tag gate runs under the run binding and the only release-publish grant has a version-only target, then it refuses and no tag is created."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "30503d985e2bcaf0896f045bacd56da282299cec",
+          "recorded_at": "2026-11-20T21:31:47Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a merged release commit whose tree is not T and another active `release-publish` grant with empty surfaces, when the tag gate runs under the run, then it refuses and no tag is pushed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the tag gate runs under the run, the tree of M is not T and another active release-publish grant has empty surfaces, then it refuses and no tag is pushed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "30503d985e2bcaf0896f045bacd56da282299cec",
+          "recorded_at": "2026-11-20T21:31:47Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a PR that lands ahead of the release PR, when the finish step runs, then it refuses before the tag and the run stops and names the break-glass recovery.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the finish step runs with cut base B and a PR landed ahead of the release PR, then it refuses before the tag and names the break-glass recovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "30503d985e2bcaf0896f045bacd56da282299cec",
+          "recorded_at": "2026-11-20T21:31:47Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given PRs that land ahead and leave the tree of B unchanged, so that M has tree T and no leftover entries, when the finish step runs or `--resume` would push a local-only tag, then it refuses because the parent of M is not B.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the finish step runs, or a resume would push a local-only tag, and M has tree T and no leftover entries but its parent is not B, then it refuses because the parent of M is not B."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "30503d985e2bcaf0896f045bacd56da282299cec",
+          "recorded_at": "2026-11-20T21:31:47Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given draft release notes, then the notes and the upgrade banner are read from M.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the finish step creates the draft release, then the release notes and the upgrade banner are read from M with git show, not from the local checkout."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "30503d985e2bcaf0896f045bacd56da282299cec",
+          "recorded_at": "2026-11-20T21:31:47Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -166,7 +214,37 @@
         "origin": "deftai/directive#6875",
         "id": "github.issue.6517855731"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8ff0072b54e4bda5b4f23c7ccce290acec1cbb1b",
+        "prNumber": 6894,
+        "prBase": "master",
+        "mergeCommit": "30503d985e2bcaf0896f045bacd56da282299cec",
+        "deliveryBranch": "master",
+        "deliveryCommit": "34785ac742c31087aac2aa8ccb7356cc93c1de81",
+        "verifiedAt": "2026-11-20T21:31:47Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6880,
+          6892
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T21:31:47Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T21:31:47Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -238,6 +316,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6517855731",
-    "updated": "2026-11-20T19:08:01Z"
+    "updated": "2026-11-20T21:31:47Z"
   }
 }
