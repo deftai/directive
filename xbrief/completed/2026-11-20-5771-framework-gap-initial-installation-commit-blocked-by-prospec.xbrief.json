@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5771",
-    "updated": "2026-11-20T16:46:10Z"
+    "updated": "2026-11-20T20:54:08Z"
   },
   "plan": {
     "title": "[framework-gap] Initial installation commit blocked by prospective scope-cover despite documented pre-activation bootstrap",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After directive init, the git commit hook refuses the commit of Directive's installed files when no scope is running, although the getting-started docs commit them before the first scope, and activating a scope does not help because the gate reads file_scope from the merge base. The same refusal hits current-layout upgrade and repair commits, including the pin bump in package.json and the lockfile, and it points people at writing a chore brief. The fix drops each staged entry whose raw path is canonical, whose modes are plain files, whose blobs read cleanly, and whose change classifyDirectiveOwnedChange calls directive-only; a commit of only such entries needs no scope, and everything else still needs cover.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5771",
@@ -20,130 +20,256 @@
     "items": [
       {
         "title": "Directive-only drop (P1, P2, P3). In `evaluateProspectiveScopeCover` (`packages/core/src/hooks/dispatcher.ts`), after the lifecycle filter, drop from the product set each staged entry that passes items 2 and 3 and whose change `classifyDirectiveOwnedChange(rel, headText, stagedText)` returns `directive-only`. Dropping is by raw staged entry, before path normalization, so a distinct raw path that normalizes to the same string is never dropped with it. When the product set is then empty, return ok before the story binding and the ready-scope check, with a message that names the dropped paths.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a staged set holds only eligible entries that classifyDirectiveOwnedChange calls directive-only, then evaluateProspectiveScopeCover drops them by raw entry and returns ok before the story binding and ready-scope check, with a message that names the dropped paths."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Eligibility (P4). An entry is a candidate only when its raw git path equals its canonical form (no backslash, no leading or trailing whitespace, no leading `./`), its staged mode is `100644` or `100755` (or the entry is a deletion), and its HEAD mode, when present, is `100644` or `100755`. Symlinks (`120000`), gitlinks (`160000`) and any other mode stay product.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a staged entry has a non-canonical raw path or a staged or HEAD mode other than 100644 or 100755, then the gate keeps it as a product path, so symlinks, gitlinks, backslash and whitespace-padded paths still need cover."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Blob reads (P4). Resolve HEAD once. HEAD is unborn only when `HEAD` is a symbolic ref to a branch that does not exist; any other resolution failure is an error. For a resolved commit, look up the exact path in its tree; a successful lookup with no entry is absent; an entry is read by its object id. Absent or unborn gives `null`. Any resolution, lookup or blob-read error keeps the path product. A staged blob that cannot be read on a non-deletion keeps the path product; an empty blob is content, not a failure. Readers are optional seams for tests.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When HEAD resolution, the tree lookup or a blob read fails, then the gate keeps the path as product; when HEAD is a verified unborn branch or the lookup succeeds with no entry, then the HEAD side is null, and an empty staged blob is classified as content."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Unchanged rails (P4). With no raw staged entries (the `listStagedRelPaths` seam), nothing is dropped. `mixed` and `not-owned` stay product. In a commit that also holds other paths, only the dropped entries leave the set; the rest still need cover. `MANAGED_HOOK_DEPOSIT_REL_PATHS`, the `xbrief/` and `vbrief/` prefixes, planning publication (#5839), the merge-gate warn sites (#6535), `classifyDirectiveOwnedChange` and `installerManagedMatchers()` are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When no raw staged entries exist, or a path is mixed or not-owned, then the gate returns today's scope-cover result for it, and the hook-deposit, xbrief/vbrief, planning-publication and merge-gate warn admissions are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Refusal reasons (#5949). The gate records one exact reason for each staged path it keeps: `unreadable-head`, `unreadable-staged`, `unsupported-mode`, `non-canonical-path`, `mixed` or `not-owned`. The existing scope and fence causes (no ready running scope, unreadable fence, no positive governing allow, outside `file_scope`) keep their current wording. When the staged set holds Directive paths, the refusal names each kept path with its reason and names the dropped paths. Only when at least one path was dropped does it add the recovery: commit the dropped Directive-only paths on their own and cover the rest with the story's scope. It does not suggest writing, promoting or activating a new brief for Directive paths. A refusal with no Directive paths staged keeps today's text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When scope-cover refuses a set that holds Directive paths, then the refusal names the dropped paths and each kept path with one exact reason, keeps the existing scope and fence causes, gives the commit-the-Directive-part recovery only when a path was dropped, and does not suggest writing, promoting or activating a brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Unit tests (P1-P4). In `packages/core/src/hooks/dispatcher.test.ts`: an install set (new `AGENTS.md` scaffold with the managed section, `package.json` scaffold with the Directive dependency, lockfile, `MINIMAL_TASKFILE`, managed `.gitignore` lines, a skill pointer, a hook outer, a host hook config, `.githooks/pre-commit`, `.deft/GENERATION.json`) passes with no ready scope; a current-layout upgrade set (new hook outer, deleted old hook outer, pin bump in `package.json` and the lockfile, managed-section change) passes; `package.json` with an added app dependency and `AGENTS.md` with a new user paragraph outside the managed section stay uncovered; the no-entries `package.json` case at 3821-3829 is unchanged; a HEAD read error, a staged read failure, a symlink, a gitlink, a backslash path, a whitespace-padded path, and a backslash path staged beside its canonical twin stay product; an empty staged blob is classified, not refused; a mixed commit leaves only the non-Directive path uncovered; the refusal text names the dropped paths and each kept path with its reason, does not mention `scope:promote` or `scope:activate`, and gives no commit-the-Directive-part recovery when nothing was dropped.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the dispatcher unit tests run, then install and current-layout upgrade sets pass with no ready scope, user material and unsafe entries stay uncovered, and the refusal text checks pass as the lean lists them."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Setup test (P1, P3). In `packages/runtime/src/`, one test runs real setup into a temporary git repository, stages the whole deposit, and shows `evaluateProspectiveScopeCover` with the real git readers and no scope admits it; then a second setup run that rewrites managed files (repair after the `AGENTS.md` managed section is edited) is staged and admitted the same way. The test is named as gate-admission proof, not local commit success.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When a test runs real setup into a temporary git repository and stages the deposit, then evaluateProspectiveScopeCover with real git readers and no scope admits it, and a staged repair rewrite is admitted the same way."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "CI regression (#5949). A test builds a valid fixture repository whose unrelated `check:merge` prerequisites are met, commits a base, then commits a head that adds or changes only Directive deposit paths (no brief, no running scope), and runs the actual `check:merge` gate composition on that real base-to-head diff, including `verify:scope-provenance`; it passes. The base is resolvable as the merge base the gate reads, and the test asserts that `verify:scope-provenance` evaluated the diff rather than reporting the no-merge-base skip (`packages/core/src/scope-provenance/evaluate.ts` 858-870). If a check refuses because of the deposit itself, the fix narrows only that scope refusal for Directive-only paths, through the same rules as items 1-3; unrelated failures are not changed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When a test runs the actual check:merge gate composition on a fixture with a resolvable base and a real base-to-head diff made only of Directive deposit paths and no brief, then the gate passes and verify:scope-provenance evaluates the diff instead of skipping."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "End-to-end deposit-only composition test needs evaluator-surface policy (#6874) and a release+pin; items 1-7 shipped in #6879",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-20T20:50:49Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261120205049-cdc6fe"
+          },
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "deferred_to": "#6874"
         }
       },
       {
         "title": "In `packages/core/src/hooks/dispatcher.ts`, `evaluateProspectiveScopeCover` drops each eligible staged entry whose change `classifyDirectiveOwnedChange` returns `directive-only`, by raw entry, and returns ok with no running scope when no other product path is staged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When only eligible directive-only entries are staged with no running scope, then evaluateProspectiveScopeCover in dispatcher.ts drops them by raw entry and returns ok."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `packages/core/src/hooks/dispatcher.ts`, an entry is eligible only when its raw git path is canonical and its staged and HEAD modes are `100644` or `100755` or absent; symlinks, gitlinks, backslash paths and whitespace-padded paths stay product.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When an entry's raw path is not canonical or its staged or HEAD mode is not 100644 or 100755 or absent, then dispatcher.ts keeps it as product."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `packages/core/src/hooks/dispatcher.ts`, the HEAD side is `null` only for a verified unborn HEAD or a successful exact tree lookup with no entry, and any HEAD or staged blob read error keeps the path product.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When HEAD is not a verified unborn branch and the exact tree lookup fails, or any HEAD or staged blob read fails, then dispatcher.ts keeps the path as product instead of reading it as null."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `packages/core/src/hooks/dispatcher.ts`, `not-owned` and `mixed` paths, and a commit with no raw staged entries, keep today's scope-cover result, and the existing hook-deposit and lifecycle admissions are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When not-owned or mixed paths are staged, or no raw staged entries exist, then dispatcher.ts returns today's scope-cover result and the existing hook-deposit and lifecycle admissions are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `packages/core/src/hooks/dispatcher.ts`, a scope-cover refusal for a set that holds Directive paths names the dropped paths and each kept path with one exact reason, keeps the existing scope and fence causes, gives the commit-the-Directive-part recovery only when a path was dropped, and does not suggest writing, promoting or activating a brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When dispatcher.ts refuses scope-cover for a set holding Directive paths, then the refusal names dropped paths and each kept path with one exact reason, keeps the scope and fence causes, and does not suggest writing, promoting or activating a brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `packages/core/src/hooks/dispatcher.test.ts`, tests show install and current-layout upgrade sets pass with no scope; `not-owned` and `mixed` changes stay uncovered; read errors, symlinks, gitlinks, backslash, whitespace and twin paths stay product; and the refusal text has no brief steering.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "When dispatcher.test.ts runs, then install and current-layout upgrade sets pass with no scope, not-owned and mixed changes stay uncovered, read errors and unsafe paths stay product, and the refusal text has no brief steering."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `packages/runtime/src/`, a test runs real setup into a temporary git repository and shows the staged deposit, and a staged repair rewrite, pass `evaluateProspectiveScopeCover` with real git readers and no scope.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "When a runtime test runs real setup into a temporary git repository, then the staged deposit and a staged repair rewrite pass evaluateProspectiveScopeCover with real git readers and no scope."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A regression test runs the actual `check:merge` gate composition, including `verify:scope-provenance`, on a valid fixture with a resolvable base and a real base-to-head diff made only of Directive deposit paths and no brief, asserts the diff was evaluated rather than skipped, and passes; any exemption added for it uses the same rules as items 1-3 and leaves unrelated failures unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When the regression test runs the actual check:merge composition on a deposit-only diff with a resolvable base and no brief, then it passes and asserts that verify:scope-provenance evaluated the diff rather than skipped it."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "End-to-end deposit-only composition test needs evaluator-surface policy (#6874) and a release+pin; items 1-7 shipped in #6879",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-20T20:50:49Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261120205049-cdc6fe"
+          },
+          "recorded_at": "2026-11-20T20:54:08Z",
+          "deferred_to": "#6874"
         }
       }
     ],
@@ -1698,9 +1824,40 @@
         "conflict_group": "commit-gate-scope-cover",
         "model_tier": "high",
         "acceptance_criteria_justification": "The 16 clauses are the arc-bound lean 7020826946 harvested verbatim by issue:ingest: its 8 Bound remedy items plus its 8 Acceptance Criteria, which restate the same contract. The accepted synthesis 7020889519 is the contract, so it is not re-cut here."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d0b762344dd006e4235e5b9fb8ab858e407541ea",
+        "prNumber": 6879,
+        "prBase": "master",
+        "mergeCommit": "686c7fd329c82fc201eb97ca15c882fc1c9dfad8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "36af1c8af63c91c28963c093ea2760f70637484a",
+        "verifiedAt": "2026-11-20T20:54:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6866,
+          6883
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T20:54:08Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T20:54:08Z"
       }
     },
     "id": "github.issue.5925870957",
-    "updated": "2026-11-20T16:46:10Z"
+    "updated": "2026-11-20T20:54:08Z",
+    "x-directive/specImpact": "delta"
   }
 }
