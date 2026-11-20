@@ -2,7 +2,7 @@
  * Tests for literal acceptance-command capture + verbatim run (#3267).
  */
 
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -14,6 +14,7 @@ import {
   evaluateLiteralAcceptanceFromPlan,
   isLiteralAcceptanceRequiredAtCeremonyDepth,
   readStoredLiteralAcceptanceCommands,
+  runLiteralAcceptanceCommand,
   runLiteralAcceptanceCommands,
 } from "./index.js";
 
@@ -215,6 +216,7 @@ describe("runLiteralAcceptanceCommands", () => {
 
   it("uses stated cwd relative to project root", () => {
     const root = mkdtempSync(join(tmpdir(), "literal-ac-cwd-"));
+    mkdirSync(join(root, "sub"));
     let usedCwd = "";
     runLiteralAcceptanceCommands([{ command: "task check", source: "explicit", cwd: "sub" }], {
       projectRoot: root,
@@ -642,17 +644,22 @@ describe("branch coverage boost", () => {
     });
     expect(empty.code).toBe(2);
 
-    // Absolute cwd
+    // Absolute cwd outside the project root: refused at run time, nothing spawned (#6886)
     const absRoot = mkdtempSync(join(tmpdir(), "literal-ac-abs-"));
     let used = "";
-    runLiteralAcceptanceCommands([{ command: "task check", source: "explicit", cwd: absRoot }], {
-      projectRoot: process.cwd(),
-      runner: (input) => {
-        used = input.cwd;
-        return { exitCode: 0, stdout: "", stderr: "" };
+    const outside = runLiteralAcceptanceCommands(
+      [{ command: "task check", source: "explicit", cwd: absRoot }],
+      {
+        projectRoot: process.cwd(),
+        runner: (input) => {
+          used = input.cwd;
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
       },
-    });
-    expect(used).toBe(absRoot);
+    );
+    expect(used).toBe("");
+    expect(outside.code).toBe(2);
+    expect(outside.runs[0]?.detail).toMatch(/^refused: .*acceptance-cwd-containment/);
 
     // captureFromNarratives false leaves empty
     const emptyPlan = evaluateLiteralAcceptanceFromPlan(
@@ -731,5 +738,76 @@ describe("run-time allowlist refusals bind the rejected ledger (#3615)", () => {
     expect(result.rejected ?? []).toEqual(
       expect.arrayContaining([expect.objectContaining({ command: "curl https://example.com" })]),
     );
+  });
+});
+
+describe("run-time cwd containment (#6886 item 2)", () => {
+  const never = (): never => {
+    throw new Error("runner must not be called");
+  };
+
+  function rootWithWeb(): string {
+    const root = mkdtempSync(join(tmpdir(), "literal-ac-contain-"));
+    mkdirSync(join(root, "web"));
+    return root;
+  }
+
+  it("refuses with exit 2 and spawns nothing when the real cwd is outside or missing", () => {
+    const root = rootWithWeb();
+    const outsideAbs = mkdtempSync(join(tmpdir(), "literal-ac-outside-"));
+    for (const cwd of ["../x", "C:x", outsideAbs, "missing"]) {
+      const result = runLiteralAcceptanceCommands(
+        [
+          { command: "npx vitest run src/app.test.ts", source: "explicit", cwd: "web" },
+          { command: "task web:test", source: "explicit", cwd },
+        ],
+        { projectRoot: root, runner: never },
+      );
+      expect(result.code, cwd).toBe(2);
+      expect(result.ok, cwd).toBe(false);
+      expect(result.runs, cwd).toHaveLength(1);
+      expect(result.runs[0]?.detail, cwd).toMatch(/^refused: /);
+      expect(result.message, cwd).toContain("nothing was spawned");
+      expect(result.rejected ?? [], cwd).toHaveLength(0);
+    }
+  });
+
+  it("refuses a symlink that leaves the project root", () => {
+    const root = rootWithWeb();
+    const outside = mkdtempSync(join(tmpdir(), "literal-ac-link-target-"));
+    symlinkSync(outside, join(root, "escape"), "junction");
+    const result = runLiteralAcceptanceCommands(
+      [{ command: "task web:test", source: "explicit", cwd: "escape" }],
+      { projectRoot: root, runner: never },
+    );
+    expect(result.code).toBe(2);
+    expect(result.runs[0]?.detail).toMatch(/resolves outside the repository/);
+  });
+
+  it("runs an absolute cwd inside the project root there", () => {
+    const root = rootWithWeb();
+    let used = "";
+    const result = runLiteralAcceptanceCommands(
+      [{ command: "task web:test", source: "explicit", cwd: join(root, "web") }],
+      {
+        projectRoot: root,
+        runner: (input) => {
+          used = input.cwd;
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(used).toBe(join(root, "web"));
+  });
+
+  it("refuses in the single-command runner too", () => {
+    const root = rootWithWeb();
+    const run = runLiteralAcceptanceCommand(
+      { command: "task web:test", source: "explicit", cwd: "missing" },
+      { projectRoot: root, runner: never },
+    );
+    expect(run.exitCode).toBe(2);
+    expect(run.detail).toMatch(/^refused: .*acceptance-cwd-containment/);
   });
 });

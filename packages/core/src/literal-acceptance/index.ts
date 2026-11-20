@@ -34,13 +34,26 @@ export {
   stripLiteralAcceptanceAdvisory,
 } from "./evaluate.js";
 export {
+  ACCEPTANCE_CWD_CONTAINMENT_REFUSAL_ID,
+  type AcceptanceCwdContainment,
   defaultLiteralAcceptanceRunner,
+  evaluateAcceptanceCwdContainment,
+  findUnpromotedCaptureOnlyCommands,
+  formatAcceptanceCwdContainmentRefusal,
+  formatUnpromotedCaptureOnlyMessage,
+  formatUnpromotedCaptureOnlyRecord,
   isSafetyRefusalRun,
   runLiteralAcceptanceCommand,
   runLiteralAcceptanceCommands,
+  UNPROMOTED_CAPTURE_REMEDY,
 } from "./run.js";
 export {
+  ACCEPTANCE_CWD_GRAMMAR_REASON,
+  type AcceptanceCommandRecordVerdict,
+  type AcceptanceCwdVerdict,
   type CommandSafetyResult,
+  evaluateAcceptanceCommandRecord,
+  evaluateAcceptanceCwdGrammar,
   evaluateCommandSafety,
   evaluateNoopDenylist,
   evaluateStampAcceptanceSafety,
@@ -54,6 +67,7 @@ export {
   type StampAcceptanceSafetyInput,
   type StampAcceptanceSafetyResult,
   type StampSourceRung,
+  WRAPPER_SUBCOMMAND_REFUSAL,
 } from "./safety.js";
 export {
   EXECUTABLE_LITERAL_SOURCES,

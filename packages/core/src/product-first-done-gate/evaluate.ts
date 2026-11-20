@@ -26,25 +26,29 @@ import {
 import {
   appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
-  evaluateLiteralAcceptanceFromPlan,
+  evaluateAcceptanceCommandRecord,
+  findUnpromotedCaptureOnlyCommands,
+  formatRejectedLedger,
+  formatUnpromotedCaptureOnlyRecord,
   isExecutableLiteralSource,
   isInlineProseMention,
   isNoopRefusalReason,
   isSafetyRefusalRun,
   type LiteralAcceptanceCommand,
   type LiteralAcceptanceGateResult,
-  type LiteralAcceptanceRunner,
   type RejectedLiteralCommand,
   readNotAcceptanceCommands,
   readStoredLiteralAcceptanceCommands,
   resolveLiteralAcceptanceDetailed,
   runLiteralAcceptanceCommands,
   stripLiteralAcceptanceAdvisory,
+  UNPROMOTED_CAPTURE_REMEDY,
 } from "../literal-acceptance/index.js";
 import {
   evaluateSmallChangeLaneGate,
   type SmallChangeLaneGateOverrides,
 } from "../policy/small-change-lane.js";
+import { formatDeclaredRefusal } from "../refusal-declarations/print.js";
 import {
   type AcceptanceRunSummaryOutcome,
   ENV_RUN_SUMMARY_PATH,
@@ -101,6 +105,7 @@ import {
   formatAcceptanceVerdict,
   readAcceptanceLedger,
   relabelVerifyAcPassLead,
+  resolveAcceptanceGateProfile,
   resolveAcceptanceVerdict,
 } from "./acceptance-resolver.js";
 import {
@@ -409,30 +414,209 @@ function checkIntegratedCycleRefuse(
   };
 }
 
+/** Refusal table ids of the #6886 warnings (warn mode). */
+export const ACCEPTANCE_RECORD_ACTIVATE_REFUSAL_ID = "acceptance-record-activate";
+export const ACCEPTANCE_CWD_GRAMMAR_REFUSAL_ID = "acceptance-cwd-grammar";
+
+/** A record whose cwd is outside the plain relative-path grammar (warning only). */
+export interface AcceptanceCwdWarning {
+  readonly command: string;
+  readonly cwd: string;
+  readonly reason: string;
+  readonly sourceSpan: string | null;
+}
+
+/** The one non-executing acceptance record list (#6886 item 4). */
+export interface AcceptanceCommandRecords {
+  /** Admitted records: the literal ledger, then filtered plan.acceptance.commands. */
+  readonly commands: readonly LiteralAcceptanceCommand[];
+  /** Records verify:ac refuses before any run (structured refusals). */
+  readonly blocking: readonly RejectedLiteralCommand[];
+  /** Prose-derived refusals, inline mentions and not-command dispositions (never block). */
+  readonly advisory: readonly RejectedLiteralCommand[];
+  readonly cwdWarnings: readonly AcceptanceCwdWarning[];
+  /** Capture-only records with no promoted peer; verify:ac refuses them before any run. */
+  readonly unpromoted: readonly LiteralAcceptanceCommand[];
+  readonly transcriptPromptSkipped: number;
+}
+
+/**
+ * One record list for scope:activate, xbrief:activate and verify:ac (#6886
+ * item 4). Never runs a command. Reads the literal ledger through
+ * `resolveLiteralAcceptanceDetailed` with the completion profile's options
+ * unless the caller passes its own, so inline mentions and "not a command"
+ * dispositions move to advisory exactly as verify:ac moves them. Adds the
+ * `plan.acceptance.commands` records that pass `statedAcceptanceCommands`
+ * (source `explicit`). Applies the one record rule to every record. Execution
+ * grouping stays in `runLiteralAcceptanceCommands`.
+ */
+export function resolveAcceptanceCommandRecords(
+  plan: Record<string, unknown>,
+  options: { readonly captureFromNarratives?: boolean } = {},
+): AcceptanceCommandRecords {
+  const captureFromNarratives =
+    options.captureFromNarratives ?? resolveAcceptanceGateProfile("complete").captureFromNarratives;
+  const detailed = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives });
+  const candidates: LiteralAcceptanceCommand[] = [...detailed.commands];
+  if (asRecord(plan.acceptance) !== null) {
+    for (const c of statedAcceptanceCommands(readPlanAcceptance(plan), plan)) {
+      candidates.push({
+        command: c.command,
+        cwd: c.cwd ?? null,
+        expectedStdout: c.expectedStdout ?? null,
+        expectedExitCode: c.expectedExitCode ?? 0,
+        source: "explicit",
+        sourceSpan: "plan.acceptance.commands",
+      });
+    }
+  }
+  const blocking: RejectedLiteralCommand[] = [];
+  const blockingSeen = new Set<string>();
+  const block = (row: RejectedLiteralCommand): void => {
+    const key = `${row.command}\0${row.reason}`;
+    if (blockingSeen.has(key)) return;
+    blockingSeen.add(key);
+    blocking.push(row);
+  };
+  for (const row of detailed.rejected) {
+    block(row);
+  }
+  const commands: LiteralAcceptanceCommand[] = [];
+  const cwdWarnings: AcceptanceCwdWarning[] = [];
+  const cwdSeen = new Set<string>();
+  for (const record of candidates) {
+    const verdict = evaluateAcceptanceCommandRecord(record);
+    if (!verdict.command.ok) {
+      block({
+        command: record.command,
+        reason: verdict.command.reason ?? "unsafe command",
+        sourceSpan: record.sourceSpan ?? null,
+      });
+      continue;
+    }
+    commands.push(record);
+    if (!verdict.cwd.ok) {
+      const cwd = String(record.cwd ?? "").trim();
+      const key = `${record.command}\0${cwd}`;
+      if (cwdSeen.has(key)) continue;
+      cwdSeen.add(key);
+      cwdWarnings.push({
+        command: record.command,
+        cwd,
+        reason: verdict.cwd.reason ?? "",
+        sourceSpan: record.sourceSpan ?? null,
+      });
+    }
+  }
+  return {
+    commands,
+    blocking,
+    advisory: detailed.advisoryRejected,
+    cwdWarnings,
+    unpromoted: findUnpromotedCaptureOnlyCommands(commands),
+    transcriptPromptSkipped: detailed.transcriptPromptSkipped,
+  };
+}
+
+/** The one cwd-grammar warning line, printed by activation and verify:ac alike. */
+export function formatAcceptanceCwdWarningLine(warning: AcceptanceCwdWarning): string {
+  return formatDeclaredRefusal({
+    id: ACCEPTANCE_CWD_GRAMMAR_REFUSAL_ID,
+    detail: `acceptance command ${JSON.stringify(warning.command)} has cwd ${JSON.stringify(warning.cwd)}: ${warning.reason}`,
+  }).line;
+}
+
+/**
+ * Activation warnings (#6886 item 6): one line per record verify:ac would
+ * refuse before any run, per unpromoted capture and per cwd-grammar miss, each
+ * with verify:ac's reason text. Activation never refuses on them.
+ */
+export function formatAcceptanceActivationWarnings(records: AcceptanceCommandRecords): string[] {
+  const lines: string[] = [];
+  for (const row of records.blocking) {
+    const span =
+      row.sourceSpan !== null && row.sourceSpan !== undefined ? ` @${row.sourceSpan}` : "";
+    lines.push(
+      formatDeclaredRefusal({
+        id: ACCEPTANCE_RECORD_ACTIVATE_REFUSAL_ID,
+        detail: `verify:ac would refuse ${JSON.stringify(row.command)}${span} before any run: ${row.reason}`,
+      }).line,
+    );
+  }
+  for (const c of records.unpromoted) {
+    lines.push(
+      formatDeclaredRefusal({
+        id: ACCEPTANCE_RECORD_ACTIVATE_REFUSAL_ID,
+        detail:
+          `verify:ac would refuse the capture-only record ${formatUnpromotedCaptureOnlyRecord(c)} ` +
+          `before any run: it has no agent-promoted peer. ${UNPROMOTED_CAPTURE_REMEDY.replace(/\n/g, " ")}`,
+      }).line,
+    );
+  }
+  for (const warning of records.cwdWarnings) {
+    lines.push(formatAcceptanceCwdWarningLine(warning));
+  }
+  return lines;
+}
+
+function appendLines(message: string, lines: readonly string[]): string {
+  if (lines.length === 0) return message;
+  const block = lines.join("\n");
+  return message.length > 0 ? `${message}\n${block}` : block;
+}
+
+/**
+ * verify:ac over the one record list (#6886 item 5). A refused record stops the
+ * run before anything is spawned. It keeps the existing refusal exit (1) and
+ * its safety-rejected verdict (#3615); exit 2 stays the config / run-time
+ * containment exit. Otherwise one `runLiteralAcceptanceCommands` call decides
+ * what runs.
+ */
+function runAcceptanceCommandRecords(
+  records: AcceptanceCommandRecords,
+  options: { readonly projectRoot: string; readonly runner?: EvaluateVerifyAcOptions["runner"] },
+): LiteralAcceptanceGateResult {
+  const warnings = records.cwdWarnings.map(formatAcceptanceCwdWarningLine);
+  if (records.blocking.length > 0) {
+    const message =
+      `Literal acceptance-command gate FAILED (#3267): ${records.blocking.length} ` +
+      `safety-rejected stated command(s) block completion until resolved ` +
+      `(promote a safe alternative or remove from the task statement); nothing was run (#6886).\n` +
+      formatRejectedLedger(records.blocking);
+    return {
+      ok: false,
+      code: 1,
+      message: appendLiteralAcceptanceAdvisory(appendLines(message, warnings), records.advisory),
+      commands: records.commands,
+      runs: [],
+      rejected: records.blocking,
+      advisoryRejected: records.advisory,
+      transcriptPromptSkipped: records.transcriptPromptSkipped,
+    };
+  }
+  const run = runLiteralAcceptanceCommands(records.commands, {
+    projectRoot: options.projectRoot,
+    runner: options.runner,
+  });
+  return {
+    ...run,
+    rejected: run.rejected ?? [],
+    advisoryRejected: records.advisory,
+    transcriptPromptSkipped: records.transcriptPromptSkipped,
+    message: appendLiteralAcceptanceAdvisory(appendLines(run.message, warnings), records.advisory),
+  };
+}
+
 function resolveExecutableAcceptanceContract(
   plan: Record<string, unknown>,
-  acceptance: PlanAcceptance,
   captureFromNarratives: boolean | undefined,
 ): {
   readonly commands: LiteralAcceptanceCommand[];
   readonly rejected: readonly RejectedLiteralCommand[];
+  readonly records: AcceptanceCommandRecords;
 } {
-  const detailed = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives });
-  if (detailed.commands.length > 0) {
-    return { commands: [...detailed.commands], rejected: detailed.rejected };
-  }
-  const stated = statedAcceptanceCommands(acceptance, plan);
-  return {
-    commands: stated.map((c) => ({
-      command: c.command,
-      cwd: c.cwd ?? null,
-      expectedStdout: c.expectedStdout ?? null,
-      expectedExitCode: c.expectedExitCode ?? 0,
-      source: "explicit" as const,
-      sourceSpan: "plan.acceptance.commands",
-    })),
-    rejected: detailed.rejected,
-  };
+  const records = resolveAcceptanceCommandRecords(plan, { captureFromNarratives });
+  return { commands: [...records.commands], rejected: records.blocking, records };
 }
 
 function resolvedContractForHash(
@@ -440,11 +624,7 @@ function resolvedContractForHash(
   options: EvaluateVerifyAcOptions,
 ): AcceptanceLedgerEntry[] {
   return ledgerEntriesFromCommands(
-    resolveExecutableAcceptanceContract(
-      plan,
-      readPlanAcceptance(plan),
-      captureFromNarrativesFlag(options),
-    ).commands,
+    resolveExecutableAcceptanceContract(plan, captureFromNarrativesFlag(options)).commands,
   );
 }
 
@@ -897,9 +1077,20 @@ export function evaluateVerifyAcFromPlan(
 
   const contract = resolveExecutableAcceptanceContract(
     plan,
-    acceptance,
     captureFromNarrativesFlag(optionsWithScope),
   );
+  // #6886 item 5: a refused record stops verify:ac before anything runs.
+  if (contract.records.blocking.length > 0) {
+    return applyOracle(
+      annotate(
+        runAcceptanceCommandRecords(contract.records, { projectRoot }),
+        acceptance,
+        optionsWithScope.quiet,
+      ),
+      optionsWithScope,
+      plan,
+    );
+  }
   // Check-integrated verify:ac must not spawn an acceptance command that re-enters
   // task check / verify:ac (#4798). Standalone done-gate still may run task check.
   // --allow-vbrief-drift is release mismatch-policy only; it does not authorize
@@ -919,63 +1110,14 @@ export function evaluateVerifyAcFromPlan(
     return applyOracle(reused, optionsWithScope, plan);
   }
 
-  // Prefer shared literal-acceptance path so safety / promotion rules stay one place.
-  // Empty plan.acceptance.commands still consults the #3267 rejected ledger
-  // (Greptile P1: rejected stated AC must never soft-pass).
-  // For derived/floor commands already on plan.acceptance, inject as explicit metadata
-  // if the literal ledger is empty of executables.
-  const base = evaluateLiteralAcceptanceFromPlan(plan, {
+  // One record list, one run (#6886 items 4-5): the literal ledger and the
+  // filtered plan.acceptance.commands run through one runLiteralAcceptanceCommands
+  // call, whose promotion matching and execution-key grouping decide what runs.
+  // A plan record is no longer skipped because a metadata record ran.
+  const base = runAcceptanceCommandRecords(contract.records, {
     projectRoot,
     runner: optionsWithScope.runner,
-    // Check composition uses the stamped ledger only. Re-scanning issue prose
-    // during `task check` re-captures backtick `verify:ac` lines as rejected
-    // and deadlocks the graph (#3323 / #3284 check-integrated).
-    captureFromNarratives:
-      optionsWithScope.captureFromNarratives ??
-      (optionsWithScope.checkIntegrated === true ? false : undefined),
-    quiet: optionsWithScope.quiet,
   });
-
-  // When the literal ledger produced no runs, execute non-empty plan.acceptance.commands
-  // as source=explicit. The documented key is plan.acceptance.commands (#3284 / #3449);
-  // the #3267 ledger is a parallel store and can be empty while stated commands exist.
-  // Stated was previously excluded, so rung=stated + empty ledger printed "nothing to run".
-  // Do not override a blocking rejected ledger or a config error.
-  if (shouldRunPlanAcceptanceDirectly(base, acceptance, plan)) {
-    const runner: LiteralAcceptanceRunner | undefined = optionsWithScope.runner;
-    const directCommands = statedAcceptanceCommands(acceptance, plan);
-    const direct = runLiteralAcceptanceCommands(
-      directCommands.map((c) => ({
-        command: c.command,
-        cwd: c.cwd ?? null,
-        expectedStdout: c.expectedStdout ?? null,
-        expectedExitCode: c.expectedExitCode ?? 0,
-        source: "explicit" as const,
-        sourceSpan: "plan.acceptance.commands",
-      })),
-      {
-        projectRoot,
-        runner,
-        allowTaskStatement: optionsWithScope.allowTaskStatement,
-      },
-    );
-    // Carry the #3484 demotion forward: the direct path replaces `base`, and the
-    // advisory ledger must stay visible (reported, never blocking) (#3497).
-    const advisory: readonly RejectedLiteralCommand[] = base.advisoryRejected ?? [];
-    const directWithAdvisory: LiteralAcceptanceGateResult = {
-      ...direct,
-      advisoryRejected: advisory,
-      message:
-        optionsWithScope.quiet === true
-          ? direct.message
-          : appendLiteralAcceptanceAdvisory(direct.message, advisory),
-    };
-    return applyOracle(
-      annotate(directWithAdvisory, acceptance, optionsWithScope.quiet),
-      optionsWithScope,
-      plan,
-    );
-  }
 
   // Check composition: mid-story unpromoted capture-only may soft-pass so the
   // framework graph is not deadlocked before agents promote peers.
@@ -990,8 +1132,11 @@ export function evaluateVerifyAcFromPlan(
         plan,
       );
     }
+    // The run refuses capture-only records exactly when the shared list has
+    // unpromoted ones; the message is not sniffed (cwd warning lines name
+    // `verify:ac --capture-only`).
     const unpromoted =
-      /capture-only|task_statement|no matching agent-promoted/i.test(base.message) ||
+      contract.records.unpromoted.length > 0 ||
       (base.commands.length > 0 && base.commands.every((c) => c.source === "task_statement"));
     if (unpromoted || base.commands.length === 0) {
       return applyOracle(
@@ -1068,18 +1213,6 @@ function statedAcceptanceCommands(
   plan: Record<string, unknown>,
 ): PlanAcceptance["commands"] {
   return acceptance.commands.filter((c) => !isInlineScrapedAcceptanceCommand(plan, c));
-}
-
-function shouldRunPlanAcceptanceDirectly(
-  base: LiteralAcceptanceGateResult,
-  acceptance: PlanAcceptance,
-  plan: Record<string, unknown>,
-): boolean {
-  if (statedAcceptanceCommands(acceptance, plan).length === 0) return false;
-  if (base.runs.length > 0) return false;
-  if (base.code === 2) return false;
-  if ((base.rejected?.length ?? 0) > 0) return false;
-  return true;
 }
 
 function classifyResolution(input: {

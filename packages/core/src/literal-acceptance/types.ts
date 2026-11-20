@@ -36,7 +36,9 @@ export interface LiteralAcceptanceCommand {
   readonly command: string;
   /**
    * Working directory relative to project root when stated; null/omit = project root.
-   * Absolute paths are allowed when the statement uses them.
+   * A plain relative path (segments joined by `/`) conforms; any other form only
+   * warns (#6886). verify:ac refuses (exit 2, nothing spawned) when the real
+   * directory is missing or outside the project root, absolute paths included.
    */
   readonly cwd?: string | null;
   /** Expected stdout substring when the statement names expected output. */

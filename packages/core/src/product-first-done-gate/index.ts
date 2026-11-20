@@ -65,6 +65,10 @@ export {
   type VerifyAcResolution,
 } from "./empty-resolution.js";
 export {
+  ACCEPTANCE_CWD_GRAMMAR_REFUSAL_ID,
+  ACCEPTANCE_RECORD_ACTIVATE_REFUSAL_ID,
+  type AcceptanceCommandRecords,
+  type AcceptanceCwdWarning,
   ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE,
   ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
   ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE,
@@ -72,7 +76,10 @@ export {
   emitVerifyAcTerminalOutcome,
   evaluateVerifyAcFromPath,
   evaluateVerifyAcFromPlan,
+  formatAcceptanceActivationWarnings,
+  formatAcceptanceCwdWarningLine,
   isVerifyAcRequiredAtCeremonyDepth,
+  resolveAcceptanceCommandRecords,
   resolveOracleScopeKey,
   type VerifyAcResult,
 } from "./evaluate.js";
