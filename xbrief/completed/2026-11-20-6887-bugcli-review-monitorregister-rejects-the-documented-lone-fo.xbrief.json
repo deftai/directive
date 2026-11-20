@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6887",
-    "updated": "2026-11-20T21:27:20Z"
+    "updated": "2026-11-20T22:54:29Z"
   },
   "plan": {
     "title": "bug(cli): review-monitor:register rejects the documented lone -- form",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Many deft runtime verbs refuse a lone `--` right after the verb (for example `deft review-monitor:register -- --pr 12` and `deft occupancy:release -- --session-id ...`), although the docs show that form; #6647 fixed this for `verify:*` verbs only (#6882 item 4). This story widens the #6647 dispatcher helper so it drops one leading lone `--` for every runtime verb, after routing, and ships helper unit cases, the flipped #6647 case and real-parser tests for `review-monitor:register` and `occupancy:release`.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6887",
@@ -20,74 +20,146 @@
     "items": [
       {
         "title": "Shared helper. In `packages/runtime/src/dispatch.ts`, the #6647 helper `dropLeadingDoubleDashForVerify` becomes one helper for every verb: it drops `rest[0]` when it is exactly `--`, whatever the verb. It runs at the same place as today, in `dispatch` after `routeArgv` and before `handlerArgv` is built, so colon (`verify:orphan-active`), namespace (`verify orphan-active`) and alias spellings all reach it. It removes at most one token and keeps every other token. Per-verb parsers are not edited. Routed `scope:*` forms reach `scope-lifecycle <sub> -- ...`, where the scope parser already skips `--` (`packages/core/src/scope/main.ts` 175); they are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When any runtime verb is dispatched with a leading lone `--`, then the shared helper in dispatch.ts drops exactly that one token after routing, and colon, namespace and alias spellings all reach it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Helper unit cases. In `packages/runtime/src/dispatch-verify-double-dash.test.ts` (or a renamed sibling): the helper drops a leading lone `--` for a `verify:*` verb and for non-verify verbs (`review-monitor:register`, `occupancy:release`); it keeps a later `--`; from `[\"--\", \"--\", \"x\"]` it drops only the first; it leaves arguments with no leading `--` unchanged. The #6647 case at lines 31-33, which asserts a non-verify verb keeps its `--`, flips to assert the drop.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the helper unit tests run, then they cover verify and non-verify verbs, a later `--`, `-- -- x`, and arguments with no leading `--`, and the #6647 non-verify case asserts the drop."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Real parser runs. One vitest file calls the real `routeAndDispatch` from a new empty temporary directory, with the dispatch io sink and `process.stdout` / `process.stderr` captured, for two pairs: `[\"review-monitor:register\", \"--pr=abc\"]` and `[\"review-monitor:register\", \"--\", \"--pr=abc\"]`; `[\"occupancy:release\", \"--session-id=\"]` and `[\"occupancy:release\", \"--\", \"--session-id=\"]`. Nothing is stubbed and `--help` is not used. Each run must exit 2, and each pair must give the same exit code and the same output. The bad values make the parser refuse before any work: `review-monitor-register.ts` returns `invalid --pr value` and `occupancy-release.ts` returns `argument --session-id: expected a non-empty value` before `releaseOccupancy` is called.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the real-parser test runs routeAndDispatch for each `review-monitor:register` and `occupancy:release` pair, then every run exits 2 and each pair gives the same exit code and output."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs. No edits. Every `deft <verb> -- ` example in AGENTS.md, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md` and the swarm and review-cycle skills reaches its verb without the `--`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the change ships, then no doc file is edited and every documented `deft <verb> -- ` example reaches its verb without the `--`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`deft review-monitor:register -- --pr <N> ...` and `deft review-monitor:register --pr <N> ...` hand the verb's handler the same arguments.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When `deft review-monitor:register -- --pr <N>` and `deft review-monitor:register --pr <N>` are run, then the handler receives the same arguments."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "In `packages/runtime/src/dispatch.ts`, one shared helper drops a single leading lone `--` for every runtime verb, after routing and before the handler arguments are built; it keeps every other token, and per-verb parsers are not edited.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When dispatch.ts is read, then one shared helper drops a single leading lone `--` for every runtime verb after routing, and no per-verb parser is edited."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`deft verify orphan-active -- --issue <N>` and the `scope:promote`, `scope:activate` and `scope:complete` forms with `--` keep working.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When `deft verify orphan-active -- --issue <N>` or a `scope:promote|activate|complete -- <path>` form is run, then it behaves as before the change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Unit cases show the helper drops a leading lone `--` for `verify:*` and non-verify verbs, keeps a later `--`, drops only the first of `-- --`, and leaves other arguments unchanged; the #6647 non-verify case asserts the drop.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the helper unit tests run, then they pass for verify and non-verify verbs and the flipped #6647 case."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A vitest test runs the real `routeAndDispatch`, with nothing stubbed, from an empty temporary directory, and asserts that `review-monitor:register --pr=abc` and `review-monitor:register -- --pr=abc` exit 2 with the same output, and that `occupancy:release --session-id=` and `occupancy:release -- --session-id=` exit 2 with the same output.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
+        "x-directive/specImpact": "delta",
         "narrative": {
           "Acceptance": "When the real-parser test runs, then both pairs exit 2 with the same output, with nothing stubbed and no --help probe."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+          "recorded_at": "2026-11-20T22:54:29Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -802,7 +874,36 @@
         "harvestDigest": "ba1d006ce12652852cad43820d9a4df721bc5a3121f0ca0093af47b6bd3f9908",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1721c0f05268f95a66e183f65044aa52a186115f",
+        "prNumber": 6910,
+        "prBase": "master",
+        "mergeCommit": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a70ac499b6b12ef360180b9404e5dacd818e5511",
+        "verifiedAt": "2026-11-20T22:54:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6906
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T22:54:29Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T22:54:29Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -900,6 +1001,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6518389801",
-    "updated": "2026-11-20T21:27:20Z"
+    "updated": "2026-11-20T22:54:29Z"
   }
 }
