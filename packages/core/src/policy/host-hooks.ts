@@ -1,5 +1,4 @@
-import type { HookHost } from "../hooks/dispatcher.js";
-import { HOOK_HOSTS } from "../hooks/dispatcher.js";
+import { HOOK_HOSTS, type HookHost } from "../hooks/hook-hosts.js";
 import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";

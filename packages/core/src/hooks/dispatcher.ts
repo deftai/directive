@@ -209,6 +209,7 @@ import {
   decideSpendRecommendGate,
 } from "./dispatcher-plan-choice.js";
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
+import { HOOK_HOSTS, type HookHost } from "./hook-hosts.js";
 import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
 import { excuseMergeArrivals } from "./merge-commit-excuse.js";
 import {
@@ -322,8 +323,8 @@ export {
   SPAWN_TOOL_NAMES,
 } from "./tools.js";
 
-export const HOOK_HOSTS = ["claude", "grok", "cursor", "codex"] as const;
-export type HookHost = (typeof HOOK_HOSTS)[number];
+// Leaf module so the dispatcher's own imports can name the hosts (#5771).
+export { HOOK_HOSTS, type HookHost };
 
 export const HOOK_EVENTS = [
   "session.start",
