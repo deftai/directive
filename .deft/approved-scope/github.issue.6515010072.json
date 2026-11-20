@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-11-20-6863-chore-retire-go-from-master-frozen-installer-bridge-leftover.xbrief.json",
   "planId": "github.issue.6515010072",
-  "approvedAt": "2026-11-20T19:39:45Z",
+  "approvedAt": "2026-11-20T20:21:23Z",
   "fileScope": [
     ".deft/approved-scope/github.issue.6515010072.intent.json",
     ".deft/approved-scope/github.issue.6515010072.json",
@@ -60,16 +60,17 @@
     "tasks/verify.yml",
     "vitest.config.ts",
     "xbrief/.audit/spec-drift/github.issue.6515010072.json",
+    "xbrief/evaluator-surface-disposition.json",
     "xbrief/PROJECT-DEFINITION.xbrief.json"
   ],
-  "fileScopeDigest": "11a30517cca3c1fa487aacb14cabbaf8aa78203155b93364925c4fcc69168373",
+  "fileScopeDigest": "2d03c332dc8c40921f3c4c8cfa39296afe182ce3d368079510b728455b2edcab",
   "humanApproval": {
     "kind": "operator",
     "actor": "scott",
-    "mintedAt": "2026-11-20T19:39:38Z",
+    "mintedAt": "2026-11-20T20:21:15Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "e924bea65898b7b147f420fb2088af39db2abc3183392696555a7ca636c2a58b",
+  "intentDigest": "2b70c7caaa31ed0c77c680e268d665868ba51779f6d7eb49ede8098105358163",
   "digestAlgo": "intent-extract-v1",
-  "authHashV1": "sha256:1b0328ed14d607538906605ec437efa67103df650b4379cd84a1bccb0d35f5a5"
+  "authHashV1": "sha256:6e11a04580a0730d7a4f407e362cd44c7e38934f6b65f644c89fa9f27a5fecbe"
 }
