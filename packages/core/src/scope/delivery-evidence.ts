@@ -23,6 +23,7 @@ import {
   type DeliveryIdentityAttestLookup,
   findDeliveryIdentityAttestation,
   formatDeliveryIdentityAttestCommand,
+  resolveDeliveryIdentityAttestStore,
 } from "../policy/delivery-identity-attest-grant.js";
 import { parseAllDeftStoryMarks, parseAllDeftStoryPartLines } from "../pr-closing-keywords/main.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
@@ -235,6 +236,11 @@ export interface DeliveryGateOptions {
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
   /** Test / inject seam: operator delivery attestation lookup (#6317). */
   readonly findDeliveryAttestation?: FindDeliveryAttestationFn;
+  /**
+   * Part-line route (#6645): set only by the `scope:complete` command entry.
+   * Off for finalize, completeCohort and the in-PR tip proof.
+   */
+  readonly partLineAttestation?: boolean;
 }
 
 export interface DeliveryGateResult {
@@ -747,6 +753,22 @@ export interface MergeTimeForge {
   ) => ForgePage<PrFileEntry>;
   readonly probeRateLimit: () => RateLimitSnapshot | null;
   readonly nowMs: () => number;
+  /**
+   * One REST page of open PRs whose base is this repository, fork heads
+   * included (#6645 part-line sibling check). Absent → that check cannot run
+   * and the part-line route refuses with a retry remedy.
+   */
+  readonly listOpenPrsPage?: (
+    repository: string,
+    after: string | null,
+  ) => ForgePage<OpenPrListNode>;
+}
+
+/** One open PR on this repository's base (#6645); `headRepository` is null for a deleted fork. */
+export interface OpenPrListNode {
+  readonly number: number;
+  readonly body: string;
+  readonly headRepository: string | null;
 }
 
 /** Recut-13 uniqueness-scan budget: units and caps (#5710). */
@@ -764,13 +786,22 @@ export const MERGE_TIME_ASSOCIATION_BASES =
   "(c) a Connected issue link in effect at merged_at, " +
   "(d) an operator `delivery-identity-attest` grant for the PR, its merge commit and this plan";
 
+/**
+ * Operator attestation lookup result (#6317). `cause: "store-unresolved"` marks
+ * a refusal that a grant cannot cure (#6645); any other refusal means no usable
+ * grant was found (missing, or expired before first use).
+ */
+export type DeliveryAttestationLookup =
+  | DeliveryIdentityAttestLookup
+  | { readonly ok: false; readonly reason: string; readonly cause: "store-unresolved" };
+
 /** Operator attestation lookup (#6317); see findDeliveryIdentityAttestation. */
 export type FindDeliveryAttestationFn = (query: {
   readonly repository: string;
   readonly prNumber: number;
   readonly mergeCommitSha: string;
   readonly planId: string;
-}) => DeliveryIdentityAttestLookup;
+}) => DeliveryAttestationLookup;
 
 /** `metadata.productPullRequest` of the brief on the fetched delivery branch (#6317). */
 export type DeliveryBranchStampRead =
@@ -1354,8 +1385,81 @@ export function scanSoleMarkCompetitors(input: {
 }
 
 /**
+ * The remedy a join refusal names (#6645). Only `attest` prints the operator
+ * attestation command; every other kind names the remedy for its own reason.
+ */
+type RefusalRemedy =
+  | { readonly kind: "attest" }
+  | { readonly kind: "retry"; readonly read: string }
+  | { readonly kind: "product-pr" }
+  | { readonly kind: "contested"; readonly prs: readonly number[] }
+  | { readonly kind: "plan-id" }
+  | { readonly kind: "grant-store"; readonly error: string }
+  | { readonly kind: "story-line"; readonly blocking: readonly number[] };
+
+/** A refusal reason plus the remedy it names (#6645). */
+interface RemediedRefusal {
+  readonly reason: string;
+  readonly remedy: RefusalRemedy;
+}
+
+function prList(prs: readonly number[]): string {
+  return prs.map((n) => `#${n}`).join(", ");
+}
+
+/** The remedy sentence of a join refusal (#6645); the attestation command only for `attest`. */
+function formatJoinRemedy(
+  remedy: RefusalRemedy,
+  ctx: {
+    readonly attestCommand: string;
+    readonly issueNumber: number;
+    readonly prNumber: number;
+    readonly briefBasename: string | null;
+  },
+): string {
+  const { issueNumber, prNumber } = ctx;
+  switch (remedy.kind) {
+    case "attest":
+      return (
+        `For already-merged work with no merge-time basis, an operator attests it at a ` +
+        `terminal: \`${ctx.attestCommand}\` (#6317).`
+      );
+    case "retry":
+      return (
+        `Remedy: the ${remedy.read} read failed; retry once it can be read. An operator ` +
+        `attestation cannot cure a failed read (#6645).`
+      );
+    case "product-pr":
+      return (
+        `Remedy: PR #${prNumber} is not a delivery; run \`scope:complete\` with the story's ` +
+        `product PR (\`--pr <n> --merge-commit <sha>\`) (#6645).`
+      );
+    case "contested":
+      return (
+        `Remedy: settle the mark. ${prList(remedy.prs)} also carry a sole ` +
+        `\`deft-story: ${issueNumber}\` mark; \`metadata.productPullRequest\` in the brief on ` +
+        `the fetched delivery branch names the delivering PR (#6317).`
+      );
+    case "plan-id":
+      return (
+        `Remedy: the brief${ctx.briefBasename === null ? "" : ` ${ctx.briefBasename}`} has no ` +
+        `plan id, so no attestation can bind to it; give the brief a plan id and retry (#6645).`
+      );
+    case "grant-store":
+      return `Remedy: fix the attestation grant store (${remedy.error}) and retry (#6645).`;
+    case "story-line":
+      return (
+        `Remedy: ${prList(remedy.blocking)} block the part-line route; complete with a PR that ` +
+        `carries \`deft-story: ${issueNumber}\` (#6645).`
+      );
+  }
+}
+
+/**
  * Candidate delivery checks shared by bases (a) and (d): a nonzero-file diff
  * that is not delivery-brief-land excluded (#5710 / #6317). Null = passes.
+ * A failed file read names a retry; a zero-file or brief-only diff names the
+ * product-PR remedy (#6645).
  */
 function candidateDeliveryRefusal(
   forge: MergeTimeForge,
@@ -1363,26 +1467,34 @@ function candidateDeliveryRefusal(
   repository: string,
   prNumber: number,
   label: string,
-): string | null {
+): RemediedRefusal | null {
   const exclusion = classifyDeliveryExclusion(forge, budget, repository, prNumber);
   if (!exclusion.ok) {
-    return `${label} ${exclusion.error}`;
+    return {
+      reason: `${label} ${exclusion.error}`,
+      remedy: { kind: "retry", read: `PR #${prNumber} changed files` },
+    };
   }
   if (exclusion.fileCount === 0) {
-    return `${label} PR #${prNumber} changes no files (a zero-file PR carries no delivery)`;
+    return {
+      reason: `${label} PR #${prNumber} changes no files (a zero-file PR carries no delivery)`,
+      remedy: { kind: "product-pr" },
+    };
   }
   if (exclusion.excluded) {
-    return (
-      `${label} PR #${prNumber} changes only briefs and CHANGELOG.md ` +
-      `(delivery-brief-land excluded; not delivery)`
-    );
+    return {
+      reason:
+        `${label} PR #${prNumber} changes only briefs and CHANGELOG.md ` +
+        `(delivery-brief-land excluded; not delivery)`,
+      remedy: { kind: "product-pr" },
+    };
   }
   return null;
 }
 
 type SoleMarkProof =
   | { ok: true; competingMarkedPrs: number[]; partLinePrs: number[] }
-  | { ok: false; reason: string };
+  | ({ ok: false } & RemediedRefusal);
 
 /**
  * Basis a: unique sole mark among merged non-excluded PRs (#5710). Uniqueness
@@ -1404,11 +1516,12 @@ function proveSoleMarkBasis(input: {
     return {
       ok: false,
       reason: `(a) PR #${prNumber} body as of merged_at has no sole \`deft-story: ${issueNumber}\` mark`,
+      remedy: { kind: "product-pr" },
     };
   }
   const delivery = candidateDeliveryRefusal(forge, budget, repository, prNumber, "(a)");
   if (delivery !== null) {
-    return { ok: false, reason: delivery };
+    return { ok: false, ...delivery };
   }
   const scan = scanSoleMarkCompetitors({
     repository,
@@ -1418,19 +1531,24 @@ function proveSoleMarkBasis(input: {
     budget,
   });
   if (!scan.ok) {
-    return { ok: false, reason: `(a) uniqueness unknown, refusing: ${scan.error}` };
+    return {
+      ok: false,
+      reason: `(a) uniqueness unknown, refusing: ${scan.error}`,
+      remedy: { kind: "retry", read: "merged-PR uniqueness scan" },
+    };
   }
   if (scan.competitors.length === 0) {
     return { ok: true, competingMarkedPrs: [], partLinePrs: scan.partLinePrs };
   }
-  const list = scan.competitors.map((n) => `#${n}`).join(", ");
   const notUnique =
-    `(a) mark is not unique: merged non-excluded PR(s) ${list} also carry a sole ` +
+    `(a) mark is not unique: merged non-excluded PR(s) ${prList(scan.competitors)} also carry a sole ` +
     `\`deft-story: ${issueNumber}\` mark`;
+  const contested: RefusalRemedy = { kind: "contested", prs: scan.competitors };
   if (input.readDeliveryBranchStamp === undefined) {
     return {
       ok: false,
       reason: `${notUnique}; no delivery-branch brief read is available to settle it`,
+      remedy: contested,
     };
   }
   const stamp = input.readDeliveryBranchStamp();
@@ -1438,6 +1556,7 @@ function proveSoleMarkBasis(input: {
     return {
       ok: false,
       reason: `${notUnique}; settling by the fetched delivery-branch stamp failed: ${stamp.error}`,
+      remedy: { kind: "retry", read: "delivery-branch stamp" },
     };
   }
   if (stamp.productPullRequest === prNumber) {
@@ -1449,6 +1568,7 @@ function proveSoleMarkBasis(input: {
     reason:
       `${notUnique}; metadata.productPullRequest in ${stamp.source} is ${stamped}, ` +
       `not #${prNumber} (a working-tree stamp does not count)`,
+    remedy: contested,
   };
 }
 
@@ -1638,6 +1758,63 @@ function fetchPrFilesPageLive(
   return { ok: true, nodes, hasNextPage, endCursor: hasNextPage ? String(page + 1) : null };
 }
 
+function parseOpenPrNode(value: unknown): OpenPrListNode | null {
+  const rec = asRecord(value);
+  if (rec === null || typeof rec.number !== "number") return null;
+  if (rec.body !== null && rec.body !== undefined && typeof rec.body !== "string") return null;
+  const head = asRecord(rec.head);
+  if (head === null) return null;
+  const repo = asRecord(head.repo);
+  const fullName = typeof repo?.full_name === "string" ? repo.full_name : null;
+  return {
+    number: rec.number,
+    body: typeof rec.body === "string" ? rec.body : "",
+    headRepository: fullName,
+  };
+}
+
+/**
+ * One REST page of `pulls?state=open` on this repository's base, fork heads
+ * included, read uncached (#6645). The cursor is the next page number; paging
+ * ends at the first short page.
+ */
+export function fetchOpenPrsPageLive(
+  runGh: RunGhFn,
+  repository: string,
+  after: string | null,
+): ForgePage<OpenPrListNode> {
+  const parsed = parseOwnerRepo(repository);
+  if (parsed === null) return { ok: false, error: `invalid repository ${repository}` };
+  const page = after === null ? 1 : Number(after);
+  if (!Number.isInteger(page) || page < 1) return { ok: false, error: `invalid page ${after}` };
+  const path = `repos/${parsed.owner}/${parsed.name}/pulls?state=open&per_page=100&page=${page}`;
+  let result: RunGhResult;
+  try {
+    result = liveRunGh(runGh)(["gh", "api", path]);
+  } catch (exc: unknown) {
+    return { ok: false, error: exc instanceof Error ? exc.message : String(exc) };
+  }
+  if (result.returncode !== 0) {
+    return { ok: false, error: result.stderr.trim() || "gh api pulls non-zero" };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(result.stdout) as unknown;
+  } catch {
+    return { ok: false, error: "unparseable open-PR page" };
+  }
+  if (!Array.isArray(payload)) return { ok: false, error: "open-PR page is not an array" };
+  const nodes: OpenPrListNode[] = [];
+  for (const raw of payload) {
+    const node = parseOpenPrNode(raw);
+    if (node === null) return { ok: false, error: "unreadable open-PR entry" };
+    nodes.push(node);
+  }
+  // A full page may have a successor; a short page is the last one.
+  const hasNextPage = payload.length >= 100;
+  return { ok: true, nodes, hasNextPage, endCursor: hasNextPage ? String(page + 1) : null };
+}
+
 /**
  * Pin plain `gh` for single-path GETs the default runner would send to the
  * `ghx` cache proxy. A cached read can be stale: a PR cached before merge
@@ -1718,6 +1895,7 @@ export function defaultMergeTimeForge(runGh: RunGhFn = defaultRunGh): MergeTimeF
     },
     fetchPrFilesPage: (repository, prNumber, after) =>
       fetchPrFilesPageLive(runGh, repository, prNumber, after),
+    listOpenPrsPage: (repository, after) => fetchOpenPrsPageLive(runGh, repository, after),
     probeRateLimit: () => probeLiveRateLimit(runGh),
     nowMs: () => Date.now(),
   };
@@ -1811,6 +1989,12 @@ export interface StoryPrMergeIdentityInput {
   readonly readDeliveryBranchStamp?: () => DeliveryBranchStampRead;
   /** Operator attestation lookup (#6317). Absent → the attested basis is unavailable. */
   readonly findDeliveryAttestation?: FindDeliveryAttestationFn;
+  /**
+   * Part-line route (#6645): a `deft-story-part: N` PR may complete through
+   * basis (d) after the sibling check. Only the `scope:complete` command entry
+   * sets it; finalize, completeCohort and the in-PR tip proof leave it off.
+   */
+  readonly partLineAttestation?: boolean;
 }
 
 type MergedPayload =
@@ -2011,24 +2195,38 @@ function verifyPrOnlyIdentity(input: StoryPrMergeIdentityInput): StoryPrMergeIde
   });
 }
 
-/** Brief-in-PR-diff basis (#3675, unchanged). Null = proven; "" = not attempted; else reason. */
+/** Outcome of the brief-in-PR-diff basis (#3675). */
+type BriefDiffOutcome =
+  | { readonly status: "proven" }
+  | { readonly status: "skipped" }
+  | { readonly status: "refused"; readonly reason: string; readonly failedRead: string | null };
+
+/** Brief-in-PR-diff basis (#3675, unchanged); a failed file read is named (#6645). */
 function proveBriefInPrDiff(
   input: StoryPrMergeIdentityInput,
   repository: string,
   prNumber: number,
-): string | null {
+): BriefDiffOutcome {
   const briefBasename = input.briefBasename?.trim() ?? "";
   if (briefBasename.length === 0 || input.fetchPrChangedFiles === undefined) {
-    return "";
+    return { status: "skipped" };
   }
   const files = input.fetchPrChangedFiles(prNumber, repository);
   if (files === null) {
-    return `brief-in-PR-diff: could not read PR #${prNumber} changed files (lookup failure)`;
+    return {
+      status: "refused",
+      reason: `brief-in-PR-diff: could not read PR #${prNumber} changed files (lookup failure)`,
+      failedRead: `PR #${prNumber} changed files`,
+    };
   }
   if (!prDiffAddsBrief(files, briefBasename)) {
-    return `brief-in-PR-diff: PR #${prNumber} did not add ${briefBasename} alongside code changes`;
+    return {
+      status: "refused",
+      reason: `brief-in-PR-diff: PR #${prNumber} did not add ${briefBasename} alongside code changes`,
+      failedRead: null,
+    };
   }
-  return null;
+  return { status: "proven" };
 }
 
 interface IssueAnchoredTarget {
@@ -2040,41 +2238,45 @@ interface IssueAnchoredTarget {
   readonly currentBody: string | null;
 }
 
-/** Bases b and c on the merge-time body already read; returns the basis or appends reasons. */
+/**
+ * Bases b and c on the merge-time body already read; returns the basis, or
+ * appends reasons and names the read that failed (#6645).
+ */
 function proveKeywordOrConnected(
   forge: MergeTimeForge,
   budget: ScanBudget,
   target: IssueAnchoredTarget,
   mergeTimeBody: string,
   reasons: string[],
-): StoryPrIdentityBasis | null {
+): { readonly basis: StoryPrIdentityBasis | null; readonly failedRead: string | null } {
   const { repository, issueNumber, prNumber, mergedAt } = target;
   if (bodyHasClosingKeywordFor(mergeTimeBody, repository, issueNumber)) {
-    return "merge-time-keyword";
+    return { basis: "merge-time-keyword", failedRead: null };
   }
   reasons.push(
     `(b) PR #${prNumber} body as of merged_at has no closing keyword for #${issueNumber}`,
   );
 
+  const eventsRead = `PR #${prNumber} connection events`;
   const events = collectAllPages(
     (after) => forge.fetchConnectionEventsPage(repository, prNumber, after),
     budget.beforeGraphql,
-    `PR #${prNumber} connection events`,
+    eventsRead,
   );
   if (!events.ok) {
     reasons.push(`(c) ${events.error}`);
-    return null;
+    return { basis: null, failedRead: eventsRead };
   }
   const state = connectedAtMergedAt(events.nodes, repository, issueNumber, mergedAt);
   if (state.ok && state.connected) {
-    return "merge-time-connected";
+    return { basis: "merge-time-connected", failedRead: null };
   }
-  reasons.push(
-    state.ok
-      ? `(c) no Connected link to #${issueNumber} in effect at merged_at`
-      : `(c) ${state.error}`,
-  );
-  return null;
+  if (!state.ok) {
+    reasons.push(`(c) ${state.error}`);
+    return { basis: null, failedRead: eventsRead };
+  }
+  reasons.push(`(c) no Connected link to #${issueNumber} in effect at merged_at`);
+  return { basis: null, failedRead: null };
 }
 
 function planIdOf(plan: Record<string, unknown>): string {
@@ -2084,21 +2286,38 @@ function planIdOf(plan: Record<string, unknown>): string {
 /**
  * Basis d (#6317): an operator `delivery-identity-attest` grant for the PR, its
  * merge commit and the plan id, plus the nonzero-file and delivery-exclusion
- * checks. The part-line refusal already ran before any basis.
+ * checks. The delivery check runs before the lookup's reason is used, so a
+ * PR that is not a delivery never names a grant (#6645). The attestation
+ * command is the remedy only when this run would accept (d) with a usable
+ * grant: no earlier read failed, the plan has an id, the lookup is wired and
+ * its store resolved, the delivery check passed, and no usable grant exists.
  */
 function proveAttestedBasis(
   input: StoryPrMergeIdentityInput,
   forge: MergeTimeForge,
   budget: ScanBudget,
   target: IssueAnchoredTarget,
-): { ok: true; grantId: string } | { ok: false; reason: string } {
+  failedRead: string | null,
+): { ok: true; grantId: string } | ({ ok: false } & RemediedRefusal) {
   const { repository, prNumber } = target;
   if (input.findDeliveryAttestation === undefined) {
-    return { ok: false, reason: "(d) operator attestation lookup is unavailable" };
+    return {
+      ok: false,
+      reason: "(d) operator attestation lookup is unavailable",
+      remedy: { kind: "retry", read: "operator attestation lookup (unwired in this run)" },
+    };
   }
   const planId = planIdOf(input.plan);
   if (planId.length === 0) {
-    return { ok: false, reason: "(d) the plan has no id to bind an operator attestation to" };
+    return {
+      ok: false,
+      reason: "(d) the plan has no id to bind an operator attestation to",
+      remedy: { kind: "plan-id" },
+    };
+  }
+  const delivery = candidateDeliveryRefusal(forge, budget, repository, prNumber, "(d)");
+  if (delivery !== null) {
+    return { ok: false, ...delivery };
   }
   const lookup = input.findDeliveryAttestation({
     repository,
@@ -2106,14 +2325,23 @@ function proveAttestedBasis(
     mergeCommitSha: target.mergeCommitSha,
     planId,
   });
-  if (!lookup.ok) {
-    return { ok: false, reason: `(d) ${lookup.reason}` };
+  if (lookup.ok) {
+    return { ok: true, grantId: lookup.grantId };
   }
-  const delivery = candidateDeliveryRefusal(forge, budget, repository, prNumber, "(d)");
-  if (delivery !== null) {
-    return { ok: false, reason: delivery };
+  if ("cause" in lookup && lookup.cause === "store-unresolved") {
+    return {
+      ok: false,
+      reason: `(d) ${lookup.reason}`,
+      remedy: { kind: "grant-store", error: lookup.reason },
+    };
   }
-  return { ok: true, grantId: lookup.grantId };
+  // No usable grant (missing, or expired before first use). The grant would
+  // cure this refusal only when no earlier read in this run failed.
+  return {
+    ok: false,
+    reason: `(d) ${lookup.reason}`,
+    remedy: failedRead === null ? { kind: "attest" } : { kind: "retry", read: failedRead },
+  };
 }
 
 type IssueAnchoredProof =
@@ -2121,12 +2349,155 @@ type IssueAnchoredProof =
   | { ok: false; message: string };
 
 /**
- * Issue-anchored association as of merged_at (#5710 P3 / #6317). The
- * merge-time body is read before any basis; an unreadable body refuses, and a
- * part-line body refuses as a partial delivery on every basis. A body with the
- * sole mark settles only by the exhaustive sole-mark scan (a); otherwise the
- * cheap bases (b, c, brief-in-PR-diff), then the operator attestation (d).
- * Success always needs a positive proof.
+ * A product part (#6645): a PR whose diff has at least one path, rename
+ * sources included, outside the delivery-brief-land family and outside
+ * `.deft/`. Activation, mint, widen and other brief-only or `.deft/`-only PRs
+ * are not product parts.
+ */
+function isProductPartDiff(files: readonly PrFileEntry[]): boolean {
+  const isProductPath = (path: string): boolean => {
+    const normalized = path.replace(/\\/g, "/");
+    return (
+      normalized.length > 0 &&
+      !isDeliveryBriefLandPath(normalized) &&
+      !normalized.startsWith(".deft/")
+    );
+  };
+  return files.some(
+    (file) => isProductPath(file.filename) || isProductPath(file.previousFilename ?? ""),
+  );
+}
+
+/** Product-part read of one PR (#6645); a failed or truncated listing is unknown. */
+function readProductPart(
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  repository: string,
+  prNumber: number,
+): { ok: true; productPart: boolean } | { ok: false; error: string } {
+  const listed = collectAllPages(
+    (after) => forge.fetchPrFilesPage(repository, prNumber, after),
+    budget.beforeRest,
+    `PR #${prNumber} changed files`,
+  );
+  if (!listed.ok) {
+    return listed;
+  }
+  if (listed.nodes.length >= PR_FILES_LISTING_CAP) {
+    return {
+      ok: false,
+      error: `PR #${prNumber} changed files: listing truncated at the ${PR_FILES_LISTING_CAP}-file cap`,
+    };
+  }
+  return { ok: true, productPart: isProductPartDiff(listed.nodes) };
+}
+
+/**
+ * Part-line sibling check (#6645 Bound remedy item 3). Holds when (i) the
+ * candidate is a product part; (ii) the merged-PR scan completes with no
+ * sole-mark competitor and every other merged part-line PR is not a product
+ * part; (iii) the open-PR list on this repository's base (forks included)
+ * completes, no open body carries `deft-story: N`, and every open
+ * `deft-story-part: N` PR is not a product part. Any failed read is a retry.
+ */
+function checkPartLineSiblings(
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  target: IssueAnchoredTarget,
+): { ok: true; partLinePrs: number[] } | ({ ok: false } & RemediedRefusal) {
+  const { repository, issueNumber, prNumber } = target;
+  const retry = (error: string, read: string) => ({
+    ok: false as const,
+    reason: `(part-line) sibling check unknown, refusing: ${error}`,
+    remedy: { kind: "retry" as const, read },
+  });
+
+  const candidate = readProductPart(forge, budget, repository, prNumber);
+  if (!candidate.ok) {
+    return retry(candidate.error, `PR #${prNumber} changed files`);
+  }
+  if (!candidate.productPart) {
+    return {
+      ok: false,
+      reason:
+        `(part-line) PR #${prNumber} is not a product part (every path is a brief, ` +
+        `CHANGELOG.md or .deft/ path)`,
+      remedy: { kind: "product-pr" },
+    };
+  }
+
+  const blocking: number[] = [];
+  const scan = scanSoleMarkCompetitors({
+    repository,
+    issueNumber,
+    candidatePr: prNumber,
+    forge,
+    budget,
+  });
+  if (!scan.ok) {
+    return retry(scan.error, "merged-PR scan");
+  }
+  blocking.push(...scan.competitors);
+  for (const sibling of scan.partLinePrs) {
+    const part = readProductPart(forge, budget, repository, sibling);
+    if (!part.ok) {
+      return retry(part.error, `PR #${sibling} changed files`);
+    }
+    if (part.productPart) {
+      blocking.push(sibling);
+    }
+  }
+
+  if (forge.listOpenPrsPage === undefined) {
+    return retry("open-PR list is unavailable", "open-PR list");
+  }
+  const listOpen = forge.listOpenPrsPage;
+  const open = collectAllPages(
+    (after) => listOpen(repository, after),
+    budget.beforeRest,
+    "open-PR list",
+  );
+  if (!open.ok) {
+    return retry(open.error, "open-PR list");
+  }
+  for (const node of open.nodes) {
+    if (node.number === prNumber) continue;
+    if (parseAllDeftStoryMarks(node.body).includes(issueNumber)) {
+      blocking.push(node.number);
+      continue;
+    }
+    if (!bodyHasStoryPartLine(node.body, issueNumber)) continue;
+    const part = readProductPart(forge, budget, repository, node.number);
+    if (!part.ok) {
+      return retry(part.error, `PR #${node.number} changed files`);
+    }
+    if (part.productPart) {
+      blocking.push(node.number);
+    }
+  }
+
+  if (blocking.length > 0) {
+    const unique = [...new Set(blocking)].sort((a, b) => a - b);
+    return {
+      ok: false,
+      reason:
+        `(part-line) sibling check failed: ${prList(unique)} carry \`deft-story: ${issueNumber}\` ` +
+        `or are another product part of ${repository}#${issueNumber}`,
+      remedy: { kind: "story-line", blocking: unique },
+    };
+  }
+  return { ok: true, partLinePrs: scan.partLinePrs };
+}
+
+/**
+ * Issue-anchored association as of merged_at (#5710 P3 / #6317 / #6645). The
+ * merge-time body is read before any basis; an unreadable body refuses. A
+ * part-line body completes only on the `scope:complete` route through basis
+ * (d) after the sibling check; elsewhere it refuses as a partial delivery. A
+ * body with the sole mark settles only by the exhaustive sole-mark scan (a);
+ * otherwise the cheap bases (b, c, brief-in-PR-diff), then the operator
+ * attestation (d). Success always needs a positive proof. Each refusal names
+ * its own remedy; the attestation command only where a grant would cure it.
  */
 function proveIssueAnchoredAssociation(
   input: StoryPrMergeIdentityInput,
@@ -2138,22 +2509,30 @@ function proveIssueAnchoredAssociation(
     { repository, prNumber, mergeCommitSha: target.mergeCommitSha },
     planId.length > 0 ? planId : null,
   );
-  const refuse = (findings: readonly string[]): IssueAnchoredProof => ({
+  const briefBasename = input.briefBasename?.trim() ?? "";
+  const refuse = (findings: readonly string[], remedy: RefusalRemedy): IssueAnchoredProof => ({
     ok: false,
     message:
       `Delivery identity join failed: PR #${prNumber} has no merge-time association with ` +
       `${repository}#${issueNumber}. Accepted bases: ${MERGE_TIME_ASSOCIATION_BASES}. ` +
       `A mark, keyword or link added after merged_at does not count, and current ` +
       `closingIssuesReferences alone is insufficient. Findings: ${findings.join("; ")}. ` +
-      `For already-merged work with no merge-time basis, an operator attests it at a ` +
-      `terminal: \`${attestCommand}\` (#6317).`,
+      formatJoinRemedy(remedy, {
+        attestCommand,
+        issueNumber,
+        prNumber,
+        briefBasename: briefBasename.length > 0 ? briefBasename : null,
+      }),
   });
 
   const forge = input.mergeTimeForge;
   if (forge === undefined) {
-    return refuse([
-      "merge-time body unreadable, refusing before any basis: merge-time association lookups are unavailable",
-    ]);
+    return refuse(
+      [
+        "merge-time body unreadable, refusing before any basis: merge-time association lookups are unavailable",
+      ],
+      { kind: "retry", read: "merge-time association (forge unwired)" },
+    );
   }
   const budget = makeScanBudget(forge);
   const body = reconstructMergeTimeBody(
@@ -2164,17 +2543,31 @@ function proveIssueAnchoredAssociation(
     target.mergedAt,
   );
   if (!body.ok) {
-    return refuse([`merge-time body unreadable, refusing before any basis: ${body.error}`]);
+    return refuse([`merge-time body unreadable, refusing before any basis: ${body.error}`], {
+      kind: "retry",
+      read: "merge-time body",
+    });
   }
   if (bodyHasStoryPartLine(body.body, issueNumber)) {
+    const bothLines = parseAllDeftStoryMarks(body.body).includes(issueNumber);
+    if (input.partLineAttestation === true && !bothLines) {
+      return provePartLineRoute(input, forge, budget, target, refuse);
+    }
+    // Finalize, completeCohort, the in-PR tip proof, and a body with both
+    // lines keep the partial-delivery refusal and are never offered the command.
     return {
       ok: false,
       message:
         `Delivery identity join failed: PR #${prNumber} carries \`deft-story-part: ${issueNumber}\` ` +
         `in its body as of merged_at. It is a partial delivery of ${repository}#${issueNumber} ` +
-        `and cannot complete the story on any basis, operator attestation included. ` +
+        `and cannot complete the story here on any basis, operator attestation included. ` +
         `Way forward: merge a PR whose body carries the completing mark ` +
-        `\`deft-story: ${issueNumber}\`, then complete with that PR (#6317).`,
+        `\`deft-story: ${issueNumber}\`, then complete with that PR (#6317)` +
+        (bothLines
+          ? `; a body with both \`deft-story: ${issueNumber}\` and ` +
+            `\`deft-story-part: ${issueNumber}\` is neither (#6316).`
+          : `, or run \`scope:complete\` with this PR: when it is the story's only product ` +
+            `part, an operator attestation can complete it there (#6645).`),
     };
   }
 
@@ -2204,29 +2597,31 @@ function proveIssueAnchoredAssociation(
         },
       };
     }
-    return refuse([
-      mark.reason,
-      "(b)/(c)/brief-in-PR-diff/(d) not evaluated: the PR carries the sole mark; settle the mark instead",
-    ]);
+    return refuse(
+      [mark.reason, "(b)/(c)/brief-in-PR-diff/(d) not evaluated: the PR carries the sole mark"],
+      mark.remedy,
+    );
   }
 
   const reasons: string[] = [
     `(a) PR #${prNumber} body as of merged_at has no sole \`deft-story: ${issueNumber}\` mark`,
   ];
   const cheap = proveKeywordOrConnected(forge, budget, target, body.body, reasons);
-  if (cheap !== null) {
-    return { ok: true, basis: cheap, extras: {} };
+  if (cheap.basis !== null) {
+    return { ok: true, basis: cheap.basis, extras: {} };
   }
+  let failedRead = cheap.failedRead;
 
   const briefDiff = proveBriefInPrDiff(input, repository, prNumber);
-  if (briefDiff === null) {
+  if (briefDiff.status === "proven") {
     return { ok: true, basis: "brief-in-pr-diff", extras: {} };
   }
-  if (briefDiff.length > 0) {
-    reasons.push(briefDiff);
+  if (briefDiff.status === "refused") {
+    reasons.push(briefDiff.reason);
+    failedRead ??= briefDiff.failedRead;
   }
 
-  const attested = proveAttestedBasis(input, forge, budget, target);
+  const attested = proveAttestedBasis(input, forge, budget, target, failedRead);
   if (attested.ok) {
     return {
       ok: true,
@@ -2235,7 +2630,41 @@ function proveIssueAnchoredAssociation(
     };
   }
   reasons.push(attested.reason);
-  return refuse(reasons);
+  return refuse(reasons, attested.remedy);
+}
+
+/**
+ * Part-line route (#6645 Bound remedy item 3), set only by the `scope:complete`
+ * command entry: no basis but (d), and only after the sibling check holds.
+ */
+function provePartLineRoute(
+  input: StoryPrMergeIdentityInput,
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  target: IssueAnchoredTarget,
+  refuse: (findings: readonly string[], remedy: RefusalRemedy) => IssueAnchoredProof,
+): IssueAnchoredProof {
+  const { issueNumber, prNumber } = target;
+  const lead = `PR #${prNumber} carries \`deft-story-part: ${issueNumber}\` as of merged_at; only (d) is evaluated`;
+  const siblings = checkPartLineSiblings(forge, budget, target);
+  if (!siblings.ok) {
+    return refuse([lead, siblings.reason], siblings.remedy);
+  }
+  const attested = proveAttestedBasis(input, forge, budget, target, null);
+  if (!attested.ok) {
+    return refuse(
+      [lead, "(part-line) sibling check held: no other product part", attested.reason],
+      attested.remedy,
+    );
+  }
+  return {
+    ok: true,
+    basis: "operator-attested",
+    extras: {
+      attestationGrantId: attested.grantId,
+      ...(siblings.partLinePrs.length > 0 ? { partLinePrs: siblings.partLinePrs } : {}),
+    },
+  };
 }
 
 /**
@@ -2248,8 +2677,9 @@ function proveIssueAnchoredAssociation(
  * closingIssuesReferences alone is insufficient, and `productPullRequest === --pr`
  * is not a proof here. A failed issue-anchored check never falls back to the stamp.
  * #6317: the merge-time body is read before any basis (unreadable refuses), a
- * `deft-story-part: N` body refuses as a partial delivery, two marked PRs settle
- * by the fetched delivery-branch stamp, and (d) an operator attestation grant
+ * `deft-story-part: N` body refuses as a partial delivery (except on the
+ * `scope:complete` part-line route, #6645), two marked PRs settle by the
+ * fetched delivery-branch stamp, and (d) an operator attestation grant
  * recovers merged work with no basis.
  *
  * Issue-less briefs use the PR-only identity (#5710 P1). merge_commit_sha must
@@ -2792,14 +3222,25 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     options.mergeTimeForge ?? (liveForge ? defaultMergeTimeForge(runGh) : undefined);
   // #6317: attestation grants live in the main clone store, resolved by local git.
   // #6398: judge grant expiry at the transition clock, not wall time.
+  // #6645: an unresolved store is named as such, so the refusal never prints a
+  // grant command that the next run could not read.
   const findDeliveryAttestation: FindDeliveryAttestationFn =
     options.findDeliveryAttestation ??
-    ((query) =>
-      findDeliveryIdentityAttestation({
+    ((query) => {
+      const store = resolveDeliveryIdentityAttestStore(options.projectRoot);
+      if (!store.ok) {
+        return {
+          ok: false,
+          reason: `operator-attested: ${store.reason}`,
+          cause: "store-unresolved",
+        };
+      }
+      return findDeliveryIdentityAttestation({
         projectRoot: options.projectRoot,
         now: new Date(options.nowIso),
         ...query,
-      }));
+      });
+    });
   const resolveCanonicalRepository = () =>
     resolveCanonicalProjectRepository(options.projectRoot, runGit);
   // #5710 P4: the merged-stamp check needs an uncached read; a stale
@@ -2987,6 +3428,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
               runGit,
             }),
     findDeliveryAttestation,
+    partLineAttestation: options.partLineAttestation === true,
   });
   if (!identity.ok) {
     return {

@@ -171,6 +171,12 @@ export interface TransitionOptions {
   readonly mergeTimeForge?: MergeTimeForge;
   /** Brief-in-PR-diff identity fallback seam (#3675); forwarded to evaluateDeliveryGate. */
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
+  /**
+   * Part-line route (#6645): only the `scope:complete` command entry sets it.
+   * Defaults off, so completeCohort, swarm:finalize-cohort and the in-PR tip
+   * proof keep the part-line refusal.
+   */
+  readonly partLineAttestation?: boolean;
   /** Prefer-A complete-time issue→PR discovery seam (#3583). */
   readonly fetchClosingPrRefs?: FetchClosingPrRefsFn;
   /**
@@ -862,6 +868,7 @@ export function runTransition(
       briefBasename: basename,
       briefRelPath: relative(projectRoot, resolvedPath).replace(/\\/g, "/"),
       fetchPrChangedFiles: options.fetchPrChangedFiles,
+      partLineAttestation: options.partLineAttestation === true,
     });
     if (!gate.ok) {
       return { ok: false, message: gate.message };
@@ -1503,6 +1510,7 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     briefBasename: basename,
     briefRelPath: relative(projectRoot, resolvedPath).replace(/\\/g, "/"),
     fetchPrChangedFiles: options.fetchPrChangedFiles,
+    partLineAttestation: options.partLineAttestation === true,
   });
   if (!gate.ok) {
     return { ok: false, message: gate.message };

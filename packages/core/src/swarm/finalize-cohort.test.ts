@@ -1783,6 +1783,36 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("never opens the scope:complete part-line route for a part-line PR (#6645)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6645-part-"));
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
+    finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6301],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        6301: { merged: true, closingIssues: [], body: "Refs #6212\n\ndeft-story-part: 6212\n" },
+      }),
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
+    });
+    // Finalize reaches the shared transition (whose join refuses the part line,
+    // grant or not) and never sets the scope:complete-only route.
+    const completes = vi
+      .mocked(runTransition)
+      .mock.calls.filter((call) => call[0] === "complete" && call[1] === storyPath);
+    expect(completes.length).toBeGreaterThan(0);
+    for (const call of completes) {
+      const options = call[3] as { partLineAttestation?: boolean } | undefined;
+      expect(options?.partLineAttestation).toBeUndefined();
+    }
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("refuses the operator bind and names both PRs when another merged PR carries the same mark (#6317)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-6317-competitor-"));
     const storyPath = writeActiveStory(project, "story-6212", 6212);

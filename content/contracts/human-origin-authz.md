@@ -136,12 +136,13 @@ deft authz:grant -- --template delivery-identity-attest \
 | --- | --- |
 | Mint provenance | `origin.kind=operator-cli` only, through the same human-presence mint gate; default expiry 24 hours; single-use |
 | Binding | PR number + full merge commit sha + plan id; `operations=[settings]` only, no push/merge permission |
-| Admission | Grant matches, the PR's merge-time body was read and carries no `deft-story-part: N`, and the PR passes the nonzero-file and delivery-exclusion checks |
+| Admission | Grant matches, the PR's merge-time body was read, and the PR passes the nonzero-file and delivery-exclusion checks. A body with `deft-story-part: N` is admitted only on the `scope:complete` command, and only after the part-line sibling check (#6645): the PR is a product part (a path outside the brief-land family and outside `.deft/`), no other merged or open product part of the story on this repository's base (forks included) carries a story line, and no open PR there carries `deft-story: N`. Activation, mint and other brief-only or `.deft/`-only part-line PRs never block. A failed read is a retry, never an admission |
 | Use record | First use must be before expiry; it is recorded when the `completed/` write succeeds, not in the join. An acceptance refusal leaves the grant unused. A later run for the same plan, PR and merge commit (finalize retry, restamp) accepts the used grant |
 | Expired | An expired, unused grant refuses completion and names a re-mint or `authz:revoke`; an unreadable `--expires` is refused at mint, and an unused grant with a missing or unreadable expiry never attests |
 | One store | Mint, every read, the use record, `authz:revoke` and `authz:show` resolve the store at `mainWorktreeRoot(projectRoot)`, so the primary clone, a linked dest and the finalize lifecycle checkout share it; an unresolvable root refuses |
 | Provenance | `completionProvenance.identityBasis=operator-attested` and `attestationGrantId` |
-| Keep-outs | Never attests a part-line PR; never bypasses a PR's own contested sole mark (that settles by the delivery-branch stamp); does not relax ancestry |
+| Remedy text | A refusal prints the mint command only when this run would admit the grant: the body was read, no earlier read failed, the plan has an id, the store resolved, and the delivery checks passed. Every other refusal names its own remedy (#6645) |
+| Keep-outs | Never a finalize close for a part-line PR: `swarm:finalize-cohort`, `completeCohort` and the in-PR tip proof keep the part-line refusal, grant or not; a body with both story lines is never attested; never bypasses a PR's own contested sole mark (that settles by the delivery-branch stamp); does not relax ancestry |
 
 ## Acceptance-disposition deferral (#6318)
 

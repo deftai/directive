@@ -630,6 +630,11 @@ export function lifecycleMain(argv: string[]): number {
     deliveryEvidence,
     verifier: "scope:complete",
     ...(inPr === true ? { inPr: true } : {}),
+    // #6645: only this command entry opens the part-line route: a merged
+    // `deft-story-part: N` PR that is the story's only product part may
+    // complete through an operator attestation after the sibling check.
+    // Finalize, completeCohort and the in-PR tip proof leave it off.
+    ...(action === "complete" ? { partLineAttestation: true } : {}),
   };
   // #6272: read before the move; activate does not change item text.
   const activateAdvisory =
