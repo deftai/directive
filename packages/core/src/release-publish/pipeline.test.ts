@@ -346,3 +346,99 @@ describe("runPublish", () => {
     }
   });
 });
+
+describe("run-bound draft flip (#6875)", () => {
+  const T = "t".repeat(40);
+  const RUN = { grantId: "grant-run-6875" };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function grant(id: string, surfaces: string[]): HumanOriginGrant {
+    return { ...operatorPublishGrant(), id, scope: { ...operatorPublishGrant().scope, surfaces } };
+  }
+
+  /** Draft on the first view, public after the edit; the remote tag peels to `tree`. */
+  function seams(opts: { tree?: string; fetchFails?: boolean; grants: HumanOriginGrant[] }) {
+    const calls: string[][] = [];
+    let viewCalls = 0;
+    return {
+      calls,
+      whichGh: () => "/usr/bin/gh",
+      closedVerbEnv: {} as Record<string, string>,
+      closedVerbGrants: opts.grants,
+      spendGrant: () => null,
+      spawnText: (_cmd: string, args: readonly string[]) => {
+        calls.push([...args]);
+        if (args.includes("fetch")) {
+          return opts.fetchFails
+            ? { status: 1, stdout: "", stderr: "no such tag" }
+            : { status: 0, stdout: "", stderr: "" };
+        }
+        if (args.includes("rev-parse")) {
+          return { status: 0, stdout: `${opts.tree ?? T}\n`, stderr: "" };
+        }
+        if (args.includes("--paginate")) {
+          viewCalls += 1;
+          const draft = viewCalls === 1;
+          return {
+            status: 0,
+            stdout: JSON.stringify([{ id: 42, draft, tag_name: "v0.21.0", html_url: "u" }]),
+            stderr: "",
+          };
+        }
+        return { status: 0, stdout: "{}", stderr: "" };
+      },
+    };
+  }
+
+  const edited = (calls: string[][]): boolean => calls.some((a) => a.includes("PATCH"));
+  const stderrText = (spy: { mock: { calls: unknown[][] } }): string =>
+    spy.mock.calls.map((c) => String(c[0])).join("");
+
+  it("flips with the run's grant for <version>@<tree the remote tag peels to>", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const s = seams({ grants: [grant(RUN.grantId, [`0.21.0@${T}`])] });
+    expect(runPublish(baseConfig, s, RUN)).toBe(EXIT_OK);
+    expect(edited(s.calls)).toBe(true);
+    const fetch = s.calls.find((a) => a.includes("fetch")) ?? [];
+    expect(fetch).toContain("--no-tags");
+    expect(fetch).toContain("refs/tags/v0.21.0");
+    expect(s.calls.some((a) => a.includes("FETCH_HEAD^{tree}"))).toBe(true);
+    expect(stderrText(spy)).toContain(`grant=${RUN.grantId}`);
+  });
+
+  it("refuses a version-only grant under the run and names the bound mint target", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const s = seams({ grants: [grant(RUN.grantId, ["0.21.0", "v0.21.0"])] });
+    expect(runPublish(baseConfig, s, RUN)).toBe(EXIT_VIOLATION);
+    expect(edited(s.calls)).toBe(false);
+    expect(stderrText(spy)).toContain(`--target 0.21.0@${T}`);
+  });
+
+  it("refuses when the tag peels to another tree, even with an empty-surface grant active", () => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const s = seams({
+      tree: "x".repeat(40),
+      grants: [grant(RUN.grantId, [`0.21.0@${T}`]), grant("broad", [])],
+    });
+    expect(runPublish(baseConfig, s, RUN)).toBe(EXIT_VIOLATION);
+    expect(edited(s.calls)).toBe(false);
+  });
+
+  it("refuses when the remote tag cannot be read", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const s = seams({ fetchFails: true, grants: [grant(RUN.grantId, [`0.21.0@${T}`])] });
+    expect(runPublish(baseConfig, s, RUN)).toBe(EXIT_VIOLATION);
+    expect(edited(s.calls)).toBe(false);
+    expect(stderrText(spy)).toContain("git fetch of remote tag v0.21.0 failed");
+  });
+
+  it("keeps the DEFT_ALLOW_RELEASE_PUBLISH break-glass bypass", () => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const s = { ...seams({ grants: [] }), closedVerbEnv: allowEnv };
+    expect(runPublish(baseConfig, s, RUN)).toBe(EXIT_OK);
+    expect(edited(s.calls)).toBe(true);
+  });
+});
