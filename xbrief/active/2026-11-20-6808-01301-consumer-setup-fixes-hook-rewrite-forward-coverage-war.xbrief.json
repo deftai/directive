@@ -1,0 +1,282 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6808",
+    "updated": "2026-11-20T00:39:03Z"
+  },
+  "plan": {
+    "title": "0.130.1: consumer setup fixes (hook rewrite, forward-coverage warn-only, getting-started order, runtime gitignore)",
+    "status": "running",
+    "narratives": {
+      "Description": "Four consumer-setup fixes ship in 0.130.1, before 0.130.x is promoted to npm latest. Setup replaces .githooks files by temp file and rename, the deposited pre-commit runs forward coverage warn-only, getting-started creates the feature branch before the deposit commit, and the deposited .gitignore ignores Directive runtime state. Each fix is specified in its own issue: #6806, #6807, #6800 and #6795.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6808",
+      "Overview": "Four consumer-setup fixes for 0.130.1, before 0.130.x is promoted to npm `latest`. Each one is described in its own issue: #6806, #6807, #6800 and #6795.\n\n## Acceptance Criteria\n\n- [ ] Setup writes `.githooks/*` replacements to a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806).\n- [ ] A test runs the old pre-commit body under bash while self-complete replaces the hooks, and the commit succeeds (#6806).\n- [ ] The deposited `pre-commit` runs forward coverage warn-only: a missing paired test prints the finding and does not fail the commit. CI and `deft check` behaviour is unchanged (#6807).\n- [ ] The setup hook-body test pins the warn-only forward-coverage form (#6807).\n- [ ] `content/docs/getting-started.md`, and any setup skill text with the same order, has the first-project path create the feature branch before the deposit commit (#6800).\n- [ ] The deposited consumer `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, while keeping `.deft/approved-scope/` and `.deft/intent-constraint/` trackable (#6795).\n- [ ] A test shows that after `session:start` in a fresh install, `git status --porcelain` lists no Directive runtime file (#6795).\n- [ ] One CHANGELOG fragment covers the four consumer-facing changes.\n\nRefs #6806, #6807, #6800, #6795\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "area:installer",
+      "UserStory": "As a Directive consumer, I want setup to replace git hooks without breaking a running hook, the deposited pre-commit to warn on missing paired tests, a first-project guide that starts on a feature branch, and runtime state kept out of git status, so that a pin bump or a fresh install never breaks or dirties my commits.",
+      "ImplementationPlan": "- Hook write path (#6806): in packages/runtime/src/setup-wiring.ts, write each changed .githooks/* file to a temp file in the same directory and rename it over the target (containedWrite + containedRename from packages/core/src/fs/contained-write.ts); other deposit writes are unchanged. Test: packages/runtime/src/setup-wiring-hook-replace-6806.test.ts runs the old pre-commit body under bash while self-complete replaces the hooks and asserts the commit succeeds.\n- Warn-only forward coverage (#6807): change the PRE_COMMIT body in setup-wiring.ts (with a warn mode in packages/runtime/src/verify-forward-coverage.ts if needed) so a missing paired test prints the finding and exits 0; CI and deft check keep the failing form. Test: setup-wiring-tracked-hooks.test.ts pins the warn-only line.\n- Runtime gitignore (#6795): change DIRECTIVE_GITIGNORE_LINES in packages/core/src/install-health/owned-paths.ts to ignore .deft/* and .deft-cache/ while keeping .deft/plan-sequence.json, .deft/GENERATION.json, .deft/approved-scope/** and .deft/intent-constraint/** trackable (plus the approved-scope and intent-constraint temp-file ignores). Setup (packages/runtime/src/setup.ts), the doctor coverage check (packages/core/src/doctor/checks.ts) and uninstall line matching handle the ! lines. Tests: owned-paths, checks and doctor-read-only tests, and packages/runtime/src/session-start-gitignore-6795.test.ts asserts git status --porcelain lists no runtime file after session:start in a fresh install.\n- Docs (#6800): content/docs/getting-started.md step 6 creates the feature branch before the deposit commit; first_project_journey.test.ts stays green.\n- Changelog: one fragment changelog.d/6808-consumer-setup-fixes.md; verify with the three stated vitest commands.",
+      "Traces": "#6808, #6806, #6807, #6800, #6795"
+    },
+    "items": [
+      {
+        "title": "Setup writes `.githooks/*` replacements to a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806).",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When setup replaces a changed .githooks/* file, then it writes a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806)."
+        }
+      },
+      {
+        "title": "A test runs the old pre-commit body under bash while self-complete replaces the hooks, and the commit succeeds (#6806).",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the old pre-commit body running under bash, when self-complete replaces the hooks mid-run, then a test shows the commit succeeds (#6806)."
+        }
+      },
+      {
+        "title": "The deposited `pre-commit` runs forward coverage warn-only: a missing paired test prints the finding and does not fail the commit. CI and `deft check` behaviour is unchanged (#6807).",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a staged new source file has no paired test, then the deposited pre-commit prints the forward-coverage finding and the commit still succeeds; CI and deft check still fail on it (#6807)."
+        }
+      },
+      {
+        "title": "The setup hook-body test pins the warn-only forward-coverage form (#6807).",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the setup hook-body test runs, then it fails unless the deposited pre-commit carries the warn-only forward-coverage form (#6807)."
+        }
+      },
+      {
+        "title": "`content/docs/getting-started.md`, and any setup skill text with the same order, has the first-project path create the feature branch before the deposit commit (#6800).",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When a reader follows the first-project path in content/docs/getting-started.md (and any setup skill text with that order), then it creates the feature branch before the deposit commit (#6800)."
+        }
+      },
+      {
+        "title": "The deposited consumer `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, while keeping `.deft/approved-scope/` and `.deft/intent-constraint/` trackable (#6795).",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When setup writes the consumer .gitignore, then git ignores Directive runtime state under .deft/ and .deft-cache/ while .deft/approved-scope/ and .deft/intent-constraint/ stay trackable (#6795)."
+        }
+      },
+      {
+        "title": "A test shows that after `session:start` in a fresh install, `git status --porcelain` lists no Directive runtime file (#6795).",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a fresh install, when session:start runs, then a test shows git status --porcelain lists no Directive runtime file (#6795)."
+        }
+      },
+      {
+        "title": "One CHANGELOG fragment covers the four consumer-facing changes.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When the product PR merges, then one CHANGELOG fragment records all four consumer-facing changes."
+        }
+      }
+    ],
+    "tags": [
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6808",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6808: 0.130.1: consumer setup fixes (hook rewrite, forward-coverage warn-only, getting-started order, runtime gitignore)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6806",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6806"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (8), in order (#6333)",
+      "sentences": [
+        "Setup writes `.githooks/*` replacements to a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806).",
+        "A test runs the old pre-commit body under bash while self-complete replaces the hooks, and the commit succeeds (#6806).",
+        "The deposited `pre-commit` runs forward coverage warn-only: a missing paired test prints the finding and does not fail the commit. CI and `deft check` behaviour is unchanged (#6807).",
+        "The setup hook-body test pins the warn-only forward-coverage form (#6807).",
+        "`content/docs/getting-started.md`, and any setup skill text with the same order, has the first-project path create the feature branch before the deposit commit (#6800).",
+        "The deposited consumer `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, while keeping `.deft/approved-scope/` and `.deft/intent-constraint/` trackable (#6795).",
+        "A test shows that after `session:start` in a fresh install, `git status --porcelain` lists no Directive runtime file (#6795).",
+        "One CHANGELOG fragment covers the four consumer-facing changes."
+      ],
+      "admitted_source_sentences": [
+        "Setup writes `.githooks/*` replacements to a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806).",
+        "A test runs the old pre-commit body under bash while self-complete replaces the hooks, and the commit succeeds (#6806).",
+        "The deposited `pre-commit` runs forward coverage warn-only: a missing paired test prints the finding and does not fail the commit. CI and `deft check` behaviour is unchanged (#6807).",
+        "The setup hook-body test pins the warn-only forward-coverage form (#6807).",
+        "`content/docs/getting-started.md`, and any setup skill text with the same order, has the first-project path create the feature branch before the deposit commit (#6800).",
+        "The deposited consumer `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, while keeping `.deft/approved-scope/` and `.deft/intent-constraint/` trackable (#6795).",
+        "A test shows that after `session:start` in a fresh install, `git status --porcelain` lists no Directive runtime file (#6795).",
+        "One CHANGELOG fragment covers the four consumer-facing changes."
+      ],
+      "admitted_source_digest": "c147870cc4222c685257fefb0d8882b2458e48706a1a466dbc84bfb3ddda54a8",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Setup writes `.githooks/*` replacements to a temp file in the same directory and renames it over the target, so a shell already running the old hook keeps reading the old file (#6806).",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A test runs the old pre-commit body under bash while self-complete replaces the hooks, and the commit succeeds (#6806).",
+          "artifact_path": "packages/runtime/src/setup-wiring-hook-replace-6806.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The deposited `pre-commit` runs forward coverage warn-only: a missing paired test prints the finding and does not fail the commit. CI and `deft check` behaviour is unchanged (#6807).",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The setup hook-body test pins the warn-only forward-coverage form (#6807).",
+          "artifact_path": "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`content/docs/getting-started.md`, and any setup skill text with the same order, has the first-project path create the feature branch before the deposit commit (#6800).",
+          "artifact_path": "content/docs/getting-started.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The deposited consumer `.gitignore` ignores Directive runtime state under `.deft/` and `.deft-cache/`, while keeping `.deft/approved-scope/` and `.deft/intent-constraint/` trackable (#6795).",
+          "artifact_path": "packages/core/src/install-health/owned-paths.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A test shows that after `session:start` in a fresh install, `git status --porcelain` lists no Directive runtime file (#6795).",
+          "artifact_path": "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "One CHANGELOG fragment covers the four consumer-facing changes.",
+          "artifact_path": "changelog.d/6808-consumer-setup-fixes.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/verify-forward-coverage.ts",
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/doctor/checks.ts",
+          "content/docs/getting-started.md",
+          "packages/runtime/src/setup-wiring-hook-replace-6806.test.ts",
+          "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/verify-forward-coverage.test.ts",
+          "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "packages/core/src/fs/contained-write.test.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/doctor-read-only.test.ts",
+          "packages/core/src/content-contracts/standards/first_project_journey.test.ts",
+          "changelog.d/6808-consumer-setup-fixes.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "module_boundary": "Consumer setup deposit: git-hook write path and hook bodies (setup-wiring), the deposited .gitignore line set (owned-paths, setup, doctor coverage check), forward-coverage warn mode for the hook, the getting-started first-project order, and one changelog fragment",
+        "cohesion_exemption": "xbrief/PROJECT-DEFINITION.xbrief.json (shared project record) is declared as-is; the story adds no code to it."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6502011874,
+        "origin": "deftai/directive#6808",
+        "id": "github.issue.6502011874"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/verify-forward-coverage.ts",
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/doctor/checks.ts",
+          "content/docs/getting-started.md",
+          "packages/runtime/src/setup-wiring-hook-replace-6806.test.ts",
+          "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/verify-forward-coverage.test.ts",
+          "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "packages/core/src/fs/contained-write.test.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/doctor-read-only.test.ts",
+          "packages/core/src/content-contracts/standards/first_project_journey.test.ts",
+          "changelog.d/6808-consumer-setup-fixes.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6502011874.json"
+        ],
+        "readiness": "ready",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/setup-wiring-hook-replace-6806.test.ts packages/runtime/src/setup-wiring-tracked-hooks.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/self-complete.test.ts packages/runtime/src/setup.test.ts",
+          "pnpm exec vitest run packages/core/src/install-health/owned-paths.test.ts packages/core/src/doctor/checks.test.ts packages/core/src/doctor/doctor-read-only.test.ts packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/first_project_journey.test.ts packages/runtime/src/verify-forward-coverage.test.ts packages/core/src/fs/contained-write.test.ts"
+        ],
+        "Traces": [
+          "#6808",
+          "#6806",
+          "#6807",
+          "#6800",
+          "#6795"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "expected_outputs": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/runtime/src/setup-wiring-hook-replace-6806.test.ts",
+          "packages/runtime/src/session-start-gitignore-6795.test.ts",
+          "content/docs/getting-started.md",
+          "changelog.d/6808-consumer-setup-fixes.md"
+        ],
+        "conflict_group": "runtime-setup",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "Eight criteria because the story bundles four small fixes for one patch release, each with its own behaviour and test criterion (#6806 x2, #6807 x2, #6800, #6795 x2) plus one changelog criterion."
+      },
+      "kind": "story"
+    },
+    "id": "github.issue.6502011874",
+    "updated": "2026-11-20T00:39:03Z"
+  }
+}
