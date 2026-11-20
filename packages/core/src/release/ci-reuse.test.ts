@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CheckRunRecord } from "../pr-merge-readiness/gh.js";
 import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
@@ -10,7 +13,9 @@ import {
   RELEASE_CI_REUSE_REQUIRED_CHECKS,
   RELEASE_HOST_SMOKE_TEST_FILES,
   runHostSmokeCheck,
+  runSmokeCommand,
   selectLatestCheckRun,
+  smokeSpawnPlan,
   TYPESCRIPT_BUILD_LINT_CHECK_NAME,
 } from "./ci-reuse.js";
 import type { ReleaseSeams } from "./types.js";
@@ -267,5 +272,45 @@ describe("runHostSmokeCheck (#6791)", () => {
     expect(errOk).toBe(false);
     expect(errReason).toMatch(/ETIMEDOUT/);
     expect(runHostSmokeCheck("/repo", { pnpm: null })[0]).toBe(false);
+  });
+});
+
+describe("smoke spawn has no shell injection (#6791 SLizard P1)", () => {
+  const evilRoot = "C:evil&whoami|calc^x";
+
+  it("keeps the project root out of the command line and never sets shell: true", () => {
+    for (const platform of ["win32", "linux"] as const) {
+      const plan = smokeSpawnPlan("pnpm", ["run", "build"], evilRoot, platform);
+      expect(plan.shell).toBe(false);
+      expect(plan.cwd).toBe(evilRoot);
+      expect(plan.args.join(" ")).not.toContain("whoami");
+    }
+  });
+
+  it("quotes a win32 shim path with metacharacters as one token", () => {
+    const plan = smokeSpawnPlan("C:\tools&xpnpm.cmd", ["run", "build"], evilRoot, "win32");
+    expect(plan.command).toBe("cmd.exe");
+    expect(plan.windowsVerbatimArguments).toBe(true);
+    expect(plan.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
+    expect(plan.args[3]).toBe('""C:\tools&xpnpm.cmd" run build"');
+    const posix = smokeSpawnPlan("/opt/a&b/pnpm", ["run", "build"], evilRoot, "linux");
+    expect(posix).toMatchObject({ command: "/opt/a&b/pnpm", args: ["run", "build"] });
+  });
+
+  it("runs in a directory named with & | ^ as one cwd and runs no extra command", () => {
+    const parent = mkdtempSync(join(tmpdir(), "smoke-meta-"));
+    const name = process.platform === "win32" ? "root&mkdir pwned^x" : "root&mkdir pwned|x^y";
+    const root = join(parent, name);
+    mkdirSync(root);
+    try {
+      const code = `process.exit(require('path').basename(process.cwd())===${JSON.stringify(name).replaceAll('"', "'")}?0:3)`;
+      const result = runSmokeCommand(process.execPath, ["-e", code], root);
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(0);
+      expect(existsSync(join(root, "pwned"))).toBe(false);
+      expect(existsSync(join(parent, "pwned"))).toBe(false);
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
   });
 });

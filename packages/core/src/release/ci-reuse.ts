@@ -13,14 +13,11 @@
  * that gap.
  */
 import { spawnSync } from "node:child_process";
+import { cliSpawnPlan } from "../check/cli-native-gates.js";
 import { type CheckRunRecord, defaultRunGh, fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
-import {
-  resolvePnpm,
-  sanitizeTsLaneEnv,
-  shouldUseShellForCommand,
-} from "../ts-check-lane/run-lane.js";
+import { resolvePnpm, sanitizeTsLaneEnv } from "../ts-check-lane/run-lane.js";
 import { RELEASE_CHECK_TIMEOUT_MS } from "./constants.js";
 import { checkGitClean, runGit } from "./git.js";
 import type { ReleaseSeams } from "./types.js";
@@ -241,12 +238,47 @@ type SmokeRunner = (
   cwd: string,
 ) => { status: number | null; error?: Error };
 
-function defaultSmokeRunner(command: string, args: readonly string[], cwd: string) {
-  const result = spawnSync(command, [...args], {
+/**
+ * Shell-free spawn plan for one smoke command. The project root travels only
+ * as the child's cwd, never on a command line. On win32 a `.cmd` shim runs
+ * through `cmd.exe /d /s /c` with every token quoted and
+ * `windowsVerbatimArguments` (the cliSpawnPlan rule), never `shell: true`.
+ */
+export function smokeSpawnPlan(
+  command: string,
+  args: readonly string[],
+  cwd: string,
+  platform: NodeJS.Platform = process.platform,
+): {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly cwd: string;
+  readonly shell: false;
+  readonly windowsVerbatimArguments: boolean;
+} {
+  const plan = cliSpawnPlan(command, args, platform);
+  return {
+    command: plan.command,
+    args: plan.args,
     cwd,
+    shell: false,
+    windowsVerbatimArguments: plan.windowsVerbatimArguments === true,
+  };
+}
+
+/** Run one smoke command without a shell (#6791). */
+export function runSmokeCommand(
+  command: string,
+  args: readonly string[],
+  cwd: string,
+): { status: number | null; error?: Error } {
+  const plan = smokeSpawnPlan(command, args, cwd);
+  const result = spawnSync(plan.command, [...plan.args], {
+    cwd: plan.cwd,
     env: sanitizeTsLaneEnv(process.env),
     stdio: "inherit",
-    shell: shouldUseShellForCommand(command),
+    shell: plan.shell,
+    windowsVerbatimArguments: plan.windowsVerbatimArguments,
     timeout: RELEASE_CHECK_TIMEOUT_MS,
   });
   return { status: result.status, error: result.error };
@@ -264,7 +296,7 @@ export function runHostSmokeCheck(
   if (pnpm === null) {
     return [false, "host smoke check needs pnpm on PATH"];
   }
-  const runner = options.runner ?? defaultSmokeRunner;
+  const runner = options.runner ?? runSmokeCommand;
   const steps: ReadonlyArray<readonly string[]> = [
     ["run", "build"],
     ["exec", "vitest", "run", ...RELEASE_HOST_SMOKE_TEST_FILES],
