@@ -1664,7 +1664,11 @@
           "packages/runtime/src/check-merge-deposit-only-5771.test.ts",
           "changelog.d/5771-deposit-commit-scope-cover.md",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
-          "xbrief/.audit/spec-drift/github.issue.5925870957.json"
+          "xbrief/.audit/spec-drift/github.issue.5925870957.json",
+          "packages/core/src/hooks/hook-hosts.ts",
+          "packages/core/src/policy/host-hooks.ts",
+          ".deft/approved-scope/github.issue.5925870957.json",
+          ".deft/approved-scope/github.issue.5925870957.intent.json"
         ],
         "readiness": "ready",
         "depends_on": [],
