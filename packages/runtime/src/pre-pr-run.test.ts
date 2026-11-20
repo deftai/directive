@@ -1,20 +1,32 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { mintAcceptanceDispositionTemplateGrant } from "@deftai/directive-core/policy";
 import {
+  completeRun,
   computeControllerObservedHash,
+  controllerPublisher,
   deny,
+  digestApprovedCriteria,
+  evaluatePrePrEvidence,
   FileBackedPrePrStore,
   hashPrBody,
+  InProcessPrePrStore,
   LINT_ITERATION_MODE_SKIP,
   MARK_COMPLETE_NOT_AUTHORITY,
+  observeCommandPhase,
   PRE_PR_PHASES,
   resetDefaultPrePrStore,
   SKILL_FILE_OPEN_NOT_COMPLETION,
   setDefaultPrePrStore,
+  startControllerRun,
+  submitReviewerReport,
 } from "@deftai/directive-core/pre-pr-controller";
+import { evaluatePrePush, parsePrePushStdin } from "@deftai/directive-core/preflight";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./pre-pr-run.js";
+import { resolveControllerVerifyAc } from "./verify-ac.js";
 
 const START = [
   "--repo",
@@ -878,5 +890,253 @@ describe("deft pre-pr:run", () => {
       ).toBe(0);
       expect(out.join("")).toContain("verify:ac had no brief to run");
     });
+  });
+});
+
+describe("a failed --complete retry revokes the earlier pass (#6888)", () => {
+  const ZERO = "0000000000000000000000000000000000000000";
+  const NOW = new Date("2026-11-20T10:00:00Z");
+  /** Past the 24h expiry of an unused acceptance-disposition grant. */
+  const AFTER_EXPIRY = new Date("2026-11-22T10:00:00Z");
+  const PLAN_ID = "github.issue.6888";
+  const bases: string[] = [];
+
+  afterEach(() => {
+    resetDefaultPrePrStore();
+    vi.restoreAllMocks();
+    for (const base of bases.splice(0)) rmSync(base, { recursive: true, force: true });
+  });
+
+  function git(cwd: string, args: readonly string[]): string {
+    return execFileSync("git", [...args], { cwd, encoding: "utf8" }).trim();
+  }
+
+  function write(root: string, rel: string, body: string): void {
+    const path = join(root, rel);
+    mkdirSync(join(path, ".."), { recursive: true });
+    writeFileSync(path, body);
+  }
+
+  /** Clone with a bare origin and a story branch whose clause 2 only passes under a grant. */
+  function storyClone(): string {
+    const base = mkdtempSync(join(tmpdir(), "pre-pr-6888-retry-"));
+    bases.push(base);
+    const bare = join(base, "origin.git");
+    const root = join(base, "clone");
+    mkdirSync(bare);
+    mkdirSync(root);
+    git(bare, ["init", "-q", "--bare", "-b", "master"]);
+    git(root, ["init", "-q", "-b", "master"]);
+    git(root, ["config", "user.email", "t@example.com"]);
+    git(root, ["config", "user.name", "t"]);
+    git(root, ["remote", "add", "origin", bare]);
+    write(root, ".gitignore", ".deft/\n");
+    write(root, "README.md", "x\n");
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "base"]);
+    git(root, ["push", "-q", "-u", "origin", "master"]);
+    git(root, ["checkout", "-q", "-b", `story/${PLAN_ID}`]);
+    write(root, "src/a.ts", "export const PRESENT_TOKEN = 1;\n");
+    const plan = {
+      id: PLAN_ID,
+      title: "retry fixture",
+      status: "running",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: 'The file contains "PRESENT_TOKEN" after the change.',
+            artifact_path: "src/a.ts",
+            ambiguous: false,
+          },
+          {
+            id: 2,
+            text: 'The file contains "ABSENT_NEEDLE_TOKEN" after the change.',
+            artifact_path: "src/a.ts",
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["src/a.ts"] } },
+      items: [],
+    };
+    write(
+      root,
+      "xbrief/active/story.xbrief.json",
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`,
+    );
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "story"]);
+    return root;
+  }
+
+  it("pass under a grant, grant expires, retry fails: evidence and the push gate refuse", () => {
+    const root = storyClone();
+    const minted = mintAcceptanceDispositionTemplateGrant({
+      projectRoot: root,
+      planRef: PLAN_ID,
+      storyIds: ["clause.2"],
+      disposition: "not_applicable",
+      reason: "operator dropped clause 2",
+      now: NOW,
+    });
+    if (!minted.ok) throw new Error(minted.reason);
+
+    const store = new FileBackedPrePrStore(root);
+    setDefaultPrePrStore(store);
+    const head = git(root, ["rev-parse", "HEAD"]);
+    const base = git(root, ["merge-base", head, "origin/master"]);
+    const reviewed = ["src/a.ts", "xbrief/active/story.xbrief.json"];
+    const criteria = digestApprovedCriteria({
+      sourceRevisionSha: base,
+      scopePaths: reviewed,
+      acceptanceText: "fixture",
+      generation: 1,
+    });
+    const runId = "ppr_6888_retry";
+    const started = startControllerRun(store, {
+      repo: "acme/app",
+      baseSha: base,
+      headSha: head,
+      treeHash: git(root, ["rev-parse", "HEAD^{tree}"]),
+      prBodyHash: "body",
+      prNodeId: "PR_1",
+      criteria,
+      skillVersion: "0.1",
+      policyVersion: "1",
+      approvedRevisionSha: base,
+      runId,
+    });
+    expect(started.ok).toBe(true);
+    const record = store.getById(runId);
+    if (record === null) throw new Error("run not stored");
+    const observed = computeControllerObservedHash({ reviewedFiles: reviewed, cwd: root }) ?? "";
+    for (const spec of PRE_PR_PHASES) {
+      if (!spec.required) continue;
+      if (spec.kind === "command-observable") {
+        observeCommandPhase(
+          store,
+          runId,
+          {
+            phaseId: spec.id,
+            command: spec.command ?? "",
+            exitCode: 0,
+            inputHash: record.inputHash,
+            skipReason: null,
+            ...(spec.id === "lint_iteration" ? { gateChecks: PASS_GATES() } : {}),
+          },
+          { projectRoot: root },
+        );
+      } else {
+        submitReviewerReport(store, runId, {
+          phaseId: spec.id,
+          reviewedFileManifest: reviewed,
+          suppliedContentsHash: observed,
+          criteriaDigest: criteria.digest,
+          reviewerReportRef: "fixture",
+          controllerObservedHash: observed,
+        });
+      }
+    }
+
+    const live = {
+      repo: "acme/app",
+      baseSha: base,
+      headSha: head,
+      prNodeId: "PR_1",
+      prBodyHash: "body",
+    };
+    const evidence = () =>
+      evaluatePrePrEvidence({
+        record: store.getById(runId),
+        liveBinding: live,
+        presentedRunId: runId,
+        approvedCriteria: criteria,
+        currentGeneration: 1,
+      });
+    const stdin = `refs/heads/story/${PLAN_ID} ${head} refs/heads/story/${PLAN_ID} ${ZERO}\n`;
+    const push = () =>
+      evaluatePrePush(parsePrePushStdin(stdin), {
+        projectRoot: root,
+        enrolledBoundPrePr: true,
+        rawStdin: stdin,
+      });
+
+    // First complete: the unused grant covers clause 2, so verify:ac passes.
+    const passed = resolveControllerVerifyAc({ projectRoot: root, now: NOW });
+    expect(passed.kind).toBe("evaluated-pass");
+    expect(
+      completeRun(store, controllerPublisher(), runId, NOW, {
+        projectRoot: root,
+        skipNamedMergeGate: true,
+        verifyAcResult: passed,
+      }).ok,
+    ).toBe(true);
+    expect(evidence().ok).toBe(true);
+    expect(push()[0]).toBe(0);
+
+    // Retry after the unused grant expired, with no file or HEAD change: verify:ac fails.
+    const failed = resolveControllerVerifyAc({ projectRoot: root, now: AFTER_EXPIRY });
+    expect(failed.kind).toBe("fail");
+    const retry = completeRun(store, controllerPublisher(), runId, AFTER_EXPIRY, {
+      projectRoot: root,
+      skipNamedMergeGate: true,
+      verifyAcResult: failed,
+    });
+    expect(retry.ok).toBe(false);
+    const after = store.getById(runId);
+    expect(after?.outcome).not.toBe("pass");
+    expect(after?.pushBinding).toBeNull();
+    expect(evidence().ok).toBe(false);
+    const [code, message] = push();
+    expect(code).toBe(1);
+    expect(message).toContain("no completed pre-PR pass bound to this HEAD");
+  });
+
+  it("a failed retry also revokes another stored pass for the same HEAD", () => {
+    const store = new InProcessPrePrStore();
+    const startAt = (runId: string) => {
+      startControllerRun(store, {
+        repo: "acme/app",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        prBodyHash: "body",
+        prNodeId: null,
+        criteria: digestApprovedCriteria({
+          sourceRevisionSha: "base",
+          scopePaths: ["a.ts"],
+          acceptanceText: "ac",
+          generation: 1,
+        }),
+        skillVersion: "0.1",
+        policyVersion: "1",
+        approvedRevisionSha: "base",
+        runId,
+      });
+    };
+    startAt("ppr_6888_sibling");
+    startAt("ppr_6888_retry_b");
+    const sibling = store.getById("ppr_6888_sibling");
+    if (sibling === null) throw new Error("sibling not stored");
+    // A sibling pass for the same repo and HEAD, as an earlier complete left it.
+    store.put({
+      ...sibling,
+      state: "complete",
+      outcome: "pass",
+      completedAt: "2026-11-20T10:00:00Z",
+      publishedAt: "2026-11-20T10:00:00Z",
+    });
+    const d = completeRun(store, controllerPublisher(), "ppr_6888_retry_b", undefined, {
+      skipNamedMergeGate: true,
+      verifyAcResult: { kind: "fail", output: "verify:ac FAIL" },
+    });
+    expect(d.ok).toBe(false);
+    expect(store.getById("ppr_6888_sibling")?.outcome).toBe("none");
+    expect(store.getById("ppr_6888_sibling")?.publishedAt).toBeNull();
   });
 });

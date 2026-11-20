@@ -850,6 +850,49 @@ export const VERIFY_AC_NO_TARGET_NOTE =
   "verify:ac had no brief to run; no verify:ac disposition recorded (#6888)";
 
 /**
+ * Revoke earlier passes when `--complete`'s verify:ac result fails or is absent
+ * (#6888). This run, and every stored pass for the same repository and HEAD,
+ * returns to an unpublished running state with no push binding, so the push
+ * gate and evaluatePrePrEvidence refuse until a later complete passes. A failed
+ * store write is returned, never thrown.
+ */
+export function revokePassesForHead(
+  store: PrePrExecutionStore,
+  current: PrePrExecutionRecord,
+): PrePrDecision {
+  const seen = new Set<string>();
+  const targets = [current, ...store.list()].filter((rec) => {
+    if (seen.has(rec.id)) return false;
+    seen.add(rec.id);
+    return (
+      rec.outcome === "pass" &&
+      (rec.id === current.id || (rec.repo === current.repo && rec.headSha === current.headSha))
+    );
+  });
+  for (const rec of targets) {
+    const put = store.put({
+      ...rec,
+      state: "running",
+      outcome: "none",
+      pushBinding: null,
+      completedAt: null,
+      publishedAt: null,
+    });
+    if (!put.ok) {
+      return deny(
+        "deny-incomplete",
+        `verify:ac did not pass and earlier pass ${rec.id} could not be revoked: ${put.message} (#6888).`,
+      );
+    }
+  }
+  return {
+    ok: true,
+    code: "allow-pass",
+    message: `revoked ${String(targets.length)} earlier pass(es)`,
+  };
+}
+
+/**
  * Derive the verify:ac disposition from the controller-owned result only
  * (#6888). A merge_chokepoint row does not set it, and there is no fallback to
  * a caller-supplied disposition: a claimed value must equal the derived one.
@@ -980,6 +1023,13 @@ export function completeRun(
   const current = store.getById(runId);
   if (current === null) {
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
+  }
+  // #6888: a failed or absent verify:ac result revokes earlier passes for this
+  // HEAD before any other check, so a retry that fails cannot leave one standing.
+  const verifyAcKind = options?.verifyAcResult?.kind ?? null;
+  if (verifyAcKind === null || verifyAcKind === "fail") {
+    const revoked = revokePassesForHead(store, current);
+    if (!revoked.ok) return revoked;
   }
   // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
   // #6336 item 7: a head with no pull request is named as such, with the next command.
