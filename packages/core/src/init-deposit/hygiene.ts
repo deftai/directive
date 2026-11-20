@@ -70,14 +70,15 @@ export const CONSUMER_GUARD_MUST_FIRE: readonly string[] = [
 ];
 
 /**
- * Go cmd/deft-install/deposit.go consumerGuardMustFire is a frozen
- * source-only assertion (LAST_GO_INSTALLER). It is not kept in lockstep with
- * this live TypeScript denylist and is not the Pass 2 commit-set referent (#4271).
+ * Go cmd/deft-install/deposit.go consumerGuardMustFire was a source-only
+ * assertion in the frozen Go installer bridge, retired from master (#6863). It is
+ * not kept in lockstep with this live TypeScript denylist and is not the Pass 2
+ * commit-set referent (#4271).
  *
  * #5245 consequence (recorded, not a side effect): after migrated delete-repair
- * removes root/vbrief bare markers, frozen `gateReadVersionMarker` (vbrief then
- * root only; no xbrief candidate) loses both of its read paths until Go freeze
- * rolls. Delivering rail is TS; do not unfreeze Go in this unit.
+ * removes root/vbrief bare markers, the frozen bridge `gateReadVersionMarker`
+ * (vbrief then root only; no xbrief candidate) loses both of its read paths.
+ * Delivering rail is TS.
  */
 export const GO_1430_DENYLIST_STATUS = "frozen-source-only" as const;
 

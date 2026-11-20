@@ -93,8 +93,6 @@ export const HYGIENE_GATE_ID_PREFIXES: readonly string[] = [
   "verify:semantic-single-source",
   "verify:cursor-tier1",
   "verify:openclaw-tier1",
-  "verify:go-freeze",
-  "verify:bridge-drift",
   "verify:forward-coverage",
   "verify:test-boundary",
   "verify:scope-provenance",

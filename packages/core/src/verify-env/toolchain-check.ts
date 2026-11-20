@@ -18,7 +18,6 @@ export interface ToolCheck {
 
 /** Maintainer toolchain:check probes. verify:tools includeTask adds uv from this set; python stays verify:tools-only (#4672). */
 export const MAINTAINER_TOOLS: readonly ToolCheck[] = [
-  { name: "go", command: ["go", "version"] },
   { name: "uv", command: ["uv", "--version"] },
   { name: "git", command: ["git", "--version"] },
   { name: "gh", command: ["gh", "--version"] },

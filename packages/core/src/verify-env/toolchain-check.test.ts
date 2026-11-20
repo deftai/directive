@@ -85,7 +85,7 @@ describe("runToolchainCheck", () => {
   it("does not emit node remediation when only unrelated tools are missing", () => {
     const result = runToolchainCheck((command) => {
       const name = command[0] ?? "";
-      if (name === "go") {
+      if (name === "uv") {
         return { error: "not-found", message: "" };
       }
       return { returncode: 0, stdout: `${name} version test\n`, stderr: "" };

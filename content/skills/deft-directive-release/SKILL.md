@@ -259,7 +259,7 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch dur
 See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Routine vs hard cut for Step 5 (#2953).
 
 
-~ **Go installer deleted (AC10.10 / #1912 lineage):** `cmd/deft-install/` is absent. Do **not** rebuild Go installer binaries or roll `LAST_GO_INSTALLER` forward to ship them. `release.yml` skips the Go build; npm/`directive` is the only channel. Historical freeze-gate notes live in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge — historical only.
+~ **Go installer retired (AC10.10 / #1912 lineage / #6863):** `cmd/deft-install/` is absent and master has no Go build or release workflow. Do **not** rebuild Go installer binaries; npm/`directive` is the only channel. The frozen bridge binaries stay on the v0.58.0 release — see [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge — retired from master.
 
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
 2. ! Confirm the next version number (`X.Y.Z`) with the user. Major / minor / patch decision flows from the `[Unreleased]` content, including `changelog.d/` fragments (breaking change → major; new feature → minor; fix-only → patch)
@@ -340,7 +340,7 @@ The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke
 task release -- <version> --summary "<text>"
 ```
 
-Per #716 default-draft hardening, this lands the release as a `--draft` on the real repo. Binaries upload via release.yml CI, but the artifact is NOT yet visible to consumers. The operator-authored summary becomes part of the promoted `CHANGELOG.md [<version>]` section AND the GitHub release body (auto-pickup via `_section_for_version`). The same wording is the canonical source for the Phase 8 Slack `*Summary*:` slot.
+Per #716 default-draft hardening, this lands the release as a `--draft` on the real repo. No binaries upload (master has no Go release workflow, #6863), and the draft is NOT yet visible to consumers. The operator-authored summary becomes part of the promoted `CHANGELOG.md [<version>]` section AND the GitHub release body (auto-pickup via `_section_for_version`). The same wording is the canonical source for the Phase 8 Slack `*Summary*:` slot.
 
 ! **Maintainer-mode release notes auto-lead with an "Upgrading from an older version?" banner (#1413).** When the cut targets the canonical framework repo (`deftai/directive`), `task release` Step 12 prepends the banner from the editable template at `.github/release-notes/upgrade-banner.md` to the notes passed to `gh release create` (via `_prepend_upgrade_banner`). The banner points consumers at the OVPR npm path (`npm i -g @deftai/directive@latest` then `directive upgrade` / doctor) — **not** deleted `deft-install` (AC10.10). This is **GitHub-release-body-only** -- it is NEVER injected into `CHANGELOG.md`, so the CHANGELOG section and the release body intentionally differ by this leading block. To change the wording, edit the template file; do not hand-edit the published release body. **Consumer-mode releases (any non-`deftai/directive` repo) are unaffected** -- a downstream project that vendors the release pipeline never inherits deft's upgrade guidance. A missing/unreadable template degrades gracefully (notes ship without the banner; the cut is never blocked).
 

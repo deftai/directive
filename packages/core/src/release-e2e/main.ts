@@ -2,11 +2,10 @@ import { resolveProjectRoot } from "../release/paths.js";
 import { EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION, RELEASE_E2E_HELP } from "./constants.js";
 import { emit, formatTempRepoCleanupHint, generateRepoSlug, parseE2EFlags } from "./flags.js";
 import { destroyTempRepo, provisionTempRepo } from "./gh-ops.js";
-import { type LegacyBridgeLegSeams, runLegacyBridgeLeg } from "./legacy-bridge-leg.js";
 import { runRehearsal } from "./rehearsal.js";
 import type { E2EConfig, E2ESeams } from "./types.js";
 
-export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams = {}): number {
+export function runE2e(config: E2EConfig, seams: E2ESeams = {}): number {
   const slug = config.repoSlug ?? generateRepoSlug(seams);
   const owner = config.owner;
 
@@ -20,13 +19,6 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
       "DRYRUN (would run pipeline-mirror rehearsal: clone -> push heads+tags -> task release -> " +
         `verify draft + tag -> ${npmPlan} against temp repo)`,
     );
-    if (config.legacyBridge) {
-      emit(
-        "Legacy-bridge leg",
-        "DRYRUN (would run the pinned legacy -> bridge -> npm-hybrid migration leg; reads the " +
-          "Tier-0 SoT lastGoInstaller(), pending-pin while null)",
-      );
-    }
     const cleanupHint = formatTempRepoCleanupHint(owner, slug);
     if (config.destroyRepo) {
       emit("Destroy temp repo", `DRYRUN (would run \`${cleanupHint}\`)`);
@@ -37,17 +29,6 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
       );
     }
     return EXIT_OK;
-  }
-
-  // Opt-in #1912 leg: local + self-contained (no temp GitHub repo), so run it
-  // independently of the pipeline-mirror rehearsal and fold its result into rc.
-  let legacyBridgeRc = EXIT_OK;
-  if (config.legacyBridge) {
-    const [ok, reason] = runLegacyBridgeLeg(config.projectRoot, seams);
-    emit("Legacy-bridge leg", `${ok ? "OK" : "FAIL"} (${reason})`);
-    if (!ok) {
-      legacyBridgeRc = EXIT_VIOLATION;
-    }
   }
 
   const [provisionOk, provisionReason] = provisionTempRepo(owner, slug, seams);
@@ -87,7 +68,7 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
     }
   }
 
-  return rehearsalRc !== EXIT_OK ? rehearsalRc : legacyBridgeRc;
+  return rehearsalRc;
 }
 
 export function cmdReleaseE2e(args: readonly string[], seams: E2ESeams = {}): number {
@@ -118,7 +99,6 @@ export function cmdReleaseE2e(args: readonly string[], seams: E2ESeams = {}): nu
     dryRun: flags.dryRun,
     destroyRepo: flags.destroyRepo,
     skipNpm: flags.skipNpm,
-    legacyBridge: flags.legacyBridge,
     repoSlug: null,
   };
 

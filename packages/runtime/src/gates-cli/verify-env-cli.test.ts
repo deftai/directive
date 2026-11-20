@@ -122,7 +122,7 @@ describe("deft-ts toolchain-check", async () => {
   it("consumer mode skips maintainer-only tools", async () => {
     const maintainerOnlyMissing = (command: readonly string[]) => {
       const name = command[0] ?? "";
-      if (name === "go" || name === "uv") {
+      if (name === "uv") {
         return { error: "not-found" as const, message: "" };
       }
       return { returncode: 0, stdout: `${name} ok\n`, stderr: "" };

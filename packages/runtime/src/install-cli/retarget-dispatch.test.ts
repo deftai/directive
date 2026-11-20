@@ -42,12 +42,12 @@ describe("retarget: toolchain-check (tests/cli/test_task_scripts.py TestToolchai
         return { error: "not-found", message: "" };
       },
       [
-        { name: "go", command: ["go", "version"] },
         { name: "uv", command: ["uv", "--version"] },
+        { name: "git", command: ["git", "--version"] },
       ],
     );
     expect(result.exitCode).toBe(1);
-    expect(result.lines.join("\n")).toContain("uv: NOT FOUND");
+    expect(result.lines.join("\n")).toContain("git: NOT FOUND");
   });
 
   it("deft-ts toolchain-check propagates exit 1 from the handler", async () => {

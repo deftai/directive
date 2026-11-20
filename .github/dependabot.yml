@@ -1,6 +1,6 @@
 # GitHub Dependabot configuration (#1070 supply-chain quick-wins, parent #1069).
 #
-# Schedules weekly version + security update PRs for the three ecosystems
+# Schedules weekly version + security update PRs for the two ecosystems
 # the deft framework consumes:
 #
 #   - pip            -- the Python project at the repo root (`pyproject.toml`
@@ -8,13 +8,9 @@
 #                       same `pip` dependency surface that dependabot
 #                       understands, so this entry catches both the runtime
 #                       deps and the dev tooling pinned in pyproject.
-#   - gomod          -- the Go tool at `cmd/deft-install/` consumed via the
-#                       repo-root `go.mod`. Go's transitive-import semantic
-#                       means a single `go.mod` covers every Go binary in
-#                       the workspace.
 #   - github-actions -- the workflows at `.github/workflows/**`. Catches
 #                       drift on `actions/checkout`, `actions/setup-python`,
-#                       `actions/setup-go`, `astral-sh/setup-uv`, and
+#                       `astral-sh/setup-uv`, and
 #                       `arduino/setup-task` (currently major-version
 #                       tag-pinned; #1072 will SHA-pin these). Dependabot's
 #                       `github-actions` ecosystem opens a PR when any of
@@ -40,15 +36,6 @@ updates:
     labels:
       - dependencies
       - python
-
-  - package-ecosystem: gomod
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - go
 
   - package-ecosystem: github-actions
     directory: /

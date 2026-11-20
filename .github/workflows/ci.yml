@@ -254,11 +254,6 @@ jobs:
           version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Go (toolchain gate in task check)
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
       - name: Setup uv (toolchain gate in task check)
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 
@@ -511,11 +506,6 @@ jobs:
         with:
           version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Go (toolchain gate in task check)
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
 
       - name: Setup uv (toolchain gate in task check)
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3

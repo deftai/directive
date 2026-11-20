@@ -1,6 +1,6 @@
 # Release & Testing
 
-The release process publishes `@deftai/directive` and `@deftai/directive-runtime` to npm (the **canonical** install channel). The Go installer (`cmd/deft-install/`, platform `install-*` binaries) is **deleted** (AC10.10) — release workflows skip the Go build matrix; do not rebuild or ship Go installer binaries.
+The release process publishes `@deftai/directive` and `@deftai/directive-runtime` to npm (the **canonical** install channel). The Go installer (`cmd/deft-install/`, platform `install-*` binaries) is **deleted** (AC10.10), and master has no Go build, workflow or toolchain (#6863). Do not rebuild or ship Go installer binaries.
 
 **OVPR publish shape (AC13.4 / #5490):** exactly two public packages, same version, runtime then launcher. Private workspace packages `types` / `core` / `content` are vendored into the runtime via `packages/runtime/scripts/stage-bundle.mjs` + `pack-staged-runtime.mjs` (mirrored by `task release:e2e` / `packOvprTarballs`). Do not `npm pack packages/runtime` raw. Post-publish two-pass fixture Pass 2 is `directive install --yes --target-version <V>` (not legacy `update --upgrade`). Registry wait (`task release:wait-npm`) polls both public packages only.
 
@@ -216,56 +216,15 @@ If you need to inspect markdown under a worktree, open that worktree path as cwd
 
 Pointer: `skills/deft-directive-release/SKILL.md` § Routine vs hard cut (#2953).
 
-## What the Smoke Tests Verify
-
-Every build is tested on its native platform (including `macos-latest` and `ubuntu-24.04-arm`):
-
-- `--version` — binary executes and reports version
-- `--help` — flag parsing and usage output render correctly
-- `--debug` — correct OS and architecture detection (e.g. `OS=darwin ARCH=arm64`)
-- Wizard startup — binary initializes and prints the welcome banner
-- `--branch <name>` — branch flag is accepted without error
-- macOS universal binary contains both `x86_64` and `arm64` architectures
-
-## Testing Without Publishing
-
-The workflow triggers on version tags (`v*.*.*`). To run a full build and smoke test without publishing a real release, push a disposable test tag from any branch:
-
-```bash
-# Tag the current HEAD
-git tag v0.0.0-test.1
-git push origin v0.0.0-test.1
-
-# Monitor the workflow run
-gh run list --workflow=release.yml -R deftai/directive
-gh run watch <RUN_ID> -R deftai/directive
-
-# Clean up after verifying
-gh release delete v0.0.0-test.1 -R deftai/directive --yes
-git push origin --delete v0.0.0-test.1
-git tag -d v0.0.0-test.1
-```
-
-The workflow also includes a `workflow_dispatch` trigger for manual runs without publishing:
-
-```bash
-gh workflow run release.yml --ref <branch> -R deftai/directive
-```
-
-Manual runs skip the release job automatically (guarded by `if: startsWith(github.ref, 'refs/tags/v')`).
-
 ## Stable cut order
 
 Do not tag `master` by hand. A stable cut follows `skills/deft-directive-release/SKILL.md` § Stable cut runbook, which links back here for the mechanics (#6793).
 
 > **Canonical consumer install:** `npm i -g @deftai/directive` then `directive install` / `upgrade` / `install --repair` / `doctor`. Do **not** download deleted `install-*` / `deft-install` binaries.
 
-## Frozen Go-installer bridge — historical only (#1912 / #1972 / #1987 / AC10.10)
+## Frozen Go-installer bridge — retired from master (#1912 / #1972 / #6863)
 
-> **Archaeology / deleted.** `cmd/deft-install/` is **absent**. Do **not** rebuild the Go installer, roll `LAST_GO_INSTALLER` forward to ship new binaries, or teach `deft-install --yes --upgrade` as a current path. npm/`directive` is the only release+install channel.
+> **Retired.** `cmd/deft-install/` is **absent**, and master no longer carries `go.mod`, a Go release workflow, the bridge freeze or drift gates, or the `--legacy-bridge` e2e leg (#6863). npm/`directive` is the only release and install channel. Do not teach `deft-install --yes --upgrade` as a current path.
 
-Historical context (do not follow as a current runbook):
-
-- Older releases used a freeze gate (`packages/core/src/legacy-bridge/sot.ts` `LAST_GO_INSTALLER`, `task verify:go-freeze`, CI `freeze-gate`) so tags above a pin skipped Go binary builds while npm still shipped.
-- Those gates may remain as advisory husks; they must **not** be used to resurrect Go installer builds. `release.yml` keeps the Go `build` job disabled under AC10.10.
-- Pre-cut `--legacy-bridge` e2e legs and Gatekeeper notes about unsigned `install-*` assets apply only to already-shipped historical binaries — never to a new cut.
+- The frozen bridge binaries stay downloadable from the published [v0.58.0 release](https://github.com/deftai/directive/releases/tag/v0.58.0) (`install-linux-amd64`, `install-linux-arm64`, `install-macos-universal`, `install-windows-amd64.exe`, `install-windows-arm64.exe`). Never delete those release assets or the tag.
+- If the bridge must ever be rebuilt, build it from the `v0.58.0` tag, not from master.

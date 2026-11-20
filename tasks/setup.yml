@@ -28,7 +28,7 @@ vars:
 
 tasks:
   toolchain:
-    desc: "Bootstrap the Windows maintainer toolchain (Go, Python, uv, Task, gh) via winget. Windows-only -- no-op on macOS / Linux. -- task setup:toolchain"
+    desc: "Bootstrap the Windows maintainer toolchain (Python, uv, Task, gh) via winget. Windows-only -- no-op on macOS / Linux. -- task setup:toolchain"
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - cmd: pwsh -NoProfile -ExecutionPolicy Bypass -File "{{.DEFT_ROOT}}/scripts/setup_windows.ps1"

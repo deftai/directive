@@ -54,7 +54,7 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Align generated contracts with their sources; re-run task verify:contract-drift and apply the named regen",
   doctor: "Run task doctor and follow the named recovery steps",
   "toolchain:check":
-    "Install missing maintainer tools reported by the gate (go, uv, git, gh, node, pnpm)",
+    "Install missing maintainer tools reported by the gate (uv, git, gh, node, pnpm)",
   "toolchain:check-consumer":
     "Install the missing consumer tool reported by the gate; use npm from Node or enable pnpm with Corepack as declared by package.json",
   "verify:stubs":
@@ -77,9 +77,6 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Make shipped authoring surfaces name exactly one current xBRIEF write version (0.8)",
   "verify:cursor-tier1": "Repair Cursor tier-1 host surface drift named by the gate",
   "verify:openclaw-tier1": "Repair OpenClaw tier-1 host surface drift named by the gate",
-  "verify:go-freeze":
-    "Do not edit frozen Go surfaces; revert or land the change through the allowed thaw path",
-  "verify:bridge-drift": "Regenerate bridge artifacts so they match the TypeScript source of truth",
   "ts:check-lane": "Fix lint/type/test failures; re-run task ts:check-lane",
   "verify:forward-coverage":
     "Add tests for new source files and uncovered changed branches (task verify:forward-coverage)",

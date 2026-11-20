@@ -485,22 +485,12 @@ export interface CitedSkipSite {
   readonly line: number;
 }
 
-/** Four-site baseline allowlist (legacy-bridge describe.skip+it.skip + two yoloSterile aliases). */
+/** Cited-skip baseline allowlist. */
 export const CITED_SKIP_BASELINE: readonly {
   readonly file: string;
   readonly kind: CitedSkipSite["kind"];
   readonly dynamicTitle: boolean;
 }[] = [
-  {
-    file: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
-    kind: "describe.skip",
-    dynamicTitle: false,
-  },
-  {
-    file: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
-    kind: "it.skip",
-    dynamicTitle: false,
-  },
   {
     file: "packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
     kind: "it.skip",
