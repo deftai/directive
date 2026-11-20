@@ -12,6 +12,8 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { classifyHookAuthzOps } from "../authz/classify.js";
+import { DIRECTIVE_GITIGNORE_LINES, MINIMAL_TASKFILE } from "../install-health/owned-paths.js";
+import { MANAGED_SECTION_CLOSE } from "../install-health/ownership.js";
 import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
@@ -45,6 +47,7 @@ import {
   UNRESOLVED_HOST_OWNER,
   uninspectableLifecycleDenyMessage,
 } from "./classify/host-session-identity.js";
+import type { HeadTreeLookup } from "./directive-only-drop.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
@@ -86,6 +89,7 @@ import {
   SPAWN_TOOL_NAMES,
   splitShellArgvPreservingQuotes,
 } from "./index.js";
+import { type StagedIndexEntry, stagedRelPathsFromEntries } from "./planning-publication.js";
 import { SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
 // Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
@@ -8502,5 +8506,312 @@ describe("process_only implement-conflict suppressor (#4781)", () => {
     expect(src).toContain("process_only was suppressed by");
     expect(src).toContain("not bare #2885");
     expect(src).toContain("plus dest cwd");
+  });
+});
+
+describe("Directive-only drop in prospective scope-cover (#5771)", () => {
+  const NO_SCOPE = { ready: false, path: null, message: "no running scope" } as const;
+  const MANAGED_5771 = `<!-- deft:managed-section v2 sha=abc refreshed=x session=y -->\nmanaged body\n${MANAGED_SECTION_CLOSE}`;
+  const OUTER_5771 = (sha: string) => `.claude/deft-hook-${sha}.mjs`;
+  const pkg = (runtime: string, extra: Record<string, unknown> = {}) =>
+    `${JSON.stringify({ name: "app", ...extra, devDependencies: { "@deftai/directive-runtime": runtime } }, null, 2)}\n`;
+  const pnpmLock = (runtime: string) =>
+    [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    devDependencies:",
+      "      '@deftai/directive-runtime':",
+      `        specifier: ${runtime}`,
+      `        version: ${runtime}`,
+      "",
+    ].join("\n");
+
+  interface Change {
+    readonly path: string;
+    /** HEAD text; undefined = absent at HEAD. */
+    readonly head?: string;
+    /** Staged text; null = deletion. */
+    readonly staged: string | null;
+    readonly mode?: string;
+    readonly headMode?: string;
+  }
+
+  function fixture(
+    changes: readonly Change[],
+    opts: {
+      headError?: boolean;
+      unborn?: boolean;
+      unreadableHeadBlob?: string;
+      unreadableStaged?: string;
+    } = {},
+  ) {
+    const blobs = new Map<string, string>();
+    const headBlobs = new Map<string, string>();
+    const headEntries = new Map<string, { mode: string; oid: string }>();
+    const entries: StagedIndexEntry[] = changes.map((c, i) => {
+      if (c.head !== undefined) {
+        const oid = `head${String(i)}`;
+        headBlobs.set(oid, c.head);
+        headEntries.set(c.path, { mode: c.headMode ?? "100644", oid });
+      }
+      if (c.staged === null) {
+        return { path: c.path, kind: "D", mode: "000000", blob: "0".repeat(40) };
+      }
+      const blob = `staged${String(i)}`;
+      blobs.set(blob, c.staged);
+      return {
+        path: c.path,
+        kind: c.head === undefined ? "A" : "M",
+        mode: c.mode ?? "100644",
+        blob,
+      };
+    });
+    const headLookups: (readonly string[])[] = [];
+    return {
+      headLookups,
+      input: {
+        projectRoot: "/project",
+        stagedRelPaths: stagedRelPathsFromEntries(entries),
+        stagedEntries: entries,
+        readStagedBlob: (_root: string, blob: string) =>
+          opts.unreadableStaged !== undefined &&
+          blob === entries.find((e) => e.path === opts.unreadableStaged)?.blob
+            ? null
+            : (blobs.get(blob) ?? null),
+        readHeadTree: (_root: string, paths: readonly string[]): HeadTreeLookup => {
+          headLookups.push(paths);
+          if (opts.headError === true) return { kind: "error", message: "boom" };
+          if (opts.unborn === true) return { kind: "unborn" };
+          const found = new Map<string, { mode: string; oid: string }>();
+          for (const p of paths) {
+            const hit = headEntries.get(p);
+            if (hit !== undefined) found.set(p, hit);
+          }
+          return { kind: "entries", entries: found };
+        },
+        readHeadBlob: (_root: string, oid: string) =>
+          opts.unreadableHeadBlob !== undefined &&
+          headEntries.get(opts.unreadableHeadBlob)?.oid === oid
+            ? null
+            : (headBlobs.get(oid) ?? null),
+        env: {},
+      },
+    };
+  }
+
+  const INSTALL: readonly Change[] = [
+    { path: "AGENTS.md", staged: `${MANAGED_5771}\n` },
+    // setup's own package.json scaffold: only the Directive dependency.
+    {
+      path: "package.json",
+      staged: `${JSON.stringify({ private: true, devDependencies: { "@deftai/directive-runtime": "0.130.2" } }, null, 2)}\n`,
+    },
+    { path: "pnpm-lock.yaml", staged: pnpmLock("0.130.2") },
+    { path: "Taskfile.yml", staged: MINIMAL_TASKFILE },
+    {
+      path: ".gitignore",
+      head: "dist/\n",
+      staged: `dist/\n${DIRECTIVE_GITIGNORE_LINES.join("\n")}\n`,
+    },
+    { path: ".agents/skills/deft-directive-build/SKILL.md", staged: "pointer\n" },
+    { path: OUTER_5771("1a2b3c4d"), staged: "// outer\n" },
+    { path: ".claude/settings.json", staged: "{}\n" },
+    { path: ".githooks/pre-commit", staged: "#!/bin/sh\n", mode: "100755" },
+    { path: ".deft/GENERATION.json", staged: "{}\n" },
+  ];
+
+  it("admits an install set with no ready scope and names the Directive-only paths", () => {
+    const { input } = fixture(INSTALL);
+    const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(result.ok).toBe(true);
+    expect(result.uncovered).toEqual([]);
+    expect(result.message).toMatch(/Directive-only staged set/);
+    expect(result.message).toContain("package.json");
+    expect(result.message).toContain("AGENTS.md");
+  });
+
+  it("admits an install on an unborn branch", () => {
+    // No HEAD: the new .gitignore holds only Directive's lines.
+    const changes = INSTALL.map((c) => ({
+      path: c.path,
+      staged: c.path === ".gitignore" ? `${DIRECTIVE_GITIGNORE_LINES.join("\n")}\n` : c.staged,
+      mode: c.mode,
+    }));
+    const { input } = fixture(changes, { unborn: true });
+    const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(result.ok).toBe(true);
+    // The same new .gitignore with a user line is mixed and stays product.
+    const userLine = fixture(
+      [{ path: ".gitignore", staged: `dist/\n${DIRECTIVE_GITIGNORE_LINES.join("\n")}\n` }],
+      { unborn: true },
+    );
+    const mixed = evaluateProspectiveScopeCover({
+      ...userLine.input,
+      inspectScope: () => NO_SCOPE,
+    });
+    expect(mixed.ok).toBe(false);
+    expect(mixed.message).toContain(".gitignore (mixed)");
+  });
+
+  it("admits a current-layout upgrade set with no ready scope", () => {
+    const before = `# My project\n\nHello.\n\n${MANAGED_5771}\n`;
+    const { input } = fixture([
+      { path: OUTER_5771("9f8e7d6c"), staged: "// new outer\n" },
+      { path: OUTER_5771("1a2b3c4d"), head: "// old outer\n", staged: null },
+      { path: "package.json", head: pkg("0.130.1"), staged: pkg("0.130.2") },
+      { path: "pnpm-lock.yaml", head: pnpmLock("0.130.1"), staged: pnpmLock("0.130.2") },
+      {
+        path: "AGENTS.md",
+        head: before,
+        staged: before.replace("managed body", "new managed body"),
+      },
+    ]);
+    const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(result.ok).toBe(true);
+  });
+
+  it("keeps user material in package.json and AGENTS.md uncovered", () => {
+    const before = `# My project\n\n${MANAGED_5771}\n`;
+    const { input } = fixture([
+      {
+        path: "package.json",
+        head: pkg("0.130.2"),
+        staged: pkg("0.130.2", { dependencies: { lodash: "4" } }),
+      },
+      { path: "AGENTS.md", head: before, staged: `${before}\nA new user paragraph.\n` },
+    ]);
+    const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(result.ok).toBe(false);
+    expect(result.uncovered).toEqual(["package.json", "AGENTS.md"]);
+    expect(result.message).toContain("package.json (mixed)");
+    expect(result.message).toContain("AGENTS.md (mixed)");
+    // Nothing was dropped: no commit-the-Directive-part recovery, no brief steering.
+    expect(result.message).not.toMatch(/Recovery:/);
+    expect(result.message).not.toMatch(/scope:promote|scope:activate/);
+  });
+
+  it("keeps entries that fail a safeguard as product, each with one exact reason", () => {
+    const cases: { change: Change; opts?: Parameters<typeof fixture>[1]; reason: string }[] = [
+      {
+        change: { path: ".githooks/pre-commit", staged: "x" },
+        opts: { headError: true },
+        reason: "unreadable-head",
+      },
+      {
+        change: { path: ".githooks/pre-commit", head: "old", staged: "x" },
+        opts: { unreadableHeadBlob: ".githooks/pre-commit" },
+        reason: "unreadable-head",
+      },
+      {
+        change: { path: ".githooks/pre-commit", staged: "x" },
+        opts: { unreadableStaged: ".githooks/pre-commit" },
+        reason: "unreadable-staged",
+      },
+      {
+        change: { path: ".githooks/pre-commit", staged: "x", mode: "120000" },
+        reason: "unsupported-mode",
+      },
+      {
+        change: { path: ".githooks/pre-commit", staged: "x", mode: "160000" },
+        reason: "unsupported-mode",
+      },
+      {
+        change: { path: ".githooks/pre-commit", head: "x", headMode: "120000", staged: "y" },
+        reason: "unsupported-mode",
+      },
+      { change: { path: ".githooks\\pre-commit", staged: "x" }, reason: "non-canonical-path" },
+      { change: { path: " .githooks/pre-commit", staged: "x" }, reason: "non-canonical-path" },
+      { change: { path: "./.githooks/pre-commit", staged: "x" }, reason: "non-canonical-path" },
+    ];
+    for (const c of cases) {
+      const { input } = fixture([c.change], c.opts);
+      const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+      expect(result.ok, `${c.change.path} ${c.reason}`).toBe(false);
+      expect(result.uncovered).toEqual([".githooks/pre-commit"]);
+      expect(result.message).toContain(`(${c.reason})`);
+    }
+  });
+
+  it("drops by raw entry: a backslash twin stays product beside its dropped canonical path", () => {
+    const { input } = fixture([
+      { path: ".githooks/pre-commit", staged: "x" },
+      { path: ".githooks\\pre-commit", staged: "y" },
+    ]);
+    const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(result.ok).toBe(false);
+    expect(result.uncovered).toEqual([".githooks/pre-commit"]);
+    expect(result.message).toContain('".githooks\\\\pre-commit" (non-canonical-path)');
+  });
+
+  it("classifies an empty staged blob as content, not as a read failure", () => {
+    const { input } = fixture([{ path: ".githooks/pre-commit", staged: "" }]);
+    const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(result.ok).toBe(true);
+  });
+
+  it("does not read HEAD for a set with no Directive path", () => {
+    const { input, headLookups } = fixture([{ path: "src/a.ts", staged: "x" }]);
+    const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(result.ok).toBe(false);
+    expect(headLookups).toEqual([]);
+    // No Directive path staged: today's refusal text, recovery included.
+    expect(result.message).toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
+    expect(result.message).not.toMatch(/not-owned/);
+  });
+
+  it("a mixed commit leaves only the non-Directive path uncovered", () => {
+    const { input } = fixture([
+      { path: "src/a.ts", staged: "x" },
+      { path: "package.json", head: pkg("0.130.1"), staged: pkg("0.130.2") },
+      { path: ".githooks/pre-commit", staged: "x" },
+    ]);
+    const noScope = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(noScope.ok).toBe(false);
+    expect(noScope.uncovered).toEqual(["src/a.ts"]);
+    expect(noScope.message).toContain("package.json, .githooks/pre-commit");
+    expect(noScope.message).toContain("src/a.ts (not-owned)");
+    expect(noScope.message).toMatch(/Recovery: commit the Directive-only paths on their own/);
+    expect(noScope.message).not.toMatch(/scope:promote|scope:activate/);
+
+    const outside = evaluateProspectiveScopeCover({
+      ...input,
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["docs/**"], denyPaths: [] }),
+    });
+    expect(outside.ok).toBe(false);
+    expect(outside.uncovered).toEqual(["src/a.ts"]);
+    expect(outside.message).toMatch(/outside governing file_scope/);
+    expect(outside.message).toMatch(/Recovery: commit the Directive-only paths on their own/);
+
+    const covered = evaluateProspectiveScopeCover({
+      ...input,
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+    });
+    expect(covered.ok).toBe(true);
+  });
+
+  it("keeps the path-only seam and the existing admissions unchanged", () => {
+    // No raw staged entries: nothing is dropped (the package.json case above stays refused).
+    const pathsOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: [".githooks/pre-commit"],
+      inspectScope: () => NO_SCOPE,
+      env: {},
+    });
+    expect(pathsOnly.ok).toBe(false);
+    expect(pathsOnly.message).toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
+    // Lifecycle and hook-deposit paths keep their path-only admission, without a HEAD read.
+    const { input, headLookups } = fixture([
+      { path: "xbrief/active/story.xbrief.json", staged: "{}" },
+      { path: ".cursor/hooks.json", head: "{}", staged: "{ }" },
+    ]);
+    const lifecycle = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+    expect(lifecycle.ok).toBe(true);
+    expect(lifecycle.message).toMatch(/Lifecycle\/installer-only/);
+    expect(headLookups).toEqual([]);
   });
 });
