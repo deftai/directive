@@ -574,7 +574,11 @@ function appendLines(message: string, lines: readonly string[]): string {
  */
 function runAcceptanceCommandRecords(
   records: AcceptanceCommandRecords,
-  options: { readonly projectRoot: string; readonly runner?: EvaluateVerifyAcOptions["runner"] },
+  options: {
+    readonly projectRoot: string;
+    readonly runner?: EvaluateVerifyAcOptions["runner"];
+    readonly allowTaskStatement?: boolean;
+  },
 ): LiteralAcceptanceGateResult {
   const warnings = records.cwdWarnings.map(formatAcceptanceCwdWarningLine);
   if (records.blocking.length > 0) {
@@ -597,6 +601,7 @@ function runAcceptanceCommandRecords(
   const run = runLiteralAcceptanceCommands(records.commands, {
     projectRoot: options.projectRoot,
     runner: options.runner,
+    allowTaskStatement: options.allowTaskStatement,
   });
   return {
     ...run,
@@ -1117,6 +1122,7 @@ export function evaluateVerifyAcFromPlan(
   const base = runAcceptanceCommandRecords(contract.records, {
     projectRoot,
     runner: optionsWithScope.runner,
+    allowTaskStatement: optionsWithScope.allowTaskStatement,
   });
 
   // Check composition: mid-story unpromoted capture-only may soft-pass so the
