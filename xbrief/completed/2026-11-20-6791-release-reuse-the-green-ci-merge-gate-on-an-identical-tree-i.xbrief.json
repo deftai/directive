@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6791",
-    "updated": "2026-11-20T19:26:41Z"
+    "updated": "2026-11-20T21:31:55Z"
   },
   "plan": {
     "title": "release: reuse the green CI merge gate on an identical tree instead of re-running task check in Step 5",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Release Step 5 (release/pipeline.ts) always runs the full local task check with host coverage, which takes up to about an hour, even when the release branch tree equals a delivery-branch tip that CI already passed. This story adds a reuse rule: when the clean Step 5 input tree is identical to the tree of the fetched delivery-branch tip and the latest attempt of each required check (TypeScript (build + lint), Merge gate (task check)) on that tip is success, Step 5 reuses CI with no flag, citation or prompt, prints the tip SHA and the check-run URLs, and runs only a short host smoke check. Otherwise Step 5 prints the decision and runs the full local check as today. Per operator ruling B (comment 7048518461), a reused cut runs no host coverage; #6849 closes that gap. The --skip-ci incident path is unchanged. This is S1 of the #6845 split and has no dependencies; the readiness half of clause 1 lands with #6876.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6791",
@@ -19,26 +19,49 @@
     "items": [
       {
         "title": "CI reuse. Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched delivery-branch tip, and the latest run of each required check (`TypeScript (build + lint)`, `Merge gate (task check)`) on that tip SHA completed `success`. Reuse needs no flag, no citation and no prompt, and prints the SHA and the check-run URLs. A missing, pending, failed or re-running latest attempt never reuses an older success. Readiness evaluates the same rule and always prints that reuse is provisional and about how long the full local `task check` takes; when the rule does not hold at readiness, it says before the mint that the full check will run. Step 5 evaluates the rule again, prints any changed decision, and continues either way without a prompt. This builds the #6791 reuse rule, including its short host smoke check; a reused cut runs no host coverage.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Step 5 reuses CI only when the clean Step 5 input tree equals the fetched delivery-branch tip tree and the latest attempt of TypeScript (build + lint) and Merge gate (task check) on that tip is success; a missing, pending, failed or re-running latest attempt never reuses an older success; reuse needs no flag, citation or prompt, prints the SHA and check-run URLs, runs the short host smoke check and no host coverage."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/evidence": {
+          "kind": "smoke",
+          "pointer": "https://github.com/deftai/directive/pull/6898",
+          "recorded_at": "2026-11-20T21:31:47Z",
+          "recorded_by": "claude-code worker (#6791 S1)"
         }
       },
       {
         "title": "Given a fetched tip whose latest required check runs concluded `success` and a clean Step 5 input tree identical to that tip, when the run reaches Step 5, then it reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a fetched tip with green latest required checks and an identical clean Step 5 input tree, Step 5 reuses the checks with no flag, citation or prompt and prints the tip SHA and the check-run URLs."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75479c0e0455d3bf64a19f82e8146f161d792853",
+          "recorded_at": "2026-11-20T21:31:55Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given green checks at readiness and a new pending or failed attempt at Step 5, also when an older attempt succeeded, then Step 5 prints the changed decision and runs the full local check without a prompt.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given green checks at readiness and a new pending or failed latest attempt at Step 5, also when an older attempt succeeded, Step 5 prints the changed decision and runs the full local check without a prompt."
+        },
+        "x-directive/specImpact": "delta",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75479c0e0455d3bf64a19f82e8146f161d792853",
+          "recorded_at": "2026-11-20T21:31:55Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -233,7 +256,36 @@
         "origin": "deftai/directive#6791",
         "id": "github.issue.6498677316"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8aa66c942f75d6fd5b79e47ebfa84f93da53aa51",
+        "prNumber": 6898,
+        "prBase": "master",
+        "mergeCommit": "75479c0e0455d3bf64a19f82e8146f161d792853",
+        "deliveryBranch": "master",
+        "deliveryCommit": "34785ac742c31087aac2aa8ccb7356cc93c1de81",
+        "verifiedAt": "2026-11-20T21:31:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6884
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-20T21:31:55Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-20T21:31:55Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -278,6 +330,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6498677316",
-    "updated": "2026-11-20T19:26:41Z"
+    "updated": "2026-11-20T21:31:55Z"
   }
 }
