@@ -194,7 +194,7 @@
       ],
       "swarm": {
         "readiness": "ready",
-        "parallel_safe": false,
+        "parallel_safe": true,
         "file_scope": [
           "packages/core/src/pr-closing-keywords/story-issue.ts",
           "packages/core/src/pr-closing-keywords/story-issue.test.ts",
