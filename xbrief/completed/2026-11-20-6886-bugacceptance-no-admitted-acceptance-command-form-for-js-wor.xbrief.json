@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6886",
-    "updated": "2026-11-20T21:27:58Z"
+    "updated": "2026-11-21T22:57:26Z"
   },
   "plan": {
     "title": "bug(acceptance): no admitted acceptance-command form for JS workspace test runners (vitest) across scope:activate and verify:ac",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A web story whose tests run with vitest in web/ has no acceptance command that passes both scope:activate and verify:ac, because the two gates read different command records, the wrapper refusal hides the admitted forms and neither checks the working directory (#6882 item 3). This story gives scope:activate, xbrief:activate and verify:ac one non-executing record rule and record list, admits exactly `task <name>:test`, makes activation warn (never refuse) on records verify:ac would refuse, on cwd-grammar misses and on unpromoted captures, and adds one run-time real-path check in verify:ac as the only cwd enforcement.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6886",
@@ -20,204 +20,392 @@
     "items": [
       {
         "title": "Record rule. `literal-acceptance/safety.ts` gains `evaluateAcceptanceCommandRecord({ command, cwd })`, returning the command verdict and a separate cwd verdict. The command goes through `evaluateCommandSafety` (with item 3 added). The cwd conforms when it is absent, empty or `.`, or when it is one or more segments joined by `/`, each matching `[A-Za-z0-9_][A-Za-z0-9._-]*` and none equal to `.` or `..`; anything else (absolute and rooted paths, drive forms such as `C:x` and `C:/x`, UNC and device paths, backslashes, `..`) is a cwd warning. The rule reads no file system, so every gate gives the same answer and the same reason text. A cwd warning never refuses, at activation or in `verify:ac`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When evaluateAcceptanceCommandRecord is given a cwd outside the plain relative-path grammar, then it returns a cwd warning with fixed reason text and no command refusal, without reading the file system."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Run-time containment, the only cwd enforcement. Just before any runner call, `run.ts` resolves the real path of the project root and of `resolve(root, cwd)`. Both must succeed, and the second must be the root or inside it, compared with the platform's `path.relative` on the real paths (the result is not absolute and its first component is not `..`). A missing directory, a real-path error or an outside directory is `refused: <reason>` with exit 2, and no command is spawned. It covers every escape the grammar warns about, including `C:x`, an absolute path outside the root and a symlink that leaves the repository; an absolute path inside the root runs, with the item 1 warning. It does not protect against a directory replaced after the check.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the real cwd is missing or resolves outside the project root, then verify:ac exits 2 with refused: and the runner is never called."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One bounded wrapper shape. For first token `task` only, the command `task <name>:test` is admitted when `<name>` matches `[a-z0-9][a-z0-9_-]*` and nothing follows: no second task, no variable assignment, no flag. `deft` and `directive` are unchanged. `task web:test web:deploy`, `task web:test --dir x`, `task a:b:test` and `task web:deploy` are refused by the command rule. The existing `task test` form is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the command is exactly task <name>:test with a matching name, then it is admitted; task web:test web:deploy, task web:test --dir x, task a:b:test and task web:deploy are refused."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One record list. `product-first-done-gate` gains `resolveAcceptanceCommandRecords(plan)`, which never runs a command. It reads records through the existing `resolveLiteralAcceptanceDetailed(plan, …)` with the options of the completion profile (`resolveAcceptanceGateProfile(\"complete\")`), so inline prose mentions and operator \"not a command\" dispositions are moved to advisory exactly as `verify:ac` moves them, and prose-derived refusals stay advisory while structured refusals block. It adds the `plan.acceptance.commands` records that pass the existing `statedAcceptanceCommands` filter, each with source `explicit` and span `plan.acceptance.commands`. It applies item 1 to every record: a command refusal joins `blocking`, a cwd warning joins `cwdWarnings`. It also returns the unpromoted capture-only records, from the promotion check now inside `runLiteralAcceptanceCommands` (`run.ts` 156-217), moved into a non-executing function that both callers use unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When resolveAcceptanceCommandRecords reads a brief, then it runs nothing and returns blocking, cwdWarnings and unpromoted records with inline mentions and not-command dispositions excluded."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`verify:ac` uses it. When `blocking` is not empty, `verify:ac` exits 2 before running anything and lists each refused record, as it does today for a structured refusal; this now includes a refused `plan.acceptance.commands` record. It prints `cwdWarnings` and goes on. It passes the resolved records to one `runLiteralAcceptanceCommands` call, whose existing promotion matching (unpromoted capture-only records fail before any run, as today) and execution-key grouping (each command, cwd and expected exit runs once, checked against every retained stdout expectation) decide what runs, and item 2 runs before each spawn. A filtered plan record is no longer skipped because a metadata record ran.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When blocking is not empty, then verify:ac exits 2 before running anything; otherwise one runLiteralAcceptanceCommands call runs each execution key once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Both activation writers warn. `scope:activate` (`transition.ts`) and `xbrief:activate` (`vbrief-activate/activate.ts`, pending and already-active paths) call the resolver on every activation, whether or not the brief has acceptance-shaped narratives, and print one warning per record in `blocking`, `cwdWarnings` and the unpromoted list, each with `verify:ac`'s reason text and remedy (for an unpromoted record: promote the exact record into `plan.metadata.swarm.verify_commands`, or record the string in `plan.metadata.literal_acceptance_not_commands`). Activation does not refuse on any of them. The existing refusal in `evaluateAcceptanceActivateGate` (when acceptance-shaped narratives exist and `validatePlanAcceptance` fails) is unchanged, and the other narrative and clause rules are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When scope:activate or xbrief:activate activates a brief with a refused record, a cwd-grammar miss or an unpromoted capture, then it activates and prints one warning per record with verify:ac's reason and remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Declarations. The activation warnings and the `verify:ac` cwd warning are declared in `refusal-declarations/table.ts` in `warn` mode, print through the one helper with their gate id, and name the remedy `deft verify:ac --capture-only` on the brief, which lists each record and its reason. The item 2 run-time refusal is declared as `enforce` with the exception reason \"an acceptance command must not be spawned outside the repository\", and its CHANGELOG entry states that reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the refusal table is read, then the activation and cwd-grammar rows are warn and the run-time containment row is enforce with its exception reason."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "No persisted cwd refusal. Because the cwd grammar only warns and item 2 runs on every execution, no cwd refusal is written to the rejected ledger, so none can be dropped on reload. The rejected ledger and its reload recovery are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When a cwd-grammar warning occurs, then nothing is written to the rejected ledger and reload recovery is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One message. The wrapper refusal names the real list (`check|doctor|test|<name>:test (task only, nothing after)|verify:*|help|--version`) and the JS workspace form: `npx vitest run <path>` or `pnpm exec vitest run <path>` with `cwd: <workspace dir>`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When a wrapper command is refused, then the message names check|doctor|test|<name>:test (task only, nothing after)|verify:*|help|--version and the npx or pnpm exec vitest run <path> with cwd form."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs and compatibility. `content/docs/plan-acceptance.md` gains an \"Admitted command forms\" section: the first tokens and their argument rules, the cwd grammar (a warning), the run-time check (a refusal), the JS workspace example (`{ \"command\": \"npx vitest run src/app.test.ts\", \"cwd\": \"web\" }`, or `task web:test`), that a capture-only record must be promoted before `verify:ac` runs it, that activation warns and does not refuse, and the claim in its narrow form: command-form admission and initial working-directory containment, under the assumption that repository test code is trusted; not isolation. The `types.ts` cwd doc changes. An absolute cwd outside the root is now refused at run time, stated in the CHANGELOG with the item 7 exception reason; the test at `literal-acceptance.test.ts` 645-655 is replaced by a refusal test, and the `cwd: sub` fixture at 216-225 creates its directory.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When content/docs/plan-acceptance.md is read, then its Admitted command forms section documents the forms, the cwd warning, the run-time refusal and the not-isolation claim."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One PR. No new verb, flag, policy field or metadata key; the refusal table gains the item 7 rows.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When the PR is reviewed, then it adds no new verb, flag, policy field or metadata key, and the refusal table gains only the item 7 rows."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a brief with `plan.acceptance.commands` `npx vitest run src/app.test.ts` and `cwd: web`, and a `web` directory, then `scope:activate` admits it with no warning and `verify:ac` runs it once with cwd `<root>/web`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a brief with `plan.acceptance.commands` `npx vitest run src/app.test.ts` and `cwd: web`, and a `web` directory, then `scope:activate` admits it with no warning and `verify:ac` runs it once with cwd `<root>/web`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same record in both `plan.acceptance.commands` and `metadata.literal_acceptance_commands`, then `verify:ac` runs it once.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given the same record in both `plan.acceptance.commands` and `metadata.literal_acceptance_commands`, then `verify:ac` runs it once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a brief whose metadata holds one admitted command and whose `plan.acceptance.commands` holds a different admitted command, then `verify:ac` runs both.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a brief whose metadata holds one admitted command and whose `plan.acceptance.commands` holds a different admitted command, then `verify:ac` runs both."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a `plan.acceptance.commands` record that is only an ingest copy of an inline prose mention, or that is listed in `literal_acceptance_not_commands`, then `verify:ac` runs nothing for it; given the same command with an independently promoted peer, then it runs once.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a `plan.acceptance.commands` record that is only an ingest copy of an inline prose mention, or that is listed in `literal_acceptance_not_commands`, then `verify:ac` runs nothing for it; given the same command with an independently promoted peer, then it runs once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a metadata-only capture-only record with no promoted peer, then `scope:activate` and `xbrief:activate` activate and print a warning with the promote-or-dispose remedy, and completion `verify:ac` refuses it before any run; given its promoted peer, then there is no warning and `verify:ac` runs it once.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a metadata-only capture-only record with no promoted peer, then `scope:activate` and `xbrief:activate` activate and print a warning with the promote-or-dispose remedy, and completion `verify:ac` refuses it before any run; given its promoted peer, then there is no warning and `verify:ac` runs it once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `task web:test` with no cwd, then `scope:activate`, `xbrief:activate` and `verify:ac` admit it with no warning.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given `task web:test` with no cwd, then `scope:activate`, `xbrief:activate` and `verify:ac` admit it with no warning."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `task web:test web:deploy`, `task web:test --dir x`, `task a:b:test` or `task web:deploy` in `metadata.literal_acceptance_commands` on a brief with no acceptance-shaped narratives, then both activation verbs activate and warn with the item 9 message, and `verify:ac` exits 2 before running anything.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given `task web:test web:deploy`, `task web:test --dir x`, `task a:b:test` or `task web:deploy` in `metadata.literal_acceptance_commands` on a brief with no acceptance-shaped narratives, then both activation verbs activate and warn with the item 9 message, and `verify:ac` exits 2 before running anything."
         },
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Refusal exits 1 instead of 2; nothing runs, so it is safe. Fix is tracked in #6938 (acceptance-resolver.ts was outside the #6886 fence).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-21T22:52:35Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261121225235-791427"
+          },
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "deferred_to": "#6938"
+        }
       },
       {
         "title": "Given a brief with acceptance-shaped narratives whose `plan.acceptance.commands` fails `validatePlanAcceptance`, then `scope:activate` refuses as it does today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a brief with acceptance-shaped narratives whose `plan.acceptance.commands` fails `validatePlanAcceptance`, then `scope:activate` refuses as it does today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a cwd of `../x`, `/x`, `C:x`, `C:/x`, `\\\\srv\\share` or `web\\sub`, then both activation verbs and `verify:ac` print the same cwd warning text and none of them refuses on the grammar.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given a cwd of `../x`, `/x`, `C:x`, `C:/x`, `\\\\srv\\share` or `web\\sub`, then both activation verbs and `verify:ac` print the same cwd warning text and none of them refuses on the grammar."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a cwd that resolves outside the project root (`../x`, `C:x`, an absolute path outside the root, or a symlink that leaves the root), or whose directory is missing, then `verify:ac` exits 2 with `refused:` and the runner is never called.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given a cwd that resolves outside the project root (`../x`, `C:x`, an absolute path outside the root, or a symlink that leaves the root), or whose directory is missing, then `verify:ac` exits 2 with `refused:` and the runner is never called."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an absolute cwd inside the project root, then `verify:ac` warns and runs the command there.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given an absolute cwd inside the project root, then `verify:ac` warns and runs the command there."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a refused record only in `plan.acceptance.commands`, then `verify:ac` exits 2 and runs nothing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given a refused record only in `plan.acceptance.commands`, then `verify:ac` exits 2 and runs nothing."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Refusal exits 1 instead of 2; nothing runs, so it is safe. Fix is tracked in #6938 (acceptance-resolver.ts was outside the #6886 fence).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-21T22:52:35Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261121225235-791427"
+          },
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "deferred_to": "#6938"
         }
       },
       {
         "title": "Given the refusal table, then the activation and cwd-grammar rows are in `warn` mode and the run-time containment row is `enforce` with the item 7 exception reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given the refusal table, then the activation and cwd-grammar rows are in `warn` mode and the run-time containment row is `enforce` with the item 7 exception reason."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `content/docs/plan-acceptance.md`, then the \"Admitted command forms\" section names the JS workspace example, the cwd grammar as a warning, the run-time check as a refusal, the promotion step and that activation warns, and says the rule is not isolation.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given `content/docs/plan-acceptance.md`, then the \"Admitted command forms\" section names the JS workspace example, the cwd grammar as a warning, the run-time check as a refusal, the promotion step and that activation warns, and says the rule is not isolation."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+          "recorded_at": "2026-11-21T22:57:26Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -965,7 +1153,34 @@
         "harvestDigest": "4bafc6307b394b3078551b7f1ccc92f86792cd85415b7854944b4f18059b92ec",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "549f73e88117d8ee723a9ec05f0ffa1fd8f1a640",
+        "prNumber": 6924,
+        "prBase": "master",
+        "mergeCommit": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "838433b5b45bc24a1d28680fb136c9aacd874ccb",
+        "verifiedAt": "2026-11-21T22:57:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6907
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-21T22:57:26Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-21T22:57:26Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -1207,6 +1422,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6518389655",
-    "updated": "2026-11-20T21:27:58Z"
+    "updated": "2026-11-21T22:57:26Z"
   }
 }
