@@ -1,0 +1,837 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6937",
+    "updated": "2026-11-21T23:48:23Z"
+  },
+  "plan": {
+    "title": "[framework-gap] observable-scope mints need one human approval per cohort, not one terminal command per story",
+    "status": "running",
+    "narratives": {
+      "Description": "Today scope:record-observable-scope and scope:record-intent-constraint mint one record per brief, so a cohort of N UI or intent stories costs N typed mints on a real TTY. This story lets both verbs take several brief paths or a launch manifest, show the whole frozen set of records, ask for the typed mint once, and write exactly those records without ever overwriting an existing record. Records that match a brief added by the same activation PR may ride in that PR and keep it brief-land shaped. The docs say that the merge that lands a record is its real control.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6937",
+      "Overview": "\n1. Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.\n2. Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. If a target's record file already exists, the verb compares its plan id, brief path, `changeKind` and contract digest with the record it would write: when they all match, the existing file is left untouched and listed as already recorded (stamp and timestamps are not compared, since each mint writes fresh ones); when any differs, or the file does not parse, the whole set refuses before the prompt, names each such target and says to change an approved record with the single-story form (`scope:record-observable-scope -- <brief>` or `scope:record-intent-constraint -- <brief>`).\n3. Write. A cohort run writes only records whose files did not exist before the run. Each is written to a temporary file and renamed into place; on a failure the verb removes the records it newly created in this run, leaves every pre-existing file untouched, and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.\n4. Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.\n5. Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).\n6. Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an existing matching record is left byte-identical and listed; an existing record with a different contract, brief path or `changeKind`, or one that does not parse, refuses the whole set before the prompt with the single-story hint and writes nothing; with one pre-existing record A and new records B and C, a forced failure on C removes B and leaves A byte-identical; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.\n\n## Acceptance Criteria\n\n- `scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.\n- A refused or interrupted cohort mint writes no records; a failed write removes only the records that run newly created and leaves every pre-existing record byte-identical.\n- A cohort mint never overwrites an existing record: a matching one is left untouched, and one that would change refuses the whole set before the prompt and names the single-story form.\n- A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.\n- Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.\n- An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.\n- The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it.\n\n\n",
+      "Constraint": "- Accepting a merge-base record marked `mintedVia: activation-pr` under `requireHumanMerge: true` as human approval (comment 7070824329, findings 1 and 3): the env override, a plain `gh pr merge`, shared credentials, later record-only PRs and policy flips each defeat it.\n- A forge `merged_by` read in verify (comment 7070824329, answer 2): a network read and a refusal that do not prove a human.\n- An agent-written draft that carries a human-accepted stamp kind, or a wider `isHumanApprovalStamp` (comment 7070824329, finding 4).\n- A path-only brief-land allowance for record files (comment 7070824329, finding 5).\n- A cohort id that only labels records, or a loop that prompts before the inputs are loaded (comment 7070824329, finding 6).",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a Directive operator, I want one typed mint to cover the observable-scope or intent-constraint records of a whole cohort, so that I approve N stories with one prompt instead of N terminal commands.",
+      "ImplementationPlan": "Add a shared runtime cohort engine (scope-record-cohort.ts) used by both record verbs when they get more than one brief path or --manifest: load and validate every brief, build every record, refuse the whole set before the prompt on a missing contract, a file-name collision, or an existing record that would change or does not parse, print the frozen set, run refuseNonInteractiveMint once, then publish each new record with an exclusive create and remove only this run's records on failure. Each cohort record carries cohortDigest. One path keeps today's code path. Add a shared brief-land record check in pr-closing-keywords used by isBriefLandShapedDiff, evaluatePathBActivationAdmit, the story-line product-shape test and the verify:ac Path B activation exemption. Update OBSERVABLE_SCOPE_REMEDIATION, both usage texts, content/commands.md and the two record docs. Targeted tests beside each changed file.",
+      "Traces": "Issue #6937; bound lean comment 7070984701; pain audit 7071013167 and follow-through 7071013314; verified-claims table 7071014808; synthesis 7071014972. Deferred: #6945 (zero-prompt), #6934 (delivery-identity-attest)."
+    },
+    "items": [
+      {
+        "title": "Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When either record verb gets two or more brief paths or --manifest <launch-manifest>, then it runs the cohort form; with exactly one path it runs today's single-story code path unchanged."
+        }
+      },
+      {
+        "title": "Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. If a target's record file already exists, the verb compares its plan id, brief path, `changeKind` and contract digest with the record it would write: when they all match, the existing file is left untouched and listed as already recorded (stamp and timestamps are not compared, since each mint writes fresh ones); when any differs, or the file does not parse, the whole set refuses before the prompt, names each such target and says to change an approved record with the single-story form (`scope:record-observable-scope -- <brief>` or `scope:record-intent-constraint -- <brief>`).",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When a cohort run starts, then every brief is loaded, validated and built before the prompt, the frozen set is printed, refusals (missing contract, collision, changed or unparseable existing record) happen before the prompt, and matching existing records are listed as already recorded."
+        }
+      },
+      {
+        "title": "Write. A cohort run writes only records whose files did not exist before the run. Each is written to a temporary file and renamed into place; on a failure the verb removes the records it newly created in this run, leaves every pre-existing file untouched, and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the cohort run writes, then it creates only records whose files did not exist, with an exclusive create, and on failure removes only the records it created and exits nonzero; each record carries cohortDigest."
+        }
+      },
+      {
+        "title": "Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When an activation PR carries .deft/observable-scope or .deft/intent-constraint records, then it stays brief-land shaped only when each record parses and matches a nonremoved brief the PR adds or changes by path, plan id, file name, changeKind and contract digest."
+        }
+      },
+      {
+        "title": "Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When an operator reads OBSERVABLE_SCOPE_REMEDIATION, either verb's usage or content/commands.md, then the cohort form and the activation-PR carry are named and the merge that lands a record is stated as its control."
+        }
+      },
+      {
+        "title": "Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an existing matching record is left byte-identical and listed; an existing record with a different contract, brief path or `changeKind`, or one that does not parse, refuses the whole set before the prompt with the single-story hint and writes nothing; with one pre-existing record A and new records B and C, a forced failure on C removes B and leaves A byte-identical; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the targeted tests run, then they cover one path unchanged, N records after one prompt, refused prompt, missing contract, collision, matching and changed existing records, failure cleanup, stable cohortDigest and the brief-land record check."
+        }
+      },
+      {
+        "title": "`scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When several brief paths or --manifest are given, then both verbs print every record they will write, ask once, and write exactly those records."
+        }
+      },
+      {
+        "title": "A refused or interrupted cohort mint writes no records; a failed write removes only the records that run newly created and leaves every pre-existing record byte-identical.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When a cohort prompt is refused or a write fails, then no record from that run remains and every pre-existing record is byte-identical."
+        }
+      },
+      {
+        "title": "A cohort mint never overwrites an existing record: a matching one is left untouched, and one that would change refuses the whole set before the prompt and names the single-story form.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When a cohort target already has a record, then a matching record is left untouched and a record that would change refuses the whole set before the prompt naming the single-story form."
+        }
+      },
+      {
+        "title": "A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When a named brief has no valid contract or two plan ids map to one file name, then the run refuses before the prompt; with --manifest a brief without that contract is listed as skipped."
+        }
+      },
+      {
+        "title": "Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "When a cohort record is written, then it carries cohortDigest over record kind, plan id, brief path, changeKind, full contract and repository slug, stable across input order."
+        }
+      },
+      {
+        "title": "An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When an activation PR carries a record that does not match a brief in that PR, then the PR is not brief-land shaped, as today."
+        }
+      },
+      {
+        "title": "The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "When an operator reads the remediation, usage or commands.md, then each names the cohort form and states that the record's control is the merge that lands it."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6937",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6937: [framework-gap] observable-scope mints need one human approval per cohort, not one terminal command per story"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (13), in list order (#6333)",
+      "sentences": [
+        "Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.",
+        "Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. If a target's record file already exists, the verb compares its plan id, brief path, `changeKind` and contract digest with the record it would write: when they all match, the existing file is left untouched and listed as already recorded (stamp and timestamps are not compared, since each mint writes fresh ones); when any differs, or the file does not parse, the whole set refuses before the prompt, names each such target and says to change an approved record with the single-story form (`scope:record-observable-scope -- <brief>` or `scope:record-intent-constraint -- <brief>`).",
+        "Write. A cohort run writes only records whose files did not exist before the run. Each is written to a temporary file and renamed into place; on a failure the verb removes the records it newly created in this run, leaves every pre-existing file untouched, and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.",
+        "Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.",
+        "Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).",
+        "Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an existing matching record is left byte-identical and listed; an existing record with a different contract, brief path or `changeKind`, or one that does not parse, refuses the whole set before the prompt with the single-story hint and writes nothing; with one pre-existing record A and new records B and C, a forced failure on C removes B and leaves A byte-identical; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.",
+        "`scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.",
+        "A refused or interrupted cohort mint writes no records; a failed write removes only the records that run newly created and leaves every pre-existing record byte-identical.",
+        "A cohort mint never overwrites an existing record: a matching one is left untouched, and one that would change refuses the whole set before the prompt and names the single-story form.",
+        "A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.",
+        "Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.",
+        "An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.",
+        "The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it."
+      ],
+      "admitted_source_sentences": [
+        "Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.",
+        "Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. If a target's record file already exists, the verb compares its plan id, brief path, `changeKind` and contract digest with the record it would write: when they all match, the existing file is left untouched and listed as already recorded (stamp and timestamps are not compared, since each mint writes fresh ones); when any differs, or the file does not parse, the whole set refuses before the prompt, names each such target and says to change an approved record with the single-story form (`scope:record-observable-scope -- <brief>` or `scope:record-intent-constraint -- <brief>`).",
+        "Write. A cohort run writes only records whose files did not exist before the run. Each is written to a temporary file and renamed into place; on a failure the verb removes the records it newly created in this run, leaves every pre-existing file untouched, and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.",
+        "Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.",
+        "Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).",
+        "Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an existing matching record is left byte-identical and listed; an existing record with a different contract, brief path or `changeKind`, or one that does not parse, refuses the whole set before the prompt with the single-story hint and writes nothing; with one pre-existing record A and new records B and C, a forced failure on C removes B and leaves A byte-identical; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.",
+        "`scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.",
+        "A refused or interrupted cohort mint writes no records; a failed write removes only the records that run newly created and leaves every pre-existing record byte-identical.",
+        "A cohort mint never overwrites an existing record: a matching one is left untouched, and one that would change refuses the whole set before the prompt and names the single-story form.",
+        "A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.",
+        "Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.",
+        "An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.",
+        "The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it."
+      ],
+      "admitted_source_digest": "1f12c823dbfb088e4015409fb4ee88370fa8ffdfe6e67377f001454bcc3343b7",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. If a target's record file already exists, the verb compares its plan id, brief path, `changeKind` and contract digest with the record it would write: when they all match, the existing file is left untouched and listed as already recorded (stamp and timestamps are not compared, since each mint writes fresh ones); when any differs, or the file does not parse, the whole set refuses before the prompt, names each such target and says to change an approved record with the single-story form (`scope:record-observable-scope -- <brief>` or `scope:record-intent-constraint -- <brief>`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Write. A cohort run writes only records whose files did not exist before the run. Each is written to a temporary file and renamed into place; on a failure the verb removes the records it newly created in this run, leaves every pre-existing file untouched, and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/brief-land-records.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an existing matching record is left byte-identical and listed; an existing record with a different contract, brief path or `changeKind`, or one that does not parse, refuses the whole set before the prompt with the single-story hint and writes nothing; with one pre-existing record A and new records B and C, a forced failure on C removes B and leaves A byte-identical; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "A refused or interrupted cohort mint writes no records; a failed write removes only the records that run newly created and leaves every pre-existing record byte-identical.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A cohort mint never overwrites an existing record: a matching one is left untouched, and one that would change refuses the whole set before the prompt and names the single-story form.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6937; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the change moves who writes the observable-scope and intent-constraint authority records (from a per-story human TTY mint to the activation PR, or one mint per cohort), and those records are what let an agent change visible UI and production intent; a wrong design would let an agent approve its own scope.\n\nTarget-digest: sha256:22db34e3aad922ce68e7d265cebaa7d8d76a72ae328f29c251819a0d4cca70fc\ndispatch-sha: 838433b5b45bc24a1d28680fb136c9aacd874ccb\ndest: C:/Repos/deft/wt/arc-6937 (pinKind origin-default, process-only-no-install, read-only session posture, no lease)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nrefutation-target: \"An agent cannot merge, so it cannot self-approve\" (the premise that the human merge of the activation PR is a sufficient human approval of each record)\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one design with two branches (human-merge repos and the rest) in four or five source files; the risk is a self-approval hole, which one critic of a different model family can attack, plus one pain audit.\ncritic-post cap: 2 (set by the operator for this arc: one round-1 critic and one pain audit)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 838433b5b45bc24a1d28680fb136c9aacd874ccb: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nBefore an agent may change a UI file (`.tsx`, `.jsx`, `.html` under a surfaces policy) or add a new production constraint, a human must approve a record of what may change. Today that approval is a terminal command per story: `deft scope:record-observable-scope -- <brief> --actor <name> --confirm`, on a real TTY, with the typed word `mint`. The same holds for `scope:record-intent-constraint`. A consumer cohort of 9 to 11 UI stories needs 9 to 11 such commands, and the record then needs its own PR before the product PR.\n\nThe TTY step is not what stops an agent today. The record folders are not guarded by the hook, the approval stamp is checked for shape only, and `verify:observable-scope` reads the record from the merge base. So the real control is the human merge of the PR that puts the record there. The operator's lean uses that: where the merge base says merges are human (`requireHumanMerge: true`), activation writes the records into the activation PR and no terminal step is needed. Elsewhere, one typed mint covers the whole cohort.\n\n## Operator decisions (Scott, relayed by the coordinator, 2026-11-21, \"Arc it now\"; recorded as constraints)\n- Goal: fewer gates. Remove the per-story terminal step without letting an agent approve its own UI or intent scope.\n- The human-only property stays (the issue reporter asks for this too).\n- The after-done `delivery-identity-attest` mint (#6935 item 4) is removed at its source by #6934 and #6873. It is out of this build and is cited, not designed, here.\n- Spend: one Codex critic plus one pain audit, critic-post cap 2.\n\n## Pains\n- P1 — One terminal mint per story. `scope:record-observable-scope` and `scope:record-intent-constraint` take exactly one brief path; a second path fails with `unexpected extra args`. A cohort of N UI stories costs N terminal commands on a real TTY, each with a typed phrase, often with PATH workarounds (#6937).\n- P2 — A terminal step even where merges are already human. In a repository whose merge base sets `requireHumanMerge: true`, the activation PR that carries each brief and its `x-directive/observableChange` contract is already reviewed and merged by a human (#4714), yet each story still needs its own TTY mint and its own authority-record PR (`deft-story-part: N`, #6335) before the product PR.\n- P3 — A post-merge `delivery-identity-attest` TTY grant per story (#6935 item 4). Operator-deferred to #6934 and #6873, which remove the need for it at the source.\n\n## Out of scope (named, not pains)\n- #6935 items 1 to 3 (item evidence, sentence confessions, lifecycle-checkout installs): other mechanisms.\n- #6284 (cohort consent grant for the one-PR approved-scope path) and #6805 (one-PR mint path defects): related. This arc does not change `.deft/approved-scope/` or `onePrScopeProof`.\n- #3638 (TTY-free dry-run of what a mint would bind): related; the draft writer in R1 could share its preimage printer, but #3638 is not built here.\n- #5980 pushes the other way: it asks that loosening switches such as `policy:allow-bot-merge` need a human-presence mint. This arc does not change those switches, but R1 makes `requireHumanMerge` carry more weight, so the critic should say whether #5980 becomes a prerequisite.\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/scope-record-observable-scope.ts` 119-122: a second positional path returns `unexpected extra args`. 150-167: the UAT refusal and `refuseNonInteractiveMint` (agent-shell markers, TTY, `--confirm`, typed phrase). 38-39: `mintedVia` is one of `scope:record-observable-scope` or `in-harness-ask`. 194-211: builds and writes the record. There is no `--draft` or multi-path form today. `packages/runtime/src/scope-record-intent-constraint.ts` is the same verb for `.deft/intent-constraint/` (line-for-line twin).\n- `packages/runtime/src/human-presence-mint.ts` 292-332: the refusal checks process markers and the TTY, not the file that results.\n- `packages/core/src/scope-provenance/digest.ts` 232-252: `isHumanApprovalStamp` checks `kind` and `actor` strings only (refuses `agent`, `self`, `xbrief`, `dispatch`; accepts `operator`, `human`, `cli`, `github-user` and others).\n- `packages/core/src/observable-scope/mint.ts` 98-175: `parseObservableScopeRecord` (schema, stamp shape, `contractDigest` must equal the sha256 of the canonical `allowedChanges`/`mustPreserve`). `mintedVia` is read but never checked. 215-262: build and write. 268-303: `evaluateObservableMintPreflight` checks only that a record file exists in the working tree.\n- `packages/core/src/observable-scope/evaluate.ts` 352-415: no base policy means N/A or warn; only matched UI files demand a record. 417-425: a PR that changes a file under `.deft/observable-scope/` fails as a same-PR rewrite, but only after the matched-UI test, so a PR with no UI change can add or edit records. 427-447: records are read from the merge base with `git show`. `packages/core/src/intent-constraint/evaluate.ts` 536 and 622-678: the same rules for intent records.\n- `packages/core/src/authz/classify.ts` 4847-4869 and 5805-5840, and `packages/core/src/authz/protected-dest-realpath.ts` 20-32: the hook protected set is `.deft/authz/` and `.deft/approved-scope/` (plus the two flag files) only. `.deft/observable-scope/` and `.deft/intent-constraint/` are ordinary files an agent can write with Write or a shell.\n- `packages/core/src/policy/one-pr-scope-proof.ts` 11-20: \"CI cannot tell a real mint from a file an agent wrote\"; with `requireHumanMerge: true` the human merge is the control. 186-201 and 239: the policy is read from the merge base and a PR that changes it cannot use the path.\n- `packages/core/src/policy/require-human-merge.ts` 34 and 80-101: `DEFT_ALLOW_BOT_MERGE=1` in a process makes `requireHumanMerge` read false for Directive merge verbs. `packages/runtime/src/policy.ts` 978: `policy:allow-bot-merge` writes the field with `--confirm` (no human-presence check; #5980).\n- `packages/core/src/policy/runtime-authority.ts` 60-75: the hook merge scope is opt-in and off by default. `packages/core/src/preflight-gh/classifier.ts` 574-582: the destructive-verb check flags `gh pr merge --admin` only; `gh pr merge 123 --squash` is not flagged. So \"an agent cannot merge\" rests on the forge (branch protection, a required human review) and on Directive merge verbs, not on the hook.\n- `packages/core/src/pr-closing-keywords/main.ts` 64-104: `isBriefLandShapedDiff` (#5387) allows only nonterminal briefs and changelog entries in an activation PR. `packages/core/src/verify-ac/evaluate.ts` 666: a PR that is not brief-land shaped loses the Path B activation exemption and gets full `verify:ac`. An activation PR that also carries records would fall out of that shape today.\n- `packages/core/src/swarm/launch.ts` 1694-1699 and `packages/core/src/swarm/origin-active-brief.ts` 62: `swarm:launch` requires each active brief to be on `origin/<deliveryBranch>` already (a merged activation PR, #4714 R2). Records written at `swarm:launch` time would be after the activation PR merged.\n- This repository's merge base has `requireHumanMerge: false` (`xbrief/PROJECT-DEFINITION.xbrief.json` `x-directive/policy`), so here R2, not R1, would apply.\n\n## Recommended mechanism (the thing to critique)\n- R1. Human-merge branch: zero terminal prompts.\n  - R1.1 `scope:activate` (not `swarm:launch`, which runs after the activation PR has merged) writes a draft record for each activated brief that has `x-directive/observableChange`, and the same for `x-directive/intentConstraint`, into the activation PR. The draft is built by the existing builder, with `humanApproval.mintedVia: activation-pr`, a `kind` that `isHumanApprovalStamp` accepts for this case only, and the `contractDigest` of the brief's contract. A non-mint `--draft` mode of `scope:record-observable-scope` and `scope:record-intent-constraint` writes the same draft for a brief named by hand. Neither path needs a TTY.\n  - R1.2 `isBriefLandShapedDiff` also allows `.deft/observable-scope/<planId>.json` and `.deft/intent-constraint/<planId>.json` when the same PR adds or changes the brief with that `plan.id`.\n  - R1.3 `verify:observable-scope` and `verify:intent-constraint` accept a merge-base record with `mintedVia: activation-pr` only when the merge base sets `requireHumanMerge: true` (read like `onePrScopeProof`). Otherwise they refuse it and name the R2 mint.\n  - R1.4 Proof of human approval is: the forge record of the human merge of the activation PR, the PR diff showing each `allowedChanges` and `mustPreserve`, and the `contractDigest` in the record. An agent cannot merge under that policy, so it cannot approve its own record.\n- R2. Fallback without `requireHumanMerge`: one typed mint per cohort.\n  - R2.1 `scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths, or `--manifest <launch-manifest>` (the C2 JSON from `swarm:launch`). One TTY check and one typed `mint` write N records. Each record carries a shared cohort id. If any brief has no valid contract, nothing is written.\n  - R2.2 The records still go on the merge base before the product PRs, as today.\n- R3. #6935 item 4 (`delivery-identity-attest`): not built here; #6934 and #6873 remove the need at the source.\n- R4. Docs and refusal text: `OBSERVABLE_SCOPE_REMEDIATION`, the verb usage text and `content/commands.md` name the activation-PR path and the cohort form.\n- R5. Tests beside each changed file, including: an `activation-pr` record refused when the merge base has `requireHumanMerge: false`; a hand-written record; a record changed in a later PR; a cohort mint where one brief has no contract.\n\nQuestions for the critic:\n1. Refutation target: does R1 keep an agent from approving its own visible-UI or intent scope? Test at least: (a) a repository without `requireHumanMerge`; (b) the bot-merge overrides (`policy:allow-bot-merge`, `DEFT_ALLOW_BOT_MERGE`) and a plain `gh pr merge` that no hook refuses; (c) records edited after merge, by a later PR that touches no UI file; (d) `mintedVia` is a free string, so a hand-written record that claims `scope:record-observable-scope` already passes today. Does limiting `activation-pr` to `requireHumanMerge` repos add any protection, or is the honest rule \"every record's control is the merge that put it on the base\"?\n2. R1.4: what can verify actually check? Agents often act with the operator's own GitHub identity, so `merged_by` may not tell a human from an agent. Is the forge record evidence, or only a claim? Should verify read the forge at all (that adds a network read and a refusal)?\n3. Should `requireHumanMerge` be read at the merge base of the product PR, or at the merge of the PR that added the record? What happens when the policy flips later in either direction?\n4. What `kind` and `actor` should an `activation-pr` draft carry, given that the merger is unknown when the draft is written and `isHumanApprovalStamp` refuses agent kinds?\n5. R1.2: is widening the brief-land shape safe? Can a record for a different brief, or a record with no matching brief, ride in an activation PR?\n6. R2.1: is one typed phrase for N records sound? What should the cohort id bind (for example a digest over the plan ids and contract digests)?\n7. Does any part of R1 or R2 add a new gate, refusal or forge read? Say so for each. Is #5980 a prerequisite for R1? Is this one PR, or R1 and R2 as two?\r\n\n",
+          "id": 7070778824,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070778824",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:17:51Z",
+          "updated_at": "2026-11-21T23:17:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7070779020\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 838433b5b45bc24a1d28680fb136c9aacd874ccb\ndest: C:/Repos/deft/wt/arc-6937\nverification-path: pin-read git show 838433b5b45bc24a1d28680fb136c9aacd874ccb: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7070778824\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7070779020,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070779020",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:17:52Z",
+          "updated_at": "2026-11-21T23:17:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe problem is repeated terminal work: a human must mint each story’s approval separately, even when approving a whole cohort. Batching can remove that repetition. Replacing minting with an activation PR is more consequential: it needs a reliable way to distinguish human approval from an agent merging its own proposed permissions.\n\n**R1 cannot bind as written. R2 is a useful batching change, but does not establish the promised human-only property by itself.** Today, an agent can write a plausible approval record directly. Its digest proves consistency, not human approval. Moving that record onto the merge base does not prove who approved it.\n\nAnswers to the seven Stop 1 questions:\n\n1. **R1 does not prevent self-approval.** Restricting the `activation-pr` label to human-merge repositories leaves the other freely writable labels available. Merge overrides, ordinary `gh pr merge`, and later record-only edits also defeat the stated premise.\n2. **A forge merge record proves an account performed a merge, not that a human approved the contract.** With shared credentials, `merged_by` cannot distinguish human from agent. Do not add a forge lookup solely for that inference: it adds network dependency and possible refusal without supplying the missing proof.\n3. **Approval must bind the exact record revision when authorized.** A product PR’s current merge-base policy cannot establish historical approval. Turning the policy on must not legitimize old agent-written records; turning it off should have an explicit revocation rule rather than accidentally invalidating genuine earlier approval.\n4. **A draft should not carry a human approval stamp.** Record its producer as an agent and its status as pending approval, separately from any eventual approval evidence. Do not invent an accepted human `kind` or guess the future merger.\n5. **Widening brief-land shape is reasonable only with exact content association.** Matching filenames or `plan.id` alone is insufficient; match the record’s contract and brief path to the corresponding changed brief, and handle removals, renames and duplicate identities.\n6. **One phrase can approve N records**, provided the human sees the complete frozen set before confirming and the writer publishes those same records. Bind the cohort digest to repository identity, record type, plan ID, canonical brief path and complete authorization payload. A shared ID alone is bookkeeping, not authentication.\n7. **R1 adds a policy-dependent refusal; proving its claimed approval would require additional enforcement. R2 adds batch validation and publication failure cases, but needs no new forge read.** #5980 alone cannot repair R1’s plain-merge/shared-credential problem. Split batching from approval redesign. R2 may ship separately as reduced ceremony with an explicit statement that the existing record-authenticity gap remains; it must not claim to satisfy the stronger no-self-approval test.\n\nAll code evidence below was read with `git show` at `838433b5b45bc24a1d28680fb136c9aacd874ccb`. No builds, tests, writes or forge requests were performed.\n\n### 1. blocks-the-design — The policy flag does not establish human approval\n\n**Evidence:** `packages/core/src/policy/require-human-merge.ts:76–97` resolves the environment override before project policy. `packages/runtime/src/policy.ts:909–924` permits disabling human merge with `--confirm`. `packages/core/src/policy/runtime-authority.ts:61–74` makes runtime authority opt-in, with merge scope disabled by default. `packages/core/src/preflight-gh/classifier.ts:574–582` explicitly classifies ordinary `gh pr merge 123 --squash` as allowed by the destructive-verb classifier.\n\n**Failure:** An agent prepares an activation record and merges it using credentials with sufficient forge permissions. The environment override can leave the committed `requireHumanMerge: true` unchanged, so R1.3 later accepts the record despite the merge having been agent-driven. Ordinary `gh pr merge` supplies another route where forge protections do not independently prevent it.\n\n**Consequence:** Reject R1.4’s “an agent cannot merge” premise. #5980 addresses policy loosening but is insufficient: the design needs an independently enforced authorization boundary that agents cannot exercise with their own credentials. A forge account name or a reviewer-attention assumption cannot substitute for that boundary.\n\n### 2. blocks-the-design — Both branches still admit fabricated approval records\n\n**Evidence:** `packages/core/src/scope-provenance/digest.ts:232–251` checks human-looking `kind` and `actor` strings. `observable-scope/mint.ts:142–161` and `intent-constraint/mint.ts:94–113`, under `packages/core/src/`, accept supplied approval fields and recomputable contract digests. Neither authenticates the claimed minting method. `packages/core/src/authz/protected-dest-realpath.ts:20–31` and `authz/classify.ts:4863–4873` omit both record directories from the protected-store set.\n\n**Failure:** In a repository without human merge enforcement, an agent writes `kind: operator`, a human-looking actor, and `mintedVia: scope:record-observable-scope`, computes the digest and lands the record. R1’s restriction on `activation-pr` never applies. R2’s TTY check is bypassed by writing the resulting JSON directly.\n\n**Consequence:** Neither a new accepted stamp kind nor a cohort ID supplies authenticity. This is an existing gap, but it directly contradicts the proposed fallback’s safety claim. Either establish an independent approval control covering every accepted record format, or narrow R2’s claim to batching existing behavior and leave the stronger requirement unresolved.\n\n### 3. blocks-the-design — Later edits and policy flips can manufacture approval retroactively\n\n**Evidence:** `packages/core/src/observable-scope/evaluate.ts:390–425` returns N/A before checking record rewrites when no matching UI files change; `:288–324` reads current merge-base record bytes. `packages/core/src/intent-constraint/evaluate.ts:522–541` similarly returns N/A when no production source changes. Neither path checks the authorization history of those bytes.\n\n**Failure:** After an approved activation, a later record-only PR broadens `allowedChanges` or constraints and recomputes the digest. The next product PR reads the broadened version. Checking the original activation PR would authenticate the wrong bytes. Separately, an agent-written activation record landed while policy is false becomes eligible under R1.3 after policy changes to true.\n\n**Consequence:** Approval must cover the exact authorization payload consumed, including every later replacement. Checking policy at the original merge is insufficient if the record changed afterward; checking only current policy is insufficient for historical approval. This requirement introduces an authorization check or refusal beyond R1.3’s proposed flag lookup and must be named as such.\n\n### 4. blocks-the-design — An activation draft is being represented as already approved\n\n**Evidence:** `packages/core/src/observable-scope/mint.ts:215–244` and `intent-constraint/mint.ts:144–165` require a human-looking stamp and populate approval timestamps. Observable preflight at `observable-scope/mint.ts:288–302` checks only record-file existence. `packages/core/src/scope/transition.ts:675–700` treats already-active activation as revalidation and returns without a new lifecycle transition.\n\n**Failure:** Giving an agent-created draft an accepted human kind makes it indistinguishable from approval to existing readers. File existence can satisfy preflight before approval occurs. An unconditional activation writer can also replace an existing minted record during a repeated activation invocation.\n\n**Consequence:** Separate proposal data from approval evidence. Specify that drafts confer no authority, repeated activation preserves existing approval, and changed contracts require fresh authorization. Update readers deliberately rather than widening the shared human-stamp predicate. Any new preflight rejection of pending drafts is an additional refusal, not merely documentation.\n\n### 5. sharpens-framing — The brief-land exemption needs content validation\n\n**Evidence:** `packages/core/src/pr-closing-keywords/main.ts:64–103` currently classifies only paths, statuses and rename sources. `packages/core/src/verify-ac/evaluate.ts:663–685` uses that classification before granting the activation acceptance deferral.\n\n**Failure:** A path-only extension admits a record named for brief A whose contents identify brief B, or a record whose contract grants more than A’s contract. Merely changing A somewhere in the PR does not establish the intended association. That record also travels through a path that can defer full acceptance checking.\n\n**Consequence:** Keep R1.2 only with a shared content-aware association check used by both consumers. Require the exact corresponding nonremoved brief, canonical destination, identity and complete contract match. Unmatched or ambiguous records must lose the exemption. This adds validation and may restore full `verify:ac`; it is not a blanket directory allowance.\n\n### 6. sharpens-framing — Specify one frozen approval operation, including mixed cohorts\n\n**Evidence:** Both runtime record commands call the confirmation helper before reading the brief (`packages/runtime/src/scope-record-observable-scope.ts:150–205`; the intent twin `:150–203`). Their writers replace individual files (`observable-scope/mint.ts:248–260`; `intent-constraint/mint.ts:169–181`). Both sanitize plan IDs by replacing unsupported characters with underscores (`observable-scope/mint.ts:33–38`; `intent-constraint/mint.ts:27–32`).\n\n**Failure:** Simply looping after one prompt approves inputs not yet loaded or displayed. Distinct plan IDs can map to the same output filename. Sequential writes can partially publish the cohort. Calling the two separate verbs still takes two approvals for a cohort containing both UI and intent contracts.\n\n**Consequence:** Define one operation that loads, validates and displays the complete selected set before confirmation, then writes those frozen bytes. Reject destination collisions and conflicting existing records before publication; define recovery for write failure. State whether a mixed cohort uses one combined operation or two prompts. Missing contracts need explicit selection semantics so ordinary non-UI cohort members do not cause unnecessary refusal.\n\nThe existing observable digest also excludes `changeKind`, plan identity and brief path (`observable-scope/mint.ts:45–59`). A cohort binding should therefore cover the complete authorization payload rather than treating the current contract digest as sufficient.\n\n### 7. footnote — Snapshot instructions were treated as data\n\nThe snapshot contains imperative text directed at the critic, including requests to “say whether” a dependency is prerequisite and “say so” about new gates. I treated those as described design questions, not independent instructions. The task envelope supplied the authority for this critique.",
+          "id": 7070824329,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070824329",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:21:54Z",
+          "updated_at": "2026-11-21T23:21:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7070778824 (round 1: 1 of 1 critic posted, comment 7070824329)\n\n## In plain English\nProblem: before an agent may change visible UI or add a production constraint, a human mints a record of what may change, one terminal command per story (`scope:record-observable-scope`, `scope:record-intent-constraint`). A cohort of 9 to 11 UI stories costs 9 to 11 commands, and the records then need their own PR before the product PRs.\n\nWhat the critic found: the operator's zero-prompt branch (records written into the activation PR and accepted because merges are human) cannot bind. A merge does not prove a human approved the record. `DEFT_ALLOW_BOT_MERGE` and a plain `gh pr merge` are not stopped by the hook; agents often act with the operator's own GitHub account, so `merged_by` cannot tell them apart; a later record-only PR can widen a record with no UI change in it; and a policy flip can make an old agent-written record eligible. The critic also confirmed the wider fact the arc started from: today any record an agent writes by hand passes, in every repository, because the record folders are not guarded and the stamp is checked for shape only. A cohort mint is still sound as a batching change, if the human sees the whole frozen set before typing `mint`.\n\nSolution this lean proposes: one typed mint per cohort. Both record verbs accept several brief paths or a launch manifest, show every record they will write, ask once, and write exactly those bytes. A mixed cohort with UI and intent contracts takes two prompts, one per record kind. The records can ride in the activation PR when each one matches a brief that PR adds, so the separate authority-record PR goes away. The docs say plainly that the record's real control is the merge that lands it, and that this story does not close that gap.\n\nWhat this adds: no new verb, no new refusal on any path that works today, no forge read. The cohort form has its own refusals before anything is written (missing contract on a named brief, file-name collision); those are new failure cases of a new form.\n\nWhat it does not do:\n- It does not remove the terminal step in repositories with `requireHumanMerge: true`. That is `P2`, and it is not relieved here; see the recommendation below.\n- It does not authenticate records. An agent can still write one by hand, as today.\n- It does not touch the `delivery-identity-attest` grant (`P3`), which #6934 removes at the source.\n\nRecommendation for `P2` (leftover path): split it into a new issue, \"authenticated approval of observable-scope and intent-constraint records\", whose design needs an approval an agent cannot produce with its own credentials (for example the signed level reserved for #5862, or #6284's cohort grant), and which can then drop the prompt where that approval exists. The other way is an operator decision to accept the merge as the control under `requireHumanMerge: true`, as #6354 did for the one-PR path; that overrules finding 1 of comment 7070824329 and still needs findings 2 to 4 designed in. The split needs an operator live turn; this lean does not cite `P2`.\n\nIf confirmed, the synthesis would assert this design.\n\nTarget-digest: sha256:22db34e3aad922ce68e7d265cebaa7d8d76a72ae328f29c251819a0d4cca70fc\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7070824329). Panel deposit: comment 7070779020.\n\nrelieves: P1\noperator-deferred: P3 #6934\n\n## Bound remedy\n1. Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.\n2. Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. An existing record with identical bytes is skipped; one with different bytes is listed as a replacement in the printed set.\n3. Write. Records are written to temporary files and renamed into place; on a failure the verb removes the records it wrote in this run and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.\n4. Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.\n5. Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).\n6. Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an identical record is skipped and a changed one is shown as a replacement; a forced write failure leaves no partial set; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.\n\n## Acceptance Criteria\n- `scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.\n- A refused or interrupted cohort mint writes no records, and a failed write leaves no partial set.\n- A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.\n- Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.\n- An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.\n- The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it.\n\n## Reject\n- Accepting a merge-base record marked `mintedVia: activation-pr` under `requireHumanMerge: true` as human approval (comment 7070824329, findings 1 and 3): the env override, a plain `gh pr merge`, shared credentials, later record-only PRs and policy flips each defeat it.\n- A forge `merged_by` read in verify (comment 7070824329, answer 2): a network read and a refusal that do not prove a human.\n- An agent-written draft that carries a human-accepted stamp kind, or a wider `isHumanApprovalStamp` (comment 7070824329, finding 4).\n- A path-only brief-land allowance for record files (comment 7070824329, finding 5).\n- A cohort id that only labels records, or a loop that prompts before the inputs are loaded (comment 7070824329, finding 6).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070824329 | 1. The policy flag does not establish human approval | blocks-the-design | accept-into-contract (the `activation-pr` branch is withdrawn; `P2` goes to the leftover path) |\n| comment 7070824329 | 2. Both branches still admit fabricated approval records | blocks-the-design | accept-into-contract (item 5: the cohort form claims batching only and names the gap) |\n| comment 7070824329 | 3. Later edits and policy flips can manufacture approval retroactively | blocks-the-design | accept-into-contract (no policy-keyed acceptance; later record-only edits stay the existing gap named in item 5) |\n| comment 7070824329 | 4. An activation draft is being represented as already approved | blocks-the-design | accept-into-contract (no drafts; records come only from the human-presence mint, item 2) |\n| comment 7070824329 | 5. The brief-land exemption needs content validation | sharpens-framing | accept-into-contract (item 4) |\n| comment 7070824329 | 6. Specify one frozen approval operation, including mixed cohorts | sharpens-framing | accept-into-contract (items 2 and 3; a mixed cohort takes two prompts) |\n\nFootnotes in the census, no take: comment 7070824329 finding 7.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` and `operator-deferred` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 anchors, so it records no audit marker. `P2` is uncited on purpose: it waits for an operator decision on the leftover path.\r\n\n",
+          "id": 7070834105,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070834105",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:22:46Z",
+          "updated_at": "2026-11-21T23:22:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the first successor lean 7070834105 (uncited `P2` on a `Spec-path` lean)\nopen-question: Does the operator split `P2` (no terminal step where merges are human) into a new issue that first designs an approval an agent cannot produce with its own credentials, so this arc binds the cohort mint and activation-PR carry on lean 7070834105 and one pain audit checks it?\n\n## In plain English\nThe round-1 critic (comment 7070824329) refuted the zero-prompt branch: a human merge, as Directive sees it today, does not prove a human approved a record. The bot-merge env override and a plain `gh pr merge` are not stopped by the hook, agents often merge with the operator's own account, later record-only PRs can widen a record, and a policy flip can make an old agent-written record eligible. It held the cohort mint as a sound batching change.\n\nRecommended way forward: split `P2` into a new issue. This arc then binds lean 7070834105 as it stands: one typed mint per cohort (two for a cohort with both UI and intent contracts), the whole set shown before the prompt, and the records carried in the activation PR when each one matches a brief in it, which removes the separate authority-record PR. One pain audit (critic post 2 of 2) checks `P1` and the `P3` deferral. The parent re-posts the same Bound remedy with the `P2` split cite, so the audit sees the split.\n\nOther ways: (b) the operator accepts the merge as the control under `requireHumanMerge: true`, as #6354 did for the one-PR path. That overrules finding 1 of comment 7070824329 and still needs findings 2 to 4 designed in, so it needs a recut lean and an audit, and likely a cap raise. (c) Leave the arc here with no bound lean; #6937 is not ingest-ready.\n\nCritic posts used: 1 of 2.\r\n\n",
+          "id": 7070842074,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070842074",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:23:29Z",
+          "updated_at": "2026-11-21T23:23:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-21, relayed by the coordinator) after Handoff 7070842074. The operator answered the open question, in his words: \"Split, ship cohort mint\" (to the question \"For #6937, ship one mint per cohort now and split zero-prompt into its own issue?\").\n- Operator decision (locked): `P2` (no terminal step where merges are human) is split to #6945, which must first design an approval an agent cannot produce with the operator's own credentials; findings 1-4 of comment 7070824329 are its bar. This arc does not reopen the zero-prompt branch.\n- The cohort mint and activation-PR carry of lean 7070834105 stand; the parent re-posts that Bound remedy as the bind lean with the split cited (`P2` to #6945, `P3` to #6934).\n- The critic-post cap stays 2. One pain audit follows on the bind lean; it is critic post 2 of 2. If it blocks, the arc halts with no third post.\n\nThe arc continues under Stop 1 7070778824.\r\n\n",
+          "id": 7070914661,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070914661",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:30:07Z",
+          "updated_at": "2026-11-21T23:30:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7070778824, after Handoff 7070842074 and the operator split in comment 7070914661 (round 1: 1 of 1 critic posted, comment 7070824329)\n\n## In plain English\nProblem: before an agent may change visible UI or add a production constraint, a human mints a record of what may change, one terminal command per story (`scope:record-observable-scope`, `scope:record-intent-constraint`). A cohort of 9 to 11 UI stories costs 9 to 11 commands, and the records then need their own PR before the product PRs.\n\nWhat the critic found: the operator's zero-prompt branch (records written into the activation PR and accepted because merges are human) cannot bind. A merge does not prove a human approved the record. `DEFT_ALLOW_BOT_MERGE` and a plain `gh pr merge` are not stopped by the hook; agents often act with the operator's own GitHub account, so `merged_by` cannot tell them apart; a later record-only PR can widen a record with no UI change in it; and a policy flip can make an old agent-written record eligible. The critic also confirmed the wider fact the arc started from: today any record an agent writes by hand passes, in every repository, because the record folders are not guarded and the stamp is checked for shape only. A cohort mint is still sound as a batching change, if the human sees the whole frozen set before typing `mint`.\n\nSolution this lean proposes: one typed mint per cohort. Both record verbs accept several brief paths or a launch manifest, show every record they will write, ask once, and write exactly those bytes. A mixed cohort with UI and intent contracts takes two prompts, one per record kind. The records can ride in the activation PR when each one matches a brief that PR adds, so the separate authority-record PR goes away. The docs say plainly that the record's real control is the merge that lands it, and that this story does not close that gap.\n\nWhat this adds: no new verb, no new refusal on any path that works today, no forge read. The cohort form has its own refusals before anything is written (missing contract on a named brief, file-name collision); those are new failure cases of a new form.\n\nWhat it does not do:\n- It does not remove the terminal step in repositories with `requireHumanMerge: true`. The operator split that to #6945, which must first design an approval an agent cannot produce with the operator's own credentials (comment 7070914661).\n- It does not authenticate records. An agent can still write one by hand, as today.\n- It does not touch the `delivery-identity-attest` grant, which #6934 removes at the source.\nIf confirmed, the synthesis would assert this design.\n\nTarget-digest: sha256:22db34e3aad922ce68e7d265cebaa7d8d76a72ae328f29c251819a0d4cca70fc\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 7070834105 (same Bound remedy; this lean adds the operator split cite). Sibling count: 1 (comment 7070824329). Panel deposit: comment 7070779020.\n\nrelieves: P1\noperator-deferred: P2 #6945\noperator-deferred: P3 #6934\n\n## Bound remedy\n1. Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.\n2. Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. An existing record with identical bytes is skipped; one with different bytes is listed as a replacement in the printed set.\n3. Write. Records are written to temporary files and renamed into place; on a failure the verb removes the records it wrote in this run and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.\n4. Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.\n5. Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).\n6. Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an identical record is skipped and a changed one is shown as a replacement; a forced write failure leaves no partial set; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.\n\n## Acceptance Criteria\n- `scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.\n- A refused or interrupted cohort mint writes no records, and a failed write leaves no partial set.\n- A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.\n- Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.\n- An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.\n- The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it.\n\n## Reject\n- Accepting a merge-base record marked `mintedVia: activation-pr` under `requireHumanMerge: true` as human approval (comment 7070824329, findings 1 and 3): the env override, a plain `gh pr merge`, shared credentials, later record-only PRs and policy flips each defeat it.\n- A forge `merged_by` read in verify (comment 7070824329, answer 2): a network read and a refusal that do not prove a human.\n- An agent-written draft that carries a human-accepted stamp kind, or a wider `isHumanApprovalStamp` (comment 7070824329, finding 4).\n- A path-only brief-land allowance for record files (comment 7070824329, finding 5).\n- A cohort id that only labels records, or a loop that prompts before the inputs are loaded (comment 7070824329, finding 6).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070824329 | 1. The policy flag does not establish human approval | blocks-the-design | accept-into-contract (the `activation-pr` branch is withdrawn; the operator split `P2` to #6945) |\n| comment 7070824329 | 2. Both branches still admit fabricated approval records | blocks-the-design | accept-into-contract (item 5: the cohort form claims batching only and names the gap) |\n| comment 7070824329 | 3. Later edits and policy flips can manufacture approval retroactively | blocks-the-design | accept-into-contract (no policy-keyed acceptance; later record-only edits stay the existing gap named in item 5) |\n| comment 7070824329 | 4. An activation draft is being represented as already approved | blocks-the-design | accept-into-contract (no drafts; records come only from the human-presence mint, item 2) |\n| comment 7070824329 | 5. The brief-land exemption needs content validation | sharpens-framing | accept-into-contract (item 4) |\n| comment 7070824329 | 6. Specify one frozen approval operation, including mixed cohorts | sharpens-framing | accept-into-contract (items 2 and 3; a mixed cohort takes two prompts) |\n\nFootnotes in the census, no take: comment 7070824329 finding 7.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean; the split is the operator's decision (comment 7070914661). The `relieves` and `operator-deferred` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 anchors, so it records no audit marker.\n\n",
+          "id": 7070917420,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070917420",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:30:22Z",
+          "updated_at": "2026-11-21T23:30:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:2899ba809ea8ca62ba24fa3b5c3b6ac275c492b0e74326441523c978e6d5d7c8\n\n## In plain English\n\nThe batching design addresses the repeated terminal commands, and both deferrals match recorded operator decisions. The narrowed claim also honestly leaves record authentication unresolved.\n\n**The lean cannot bind as written because its failure cleanup can delete an existing approval record.** It permits replacement, then specifies deleting records written during a failed run without restoring what they replaced. This needs a small change to the write mechanism and its tests.\n\npain-P1: holds - The proposed cohort form reduces N per-story commands to one command and one typed confirmation per record kind. Two prompts for a mixed cohort do not recreate the per-story repetition described in Stop 1. The write-safety defect below nevertheless blocks this implementation contract.\npain-P2: holds - As an operator-deferred cite, it accurately reflects comment 7070914661: “Split, ship cohort mint,” with zero-terminal-step approval assigned to #6945. This is deferral, not delivered relief.\npain-P3: holds - As an operator-deferred cite, #6934 matches the explicit Stop 1 operator decision, which names #6934 and #6873. This does not assert that either issue has already delivered the remedy.\n\nAll code references below were read at `838433b5b45bc24a1d28680fb136c9aacd874ccb`. No files were changed, tests run, or forge requests made.\n\n### 1. blocks-the-design — Failed replacement can destroy a previously valid record\n\n**Evidence:** `packages/core/src/observable-scope/mint.ts:248–260` and `packages/core/src/intent-constraint/mint.ts:169–181` publish to the plan’s existing destination with `mode: \"replace\"`. Bound remedy item 2 explicitly allows different existing bytes to be replaced. Item 3 prescribes removing records written during the run when a write fails.\n\n**Failure:** Record A already exists. The cohort replaces A successfully, then publication of B fails. Removing the records written by this run deletes the replacement A, but does not restore the original A. A failed approval operation has now removed a previously valid approval. Temporary files and individual renames do not fix this rollback problem.\n\nThis is new evidence against the proposed recovery mechanism, not a repetition of the earlier general warning about partial writes.\n\n**Disposition:** Items 3 and 6 and the failure Acceptance Criterion need amendment before binding. The smallest passing change is to preserve the pre-run bytes of replacement destinations, restore them on failure, remove only newly created destinations, and leave skipped records untouched. Add a failure test with an existing A replaced before B fails, asserting exact restoration of the pre-run records. Define interruption recovery consistently with the promised all-or-nothing outcome.\n\nRejecting every existing destination would avoid restoration but would contradict the selected replacement behavior; restoring prior bytes preserves the intended workflow.\n\n### 2. footnote — The remaining accepted findings are closed within the narrowed batching claim\n\nThe frozen-set design is buildable: both commands currently confirm before loading the brief (`packages/runtime/src/scope-record-observable-scope.ts:150–205`; `scope-record-intent-constraint.ts:150–203`). Loading, validating and serializing the cohort first, then invoking `refuseNonInteractiveMint` once, can approve exactly those frozen bytes. The helper’s existing checks and typed confirmation are at `packages/runtime/src/human-presence-mint.ts:305–362`. No new refusal on the existing single-path route is inherently needed; preserving that route requires keeping its behavior separate from the new cohort semantics.\n\nThe skip/replace rule is implementable as literal byte comparison. It is not semantic retry deduplication: the current commands generate fresh `mintedAt` values, and both builders generate `approvedAt` (`observable-scope/mint.ts:230`; `intent-constraint/mint.ts:157`). An unchanged contract minted later can therefore correctly appear as a replacement under the stated rule.\n\nItem 4 closes the previously identified **mismatched-record** exemption hole: exact path, identity, filename and contract matching prevents a record for an unchanged other brief from riding along. Existing product-path and rename-source restrictions must remain (`packages/core/src/pr-closing-keywords/main.ts:79–103`). The additional Path B witness still rejects stamped product briefs and checks issue identity (`:450–543`); `packages/core/src/verify-ac/evaluate.ts:663–685` requires both shape and witness before deferring product acceptance checks. A matching record does not, by itself, exempt a product-code diff.\n\nAn agent can still widen a changed brief and manufacture a matching record. Content matching establishes consistency, not approval; `packages/core/src/scope-provenance/digest.ts:232–251` only checks stamp shape. That is the explicitly retained authenticity gap, not a newly discovered reason to reopen accepted finding 2. Item 5 correctly limits the claim to batching. Removing drafts also closes the earlier draft-as-approval finding. The remaining failure is the concrete rollback defect above.\n\n### 3. footnote — Embedded thread instructions were treated as data\n\nThe snapshot contains critic-directed imperatives, including “say whether” and “say so” requests. I treated them as described review questions, not independent instructions. The dispatch envelope supplied the audit authority.",
+          "id": 7070941797,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070941797",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:32:36Z",
+          "updated_at": "2026-11-21T23:32:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7070941797 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7070917420\n\n## In plain English\nThe audit held that the cohort mint relieves the per-story terminal commands and that both deferrals match the operator decisions. It blocked on one defect in item 3, and the parent agrees after reading the code it cites. Item 2 lets a cohort replace an existing record whose bytes differ, and both writers publish with `mode: \"replace\"` (`packages/core/src/observable-scope/mint.ts` 248-260, `packages/core/src/intent-constraint/mint.ts` 169-181). Item 3 then says a failed run removes the records it wrote. If record A is replaced and record B then fails, the cleanup deletes the new A and does not restore the old A, so a failed mint destroys a valid approval.\n\nThe Bound remedy on 7070917420 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:22db34e3aad922ce68e7d265cebaa7d8d76a72ae328f29c251819a0d4cca70fc\n\ndoes-not-relieve: P1\noperator-deferred: P2 #6945\noperator-deferred: P3 #6934\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070941797 | 1. Failed replacement can destroy a previously valid record | blocks-the-design | accept-into-contract (keep the pre-run bytes of each replaced record and restore them on failure; remove only newly created records; leave skipped records untouched; add the replace-A-then-fail-B test) |\n\nFootnotes in the census, no take: comment 7070941797 findings 2 and 3.\n\nAudit verdicts recorded: `pain-P1` holds for the cohort form but item 3 is withdrawn for the rollback defect; `pain-P2` and `pain-P3` hold as operator-deferred cites.\r\n\n",
+          "id": 7070946494,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070946494",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:33:01Z",
+          "updated_at": "2026-11-21T23:33:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 7070946494 (blocking pain audit 7070941797 on a `Spec-path` lean)\nopen-question: Does the operator raise this arc's critic-post cap from 2 to 3, so one recut bind lean can change item 3 to restore the pre-run bytes of every replaced record on failure and one more audit can check it?\n\n## In plain English\nThe cohort mint passed the audit except for one write-safety defect: a failed cohort run could delete a record it had just replaced without putting the old one back. The fix is small and changes only item 3, its test and one Acceptance Criterion: before writing, keep the bytes of each record the run will replace; on any failure, restore those bytes, remove only records the run newly created, and leave skipped records alone. The test replaces A, forces B to fail, and checks that A is byte-identical to before. Items 1, 2, 4, 5 and 6 and the `P2` and `P3` deferrals stand as audited.\n\nOther ways: (b) drop replacement, so a cohort refuses any existing record with different bytes (no restore needed, but a changed contract then needs a separate step); this also needs one audit post. (c) Keep the cap at 2 and leave the arc halted with no bound lean, so #6937 is not ingest-ready.\n\nCritic posts used: 2 of 2.\n\n",
+          "id": 7070946712,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070946712",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:33:02Z",
+          "updated_at": "2026-11-21T23:33:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the pain audit (comment 7070941797) returned one blocking finding against item 3 (a failed cohort run can delete a replaced record without restoring it) and the operator-set cap of 2 critic posts for this arc is spent.\n\nRetraction map: comment 7070946494. Handoff with the open question and the smallest next remedy: comment 7070946712. No lean on this thread is bound. Resume is an operator verb.\n\n",
+          "id": 7070946905,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070946905",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:33:03Z",
+          "updated_at": "2026-11-21T23:33:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-21, relayed by the coordinator) after the halt in comment 7070946905. The operator answered the open question in Handoff 7070946712 and raised this arc's critic-post cap from 2 to 3, in his words: \"Refuse, simpler\" (to the question \"For #6937 at cap 3, should the cohort run refuse changed existing records rather than restore them?\").\n- Operator decision (locked): option (b) of Handoff 7070946712. A cohort run refuses, before the prompt and for the whole set, any target whose existing record would change; an existing record that already matches is left untouched; a failed run removes only records it newly created. The single-story mint (today's one-path form) stays the way to change an approved record.\n- Operator decision (rejected): restoring the pre-run bytes of replaced records (option (a) of that Handoff). Reason: refusing is simpler and needs no restore path. This choice is not reopened in this arc. A critic may still block the refuse variant on its own evidence.\n- Items 1, 4 and 5 of the retracted lean 7070917420 and the `P2` (#6945) and `P3` (#6934) deferrals stand as audited; only items 2, 3 and 6 and the matching acceptance lines change.\n- One pain audit follows on the recut bind lean; it is critic post 3 of 3. If it blocks, the arc halts with no fourth post.\n\nThe arc continues under Stop 1 7070778824.\r\n\n",
+          "id": 7070984448,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070984448",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:36:24Z",
+          "updated_at": "2026-11-21T23:36:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7070778824, after pain audit 7070941797 and the operator decisions in comments 7070914661 and 7070984448 (round 1: 1 of 1 critic posted, comment 7070824329)\n\n## In plain English\nProblem: before an agent may change visible UI or add a production constraint, a human mints a record of what may change, one terminal command per story (`scope:record-observable-scope`, `scope:record-intent-constraint`). A cohort of 9 to 11 UI stories costs 9 to 11 commands, and the records then need their own PR before the product PRs.\n\nWhat the critic found: the operator's zero-prompt branch (records written into the activation PR and accepted because merges are human) cannot bind. A merge does not prove a human approved the record. `DEFT_ALLOW_BOT_MERGE` and a plain `gh pr merge` are not stopped by the hook; agents often act with the operator's own GitHub account, so `merged_by` cannot tell them apart; a later record-only PR can widen a record with no UI change in it; and a policy flip can make an old agent-written record eligible. The critic also confirmed the wider fact the arc started from: today any record an agent writes by hand passes, in every repository, because the record folders are not guarded and the stamp is checked for shape only. A cohort mint is still sound as a batching change, if the human sees the whole frozen set before typing `mint`.\n\nSolution this lean proposes: one typed mint per cohort. Both record verbs accept several brief paths or a launch manifest, show every record they will write, ask once, and write exactly those bytes. A cohort run never overwrites an existing record that would change: it refuses the whole set before the prompt, and the single-story mint stays the way to change an approved record. A mixed cohort with UI and intent contracts takes two prompts, one per record kind. The records can ride in the activation PR when each one matches a brief that PR adds, so the separate authority-record PR goes away. The docs say plainly that the record's real control is the merge that lands it, and that this story does not close that gap.\n\nWhat this adds: no new verb, no new refusal on any path that works today, no forge read. The cohort form has its own refusals before anything is written (missing contract on a named brief, file-name collision, an existing record that would change); those are new failure cases of a new form.\n\nWhat it does not do:\n- It does not remove the terminal step in repositories with `requireHumanMerge: true`. The operator split that to #6945, which must first design an approval an agent cannot produce with the operator's own credentials (comment 7070914661).\n- It does not authenticate records. An agent can still write one by hand, as today.\n- It does not touch the `delivery-identity-attest` grant, which #6934 removes at the source.\nIf confirmed, the synthesis would assert this design.\n\nTarget-digest: sha256:22db34e3aad922ce68e7d265cebaa7d8d76a72ae328f29c251819a0d4cca70fc\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 7070917420 (its item 3 failed audit 7070941797, and retraction map 7070946494 withdrew it) and successor lean 7070834105. Sibling count: 1 (comment 7070824329). Panel deposit: comment 7070779020.\n\nrelieves: P1\noperator-deferred: P2 #6945\noperator-deferred: P3 #6934\n\n## Bound remedy\n1. Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.\n2. Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. If a target's record file already exists, the verb compares its plan id, brief path, `changeKind` and contract digest with the record it would write: when they all match, the existing file is left untouched and listed as already recorded (stamp and timestamps are not compared, since each mint writes fresh ones); when any differs, or the file does not parse, the whole set refuses before the prompt, names each such target and says to change an approved record with the single-story form (`scope:record-observable-scope -- <brief>` or `scope:record-intent-constraint -- <brief>`).\n3. Write. A cohort run writes only records whose files did not exist before the run. Each is written to a temporary file and renamed into place; on a failure the verb removes the records it newly created in this run, leaves every pre-existing file untouched, and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.\n4. Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.\n5. Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).\n6. Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an existing matching record is left byte-identical and listed; an existing record with a different contract, brief path or `changeKind`, or one that does not parse, refuses the whole set before the prompt with the single-story hint and writes nothing; with one pre-existing record A and new records B and C, a forced failure on C removes B and leaves A byte-identical; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.\n\n## Acceptance Criteria\n- `scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.\n- A refused or interrupted cohort mint writes no records; a failed write removes only the records that run newly created and leaves every pre-existing record byte-identical.\n- A cohort mint never overwrites an existing record: a matching one is left untouched, and one that would change refuses the whole set before the prompt and names the single-story form.\n- A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.\n- Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.\n- An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.\n- The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it.\n\n## Reject\n- Accepting a merge-base record marked `mintedVia: activation-pr` under `requireHumanMerge: true` as human approval (comment 7070824329, findings 1 and 3): the env override, a plain `gh pr merge`, shared credentials, later record-only PRs and policy flips each defeat it.\n- A forge `merged_by` read in verify (comment 7070824329, answer 2): a network read and a refusal that do not prove a human.\n- An agent-written draft that carries a human-accepted stamp kind, or a wider `isHumanApprovalStamp` (comment 7070824329, finding 4).\n- A path-only brief-land allowance for record files (comment 7070824329, finding 5).\n- A cohort id that only labels records, or a loop that prompts before the inputs are loaded (comment 7070824329, finding 6).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070824329 | 1. The policy flag does not establish human approval | blocks-the-design | accept-into-contract (the `activation-pr` branch is withdrawn; the operator split `P2` to #6945) |\n| comment 7070824329 | 2. Both branches still admit fabricated approval records | blocks-the-design | accept-into-contract (item 5: the cohort form claims batching only and names the gap) |\n| comment 7070824329 | 3. Later edits and policy flips can manufacture approval retroactively | blocks-the-design | accept-into-contract (no policy-keyed acceptance; later record-only edits stay the existing gap named in item 5) |\n| comment 7070824329 | 4. An activation draft is being represented as already approved | blocks-the-design | accept-into-contract (no drafts; records come only from the human-presence mint, item 2) |\n| comment 7070824329 | 5. The brief-land exemption needs content validation | sharpens-framing | accept-into-contract (item 4) |\n| comment 7070824329 | 6. Specify one frozen approval operation, including mixed cohorts | sharpens-framing | accept-into-contract (items 2 and 3; a mixed cohort takes two prompts) |\n\n| comment 7070941797 | 1. Failed replacement can destroy a previously valid record | blocks-the-design | accept-into-contract (items 2 and 3: a cohort run never replaces; a would-change record refuses the set before the prompt; failure cleanup removes only newly created records; operator decision in comment 7070984448) |\n\nFootnotes in the census, no take: comment 7070824329 finding 7; comment 7070941797 findings 2 and 3 (finding 2 is reflected in item 2: stamps and timestamps are not compared).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean; the split, the cap raise and the refuse variant are the operator's decisions (comments 7070914661 and 7070984448). The `relieves` and `operator-deferred` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 anchors, so it records no audit marker.\n\n",
+          "id": 7070984701,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7070984701",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:36:26Z",
+          "updated_at": "2026-11-21T23:36:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:c6511a4d5762590ee8d0b4949c646c6225721c6f192fd32e8fe7ccba718c3b5c\n\n## In plain English\n\nThe revised refusal design closes the earlier record-loss defect. Existing records must remain untouched; changed or invalid records stop the whole cohort before confirmation; cleanup removes only newly created records. The specified failure test checks that distinction.\n\nThe matching rule also preserves the existing authorization boundary: it checks identity, brief path and contract content, including the observable record’s separate `changeKind`. Keeping an older matching stamp does not authorize different changes. The design remains batching, not authentication.\n\nNo blocking or sharpening findings. The Bound remedy and Acceptance Criteria need no change from this audit.\n\npain-P1: holds - Several stories can share one command and typed confirmation per record kind. This relieves Stop 1’s per-story repetition; a mixed cohort’s two prompts do not recreate it.\npain-P2: holds - The operator-deferred cite accurately reflects comment 7070914661, which splits zero-terminal-step approval to #6945. This is deferred work, not delivered relief.\npain-P3: holds - The operator-deferred cite to #6934 matches Stop 1’s recorded decision naming #6934 and #6873. It does not establish that either issue has shipped.\n\nAll code evidence below was read at `838433b5b45bc24a1d28680fb136c9aacd874ccb`. No files were changed, tests run, or external posts made.\n\n### 1. footnote — The refusal and matching rules are buildable without changing the one-path form\n\nBoth existing commands reject a second path at `packages/runtime/src/scope-record-observable-scope.ts:119–122` and `packages/runtime/src/scope-record-intent-constraint.ts:119–122`. Both currently prompt before loading the brief (`:150–188`). A separate cohort route can load and freeze its inputs first, invoke the existing confirmation helper once, and preserve the one-path route’s ordering and replacement behavior. The helper performs the human-presence checks and typed confirmation at `packages/runtime/src/human-presence-mint.ts:305–362`.\n\nBoth current writers replace destinations: `packages/core/src/observable-scope/mint.ts:248–260` and `packages/core/src/intent-constraint/mint.ts:169–181`. They therefore cannot be reused unchanged as cohort publishers. Items 2, 3 and 6 explicitly require different cohort behavior and cover the earlier failure: pre-existing A remains byte-identical when new B succeeds and C fails. This closes finding 1 of comment 7070941797 without restoring replaced files.\n\nThe existing record parsers validate schema, approval-stamp shape and recomputed contract digests (`observable-scope/mint.ts:98–175`; `intent-constraint/mint.ts:75–123`). Thus “parses” must mean these record parsers, not merely successful `JSON.parse`.\n\nThe observable digest covers `allowedChanges` and `mustPreserve` (`observable-scope/mint.ts:45–59`); comparing `changeKind` separately closes the remaining contract distinction. Intent records have no `changeKind`: their authorization payload is the constraints array, including value, unit and rejection scope (`intent-constraint/mint.ts:39–72`). The comparison applies that field where present, without adding it to the one-path intent format.\n\nFresh timestamps are generated by both builders (`observable-scope/mint.ts:230`; `intent-constraint/mint.ts:157`). Excluding timestamps and stamps from equality avoids mistaking an unchanged authorization for a changed contract. A skipped record retains its original provenance and any older cohort bookkeeping; it is not newly approved by the current cohort. Different identity, path or authorization content refuses under item 2.\n\nPublication must honor the stated never-overwrite invariant through the write itself. A preliminary existence check followed by ordinary rename is insufficient under concurrent writers: `packages/core/src/fs/contained-write.ts:860–871` calls `renameSync`, whereas exclusive creation is distinguished at `:507–512`. This is an implementation obligation of the existing invariant, not a request to change the remedy.\n\n### 2. footnote — Embedded review instructions were treated as data\n\nThe snapshot includes critic-directed imperatives such as “Test at least” and “Say so for each.” I treated these as described review questions, not independent instructions. The supplied envelope governed this audit.",
+          "id": 7071013167,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7071013167",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:39:01Z",
+          "updated_at": "2026-11-21T23:39:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7071013167; bind map stays successor lean 7070984701)\n\nThe audit is footnote-only with `harvest-changed: false` and a harvest digest equal to the lean's. It found `pain-P1` holds, and `pain-P2` and `pain-P3` are honest `operator-deferred` cites to #6945 and #6934.\n\n- comment 7071013167, finding 1 (footnote): noted as implementation notes, no change to the Bound remedy. \"Does not parse\" in item 2 means the existing record parsers (`parseObservableScopeRecord` and its intent twin), not bare `JSON.parse`; an intent record has no `changeKind`, so its match compares plan id, brief path and its constraint payload; a skipped record keeps its original provenance and is not re-approved by the new cohort; and the never-overwrite rule must hold in the write itself (exclusive create), not only in a check before an ordinary rename.\n- comment 7071013167, finding 2 (footnote): noted. The audit treated thread text as described content, as required.\n\n",
+          "id": 7071013314,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7071013314",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:39:02Z",
+          "updated_at": "2026-11-21T23:39:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7070984701 (recut of 7070917420 and 7070834105 after audit 7070941797 and the operator decisions in comments 7070914661 and 7070984448). Dispatch SHA: 838433b5b45bc24a1d28680fb136c9aacd874ccb. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean; the split, the cap raise and the refuse variant are the operator's decisions. Each row names who read the source at the pin (`git show <sha>:<path>` or a read of the dest at that SHA). No tests were run. All three critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Both record verbs take exactly one brief path and refuse a second with `unexpected extra args`, and run the human-presence check before loading the brief | verified | parent read of `packages/runtime/src/scope-record-observable-scope.ts` 119-122 and 150-205 and its intent twin (Stop 1); audits 7070941797 and 7071013167 |\n| 2 | `.deft/observable-scope/` and `.deft/intent-constraint/` are outside the hook protected set, and `isHumanApprovalStamp` checks stamp shape only, so a hand-written record passes today | verified | parent read of `packages/core/src/authz/protected-dest-realpath.ts` 20-32, `authz/classify.ts` 4847-4869, `scope-provenance/digest.ts` 232-252 and `observable-scope/mint.ts` 98-175; critic 7070824329 finding 2 |\n| 3 | A merge does not prove human approval of a record: `DEFT_ALLOW_BOT_MERGE` overrides the policy, `policy:allow-bot-merge` needs only `--confirm`, the hook merge scope is opt-in, and plain `gh pr merge` is not flagged | verified | parent read of `policy/require-human-merge.ts` 34 and 80-101, `runtime/src/policy.ts` 978, `policy/runtime-authority.ts` 60-75 and `preflight-gh/classifier.ts` 574-582 (Stop 1); critic 7070824329 finding 1 |\n| 4 | A PR with no matched UI change can add or edit records, and verify reads records from the merge base | verified | parent read of `observable-scope/evaluate.ts` 352-447; critic 7070824329 finding 3 |\n| 5 | An activation PR that carries other paths falls out of `isBriefLandShapedDiff` and loses the Path B `verify:ac` exemption | verified | parent read of `pr-closing-keywords/main.ts` 64-104 and `verify-ac/evaluate.ts` 650-690; critic 7070824329 finding 5; audit 7070941797 finding 2 |\n| 6 | Both writers publish with `mode: \"replace\"`, so restore-free cleanup would destroy a replaced record; a cohort run that never replaces avoids that | verified | audit 7070941797 finding 1; parent read of `observable-scope/mint.ts` 248-262; audit 7071013167 finding 1 |\n| 7 | Each mint writes fresh `mintedAt` and `approvedAt`, so the already-recorded match must ignore stamps and timestamps | verified by the critics | audits 7070941797 finding 2 and 7071013167 finding 1 (`observable-scope/mint.ts` 230, `intent-constraint/mint.ts` 157) |\n| 8 | The Bound remedy relieves P1; P2 is operator-deferred to #6945 and P3 to #6934 | verified as design coverage | audit 7071013167 on the bound lean (`pain-P1`, `pain-P2`, `pain-P3` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's); decisions in comments 7070914661 and 7070984448 |\n| 9 | The cohort form, its refusals, the no-overwrite write and the activation-PR carry behave as designed | endorsed, not verified | nothing was executed; the implementer covers it with the tests item 6 names |\n\n",
+          "id": 7071014808,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7071014808",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:39:10Z",
+          "updated_at": "2026-11-21T23:39:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: before an agent may change visible UI or add a production constraint, a human mints a record of what may change, one terminal command per story (`scope:record-observable-scope`, `scope:record-intent-constraint`). A cohort of 9 to 11 UI stories cost 9 to 11 commands, and the records then needed their own PR before the product PRs.\n\nAccepted solution: one typed mint per cohort. Both record verbs accept several brief paths or a launch manifest, show every record they will write, ask once, and write exactly those records; a cohort with both UI and intent contracts takes two prompts. A cohort run never overwrites a record: one that already matches is left alone, one that would change stops the whole run before the prompt and points to the single-story mint, and a failed run removes only what it created. The records can ride in the activation PR when each one matches a brief that PR adds, so the separate authority-record PR goes away. The docs say plainly that the record's control is the merge that lands it.\n\nLimits accepted: this is batching, not authentication; an agent can still hand-write a record, as today. The zero-prompt path for repositories with `requireHumanMerge: true` failed critique (a merge does not prove a human approved the record) and is split to #6945 by the operator. The `delivery-identity-attest` grant is left to #6934. The design adds no verb and no forge read. It was checked by reading the source at the pinned commit; nothing was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7070984701.\nverified-claims table 7071014808\n\nConfirm conjunct: yolo standing (Stop 1 7070778824, `yolo-standing: on`) plus the operator's live turns: the split in comment 7070914661 (\"Split, ship cohort mint\"), which cites `P2` as `operator-deferred` to #6945, and the cap raise to 3 with the refuse variant in comment 7070984448 (\"Refuse, simpler\"). `P3` is `operator-deferred` to #6934 by the operator decision recorded on Stop 1. Round-1 critic: comment 7070824329, posted by the parent verbatim as disclosed on panel-deposit 7070779020; its classified findings are accepted on the lean. Handoff 7070842074 followed the first lean 7070834105. Audit 7070941797 blocked item 3 on lean 7070917420 (retraction map 7070946494, Handoff 7070946712, halt 7070946905). Clean audit of the bound lean: comment 7071013167 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through 7071013314. Critic posts used: 3 of 3.\n\n",
+          "id": 7071014972,
+          "html_url": "https://github.com/deftai/directive/issues/6937#issuecomment-7071014972",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:39:11Z",
+          "updated_at": "2026-11-21T23:39:11Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\nObservable-scope mint records can be created only one brief at a time, by a human typing a CLI command on a TTY. For a cohort of UI stories this is the most-complained-about step in the delivery loop.\n\n## Context\nIn deftai/evolution, the Agent Desk cohorts have 9 to 11 stories that touch `.tsx` files. Each one needs `deft scope:record-observable-scope -- <xbrief-path> --actor <name> --confirm --minted-via in-harness-ask`, run by the operator in a terminal. The agent can name the exact command but must not run it, which is correct: agent and CI shells refuse it.\n\n## Expected behavior\nOne human approval for a whole cohort. Two possible shapes:\n- A `--cohort <epic-id>` or multi-path form that mints every listed UI story after a single confirmation.\n- A host-native approval prompt (an in-harness ask that the operator clicks) that the runtime accepts as the human attestation, so the operator doesn't have to switch to a terminal.\n\n## Actual behavior / gap\nThe operator has to open a terminal and type the command for every story, often with PATH workarounds when the global launcher is not on the PATH. In the operator's words, it is \"super annoying\".\n\n## Session notes\nThe human-only property should stay. The ask is to keep it while cutting N terminal commands down to one approval.\n\n---\n_Filed from a consumer session (deftai/evolution, runtime @deftai/directive-runtime 0.129.13, launcher @deftai/directive 0.129.14). Refs #1709_\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6528789467,
+        "origin": "deftai/directive#6937",
+        "id": "github.issue.6528789467"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "22db34e3aad922ce68e7d265cebaa7d8d76a72ae328f29c251819a0d4cca70fc"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6937,
+        "leanCommentId": 7070984701,
+        "harvestDigest": "c6511a4d5762590ee8d0b4949c646c6225721c6f192fd32e8fe7ccba718c3b5c",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/runtime/src/scope-record-cohort.ts",
+          "packages/runtime/src/scope-record-cohort.test.ts",
+          "packages/runtime/src/scope-record-observable-scope.ts",
+          "packages/runtime/src/scope-record-observable-scope.test.ts",
+          "packages/runtime/src/scope-record-intent-constraint.ts",
+          "packages/runtime/src/scope-record-intent-constraint.test.ts",
+          "packages/core/src/pr-closing-keywords/brief-land-records.ts",
+          "packages/core/src/pr-closing-keywords/brief-land-records.test.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/verify-ac/evaluate.ts",
+          "packages/core/src/verify-ac/evaluate.test.ts",
+          "packages/core/src/observable-scope/types.ts",
+          "packages/core/src/observable-scope/types.test.ts",
+          "content/commands.md",
+          "content/docs/observable-scope.md",
+          "content/docs/intent-constraint.md",
+          "docs/RULE-MAP.md",
+          "changelog.d/6937-cohort-record-mint.md",
+          "changelog.d/6937-lifecycle-complete.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6528789467.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/scope-record-cohort.test.ts packages/runtime/src/scope-record-observable-scope.test.ts packages/runtime/src/scope-record-intent-constraint.test.ts",
+          "npx vitest run packages/core/src/pr-closing-keywords/brief-land-records.test.ts packages/core/src/pr-closing-keywords/main.test.ts packages/core/src/verify-ac/evaluate.test.ts packages/core/src/observable-scope/types.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          "scope:record-observable-scope and scope:record-intent-constraint accept several brief paths or --manifest and write the frozen set after one typed mint",
+          "an activation PR that carries matching records stays brief-land shaped"
+        ],
+        "conflict_group": "record-mint",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The recorded arc synthesis (comment 7071014972) binds six Bound remedy items and seven Acceptance Criteria from lean 7070984701; ingest harvested all 13 as clauses and each maps to a named test or doc change."
+      }
+    },
+    "id": "github.issue.6528789467",
+    "updated": "2026-11-21T23:48:23Z"
+  }
+}
