@@ -1,0 +1,720 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6873",
+    "updated": "2026-11-21T23:54:47Z"
+  },
+  "plan": {
+    "title": "bug(scope): scope:complete never discovers a deft-story: N product PR (two-PR path needs --merge-commit/--pr by hand)",
+    "status": "running",
+    "narratives": {
+      "Description": "On a two-PR-path story, scope:complete with no flags cannot find the product PR, because discovery reads only metadata.productPullRequest and the issue's closing-PR links, while the product PR carries deft-story: N and Refs #N (#6873). This story adds a mark step to delivery auto-discovery that reuses the identity join's own merged-PR scan for the sole deft-story: N mark, counted on every base, and picks a PR only when that scan finds exactly one and it merged into the delivery branch. Refusals name the searches that ran and the --pr / --merge-commit flags, and both default PR payload readers read live so a ghx copy cached before merge cannot read as unmerged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6873",
+      "Overview": "\n1. Mark step. In `discoverDeliveryEvidenceForComplete` (`packages/core/src/scope/delivery-evidence.ts`), when the plan has no `productPullRequest` and the closing-PR path returns zero qualifying PRs, discovery runs `scanSoleMarkCompetitors` for the brief's issue with no PR excluded (`candidatePr` becomes optional; existing callers are unchanged). The result's `competitors` are the merged PRs on every base whose merge-time body carries the sole mark `deft-story: N` and that are not brief-land-only, zero-file PRs included, exactly as the join counts them. Discovery picks PR P only when `competitors` is exactly [P] and P's PR payload is merged into the delivery branch (the existing `candidatePassesDeliveryBaseFilter`). It then builds evidence with `evidenceFromPrPayload` and returns `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #P\". Discovery is candidate selection only: the identity join still proves basis (a) and every later check runs unchanged.\n2. Precedence is unchanged. A `productPullRequest` seed and a qualifying closing PR win as today. A failed closing-PR read and several qualifying closing PRs refuse as today, before the mark step.\n3. Refusals. Each names only the searches that ran, and ends with the existing `deliveryEvidenceRemediation` text (with \"or Pass\" corrected to \"or pass\"):\n   - No marked PR: \"found no merged PR into '<branch>' that closes #N, and no merged PR whose merge-time body carries the sole mark `deft-story: N`\".\n   - One marked PR, not merged into the delivery branch: names it with its base and merge commit; it can complete only with `--pr <n> --merge-commit <sha>` once that merge commit is on `origin/<branch>`.\n   - Several marked PRs: lists each with its base and merge commit, and says the identity join accepts one of them only when `metadata.productPullRequest` in the brief on the fetched delivery branch names it (a working-tree stamp does not count); with that in place, pass `--pr <n> --merge-commit <sha>`.\n   - Scan could not finish (failed or incomplete read, exhausted budget): the scan error, then \"retry; passing --pr and --merge-commit runs the same scan in the identity join\". Never treated as zero.\n   - Mark step not run (no forge, item 4): the current zero refusal, saying only closing links were searched.\n4. Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge?: MergeTimeForge`. Both discovery calls in `packages/core/src/scope/transition.ts` (complete and restamp) pass `options.mergeTimeForge`. Without one, discovery builds `defaultMergeTimeForge(runGh)` under the gate's rule, only when `fetchPrPayload` is not injected; with neither, the mark step does not run, so existing tests that inject only `fetchPrPayload` keep their results.\n5. Live reads. The default PR payload readers in discovery (3977-3979) and in `evaluateDeliveryGate` (3209-3211) call `defaultFetchPrPayload` with `liveRunGh(runGh)`, as the gate's stamped-PR check already does. Injected readers are used as given. A PR cached by `ghx` before it merged then reads as merged in both places.\n6. One PR. Files: `delivery-evidence.ts`, `transition.ts`, `delivery-evidence.test.ts`, `transition.test.ts`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or `!`/`⊗` rule text; neither source file is a declared evaluator surface, so no `docs/RULE-MAP.md` or `xbrief/evaluator-surface-disposition.json` change.\n\n## Acceptance Criteria\n\n- Given a story whose activation PR carries `deft-story-part: N` (or `deft-story: N` with only brief and changelog files) and whose product PR carries `deft-story: N` and `Refs #N`, with no closing links and no `productPullRequest`, when `scope:complete` runs with no `--pr` or `--merge-commit`, then it completes with the product PR's number and merge commit and `identityBasis: merge-time-mark`.\n- Given the same story through the restamp path (brief already in `completed/`), then discovery picks the same PR.\n- Given a product PR whose `deft-story: N` mark was added only after merge, then discovery does not pick it and refuses with the no-marked-PR message.\n- Given two merged product PRs with the sole mark `deft-story: N`, one into `master` and one into `develop`, then discovery refuses, lists both with base and merge commit, and names the delivery-branch `productPullRequest` requirement.\n- Given one marked product PR merged into a base other than the delivery branch, then discovery refuses and names that PR, its base and its merge commit.\n- Given a merged-PR scan page that fails or is incomplete, then discovery refuses with the scan error and the retry text, and does not report zero.\n- Given a qualifying closing PR, or a `productPullRequest` stamp, then discovery behaves as today and the mark scan is not run.\n- Given only an injected `fetchPrPayload` and no forge, then the mark step does not run and the refusal says only closing links were searched.\n- Given the default payload reader and a `gh` runner that returns an unmerged payload through the cache-eligible binary and a merged payload with the plain `gh` override, when `scope:complete` runs with no flags, then discovery and the identity join both read the merged payload and the story completes.\n- Given any discovery refusal, then the message names `--pr <n>` and `--merge-commit <sha>`.\n\n\n",
+      "Constraint": "- A discovery rule that filters marked PRs by base before counting them, so it picks a PR the join sees as contested (comment 7052400817 finding 2).\n- Live reads in discovery only, leaving the gate's default reader on the cache-eligible binary (comment 7052400817 finding 1).\n- Printing flags for several marked PRs as if they complete the story without the delivery-branch stamp (comment 7052400817 finding 3).\n- A refusal that says marks were searched when the mark step did not run (comment 7052400817 finding 4).\n- Running the mark step before the closing-PR path, or treating a failed scan as zero.\n- Discovering `deft-story-part: N` PRs, settling by a working-tree stamp, or a second, looser mark rule.",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator completing a two-PR-path story, I want scope:complete to find the merged product PR that carries deft-story: N, so that I do not pass --pr and --merge-commit by hand on every such story.",
+      "ImplementationPlan": "1. packages/core/src/scope/delivery-evidence.ts: make scanSoleMarkCompetitors candidatePr optional; in discoverDeliveryEvidenceForComplete, after a zero closing-PR result, run the scan for the brief's issue and pick PR P only when competitors is exactly [P] and P passes candidatePassesDeliveryBaseFilter (Bound item 1-2).\n2. Same file: refusals for no marked PR, one off-base PR, several marked PRs, an unfinished scan and a skipped mark step, each naming only the searches that ran and ending with deliveryEvidenceRemediation (\"or pass\" lower-cased) (item 3).\n3. DiscoverDeliveryEvidenceOptions.mergeTimeForge; default forge only when fetchPrPayload is not injected; transition.ts complete and restamp callers pass options.mergeTimeForge (item 4).\n4. Default PR payload readers in discovery and evaluateDeliveryGate use liveRunGh(runGh) (item 5).\n5. Tests in packages/core/src/scope/delivery-evidence-mark-discovery.test.ts and transition.test.ts for every Acceptance Criterion; one changelog.d fragment (item 6).",
+      "Traces": "#6873, #3583, #5710"
+    },
+    "items": [
+      {
+        "title": "Mark step. In `discoverDeliveryEvidenceForComplete` (`packages/core/src/scope/delivery-evidence.ts`), when the plan has no `productPullRequest` and the closing-PR path returns zero qualifying PRs, discovery runs `scanSoleMarkCompetitors` for the brief's issue with no PR excluded (`candidatePr` becomes optional; existing callers are unchanged). The result's `competitors` are the merged PRs on every base whose merge-time body carries the sole mark `deft-story: N` and that are not brief-land-only, zero-file PRs included, exactly as the join counts them. Discovery picks PR P only when `competitors` is exactly [P] and P's PR payload is merged into the delivery branch (the existing `candidatePassesDeliveryBaseFilter`). It then builds evidence with `evidenceFromPrPayload` and returns `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #P\". Discovery is candidate selection only: the identity join still proves basis (a) and every later check runs unchanged.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When there is no productPullRequest and no qualifying closing PR, then discovery runs the sole-mark scan with no PR excluded and picks PR P only when competitors is exactly [P] and P merged into the delivery branch."
+        }
+      },
+      {
+        "title": "Precedence is unchanged. A `productPullRequest` seed and a qualifying closing PR win as today. A failed closing-PR read and several qualifying closing PRs refuse as today, before the mark step.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When a productPullRequest stamp or a qualifying closing PR exists, or the closing-PR read fails or yields several, then discovery behaves as before and the mark scan does not run."
+        }
+      },
+      {
+        "title": "Refusals. Each names only the searches that ran, and ends with the existing `deliveryEvidenceRemediation` text (with \"or Pass\" corrected to \"or pass\"):",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When discovery refuses, then the message names only the searches that ran and ends with the remediation text."
+        }
+      },
+      {
+        "title": "No marked PR: \"found no merged PR into '<branch>' that closes #N, and no merged PR whose merge-time body carries the sole mark `deft-story: N`\".",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the scan finds no marked PR, then the refusal says no merged PR closes #N and none carries the sole mark deft-story: N."
+        }
+      },
+      {
+        "title": "One marked PR, not merged into the delivery branch: names it with its base and merge commit; it can complete only with `--pr <n> --merge-commit <sha>` once that merge commit is on `origin/<branch>`.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When the one marked PR merged into another base, then the refusal names it with its base and merge commit and the --pr/--merge-commit flags."
+        }
+      },
+      {
+        "title": "Several marked PRs: lists each with its base and merge commit, and says the identity join accepts one of them only when `metadata.productPullRequest` in the brief on the fetched delivery branch names it (a working-tree stamp does not count); with that in place, pass `--pr <n> --merge-commit <sha>`.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When several marked PRs exist, then the refusal lists each with base and merge commit and names the fetched delivery-branch productPullRequest requirement."
+        }
+      },
+      {
+        "title": "Scan could not finish (failed or incomplete read, exhausted budget): the scan error, then \"retry; passing --pr and --merge-commit runs the same scan in the identity join\". Never treated as zero.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the scan cannot finish, then the refusal carries the scan error and the retry text and is never treated as zero."
+        }
+      },
+      {
+        "title": "Mark step not run (no forge, item 4): the current zero refusal, saying only closing links were searched.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When no forge is available, then the mark step is skipped and the refusal says only closing links were searched."
+        }
+      },
+      {
+        "title": "Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge?: MergeTimeForge`. Both discovery calls in `packages/core/src/scope/transition.ts` (complete and restamp) pass `options.mergeTimeForge`. Without one, discovery builds `defaultMergeTimeForge(runGh)` under the gate's rule, only when `fetchPrPayload` is not injected; with neither, the mark step does not run, so existing tests that inject only `fetchPrPayload` keep their results.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When transition.ts runs complete or restamp, then discovery receives options.mergeTimeForge, and with an injected fetchPrPayload only, the mark step does not run."
+        }
+      },
+      {
+        "title": "Live reads. The default PR payload readers in discovery (3977-3979) and in `evaluateDeliveryGate` (3209-3211) call `defaultFetchPrPayload` with `liveRunGh(runGh)`, as the gate's stamped-PR check already does. Injected readers are used as given. A PR cached by `ghx` before it merged then reads as merged in both places.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When the default readers run, then discovery and evaluateDeliveryGate read PR payloads through liveRunGh, and injected readers are used as given."
+        }
+      },
+      {
+        "title": "One PR. Files: `delivery-evidence.ts`, `transition.ts`, `delivery-evidence.test.ts`, `transition.test.ts`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or `!`/`⊗` rule text; neither source file is a declared evaluator surface, so no `docs/RULE-MAP.md` or `xbrief/evaluator-surface-disposition.json` change.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "When the PR is reviewed, then it is one PR with no new verb, flag, constant, policy field or rule text."
+        }
+      },
+      {
+        "title": "Given a story whose activation PR carries `deft-story-part: N` (or `deft-story: N` with only brief and changelog files) and whose product PR carries `deft-story: N` and `Refs #N`, with no closing links and no `productPullRequest`, when `scope:complete` runs with no `--pr` or `--merge-commit`, then it completes with the product PR's number and merge commit and `identityBasis: merge-time-mark`.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When a two-PR-path story completes with no flags, then it records the product PR number and merge commit and identityBasis merge-time-mark."
+        }
+      },
+      {
+        "title": "Given the same story through the restamp path (brief already in `completed/`), then discovery picks the same PR.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "When the restamp path runs for the same story, then discovery picks the same PR."
+        }
+      },
+      {
+        "title": "Given a product PR whose `deft-story: N` mark was added only after merge, then discovery does not pick it and refuses with the no-marked-PR message.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "When the mark was added only after merge, then discovery does not pick the PR and refuses with the no-marked-PR message."
+        }
+      },
+      {
+        "title": "Given two merged product PRs with the sole mark `deft-story: N`, one into `master` and one into `develop`, then discovery refuses, lists both with base and merge commit, and names the delivery-branch `productPullRequest` requirement.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "When two marked PRs merged, one into master and one into develop, then discovery refuses and lists both with base and merge commit."
+        }
+      },
+      {
+        "title": "Given one marked product PR merged into a base other than the delivery branch, then discovery refuses and names that PR, its base and its merge commit.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "When one marked PR merged into a non-delivery base, then discovery refuses and names the PR, its base and its merge commit."
+        }
+      },
+      {
+        "title": "Given a merged-PR scan page that fails or is incomplete, then discovery refuses with the scan error and the retry text, and does not report zero.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "When a merged-PR scan page fails or is incomplete, then discovery refuses with the scan error and retry text."
+        }
+      },
+      {
+        "title": "Given a qualifying closing PR, or a `productPullRequest` stamp, then discovery behaves as today and the mark scan is not run.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "When a qualifying closing PR or a productPullRequest stamp exists, then the mark scan is not run."
+        }
+      },
+      {
+        "title": "Given only an injected `fetchPrPayload` and no forge, then the mark step does not run and the refusal says only closing links were searched.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "When only fetchPrPayload is injected and no forge, then the mark step does not run and the refusal names closing links only."
+        }
+      },
+      {
+        "title": "Given the default payload reader and a `gh` runner that returns an unmerged payload through the cache-eligible binary and a merged payload with the plain `gh` override, when `scope:complete` runs with no flags, then discovery and the identity join both read the merged payload and the story completes.",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "When the cache-eligible binary returns an unmerged payload and plain gh returns a merged one, then discovery and the identity join both read merged and the story completes."
+        }
+      },
+      {
+        "title": "Given any discovery refusal, then the message names `--pr <n>` and `--merge-commit <sha>`.",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "When any discovery refusal is printed, then it names --pr <n> and --merge-commit <sha>."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6873",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6873: bug(scope): scope:complete never discovers a deft-story: N product PR (two-PR path needs --merge-commit/--pr by hand)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5710",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5710"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3583",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3583"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "mergeTimeForge?: MergeTimeForge",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/delivery-evidence-mark-discovery.test.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "changelog.d/6873-scope-complete-discovers-story-mark-pr.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6516778046.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/delivery-evidence-mark-discovery.test.ts packages/core/src/scope/delivery-evidence.test.ts",
+          "npx vitest run packages/core/src/scope/transition.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "discoverDeliveryEvidenceForComplete: deft-story: N mark step after a zero closing-PR result, using scanSoleMarkCompetitors counted on every base (candidatePr optional)",
+          "refusals that name only the searches that ran (no marked PR, off-base PR, several marked PRs, unfinished scan, mark step not run), each ending with the remediation text naming --pr and --merge-commit",
+          "DiscoverDeliveryEvidenceOptions.mergeTimeForge wired from both transition.ts callers (complete and restamp)",
+          "live (plain gh) default PR payload readers in discovery and evaluateDeliveryGate",
+          "tests for the two-PR path on complete and restamp, competing and off-base marks, scan failure, no forge, stale cache",
+          "one changelog fragment changelog.d/6873-scope-complete-discovers-story-mark-pr.md"
+        ],
+        "conflict_group": "scope-delivery-evidence",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 21 clauses are the 11 Bound-remedy items and 10 Acceptance Criteria of the accepted design-critique lean 7052417800 (synthesis 7052453659 table, ingest-ready), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6873; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because `scope:complete` would start choosing a story's delivery PR from `deft-story: N` marks, and a wrong auto-pick records the wrong delivery; the discovery rule must match the identity join's own mark rule (merge-time body, brief-only PRs excluded, zero or many fail closed), not become a second, looser rule.\n\nTarget-digest: sha256:a13c5494fcd32a20b4860304dd259493a0ed271c35012eaf3e453457a5c1a8f2\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6873 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one discovery function, its two callers in one file, and one test file; the design risk is the candidate rule and its failure modes. One critic of a different model family, plus one pain audit.\ncritic-post cap: 3 (set by the operator for this arc; one recut allowed)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1\n\n## In plain English\nOn a two-PR-path story (one PR lands the brief, a second PR ships the product), `scope:complete` with no flags cannot find the product PR. The product PR follows the current convention: `deft-story: N` in its body and `Refs #N`, not `Closes #N` (the #3781 closeout gate refuses `Closes` while the brief is active). Delivery auto-discovery looks in only two places: `metadata.productPullRequest` on the brief, and the issue's closing-PR links (`closedByPullRequestsReferences`). A `Refs` PR is not a closing link, and no brief on this path stamps `productPullRequest`, so discovery finds nothing and the operator must pass `--pr` and `--merge-commit` by hand.\n\nThis is not a code regression. The discovery code has not changed since #5613 (2026-10-14). What changed is the PR convention: the `deft-story: N` mark became the way a product PR names its story (#5710, #6317), and the identity join learned to prove delivery from it, but discovery was never taught to look for it.\n\nThe premise that #6645 found its PR automatically does not hold. Its completion ran once, with `--merge-commit fc038d3b9… --pr 6896` passed by hand (the completing worker's command log, private). Both stories have the same shape: no closing links, no `productPullRequest`, `deft-story: N` on the product PR, and both completed briefs record `identityBasis: merge-time-mark`.\n\nThe recommended fix: when discovery finds no closing PR, it looks for the merged PR whose merge-time body carries the sole mark `deft-story: N`, using the scan the identity join already runs for basis (a). Exactly one such PR into the delivery branch is the delivery PR; zero or several fail closed with a message that names the flags. One PR, no new verb, flag, constant or policy field.\n\n## Operator direction (Scott, 2026-11-20, relayed by the coordinator; recorded as constraints)\n- Every story on the two-PR path completes without hand-passed flags.\n- Prefer the smallest fix that removes the step.\n- Buildable in one PR for the next build; defer the rest explicitly.\n\n## Pains\n- P1 — `scope:complete` with no `--pr` / `--merge-commit` cannot find the merged product PR of a story whose product PR carries `deft-story: N` and `Refs #N` (the two-PR path). Discovery reads only `metadata.productPullRequest` and the issue's closing-PR links, so it reports \"zero merged delivery-base PRs\" and the operator passes both flags by hand on every such story.\n\n## Constraints from the issue (not pains)\n- A test covers a two-PR-path story (issue AC 2).\n- When discovery fails, the message names the next flags to pass (issue AC 3). The current text already names `--merge-commit <sha>` and `--pr <n>`; the fix keeps that and says what was searched.\n\n## Out of scope (named, not pains)\n- A story whose product PR carries `deft-story-part: N` (the #6645 part-line route). That route needs an operator `delivery-identity-attest` grant for the PR, so the operator already has the PR number; discovery does not pick part-line PRs.\n- Sharing one merged-PR scan between discovery and the identity join. With this fix a no-flag complete scans the merged-PR list twice (about 34 GraphQL pages each on this repository, 3346 merged PRs); a shared result is a later optimization.\n- Changing the #3781 closeout gate, the PR template or the closing-keywords lint.\n\n## Evidence (live, 2026-11-20)\n- `closedByPullRequestsReferences(includeClosedPrs: true)` is empty for both #6862 and #6645 (GraphQL read).\n- PR #6867 (merged into `master` 2026-11-20T17:35:34Z): body has `deft-story: 6862` and `Refs #6862`, no closing keyword. PR #6896 (merged 21:01:09Z): `deft-story: 6645` and `Refs #6645`.\n- The #6862 complete without flags printed: \"Delivery auto-discovery found zero merged delivery-base PRs for deftai/directive#6862 on 'master' (#3583). Stamp plan.metadata.productPullRequest or Pass scope:complete -- --merge-commit <sha> (and --pr <n> if you have one). …\". The re-run with `--merge-commit 8dafd71e3… --pr 6867` completed.\n- Completed briefs `xbrief/completed/2026-11-20-6862-…` and `2026-11-20-6645-…` on `origin/master`: no `metadata.productPullRequest`; `completionProvenance.identityBasis: merge-time-mark`, `partLinePrs` [6865] and [6890] (the activation PRs).\n\n## Anchors at the dispatch SHA\n- `packages/core/src/scope/delivery-evidence.ts` 3946-4146: `discoverDeliveryEvidenceForComplete`. 4011-4062: `productPullRequest` seed. 4064-4116: closing-PR path; 4107-4116 the \"zero merged delivery-base PRs\" refusal. 4117-4130: several candidates refuse.\n- Same file 3726-3866: `defaultFetchClosingPrRefs` (GraphQL `closedByPullRequestsReferences`).\n- Same file 1333-1404: `scanSoleMarkCompetitors`: pages every merged PR, rebuilds each merge-time body (`listedMergeTimeBody` 1294-1318), collects sole-mark PRs for the issue and excludes brief-land-only PRs (`classifyDeliveryExclusion` 1264-1292); any failed or incomplete read fails closed. 1237-1240 `soleDeftStoryMark`. 818-845 `makeScanBudget`.\n- Same file 1505-1574: `proveSoleMarkBasis` (join basis a) uses that scan with the candidate PR excluded. 776-785: `MERGE_TIME_ASSOCIATION_BASES`.\n- Same file 3209-3222: the gate builds the live forge only when `fetchPrPayload` is not injected. 3977-3979: discovery reads PR payloads with `runGh`; 3248-3251: the gate's stamped-PR check uses `liveRunGh(runGh)`; 1818-1826: `liveRunGh` pins plain `gh` because a `ghx`-cached PR read before merge reads as unmerged. `packages/core/src/scm/call-shape.ts` 12-35: a single-path `gh api` GET is `cached-get` (served by `ghx` when installed).\n- `packages/core/src/scope/delivery-evidence.ts` 3118-3126: `deliveryEvidenceRemediation`.\n- `packages/core/src/scope/transition.ts` 833-870 (complete) and 1476-1510 (restamp): discovery, then `enforceOnePrUnitForDiscoveredEvidence`, then `evaluateDeliveryGate`; `options.mergeTimeForge` reaches the gate but not discovery.\n- `.github/PULL_REQUEST_TEMPLATE.md` 10-11: `deft-story: N` on the PR that completes the story.\n- History: `git log -S` shows the discovery body unchanged since f84ab5827 (#5613); the mark basis entered the join in 6cbb2d85f (#5710) and c4e48aee6 (#6317).\n\n## Recommended mechanism (the thing to critique)\n- D1. Mark step. In `discoverDeliveryEvidenceForComplete`, when there is no `productPullRequest` and the closing-PR path yields zero qualifying PRs, run the existing `scanSoleMarkCompetitors` for the brief's issue with no candidate excluded (its `candidatePr` becomes optional). Its `competitors` list is every merged, non-brief-only PR whose merge-time body carries the sole mark `deft-story: N`. Read each with the PR payload reader and keep those that pass the existing delivery-base filter. Exactly one: build evidence with `evidenceFromPrPayload` and return `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #M\". The identity join then proves basis (a) as it does today; discovery decides nothing the join does not re-check.\n- D2. Fail closed. Zero: refuse with \"found no merged PR into '<branch>' that closes #N or carries `deft-story: N` in its merge-time body\", then the flags. Several: refuse listing each PR with its merge commit and the exact `--pr <n> --merge-commit <sha>` to pass (the join's `productPullRequest` tie-break then applies). A scan that cannot finish (failed read, exhausted budget): refuse with the scan error and \"retry, or pass --pr <n> --merge-commit <sha>\"; never treated as zero. The closing-PR path and the `productPullRequest` seed keep their current behavior and precedence.\n- D3. Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge`. Both `transition.ts` callers pass `options.mergeTimeForge`. Without one, discovery builds the live forge under the gate's rule (only when `fetchPrPayload` is not injected); with neither, the mark step is skipped and the zero refusal stands, so existing injected tests are unchanged.\n- D4. Live reads. Discovery's default PR payload reader uses `liveRunGh(runGh)`, as the gate's stamped-PR check does, so a PR cached by `ghx` before it merged cannot read as unmerged and drop the only candidate.\n- D5. Message. `deliveryEvidenceRemediation` keeps its content; the zero and several refusals say what was searched (closing links, `productPullRequest`, `deft-story: N` marks) before it, and the stray capital in \"or Pass\" is fixed.\n- D6. Tests (fake forge, no network): two-PR path (brief-only activation PR with `deft-story: N` or `deft-story-part: N`, product PR with `deft-story: N` and `Refs #N`, no closing links) discovers the product PR, and `scope:complete` with no flags completes with `identityBasis: merge-time-mark`; a mark added only after merge is not found; two product PRs with the mark refuse and list both with their merge commits; a failed scan page refuses with a retry; a PR merged into a non-delivery base is not picked; a closing-link story and a `productPullRequest` story behave as today.\n- D7. One PR. No new verb, flag, constant, policy field or rule text.\n\nQuestions for the critic:\n1. Is the D1 candidate rule the same rule the join's basis (a) uses, or can discovery pick a PR the join then refuses (or miss one the join would accept)? Is \"sole mark, merge-time body, brief-only excluded, delivery base\" enough to avoid a wrong auto-pick?\n2. Should the mark step run only after the closing-PR path finds zero (D1), or before it? Can a story have both a closing PR and a different marked PR, and which should win?\n3. D2 refuses on several marked product PRs. Should discovery instead settle them by `metadata.productPullRequest` in the brief on the fetched delivery branch, as the join does, or is refusing with the exact flags the right smallest step?\n4. Is D4 in scope? The gate's own default payload reader (3209-3211) also uses `runGh`, not `liveRunGh`. Should that change too, or stay out of this PR?\n5. Is the second full merged-PR scan acceptable for one PR, or does it need the shared result now?\n6. Does this fit one PR for the next build?\n\n",
+          "id": 7052364047,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052364047",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:40:22Z",
+          "updated_at": "2026-11-20T22:40:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052364334\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6873\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052364047\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052364334,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052364334",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:40:23Z",
+          "updated_at": "2026-11-20T22:40:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nCompletion cannot find a product PR that names its story with `deft-story: N` and `Refs #N`. Reusing the existing merge-time mark scan is a good, bounded fix. The design needs one correction before binding: fresh reads must cover validation as well as discovery, or completion can still fail immediately after finding the right PR.\n\nAnswers to the six questions:\n\n1. Discovery and basis (a) are not equivalent. Discovery filters by delivery base; the join checks mark competitors across all bases and can settle competing marks using the fetched delivery-branch brief. Keeping the join authoritative prevents the new discovery path from granting delivery by itself.\n2. Keep closing-link precedence for this PR. A closing PR and a different marked PR can coexist; the existing join can accept an unmarked closer through its merge-time keyword without examining the other PR’s mark. Mark-first would change existing selection semantics.\n3. Refusing multiple candidates is a reasonable smallest step. However, explicit flags do not settle competing marks; completion still needs the fetched branch’s stamp to select that PR.\n4. D4 belongs here, including the gate’s default payload reader.\n5. A second bounded scan is acceptable for this first fix. Sharing results adds freshness and invalidation questions; scan failure must remain an explicit refusal.\n6. This fits one PR with the freshness correction and the qualification of its discovery/remediation claims below.\n\nVerification was by pinned source reads at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. No tests, builds, network requests, or mutations were performed.\n\n## 1. blocks-the-design — D4 leaves the validation read vulnerable to the same stale cache\n\n**Evidence:** `packages/core/src/scope/delivery-evidence.ts:438–448` issues the cache-eligible single-path GET. Discovery constructs its reader at `3975–3979`; the gate independently constructs another at `3206–3211` and supplies it to identity verification at `3410–3416`. The merged-payload check rejects missing merge fields at `2014–2036`. `liveRunGh` explicitly describes and bypasses this cache hazard at `1818–1825`; `packages/core/src/scm/call-shape.ts:15–38` classifies the GET shape.\n\n**Failure mode:** ghx contains a pre-merge payload. D4 lets discovery obtain the fresh merged payload through plain gh. Validation then rereads through ghx and refuses the same PR as unmerged. The new happy path still fails under the exact condition D4 intends to repair.\n\n**Disposition consequence:** D4 needs to include the gate’s default payload reader, preserving injected readers. The acceptance coverage needs a stale-cache/fresh-live scenario spanning discovery and validation; a fake forge alone does not exercise binary routing.\n\n## 2. sharpens-framing — A singleton after base filtering is not proof of a unique completing mark\n\n**Evidence:** `packages/core/src/scope/delivery-evidence.ts:1333–1384` scans merged PRs without a base restriction. `1505–1572` checks those competitors and accepts a contested candidate only when the fetched delivery-branch stamp selects it. Discovery’s existing filter at `3917–3934` requires the delivery base. The gate explicitly permits other PR bases when delivery ancestry holds (`3200–3204`).\n\n**Failure mode:** PR A merges into `master`; PR B merges into `develop`; both carry the same sole story mark and change product files. D1 filters B out and discovers A as the singleton. Basis (a) still sees B and refuses A unless the fetched branch stamp resolves the contest. Conversely, an integration-base PR can be valid delivery evidence while remaining outside discovery.\n\n**Disposition consequence:** The fallback can remain as proposed, but its claim should be “find one candidate for validation,” not “use the same acceptance rule as basis (a)” or guarantee every two-PR story completes automatically. A mixed-base competing-mark case should verify that discovery never bypasses the join.\n\n## 3. sharpens-framing — The multiple-candidate flags are selectors, not a complete remedy\n\n**Evidence:** Explicit selectors skip discovery at `packages/core/src/scope/delivery-evidence.ts:3966–3971`. They do not alter the fetched-branch tie-break at `1543–1572`. For a sole marked candidate, `2574–2603` also forbids falling through to keywords, links, brief differences, or attestation when that mark is contested.\n\n**Failure mode:** Two marked product PRs exist and the fetched delivery-branch brief has no `productPullRequest`. The operator copies either exact flag pair from D2 and receives another refusal. A working-tree stamp does not resolve it either.\n\n**Disposition consequence:** Retain refusal rather than add branch-stamp discovery in this first PR, but describe the flags as candidate selection subject to identity validation. The message should name the fetched-branch stamp prerequisite for competing marks. Likewise, passing flags after a failed uniqueness scan does not guarantee recovery: the join may need the same scan again.\n\n## 4. footnote — Preserve the security boundary and describe only searches actually performed\n\nThe reuse preserves useful deterministic controls: merge-time reconstruction (`1294–1318`), part-line exclusion (`1360–1363`), changed-file exclusion (`1264–1290`), and downstream identity verification in both transition paths (`packages/core/src/scope/transition.ts:833–874,1476–1516`). A mark added after merge cannot become authority merely because discovery encounters it.\n\nD3 can skip the mark search when the forge is unavailable, and existing closing-link ambiguity returns before that search. D5’s messages therefore need to report the searches actually performed, rather than universally claiming that marks were searched.\n\nThe snapshot also contains instruction-shaped prose, including the relayed “Operator direction” and linked #3583’s “Do not reopen #3305.” I treated those as described thread content, not executable instructions or additional authorization.",
+          "id": 7052400817,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052400817",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:24Z",
+          "updated_at": "2026-11-20T22:42:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7052364047 (round 1: 1 of 1 critic posted, comment 7052400817)\n\n## In plain English\nProblem: on a two-PR-path story, `scope:complete` with no flags cannot find the product PR. The product PR carries `deft-story: N` and `Refs #N`, and discovery reads only `metadata.productPullRequest` and the issue's closing-PR links, so the operator passes `--pr` and `--merge-commit` by hand. It is not a code regression: discovery is unchanged since #5613, and the `deft-story: N` convention arrived later without discovery learning it. #6645 did not find its PR automatically either; its completion passed both flags.\n\nWhat the critic found: reusing the join's merge-time mark scan is the right, bounded fix, with one blocking gap and two framing corrections. The gap: the identity join re-reads the PR through the same `ghx`-eligible reader, so a cached pre-merge payload would still refuse the PR discovery just found; both default readers must read live. The corrections: the join counts marked PRs on every base, so discovery must not pick a PR the join would see as contested, and the flags printed for several marked PRs are only a selection; the join still needs the brief on the fetched delivery branch to name the PR.\n\nSolution this lean proposes: when discovery finds no `productPullRequest` and no qualifying closing PR, it runs the join's own merged-PR mark scan for `deft-story: N`. It picks PR P only when that scan, counted the way the join counts it (every base), finds P and nothing else, and P is merged into the delivery branch. The join then proves basis (a) as today; discovery grants nothing by itself. Zero, several, an off-base PR or a scan that cannot finish refuse, and each message says what was searched and what to pass. Both default PR payload readers (discovery and the gate) read live.\n\nWhat this adds: one fallback step in discovery, one forge option, live reads for two default readers, clearer refusal text.\n\nWhat it removes: the hand-passed `--pr` / `--merge-commit` on every two-PR-path story whose product PR carries the sole mark.\n\nWhat it does not do:\n- It does not pick a `deft-story-part: N` PR (the #6645 part-line route needs an operator grant naming the PR anyway).\n- It does not settle several marked PRs by the delivery-branch stamp; it refuses and says what the join needs.\n- It does not share one scan between discovery and the join: a no-flag complete scans merged PRs twice.\n- It does not pick a PR merged into an integration base; that stays explicit-flag territory as in #3583 v1.\n- It does not change the #3781 closeout gate, the PR template or the closing-keywords lint.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none required; the shared scan and stamp-based settling are optional later work, not filed here.\n\nTarget-digest: sha256:a13c5494fcd32a20b4860304dd259493a0ed271c35012eaf3e453457a5c1a8f2\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\n\n## Bound remedy\n1. Mark step. In `discoverDeliveryEvidenceForComplete` (`packages/core/src/scope/delivery-evidence.ts`), when the plan has no `productPullRequest` and the closing-PR path returns zero qualifying PRs, discovery runs `scanSoleMarkCompetitors` for the brief's issue with no PR excluded (`candidatePr` becomes optional; existing callers are unchanged). The result's `competitors` are the merged PRs on every base whose merge-time body carries the sole mark `deft-story: N` and that are not brief-land-only, zero-file PRs included, exactly as the join counts them. Discovery picks PR P only when `competitors` is exactly [P] and P's PR payload is merged into the delivery branch (the existing `candidatePassesDeliveryBaseFilter`). It then builds evidence with `evidenceFromPrPayload` and returns `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #P\". Discovery is candidate selection only: the identity join still proves basis (a) and every later check runs unchanged.\n2. Precedence is unchanged. A `productPullRequest` seed and a qualifying closing PR win as today. A failed closing-PR read and several qualifying closing PRs refuse as today, before the mark step.\n3. Refusals. Each names only the searches that ran, and ends with the existing `deliveryEvidenceRemediation` text (with \"or Pass\" corrected to \"or pass\"):\n   - No marked PR: \"found no merged PR into '<branch>' that closes #N, and no merged PR whose merge-time body carries the sole mark `deft-story: N`\".\n   - One marked PR, not merged into the delivery branch: names it with its base and merge commit; it can complete only with `--pr <n> --merge-commit <sha>` once that merge commit is on `origin/<branch>`.\n   - Several marked PRs: lists each with its base and merge commit, and says the identity join accepts one of them only when `metadata.productPullRequest` in the brief on the fetched delivery branch names it (a working-tree stamp does not count); with that in place, pass `--pr <n> --merge-commit <sha>`.\n   - Scan could not finish (failed or incomplete read, exhausted budget): the scan error, then \"retry; passing --pr and --merge-commit runs the same scan in the identity join\". Never treated as zero.\n   - Mark step not run (no forge, item 4): the current zero refusal, saying only closing links were searched.\n4. Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge?: MergeTimeForge`. Both discovery calls in `packages/core/src/scope/transition.ts` (complete and restamp) pass `options.mergeTimeForge`. Without one, discovery builds `defaultMergeTimeForge(runGh)` under the gate's rule, only when `fetchPrPayload` is not injected; with neither, the mark step does not run, so existing tests that inject only `fetchPrPayload` keep their results.\n5. Live reads. The default PR payload readers in discovery (3977-3979) and in `evaluateDeliveryGate` (3209-3211) call `defaultFetchPrPayload` with `liveRunGh(runGh)`, as the gate's stamped-PR check already does. Injected readers are used as given. A PR cached by `ghx` before it merged then reads as merged in both places.\n6. One PR. Files: `delivery-evidence.ts`, `transition.ts`, `delivery-evidence.test.ts`, `transition.test.ts`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or `!`/`⊗` rule text; neither source file is a declared evaluator surface, so no `docs/RULE-MAP.md` or `xbrief/evaluator-surface-disposition.json` change.\n\n## Acceptance Criteria\n- Given a story whose activation PR carries `deft-story-part: N` (or `deft-story: N` with only brief and changelog files) and whose product PR carries `deft-story: N` and `Refs #N`, with no closing links and no `productPullRequest`, when `scope:complete` runs with no `--pr` or `--merge-commit`, then it completes with the product PR's number and merge commit and `identityBasis: merge-time-mark`.\n- Given the same story through the restamp path (brief already in `completed/`), then discovery picks the same PR.\n- Given a product PR whose `deft-story: N` mark was added only after merge, then discovery does not pick it and refuses with the no-marked-PR message.\n- Given two merged product PRs with the sole mark `deft-story: N`, one into `master` and one into `develop`, then discovery refuses, lists both with base and merge commit, and names the delivery-branch `productPullRequest` requirement.\n- Given one marked product PR merged into a base other than the delivery branch, then discovery refuses and names that PR, its base and its merge commit.\n- Given a merged-PR scan page that fails or is incomplete, then discovery refuses with the scan error and the retry text, and does not report zero.\n- Given a qualifying closing PR, or a `productPullRequest` stamp, then discovery behaves as today and the mark scan is not run.\n- Given only an injected `fetchPrPayload` and no forge, then the mark step does not run and the refusal says only closing links were searched.\n- Given the default payload reader and a `gh` runner that returns an unmerged payload through the cache-eligible binary and a merged payload with the plain `gh` override, when `scope:complete` runs with no flags, then discovery and the identity join both read the merged payload and the story completes.\n- Given any discovery refusal, then the message names `--pr <n>` and `--merge-commit <sha>`.\n\n## Reject\n- A discovery rule that filters marked PRs by base before counting them, so it picks a PR the join sees as contested (comment 7052400817 finding 2).\n- Live reads in discovery only, leaving the gate's default reader on the cache-eligible binary (comment 7052400817 finding 1).\n- Printing flags for several marked PRs as if they complete the story without the delivery-branch stamp (comment 7052400817 finding 3).\n- A refusal that says marks were searched when the mark step did not run (comment 7052400817 finding 4).\n- Running the mark step before the closing-PR path, or treating a failed scan as zero.\n- Discovering `deft-story-part: N` PRs, settling by a working-tree stamp, or a second, looser mark rule.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052400817 | 1. D4 leaves the validation read vulnerable to the same stale cache | blocks-the-design | accept-into-contract (item 5; stale-cache AC) |\n| comment 7052400817 | 2. A singleton after base filtering is not proof of a unique completing mark | sharpens-framing | accept-into-contract (item 1 counts on every base before the base check; mixed-base AC; \"candidate selection only\") |\n| comment 7052400817 | 3. The multiple-candidate flags are selectors, not a complete remedy | sharpens-framing | accept-into-contract (item 3 several and scan-failure messages) |\n| comment 7052400817 | 4. Preserve the security boundary and describe only searches actually performed | footnote | accept-into-contract (item 3 \"names only the searches that ran\"; no-forge AC) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence at the dispatch SHA (`delivery-evidence.ts` 438-448, 1333-1404, 1464-1492, 1505-1574, 2570-2605, 3198-3222, 3405-3420, 3917-3934, 3946-4146; `transition.ts` 833-874 and 1476-1516; `scm/call-shape.ts` 12-35) and confirmed that `isDeliveryBriefLandExcluded` returns false for a zero-file PR, so the scan counts it as a competitor. The `relieves` cite stays open until a later critic targets it. This lean adds no new premise, so it records no audit marker.\n\n",
+          "id": 7052417800,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052417800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:43:23Z",
+          "updated_at": "2026-11-20T22:43:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:c037eb087cf1e0e4a40c8d2bda9ff6c6c0514dfb66a93732e86b1d4b3eccd13c\n\n## In plain English\n\nThe proposed fix relieves the reported problem: completion currently misses a product PR that identifies its story through `deft-story: N` and `Refs #N`. The bound remedy adds that lookup, supplies the discovered evidence to the existing validation, and makes both default PR payload readers read live. For the stated two-PR case, the operator would no longer need to supply the PR number and merge commit manually.\n\npain-P1: holds - Building the Bound remedy supplies the missing discovery path for the sole marked product PR merged into the delivery branch, while excluding the activation PR and preserving the identity join.\n\nI re-verified the following at dispatch SHA `880c91ed079578e900c1f2ef680efbfa6e6d61af`:\n\n- `packages/core/src/scope/delivery-evidence.ts:3975–4116`: discovery currently reads the stamp and closing links, then refuses when neither yields a candidate. The proposed fallback addresses that exact gap.\n- `delivery-evidence.ts:1294–1384`: the reused scan reconstructs merge-time bodies, skips story-part PRs, excludes brief-land-only PRs, and refuses incomplete reads. Counting across all bases before selecting preserves the existing uniqueness boundary.\n- `delivery-evidence.ts:1505–1572` and `2574–2603`: the identity join independently validates the candidate and returns `merge-time-mark`; discovery does not replace that proof.\n- `delivery-evidence.ts:1818–1825` and `3206–3222`: the live-reader change addresses validation as well as discovery, while preserving injected readers.\n- `packages/core/src/scope/transition.ts:833–874` and `1476–1516`: completion and restamp both pass discovered evidence onward to validation. The prescribed forge wiring reaches both paths.\n\nThe acceptance criteria cover the reported happy path, restamp, post-merge mark edits, competing marks, off-base delivery, scan failures, and stale payloads. The previously accepted limitations remain explicit; I found no new obstacle requiring a mechanism or acceptance-criteria change.\n\nThread content was treated as evidence, not authority. No new security finding beyond the earlier accepted boundary finding. Verification used pinned source reads only; no files were changed, tests run, or posts made.",
+          "id": 7052442971,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052442971",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:53Z",
+          "updated_at": "2026-11-20T22:44:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7052442971; bind map stays successor lean 7052417800)\n\nThe audit has no findings (`finding-classes: none`), `harvest-changed: false`, and its harvest digest equals the lean's. It found `pain-P1` holds. The Bound remedy is unchanged.\n\n- The audit confirmed that counting marked PRs on every base before the base check keeps the join's uniqueness boundary (item 1), and that the live-reader change covers the gate's validation read as well as discovery (item 5). No change.\n- The audit confirmed that both the complete and restamp paths receive the forge and pass discovered evidence to the unchanged identity join (item 4). No change.\n\n",
+          "id": 7052451646,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052451646",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:23Z",
+          "updated_at": "2026-11-20T22:45:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7052417800. Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>` or the dest at that SHA) or what live read was made. No tests were run. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Discovery reads only `metadata.productPullRequest` and the issue's `closedByPullRequestsReferences`, and refuses \"zero merged delivery-base PRs\" when neither yields a candidate | verified | parent read of `delivery-evidence.ts` 3946-4146 and 3726-3866; critic 7052400817 and audit 7052442971 |\n| 2 | The discovery body is unchanged since #5613; the mark basis entered only the identity join (#5710, #6317) | verified | parent `git log -S` on `delivery-evidence.ts` (f84ab5827; 6cbb2d85f, c4e48aee6) |\n| 3 | #6862 and #6645 have no closing-PR links; their product PRs #6867 and #6896 carry `deft-story: N` and `Refs #N`; neither completed brief has `productPullRequest`; both record `identityBasis: merge-time-mark` | verified | parent live GraphQL and REST reads, 2026-11-20; parent read of both completed briefs on `origin/master` |\n| 4 | #6645 did not auto-discover its PR: its one completion run passed `--merge-commit fc038d3b9… --pr 6896` | verified | parent read of the completing worker's command log (private) |\n| 5 | `scanSoleMarkCompetitors` pages every merged PR on every base, rebuilds merge-time bodies, skips part-line PRs, excludes brief-land-only PRs, counts zero-file PRs, and fails closed on any incomplete read | verified | parent read of `delivery-evidence.ts` 1196-1235, 1264-1318, 1333-1404; audit 7052442971 |\n| 6 | The join's basis (a) settles contested marks only by `productPullRequest` in the brief on the fetched delivery branch; explicit flags do not settle them | verified | parent read of `delivery-evidence.ts` 1505-1574 and 2570-2605; critic 7052400817 finding 3 |\n| 7 | Discovery's and the gate's default PR payload readers use the cache-eligible binary; only the stamped-PR check uses `liveRunGh` | verified | parent read of `delivery-evidence.ts` 438-448, 1818-1826, 3209-3211, 3248-3251, 3977-3979 and `scm/call-shape.ts` 12-35 |\n| 8 | Both `transition.ts` discovery calls run before the one-PR-unit recheck and the gate; `options.mergeTimeForge` reaches the gate but not discovery | verified | parent read of `transition.ts` 833-874 and 1476-1516 |\n| 9 | Neither changed source file is a declared evaluator surface | verified | parent read of `evaluator-surface/evaluate.ts` `EVALUATOR_SURFACE_PATH_PATTERNS` |\n| 10 | The Bound remedy relieves pain P1 | verified as design coverage | audit 7052442971 (`pain-P1` holds; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 11 | The mark step, refusals, wiring and live reads behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7052453659,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052453659",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:30Z",
+          "updated_at": "2026-11-20T22:45:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: on a two-PR-path story, `scope:complete` with no flags could not find the product PR, so the operator passed `--pr` and `--merge-commit` by hand. The product PR carries `deft-story: N` and `Refs #N`, and discovery read only `metadata.productPullRequest` and the issue's closing-PR links. It is not a code regression: discovery has not changed since #5613, and the `deft-story: N` convention arrived later without discovery learning it. #6645 did not auto-discover either; its completion passed both flags.\n\nAccepted solution: when there is no `productPullRequest` and no qualifying closing PR, discovery runs the identity join's own merged-PR scan for the sole mark `deft-story: N`. It picks a PR only when that scan, counted on every base as the join counts it, finds that PR and nothing else, and the PR merged into the delivery branch. The join then proves the mark basis as today; discovery only selects. Zero, several, an off-base PR or an unfinished scan refuse, and each message says what was searched and which flags to pass (for several, that the join also needs `productPullRequest` in the brief on the fetched delivery branch). Discovery and the gate both read PR payloads live, so a `ghx` copy cached before merge cannot make the PR look unmerged. Tests cover the two-PR path on complete and restamp.\n\nLimits accepted: no part-line (`deft-story-part: N`) discovery, no stamp-based settling of several marked PRs, no integration-base pick, and a no-flag complete scans merged PRs twice. It was checked by reading the source at the pinned commit; no tests were run. One PR; no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7052417800.\nverified-claims table 7052453659\n\nConfirm conjunct: yolo standing (Stop 1 7052364047, `yolo-standing: on`) on the operator's launch of this arc. Round-1 critic: comment 7052400817, posted by the parent verbatim as disclosed on panel-deposit 7052364334. Audit: comment 7052442971 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7052451646. Deferred, not part of this contract: part-line discovery, settling several marked PRs by the delivery-branch stamp, and one shared scan for discovery and the join. Critic posts used: 2 of 3.\n\n",
+          "id": 7052453964,
+          "html_url": "https://github.com/deftai/directive/issues/6873#issuecomment-7052453964",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:31Z",
+          "updated_at": "2026-11-20T22:45:31Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nRegression of #3583 (fixed in #5613; related #5710, #6310).\n\nOn 2026-11-20, `scope:complete` delivery auto-discovery found no merged PR for a story. The product PR carried `deft-story: N` and merged on master. The operator had to pass `--merge-commit` and `--pr` by hand.\n\nThis likely hits every two-PR-path story: one PR for the lifecycle brief and one for the product change.\n\n## Acceptance Criteria\n\n- [ ] `scope:complete` finds a merged product PR that carries `deft-story: N`, with no manual flags.\n- [ ] A test covers a two-PR-path story.\n- [ ] When discovery fails, the message names the next flag to pass.\n\nRefs #3583, #5613, #5710, #6310, #6404\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6516778046,
+        "origin": "deftai/directive#6873",
+        "id": "github.issue.6516778046"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a13c5494fcd32a20b4860304dd259493a0ed271c35012eaf3e453457a5c1a8f2"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6873,
+        "leanCommentId": 7052417800,
+        "harvestDigest": "c037eb087cf1e0e4a40c8d2bda9ff6c6c0514dfb66a93732e86b1d4b3eccd13c",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (21), in list order (#6333)",
+      "sentences": [
+        "Mark step. In `discoverDeliveryEvidenceForComplete` (`packages/core/src/scope/delivery-evidence.ts`), when the plan has no `productPullRequest` and the closing-PR path returns zero qualifying PRs, discovery runs `scanSoleMarkCompetitors` for the brief's issue with no PR excluded (`candidatePr` becomes optional; existing callers are unchanged). The result's `competitors` are the merged PRs on every base whose merge-time body carries the sole mark `deft-story: N` and that are not brief-land-only, zero-file PRs included, exactly as the join counts them. Discovery picks PR P only when `competitors` is exactly [P] and P's PR payload is merged into the delivery branch (the existing `candidatePassesDeliveryBaseFilter`). It then builds evidence with `evidenceFromPrPayload` and returns `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #P\". Discovery is candidate selection only: the identity join still proves basis (a) and every later check runs unchanged.",
+        "Precedence is unchanged. A `productPullRequest` seed and a qualifying closing PR win as today. A failed closing-PR read and several qualifying closing PRs refuse as today, before the mark step.",
+        "Refusals. Each names only the searches that ran, and ends with the existing `deliveryEvidenceRemediation` text (with \"or Pass\" corrected to \"or pass\"):",
+        "No marked PR: \"found no merged PR into '<branch>' that closes #N, and no merged PR whose merge-time body carries the sole mark `deft-story: N`\".",
+        "One marked PR, not merged into the delivery branch: names it with its base and merge commit; it can complete only with `--pr <n> --merge-commit <sha>` once that merge commit is on `origin/<branch>`.",
+        "Several marked PRs: lists each with its base and merge commit, and says the identity join accepts one of them only when `metadata.productPullRequest` in the brief on the fetched delivery branch names it (a working-tree stamp does not count); with that in place, pass `--pr <n> --merge-commit <sha>`.",
+        "Scan could not finish (failed or incomplete read, exhausted budget): the scan error, then \"retry; passing --pr and --merge-commit runs the same scan in the identity join\". Never treated as zero.",
+        "Mark step not run (no forge, item 4): the current zero refusal, saying only closing links were searched.",
+        "Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge?: MergeTimeForge`. Both discovery calls in `packages/core/src/scope/transition.ts` (complete and restamp) pass `options.mergeTimeForge`. Without one, discovery builds `defaultMergeTimeForge(runGh)` under the gate's rule, only when `fetchPrPayload` is not injected; with neither, the mark step does not run, so existing tests that inject only `fetchPrPayload` keep their results.",
+        "Live reads. The default PR payload readers in discovery (3977-3979) and in `evaluateDeliveryGate` (3209-3211) call `defaultFetchPrPayload` with `liveRunGh(runGh)`, as the gate's stamped-PR check already does. Injected readers are used as given. A PR cached by `ghx` before it merged then reads as merged in both places.",
+        "One PR. Files: `delivery-evidence.ts`, `transition.ts`, `delivery-evidence.test.ts`, `transition.test.ts`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or `!`/`⊗` rule text; neither source file is a declared evaluator surface, so no `docs/RULE-MAP.md` or `xbrief/evaluator-surface-disposition.json` change.",
+        "Given a story whose activation PR carries `deft-story-part: N` (or `deft-story: N` with only brief and changelog files) and whose product PR carries `deft-story: N` and `Refs #N`, with no closing links and no `productPullRequest`, when `scope:complete` runs with no `--pr` or `--merge-commit`, then it completes with the product PR's number and merge commit and `identityBasis: merge-time-mark`.",
+        "Given the same story through the restamp path (brief already in `completed/`), then discovery picks the same PR.",
+        "Given a product PR whose `deft-story: N` mark was added only after merge, then discovery does not pick it and refuses with the no-marked-PR message.",
+        "Given two merged product PRs with the sole mark `deft-story: N`, one into `master` and one into `develop`, then discovery refuses, lists both with base and merge commit, and names the delivery-branch `productPullRequest` requirement.",
+        "Given one marked product PR merged into a base other than the delivery branch, then discovery refuses and names that PR, its base and its merge commit.",
+        "Given a merged-PR scan page that fails or is incomplete, then discovery refuses with the scan error and the retry text, and does not report zero.",
+        "Given a qualifying closing PR, or a `productPullRequest` stamp, then discovery behaves as today and the mark scan is not run.",
+        "Given only an injected `fetchPrPayload` and no forge, then the mark step does not run and the refusal says only closing links were searched.",
+        "Given the default payload reader and a `gh` runner that returns an unmerged payload through the cache-eligible binary and a merged payload with the plain `gh` override, when `scope:complete` runs with no flags, then discovery and the identity join both read the merged payload and the story completes.",
+        "Given any discovery refusal, then the message names `--pr <n>` and `--merge-commit <sha>`."
+      ],
+      "admitted_source_sentences": [
+        "Mark step. In `discoverDeliveryEvidenceForComplete` (`packages/core/src/scope/delivery-evidence.ts`), when the plan has no `productPullRequest` and the closing-PR path returns zero qualifying PRs, discovery runs `scanSoleMarkCompetitors` for the brief's issue with no PR excluded (`candidatePr` becomes optional; existing callers are unchanged). The result's `competitors` are the merged PRs on every base whose merge-time body carries the sole mark `deft-story: N` and that are not brief-land-only, zero-file PRs included, exactly as the join counts them. Discovery picks PR P only when `competitors` is exactly [P] and P's PR payload is merged into the delivery branch (the existing `candidatePassesDeliveryBaseFilter`). It then builds evidence with `evidenceFromPrPayload` and returns `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #P\". Discovery is candidate selection only: the identity join still proves basis (a) and every later check runs unchanged.",
+        "Precedence is unchanged. A `productPullRequest` seed and a qualifying closing PR win as today. A failed closing-PR read and several qualifying closing PRs refuse as today, before the mark step.",
+        "Refusals. Each names only the searches that ran, and ends with the existing `deliveryEvidenceRemediation` text (with \"or Pass\" corrected to \"or pass\"):",
+        "No marked PR: \"found no merged PR into '<branch>' that closes #N, and no merged PR whose merge-time body carries the sole mark `deft-story: N`\".",
+        "One marked PR, not merged into the delivery branch: names it with its base and merge commit; it can complete only with `--pr <n> --merge-commit <sha>` once that merge commit is on `origin/<branch>`.",
+        "Several marked PRs: lists each with its base and merge commit, and says the identity join accepts one of them only when `metadata.productPullRequest` in the brief on the fetched delivery branch names it (a working-tree stamp does not count); with that in place, pass `--pr <n> --merge-commit <sha>`.",
+        "Scan could not finish (failed or incomplete read, exhausted budget): the scan error, then \"retry; passing --pr and --merge-commit runs the same scan in the identity join\". Never treated as zero.",
+        "Mark step not run (no forge, item 4): the current zero refusal, saying only closing links were searched.",
+        "Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge?: MergeTimeForge`. Both discovery calls in `packages/core/src/scope/transition.ts` (complete and restamp) pass `options.mergeTimeForge`. Without one, discovery builds `defaultMergeTimeForge(runGh)` under the gate's rule, only when `fetchPrPayload` is not injected; with neither, the mark step does not run, so existing tests that inject only `fetchPrPayload` keep their results.",
+        "Live reads. The default PR payload readers in discovery (3977-3979) and in `evaluateDeliveryGate` (3209-3211) call `defaultFetchPrPayload` with `liveRunGh(runGh)`, as the gate's stamped-PR check already does. Injected readers are used as given. A PR cached by `ghx` before it merged then reads as merged in both places.",
+        "One PR. Files: `delivery-evidence.ts`, `transition.ts`, `delivery-evidence.test.ts`, `transition.test.ts`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or `!`/`⊗` rule text; neither source file is a declared evaluator surface, so no `docs/RULE-MAP.md` or `xbrief/evaluator-surface-disposition.json` change.",
+        "Given a story whose activation PR carries `deft-story-part: N` (or `deft-story: N` with only brief and changelog files) and whose product PR carries `deft-story: N` and `Refs #N`, with no closing links and no `productPullRequest`, when `scope:complete` runs with no `--pr` or `--merge-commit`, then it completes with the product PR's number and merge commit and `identityBasis: merge-time-mark`.",
+        "Given the same story through the restamp path (brief already in `completed/`), then discovery picks the same PR.",
+        "Given a product PR whose `deft-story: N` mark was added only after merge, then discovery does not pick it and refuses with the no-marked-PR message.",
+        "Given two merged product PRs with the sole mark `deft-story: N`, one into `master` and one into `develop`, then discovery refuses, lists both with base and merge commit, and names the delivery-branch `productPullRequest` requirement.",
+        "Given one marked product PR merged into a base other than the delivery branch, then discovery refuses and names that PR, its base and its merge commit.",
+        "Given a merged-PR scan page that fails or is incomplete, then discovery refuses with the scan error and the retry text, and does not report zero.",
+        "Given a qualifying closing PR, or a `productPullRequest` stamp, then discovery behaves as today and the mark scan is not run.",
+        "Given only an injected `fetchPrPayload` and no forge, then the mark step does not run and the refusal says only closing links were searched.",
+        "Given the default payload reader and a `gh` runner that returns an unmerged payload through the cache-eligible binary and a merged payload with the plain `gh` override, when `scope:complete` runs with no flags, then discovery and the identity join both read the merged payload and the story completes.",
+        "Given any discovery refusal, then the message names `--pr <n>` and `--merge-commit <sha>`."
+      ],
+      "admitted_source_digest": "3243e016ad9568fc1efcb29d84a5354e48fe3f7b25db112ebe95dfc89047f4a3",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Mark step. In `discoverDeliveryEvidenceForComplete` (`packages/core/src/scope/delivery-evidence.ts`), when the plan has no `productPullRequest` and the closing-PR path returns zero qualifying PRs, discovery runs `scanSoleMarkCompetitors` for the brief's issue with no PR excluded (`candidatePr` becomes optional; existing callers are unchanged). The result's `competitors` are the merged PRs on every base whose merge-time body carries the sole mark `deft-story: N` and that are not brief-land-only, zero-file PRs included, exactly as the join counts them. Discovery picks PR P only when `competitors` is exactly [P] and P's PR payload is merged into the delivery branch (the existing `candidatePassesDeliveryBaseFilter`). It then builds evidence with `evidenceFromPrPayload` and returns `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #P\". Discovery is candidate selection only: the identity join still proves basis (a) and every later check runs unchanged.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Precedence is unchanged. A `productPullRequest` seed and a qualifying closing PR win as today. A failed closing-PR read and several qualifying closing PRs refuse as today, before the mark step.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Refusals. Each names only the searches that ran, and ends with the existing `deliveryEvidenceRemediation` text (with \"or Pass\" corrected to \"or pass\"):",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No marked PR: \"found no merged PR into '<branch>' that closes #N, and no merged PR whose merge-time body carries the sole mark `deft-story: N`\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "One marked PR, not merged into the delivery branch: names it with its base and merge commit; it can complete only with `--pr <n> --merge-commit <sha>` once that merge commit is on `origin/<branch>`.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Several marked PRs: lists each with its base and merge commit, and says the identity join accepts one of them only when `metadata.productPullRequest` in the brief on the fetched delivery branch names it (a working-tree stamp does not count); with that in place, pass `--pr <n> --merge-commit <sha>`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Scan could not finish (failed or incomplete read, exhausted budget): the scan error, then \"retry; passing --pr and --merge-commit runs the same scan in the identity join\". Never treated as zero.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Mark step not run (no forge, item 4): the current zero refusal, saying only closing links were searched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge?: MergeTimeForge`. Both discovery calls in `packages/core/src/scope/transition.ts` (complete and restamp) pass `options.mergeTimeForge`. Without one, discovery builds `defaultMergeTimeForge(runGh)` under the gate's rule, only when `fetchPrPayload` is not injected; with neither, the mark step does not run, so existing tests that inject only `fetchPrPayload` keep their results.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Live reads. The default PR payload readers in discovery (3977-3979) and in `evaluateDeliveryGate` (3209-3211) call `defaultFetchPrPayload` with `liveRunGh(runGh)`, as the gate's stamped-PR check already does. Injected readers are used as given. A PR cached by `ghx` before it merged then reads as merged in both places.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "One PR. Files: `delivery-evidence.ts`, `transition.ts`, `delivery-evidence.test.ts`, `transition.test.ts`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or `!`/`⊗` rule text; neither source file is a declared evaluator surface, so no `docs/RULE-MAP.md` or `xbrief/evaluator-surface-disposition.json` change.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a story whose activation PR carries `deft-story-part: N` (or `deft-story: N` with only brief and changelog files) and whose product PR carries `deft-story: N` and `Refs #N`, with no closing links and no `productPullRequest`, when `scope:complete` runs with no `--pr` or `--merge-commit`, then it completes with the product PR's number and merge commit and `identityBasis: merge-time-mark`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given the same story through the restamp path (brief already in `completed/`), then discovery picks the same PR.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a product PR whose `deft-story: N` mark was added only after merge, then discovery does not pick it and refuses with the no-marked-PR message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given two merged product PRs with the sole mark `deft-story: N`, one into `master` and one into `develop`, then discovery refuses, lists both with base and merge commit, and names the delivery-branch `productPullRequest` requirement.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given one marked product PR merged into a base other than the delivery branch, then discovery refuses and names that PR, its base and its merge commit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a merged-PR scan page that fails or is incomplete, then discovery refuses with the scan error and the retry text, and does not report zero.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given a qualifying closing PR, or a `productPullRequest` stamp, then discovery behaves as today and the mark scan is not run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given only an injected `fetchPrPayload` and no forge, then the mark step does not run and the refusal says only closing links were searched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given the default payload reader and a `gh` runner that returns an unmerged payload through the cache-eligible binary and a merged payload with the plain `gh` override, when `scope:complete` runs with no flags, then discovery and the identity join both read the merged payload and the story completes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Given any discovery refusal, then the message names `--pr <n>` and `--merge-commit <sha>`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6516778046",
+    "updated": "2026-11-21T23:54:47Z"
+  }
+}
