@@ -1,0 +1,769 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6934",
+    "updated": "2026-11-21T23:43:43Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Readiness and preflight accept stories that share one origin issue, which can never be completed",
+    "status": "running",
+    "narratives": {
+      "Description": "Stories that share one completion issue (the first GitHub issue reference of each brief) compete for the same deft-story: N mark, and a part line cannot complete any of them, yet nothing says so until scope:complete refuses after merge (#6934). The worker envelope also asks the parent to pick a story line per task, so a leaf that delivers a whole story can carry deft-story-part: N (#6882 item 1). This story adds a warn-only shared-issue check to swarm:readiness, xbrief:preflight and swarm:launch, makes the envelope default to deft-story: N, and has the story-line writer note any part line on a product branch.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6934",
+      "Overview": "\n1. Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.\n2. Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"\n3. `swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.\n4. `xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.\n5. `swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.\n6. Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.\n7. Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` writes the writer's OK message to stderr whether or not `--json` is set, including when it goes on to start a controller run; stdout stays the controller JSON (`packages/runtime/src/pre-pr-run.ts` 670-674).\n8. One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, `packages/runtime/src/pre-pr-run.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.\n\n## Acceptance Criteria\n\n- Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.\n- Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.\n- Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.\n- Given an epic brief and one story brief with the same first issue reference, then no warning is printed.\n- Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.\n- Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.\n- Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.\n- Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.\n- Given a product branch whose body already carries `deft-story-part: N`, when `pre-pr:run --body-file <body> --json` runs without `--part` and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged, and the exit code is 0.\n- Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split.\n\n\n",
+      "Constraint": "- Launch output that drops passing-gate warnings, or launch parsing gate text to find them (comment 7070834124 finding 1).\n- A writer note only for `part: true`, which misses a part line already in the body (comment 7070834124 finding 2).\n- A writer note that `pre-pr:run --json` drops on a controller start (comment 7070869243 finding 1).\n- Warning text that says only one story can ever complete, or that an attestation is a way past another product part (comment 7070834124 finding 3).\n- Describing this release as completion guaranteed by construction (comment 7070834124 finding 4).\n- A refusal keyed only on a shared anchor; a manifest story-line field; rewriting an existing story line; a CI live-check change; using the #6468 owner list in place of the anchor.",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a parent agent dispatching story workers, I want readiness, preflight and launch to warn when two open stories share one completion issue and the writer to flag a part line on a product branch, so that I fix story identity before PRs merge instead of after scope:complete refuses.",
+      "ImplementationPlan": "1. In packages/core/src/pr-closing-keywords/story-issue.ts, add a file-only helper that finds the other pending/active story briefs (xbrief/ and legacy vbrief/) whose resolvePlanGithubIssueRef names the same repository and issue, skipping epic and phase briefs, plus the fixed warning text (Bound items 1-2).\n2. swarm/readiness.ts: a Shared story issues heading in the report, exit code unchanged (item 3).\n3. preflight/evaluate.ts: append the warning to the OK message (item 4).\n4. swarm/launch.ts: after the gates pass, add the deduplicated warnings to the success stderr; stdout stays the manifest (item 5).\n5. core-ops.md and core-phase-3.md: the envelope names the story issue; leaves write deft-story: N; --part only for an envelope-marked split story; update the #6645 content-contract test (item 6).\n6. pr-closing-keywords/main.ts: the writer adds the part-line note on a product-shaped branch whether it wrote the line or found it; runtime pre-pr-run.ts prints the writer message on stderr in every mode, --json included (item 7).\n7. Tests for each Acceptance Criterion and one changelog.d fragment (item 8).",
+      "Traces": "#6934, #6882"
+    },
+    "items": [
+      {
+        "title": "Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When the helper runs for a story brief, then it returns the other pending/active story briefs whose first GitHub issue reference names the same repository and issue, reading files only and skipping epic and phase briefs."
+        }
+      },
+      {
+        "title": "Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When a shared issue is found, then the warning names the brief, repo#N, the other briefs, the productPullRequest settlement and the fix (own issue per story, or one story), and never says only one story can ever complete."
+        }
+      },
+      {
+        "title": "`swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When swarm:readiness runs, then the report has a Shared story issues heading (- none when empty) and the exit code is unchanged."
+        }
+      },
+      {
+        "title": "`xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When xbrief:preflight passes on a brief that shares its issue, then the OK message carries the warning and the exit code stays 0."
+        }
+      },
+      {
+        "title": "`swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When swarm:launch gates pass, then the deduplicated warnings are on stderr beside the advisory, stdout is the JSON manifest, and the exit code is unchanged."
+        }
+      },
+      {
+        "title": "Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When a parent reads core-ops.md or core-phase-3.md, then the task line names only the xBRIEF and issue, and --part is reserved for an envelope-marked split story."
+        }
+      },
+      {
+        "title": "Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` writes the writer's OK message to stderr whether or not `--json` is set, including when it goes on to start a controller run; stdout stays the controller JSON (`packages/runtime/src/pre-pr-run.ts` 670-674).",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the writer runs on a product branch whose resulting body carries deft-story-part: N for a running story issue, then the OK message adds the note, an existing line is never rewritten, and pre-pr:run prints the message on stderr in every mode."
+        }
+      },
+      {
+        "title": "One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, `packages/runtime/src/pre-pr-run.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When the PR is reviewed, then it is one PR with no new verb, flag, constant, policy field or refusal."
+        }
+      },
+      {
+        "title": "Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When two active story briefs share a first issue reference and swarm:readiness runs on either, then both are listed under Shared story issues with an unchanged exit code."
+        }
+      },
+      {
+        "title": "Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When xbrief:preflight runs on one of two sharing briefs, then it exits 0 and the message names the other brief."
+        }
+      },
+      {
+        "title": "Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "When swarm:launch runs on one sharing story and its gates pass, then the warning is on stderr, stdout is the unchanged manifest, and the exit code is 0."
+        }
+      },
+      {
+        "title": "Given an epic brief and one story brief with the same first issue reference, then no warning is printed.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When an epic brief and one story brief share a first issue reference, then no warning is printed."
+        }
+      },
+      {
+        "title": "Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "When two story briefs name the same number in different repositories, or the sharing brief is in completed/, then no warning is printed."
+        }
+      },
+      {
+        "title": "Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "When the writer runs with --part on a product branch of a running story, then it writes deft-story-part: N and prints the note."
+        }
+      },
+      {
+        "title": "Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "When the writer runs without --part on a product branch whose body already carries deft-story-part: N, then the body is unchanged and the note is printed."
+        }
+      },
+      {
+        "title": "Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "When the writer runs on a brief-only branch with or without --part, then no note is printed."
+        }
+      },
+      {
+        "title": "Given a product branch whose body already carries `deft-story-part: N`, when `pre-pr:run --body-file <body> --json` runs without `--part` and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged, and the exit code is 0.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "When pre-pr:run --body-file --json runs without --part on a product branch whose body carries deft-story-part: N and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged and the exit code is 0."
+        }
+      },
+      {
+        "title": "Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "When core-ops.md is read, then the task line has no story-line choice and --part appears only for a story the envelope marks as split."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6934",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6934: [framework-gap] Readiness and preflight accept stories that share one origin issue, which can never be completed"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-story-part: N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        },
+        {
+          "command": "deft-story: N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        },
+        {
+          "command": "pre-pr:run --body-file <body> --json",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L23"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/pr-closing-keywords/story-issue.ts",
+          "packages/core/src/pr-closing-keywords/story-issue.test.ts",
+          "packages/core/src/pr-closing-keywords/shared-story-issue.test.ts",
+          "packages/core/src/pr-closing-keywords/index.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/pr-closing-keywords/story-line-part-note.test.ts",
+          "packages/core/src/swarm/readiness.ts",
+          "packages/core/src/swarm/readiness-branches.test.ts",
+          "packages/core/src/swarm/readiness-shared-story-issue.test.ts",
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/preflight/evaluate.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "content/skills/deft-directive-swarm/references/core-ops.md",
+          "content/skills/deft-directive-swarm/references/core-phase-3.md",
+          "packages/core/src/content-contracts/skills/swarm_story_line_slot_6645.test.ts",
+          "changelog.d/6934-shared-story-issue-warning.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6526203936.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-closing-keywords/story-issue.test.ts packages/core/src/pr-closing-keywords/shared-story-issue.test.ts packages/core/src/pr-closing-keywords/story-line-part-note.test.ts",
+          "npx vitest run packages/core/src/swarm/readiness-shared-story-issue.test.ts packages/core/src/swarm/readiness-branches.test.ts packages/core/src/preflight/evaluate.test.ts packages/core/src/swarm/launch.test.ts",
+          "npx vitest run packages/runtime/src/pre-pr-run.test.ts packages/core/src/content-contracts/skills/swarm_story_line_slot_6645.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          "shared-story-issue helper and warning text in pr-closing-keywords/story-issue.ts (file-only, pending/active, epic/phase skipped)",
+          "swarm:readiness Shared story issues heading; xbrief:preflight OK-message warning; swarm:launch success-stderr warning; exit codes unchanged",
+          "core-ops.md / core-phase-3.md envelope: deft-story: N default, --part only for an envelope-marked split story",
+          "writer part-line note on product branches; pre-pr:run prints the writer message on stderr in every mode",
+          "one changelog fragment changelog.d/6934-shared-story-issue-warning.md"
+        ],
+        "conflict_group": "story-line",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 18 clauses are the 8 Bound-remedy items and 10 Acceptance Criteria of the accepted design-critique lean 7070956629 (synthesis 7070991001), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6934; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix decides where Directive checks that each story has its own completion issue, and which PR-body line a worker writes by default; a wrong choice either adds a gate that misfires on legitimate split stories or leaves stories that can only complete through an after-merge operator grant.\n\nTarget-digest: sha256:fb09e601557d2218549285b6775cc61d56c8e4c835dba8d4bc76916e202f5b3e\ndispatch-sha: 838433b5b45bc24a1d28680fb136c9aacd874ccb\ndest: C:/Repos/deft/wt/arc-6934 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: two small checks over existing helpers (the completion anchor and the story-line writer) plus swarm doc text; the design risk is where the check runs and whether it warns or refuses. One critic of a different model family, plus one pain audit.\ncritic-post cap: 2 (set by the operator for this arc)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 838433b5b45bc24a1d28680fb136c9aacd874ccb: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\nA story completes when its merged product PR proves delivery to the story's issue. The issue is the brief's first GitHub issue reference (the \"anchor\"), and the normal proof is basis (a): exactly one merged non-brief PR whose merge-time body carries `deft-story: N`. When several stories anchor on one issue (12 child stories all pointing at their epic's issue, in the #6934 report), no story can complete in the normal way. If every PR carries `deft-story: N`, each PR is contested by the others. If every PR carries `deft-story-part: N`, each PR is a partial delivery, and the #6645 part-line route also fails because the other parts are product parts. Nothing before `scope:complete` notices this; the operator finds out after the PRs merged.\n\n#6882 item 1 is the sibling failure on stories that did have one issue each: the parent wrote `deft-story-part: N` into each leaf's envelope, so each whole-story PR could complete only through an operator `delivery-identity-attest` grant (basis d). The envelope template still offers the parent a choice of line for each task.\n\nThe operator's goal for this arc: stories complete by construction, so the after-merge attest grant is never needed on the normal path, with fewer gates, not more.\n\nThe recommended fix: one shared check that reports stories sharing an anchor, shown as a warning (not a refusal) by `swarm:readiness` and `xbrief:preflight`; the worker envelope stops asking the parent to choose a line, so a leaf writes `deft-story: N` by default; and the story-line writer prints a note when `--part` is used on a product branch. One PR, no new verb, flag, constant or policy field.\n\n## Operator direction (Scott, 2026-11-21, \"Arc #6934\"; relayed by the coordinator; recorded as constraints)\n- Make stories completable by construction, so the basis (d) attest grant is not needed on the normal path.\n- Fewer gates and steps. Refuse, or warn first as #6886 did.\n- Keep the build to one PR if possible.\n\n## Pains\n- P1 — A cohort whose stories share one anchor issue passes `swarm:readiness`, `xbrief:preflight` and dispatch, but none of those stories can complete through its own PR. The failure appears only at `scope:complete`, after merge, and recovery costs new issues, a brief-retarget PR and a follow-up PR per merged story (#6934).\n- P2 — A leaf that delivers a whole story can be marked `deft-story-part: N`, because the envelope template asks the parent to pick the line per task. That PR then completes only through an after-merge operator grant (basis d, #6645 route) or an extra PR (#6882 item 1).\n\n## Out of scope (named, not pains)\n- `scope:complete` discovery of a `deft-story: N` PR: #6873 (arced, ingest-ready). This arc assumes its result and does not redesign it.\n- The #6645 part-line attest route (merged in fc038d3b9, after v0.130.2; not yet released). It stays as the recovery path.\n- #6544 (the closing-keywords check asks a brief-only PR for `deft-story: N`, not `deft-story-part: N`). This arc does not change which line a brief-only PR carries.\n- #6937 (one mint approval per cohort).\n- Completing stories already merged under shared anchors or part lines (recovery for the reporters).\n- A later story on an issue whose earlier story already completed with a `deft-story: N` PR: that PR is a competitor forever. Detecting it needs a forge read; not here.\n- Turning the warnings into refusals (a later release, as on #6886).\n\n## Evidence\n- #6934 (consumer, runtime 0.129.13): 12 child stories with references pointing at epic issue #1840; workers marked PRs `deft-story-part: 1840`; `scope:complete` refused each as a partial delivery; recovery took 12 sub-issues, a retarget PR and three follow-up PRs.\n- #6882 item 1 (same consumer): seven stories, one issue each, every product PR carried `deft-story-part: N`; a lifecycle PR with seven `deft-story: N` marks was refused (not the sole mark; brief-only).\n- #6882 triage comment 7048900748 maps item 1 to #6645.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/scope/delivery-evidence.ts` 393-414 `resolvePlanGithubIssueRef` (the anchor: first GitHub issue reference). 782-787 `MERGE_TIME_ASSOCIATION_BASES`. 1010-1022 `isDeliveryBriefLandPath`; 1206-1235 `isDeliveryBriefLandExcluded`. 1333-1404 `scanSoleMarkCompetitors`. 1505-1574 `proveSoleMarkBasis`. 2357-2370 `isProductPartDiff`. 2403-2490 `checkPartLineSiblings`. 2552-2605 part-line refusal, then the sole-mark basis. 2640-2670 `provePartLineRoute`.\n- `packages/core/src/pr-closing-keywords/story-issue.ts` 46-52 `storyIssueOfBrief` (same anchor). 100-152 `storyIssueIdentityMessage` (#6468 case A: another `xbrief/active` brief owns the issue; fires only at PR time, and only on ownership, not on a shared anchor). 171-198 `storyDemandResolver`.\n- `packages/core/src/pr-closing-keywords/main.ts` 186-246 `collectLocalDiffFiles` (merge-base..HEAD). 860-868 `storyLineAdvice`. 927-929 `isProductShapedDiff`. 1012-1105 `evaluateStoryLineRequirement`. 1159-1210 `storyLinesForBranch`. 1219-1311 `writeStoryLineToBodyFile` (`--part` picks the label; default `deft-story`).\n- `packages/runtime/src/pre-pr-run.ts` 88, 278, 664: `--part` passes through to the writer.\n- `packages/core/src/swarm/readiness.ts` 436-518 `validateCandidate`; 705-793 `renderReport`; 833-879 `readinessReport`.\n- `packages/core/src/preflight/evaluate.ts` 165-347 `evaluate`; 289-303 the existing warning path (`placementWarning`); 324-345 the OK message.\n- `packages/core/src/swarm/launch.ts` 461-471 `defaultPreflightGate` / `defaultReadinessGate` (readiness runs on one story path at a time); 1052-1070 `enforceGates` (returns gate output only on failure). 1537-1600 launch-manifest entry (no story-line field).\n- `content/skills/deft-directive-swarm/references/core-ops.md` 55-57 (envelope template: `story line: [deft-story: N | deft-story-part: N]`), 69-73, 95. `content/skills/deft-directive-swarm/references/core-phase-3.md` 151. `content/templates/agent-prompt-preamble.md` 321.\n\n## Recommended mechanism (the thing to critique)\n- D1. Shared-anchor helper. In `pr-closing-keywords/story-issue.ts`, a function returns, for a story brief, the other nonterminal story briefs (`xbrief/pending` and `xbrief/active`, legacy `vbrief/` read-accepted; epics and phases excluded) whose `resolvePlanGithubIssueRef` names the same repository and issue. It reads files only; no forge.\n- D2. `swarm:readiness`. `readinessReport` runs the helper for each story candidate, against the other candidates and the lifecycle folders. A hit adds one warning line under a new report heading \"Shared story issues\", naming the issue, the briefs, and the fix. Exit code unchanged (warn-first).\n- D3. `xbrief:preflight`. `evaluate` runs the helper for the brief against `xbrief/active` and appends the same warning to the OK message, as `placementWarning` does. Exit code unchanged.\n- D4. Warning text: \"<rel> and <rels> all anchor on <repo>#N (each brief's first GitHub issue reference). Only one PR can complete #N with `deft-story: N`; the other stories would need an extra PR or an operator attestation after merge. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"\n- D5. Envelope. In `core-ops.md` the task line drops the per-task choice: `Task A (xBRIEF: [filename], issue #[N])`. The worker writes `deft-story: N` with `--write-story-line` (no `--part`). The envelope says \"split: a later product PR completes this story\" only when the story is deliberately split, and only then the worker passes `--part`. The rule at line 95, `core-phase-3.md` 151 and the preamble 321 say the same.\n- D6. Writer note. `writeStoryLineToBodyFile` with `part: true`, when the branch diff is product-shaped (`isProductShapedDiff` on `collectLocalDiffFiles`), adds one note to its OK message: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. Drop --part if this PR delivers the whole story.\" Exit code unchanged. `pre-pr:run --part` shows it through the writer.\n- D7. Not done: no launch-manifest story-line field (the writer already derives N from the branch's running brief; a manifest field would be a second source); no new refusal anywhere; no CI live-check change.\n- D8. Tests and one PR: helper (shared anchor, different repositories, epic excluded, terminal folders ignored); readiness warning with exit 0; preflight warning with exit 0; writer note with `--part` on a product diff and none on a brief-only diff; doc text. One `changelog.d/` fragment.\n\nQuestions for the critic:\n1. Is the anchor (`resolvePlanGithubIssueRef`) the right key, or should the helper also use the #6468 owner list (`briefOwnsIssue`)? Can two stories share an anchor and both still complete through basis (a)?\n2. `swarm:launch` runs readiness and preflight one story at a time and returns their output only on failure (`enforceGates`). Does a warn-first check reach the parent on the launch path, and if not, what is the smallest change: print gate warnings on success, refuse, or check at `scope:activate` instead?\n3. Warn or refuse? Is there a legitimate shape (one issue, several stories) that a refusal would break, given that basis (a) can settle competing marks by a `productPullRequest` stamp on the delivery branch?\n4. Is D5 enough to remove the #6882 item 1 cause, or should the writer refuse `--part` on a product diff, or should the manifest carry the line?\n5. Should D1 include `xbrief/completed` briefs, or the parent epic's issue when only one child anchors on it?\n6. Does this fit one PR for the next build?\n\n",
+          "id": 7070785884,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070785884",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:18:28Z",
+          "updated_at": "2026-11-21T23:18:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7070788688\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 838433b5b45bc24a1d28680fb136c9aacd874ccb\ndest: C:/Repos/deft/wt/arc-6934\nverification-path: pin-read git show 838433b5b45bc24a1d28680fb136c9aacd874ccb: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7070785884\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The parent posts the critic's final message verbatim.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, the #6882 body and triage comment, and the titles of linked issues) and reads code with `git show <dispatch-sha>:<path>`.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7070788688,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070788688",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:18:43Z",
+          "updated_at": "2026-11-21T23:18:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe proposed defaults and early warnings are useful, but the design needs two corrections before it binds: launch currently hides successful-check warnings, and the writer silently preserves an existing partial-delivery line even when called without `--part`. Shared issues are a completion risk, not proof that completion is impossible. Keep this to one PR, preserve deliberate split deliveries, and describe the first release as advisory prevention rather than completion guaranteed by construction.\n\n## Answers\n\n1. **Use the repository-scoped completion anchor for shared-anchor detection.** `briefOwnsIssue` answers a different question; reuse its existing identity diagnostic separately rather than substituting ownership for anchor equality. Two stories can pass basis (a) despite competing marks if each candidate matches its brief’s `metadata.productPullRequest` on the fetched delivery branch. That does not clear independent ownership/adoption failures.\n\n2. **No: launch drops successful gate output.** Surface warnings through the existing launch output path while preserving successful exit status and machine-readable manifest output. Moving the check to activation adds another interception point without fixing this transport problem.\n\n3. **Warn.** The stamp exception makes an unconditional refusal too broad. A refusal’s strongest argument is prevention before immutable merge-time evidence exists, but it needs a predicate that distinguishes unsupported sharing from supported delivery identities. This design has not supplied that predicate.\n\n4. **D5 improves the default but is insufficient by itself.** Keep the writer as the source of the issue number; no manifest line field and no blanket refusal of product `--part`. Extend D6 to diagnose relevant part-lines already present in the resulting body, including calls without `--part`.\n\n5. **Exclude completed briefs from this first shared-live-anchor warning.** Their presence alone does not prove a competing merged product PR. A single child sharing its parent epic’s issue also does not prove a completion collision; where the parent owns that issue, reuse #6468’s existing ownership diagnostic. Otherwise describe parent-anchor detection as a separate advisory scope choice.\n\n6. **Yes, one PR fits.** Include launch warning propagation and the existing-body writer case in the implementation and tests. No new gate, verb, policy field, or manifest identity is needed.\n\n## 1. blocks-the-design — The launch path suppresses the proposed warning\n\n**Evidence:** At the dispatch SHA, `packages/core/src/swarm/launch.ts:466` runs readiness with one story path. `launch.ts:1052` returns preflight/readiness text only for nonzero exits and returns `null` after successful checks. `packages/core/src/preflight/evaluate.ts:332` demonstrates that warnings can be carried in a successful message.\n\n**Failure mode:** D2/D3 correctly detect the shared issue and return exit 0, but a parent using `swarm:launch` receives neither warning. The cohort proceeds with the same hidden risk. Tests asserting only warning text from readiness/preflight would pass while the dispatch path remains silent.\n\n**Disposition consequence:** Amend the mechanism before binding: propagate advisory diagnostics through launch’s existing output handling, without converting warnings into refusals or corrupting manifest output. Add an integration-level assertion that successful launch exposes the shared-anchor warning. Retain the lifecycle-folder scan because launch’s singleton readiness calls cannot discover siblings from the candidate argument alone.\n\n## 2. blocks-the-design — Removing `--part` does not remove an existing partial mark\n\n**Evidence:** `packages/core/src/pr-closing-keywords/main.ts:1270` reads existing full and partial marks; line 1274 excludes either kind from writing. Line 1279 returns successful “already carries the story line” text. The live check accepts either mark at `main.ts:1095`. Its narrower `lands-with-product` refusal begins at line 1026.\n\n**Failure mode:** A whole-story worker receives or reuses a body containing `deft-story-part: N`, then follows D5 and invokes the writer without `--part`. The body remains partial, the writer reports success, and D6’s `part: true` condition emits no note. The ordinary live check also accepts it. This preserves the reported failure through an existing-body path.\n\n**Disposition consequence:** Extend the same writer advisory to relevant partial marks in the resulting body, including the unchanged-body return. Explain that dropping the flag does not replace an existing mark: a whole-story PR must replace that mark with `deft-story: N`. Preserve intentional partial marks rather than automatically rewriting them. Test both fresh `--part` output and an existing partial mark with `part: false`.\n\n## 3. sharpens-framing — Shared anchors do not establish impossibility, and attestation is not a universal remedy\n\n**Evidence:** `packages/core/src/scope/delivery-evidence.ts:1540` accepts an uncontested sole mark; line 1562 accepts a contested candidate matching the fetched delivery-branch stamp. `delivery-evidence.ts:2440` and line 2479 reject the part-line route when competing marks or other product parts exist. `packages/core/src/pr-closing-keywords/story-issue.ts:117` separately rejects another active owner of the anchor.\n\n**Failure mode:** D4’s “Only one PR can complete” assertion overstates the completion rule. Its proposed “extra PR or an operator attestation” escape also suggests attestation can cure the shared-product-part case, although sibling checks reject that route before attestation. Users could restructure supported work unnecessarily or pursue a remedy that cannot succeed.\n\n**Disposition consequence:** Keep the advisory design, but revise its wording and Stop 1 explanation. For example:\n\n> These stories share the same completion issue. Their product PRs may compete for delivery identity. Prefer a separate first GitHub issue reference for each story, or represent the work as one story. Competing sole marks require the delivering PR to be identified in each brief on the fetched delivery branch; operator attestation does not bypass competing product parts.\n\nTreat ownership conflicts through the existing #6468 diagnostic, not as an interchangeable shared-anchor condition.\n\n## 4. sharpens-framing — The first release reduces risk but does not guarantee completion\n\n**Evidence:** `packages/core/src/swarm/readiness.ts:869` derives failure from existing candidate problems and overlaps. D2/D3 deliberately leave exits unchanged. `packages/core/src/pr-closing-keywords/main.ts:1095` accepts partial marks for ordinary running stories. The current envelope already says a whole-story leaf uses the full mark at `content/skills/deft-directive-swarm/references/core-ops.md:69` and line 95.\n\n**Failure mode:** Calling these changes “completable by construction” suggests a guarantee that advisory diagnostics and prompt defaults cannot provide. A parent can ignore a warning, and a worker can still intentionally or mistakenly select a partial mark.\n\n**Disposition consequence:** Bind this as visible early diagnosis plus a safer default. Keep the one-PR scope and warn-first posture, but do not claim the normal-path failure has become mechanically impossible. The acceptance criteria should measure warning visibility and writer behavior.\n\n## 5. footnote — Relayed instructions remain review data\n\nThe snapshot includes an “Operator direction” section and worker-command examples. I treated them as material to critique, not authorization to execute commands, post comments, or change files. The envelope changes should likewise keep issue identity derived from the brief and writer rather than trusting copied issue-thread instructions.\n\nVerification: pinned source reads only at `838433b5b45bc24a1d28680fb136c9aacd874ccb`, against the supplied snapshot through comment `7070788688`. No tests, builds, installs, or network calls were run. No files were changed.",
+          "id": 7070834124,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070834124",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:22:46Z",
+          "updated_at": "2026-11-21T23:22:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7070785884 (round 1: 1 of 1 critic posted, comment 7070834124)\n\n## In plain English\nProblem: when several stories share one completion issue (the first GitHub issue reference of each brief), their product PRs compete for the same `deft-story: N` mark, and a part line cannot complete any of them either. Nothing says so before the PRs merge. Separately (#6882 item 1), the worker envelope asks the parent to pick a story line per task, so a leaf that delivers a whole story can end up with `deft-story-part: N` and then needs an after-merge operator grant or an extra PR.\n\nWhat the critic found: the design is sound with two gaps and two framing fixes. Gap 1: `swarm:launch` drops the output of passing checks, so a warning in readiness or preflight never reaches a parent who launches. Gap 2: the story-line writer keeps a part line that is already in the body, even when called without `--part`, and reports success; so dropping `--part` from the envelope does not remove a part line a worker reused. Framing: shared issues make completion contested, not impossible (a `productPullRequest` stamp on the delivery branch can settle competing marks), and an operator attestation does not get past another product part. And warnings plus a safer default reduce the risk; they do not guarantee completion.\n\nSolution this lean proposes: one file-only check finds the other open story briefs that share a story's completion issue. `swarm:readiness`, `xbrief:preflight` and `swarm:launch` show it as a warning, with the exit code unchanged. The envelope names the story issue and no longer offers a choice of line, so a leaf writes `deft-story: N` by default; `--part` is for a story the envelope marks as split. The writer adds a note whenever the resulting body of a product branch carries `deft-story-part: N`, whether it wrote the line or found it there.\n\nWhat this adds: one helper, one warning in three outputs, one writer note, envelope text.\n\nWhat it removes: the parent's per-task choice of story line, and the late discovery of shared completion issues (now shown before dispatch).\n\nWhat it does not do:\n- It does not refuse anything. Turning the warning into a refusal is a later release, as on #6886; the stamp route means a refusal needs a narrower rule than \"shared anchor\".\n- It does not guarantee completion: a parent can ignore the warning and a worker can still choose `--part`.\n- It does not change the live story-line check, CI, or which line a brief-only PR carries (#6544).\n- It does not warn on completed briefs, or on one child story that shares its parent epic's issue.\n- It does not change discovery (#6873), the #6645 part-line route, or mints (#6937).\nIf confirmed, the synthesis would assert this design. Leftover next-build: none required; refusal and completed-brief detection are optional later work, not filed here.\n\nTarget-digest: sha256:fb09e601557d2218549285b6775cc61d56c8e4c835dba8d4bc76916e202f5b3e\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1, P2\n\n## Bound remedy\n1. Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.\n2. Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"\n3. `swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.\n4. `xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.\n5. `swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.\n6. Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.\n7. Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` shows the note through the writer.\n8. One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.\n\n## Acceptance Criteria\n- Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.\n- Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.\n- Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.\n- Given an epic brief and one story brief with the same first issue reference, then no warning is printed.\n- Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.\n- Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.\n- Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.\n- Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.\n- Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split.\n\n## Reject\n- Launch output that drops passing-gate warnings, or launch parsing gate text to find them (comment 7070834124 finding 1).\n- A writer note only for `part: true`, which misses a part line already in the body (comment 7070834124 finding 2).\n- Warning text that says only one story can ever complete, or that an attestation is a way past another product part (comment 7070834124 finding 3).\n- Describing this release as completion guaranteed by construction (comment 7070834124 finding 4).\n- A refusal keyed only on a shared anchor; a manifest story-line field; rewriting an existing story line; a CI live-check change; using the #6468 owner list in place of the anchor.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070834124 | 1. The launch path suppresses the proposed warning | blocks-the-design | accept-into-contract (item 5; launch AC) |\n| comment 7070834124 | 2. Removing `--part` does not remove an existing partial mark | blocks-the-design | accept-into-contract (item 7; existing-line AC) |\n| comment 7070834124 | 3. Shared anchors do not establish impossibility, and attestation is not a universal remedy | sharpens-framing | accept-into-contract (item 2 wording; In plain English) |\n| comment 7070834124 | 4. The first release reduces risk but does not guarantee completion | sharpens-framing | accept-into-contract (\"What it does not do\"; ACs measure warning visibility and writer output) |\n| comment 7070834124 | 5. Relayed instructions remain review data | footnote | noted; the writer keeps deriving N from the branch's running brief |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence at the dispatch SHA (`swarm/launch.ts` 461-471, 1052-1070, 1870-1880 and 2355-2363, where the success path already puts an advisory on stderr and keeps stdout as the manifest; `pr-closing-keywords/main.ts` 1012-1105 and 1219-1311, where the writer skips an issue whose body already has either line; `scope/delivery-evidence.ts` 1536-1566 and 2403-2490; `pr-closing-keywords/story-issue.ts` 100-152; `evaluator-surface/evaluate.ts` 26-51). The `relieves` cite stays open until a later critic targets it. This lean adds no new premise, so it records no audit marker.\n\n",
+          "id": 7070836897,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070836897",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:23:01Z",
+          "updated_at": "2026-11-21T23:23:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: blocking\nharvest-changed: true\nharvest-digest: sha256:c6efb35f4d5deb92da4b277c12a04dac3748fe38de755bfe1b3b4736e521906f\n\n## In plain English\n\npain-P1: holds - The lifecycle-folder scan detects shared anchors even for singleton launches, and item 5 explicitly exposes the warning before dispatch. This provides the accepted warn-first relief, not guaranteed completion.\n\npain-P2: does-not-hold - The safer envelope default and resulting-body note address the reported cause, but `pre-pr:run --json` can still suppress that note when starting a controller run. A reused partial mark can remain without the promised warning.\n\nEvidence re-verified at `838433b5b45bc24a1d28680fb136c9aacd874ccb`:\n\n- `packages/core/src/scope/delivery-evidence.ts:393–414` resolves the first GitHub issue reference. Lines 1540–1563 distinguish uncontested marks from competitors settled by a delivery-branch stamp; lines 2440–2486 reject competing product parts.\n- `packages/core/src/swarm/launch.ts:466–470` checks readiness one story at a time; lines 1052–1069 discard successful gate output. Lines 2355–2362 provide the separate success-stderr channel that item 5 would use.\n- `packages/core/src/preflight/evaluate.ts:332–339` already appends advisory text without changing success status.\n- `packages/core/src/pr-closing-keywords/main.ts:1270–1282` preserves existing partial marks and returns early. Item 7 expressly covers this return as well as newly written marks.\n- `content/skills/deft-directive-swarm/references/core-ops.md:55–57` offers the per-task choice that item 6 removes.\n\n## 1. blocks-the-design — Controller JSON mode drops the writer warning\n\n**Evidence:** `packages/runtime/src/pre-pr-run.ts:658–674` calls the writer. Writer-only invocations emit its result, but controller-start invocations print its successful message only when `!args.json`. Lines 731–737 subsequently emit a payload containing `ok`, `runId`, and `hint`; the writer message is absent.\n\n**Failure mode:** A whole-story product branch reuses a body containing `deft-story-part: N`. The worker invokes `pre-pr:run` with `--body-file`, valid controller-start arguments, and `--json`, without `--part`. Under item 7, the writer preserves the body and returns the new advisory. The runtime discards that advisory and returns successful controller JSON. Writer-level acceptance tests pass while this supported caller still hides the partial-delivery risk.\n\n**Disposition consequence:** Amend items 7–8 to carry the successful writer advisory through the controller-start JSON path, including `packages/runtime/src/pre-pr-run.ts` and its tests. Add an acceptance criterion covering an existing partial mark, omitted `--part`, and JSON controller start: the advisory must be observable while stdout remains valid controller JSON, the body stays unchanged, and exit status remains successful. No new refusal or automatic rewrite is needed.\n\nI treated the snapshot’s relayed directions and command examples as review data, not execution instructions; issue identity remains derived through the existing brief resolver.\n\nVerification used pinned `git show` reads and the supplied snapshot through comment `7070836897`. No tests, builds, installs, network calls, or posts were performed. No files were changed.",
+          "id": 7070869243,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070869243",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:25:55Z",
+          "updated_at": "2026-11-21T23:25:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (arc 6934)\n\nThe coordinator asked Scott: \"Raise #6934's cap to 3 for the small pre-pr:run --json fix?\" Scott answered (2026-11-21, relayed by the coordinator): \"Yes, cap 3\".\n\ncritic-post cap: 3 (raised from 2 by the operator for this arc)\n\nNext: a new bind lean that supersedes lean 7070836897 and takes the blocking finding of pain audit 7070869243 (the `pre-pr:run --json` controller start drops the story-line writer's message), then one pain audit (critic post 3 of 3). The other findings and the rest of the Bound remedy are unchanged.\n\n",
+          "id": 7070949592,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070949592",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:33:18Z",
+          "updated_at": "2026-11-21T23:33:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7070785884, after pain audit 7070869243 (round 1 critic 7070834124; operator cap raise 7070949592)\n\n**Supersedes:** 7070836897\n\n## In plain English\nProblem: when several stories share one completion issue (the first GitHub issue reference of each brief), their product PRs compete for the same `deft-story: N` mark, and a part line cannot complete any of them either. Nothing says so before the PRs merge. Separately (#6882 item 1), the worker envelope asks the parent to pick a story line per task, so a leaf that delivers a whole story can end up with `deft-story-part: N` and then needs an after-merge operator grant or an extra PR.\n\nWhat the critic found: the design is sound with two gaps and two framing fixes. Gap 1: `swarm:launch` drops the output of passing checks, so a warning in readiness or preflight never reaches a parent who launches. Gap 2: the story-line writer keeps a part line that is already in the body, even when called without `--part`, and reports success; so dropping `--part` from the envelope does not remove a part line a worker reused. Framing: shared issues make completion contested, not impossible (a `productPullRequest` stamp on the delivery branch can settle competing marks), and an operator attestation does not get past another product part. And warnings plus a safer default reduce the risk; they do not guarantee completion.\n\nWhat the pain audit found (comment 7070869243): P1 holds, P2 did not, because `pre-pr:run --json` drops the writer's message when it starts a controller run, so the note never reaches a worker on that path. This lean adds that one fix; nothing else changes from lean 7070836897.\n\nSolution this lean proposes: one file-only check finds the other open story briefs that share a story's completion issue. `swarm:readiness`, `xbrief:preflight` and `swarm:launch` show it as a warning, with the exit code unchanged. The envelope names the story issue and no longer offers a choice of line, so a leaf writes `deft-story: N` by default; `--part` is for a story the envelope marks as split. The writer adds a note whenever the resulting body of a product branch carries `deft-story-part: N`, whether it wrote the line or found it there.\n\nWhat this adds: one helper, one warning in three outputs, one writer note (also shown by `pre-pr:run --json`), envelope text.\n\nWhat it removes: the parent's per-task choice of story line, and the late discovery of shared completion issues (now shown before dispatch).\n\nWhat it does not do:\n- It does not refuse anything. Turning the warning into a refusal is a later release, as on #6886; the stamp route means a refusal needs a narrower rule than \"shared anchor\".\n- It does not guarantee completion: a parent can ignore the warning and a worker can still choose `--part`.\n- It does not change the live story-line check, CI, or which line a brief-only PR carries (#6544).\n- It does not warn on completed briefs, or on one child story that shares its parent epic's issue.\n- It does not change discovery (#6873), the #6645 part-line route, or mints (#6937).\nIf confirmed, the synthesis would assert this design. Leftover next-build: none required; refusal and completed-brief detection are optional later work, not filed here.\n\nTarget-digest: sha256:fb09e601557d2218549285b6775cc61d56c8e4c835dba8d4bc76916e202f5b3e\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.\n2. Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"\n3. `swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.\n4. `xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.\n5. `swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.\n6. Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.\n7. Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` writes the writer's OK message to stderr whether or not `--json` is set, including when it goes on to start a controller run; stdout stays the controller JSON (`packages/runtime/src/pre-pr-run.ts` 670-674).\n8. One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, `packages/runtime/src/pre-pr-run.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.\n\n## Acceptance Criteria\n- Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.\n- Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.\n- Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.\n- Given an epic brief and one story brief with the same first issue reference, then no warning is printed.\n- Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.\n- Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.\n- Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.\n- Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.\n- Given a product branch whose body already carries `deft-story-part: N`, when `pre-pr:run --body-file <body> --json` runs without `--part` and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged, and the exit code is 0.\n- Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split.\n\n## Reject\n- Launch output that drops passing-gate warnings, or launch parsing gate text to find them (comment 7070834124 finding 1).\n- A writer note only for `part: true`, which misses a part line already in the body (comment 7070834124 finding 2).\n- A writer note that `pre-pr:run --json` drops on a controller start (comment 7070869243 finding 1).\n- Warning text that says only one story can ever complete, or that an attestation is a way past another product part (comment 7070834124 finding 3).\n- Describing this release as completion guaranteed by construction (comment 7070834124 finding 4).\n- A refusal keyed only on a shared anchor; a manifest story-line field; rewriting an existing story line; a CI live-check change; using the #6468 owner list in place of the anchor.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070834124 | 1. The launch path suppresses the proposed warning | blocks-the-design | accept-into-contract (item 5; launch AC) |\n| comment 7070834124 | 2. Removing `--part` does not remove an existing partial mark | blocks-the-design | accept-into-contract (item 7; existing-line AC) |\n| comment 7070834124 | 3. Shared anchors do not establish impossibility, and attestation is not a universal remedy | sharpens-framing | accept-into-contract (item 2 wording; In plain English) |\n| comment 7070834124 | 4. The first release reduces risk but does not guarantee completion | sharpens-framing | accept-into-contract (\"What it does not do\"; ACs measure warning visibility and writer output) |\n| comment 7070834124 | 5. Relayed instructions remain review data | footnote | noted; the writer keeps deriving N from the branch's running brief |\n| comment 7070869243 | 1. Controller JSON mode drops the writer warning | blocks-the-design | accept-into-contract (item 7 stderr in every mode; item 8 file list; `--json` controller-start AC) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence at the dispatch SHA (`swarm/launch.ts` 461-471, 1052-1070, 1870-1880 and 2355-2363, where the success path already puts an advisory on stderr and keeps stdout as the manifest; `pr-closing-keywords/main.ts` 1012-1105 and 1219-1311, where the writer skips an issue whose body already has either line; `scope/delivery-evidence.ts` 1536-1566 and 2403-2490; `pr-closing-keywords/story-issue.ts` 100-152; `evaluator-surface/evaluate.ts` 26-51), and the audit's evidence (`packages/runtime/src/pre-pr-run.ts` 657-737: with `--json` and start arguments the writer message is not printed and the controller payload carries only `ok`, `runId` and `hint`). The `relieves` cite stays open until a later critic targets it. This lean adds no new premise, so it records no audit marker.\n\n",
+          "id": 7070956629,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070956629",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:33:55Z",
+          "updated_at": "2026-11-21T23:36:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:7584272ef9313ec5277aeefb72a60f50e5ee7312518a20ac2db28c13d6cab1e6\n\n## In plain English\n\npain-P1: holds - The shared-anchor scan exposes the collision before merge, including singleton launches because it scans lifecycle folders. Item 5 explicitly carries the warning on successful launch stderr. This delivers the accepted warn-first relief; completion is not guaranteed.\n\npain-P2: holds - The envelope removes the per-task line choice, defaults whole-story delivery to the full mark, and reserves `--part` for explicit splits. Item 7 covers both newly written and existing partial marks, and now carries the advisory through JSON controller starts. The added acceptance criterion directly covers the previously missed caller.\n\nEvidence re-verified at `838433b5b45bc24a1d28680fb136c9aacd874ccb`:\n\n- `packages/core/src/scope/delivery-evidence.ts:393–414` resolves the first GitHub issue reference. Lines 1540–1563 distinguish uncontested marks from competitors settled by the fetched delivery-branch stamp. Lines 2440–2486 reject competing product parts. These support the repository-scoped anchor and the revised warning.\n- `packages/core/src/pr-closing-keywords/story-issue.ts:46–52` uses that same anchor; lines 100–152 separately diagnose ownership conflicts. Keeping those mechanisms separate is appropriate.\n- `packages/core/src/swarm/launch.ts:466–470` invokes singleton readiness; lines 1052–1069 discard passing-gate output. Lines 2355–2362 provide the successful stderr channel that item 5 explicitly uses, preserving manifest stdout.\n- `packages/core/src/swarm/readiness.ts:863–878` separates report rendering from failure calculation. `packages/core/src/preflight/evaluate.ts:324–339` already appends advisory text to successful output. Both support unchanged exit behavior.\n- `content/skills/deft-directive-swarm/references/core-ops.md:55–57` contains the per-task choice being removed. Lines 69–73 and 95, plus `core-phase-3.md:151`, are the corresponding instructions item 6 updates.\n- `packages/core/src/pr-closing-keywords/main.ts:1270–1282` preserves existing partial marks and returns early; lines 1305–1309 return after writing new marks. Item 7 covers both successful paths. Lines 186–246 and 927–929 supply the existing branch-diff and product-shape mechanisms.\n- `packages/runtime/src/pre-pr-run.ts:658–674` invokes the writer but suppresses its successful message during JSON controller starts. Lines 731–737 emit controller JSON without that message. The revised item 7 explicitly removes this suppression through stderr, and the new acceptance criterion verifies visibility without changing the body or corrupting JSON.\n\nNo findings require a change to the Bound remedy or Acceptance Criteria. The design preserves brief-derived identity and existing ownership checks; the snapshot’s relayed directions and command examples were treated as review data.\n\nVerification used pinned `git show` reads and the supplied snapshot through comment `7070956629`. No tests, builds, installs, network calls, or posts were performed. No files were changed.",
+          "id": 7070986458,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070986458",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:36:36Z",
+          "updated_at": "2026-11-21T23:36:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7070986458; bind map stays successor lean 7070956629)\n\nThe audit has no findings (`finding-classes: none`), `harvest-changed: false`, and its harvest digest equals the lean's. It found `pain-P1` and `pain-P2` hold. The Bound remedy is unchanged.\n\n- The earlier audit 7070869243 targeted the superseded lean 7070836897; its one blocking finding (the `pre-pr:run --json` controller start dropped the writer's message) is taken into items 7 and 8 and one acceptance criterion of lean 7070956629.\n- Disclosed edit: after this audit was dispatched, the parent edited lean 7070956629 once, splitting the cite line `relieves: P1, P2` into one line per pain (`relieves: P1` and `relieves: P2`), because the cite parser reads one pain id per line and had read only P1. The audit read the original line and judged both pains. The Bound remedy and Acceptance Criteria are byte-identical, and the harvest digest is unchanged (sha256:7584272ef9313ec5277aeefb72a60f50e5ee7312518a20ac2db28c13d6cab1e6).\n- No change to the Bound remedy.\n\n",
+          "id": 7070989254,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070989254",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:36:51Z",
+          "updated_at": "2026-11-21T23:36:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7070956629. Dispatch SHA: 838433b5b45bc24a1d28680fb136c9aacd874ccb. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and both leans. Each row names who read the source at the pin (`git show <sha>:<path>` or the dest at that SHA) or what live read was made. No tests were run. All three critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The completion anchor is the brief's first GitHub issue reference (`resolvePlanGithubIssueRef`), and the closing-keywords story issue uses the same anchor | verified | parent read of `delivery-evidence.ts` 393-414 and `pr-closing-keywords/story-issue.ts` 46-52 |\n| 2 | Basis (a) accepts an uncontested sole `deft-story: N` mark; competing marks settle only by `productPullRequest` in the brief on the fetched delivery branch; the part-line route refuses when another product part or a competing mark exists | verified | parent read of `delivery-evidence.ts` 1505-1574, 2403-2490, 2552-2605; critic 7070834124 finding 3 |\n| 3 | No readiness, preflight or launch check looks at shared anchors today; #6468 case A fires only at PR time and only on ownership | verified | parent read of `swarm/readiness.ts` 436-518 and 833-879, `preflight/evaluate.ts` 165-347, `story-issue.ts` 100-152 |\n| 4 | `swarm:launch` runs readiness one story at a time and drops passing-gate output; its success path already puts an advisory on stderr and keeps stdout as the manifest | verified | parent read of `swarm/launch.ts` 461-471, 1052-1070, 1870-1880, 2355-2363; critic 7070834124 finding 1 |\n| 5 | The story-line writer leaves a body that already carries either line unchanged and reports success; `--part` only picks the label | verified | parent read of `pr-closing-keywords/main.ts` 1219-1311; critic 7070834124 finding 2 |\n| 6 | `pre-pr:run --json` with controller-start arguments does not print the writer's message | verified | parent read of `packages/runtime/src/pre-pr-run.ts` 657-737; audit 7070869243 finding 1 |\n| 7 | The envelope template offers a per-task choice of story line | verified | parent read of `content/skills/deft-directive-swarm/references/core-ops.md` 55-57, 69-73, 95 |\n| 8 | The #6645 part-line attest route is merged (fc038d3b9) but in no release yet (after v0.130.2); the reporters ran 0.129.13, which has #6468 | verified | parent `git tag --contains` and commit dates |\n| 9 | None of the changed source files is a declared evaluator surface | verified | parent read of `evaluator-surface/evaluate.ts` 26-51 |\n| 10 | The Bound remedy relieves pains P1 and P2 | verified as design coverage | audit 7070986458 (`pain-P1` and `pain-P2` hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 11 | The helper, warnings, launch stderr, writer note and `pre-pr:run` stderr behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7070989582,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070989582",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:36:53Z",
+          "updated_at": "2026-11-21T23:36:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when several stories share one completion issue (the first GitHub issue reference of each brief), their product PRs compete for the same `deft-story: N` mark, a part line cannot complete any of them, and nothing says so until `scope:complete` refuses after merge (#6934). Separately, the worker envelope asked the parent to pick a story line per task, so a leaf that delivered a whole story could carry `deft-story-part: N` and then need an after-merge operator grant or an extra PR (#6882 item 1).\n\nAccepted solution: one file-only check finds the other open story briefs that share a story's completion issue, and `swarm:readiness`, `xbrief:preflight` and `swarm:launch` print it as a warning with their exit codes unchanged (launch on its success stderr, stdout stays the manifest). The warning says how to fix it: one issue per story, or one story. The envelope names the story issue and no longer offers a choice of line, so a leaf writes `deft-story: N`; `--part` is only for a story the envelope marks as split. The story-line writer adds a note whenever a product branch's body carries `deft-story-part: N`, written now or already there, and `pre-pr:run` shows that note on stderr in every mode, `--json` included.\n\nLimits accepted: this warns and sets a safer default; it does not refuse anything or guarantee completion. It does not look at completed briefs, does not warn on one child sharing its epic's issue, and does not change CI, the brief-only PR line (#6544), discovery (#6873), the #6645 part-line route or mints (#6937). It was checked by reading the source at the pinned commit; no tests were run. One PR; no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7070956629.\nverified-claims table 7070989582\n\nConfirm conjunct: yolo standing (Stop 1 7070785884, `yolo-standing: on`) on the operator's launch of this arc, plus the operator's cap raise to 3 (comment 7070949592). Round-1 critic: comment 7070834124, posted by the parent verbatim as disclosed on panel-deposit 7070788688. Earlier audit: 7070869243 (blocking, on superseded lean 7070836897; taken into lean 7070956629). Audit: comment 7070986458 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7070989254. Deferred, not part of this contract: turning the warnings into refusals, completed-brief detection, and recovery for stories already merged under shared issues or part lines. Critic posts used: 3 of 3.\n\n",
+          "id": 7070991001,
+          "html_url": "https://github.com/deftai/directive/issues/6934#issuecomment-7070991001",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:37:01Z",
+          "updated_at": "2026-11-21T23:37:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\nValidation, `swarm:readiness`, `xbrief:preflight` and `swarm:pre-dispatch` all accept a cohort of stories that share one origin issue, but no such story can ever be completed. The failure only appears at `scope:complete`, after the PRs have merged.\n\n## Context\nAn epic with 12 child stories, each with `plan.references` / `metadata.origin` pointing at the epic issue (#1840 in the consumer repo). Following the dispatch doctrine, workers marked their PRs `deft-story-part: 1840`, because no single PR completes the epic issue. Three PRs merged.\n\n## Expected behavior\nReadiness, preflight or the activation step warns or refuses when several active stories share one origin issue, or when a story's origin is its own parent epic's issue. The warning should say each story needs its own issue (or a stamped `productPullRequest` plus a sole `deft-story: N` mark) to be completable.\n\n## Actual behavior / gap\n`deft scope:complete -- <story> --pr 1850 --merge-commit <sha>` refuses: `PR #1850 carries deft-story-part: 1840 ... is a partial delivery ... cannot complete the story on any basis, operator attestation included.` The merge-time body is immutable, so each merged story now needs an extra follow-up PR carrying `deft-story: <new issue>`. Recovery took creating 12 sub-issues, a brief-retarget PR and three follow-up PRs.\n\n## Session notes\nRelated: the swarm SKILL's \"Story line per story (#6316)\" rule is correct, but nothing upstream checks that the story *has* its own N before dispatch.\n---\n_Filed from a consumer session (deftai/evolution, runtime 0.129.13, launcher 0.129.14). Refs #1709_\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6526203936,
+        "origin": "deftai/directive#6934",
+        "id": "github.issue.6526203936"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fb09e601557d2218549285b6775cc61d56c8e4c835dba8d4bc76916e202f5b3e"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6934,
+        "leanCommentId": 7070956629,
+        "harvestDigest": "7584272ef9313ec5277aeefb72a60f50e5ee7312518a20ac2db28c13d6cab1e6",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (18), in list order (#6333)",
+      "sentences": [
+        "Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.",
+        "Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"",
+        "`swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.",
+        "`xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.",
+        "`swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.",
+        "Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.",
+        "Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` writes the writer's OK message to stderr whether or not `--json` is set, including when it goes on to start a controller run; stdout stays the controller JSON (`packages/runtime/src/pre-pr-run.ts` 670-674).",
+        "One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, `packages/runtime/src/pre-pr-run.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.",
+        "Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.",
+        "Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.",
+        "Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.",
+        "Given an epic brief and one story brief with the same first issue reference, then no warning is printed.",
+        "Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.",
+        "Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.",
+        "Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.",
+        "Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.",
+        "Given a product branch whose body already carries `deft-story-part: N`, when `pre-pr:run --body-file <body> --json` runs without `--part` and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged, and the exit code is 0.",
+        "Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split."
+      ],
+      "admitted_source_sentences": [
+        "Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.",
+        "Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"",
+        "`swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.",
+        "`xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.",
+        "`swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.",
+        "Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.",
+        "Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` writes the writer's OK message to stderr whether or not `--json` is set, including when it goes on to start a controller run; stdout stays the controller JSON (`packages/runtime/src/pre-pr-run.ts` 670-674).",
+        "One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, `packages/runtime/src/pre-pr-run.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.",
+        "Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.",
+        "Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.",
+        "Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.",
+        "Given an epic brief and one story brief with the same first issue reference, then no warning is printed.",
+        "Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.",
+        "Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.",
+        "Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.",
+        "Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.",
+        "Given a product branch whose body already carries `deft-story-part: N`, when `pre-pr:run --body-file <body> --json` runs without `--part` and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged, and the exit code is 0.",
+        "Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split."
+      ],
+      "admitted_source_digest": "67ad3135e0753312ac48d0c5b09a1d5b016013712deb9b26c80c2f29d54e917b",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/story-issue.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/core-ops.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` writes the writer's OK message to stderr whether or not `--json` is set, including when it goes on to start a controller run; stdout stays the controller JSON (`packages/runtime/src/pre-pr-run.ts` 670-674).",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, `packages/runtime/src/pre-pr-run.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.",
+          "artifact_path": "packages/core/src/swarm/readiness-shared-story-issue.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given an epic brief and one story brief with the same first issue reference, then no warning is printed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/shared-story-issue.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a product branch whose body already carries `deft-story-part: N`, when `pre-pr:run --body-file <body> --json` runs without `--part` and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged, and the exit code is 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split.",
+          "artifact_path": "packages/core/src/content-contracts/skills/swarm_story_line_slot_6645.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6526203936",
+    "updated": "2026-11-21T23:43:43Z"
+  }
+}
