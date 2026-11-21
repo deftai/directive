@@ -7,7 +7,9 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { isAbsolute, resolve } from "node:path";
+import { realpathSync, statSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
+import { formatDeclaredRefusal } from "../refusal-declarations/print.js";
 import { isInlineProseMention } from "./capture.js";
 import { evaluateCommandSafety, isExecutableLiteralSource } from "./safety.js";
 import type {
@@ -65,6 +67,101 @@ function resolveCwd(projectRoot: string, cmd: LiteralAcceptanceCommand): string 
   return resolve(projectRoot, raw);
 }
 
+/** Refusal table id of the run-time cwd containment check (#6886 item 2; enforce). */
+export const ACCEPTANCE_CWD_CONTAINMENT_REFUSAL_ID = "acceptance-cwd-containment";
+
+export interface AcceptanceCwdContainment {
+  readonly ok: boolean;
+  readonly reason: string | null;
+}
+
+function errorText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Run-time containment (#6886 item 2), the only cwd enforcement. The real path
+ * of `cwd` must be an existing directory that is the project root's real path
+ * or inside it. Checked just before a spawn; a directory replaced after the
+ * check is not covered.
+ */
+export function evaluateAcceptanceCwdContainment(
+  projectRoot: string,
+  cwd: string,
+): AcceptanceCwdContainment {
+  let realRoot: string;
+  try {
+    realRoot = realpathSync(resolve(projectRoot));
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      reason: `the project root ${JSON.stringify(projectRoot)} has no real path (${errorText(err)})`,
+    };
+  }
+  let realCwd: string;
+  try {
+    realCwd = realpathSync(resolve(cwd));
+    if (!statSync(realCwd).isDirectory()) {
+      return {
+        ok: false,
+        reason: `the working directory ${JSON.stringify(cwd)} is not a directory`,
+      };
+    }
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      reason: `the working directory ${JSON.stringify(cwd)} is missing or has no real path (${errorText(err)})`,
+    };
+  }
+  const rel = relative(realRoot, realCwd);
+  if (rel.length > 0 && (isAbsolute(rel) || rel === ".." || rel.startsWith(`..${sep}`))) {
+    return {
+      ok: false,
+      reason: `the working directory ${JSON.stringify(cwd)} resolves outside the repository (${realCwd})`,
+    };
+  }
+  return { ok: true, reason: null };
+}
+
+/** The declared containment refusal line (#6886 item 7). */
+export function formatAcceptanceCwdContainmentRefusal(command: string, reason: string): string {
+  return formatDeclaredRefusal({
+    id: ACCEPTANCE_CWD_CONTAINMENT_REFUSAL_ID,
+    detail: `acceptance command ${JSON.stringify(command)} was not spawned: ${reason}`,
+  }).line;
+}
+
+function containmentRefusalRun(
+  cmd: LiteralAcceptanceCommand,
+  cwd: string,
+  reason: string,
+): LiteralAcceptanceRunResult {
+  const line = formatAcceptanceCwdContainmentRefusal(cmd.command, reason);
+  return {
+    command: cmd.command,
+    cwd,
+    exitCode: 2,
+    stdout: "",
+    stderr: line,
+    ok: false,
+    detail: `refused: ${line}`,
+  };
+}
+
+/**
+ * True when the row is the run-time containment refusal (#6886 item 2). It is
+ * not a command-form refusal: it never joins the rejected ledger and it keeps
+ * exit 2, even when it fires after an earlier command ran.
+ */
+export function isContainmentRefusalRun(
+  run: Pick<LiteralAcceptanceRunResult, "exitCode" | "detail">,
+): boolean {
+  return (
+    isSafetyRefusalRun(run) &&
+    run.detail.includes(`deft gate ${ACCEPTANCE_CWD_CONTAINMENT_REFUSAL_ID} `)
+  );
+}
+
 function nonEmptyExpectedStdout(cmd: LiteralAcceptanceCommand): string {
   return cmd.expectedStdout !== null &&
     cmd.expectedStdout !== undefined &&
@@ -95,6 +192,10 @@ export function runLiteralAcceptanceCommand(
       ok: false,
       detail: `refused: ${safety.reason ?? "unsafe command"}`,
     };
+  }
+  const containment = evaluateAcceptanceCwdContainment(options.projectRoot, cwd);
+  if (!containment.ok) {
+    return containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository");
   }
   const runner = options.runner ?? defaultLiteralAcceptanceRunner;
   const result = runner({ command: cmd.command, cwd });
@@ -127,6 +228,101 @@ export function runLiteralAcceptanceCommand(
   };
 }
 
+interface CaptureOnlyOptions {
+  /**
+   * When true, allow source=task_statement (raw issue text) to spawn.
+   * Default false — issue text is capture-only until promoted (#3267 Greptile P1).
+   */
+  readonly allowTaskStatement?: boolean;
+}
+
+/** Execution identity: command + cwd + expected exit (#4238). */
+function literalExecutionKey(c: LiteralAcceptanceCommand): string {
+  const cwd =
+    c.cwd !== null && c.cwd !== undefined && String(c.cwd).trim().length > 0
+      ? String(c.cwd).trim()
+      : "";
+  const exit = typeof c.expectedExitCode === "number" ? c.expectedExitCode : 0;
+  return `${c.command}\0${cwd}\0${exit}`;
+}
+
+function untrustedCaptureOnly(
+  commands: readonly LiteralAcceptanceCommand[],
+  options: CaptureOnlyOptions,
+): LiteralAcceptanceCommand[] {
+  return commands.filter(
+    (c) =>
+      c.source === "task_statement" &&
+      options.allowTaskStatement !== true &&
+      !isInlineProseMention(c),
+  );
+}
+
+function executableRecords(
+  commands: readonly LiteralAcceptanceCommand[],
+  options: CaptureOnlyOptions,
+): LiteralAcceptanceCommand[] {
+  return commands.filter(
+    (c) =>
+      isExecutableLiteralSource(c.source) ||
+      (c.source === "task_statement" && options.allowTaskStatement === true),
+  );
+}
+
+/**
+ * Capture-only records with no agent-promoted peer of the same execution
+ * identity. Runs nothing; activation and verify:ac share it (#6886 item 4).
+ * A same-text peer counts only when both sides have default cwd/exit.
+ */
+export function findUnpromotedCaptureOnlyCommands(
+  commands: readonly LiteralAcceptanceCommand[],
+  options: CaptureOnlyOptions = {},
+): LiteralAcceptanceCommand[] {
+  const executable = executableRecords(commands, options);
+  const executableKeySet = new Set(executable.map(literalExecutionKey));
+  return untrustedCaptureOnly(commands, options).filter((c) => {
+    if (executableKeySet.has(literalExecutionKey(c))) return false;
+    const hasNonStdoutContext =
+      (c.cwd !== null && c.cwd !== undefined && String(c.cwd).trim().length > 0) ||
+      (typeof c.expectedExitCode === "number" && c.expectedExitCode !== 0);
+    if (hasNonStdoutContext) return true;
+    return !executable.some((e) => e.command === c.command);
+  });
+}
+
+/** One listed line per unpromoted capture-only record. */
+export function formatUnpromotedCaptureOnlyRecord(c: LiteralAcceptanceCommand): string {
+  const bits = [`command=${JSON.stringify(c.command)}`];
+  if (c.cwd) bits.push(`cwd=${JSON.stringify(c.cwd)}`);
+  if (c.expectedStdout) bits.push(`expectedStdout=${JSON.stringify(c.expectedStdout)}`);
+  if (typeof c.expectedExitCode === "number" && c.expectedExitCode !== 0) {
+    bits.push(`expectedExitCode=${c.expectedExitCode}`);
+  }
+  return `${bits.join(" ")} (source=${c.source})`;
+}
+
+/** Promote-or-dispose remedy for an unpromoted capture-only record (#3267 / #3721). */
+export const UNPROMOTED_CAPTURE_REMEDY =
+  "If the command is this story's acceptance, promote the exact strings " +
+  "(and cwd/expectedStdout/expectedExitCode when stated) into " +
+  "plan.metadata.swarm.verify_commands (or plan item / explicit metadata), then re-run.\n" +
+  "If the capture is not an acceptance command, record the exact string in " +
+  "plan.metadata.literal_acceptance_not_commands without promoting it (#3721).";
+
+/** The verify:ac message for unpromoted capture-only records (#3267). */
+export function formatUnpromotedCaptureOnlyMessage(
+  unpromoted: readonly LiteralAcceptanceCommand[],
+): string {
+  const listed = unpromoted.map((c) => `  - ${formatUnpromotedCaptureOnlyRecord(c)}`).join("\n");
+  return (
+    `Literal acceptance-command gate FAILED (#3267): ${unpromoted.length} stated command(s) ` +
+    `are capture-only (source=task_statement) and have no matching agent-promoted peer.\n` +
+    `${UNPROMOTED_CAPTURE_REMEDY}\n` +
+    `Note: an unrelated executable peer or a same-text peer with different context does not waive.\n` +
+    listed
+  );
+}
+
 /**
  * Run all stored commands in order. Fail closed if any fail.
  * Empty command list → ok (nothing stated to verify).
@@ -153,65 +349,20 @@ export function runLiteralAcceptanceCommands(
     };
   }
 
-  const untrusted = commands.filter(
-    (c) =>
-      c.source === "task_statement" &&
-      options.allowTaskStatement !== true &&
-      !isInlineProseMention(c),
-  );
-  const executable = commands.filter(
-    (c) =>
-      isExecutableLiteralSource(c.source) ||
-      (c.source === "task_statement" && options.allowTaskStatement === true),
-  );
+  const untrusted = untrustedCaptureOnly(commands, options);
+  const executable = executableRecords(commands, options);
 
   // Fail closed: every capture-only stated command must have a matching agent-promoted
   // peer with the same execution identity (command + cwd + exit). Stdout is checked
   // after a single run so two stdout expectations cannot force a second spawn (#4238).
-  const executionKey = (c: (typeof commands)[number]): string => {
-    const cwd =
-      c.cwd !== null && c.cwd !== undefined && String(c.cwd).trim().length > 0
-        ? String(c.cwd).trim()
-        : "";
-    const exit = typeof c.expectedExitCode === "number" ? c.expectedExitCode : 0;
-    return `${c.command}\0${cwd}\0${exit}`;
-  };
+  const executionKey = literalExecutionKey;
   const executableKeySet = new Set(executable.map(executionKey));
-  // Also accept command-text match when both sides have default cwd/exit,
-  // but never when the stated row carries a non-default cwd/exit the peer lacks.
-  const unpromoted = untrusted.filter((c) => {
-    if (executableKeySet.has(executionKey(c))) return false;
-    const hasNonStdoutContext =
-      (c.cwd !== null && c.cwd !== undefined && String(c.cwd).trim().length > 0) ||
-      (typeof c.expectedExitCode === "number" && c.expectedExitCode !== 0);
-    if (hasNonStdoutContext) return true;
-    return !executable.some((e) => e.command === c.command);
-  });
+  const unpromoted = findUnpromotedCaptureOnlyCommands(commands, options);
   if (unpromoted.length > 0) {
-    const listed = unpromoted
-      .map((c) => {
-        const bits = [`command=${JSON.stringify(c.command)}`];
-        if (c.cwd) bits.push(`cwd=${JSON.stringify(c.cwd)}`);
-        if (c.expectedStdout) bits.push(`expectedStdout=${JSON.stringify(c.expectedStdout)}`);
-        if (typeof c.expectedExitCode === "number" && c.expectedExitCode !== 0) {
-          bits.push(`expectedExitCode=${c.expectedExitCode}`);
-        }
-        return `  - ${bits.join(" ")} (source=${c.source})`;
-      })
-      .join("\n");
     return {
       ok: false,
       code: 1,
-      message:
-        `Literal acceptance-command gate FAILED (#3267): ${unpromoted.length} stated command(s) ` +
-        `are capture-only (source=task_statement) and have no matching agent-promoted peer.\n` +
-        `If the command is this story's acceptance, promote the exact strings ` +
-        `(and cwd/expectedStdout/expectedExitCode when stated) into ` +
-        `plan.metadata.swarm.verify_commands (or plan item / explicit metadata), then re-run.\n` +
-        `If the capture is not an acceptance command, record the exact string in ` +
-        `plan.metadata.literal_acceptance_not_commands without promoting it (#3721).\n` +
-        `Note: an unrelated executable peer or a same-text peer with different context does not waive.\n` +
-        listed,
+      message: formatUnpromotedCaptureOnlyMessage(unpromoted),
       commands,
       runs: [],
     };
@@ -266,6 +417,34 @@ export function runLiteralAcceptanceCommands(
     }
   }
 
+  // #6886 item 2: check every working directory before the first spawn, so a
+  // refused cwd spawns nothing at all. No refusal joins the rejected ledger.
+  const containmentRefusals: LiteralAcceptanceRunResult[] = [];
+  for (const group of toRunByKey.values()) {
+    const cmd = group.representative;
+    if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) continue;
+    const cwd = resolveCwd(options.projectRoot, cmd);
+    const containment = evaluateAcceptanceCwdContainment(options.projectRoot, cwd);
+    if (!containment.ok) {
+      containmentRefusals.push(
+        containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository"),
+      );
+    }
+  }
+  if (containmentRefusals.length > 0) {
+    return {
+      ok: false,
+      code: 2,
+      message:
+        `Literal acceptance-command gate refused (#6886): ${containmentRefusals.length} ` +
+        `command(s) have a working directory that is missing or outside the repository; ` +
+        `nothing was spawned.\n` +
+        containmentRefusals.map((r) => `  ✗ ${r.command} — ${r.detail}`).join("\n"),
+      commands,
+      runs: containmentRefusals,
+    };
+  }
+
   const runs: LiteralAcceptanceRunResult[] = [];
   const rejected: RejectedLiteralCommand[] = [];
   for (const group of toRunByKey.values()) {
@@ -293,6 +472,9 @@ export function runLiteralAcceptanceCommands(
       }
     }
     runs.push(run);
+    // A directory that an earlier command removed or replaced is refused at
+    // its own spawn; that refusal stays a containment refusal (#6886).
+    if (isContainmentRefusalRun(run)) continue;
     if (isSafetyRefusalRun(run)) {
       rejected.push({
         command: run.command,
@@ -300,6 +482,22 @@ export function runLiteralAcceptanceCommands(
         sourceSpan: cmd.sourceSpan ?? null,
       });
     }
+  }
+
+  const lateContainment = runs.filter(isContainmentRefusalRun);
+  if (lateContainment.length > 0) {
+    return {
+      ok: false,
+      code: 2,
+      message:
+        `Literal acceptance-command gate refused (#6886): ${lateContainment.length} ` +
+        `command(s) had a working directory that was missing or outside the repository ` +
+        `when their turn came; those commands were not spawned.\n` +
+        runs.map((r) => `  ${r.ok ? "✓" : "✗"} ${r.command} — ${r.detail}`).join("\n"),
+      commands,
+      runs,
+      rejected: rejected.length > 0 ? rejected : undefined,
+    };
   }
 
   const failed = runs.filter((r) => !r.ok);

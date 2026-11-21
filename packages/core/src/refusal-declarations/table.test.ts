@@ -137,3 +137,22 @@ describe("refusal declaration table (#6281 item 1)", () => {
     expect(rowsWithoutRemedyCase(rows, new Set(["a", "b"]))).toEqual([]);
   });
 });
+
+describe("acceptance command rows (#6886 item 7)", () => {
+  it("activation and cwd-grammar rows warn; run-time containment enforces with its exception", () => {
+    expect(findRefusalDeclaration("acceptance-record-activate")?.mode).toBe("warn");
+    expect(findRefusalDeclaration("acceptance-cwd-grammar")?.mode).toBe("warn");
+    const containment = findRefusalDeclaration("acceptance-cwd-containment");
+    expect(containment?.mode).toBe("enforce");
+    expect(containment?.exception).toBe(
+      "an acceptance command must not be spawned outside the repository",
+    );
+    for (const id of [
+      "acceptance-record-activate",
+      "acceptance-cwd-grammar",
+      "acceptance-cwd-containment",
+    ]) {
+      expect(findRefusalDeclaration(id)?.remedy).toEqual(["deft verify:ac --capture-only"]);
+    }
+  });
+});

@@ -11,10 +11,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveSessionCompletedVerifyAcTarget } from "@deftai/directive-core/check";
-import {
-  formatRejectedLedger,
-  resolveLiteralAcceptanceDetailed,
-} from "@deftai/directive-core/literal-acceptance";
+import { formatRejectedLedger } from "@deftai/directive-core/literal-acceptance";
 import {
   applyAcceptanceDispositionGrants,
   type GrantedClause,
@@ -23,10 +20,12 @@ import type { ControllerVerifyAcResult } from "@deftai/directive-core/pre-pr-con
 import {
   emitVerifyAcTerminalOutcome,
   evaluateVerifyAcFromPath,
+  formatAcceptanceCwdWarningLine,
   readAdmittedSourceDigest,
   readAdmittedSourceSentences,
   readBranchBindContext,
   readPlanAcceptance,
+  resolveAcceptanceCommandRecords,
   resolveAcceptanceGateProfile,
   resolveSoftMissingAcTargets,
   VERIFY_AC_NO_OBLIGATION_EXIT,
@@ -574,25 +573,16 @@ export function run(argv: string[]): number {
           return 2;
         }
         const acceptance = readPlanAcceptance(plan);
-        const resolved = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives: true });
-        // Executor reads plan.acceptance.commands when the #3267 ledger is empty (#3449).
-        const executorCommands =
-          resolved.commands.length > 0
-            ? resolved.commands
-            : acceptance.commands.map((c) => ({
-                command: c.command,
-                source: "explicit" as const,
-                sourceSpan: "plan.acceptance.commands",
-                cwd: c.cwd ?? null,
-                expectedExitCode: c.expectedExitCode ?? 0,
-              }));
+        // #6886 item 4: the one record list activation and verify:ac read.
+        const records = resolveAcceptanceCommandRecords(plan, { captureFromNarratives: true });
+        const executorCommands = records.commands;
         reports.push({
           xbrief: xbriefPath,
           source_rung: acceptance.source_rung,
           none_stated: acceptance.none_stated,
           acceptance_commands: acceptance.commands,
           count: executorCommands.length,
-          rejected_count: resolved.rejected.length,
+          rejected_count: records.blocking.length,
           commands: executorCommands.map((c) => ({
             command: c.command,
             source: c.source,
@@ -600,14 +590,29 @@ export function run(argv: string[]): number {
             cwd: c.cwd ?? null,
             expectedExitCode: c.expectedExitCode ?? 0,
           })),
-          rejected: resolved.rejected.map((r) => ({
+          rejected: records.blocking.map((r) => ({
             command: r.command,
             reason: r.reason,
             sourceSpan: r.sourceSpan ?? null,
           })),
+          cwd_warnings: records.cwdWarnings.map((w) => ({
+            command: w.command,
+            cwd: w.cwd,
+            reason: w.reason,
+            sourceSpan: w.sourceSpan,
+          })),
+          unpromoted: records.unpromoted.map((c) => ({
+            command: c.command,
+            source: c.source,
+            sourceSpan: c.sourceSpan ?? null,
+            cwd: c.cwd ?? null,
+          })),
         });
-        if (resolved.rejected.length > 0) {
-          process.stderr.write(`${formatRejectedLedger(resolved.rejected)}\n`);
+        if (records.blocking.length > 0) {
+          process.stderr.write(`${formatRejectedLedger(records.blocking)}\n`);
+        }
+        for (const warning of records.cwdWarnings) {
+          process.stderr.write(`${formatAcceptanceCwdWarningLine(warning)}\n`);
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

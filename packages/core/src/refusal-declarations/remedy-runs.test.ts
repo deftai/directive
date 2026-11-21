@@ -14,11 +14,17 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "../../../cli/src/bookends.js";
 import { readProjectInstallState } from "../../../cli/src/pin.js";
 import { ensureGitHooks } from "../../../runtime/src/setup-wiring.js";
+import { runLiteralAcceptanceCommands } from "../literal-acceptance/run.js";
 import {
   evaluatePrePush,
   prePrPushGateRefusal,
   prePrPushGateRefusalLine,
 } from "../preflight-gh/pre-push.js";
+import {
+  formatAcceptanceActivationWarnings,
+  formatAcceptanceCwdWarningLine,
+  resolveAcceptanceCommandRecords,
+} from "../product-first-done-gate/evaluate.js";
 import { declarationHidesAxisLines } from "../scope-provenance/declaration-hides-axis.js";
 import {
   assessExtraPaths,
@@ -219,6 +225,54 @@ const CASES: Readonly<Record<string, RemedyCase>> = {
       });
       expect(lines).toHaveLength(1);
       return lines[0] ?? "";
+    },
+    retry: null,
+  },
+  // #6886: activation warns only; the fix is a brief edit, so the row is
+  // deferred to #6886 and the line says so.
+  "acceptance-record-activate": {
+    refuse: () => {
+      const records = resolveAcceptanceCommandRecords({
+        metadata: {
+          literal_acceptance_commands: [{ command: "task web:deploy", source: "explicit" }],
+        },
+      });
+      const lines = formatAcceptanceActivationWarnings(records);
+      expect(lines).toHaveLength(1);
+      return lines[0] ?? "";
+    },
+    retry: null,
+  },
+  "acceptance-cwd-grammar": {
+    refuse: () => {
+      const records = resolveAcceptanceCommandRecords({
+        metadata: {
+          literal_acceptance_commands: [
+            { command: "npx vitest run src/app.test.ts", cwd: "../web", source: "explicit" },
+          ],
+        },
+      });
+      expect(records.cwdWarnings).toHaveLength(1);
+      const warning = records.cwdWarnings[0];
+      return warning === undefined ? "" : formatAcceptanceCwdWarningLine(warning);
+    },
+    retry: null,
+  },
+  // #6886: enforce with a named exception; the fix is a brief edit or a new
+  // directory, so the row is deferred to #6886.
+  "acceptance-cwd-containment": {
+    refuse: (root) => {
+      const result = runLiteralAcceptanceCommands(
+        [{ command: "npx vitest run src/app.test.ts", cwd: "web", source: "explicit" }],
+        {
+          projectRoot: root,
+          runner: () => {
+            throw new Error("must not spawn");
+          },
+        },
+      );
+      expect(result.code).toBe(2);
+      return result.runs[0]?.stderr ?? "";
     },
     retry: null,
   },

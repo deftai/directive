@@ -13,7 +13,11 @@
 
 import { applyClauseDerivationToPlan } from "../intake/clause-derivation.js";
 import { validatePlanAcceptance } from "../product-first-done-gate/acceptance.js";
-import { evaluateAdmittedSourceAtActivation } from "../product-first-done-gate/evaluate.js";
+import {
+  evaluateAdmittedSourceAtActivation,
+  formatAcceptanceActivationWarnings,
+  resolveAcceptanceCommandRecords,
+} from "../product-first-done-gate/evaluate.js";
 import {
   DECLARED_ACCEPTANCE_NARRATIVE_KEYS,
   formatZeroClauseAcceptanceShapedNotice,
@@ -104,6 +108,17 @@ export function evaluateAcceptanceActivateGate(
       `the criteria are in the wrong, non-executable field.`,
     hits,
   };
+}
+
+/**
+ * #6886 item 6: both activation writers (scope:activate and xbrief:activate)
+ * read the one record list verify:ac reads and print one warning per record
+ * verify:ac would refuse before any run, per unpromoted capture and per cwd
+ * outside the grammar. Warnings only: activation never refuses on them, and
+ * `evaluateAcceptanceActivateGate` above is unchanged. Empty string when none.
+ */
+export function acceptanceRecordActivationWarnings(plan: Record<string, unknown>): string {
+  return formatAcceptanceActivationWarnings(resolveAcceptanceCommandRecords(plan)).join("\n");
 }
 
 export type AdmittedSourceActivateOptions = Omit<

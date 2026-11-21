@@ -91,6 +91,22 @@ const ALLOWED_WRAPPER_SUBCOMMANDS = new Set([
 ]);
 
 /**
+ * `task <name>:test` (#6886): the whole command, for first token `task` only.
+ * Nothing may follow — no second task, variable assignment or flag.
+ */
+const TASK_WORKSPACE_TEST_PATTERN = /^[a-z0-9][a-z0-9_-]*:test$/;
+
+/**
+ * Wrapper refusal text (#6886 item 9): names the admitted subcommands and the
+ * JS workspace test-runner form.
+ */
+export const WRAPPER_SUBCOMMAND_REFUSAL =
+  "wrapper subcommand must be check|doctor|test|<name>:test (task only, nothing after)|verify:*|help|--version " +
+  "(scope/policy/swarm/scm/merge and other ambient-authority verbs denied); " +
+  "for a JS workspace test runner use npx vitest run <path> or pnpm exec vitest run <path> " +
+  "with cwd: <workspace dir>";
+
+/**
  * Prefixes for wrapper verbs that stay on the verify/read surface.
  * `verify:` / `verify-` cover task verify:* family; bare `verify ` is the space form.
  */
@@ -311,7 +327,7 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
 
   // Framework wrappers: only verification / help / version subcommands (no scope/policy/merge).
   if (first === "task" || first === "deft" || first === "directive") {
-    return evaluateWrapperSubcommand(rest);
+    return evaluateWrapperSubcommand(rest, first);
   }
 
   // Package managers: only test/exec vitest/run test|check|--version (no install/publish/net).
@@ -347,7 +363,10 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
  * Restrict task/deft/directive to verification-shaped subcommands.
  * Fail closed on scope/policy/swarm/pr/scm/lifecycle mutations.
  */
-function evaluateWrapperSubcommand(rest: string): CommandSafetyResult {
+function evaluateWrapperSubcommand(rest: string, first: string): CommandSafetyResult {
+  if (first === "task" && TASK_WORKSPACE_TEST_PATTERN.test(rest)) {
+    return { ok: true, reason: null };
+  }
   if (rest.length === 0) {
     return {
       ok: false,
@@ -370,12 +389,7 @@ function evaluateWrapperSubcommand(rest: string): CommandSafetyResult {
       return { ok: true, reason: null };
     }
   }
-  return {
-    ok: false,
-    reason:
-      "wrapper subcommand must be check|doctor|verify:*|help|--version " +
-      "(scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
-  };
+  return { ok: false, reason: WRAPPER_SUBCOMMAND_REFUSAL };
 }
 
 /**
@@ -570,4 +584,57 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
     };
   }
   return { ok: true, reason: null };
+}
+
+/** One cwd segment: no leading dot, so `.` and `..` never match (#6886 item 1). */
+const CWD_SEGMENT_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+
+/**
+ * Cwd-grammar warning text (#6886 item 1). Every gate prints the same text; a
+ * cwd outside the grammar never refuses. verify:ac checks the real directory
+ * just before it runs the command, and that check is the only cwd refusal.
+ */
+export const ACCEPTANCE_CWD_GRAMMAR_REASON =
+  "cwd is not a plain relative path (segments matching [A-Za-z0-9_][A-Za-z0-9._-]* joined by /); " +
+  "verify:ac runs the command only when its real directory is inside the repository";
+
+export interface AcceptanceCwdVerdict {
+  /** False when the cwd is outside the grammar (a warning, never a refusal). */
+  readonly ok: boolean;
+  readonly reason: string | null;
+}
+
+export interface AcceptanceCommandRecordVerdict {
+  readonly command: CommandSafetyResult;
+  readonly cwd: AcceptanceCwdVerdict;
+}
+
+/** Cwd grammar only; reads no file system (#6886 item 1). */
+export function evaluateAcceptanceCwdGrammar(cwd: string | null | undefined): AcceptanceCwdVerdict {
+  if (cwd === null || cwd === undefined) {
+    return { ok: true, reason: null };
+  }
+  const raw = cwd.trim();
+  if (raw.length === 0 || raw === ".") {
+    return { ok: true, reason: null };
+  }
+  const conforms = raw.split("/").every((segment) => CWD_SEGMENT_PATTERN.test(segment));
+  return conforms
+    ? { ok: true, reason: null }
+    : { ok: false, reason: ACCEPTANCE_CWD_GRAMMAR_REASON };
+}
+
+/**
+ * The one record rule (#6886 item 1): a command verdict from
+ * `evaluateCommandSafety` and a separate cwd-grammar verdict. Reads no file
+ * system, so activation and verify:ac give the same answer and reason text.
+ */
+export function evaluateAcceptanceCommandRecord(record: {
+  readonly command: string;
+  readonly cwd?: string | null;
+}): AcceptanceCommandRecordVerdict {
+  return {
+    command: evaluateCommandSafety(record.command),
+    cwd: evaluateAcceptanceCwdGrammar(record.cwd),
+  };
 }

@@ -98,6 +98,26 @@ export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* ref
     "gate": "verify:scope-provenance: a declaration changed after activation hides a strict acceptance axis (#6591)",
     "remedy": ["deft verify:scope-provenance"],
     "deferred": "the fix is a brief edit in the same change (remove the added declaration, or record the evidence the clause requires); no printed command can make it for you; owned by #6591"
+  },
+  {
+    "id": "acceptance-record-activate",
+    "gate": "scope:activate and xbrief:activate: an acceptance command record that verify:ac would refuse before any run, or an unpromoted capture (#6886)",
+    "remedy": ["deft verify:ac --capture-only"],
+    "deferred": "the fix is a brief edit (replace a refused command with an admitted form, promote the exact capture into plan.metadata.swarm.verify_commands, or record it in plan.metadata.literal_acceptance_not_commands); the printed command only lists each record and its reason; owned by #6886"
+  },
+  {
+    "id": "acceptance-cwd-grammar",
+    "gate": "scope:activate, xbrief:activate and verify:ac: an acceptance command cwd outside the plain relative-path grammar (#6886)",
+    "remedy": ["deft verify:ac --capture-only"],
+    "deferred": "the fix is a brief edit (write the cwd as a relative path inside the repository, such as web); the printed command only lists each record and its cwd; owned by #6886"
+  },
+  {
+    "id": "acceptance-cwd-containment",
+    "gate": "verify:ac: an acceptance command whose real working directory is missing or outside the repository (#6886)",
+    "mode": "enforce",
+    "remedy": ["deft verify:ac --capture-only"],
+    "exception": "an acceptance command must not be spawned outside the repository",
+    "deferred": "the fix is a brief edit (point the cwd at an existing directory inside the repository) or creating that directory; the printed command only lists each record and its cwd; owned by #6886"
   }
 ] /* refusal-declarations:end */;
 
