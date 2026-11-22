@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6873",
-    "updated": "2026-11-21T23:54:47Z"
+    "updated": "2026-11-22T01:10:25Z"
   },
   "plan": {
     "title": "bug(scope): scope:complete never discovers a deft-story: N product PR (two-PR path needs --merge-commit/--pr by hand)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On a two-PR-path story, scope:complete with no flags cannot find the product PR, because discovery reads only metadata.productPullRequest and the issue's closing-PR links, while the product PR carries deft-story: N and Refs #N (#6873). This story adds a mark step to delivery auto-discovery that reuses the identity join's own merged-PR scan for the sole deft-story: N mark, counted on every base, and picks a PR only when that scan finds exactly one and it merged into the delivery branch. Refusals name the searches that ran and the --pr / --merge-commit flags, and both default PR payload readers read live so a ghx copy cached before merge cannot read as unmerged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6873",
@@ -20,170 +20,324 @@
     "items": [
       {
         "title": "Mark step. In `discoverDeliveryEvidenceForComplete` (`packages/core/src/scope/delivery-evidence.ts`), when the plan has no `productPullRequest` and the closing-PR path returns zero qualifying PRs, discovery runs `scanSoleMarkCompetitors` for the brief's issue with no PR excluded (`candidatePr` becomes optional; existing callers are unchanged). The result's `competitors` are the merged PRs on every base whose merge-time body carries the sole mark `deft-story: N` and that are not brief-land-only, zero-file PRs included, exactly as the join counts them. Discovery picks PR P only when `competitors` is exactly [P] and P's PR payload is merged into the delivery branch (the existing `candidatePassesDeliveryBaseFilter`). It then builds evidence with `evidenceFromPrPayload` and returns `discovered: true` with \"auto-discovered delivery evidence from `deft-story: N` PR #P\". Discovery is candidate selection only: the identity join still proves basis (a) and every later check runs unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When there is no productPullRequest and no qualifying closing PR, then discovery runs the sole-mark scan with no PR excluded and picks PR P only when competitors is exactly [P] and P merged into the delivery branch."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "verify:ac matches quoted placeholders N/P literally; the code emits this exact message from a template. Gate bug tracked in #6956.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-22T01:09:48Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261122010948-b2ca54"
+          },
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "deferred_to": "#6956"
         }
       },
       {
         "title": "Precedence is unchanged. A `productPullRequest` seed and a qualifying closing PR win as today. A failed closing-PR read and several qualifying closing PRs refuse as today, before the mark step.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a productPullRequest stamp or a qualifying closing PR exists, or the closing-PR read fails or yields several, then discovery behaves as before and the mark scan does not run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Refusals. Each names only the searches that ran, and ends with the existing `deliveryEvidenceRemediation` text (with \"or Pass\" corrected to \"or pass\"):",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When discovery refuses, then the message names only the searches that ran and ends with the remediation text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "No marked PR: \"found no merged PR into '<branch>' that closes #N, and no merged PR whose merge-time body carries the sole mark `deft-story: N`\".",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the scan finds no marked PR, then the refusal says no merged PR closes #N and none carries the sole mark deft-story: N."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One marked PR, not merged into the delivery branch: names it with its base and merge commit; it can complete only with `--pr <n> --merge-commit <sha>` once that merge commit is on `origin/<branch>`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When the one marked PR merged into another base, then the refusal names it with its base and merge commit and the --pr/--merge-commit flags."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Several marked PRs: lists each with its base and merge commit, and says the identity join accepts one of them only when `metadata.productPullRequest` in the brief on the fetched delivery branch names it (a working-tree stamp does not count); with that in place, pass `--pr <n> --merge-commit <sha>`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When several marked PRs exist, then the refusal lists each with base and merge commit and names the fetched delivery-branch productPullRequest requirement."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Scan could not finish (failed or incomplete read, exhausted budget): the scan error, then \"retry; passing --pr and --merge-commit runs the same scan in the identity join\". Never treated as zero.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the scan cannot finish, then the refusal carries the scan error and the retry text and is never treated as zero."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Mark step not run (no forge, item 4): the current zero refusal, saying only closing links were searched.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When no forge is available, then the mark step is skipped and the refusal says only closing links were searched."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Wiring. `DiscoverDeliveryEvidenceOptions` gains `mergeTimeForge?: MergeTimeForge`. Both discovery calls in `packages/core/src/scope/transition.ts` (complete and restamp) pass `options.mergeTimeForge`. Without one, discovery builds `defaultMergeTimeForge(runGh)` under the gate's rule, only when `fetchPrPayload` is not injected; with neither, the mark step does not run, so existing tests that inject only `fetchPrPayload` keep their results.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When transition.ts runs complete or restamp, then discovery receives options.mergeTimeForge, and with an injected fetchPrPayload only, the mark step does not run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Live reads. The default PR payload readers in discovery (3977-3979) and in `evaluateDeliveryGate` (3209-3211) call `defaultFetchPrPayload` with `liveRunGh(runGh)`, as the gate's stamped-PR check already does. Injected readers are used as given. A PR cached by `ghx` before it merged then reads as merged in both places.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When the default readers run, then discovery and evaluateDeliveryGate read PR payloads through liveRunGh, and injected readers are used as given."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One PR. Files: `delivery-evidence.ts`, `transition.ts`, `delivery-evidence.test.ts`, `transition.test.ts`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or `!`/`⊗` rule text; neither source file is a declared evaluator surface, so no `docs/RULE-MAP.md` or `xbrief/evaluator-surface-disposition.json` change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When the PR is reviewed, then it is one PR with no new verb, flag, constant, policy field or rule text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a story whose activation PR carries `deft-story-part: N` (or `deft-story: N` with only brief and changelog files) and whose product PR carries `deft-story: N` and `Refs #N`, with no closing links and no `productPullRequest`, when `scope:complete` runs with no `--pr` or `--merge-commit`, then it completes with the product PR's number and merge commit and `identityBasis: merge-time-mark`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When a two-PR-path story completes with no flags, then it records the product PR number and merge commit and identityBasis merge-time-mark."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same story through the restamp path (brief already in `completed/`), then discovery picks the same PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When the restamp path runs for the same story, then discovery picks the same PR."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a product PR whose `deft-story: N` mark was added only after merge, then discovery does not pick it and refuses with the no-marked-PR message.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "When the mark was added only after merge, then discovery does not pick the PR and refuses with the no-marked-PR message."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given two merged product PRs with the sole mark `deft-story: N`, one into `master` and one into `develop`, then discovery refuses, lists both with base and merge commit, and names the delivery-branch `productPullRequest` requirement.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "When two marked PRs merged, one into master and one into develop, then discovery refuses and lists both with base and merge commit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given one marked product PR merged into a base other than the delivery branch, then discovery refuses and names that PR, its base and its merge commit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When one marked PR merged into a non-delivery base, then discovery refuses and names the PR, its base and its merge commit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a merged-PR scan page that fails or is incomplete, then discovery refuses with the scan error and the retry text, and does not report zero.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "When a merged-PR scan page fails or is incomplete, then discovery refuses with the scan error and retry text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a qualifying closing PR, or a `productPullRequest` stamp, then discovery behaves as today and the mark scan is not run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "When a qualifying closing PR or a productPullRequest stamp exists, then the mark scan is not run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given only an injected `fetchPrPayload` and no forge, then the mark step does not run and the refusal says only closing links were searched.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "When only fetchPrPayload is injected and no forge, then the mark step does not run and the refusal names closing links only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the default payload reader and a `gh` runner that returns an unmerged payload through the cache-eligible binary and a merged payload with the plain `gh` override, when `scope:complete` runs with no flags, then discovery and the identity join both read the merged payload and the story completes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "When the cache-eligible binary returns an unmerged payload and plain gh returns a merged one, then discovery and the identity join both read merged and the story completes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given any discovery refusal, then the message names `--pr <n>` and `--merge-commit <sha>`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "When any discovery refusal is printed, then it names --pr <n> and --merge-commit <sha>."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d194e05287228f8d273d4247b5dab50945c708b9",
+          "recorded_at": "2026-11-22T01:10:25Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -509,7 +663,36 @@
         "harvestDigest": "c037eb087cf1e0e4a40c8d2bda9ff6c6c0514dfb66a93732e86b1d4b3eccd13c",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "cd64c4e659e0eee8d5ee1223042d889453cc9127",
+        "prNumber": 6953,
+        "prBase": "master",
+        "mergeCommit": "d194e05287228f8d273d4247b5dab50945c708b9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+        "verifiedAt": "2026-11-22T01:10:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6950
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T01:10:25Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T01:10:25Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -715,6 +898,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6516778046",
-    "updated": "2026-11-21T23:54:47Z"
+    "updated": "2026-11-22T01:10:25Z"
   }
 }
