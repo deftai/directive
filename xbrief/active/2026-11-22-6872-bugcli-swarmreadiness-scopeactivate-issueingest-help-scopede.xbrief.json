@@ -1,0 +1,800 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6872",
+    "updated": "2026-11-22T04:28:15Z"
+  },
+  "plan": {
+    "title": "bug(cli): swarm:readiness, scope:activate, issue:ingest --help, scope:decompose and plan-sequence verbs are rough",
+    "status": "running",
+    "narratives": {
+      "Description": "Four story-lifecycle verbs get in the way (#6872). `swarm:readiness` with no path checks only `xbrief/active/` and does not say how to check a proposed or pending brief. `scope:promote` and `scope:activate` write a PROJECT-DEFINITION row that a brief-only activation PR cannot carry, so every activation leaves a local change. `issue:ingest --help` prints an error and exits 2. With no ordered plan, `verify:plan-sequence` without a target exits 2 and `plan-sequence:current` exits 1. This story builds the bound lean of the accepted design critique (lean 7070598872, synthesis 7070626741): a readiness hint line, no row insert or patch on open-folder moves (the exact-old-path reference rewrite stays, and the file is written only when it changes something), a real `--help` for `issue:ingest`, and a skip with exit 0 for both plan-sequence verbs when `.deft/plan-sequence.json` does not exist. The oversized-split item is #6920 and is out of scope.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6872",
+      "Overview": "\n1. Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.\n2. Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change.\n3. Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level `plan.references` entry that names the moved brief, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.\n4. Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.\n5. Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.\n6. Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.\n7. Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change.\n\nParent check of item 2. At the dispatch SHA, `registry-artifact-sync.ts` 194-202 runs the reference rewrite before and apart from the row policy at 203-263, and 264-273 persist only when `changed` is true, so skipping the open-move insert (222-228) and patch (230-263) leaves the reference rewrite and the write-only-on-change behaviour as they are. `vbrief-validate/project-definition.ts` 44-46 skips a row whose `source_path` file no longer exists, so a row left at the old path after an open move does not trip the D3 registry-status check. `xbrief/PROJECT-DEFINITION.xbrief.json` on origin/master has zero top-level `plan.references`. This is evidence for the audit to re-check.\n\n## Acceptance Criteria\n\n- Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.\n- Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief.\n- Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves.\n- Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.\n- `deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.\n- Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.\n- Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.\n- Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.\n- `content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that `project:render` refreshes open rows.\n\n\n",
+      "Constraint": "- Writing the row on promote and skipping it only on activate (comment 7052450841, answer 1 and finding 2: promote still writes in the same flow).\n- Skipping the whole sync on open moves, including the reference rewrite (comment 7052484723, finding 1: nothing repairs the reference later).\n- Keeping open moves byte-identical and adding a reference repair to `project:render` (the larger alternative in comment 7052484723): rejected by the operator decision in comment 7070597391, because it adds a resolution step every user runs and is the larger build.\n- Inferring a target for `verify:plan-sequence` from the live plan (comment 7052450841, finding 1).\n- Treating an exhausted, malformed or unreadable plan file as absent (comment 7052450841, answer 2).\n- The split path for oversized arced stories (#6920).",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator running the story lifecycle, I want activation to leave PROJECT-DEFINITION alone, readiness to tell me how to check a proposed brief, `issue:ingest --help` to print help, and the plan-sequence verbs to skip cleanly when no ordered plan exists, so that the brief-only activation PR is clean and the lifecycle verbs do not stop me for no reason.",
+      "ImplementationPlan": "1. packages/core/src/swarm/readiness.ts and readiness-cli.ts: with no path argument, append one hint line naming xbrief/active/ as the only folder checked and the path or glob argument for proposed or pending briefs (also on the no-candidate report); exit codes unchanged (item 1).\n2. packages/core/src/scope/registry-artifact-sync.ts and project-definition-sync.ts: under the open-rows-only policy, a move into proposed, pending or active makes no row insert and no row patch; the top-level plan.references exact-old-path rewrite and the write-only-on-change behaviour stay; terminal moves still remove the row (item 2).\n3. content/commands.md: state the open-move and terminal-move PROJECT-DEFINITION rules, the kept reference rewrite, and that project:render refreshes open rows (item 3).\n4. packages/core/src/intake/issue-ingest-cli.ts: --help and -h print usage on stdout and exit 0 before requireScmReady (item 4).\n5. packages/runtime/src/verify-plan-sequence.ts: no target and no plan file prints the skip line or skip JSON and exits 0; a live plan with no target or a partial target keeps exit 2 (item 5).\n6. packages/runtime/src/plan-sequence.ts: current with no plan file prints the no-sequence line on stdout or the skip JSON and exits 0 (item 6).\n7. Tests per item 7, including the reference-through-lifecycle case and the flipped #6648 restore and promote cases.",
+      "Traces": "#6872"
+    },
+    "items": [
+      {
+        "title": "Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line."
+        }
+      },
+      {
+        "title": "Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change."
+        }
+      },
+      {
+        "title": "Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level `plan.references` entry that names the moved brief, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a reader opens the scope lifecycle text in content/commands.md, then it shows that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level plan.references entry that names the moved brief, that terminal moves remove the row, and that project:render refreshes open rows."
+        }
+      },
+      {
+        "title": "Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When issue:ingest is given --help or -h, then it returns usage on stdout and exit 0 before requireScmReady and before any GitHub read; other argument handling is unchanged."
+        }
+      },
+      {
+        "title": "Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2."
+        }
+      },
+      {
+        "title": "Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes."
+        }
+      },
+      {
+        "title": "Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change."
+        }
+      },
+      {
+        "title": "Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged."
+        }
+      },
+      {
+        "title": "Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief."
+        }
+      },
+      {
+        "title": "Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves."
+        }
+      },
+      {
+        "title": "Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today."
+        }
+      },
+      {
+        "title": "`deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When deft issue:ingest is run with --help or -h, then it returns usage on stdout and exit 0 without an SCM readiness check or GitHub read."
+        }
+      },
+      {
+        "title": "Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0."
+        }
+      },
+      {
+        "title": "Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage."
+        }
+      },
+      {
+        "title": "Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit."
+        }
+      },
+      {
+        "title": "`content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that `project:render` refreshes open rows.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "When a reader opens content/commands.md, then it shows the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that project:render refreshes open rows."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6872",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6872: bug(cli): swarm:readiness, scope:activate, issue:ingest --help, scope:decompose and plan-sequence verbs are rough"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4214",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4214"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "OK verify:plan-sequence skipped (no active ordered-plan sequence)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "ok: true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "skipped: true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "reason: \"no-active-sequence\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/swarm/readiness.ts",
+          "packages/core/src/swarm/readiness-cli.ts",
+          "packages/core/src/swarm/readiness-branches.test.ts",
+          "packages/core/src/scope/registry-artifact-sync.ts",
+          "packages/core/src/scope/project-definition-sync.ts",
+          "packages/core/src/scope/project-definition-sync.test.ts",
+          "packages/core/src/scope/undo.test.ts",
+          "content/commands.md",
+          "packages/core/src/intake/issue-ingest-cli.ts",
+          "packages/core/src/intake/issue-ingest-cli-help.test.ts",
+          "packages/runtime/src/verify-plan-sequence.ts",
+          "packages/runtime/src/verify-plan-sequence.test.ts",
+          "packages/runtime/src/plan-sequence.ts",
+          "packages/runtime/src/plan-sequence.test.ts",
+          "changelog.d/6872-lifecycle-verb-rough-edges.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6516777613.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/project-definition-sync.test.ts packages/core/src/scope/undo.test.ts",
+          "npx vitest run packages/core/src/swarm/readiness-branches.test.ts packages/core/src/intake/issue-ingest-cli-help.test.ts",
+          "npx vitest run packages/runtime/src/verify-plan-sequence.test.ts packages/runtime/src/plan-sequence.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "swarm:readiness with no path prints one hint line naming xbrief/active/ and the path or glob argument; exit codes unchanged",
+          "open-folder moves make no PROJECT-DEFINITION row insert or patch; the exact-old-path plan.references rewrite stays; the file is written only when that rewrite changes something; terminal moves remove the row",
+          "issue:ingest --help and -h print usage and exit 0 before any SCM check",
+          "verify:plan-sequence with no target and plan-sequence:current skip with exit 0 when .deft/plan-sequence.json is absent",
+          "one changelog fragment changelog.d/6872-lifecycle-verb-rough-edges.md"
+        ],
+        "conflict_group": "scope-lifecycle-verbs",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 16 clauses are the 7 Bound-remedy items and 9 Acceptance Criteria of the accepted design-critique lean 7070598872 (synthesis 7070626741), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6872; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because one of the four fixes reverses part of the #6648 PROJECT-DEFINITION sync (which lifecycle moves write a row), and two others change exit codes that callers read (`verify:plan-sequence`, which the pre-PR controller runs with no arguments, and `plan-sequence:current`), so the exit rules and the sync rule must be checked against their readers.\n\nTarget-digest: sha256:c8b3eb1b2f96fd433fe8ec667476de8025f157ec3c6d4f55189506ed65682363\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6872 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: four small verb fixes for one PR; one critic of a different model family, then one pain audit.\ncritic-post cap: 2 (set by the operator for this arc: one round-1 critic and one pain audit; no recut audit)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1, P2, P3, P4\n\n## Scope of this arc\nThe issue lists five rough edges. This arc binds four of them for one PR. Item 4 (an oversized arced story has no split path without a mint) needs its own design next to `scope:decompose`. By the operator's decision (relayed by the coordinator), it is filed as #6920 with an Acceptance-Criteria-only body and is not a pain of this arc.\n\n## In plain English\nFour story-lifecycle commands get in the way:\n- `swarm:readiness` with no path checks only `xbrief/active/`. When nothing is there it prints \"No candidate vBRIEFs found.\" and does not say that a proposed or pending brief must be named by path.\n- `scope:promote` and `scope:activate` add or update a row in `xbrief/PROJECT-DEFINITION.xbrief.json` (#6648). An activation PR may carry only nonterminal briefs and changelog entries (the brief-land shape, #5387), so every activation leaves that row as a local change that no PR can carry.\n- `issue:ingest --help` prints \"Error: Provide an issue number or --all\" and exits 2.\n- `verify:plan-sequence` with no arguments prints usage and exits 2, even though the pre-PR controller runs it with no arguments, and even when no ordered plan exists (the target form already skips with exit 0 then). `plan-sequence:current` exits 1 when no ordered plan exists, which breaks a \"plan first, then queue\" chain.\n\nThe recommended fixes: a hint that names the path argument; open-folder moves leave PROJECT-DEFINITION alone; a real `--help` for `issue:ingest`; and \"no ordered plan\" reported as a skip with exit 0 by both plan-sequence verbs.\n\n## Pains\n- P1 — `swarm:readiness` with no path checks only `xbrief/active/`, and its output does not say how to check a proposed or pending brief.\n- P2 — An activation leaves a local `PROJECT-DEFINITION.xbrief.json` row change that the brief-only activation PR cannot carry.\n- P3 — `issue:ingest --help` prints an error and exits 2 instead of printing help.\n- P4 — With no ordered plan, `verify:plan-sequence` with no arguments exits 2 with usage and `plan-sequence:current` exits 1, instead of reporting \"no sequence\" as a skip with exit 0.\n\n## Constraints (not pains)\n- Item 4 is out of scope (#6920).\n- `verify:plan-sequence` with a target and an active sequence stays a fail-closed check.\n- The brief-land shape (#5387, `isBriefLandShapedDiff`) is not widened.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/swarm/readiness.ts` 146-210 (`expandPaths`; default pattern at 170 is `active/*` only) and 860-862 (no-candidate report, exit 1); `packages/core/src/swarm/readiness-cli.ts` 120-125, 279 and 355-372 (paths from argv).\n- `packages/core/src/scope/transition.ts` 1307-1323 and `packages/core/src/scope/undo.ts` 369: every lifecycle move calls `syncProjectDefinitionAfterScopeMove`.\n- `packages/core/src/scope/project-definition-sync.ts` 9-55 and `packages/core/src/scope/registry-artifact-sync.ts` 11-25 and 157-235: the open-rows-only policy inserts or patches a row on a move into `proposed`, `pending` or `active` and removes it on a move out (`PROJECT_REGISTRY_FOLDERS`, `render/constants.ts` 110).\n- `packages/core/src/pr-closing-keywords/main.ts` 64-104: `isBriefLandShapedDiff` admits only nonterminal briefs and changelog entries.\n- `packages/core/src/intake/issue-ingest-cli.ts` 8-60: `parseArgs` ignores `--help`; `mainEntry` runs `requireScmReady` before `issueIngestMain`, which prints the error at `issue-ingest.ts` 3226-3230.\n- `packages/runtime/src/verify-plan-sequence.ts` 38, 88-110 and 111-132: no target gives usage and exit 2 before the sequence is read; with a target and no sequence the verb prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0.\n- `packages/core/src/pre-pr-controller/phases.ts` 45-60: the `plan_sequence` phase runs `deft verify:plan-sequence` with no arguments.\n- `packages/runtime/src/plan-sequence.ts` 378-391: `runCurrent` exits 1 when the sequence is missing.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1). When `swarm:readiness` is run with no path, the report adds one line: it checked `xbrief/active/` only, and a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change.\n- R2 (P2). A lifecycle move whose destination is an open folder (`proposed`, `pending`, `active`: promote, activate, demote, restore, undo) leaves `PROJECT-DEFINITION.xbrief.json` unchanged. A move into a terminal folder still removes the matching row. `project:render` stays the refresh for open rows. The specification registry sync does not change. The scope lifecycle text in `content/commands.md` states this.\n- R3 (P3). `issue:ingest` accepts `--help` and `-h`: it prints its usage on stdout and exits 0, before `requireScmReady` and before any GitHub read.\n- R4 (P4). `verify:plan-sequence` with no target, when `.deft/plan-sequence.json` does not exist, prints the same skip line as the target form and exits 0. With no target and a sequence present, it keeps the usage error (exit 2). `plan-sequence:current`, when the file does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0 (`--json`: a payload with `skipped: true`). A malformed or unreadable file keeps today's exit codes.\n\nQuestions for the critic:\n1. R2 reverses the #6648 rule that a move into an open folder inserts or updates the row. Does any reader rely on PROJECT-DEFINITION listing open scopes between renders (for example the identity-only check of #4544, triage or `project:render` itself)? Is \"activate only\" a safer narrowing, given that promote runs in the same activation flow?\n2. R4: is \"file does not exist\" the right trigger for the skip, and is keeping exit 2 for the no-target form with a live sequence right, given that the pre-PR controller runs the no-target form?\n3. Does any caller read exit 1 from `plan-sequence:current` as \"no plan\"?\n4. Is each fix small enough that the four fit one PR?\n\n",
+          "id": 7052406796,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052406796",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:43Z",
+          "updated_at": "2026-11-20T22:42:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052407094\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6872\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052406796\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052407094,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052407094",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:44Z",
+          "updated_at": "2026-11-20T22:42:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe four commands produce confusing guidance, unwanted registry changes, or errors when no ordered plan exists. The recommended fixes are small enough for one PR. I found no design blocker, but the explanation of the pre-PR caller needs correction.\n\nAnswers to Stop 1:\n\n1. R2 is reasonable. The checked identity detector also scans lifecycle files; triage scope reads policy; `project:render` rebuilds rows from lifecycle folders. “Activate only” would leave promotion’s unwanted registry write in the same flow. One swarm instruction does use registry emptiness directly, so stale rows have a documented behavioral consequence.\n2. File absence is the right skip boundary. An existing exhausted, malformed, or unreadable sequence is not equivalent to absence. Keeping exit 2 when a sequence exists but no target is supplied preserves the target check.\n3. I found no executable caller in the searched `packages`, `scripts`, and `tasks` surfaces that branches on exit 1 specifically as “no plan.” This does not establish compatibility with external scripts.\n4. Yes: R1–R4 fit one PR, with the split workflow remaining separate in #6920.\n\nAll file citations below refer to dispatch SHA `880c91ed079578e900c1f2ef680efbfa6e6d61af`. Verification used pinned source reads only; no files changed and no tests ran.\n\n### 1. sharpens-framing — The pre-PR phase declaration is not an argument-free invocation\n\n**Evidence:** `packages/core/src/pre-pr-controller/phases.ts:55–60` declares the command name. `packages/runtime/src/pre-pr-run.ts:493–524` records a supplied command and exit code, using that declaration as a fallback label. `content/skills/deft-directive-pre-pr/SKILL.md:40–58` explicitly supplies `--target-kind` and `--target` for an active plan.\n\n**Failure mode:** Treating the declaration as proof that the controller executes an argument-free verifier could motivate allowing a live plan to pass without checking the work target.\n\n**Disposition:** R4 can bind with the caller description corrected. The missing-file skip fixes the reported no-plan case; the live-plan usage error remains appropriate. The existing targeted invocation is the supported path, so no new target-inference mechanism is needed.\n\n### 2. footnote — R2 preserves the checked consumers, but registry emptiness is not universally inert\n\nThe identity detector requires both empty `plan.items` **and** no lifecycle scope files (`content/strategies/interview.md:49–55`). Triage scope reads `plan.policy.triageScope` (`packages/core/src/triage/scope/resolve.ts:58–85`). Rendering scans lifecycle folders and replaces `plan.items` (`packages/core/src/render/project-render.ts:124–147,315–355`). These mechanisms support R2.\n\nTerminal cleanup also has a filename-stem fallback, so an ordinary folder move does not defeat removal merely because `source_path` is stale (`packages/core/src/scope/registry-artifact-sync.ts:28–45,203–220`).\n\nHowever, swarm guidance directly treats empty `plan.items` plus proposed candidates as requiring explicit confirmation (`content/skills/deft-directive-swarm/references/core-phase-0.md:168`). Under R2 that condition can persist until rendering. This is not a blocker: the same bridge already requires explicit approval at lines 170–172. It does mean the rationale should avoid claiming that no reader observes registry freshness.\n\nThe narrower “activate only” alternative preserves more automatic freshness, but promotion still writes through the same sync path (`packages/core/src/scope/transition.ts:1308–1323`), while the brief-land allowlist still excludes PROJECT-DEFINITION (`packages/core/src/pr-closing-keywords/main.ts:64–103`). It therefore does not fully relieve P2.\n\n### 3. footnote — R1, R3, and the absence-only part of R4 match the existing mechanisms\n\nR1 accurately describes the active-only default and preserves existing exits (`packages/core/src/swarm/readiness.ts:146–170,860–862`).\n\nR3 places help before the SCM readiness gate, which currently runs before ingestion (`packages/core/src/intake/issue-ingest-cli.ts:41–58`). A help-only return does not require changing authorization for actual ingestion.\n\nR4 matches the store’s existing distinction: absence returns `null`; present files are read and parsed (`packages/core/src/plan-sequence/store.ts:229–235`). The verifier already has a structured skip payload (`packages/runtime/src/verify-plan-sequence.ts:121–131`). Reusing that shape would keep the two commands consistent. Invalid flags and incomplete target arguments should retain their usage errors rather than becoming absence skips.\n\n### 4. footnote — The supplied ceiling differs from the single-seat contract rule\n\nThe envelope specifies ceiling `7052407094`, matching the panel deposit, while Stop 1 is `7052406796`. The pinned contract’s “Envelope and ceiling” section specifies the triage write-back as the round-1 ceiling for a single critic.\n\nI honored the explicit envelope ceiling. The additional comment contains dispatch metadata, not a competing critique, so this discrepancy does not alter the product verdict.",
+          "id": 7052450841,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052450841",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:20Z",
+          "updated_at": "2026-11-20T22:45:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7052406796 (round 1: 1 of 1 critic posted, comment 7052450841)\n\n## In plain English\nProblem: four story-lifecycle commands get in the way. `swarm:readiness` with no path checks only `xbrief/active/` and does not say how to check a proposed or pending brief. `scope:promote` and `scope:activate` write a `PROJECT-DEFINITION.xbrief.json` row that a brief-only activation PR cannot carry, so every activation leaves a local change. `issue:ingest --help` prints an error. With no ordered plan, `verify:plan-sequence` without a target prints usage and exits 2, and `plan-sequence:current` exits 1.\n\nWhat the critic found: all four fixes are sound and fit one PR. Stopping the row write for every move into an open folder is right; \"activate only\" would leave the row that promote writes in the same flow. The skip must key on the plan file being absent, not on an exhausted, malformed or unreadable file, and invalid flags keep their usage errors. One correction: the pre-PR controller does not run `verify:plan-sequence` with no arguments; its phase table only names the command, and the pre-PR skill passes a target. The critic also noted that one swarm instruction reads an empty `plan.items`, so the docs must not claim that nothing reads row freshness.\n\nSolution this lean proposes: a hint line in `swarm:readiness` that names the path argument; moves into `proposed`, `pending` or `active` leave PROJECT-DEFINITION unchanged while moves into a terminal folder still remove the row; a real `--help` for `issue:ingest`; and \"no plan file\" reported as a skip with exit 0 by `verify:plan-sequence` without a target and by `plan-sequence:current`.\n\nWhat this adds: one report line, one help text and one skip branch in each of two verbs. It removes a registry write on open-folder moves. No new gate or refusal.\n\nWhat it does not do:\n- It does not give oversized arced stories a split path; that is #6920.\n- It does not infer a target for `verify:plan-sequence` when a plan exists; a missing target with a live plan stays a usage error (exit 2).\n- It does not keep PROJECT-DEFINITION rows fresh between renders; `project:render` stays the refresh.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:c8b3eb1b2f96fd433fe8ec667476de8025f157ec3c6d4f55189506ed65682363\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7052406796. Sibling count: 1 (comment 7052450841). Panel deposit: comment 7052407094.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.\n2. Registry rows on open moves (P2). `syncProjectDefinitionAfterScopeMove` leaves `PROJECT-DEFINITION.xbrief.json` unchanged (no row insert, no row patch, no reference rewrite, no write) when the destination folder is `proposed`, `pending` or `active`. This covers every caller: promote, activate, demote, restore and undo. A move into a terminal folder still removes the matching row as today. The specification registry sync does not change. `project:render` stays the refresh for open rows.\n3. Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves leave PROJECT-DEFINITION unchanged, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.\n4. Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.\n5. Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.\n6. Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.\n7. Tests cover each item: the readiness line with and without a path; an activate and a promote leave PROJECT-DEFINITION byte-identical while a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases.\n\n## Acceptance Criteria\n- Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.\n- Given `scope:activate` or `scope:promote` on a brief, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move.\n- Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.\n- `deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.\n- Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.\n- Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.\n- Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.\n- `content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules and that `project:render` refreshes open rows.\n\n## Reject\n- Writing the row on promote and skipping it only on activate (comment 7052450841, answer 1 and finding 2: promote still writes in the same flow).\n- Inferring a target for `verify:plan-sequence` from the live plan (comment 7052450841, finding 1).\n- Treating an exhausted, malformed or unreadable plan file as absent (comment 7052450841, answer 2).\n- The split path for oversized arced stories (#6920).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052450841 | 1. The pre-PR phase declaration is not an argument-free invocation | sharpens-framing | accept-into-contract (the caller claim is withdrawn; item 5 keeps exit 2 for a live plan with no target and fixes only the absent-file case) |\n\nFootnotes in the census, no take: comment 7052450841 findings 2, 3 and 4 (finding 2 is reflected in item 3; finding 3 in items 5 and 6).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 7052460712,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052460712",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:54Z",
+          "updated_at": "2026-11-20T22:45:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: blocking\nharvest-changed: true\nharvest-digest: sha256:ce45fbe18078e4b9890fda1127e861c342228142acd9e41c0bb46f5bb0cab6ea\n\n## In plain English\n\nThe four remedies address the four stated pains. However, skipping the whole PROJECT-DEFINITION sync introduces a reference-repair gap: a reference left behind during promotion or activation can stay broken after both completion and `project:render`. The design needs a repair path before it binds.\n\nAll evidence below was read at dispatch SHA `880c91ed079578e900c1f2ef680efbfa6e6d61af`. No files changed and no tests ran.\n\npain-P1: holds - Item 1 supplies the missing path guidance for the active-only default and the no-candidate report (`packages/core/src/swarm/readiness.ts:146–170,860–865`).\n\npain-P2: holds - Item 2 removes the unwanted activation write. Both transition and undo use the named sync function (`packages/core/src/scope/transition.ts:1308–1323`; `packages/core/src/scope/undo.ts:363–375`). This relieves the stated dirty-file pain, but introduces the separate blocking regression below.\n\npain-P3: holds - Item 4 returns help before the SCM gate and ingestion, which currently execute in that order (`packages/core/src/intake/issue-ingest-cli.ts:41–58`).\n\npain-P4: holds - Items 5 and 6 distinguish file absence from existing-file failures and preserve invalid or partial target errors. The verifier currently rejects missing targets before reading the sequence; its targeted absence branch already supplies the requested skip payload (`packages/runtime/src/verify-plan-sequence.ts:40–131`). Current uses the same reader, whose absence result is distinct from read/parse failures (`packages/runtime/src/plan-sequence.ts:366–390`; `packages/core/src/plan-sequence/store.ts:229–235`).\n\n### 1. blocks-the-design — Skipped top-level references have no later repair path\n\n**Evidence:** `packages/core/src/scope/registry-artifact-sync.ts:48–71,194–201` rewrites `plan.references` only when a reference resolves to the move’s exact old path. The filename-stem fallback at lines 28–45 applies to registry rows, not these references. `packages/core/src/render/project-render.ts:337–389` rebuilds `plan.items` and updates metadata, but preserves top-level `plan.references` unchanged.\n\n**Concrete failure:** Start with a PROJECT-DEFINITION plan reference to `proposed/example.xbrief.json`. Under item 2, promotion and activation leave that reference untouched. Completion then checks references against `active/example.xbrief.json`, so the old proposed reference does not match. The row can be removed successfully while the reference remains broken. Running `project:render` does not repair it either.\n\nThis is new evidence beyond the earlier accepted observation about stale rows: row recovery works, but reference recovery does not.\n\n**Disposition:** The lean cannot bind as written. Keep open-folder moves byte-identical, but add a bounded repair of stale lifecycle `plan.references` to `project:render`, using unambiguous scope identity. Add an acceptance case covering a reference that survives proposed → pending → active → completed and is repaired by rendering. This changes the Bound remedy and Acceptance Criteria.",
+          "id": 7052484723,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052484723",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:47:19Z",
+          "updated_at": "2026-11-20T22:47:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7052484723 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7052460712\n\n## In plain English\nThe audit held that items 1, 4, 5 and 6 relieve P1, P3 and P4, and that item 2 removes the activation write. It blocked on one regression in item 2, and the parent agrees after reading the code it cites. Item 2 skips the whole PROJECT-DEFINITION sync on an open-folder move, including the rewrite of a top-level `plan.references` entry that names the moved brief by its exact old path. Nothing repairs that reference later: the terminal move matches references only by the brief's current path, and `project:render` rebuilds `plan.items` but keeps `plan.references` as they are. A reference made while the brief was in `proposed/` would stay broken after completion and after a render.\n\nThe Bound remedy on 7052460712 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:c8b3eb1b2f96fd433fe8ec667476de8025f157ec3c6d4f55189506ed65682363\n\nrelieves: P1\ndoes-not-relieve: P2\nrelieves: P3\nrelieves: P4\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052484723 | 1. Skipped top-level references have no later repair path | blocks-the-design | accept-into-contract (an open-folder move must keep the exact-path reference rewrite, or a later step must repair the reference) |\n\nAudit verdicts recorded: `pain-P1`, `pain-P3` and `pain-P4` hold; `pain-P2` holds for the activation write but item 2 is withdrawn for the reference regression.\n\n",
+          "id": 7052487638,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052487638",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:47:29Z",
+          "updated_at": "2026-11-20T22:47:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 7052487638 (blocking pain audit 7052484723 on a `Spec-path` lean)\nopen-question: If an open-folder move makes no row insert or patch but keeps today's exact-old-path rewrite of a top-level `plan.references` entry (so PROJECT-DEFINITION is written only when it references the moved brief), does that relieve P2 without leaving a reference that nothing repairs?\n\n## In plain English\nOne change is needed, to item 2 only. The smallest one: on a move into `proposed`, `pending` or `active`, the sync stops inserting or patching rows, but still rewrites a top-level `plan.references` entry that names the moved brief by its exact old path, as it does today. PROJECT-DEFINITION is then written only when it references that brief, which an ordinary activation does not, so the usual activation leaves no local change. The larger alternative the audit names is to keep open moves byte-identical and teach `project:render` to repair stale lifecycle references by scope identity. Items 1, 3, 4, 5, 6 and 7 of the retracted lean stand as audited.\n\nCritic posts used: 2 of 2. The operator set the cap at 2 for this arc, so the parent does not post that recut without an operator decision.\n\n",
+          "id": 7052490392,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052490392",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:47:39Z",
+          "updated_at": "2026-11-20T22:47:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the pain audit (comment 7052484723) returned one blocking finding against item 2 (PROJECT-DEFINITION references on open-folder moves) and the operator-set cap of 2 critic posts for this arc is spent.\n\nRetraction map: comment 7052487638. Handoff with the open question and the smallest next remedy: comment 7052490392. No lean on this thread is bound. Resume is an operator verb.\n\n",
+          "id": 7052490638,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7052490638",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:47:40Z",
+          "updated_at": "2026-11-20T22:47:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-21) after the halt in comment 7052490638. The operator answered the open question in Handoff 7052490392 and raised this arc's critic-post cap from 2 to 3, in his words: \"Yes, reference-rewrite\" (to the question \"For #6872, one more post using the reference-rewrite variant?\").\n- Operator decision (locked): item 2 takes the reference-rewrite variant. A move into `proposed`, `pending` or `active` stops inserting and patching PROJECT-DEFINITION rows but keeps today's exact-old-path rewrite of top-level `plan.references`. PROJECT-DEFINITION is written only when that rewrite changes something.\n- Operator decision (rejected): the render-repair variant named in pain audit 7052484723 (open moves stay byte-identical and `project:render` repairs stale lifecycle references by scope identity). Reason: it adds a new resolution step that every user runs, and it is the larger build; the operator direction is fewer steps. This choice is not reopened in this arc. A critic may still block the reference-rewrite variant on its own evidence.\n- Items 1, 3, 4, 5, 6 and 7 of the retracted lean 7052460712 stand as audited; only item 2, its docs and its tests change.\n- One pain audit follows on the recut bind lean; it is critic post 3 of 3. If it blocks, the arc halts with no fourth post.\n\nThe arc continues under Stop 1 7052406796.\n\n",
+          "id": 7070597391,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7070597391",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:02:10Z",
+          "updated_at": "2026-11-21T23:02:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7052406796, after pain audit 7052484723 and the operator decision in comment 7070597391 (round 1: 1 of 1 critic posted, comment 7052450841)\n\n## In plain English\nProblem: four story-lifecycle commands get in the way. `swarm:readiness` with no path checks only `xbrief/active/` and does not say how to check a proposed or pending brief. `scope:promote` and `scope:activate` write a `PROJECT-DEFINITION.xbrief.json` row that a brief-only activation PR cannot carry, so every activation leaves a local change. `issue:ingest --help` prints an error. With no ordered plan, `verify:plan-sequence` without a target prints usage and exits 2, and `plan-sequence:current` exits 1.\n\nWhat the critics found: the readiness hint, the ingest help and the two plan-sequence skips are sound, and the audit held them. Stopping the row write on every move into an open folder is right. But the first lean also skipped the rewrite of a top-level `plan.references` entry that names the moved brief by its exact old path, and nothing repairs that reference later: the terminal move only matches the brief's current path, and `project:render` keeps `plan.references` as they are.\n\nSolution this lean proposes: the same four fixes, with item 2 recut to the variant the operator chose. On a move into `proposed`, `pending` or `active`, the sync stops inserting and patching rows but keeps today's exact-old-path reference rewrite. PROJECT-DEFINITION is written only when that rewrite changes something. An ordinary activation has no such reference (this repo's PROJECT-DEFINITION has no top-level `plan.references` at all), so it leaves the file byte-identical. A reference that does name the brief is kept current at every move, as today, so it is never left behind.\n\nWhat this adds: one report line, one help text and one skip branch in each of two verbs. It removes the row insert and the row patch on open-folder moves. No new gate, refusal, step or repair pass.\n\nWhat it does not do:\n- It does not give oversized arced stories a split path; that is #6920.\n- It does not infer a target for `verify:plan-sequence` when a plan exists; a missing target with a live plan stays a usage error (exit 2).\n- It does not keep PROJECT-DEFINITION rows fresh between renders; `project:render` stays the refresh for rows.\n- It does not teach `project:render` to repair references (the render-repair variant, rejected by the operator in comment 7070597391).\n- When PROJECT-DEFINITION does reference the moved brief by path, the open move still rewrites that reference, as today, and that change is still local to the activation.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:c8b3eb1b2f96fd433fe8ec667476de8025f157ec3c6d4f55189506ed65682363\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 7052460712 (its item 2 failed audit 7052484723, and retraction map 7052487638 withdrew it). Sibling count: 1 (comment 7052450841). Panel deposit: comment 7052407094.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.\n2. Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change.\n3. Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level `plan.references` entry that names the moved brief, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.\n4. Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.\n5. Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.\n6. Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.\n7. Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change.\n\nParent check of item 2. At the dispatch SHA, `registry-artifact-sync.ts` 194-202 runs the reference rewrite before and apart from the row policy at 203-263, and 264-273 persist only when `changed` is true, so skipping the open-move insert (222-228) and patch (230-263) leaves the reference rewrite and the write-only-on-change behaviour as they are. `vbrief-validate/project-definition.ts` 44-46 skips a row whose `source_path` file no longer exists, so a row left at the old path after an open move does not trip the D3 registry-status check. `xbrief/PROJECT-DEFINITION.xbrief.json` on origin/master has zero top-level `plan.references`. This is evidence for the audit to re-check.\n\n## Acceptance Criteria\n- Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.\n- Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief.\n- Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves.\n- Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.\n- `deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.\n- Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.\n- Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.\n- Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.\n- `content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that `project:render` refreshes open rows.\n\n## Reject\n- Writing the row on promote and skipping it only on activate (comment 7052450841, answer 1 and finding 2: promote still writes in the same flow).\n- Skipping the whole sync on open moves, including the reference rewrite (comment 7052484723, finding 1: nothing repairs the reference later).\n- Keeping open moves byte-identical and adding a reference repair to `project:render` (the larger alternative in comment 7052484723): rejected by the operator decision in comment 7070597391, because it adds a resolution step every user runs and is the larger build.\n- Inferring a target for `verify:plan-sequence` from the live plan (comment 7052450841, finding 1).\n- Treating an exhausted, malformed or unreadable plan file as absent (comment 7052450841, answer 2).\n- The split path for oversized arced stories (#6920).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052450841 | 1. The pre-PR phase declaration is not an argument-free invocation | sharpens-framing | accept-into-contract (the caller claim is withdrawn; item 5 keeps exit 2 for a live plan with no target and fixes only the absent-file case) |\n| comment 7052484723 | 1. Skipped top-level references have no later repair path | blocks-the-design | accept-into-contract (item 2 keeps the exact-old-path reference rewrite on open moves; the operator chose this over the render repair in comment 7070597391) |\n\nFootnotes in the census, no take: comment 7052450841 findings 2, 3 and 4 (finding 2 is reflected in item 3; finding 3 in items 5 and 6).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean; the variant choice and the cap raise are the operator's decisions (comment 7070597391). The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings, the Stop 1 items the critics did not contest and the operator decision, so it records no audit marker. The parent check under item 2 is evidence for the audit to re-check.\n\n",
+          "id": 7070598872,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7070598872",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:02:18Z",
+          "updated_at": "2026-11-21T23:02:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:ad1433cc9377cf77c93fa98abeb3900e0522cbdcd2dbdf555ac94ef0e83b92cc\n\n## In plain English\n\nThe recut relieves all four stated pains. Item 2 removes the unwanted row changes while keeping references current through lifecycle moves. I found no new blocker and no required change to the Bound remedy or Acceptance Criteria.\n\nVerification used source reads at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. This assesses the proposed design; no files changed and no tests ran.\n\npain-P1: holds - Item 1 supplies guidance for the active-only default and the empty-candidate report, matching `packages/core/src/swarm/readiness.ts:146–170,860–865`.\n\npain-P2: holds - Item 2 prevents row insertion and patching on open moves while preserving the separate reference rewrite and change-gated persistence (`packages/core/src/scope/registry-artifact-sync.ts:194–273`). Without a matching reference, those moves leave PROJECT-DEFINITION byte-identical. A matching reference still produces the explicitly disclosed reference-only change.\n\npain-P3: holds - Item 4 returns help before the SCM gate and ingestion, which currently execute in that order (`packages/core/src/intake/issue-ingest-cli.ts:41–58`).\n\npain-P4: holds - Items 5 and 6 add absence-only skips while retaining invalid-argument and existing-file failures. The store distinguishes absence from reading and parsing an existing file (`packages/core/src/plan-sequence/store.ts:229–235`); the verifier already supplies the specified skip payload (`packages/runtime/src/verify-plan-sequence.ts:40–131`), and current has a distinct missing-sequence branch (`packages/runtime/src/plan-sequence.ts:366–390`).\n\nThe focused item 2 checks also pass:\n\n- Plain and `file://` plan references match the exact old path and retain their URI form when rewritten. Keeping this operation on every move allows each next move to match the preceding result (`registry-artifact-sync.ts:48–71,194–202`; `scope/vbrief-ref.ts:40–60`).\n- A stale `source_path` whose file has moved is skipped by the D3 registry-status check (`vbrief-validate/project-definition.ts:35–46`). Terminal removal retains its filename-stem fallback, matching the IDs generated by rendering (`registry-artifact-sync.ts:28–45,208–220`; `render/project-render.ts:86–104`).\n- `project:render` scans lifecycle files and replaces registry rows; it does not depend on their old paths or repair top-level references (`render/project-render.ts:124–147,337–389`).\n- Both transition and undo reach the shared sync (`scope/transition.ts:1308–1323`; `scope/undo.ts:363–375`). The existing mutation lock, captured artifact identity and contained persistence remain intact (`scope/project-definition-sync.ts:18–49`; `vbrief-build/project-definition-mutation.ts:57–75`).\n- Items 3 and 7 and the Acceptance Criteria consistently describe the recut: unchanged rows on open moves, retained reference rewriting, terminal removal and render-based row refresh. The specified restore/promote test reversals match the existing assertions (`scope/project-definition-sync.test.ts:322–365`).\n\nThe pinned PROJECT-DEFINITION also has no top-level `plan.references`, confirming the parent’s repository-specific claim.",
+          "id": 7070620455,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7070620455",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:04:04Z",
+          "updated_at": "2026-11-21T23:04:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7070598872 (recut of 7052460712 after audit 7052484723 and the operator decision in comment 7070597391). Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean; the variant choice and the cap raise are the operator's (comment 7070597391). Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run. All three critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation; rows that only critics read are marked so.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `swarm:readiness` with no path globs `active/*` only and its no-candidate report gives no path hint | verified | parent read of `packages/core/src/swarm/readiness.ts` 146-170 and 860-862 (Stop 1); audits 7052484723 and 7070620455 |\n| 2 | Every lifecycle move reaches `syncProjectDefinitionAfterScopeMove`, from both `transition.ts` and `undo.ts` | verified | parent grep and read of `scope/transition.ts` 1308 and `scope/undo.ts` 369; audit 7070620455 (1308-1323, 363-375) |\n| 3 | The top-level `plan.references` rewrite runs apart from the row policy, matches only a `plan`-type reference at the exact old path, keeps the `file://` form, and the file is persisted only when `changed` is true | verified | parent read of `scope/registry-artifact-sync.ts` 48-72, 194-202 and 264-273; audit 7070620455 (48-71, 194-273) |\n| 4 | Skipping the open-move insert and patch leaves PROJECT-DEFINITION byte-identical when no reference names the brief, and a reference that names it stays current through every move | verified as design coverage | parent read of `registry-artifact-sync.ts` 203-263; audit 7070620455 (`pain-P2: holds`) |\n| 5 | A row left at a moved `source_path` does not trip the D3 registry-status check, and terminal removal keeps the filename-stem fallback | verified | parent read of `vbrief-validate/project-definition.ts` 35-46 and `registry-artifact-sync.ts` 28-46; audit 7070620455 |\n| 6 | `project:render` rebuilds rows from lifecycle folders and keeps top-level `plan.references` unchanged | verified by the critics | audits 7052484723 and 7070620455 (`render/project-render.ts` 124-147, 337-389) |\n| 7 | `xbrief/PROJECT-DEFINITION.xbrief.json` has zero top-level `plan.references`, so an ordinary activation here writes nothing | verified | parent read on origin/master; audit 7070620455 at the pin |\n| 8 | `issue:ingest` runs `requireScmReady` before argument handling, and `--help` is not parsed | verified | parent read of `intake/issue-ingest-cli.ts` 8-60 (Stop 1); audits 7052484723 and 7070620455 (41-58) |\n| 9 | The plan-sequence store tells absence apart from an unreadable file; the verifier already has the skip payload; `plan-sequence:current` exits 1 when the file is missing | verified | parent read of `runtime/src/verify-plan-sequence.ts` 88-132 and `runtime/src/plan-sequence.ts` 378-391 (Stop 1); critic 7052450841; audit 7070620455 (`plan-sequence/store.ts` 229-235) |\n| 10 | The Bound remedy relieves P1, P2, P3 and P4 | verified as design coverage | audit 7070620455 (`finding-classes: none`, `harvest-changed: false`, digest equal to the lean's) |\n| 11 | The changed code behaves as designed | endorsed, not verified | nothing was executed; the implementer covers it with the tests item 7 names |\n\n",
+          "id": 7070626528,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7070626528",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:04:35Z",
+          "updated_at": "2026-11-21T23:04:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: four story-lifecycle commands get in the way. `swarm:readiness` with no path checks only `xbrief/active/` and does not say how to check a proposed or pending brief. `scope:promote` and `scope:activate` write a PROJECT-DEFINITION row that a brief-only activation PR cannot carry, so every activation leaves a local change. `issue:ingest --help` prints an error. With no ordered plan, `verify:plan-sequence` without a target exits 2 and `plan-sequence:current` exits 1.\n\nAccepted solution: `swarm:readiness` without a path prints one line naming the path argument. Moves into `proposed`, `pending` or `active` no longer add or update PROJECT-DEFINITION rows; they keep today's rewrite of a top-level reference that names the moved brief by its old path, and the file is written only when that rewrite changes something. Terminal moves still remove the row, and `commands.md` states these rules. `issue:ingest --help` and `-h` print usage and exit 0 before any SCM check. With no `.deft/plan-sequence.json`, both plan-sequence verbs report a skip with exit 0; a live plan with no target, a partial target or a malformed file keep their errors.\n\nLimits accepted: rows go stale between renders, and `project:render` stays their refresh. The operator chose this reference-rewrite variant over teaching `project:render` to repair references, which would add a step for every user. When PROJECT-DEFINITION does name the brief, the open move still rewrites that reference, as today. The oversized-split item is #6920. The design adds no gate, refusal, flag or stored file. It was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7070598872.\nverified-claims table 7070626528\n\nConfirm conjunct: yolo standing (Stop 1 7052406796, `yolo-standing: on`) plus the operator's live turn in comment 7070597391 (\"Yes, reference-rewrite\"), which raised the critic-post cap from 2 to 3 and locked the reference-rewrite variant. Round-1 critic: comment 7052450841, posted by the parent verbatim as disclosed on panel-deposit 7052407094; its classified finding is accepted on the lean. Audit 7052484723 blocked item 2 on lean 7052460712 (retraction map 7052487638, Handoff 7052490392, halt 7052490638). Clean audit of the bound lean: comment 7070620455 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's), posted by the parent verbatim. Critic posts used: 3 of 3.\n\n",
+          "id": 7070626741,
+          "html_url": "https://github.com/deftai/directive/issues/6872#issuecomment-7070626741",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:04:36Z",
+          "updated_at": "2026-11-21T23:04:36Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nFive story-lifecycle verbs are rough, found on 2026-11-20.\n\n1. `swarm:readiness` with no argument checks only `pending/` and `active/`. A proposed brief needs its path. The hint does not say so.\n2. `scope:activate` writes a PROJECT-DEFINITION row that the brief-only activation convention leaves out. Every activation leaves this local change.\n3. `deft issue:ingest --help` prints \"Provide an issue number or --all\" instead of help.\n4. An arced issue that turns out oversized has no split path without a mint. `scope:decompose` needs a structural grant.\n5. `verify:plan-sequence` with no args prints usage instead of \"skipped\". `plan-sequence:current` exits 1 when no sequence exists.\n\n## Acceptance Criteria\n\n- [ ] `swarm:readiness` with no argument also checks `proposed/`, or its hint names the path argument.\n- [ ] `scope:activate` does not write the PROJECT-DEFINITION row.\n- [ ] `issue:ingest --help` prints help and exits 0.\n- [ ] An oversized arced story has a documented split path that needs no extra mint.\n- [ ] `verify:plan-sequence` and `plan-sequence:current` report \"no sequence\" as a skip with exit 0.\n\nRefs #4214, #4383, #4566, #6647\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6516777613,
+        "origin": "deftai/directive#6872",
+        "id": "github.issue.6516777613"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c8b3eb1b2f96fd433fe8ec667476de8025f157ec3c6d4f55189506ed65682363"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6872,
+        "leanCommentId": 7070598872,
+        "harvestDigest": "ad1433cc9377cf77c93fa98abeb3900e0522cbdcd2dbdf555ac94ef0e83b92cc",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.",
+        "Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change.",
+        "Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level `plan.references` entry that names the moved brief, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.",
+        "Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.",
+        "Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.",
+        "Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.",
+        "Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change.",
+        "Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.",
+        "Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief.",
+        "Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves.",
+        "Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.",
+        "`deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.",
+        "Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.",
+        "Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.",
+        "Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.",
+        "`content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that `project:render` refreshes open rows."
+      ],
+      "admitted_source_sentences": [
+        "Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.",
+        "Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change.",
+        "Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level `plan.references` entry that names the moved brief, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.",
+        "Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.",
+        "Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.",
+        "Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.",
+        "Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change.",
+        "Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.",
+        "Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief.",
+        "Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves.",
+        "Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.",
+        "`deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.",
+        "Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.",
+        "Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.",
+        "Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.",
+        "`content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that `project:render` refreshes open rows."
+      ],
+      "admitted_source_digest": "d992e5fb1be76cedd7d6964e16f09604f218621ba1b012244f48db5abb2fb9f3",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.",
+          "artifact_path": "packages/core/src/swarm/readiness-cli.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change.",
+          "artifact_path": "packages/core/src/scope/registry-artifact-sync.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level `plan.references` entry that names the moved brief, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.",
+          "artifact_path": "packages/runtime/src/verify-plan-sequence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.",
+          "artifact_path": "packages/runtime/src/plan-sequence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change.",
+          "artifact_path": "packages/core/src/scope/project-definition-sync.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.",
+          "artifact_path": "packages/core/src/swarm/readiness-cli.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief.",
+          "artifact_path": "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.",
+          "artifact_path": "packages/runtime/src/verify-plan-sequence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.",
+          "artifact_path": "packages/runtime/src/verify-plan-sequence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.",
+          "artifact_path": "packages/runtime/src/plan-sequence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that `project:render` refreshes open rows.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6516777613",
+    "updated": "2026-11-22T04:28:15Z"
+  }
+}
