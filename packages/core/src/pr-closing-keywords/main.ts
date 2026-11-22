@@ -22,6 +22,12 @@ import { isLandsWithProductPlan } from "../scope/lifecycle-write.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { parseGitHubRemoteRepo } from "../text/redos-safe.js";
 import { resolveRepo } from "../triage/queue/repo.js";
+import {
+  briefLandHeadReader,
+  evaluateBriefLandScopeRecord,
+  isScopeRecordPath,
+  type ReadHeadFileFn,
+} from "./brief-land-records.js";
 // Keep this import before ./story-issue.js: plan-id-adopter.ts (reached through it)
 // reads WRITE_STORY_LINE_COMMAND at module load (#6468).
 import {
@@ -75,14 +81,29 @@ function isBriefLandAllowlistedPath(path: string): boolean {
  * or a changelog entry path (root CHANGELOG.md or changelog.d/<name>.md).
  * Requires at least one non-removed nonterminal brief.
  * Denies completed/, packages/**, and all other product surfaces.
+ *
+ * Activation-PR record carry (#6937): `.deft/observable-scope/<f>.json` and
+ * `.deft/intent-constraint/<f>.json` keep the shape only when `readHeadFile`
+ * is given and each record matches a brief this diff adds or changes
+ * (`evaluateBriefLandScopeRecord`). Without a reader they leave the PR not
+ * brief-land shaped, as before.
  */
-export function isBriefLandShapedDiff(files: readonly PrDiffPath[]): boolean {
+export function isBriefLandShapedDiff(
+  files: readonly PrDiffPath[],
+  readHeadFile?: ReadHeadFileFn,
+): boolean {
   if (files.length === 0) {
     return false;
   }
   let hasNonRemovedNonterminal = false;
   for (const file of files) {
     const dest = normalizeDiffPath(file.path);
+    if (isScopeRecordPath(dest)) {
+      if (!evaluateBriefLandScopeRecord({ file, files, readHeadFile }).ok) {
+        return false;
+      }
+      continue;
+    }
     if (!isBriefLandAllowlistedPath(dest)) {
       return false;
     }
@@ -457,7 +478,7 @@ export function evaluatePathBActivationAdmit(args: {
   // Offline (#5736): brief-land identity (marks ↔ changed-brief issue refs +
   // unset productPullRequest) runs with prNumber null. Live stamp binding still
   // needs a PR number on the product path below.
-  if (!isBriefLandShapedDiff(args.files)) {
+  if (!isBriefLandShapedDiff(args.files, briefLandHeadReader(args.projectRoot))) {
     return { ok: false, detail: "not brief-land shaped" };
   }
   const removedNonterminal = removedNonterminalBriefPaths(args.files);
@@ -698,7 +719,10 @@ export function evaluateFullStoryMarkAdmission(args: {
   // Offline brief-land (#5736): hard-fail missing/wrong/partial marks and other
   // activation identity refuses. Live stamped product PRs that also delete a
   // brief still fall through to product stamp gates (#5388).
-  if (args.prNumber === null && isBriefLandShapedDiff(args.files)) {
+  if (
+    args.prNumber === null &&
+    isBriefLandShapedDiff(args.files, briefLandHeadReader(args.projectRoot))
+  ) {
     return { ok: false, messages: [`FAIL: ${activation.detail}`] };
   }
   if (
@@ -924,8 +948,13 @@ export function parseStoryRefIssues(text: string, repo: string): number[] {
 }
 
 /** Product-shaped diff for the story-line check: not a lifecycle-only land (#6316). */
-export function isProductShapedDiff(files: readonly PrDiffPath[]): boolean {
-  return files.length > 0 && !isLeftoverShapedDiff(files) && !isBriefLandShapedDiff(files);
+export function isProductShapedDiff(
+  files: readonly PrDiffPath[],
+  readHeadFile?: ReadHeadFileFn,
+): boolean {
+  return (
+    files.length > 0 && !isLeftoverShapedDiff(files) && !isBriefLandShapedDiff(files, readHeadFile)
+  );
 }
 
 /** One required story line: why it is asked for, and the brief's issues that need none (#6468). */
@@ -1020,7 +1049,7 @@ export function evaluateStoryLineRequirement(args: {
   if (conflicts.length > 0) {
     return { ok: false, messages: [formatStoryLineConflict(conflicts)], required: [] };
   }
-  if (!isProductShapedDiff(args.files)) {
+  if (!isProductShapedDiff(args.files, briefLandHeadReader(args.projectRoot))) {
     return { ok: true, messages: [], required: [] };
   }
   // #6277 Bound 6: a PR that completes its story in-PR (a completed/ brief stamped

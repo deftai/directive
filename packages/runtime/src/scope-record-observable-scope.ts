@@ -15,17 +15,21 @@ import {
 } from "@deftai/directive-core/observable-scope";
 import { isDirectEntrypoint } from "./entrypoint.js";
 import {
-  type HumanPresenceMintSeams,
   mintArgsAfterVerb,
   refuseMintWhileUatActive,
   refuseNonInteractiveMint,
   resolveHumanPresenceMintSeams,
 } from "./human-presence-mint.js";
 import { isPathInsideRoot } from "./scope-record-approved-scope.js";
+import { type RecordCohortSeams, runRecordCohort } from "./scope-record-cohort.js";
 
 export interface ParsedArgs {
   projectRoot: string;
   xbriefPath: string;
+  /** Every brief path given; two or more select the cohort form (#6937). */
+  xbriefPaths: string[];
+  /** Launch-manifest path for the cohort form (#6937). */
+  manifest: string | null;
   actor: string;
   kind: string;
   mintedVia: string;
@@ -40,7 +44,8 @@ const ALLOWED_MINTED_VIA = new Set([DEFAULT_MINTED_VIA, "in-harness-ask"]);
 
 function usage(): string {
   return (
-    "usage: scope:record-observable-scope -- <xbrief-path> --actor <name> --confirm " +
+    "usage: scope:record-observable-scope -- <xbrief-path> [<xbrief-path> ...] | --manifest <launch-manifest> " +
+    "--actor <name> --confirm " +
     "[--kind operator] [--minted-via in-harness-ask|scope:record-observable-scope] " +
     "[--project-root <dir>] [--quiet]\n" +
     '  Writes .deft/observable-scope/<plan-id>.json from plan["x-directive/observableChange"].\n' +
@@ -48,7 +53,13 @@ function usage(): string {
     "with --minted-via=in-harness-ask (attestation is not an agent-shell bypass). Commit the record on " +
     "the delivery-branch merge base, then rebase the implementation branch — same-PR working-tree-only " +
     "records are not authoritative. Unattended/C1: rewrite or park. --actor is display only. Mint still " +
-    "requires a real TTY, controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
+    "requires a real TTY, controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse.\n" +
+    "  Cohort form (#6937): several brief paths or --manifest (launch-manifest xbrief_path entries) " +
+    "print every record first, ask for the typed mint once, and write only new records. A matching " +
+    "record is left as it is; one that would change, or does not parse, refuses the whole set before " +
+    "the prompt (change it with the one-path form). Records may ride in the activation PR when each " +
+    "matches a brief that PR adds. CI cannot tell a mint from a file an agent wrote: the record's " +
+    "control is the merge that lands it."
   );
 }
 
@@ -64,6 +75,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
     projectRoot: ".",
     xbriefPath: "",
+    xbriefPaths: [],
+    manifest: null,
     actor: "",
     kind: "operator",
     mintedVia: DEFAULT_MINTED_VIA,
@@ -85,6 +98,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {
       parsed.projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--manifest") {
+      const value = argv[i + 1];
+      if (value === undefined)
+        return { ...parsed, error: "argument --manifest: expected one argument" };
+      parsed.manifest = value;
+      i += 1;
+    } else if (arg?.startsWith("--manifest=")) {
+      parsed.manifest = arg.slice("--manifest=".length);
     } else if (arg === "--actor") {
       const value = argv[i + 1];
       if (value === undefined)
@@ -116,10 +137,13 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
   }
   if (parsed.help) return parsed;
-  if (positionals.length === 0) return { ...parsed, error: `missing xBRIEF path\n${usage()}` };
-  if (positionals.length > 1) {
-    return { ...parsed, error: `unexpected extra args: ${positionals.slice(1).join(" ")}` };
+  if (parsed.manifest !== null && positionals.length > 0) {
+    return { ...parsed, error: `give brief paths or --manifest, not both\n${usage()}` };
   }
+  if (positionals.length === 0 && parsed.manifest === null) {
+    return { ...parsed, error: `missing xBRIEF path\n${usage()}` };
+  }
+  parsed.xbriefPaths = positionals;
   parsed.xbriefPath = positionals[0] ?? "";
   if (parsed.actor.trim().length === 0) {
     return {
@@ -137,7 +161,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number {
+export function run(argv: string[], seams: RecordCohortSeams = {}): number {
   const args = parseArgs(argv);
   if (args.help) {
     process.stdout.write(`${usage()}\n`);
@@ -146,6 +170,23 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
   if (args.error !== undefined) {
     process.stderr.write(`scope_record_observable_scope: ${args.error}\n`);
     return 2;
+  }
+  if (args.manifest !== null || args.xbriefPaths.length > 1) {
+    return runRecordCohort(
+      "observable-scope",
+      {
+        argv,
+        projectRoot: args.projectRoot,
+        briefPaths: args.xbriefPaths,
+        manifest: args.manifest,
+        actor: args.actor,
+        kind: args.kind,
+        mintedVia: args.mintedVia,
+        quiet: args.quiet,
+        confirm: args.confirm,
+      },
+      seams,
+    );
   }
   const projectRoot = resolve(args.projectRoot);
   const uat = refuseMintWhileUatActive("scope:record-observable-scope", projectRoot);

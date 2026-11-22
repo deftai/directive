@@ -17,6 +17,7 @@ import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { isSafetyRefusalRun } from "../literal-acceptance/run.js";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { briefLandHeadReader } from "../pr-closing-keywords/brief-land-records.js";
 import {
   evaluatePathBActivationAdmit,
   isBriefLandShapedDiff,
@@ -663,7 +664,7 @@ export function evaluatePathBActivationAcDisposition(input: {
   if (files.length === 0) {
     return { apply: false, reason: "empty inventory" };
   }
-  if (!isBriefLandShapedDiff(files)) {
+  if (!isBriefLandShapedDiff(files, briefLandHeadReader(briefReadRoot))) {
     return { apply: false, reason: "not brief-land shaped (product path restores full verify:ac)" };
   }
   const repo = resolveRepo(input.repo ?? null, projectRoot);
