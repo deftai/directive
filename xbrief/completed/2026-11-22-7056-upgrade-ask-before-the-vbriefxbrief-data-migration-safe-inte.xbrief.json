@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7056",
-    "updated": "2026-11-22T16:55:14Z"
+    "updated": "2026-11-22T18:03:17Z"
   },
   "plan": {
     "title": "upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "directive upgrade names the vbrief to xbrief data migration and runs it only with --migrate-xbrief or an interactive yes. Without that consent it finishes the rest of the upgrade, leaves vbrief/ untouched and names the command to run the migration later.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7056",
@@ -20,106 +20,197 @@
     "items": [
       {
         "title": "Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the operator gives no consent, pin and setup work run as today, the runtime migrate entry is not invoked, and the summary shows a Not done block with the file count, vbrief/ left as it is, deft migrate:xbrief and the version-pinned directive upgrade --migrate-xbrief --yes command; when the gated migration is the only work at equal version, upgrade changes nothing and returns exit 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When the operator consents, the runtime migrate entry is invoked exactly as today and the default summary shows that the vbrief to xbrief migration ran."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When a user runs directive --help, the output shows the --migrate-xbrief upgrade option; the change records a CHANGELOG fragment."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the tests run, they show: without the flag migrate is not invoked, vbrief/ stays and the notice prints; with the flag migrate is invoked and the summary names it; --yes alone does not migrate; interactive yes and no work; equal-version migration-only without consent changes nothing; a marker-only vbrief/ gets the notice; a project without vbrief/ is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When upgrade would migrate, the migration runs only with --migrate-xbrief or an interactive yes to a separate migration question; a --yes run neither asks nor migrates."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When the operator gives no consent, upgrade completes the rest, does not invoke the runtime migrate entry, leaves vbrief/ untouched, and shows the pending migration with deft migrate:xbrief and a version-pinned directive upgrade --migrate-xbrief command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When --migrate-xbrief is passed, the runtime migrate entry runs as it does today and the default summary shows the completed migration."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A project without files under `vbrief/` upgrades exactly as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When a project has no files under vbrief/, directive upgrade shows no migration notice and invokes migrate exactly as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`install` rejects `--migrate-xbrief`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When directive install receives --migrate-xbrief, it rejects the argument with a usage error and exit 2."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+          "recorded_at": "2026-11-22T18:03:17Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -416,7 +507,36 @@
         "harvestDigest": "386b432919d50a5347f2ad2ff288fd793097d0eb3c82152d9065ccaf1898a0ec",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "756c3e6014e6af64ded79b2b7054dd01d37af532",
+        "prNumber": 7070,
+        "prBase": "master",
+        "mergeCommit": "bc1f78c3d5ac21e7a4477922593f4bdeac401b90",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0d692ca396bd2f3aab97d3b12fc812367aadb5e8",
+        "verifiedAt": "2026-11-22T18:03:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7063
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T18:03:17Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T18:03:17Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -550,6 +670,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6544964592",
-    "updated": "2026-11-22T16:55:14Z"
+    "updated": "2026-11-22T18:03:17Z"
   }
 }
