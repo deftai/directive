@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6871",
-    "updated": "2026-11-22T04:14:59Z"
+    "updated": "2026-11-22T14:32:09Z"
   },
   "plan": {
     "title": "bug(hooks): commit hook and Write hook refuse correct work in other repos and the worktree folder",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks): commit hook and Write hook refuse correct work in other repos and the worktree folder",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6871",
@@ -17,88 +17,221 @@
     "items": [
       {
         "title": "Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "```quarantined\nCommit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit.\n```",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Split. Two PRs under this issue, built in this order: A = items 1-3 and the commit part of item 6; B = items 4-5 and their part of item 6. The kill-switch mention rule moved to #6941 and the `session:start` lease to #6942. No new verb, flag, policy field or stored file.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Behaviour is asserted in commit-target.test.ts, but activation bound both clauses to commit-target.ts and scope:bind-clause cannot re-point them (#6996).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-22T13:51:52Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261122135152-de5cf5"
+          },
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "deferred_to": "#6996"
+        }
       },
       {
         "title": "```quarantined\nGiven `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target.\n```",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Behaviour is asserted in commit-target.test.ts, but activation bound both clauses to commit-target.ts and scope:bind-clause cannot re-point them (#6996).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-22T13:51:52Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261122135152-de5cf5"
+          },
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "deferred_to": "#6996"
+        }
       },
       {
         "title": "Given `for x in a b; do\\n  M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `content/docs/hook-root-admission.md`, then it states each rule above and its named limit.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+          "recorded_at": "2026-11-22T14:32:09Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -825,6 +958,34 @@
         "leanCommentId": 7070642790,
         "harvestDigest": "94c231e9ab58562d9330abf7693c7f30bac68468624699eea5372a5569d83f10",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e7b7544ec67a3e7be5afe5aadb68f8a83825e454",
+        "prNumber": 7037,
+        "prBase": "master",
+        "mergeCommit": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d1aaa1c0f898f1a379d90812209097a78b724ca7",
+        "verifiedAt": "2026-11-22T14:32:09Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6987,
+          7033
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T14:32:09Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T14:32:09Z"
       }
     },
     "acceptance": {
@@ -995,6 +1156,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6516777214",
-    "updated": "2026-11-22T04:14:59Z"
+    "updated": "2026-11-22T14:32:09Z"
   }
 }
