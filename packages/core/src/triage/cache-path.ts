@@ -6,8 +6,7 @@
  */
 
 import { existsSync, mkdirSync, renameSync, unlinkSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { join, relative } from "node:path";
 import { assertProjectionContained } from "../fs/projection-containment.js";
 import {
   MIGRATED_ARTIFACT_DIR,
@@ -15,7 +14,6 @@ import {
   resolveLifecycleLayout,
   resolveLifecycleRoot,
 } from "../layout/resolve.js";
-import { generateTriageCacheReadmeBody } from "./bootstrap/gitignore.js";
 
 /** Directory name for the triage working-set cache (not version-eval results). */
 export const TRIAGE_CACHE_DIR_NAME = ".triage-cache";
@@ -23,7 +21,12 @@ export const TRIAGE_CACHE_DIR_NAME = ".triage-cache";
 /** Legacy directory that previously held triage cache files before #1703. */
 export const LEGACY_TRIAGE_EVAL_DIR_NAME = ".eval";
 
-/** Known triage-cache file basenames migrated off the legacy `.eval/` tree. */
+/**
+ * Known triage-cache file basenames migrated off the legacy `.eval/` tree.
+ * `README.md` is not one of them: a project may track `.eval/README.md`, so the
+ * migration never deletes it and never writes `.triage-cache/README.md` in its
+ * place (#7057). `triage:bootstrap` creates the canonical README on request.
+ */
 export const TRIAGE_CACHE_FILE_NAMES = [
   "candidates.jsonl",
   "summary-history.jsonl",
@@ -31,7 +34,6 @@ export const TRIAGE_CACHE_FILE_NAMES = [
   "subscription-history.jsonl",
   "slices.jsonl",
   "doctor-state.json",
-  "README.md",
 ] as const;
 
 /** Known triage-cache directory names migrated off the legacy `.eval/` tree. */
@@ -41,7 +43,6 @@ export interface TriageCacheMigrationResult {
   readonly migratedFiles: readonly string[];
   readonly skippedFiles: readonly string[];
   readonly migratedDirs: readonly string[];
-  readonly regeneratedFiles: readonly string[];
   readonly removedLegacyFiles: readonly string[];
 }
 
@@ -94,7 +95,6 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
       migratedFiles: [],
       skippedFiles: [],
       migratedDirs: [],
-      regeneratedFiles: [],
       removedLegacyFiles: [],
     };
   }
@@ -102,11 +102,10 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
   const migratedFiles: string[] = [];
   const skippedFiles: string[] = [];
   const migratedDirs: string[] = [];
-  const regeneratedFiles: string[] = [];
   const removedLegacyFiles: string[] = [];
 
   if (!existsSync(legacyDir)) {
-    return { migratedFiles, skippedFiles, migratedDirs, regeneratedFiles, removedLegacyFiles };
+    return { migratedFiles, skippedFiles, migratedDirs, removedLegacyFiles };
   }
 
   mkdirSync(targetDir, { recursive: true });
@@ -115,23 +114,6 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
     const legacyPath = join(legacyDir, name);
     const targetPath = join(targetDir, name);
     if (!existsSync(legacyPath)) {
-      continue;
-    }
-    if (name === "README.md") {
-      if (existsSync(targetPath)) {
-        unlinkSync(legacyPath);
-        removedLegacyFiles.push(name);
-      } else {
-        // #2980 wave D: product write sink routes through containedWrite.
-        containedWrite({
-          root: resolve(projectRoot),
-          target: targetPath,
-          data: generateTriageCacheReadmeBody(projectRoot),
-          mode: "create",
-        });
-        unlinkSync(legacyPath);
-        regeneratedFiles.push(name);
-      }
       continue;
     }
     if (existsSync(targetPath)) {
@@ -157,7 +139,7 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
     migratedDirs.push(name);
   }
 
-  return { migratedFiles, skippedFiles, migratedDirs, regeneratedFiles, removedLegacyFiles };
+  return { migratedFiles, skippedFiles, migratedDirs, removedLegacyFiles };
 }
 
 /** Resolve a path under `.triage-cache/`, migrating legacy `.eval/` files first. */
