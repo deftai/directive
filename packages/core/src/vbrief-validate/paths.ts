@@ -13,20 +13,27 @@ export function isRelativeTo(child: string, parent: string): boolean {
   return resolvedChild.startsWith(prefix);
 }
 
+/** The URI scheme a lifecycle-relative reference may carry (#6925). */
+const FILE_SCHEME = "file://";
+
+/**
+ * Drop a leading `file://` scheme from a lifecycle reference (#6925).
+ * `xbrief:validate` and the preflight parent-lineage check share this, so
+ * both read the same planRef forms.
+ */
+export function stripFileScheme(uri: string): string {
+  return uri.startsWith(FILE_SCHEME) ? uri.slice(FILE_SCHEME.length) : uri;
+}
+
 /** Resolve a reference URI to an absolute filesystem path. */
 export function resolveRefPath(uri: string, vbriefDir: string): string | null {
   if (typeof uri !== "string") {
     return null;
   }
-  let rel: string;
-  if (uri.startsWith("file://")) {
-    rel = uri.slice("file://".length);
-  } else if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("#")) {
+  if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("#")) {
     return null;
-  } else {
-    rel = uri;
   }
-  return resolveLifecycleArtifactRef(rel, vbriefDir);
+  return resolveLifecycleArtifactRef(stripFileScheme(uri), vbriefDir);
 }
 
 /** Split like Python ``str.split(sep, maxsplit)`` (maxsplit splits, not result length). */
@@ -50,7 +57,7 @@ function splitMax(value: string, sep: string, maxsplit: number): string[] {
 
 /** Return possible PROJECT-DEFINITION registry IDs for a local scope URI. */
 export function scopeIdsForRefUri(uri: string): Set<string> {
-  const rel = uri.startsWith("file://") ? uri.slice("file://".length) : uri;
+  const rel = stripFileScheme(uri);
   const name = basename(rel);
   const fullId = hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name;
   const ids = new Set<string>([fullId]);

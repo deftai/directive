@@ -13,6 +13,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { stripFileScheme } from "../vbrief-validate/paths.js";
 import {
   type CoverageReport,
   extractParentRequirements,
@@ -80,13 +81,14 @@ export function findLifecycleRootFromArtifact(artifactPath: string): string | nu
 
 /**
  * Resolve plan.planRef (or similar relative ref) against a lifecycle root.
- * Rejects absolute paths and `..` traversal.
+ * A leading `file://` scheme is dropped first, as `xbrief:validate` does
+ * (#6925). Rejects absolute paths and `..` traversal.
  */
 export function resolveParentPathFromRef(
   planRef: string,
   lifecycleRoot: string,
 ): { path: string | null; error: string | null } {
-  const trimmed = planRef.trim();
+  const trimmed = stripFileScheme(planRef.trim());
   if (!trimmed) {
     return { path: null, error: "empty planRef" };
   }
@@ -223,7 +225,7 @@ function resolveParentRefFromChild(child: JsonObj): string | null {
           if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("#")) {
             continue;
           }
-          return uri.startsWith("file://") ? uri.slice("file://".length) : uri;
+          return stripFileScheme(uri);
         }
       }
     }

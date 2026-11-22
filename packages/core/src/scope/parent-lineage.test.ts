@@ -474,3 +474,63 @@ describe("evaluateParentLineage (#3241)", () => {
     expect(bad.defect_class).toBe("child_spec");
   });
 });
+
+describe("file:// planRef (#6925)", () => {
+  function lifecycle(prefix: string): { base: string; root: string; active: string } {
+    const base = mkdtempSync(join(tmpdir(), prefix));
+    temps.push(base);
+    const root = join(base, "xbrief");
+    const active = join(root, "active");
+    mkdirSync(join(root, "proposed"), { recursive: true });
+    mkdirSync(active, { recursive: true });
+    return { base, root, active };
+  }
+
+  it("loads the parent from a file://proposed/ planRef with no parent-not-found error", () => {
+    const { base, root, active } = lifecycle("deft-pl-file-");
+    writeFileSync(join(root, "proposed", "epic.xbrief.json"), JSON.stringify(abcParent), "utf8");
+    // A second artifact with the same plan.id makes parent_plan_id recovery
+    // ambiguous, so this passes only when the exact file:// path resolves.
+    mkdirSync(join(root, "completed"), { recursive: true });
+    writeFileSync(join(root, "completed", "copy.xbrief.json"), JSON.stringify(abcParent), "utf8");
+    const child = childWithLineage({
+      planRef: "file://proposed/epic.xbrief.json",
+      coverage_map: fullCoverageMap,
+    });
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(childPath, JSON.stringify(child), "utf8");
+    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
+    expect(result.message).not.toMatch(/parent not found/);
+    expect(result.ok).toBe(true);
+    expect(result.applicable).toBe(true);
+    expect(result.parent_path?.replace(/\\/g, "/")).toMatch(
+      /\/xbrief\/proposed\/epic\.xbrief\.json$/,
+    );
+  });
+
+  it("resolves file://xbrief/proposed/ to the same path as the planRef without the scheme", () => {
+    const { root } = lifecycle("deft-pl-file-x-");
+    const withScheme = resolveParentPathFromRef("file://xbrief/proposed/epic.xbrief.json", root);
+    const without = resolveParentPathFromRef("xbrief/proposed/epic.xbrief.json", root);
+    expect(withScheme.error).toBeNull();
+    expect(withScheme.path).toBe(without.path);
+    expect(withScheme.path).toBe(join(root, "proposed", "epic.xbrief.json"));
+  });
+
+  it("still refuses absolute and traversal planRefs that carry the scheme", () => {
+    const root = join(tmpdir(), "lifecycle-root");
+    expect(resolveParentPathFromRef("file:///abs/epic.xbrief.json", root).error).toMatch(
+      /absolute/,
+    );
+    expect(resolveParentPathFromRef("file://../epic.xbrief.json", root).error).toMatch(/traversal/);
+  });
+
+  it("leaves a scheme-less planRef unchanged", () => {
+    const root = join(tmpdir(), "lifecycle-root");
+    expect(resolveParentPathFromRef("pending/parent.xbrief.json", root)).toEqual({
+      path: join(root, "pending", "parent.xbrief.json"),
+      error: null,
+    });
+    expect(resolveParentPathFromRef("../escape.json", root).error).toMatch(/traversal/);
+  });
+});
