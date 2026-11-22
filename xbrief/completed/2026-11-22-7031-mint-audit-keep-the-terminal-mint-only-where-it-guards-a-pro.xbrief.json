@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7031",
-    "updated": "2026-11-22T16:07:17Z"
+    "updated": "2026-11-22T16:58:12Z"
   },
   "plan": {
     "title": "mint audit: keep the terminal mint only where it guards a protected store",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "mint audit: keep the terminal mint only where it guards a protected store",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7031",
@@ -20,137 +20,227 @@
     "items": [
       {
         "title": "Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "`scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "`content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+          "recorded_at": "2026-11-22T16:58:12Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -700,9 +790,36 @@
         "model_tier": "strong",
         "conflict_group": "mint-audit-7031",
         "acceptance_criteria_justification": "Every clause comes from the accepted #7031 lean 7080205053 (bind lean; audit 7080235017, follow-through 7080249121, table 7080249393, synthesis 7080253320). Behaviour clauses bind to the runtime and core test files; doc clauses bind to one content-contract test."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ccc797290e0651dcada29d6556a999a4f24dac68",
+        "prNumber": 7058,
+        "prBase": "master",
+        "mergeCommit": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dc91c1d13b1383bb30f15e6f6161096210f49ba9",
+        "verifiedAt": "2026-11-22T16:58:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7048
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T16:58:12Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T16:58:12Z"
       }
     },
     "id": "github.issue.6543007705",
-    "updated": "2026-11-22T16:07:17Z"
+    "updated": "2026-11-22T16:58:12Z"
   }
 }
