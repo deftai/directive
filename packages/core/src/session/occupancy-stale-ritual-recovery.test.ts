@@ -1,10 +1,19 @@
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { decideHook, type HookPolicySeams } from "../hooks/dispatcher.js";
+import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "../platform/agents-consumer-header.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
@@ -551,6 +560,19 @@ describe("printed recovery through ceremony and next write (#4290)", () => {
       expect(readOccupancy(root)?.sessionId).toBe("solo");
       const [ritual] = readRitualState(root);
       expect(ritual?.sessionId).toBe("solo");
+      // #6973: session:start scaffolds AGENTS.md; a product write refuses the
+      // scaffold line. Fill it so this test exercises occupancy recovery only.
+      const agentsMd = join(root, "AGENTS.md");
+      if (existsSync(agentsMd)) {
+        writeFileSync(
+          agentsMd,
+          readFileSync(agentsMd, "utf8").replace(
+            CONSUMER_HEADER_PLACEHOLDER_ONELINER,
+            "Occupancy recovery fixture.",
+          ),
+          "utf8",
+        );
+      }
       const next = writeDecision(root, "solo", product, readySeams("solo"));
       expect(next.verdict).toBe("allow");
       expect(readOccupancy(root)?.sessionId).toBe("solo");

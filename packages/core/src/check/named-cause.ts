@@ -9,6 +9,7 @@
 import { DURABLE_EFFECT_REMEDIATION } from "../durable-effect-acquisition/types.js";
 import { INTENT_CONSTRAINT_REMEDIATION } from "../intent-constraint/types.js";
 import { OBSERVABLE_SCOPE_REMEDIATION } from "../observable-scope/types.js";
+import { FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY } from "../platform/agents-consumer-header.js";
 import { PRESENTATION_CEILING_REMEDIATION } from "../presentation-ceiling/types.js";
 import { EMPTY_AC_REMEDY } from "../product-first-done-gate/empty-resolution.js";
 
@@ -45,8 +46,7 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Complete or cancel active xBRIEFs whose issues are closed / PRs merged (task scope:complete / scope:cancel)",
   "verify:completed-write-guard":
     "Pair active/ deletes with stamped completed/ (scope:complete) or leave the brief untracked — do not rename away without a terminal stamp",
-  "verify:consumer-header-placeholder":
-    "Confirm Overview then compareAndSetConsumerHeaderOneLiner (setup Phase 3); leave custom headers untouched; Process-only exits may keep the placeholder",
+  "verify:consumer-header-placeholder": FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY,
   "verify:wip-cap":
     "Demote stale pending scopes (task scope:demote) or raise plan.policy.wipCap deliberately",
   "verify:license-sync": "Sync LICENSE / package license fields",

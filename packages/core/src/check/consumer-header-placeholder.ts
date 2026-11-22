@@ -8,9 +8,10 @@
  * Unreadable/malformed Prefer-A marker fails closed (not Process-only).
  *
  * Residual after #5178: completion-chokepoint coverage stamps the Prefer-A
- * marker, remediates via confirmed-Overview CAS when available, then evaluates
- * so refuse conjuncts are reached without depending on the agent remembering
- * to stamp or invoke check / verify:consumer-header-placeholder by name.
+ * marker, then evaluates so refuse conjuncts are reached without depending on
+ * the agent remembering to stamp or invoke check / verify:consumer-header-
+ * placeholder by name. #6973: no chokepoint writes AGENTS.md any more; the
+ * refusal names `deft project:write-header-line`, the one writer of the line.
  *
  * Residual after #5253 (Prefer-A Bound lean 6000271029): pin 7c775edf had only
  * two production enforce callers (delivered codeBearing scope:complete;
@@ -24,12 +25,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { isChangelogEntryPath } from "../changelog/entry-path.js";
-import { containedWrite } from "../fs/contained-write.js";
 import {
-  compareAndSetConsumerHeaderOneLiner,
   evaluateFirstShipHeaderPlaceholderGate,
+  FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY,
   type FirstShipHeaderPlaceholderResult,
-  type HeaderOneLinerCasReason,
 } from "../platform/agents-consumer-header.js";
 import {
   lookupProductMutationCompletion,
@@ -42,9 +41,8 @@ export const CONSUMER_HEADER_PLACEHOLDER_GATE_ID = "verify:consumer-header-place
 export const CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID =
   "consumer-header-placeholder-completion-chokepoint";
 
-export const CONSUMER_HEADER_COMPLETION_CHOKEPOINT_REMEDY =
-  "confirm Overview then compareAndSetConsumerHeaderOneLiner (setup Phase 3); " +
-  "leave custom headers untouched; Process-only exits may keep the placeholder";
+/** Same remedy as the gate: the one command that sets the line (#6973). */
+export const CONSUMER_HEADER_COMPLETION_CHOKEPOINT_REMEDY = FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY;
 
 export type AgentsMdReadResult =
   | { readonly kind: "missing" }
@@ -65,12 +63,8 @@ export interface ConsumerHeaderPlaceholderSeams {
 }
 
 export interface CompletionChokepointSeams {
-  /** Override Overview used for CAS remediation (skips PROJECT-DEFINITION read). */
-  readonly confirmedOverview?: string | null;
   /** Test seam: skip durable marker stamp (evaluate as already product-complete). */
   readonly skipMarkerStamp?: boolean;
-  /** When false, CAS computes but does not write AGENTS.md. Default true. */
-  readonly applyRemediationWrite?: boolean;
   readonly recordedAt?: Date;
   readonly readAgentsMd?: () => AgentsMdReadResult | string | null;
 }
@@ -82,12 +76,6 @@ export type ConsumerHeaderCompletionChokepointResult = {
   readonly marker:
     | RecordProductMutationCompletionResult
     | { readonly ok: true; readonly skipped: true };
-  readonly remediation: {
-    readonly attempted: boolean;
-    readonly overviewAvailable: boolean;
-    readonly casReason?: HeaderOneLinerCasReason;
-    readonly wroteAgentsMd: boolean;
-  };
 };
 
 /** Deposit / Process-only path prefixes — not first-ship product evidence. */
@@ -367,54 +355,38 @@ export function evaluateConsumerHeaderPlaceholderAtRoot(
 
   // #4544 residual after #5253: dirty/untracked product paths are evidence for
   // stacks that skipped occupancy persistProductMutationMarker / delivered
-  // complete. Reuse enforce (stamp + Overview CAS); do not invent a second
-  // evaluator. Git probe unknown → Process-only (cannot prove product dirt;
-  // Prefer-A marker still fail-closes when present/unreadable).
+  // complete. #6973: they count as product work for this call only — evaluate
+  // never stamps the marker and never writes AGENTS.md. Git probe unknown →
+  // Process-only (cannot prove product dirt; the marker still fail-closes when
+  // present/unreadable).
   const dirtyProbe = probeDirtyProductMutationEvidence(projectRoot, {
     dirtyProductEvidence: seams.dirtyProductEvidence,
     gitPorcelain: seams.gitPorcelain,
   });
-  if (dirtyProbe.kind === "dirty") {
-    const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, {
-      readAgentsMd: seams.readAgentsMd,
-    });
-    return chokepoint.evaluation;
-  }
-
   return evaluateFirstShipHeaderPlaceholderGate({
     agentsMd: agentsRead.kind === "ok" ? agentsRead.text : null,
-    productMutationCompletion: false,
+    productMutationCompletion: dirtyProbe.kind === "dirty",
   });
 }
 
-function writeAgentsMdAtRoot(
-  projectRoot: string,
-  text: string,
-): { readonly ok: true } | { readonly ok: false; readonly error: string } {
-  const root = resolve(projectRoot);
-  const target = join(root, "AGENTS.md");
-  try {
-    containedWrite({
-      root,
-      target,
-      data: text.endsWith("\n") ? text : `${text}\n`,
-      mode: "replace",
-      mkdir: false,
-    });
-    return { ok: true };
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: detail };
-  }
+/** Chokepoint failure text: the gate message plus the chokepoint id. */
+function chokepointFailure(
+  evaluation: FirstShipHeaderPlaceholderResult,
+): FirstShipHeaderPlaceholderResult {
+  if (evaluation.reason !== "placeholder-with-product-mutation") return evaluation;
+  return {
+    ...evaluation,
+    message: `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: ${evaluation.message}`,
+  };
 }
 
 /**
  * Fail-closed completion chokepoint after Prefer-A #5178 (#4544 residual).
  *
- * Arms the durable Prefer-A marker, remediates exact scaffold edit-me via
- * confirmed-Overview CAS when Overview is available, then evaluates the
- * Prefer-A check-surface gate. Process-only callers must not invoke this —
- * only product-mutation / delivered-completion paths.
+ * Arms the durable Prefer-A marker, then evaluates the Prefer-A check-surface
+ * gate. #6973: it never writes AGENTS.md; the refusal names
+ * `deft project:write-header-line`, the one writer of the one-liner.
+ * Process-only callers must not invoke this — only the product-write path.
  */
 export function enforceConsumerHeaderPlaceholderAtCompletionChokepoint(
   projectRoot: string,
@@ -439,206 +411,28 @@ export function enforceConsumerHeaderPlaceholderAtCompletionChokepoint(
         },
         message,
         marker: recorded,
-        remediation: {
-          attempted: false,
-          overviewAvailable: false,
-          wroteAgentsMd: false,
-        },
       };
     }
     marker = recorded;
   }
-
-  const evalSeams: ConsumerHeaderPlaceholderSeams = {
-    readAgentsMd: seams.readAgentsMd,
-    sessionChangedProductFiles: seams.skipMarkerStamp === true ? true : undefined,
-  };
-  let evaluation = evaluateConsumerHeaderPlaceholderAtRoot(root, evalSeams);
-  if (evaluation.ok) {
-    return {
-      ok: true,
-      evaluation,
-      message: evaluation.message,
-      marker,
-      remediation: {
-        attempted: false,
-        overviewAvailable: false,
-        wroteAgentsMd: false,
-      },
-    };
-  }
-
-  if (
-    evaluation.reason !== "placeholder-with-product-mutation" &&
-    evaluation.reason !== "product-mutation-marker-unreadable"
-  ) {
-    return {
-      ok: false,
-      evaluation,
-      message: evaluation.message,
-      marker,
-      remediation: {
-        attempted: false,
-        overviewAvailable: false,
-        wroteAgentsMd: false,
-      },
-    };
-  }
-
-  const overview =
-    seams.confirmedOverview !== undefined
-      ? seams.confirmedOverview !== null && seams.confirmedOverview.trim().length > 0
-        ? seams.confirmedOverview.trim()
-        : null
-      : readConfirmedOverviewAtRoot(root);
-
-  if (overview === null) {
-    const message =
-      `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: unmanaged AGENTS.md header ` +
-      `still equals scaffold edit-me after product-mutation completion and confirmed ` +
-      `Overview is unavailable; remedy: ${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_REMEDY}`;
-    return {
-      ok: false,
-      evaluation: {
-        ok: false,
-        reason: "placeholder-with-product-mutation",
-        message,
-      },
-      message,
-      marker,
-      remediation: {
-        attempted: false,
-        overviewAvailable: false,
-        wroteAgentsMd: false,
-      },
-    };
-  }
-
-  const agentsRead = seams.readAgentsMd
-    ? normalizeAgentsMdSeam(seams.readAgentsMd())
-    : readAgentsMdAtRoot(root);
-  if (agentsRead.kind !== "ok") {
-    return {
-      ok: false,
-      evaluation,
-      message: evaluation.message,
-      marker,
-      remediation: {
-        attempted: false,
-        overviewAvailable: true,
-        wroteAgentsMd: false,
-      },
-    };
-  }
-
-  const cas = compareAndSetConsumerHeaderOneLiner({
-    agentsMd: agentsRead.text,
-    confirmedOverview: overview,
-  });
-  let wroteAgentsMd = false;
-  if (cas.changed && seams.applyRemediationWrite !== false) {
-    // Re-read at write time so a concurrent AGENTS.md edit is not overwritten
-    // by CAS computed from the earlier snapshot (#4544 Greptile P1).
-    const freshRead = seams.readAgentsMd
-      ? normalizeAgentsMdSeam(seams.readAgentsMd())
-      : readAgentsMdAtRoot(root);
-    if (freshRead.kind !== "ok" || freshRead.text !== agentsRead.text) {
-      const detail =
-        freshRead.kind === "ok"
-          ? "AGENTS.md changed after the CAS snapshot"
-          : freshRead.kind === "missing"
-            ? "AGENTS.md missing at write time"
-            : `AGENTS.md unreadable at write time (${freshRead.detail})`;
-      const message =
-        `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: Overview CAS computed but ` +
-        `${detail}; remedy: retry completion after resolving the concurrent edit`;
-      return {
-        ok: false,
-        evaluation: {
-          ok: false,
-          reason: "placeholder-with-product-mutation",
-          message,
-        },
-        message,
-        marker,
-        remediation: {
-          attempted: true,
-          overviewAvailable: true,
-          casReason: cas.reason,
-          wroteAgentsMd: false,
-        },
-      };
-    }
-    const written = writeAgentsMdAtRoot(root, cas.agentsMd);
-    if (!written.ok) {
-      const message =
-        `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: Overview CAS computed but ` +
-        `AGENTS.md write failed (${written.error}); remedy: fix permissions then retry`;
-      return {
-        ok: false,
-        evaluation: {
-          ok: false,
-          reason: "placeholder-with-product-mutation",
-          message,
-        },
-        message,
-        marker,
-        remediation: {
-          attempted: true,
-          overviewAvailable: true,
-          casReason: cas.reason,
-          wroteAgentsMd: false,
-        },
-      };
-    }
-    wroteAgentsMd = true;
-  }
-
-  evaluation = evaluateConsumerHeaderPlaceholderAtRoot(root, evalSeams);
-  if (!evaluation.ok) {
-    const message =
-      evaluation.reason === "placeholder-with-product-mutation"
-        ? `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: ${evaluation.message}; ` +
-          `CAS reason=${cas.reason}; remedy: ${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_REMEDY}`
-        : evaluation.message;
-    return {
-      ok: false,
-      evaluation:
-        evaluation.reason === "placeholder-with-product-mutation"
-          ? { ...evaluation, message }
-          : evaluation,
-      message,
-      marker,
-      remediation: {
-        attempted: true,
-        overviewAvailable: true,
-        casReason: cas.reason,
-        wroteAgentsMd,
-      },
-    };
-  }
-
-  return {
-    ok: true,
-    evaluation,
-    message: evaluation.message,
-    marker,
-    remediation: {
-      attempted: true,
-      overviewAvailable: true,
-      casReason: cas.reason,
-      wroteAgentsMd,
-    },
-  };
+  const evaluation = chokepointFailure(
+    evaluateConsumerHeaderPlaceholderAtRoot(root, {
+      readAgentsMd: seams.readAgentsMd,
+      sessionChangedProductFiles: seams.skipMarkerStamp === true ? true : undefined,
+    }),
+  );
+  return { ok: evaluation.ok, evaluation, message: evaluation.message, marker };
 }
 
 /**
- * Reachability wrapper: enforce when Prefer-A marker or dirty product evidence
- * shows product mutation; skip (Process-only legal) when neither is present.
+ * Reachability wrapper for occupancy release and `scope:complete`: evaluate
+ * when the Prefer-A marker or dirty product evidence shows product mutation;
+ * skip (Process-only legal) when neither is present. #6973: evaluate only — no
+ * marker stamp, no AGENTS.md write.
  */
 export function enforceConsumerHeaderPlaceholderWhenProductEvidence(
   projectRoot: string,
-  seams: CompletionChokepointSeams & {
+  seams: Pick<CompletionChokepointSeams, "readAgentsMd"> & {
     readonly dirtyProductEvidence?: boolean;
     readonly gitPorcelain?: string | null;
   } = {},
@@ -656,5 +450,17 @@ export function enforceConsumerHeaderPlaceholderWhenProductEvidence(
   if (marker.kind !== "present" && marker.kind !== "unreadable" && !dirty) {
     return { ok: true, skipped: true, reason: "no-product-evidence" };
   }
-  return enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, seams);
+  const evaluation = chokepointFailure(
+    evaluateConsumerHeaderPlaceholderAtRoot(projectRoot, {
+      readAgentsMd: seams.readAgentsMd,
+      dirtyProductEvidence: seams.dirtyProductEvidence,
+      gitPorcelain: seams.gitPorcelain,
+    }),
+  );
+  return {
+    ok: evaluation.ok,
+    evaluation,
+    message: evaluation.message,
+    marker: { ok: true, skipped: true },
+  };
 }

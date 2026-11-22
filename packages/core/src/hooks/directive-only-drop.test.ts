@@ -13,6 +13,7 @@ import {
   isCanonicalStagedPath,
   isDirectivePathClass,
   parseLsTreeZ,
+  partitionDirectiveOnlyEntries,
   readHeadTreeEntries,
 } from "./directive-only-drop.js";
 
@@ -130,5 +131,34 @@ describe("formatDirectiveOnlyRefusalNote (#5771)", () => {
     expect(withDrop).toContain("package.json");
     expect(withDrop).toMatch(/Recovery: commit the Directive-only paths on their own/);
     expect(withDrop).not.toMatch(/scope:promote|scope:activate/);
+  });
+});
+
+describe("consumer header one-liner drop (#6973)", () => {
+  const placeholder = "One-line project description (edit me).";
+  const before = `# My project\n\n${placeholder}\n\n## Session orientation\n`;
+  function partition(after: string) {
+    return partitionDirectiveOnlyEntries({
+      projectRoot: "/project",
+      entries: [{ path: "AGENTS.md", kind: "M", mode: "100644", blob: "staged0" }],
+      readStagedBlob: (_root, blob) => (blob === "staged0" ? after : null),
+      readHeadTree: () => ({
+        kind: "entries",
+        entries: new Map([["AGENTS.md", { mode: "100644", oid: "head0" }]]),
+      }),
+      readHeadBlob: (_root, oid) => (oid === "head0" ? before : null),
+    });
+  }
+
+  it("drops the root AGENTS.md when only the scaffold line became a qualifying line", () => {
+    const result = partition(before.replace(placeholder, "A garden notes app."));
+    expect(result.dropped).toEqual(["AGENTS.md"]);
+    expect(result.kept).toEqual([]);
+  });
+
+  it("keeps any other unmanaged-header change as mixed", () => {
+    const result = partition(`${before.replace(placeholder, "A garden notes app.")}More.\n`);
+    expect(result.dropped).toEqual([]);
+    expect(result.kept).toEqual([{ path: "AGENTS.md", reason: "mixed", directivePath: true }]);
   });
 });

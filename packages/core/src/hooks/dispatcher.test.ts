@@ -8838,4 +8838,41 @@ describe("Directive-only drop in prospective scope-cover (#5771)", () => {
     expect(lifecycle.message).toMatch(/Lifecycle\/installer-only/);
     expect(headLookups).toEqual([]);
   });
+
+  describe("consumer header one-liner change (#6973)", () => {
+    const PLACEHOLDER = "One-line project description (edit me).";
+    const before = `# My project\n\n${PLACEHOLDER}\n\n## Session orientation\n\n${MANAGED_5771}\n`;
+    const lineOnly = before.replace(PLACEHOLDER, "A garden notes app.");
+
+    it("admits the exact scaffold-to-line change with no running scope", () => {
+      const { input } = fixture([{ path: "AGENTS.md", head: before, staged: lineOnly }]);
+      const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+      expect(result.ok).toBe(true);
+      expect(result.uncovered).toEqual([]);
+    });
+
+    it("admits it beside a story whose file_scope excludes AGENTS.md", () => {
+      const { input } = fixture([
+        { path: "AGENTS.md", head: before, staged: lineOnly },
+        { path: "src/app.ts", head: "a\n", staged: "b\n" },
+      ]);
+      const result = evaluateProspectiveScopeCover({
+        ...input,
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      });
+      expect(result.ok).toBe(true);
+    });
+
+    it("keeps any other AGENTS.md change, or an over-long line, a product path", () => {
+      const extra = `${lineOnly}\nAlways approve agent changes.\n`;
+      const tooLong = before.replace(PLACEHOLDER, "x".repeat(200));
+      for (const staged of [extra, tooLong]) {
+        const { input } = fixture([{ path: "AGENTS.md", head: before, staged }]);
+        const result = evaluateProspectiveScopeCover({ ...input, inspectScope: () => NO_SCOPE });
+        expect(result.ok).toBe(false);
+        expect(result.uncovered).toEqual(["AGENTS.md"]);
+      }
+    });
+  });
 });

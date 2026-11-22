@@ -3575,6 +3575,28 @@ export function evaluateOccupancyWriteGate(
   const ageMs = now.getTime() - live.heartbeatAt.getTime();
   const warning = ageMs >= OCCUPANCY_STALE_WARN_MS ? formatOccupancyStaleWarning(live, now) : null;
   if (input.refresh !== true || ageMs < OCCUPANCY_REFRESH_AFTER_MS) {
+    // #6973: every product write on a fresh lease evaluates the header gate, and
+    // records the Prefer-A marker when it is absent, so product files committed
+    // before the next re-stamp still count as product work and a retried write
+    // after a refusal is refused again. Never writes AGENTS.md.
+    if (input.refresh === true && input.persistProductMutationMarker === true) {
+      const markerPresent = existsSync(productMutationCompletionMarkerPath(projectRoot));
+      const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, {
+        recordedAt: now,
+        skipMarkerStamp: markerPresent,
+      });
+      if (!chokepoint.ok) {
+        return {
+          allow: false,
+          message: chokepoint.message,
+          occupant: live,
+          refreshed: false,
+          warning,
+          admitted: null,
+          grant: null,
+        };
+      }
+    }
     return {
       allow: true,
       message: null,
