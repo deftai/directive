@@ -1,0 +1,657 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7077",
+    "updated": "2026-11-22T19:53:24Z"
+  },
+  "plan": {
+    "title": "class-checks class 2 fails any edit to a file that already names a test root (compare against base)",
+    "status": "running",
+    "narratives": {
+      "Description": "class-checks class 2 fails any edit to a file that already names a test root (compare against base)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7077",
+      "Overview": "\n1. Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`). That parser is fixed in the same PR: it reads the old and new line counts from each `@@` header (a missing count is 1; a no-newline marker line (it starts with a backslash) does not count) and treats every line until both counts are used up as hunk payload, so payload that starts with `+++ `, `--- ` or `diff --git ` never changes the current file or ends the hunk. Headers are recognised only outside a hunk. `verify:forward-coverage`, the parser's other user, gets the same fix.\n2. Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.\n3. Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files git treats as binary, a failed diff, and injected paths without an entry. A file absent at the merge base, and a rename target (renames are off), get an entry that lists every line, so they are fully scanned too.\n4. Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.\n5. Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).\n6. No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.\n7. One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/forward-coverage/diff-lines.ts` and its test, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.\n\n## Acceptance Criteria\n\n- Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.\n- Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.\n- Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.\n- Given that file, when the diff only re-indents the reference line, then class 2 fails.\n- Given an untracked or new production file with a test-root reference, then class 2 fails as today.\n- Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).\n- Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.\n- Given a diff whose added lines include a line starting with `++ ` followed by an added line with a test-root reference, then class 2 fails; and `parseUnifiedDiffAddedLines` returns both added line numbers for that file and no entry for a bogus path.\n- Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.\n- Given a pre-existing reference, `verify:test-boundary` still reports it.\n\n\n",
+      "Constraint": "- A line multiset or any whole-file set comparison against the base (comment 7084606488 finding 1).\n- Trimming or normalising whitespace before comparison (finding 1; Stop 1 question 2).\n- Reading base text or a diff from ambient git for injected inputs (finding 2).\n- Leaving the presentation-coverage caller on the whole-file scan (finding 2; question 5).\n- Using `parseUnifiedDiffAddedLines` without the hunk-length fix (audit 7084658145 finding 1).\n- A policy allow entry for `drift-gate.ts`, or moving its reference, in place of this fix.",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`). That parser is fixed in the same PR: it reads the old and new line counts from each `@@` header (a missing count is 1; a no-newline marker line (it starts with a backslash) does not count) and treats every line until both counts are used up as hunk payload, so payload that starts with `+++ `, `--- ` or `diff --git ` never changes the current file or ends the hunk. Headers are recognised only outside a hunk. `verify:forward-coverage`, the parser's other user, gets the same fix.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files git treats as binary, a failed diff, and injected paths without an entry. A file absent at the merge base, and a rename target (renames are off), get an entry that lists every line, so they are fully scanned too.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/forward-coverage/diff-lines.ts` and its test, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given that file, when the diff only re-indents the reference line, then class 2 fails.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Given an untracked or new production file with a test-root reference, then class 2 fails as today.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "Given a diff whose added lines include a line starting with `++ ` followed by an added line with a test-root reference, then class 2 fails; and `parseUnifiedDiffAddedLines` returns both added line numbers for that file and no entry for a bogus path.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.",
+        "status": "proposed",
+        "id": "clause.16"
+      },
+      {
+        "title": "Given a pre-existing reference, `verify:test-boundary` still reports it.",
+        "status": "proposed",
+        "id": "clause.17"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7077",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7077: class-checks class 2 fails any edit to a file that already names a test root (compare against base)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4980",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4980"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "diff --git",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "packages/core/src/forward-coverage/diff-lines.ts",
+          "packages/core/src/forward-coverage/diff-lines.test.ts",
+          "packages/core/src/presentation-coverage/gates.ts",
+          "packages/core/src/presentation-coverage/gates.test.ts",
+          "changelog.d/7077-class-checks-added-lines.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6545954355.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/class-checks/evaluate.test.ts packages/core/src/presentation-coverage/gates.test.ts",
+          "npx vitest run packages/core/src/forward-coverage/"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "class 2 of verify:class-checks scans only lines git's diff against the merge base marks as added; a path with no added-line data is scanned on every line",
+          "parseUnifiedDiffAddedLines tracks hunk line counts so hunk payload starting with +++ / --- / diff --git never changes the current file",
+          "ClassCheckOptions.addedLines for injected callers; presentation-coverage passes added lines from its own two snapshots",
+          "evaluator-surface disclosure for the class-checks and presentation-coverage edits",
+          "one changelog fragment changelog.d/7077-class-checks-added-lines.md"
+        ],
+        "conflict_group": "class-checks",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 17 clauses are the 7 Bound remedy items and 10 Acceptance Criteria of the accepted arc lean 7084665877 on #7077, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7077; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what a fail-closed fence counts as a violation (class 2 of `verify:class-checks`, which has no approve or skip); a wrong comparison either keeps every edit to a file that already names a test root blocked, or lets a diff add a new test-root reference to production code without a finding.\n\nTarget-digest: sha256:3e494fc07df7782f043bfb88a3ed2401630a2f61e5a7e36027cf4c8fe6b82afe\ndispatch-sha: 0bdb3be811f0f46e6ffff21d7da5a005750206f6\ndest: C:/Repos/deft/wt/arc-7077 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: resolved by `deft design-critique:spend-resolve` on the operator utterance (no `n=` or `panel` token) with the parent recommend N=1. Stop 2 panel permission does not apply: the change is one comparison inside one function of one module, and the solution space is narrow (compare per-file reference sets or occurrences against the merge-base blob, or scan only added lines). One critic of a different model family, plus one pain audit.\ncritic-post cap: 6 (contract default for spend N=1)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 0bdb3be811f0f46e6ffff21d7da5a005750206f6: + dest cwd-without-occupy\npain: P1\n\n## In plain English\n`verify:class-checks` is a fail-closed fence over the files a diff touches. Its class 2 fails when a production file (under a source root, or deploy-shaped) names a test or fixture root such as `tests/`. Today it scans the whole content of each touched file and never looks at the base revision. So a file that already named a test root before class checks existed cannot be edited at all: any edit, even one line elsewhere in the file, fails class 2. `packages/core/src/xbrief-migrate/drift-gate.ts` is the live case: its built-in allow list holds `\"tests/**\"` (last changed by #4163, before class checks shipped in #5005), and the #4905 fix edits a different function in that file. Class checks have no approve or skip, so the only exits today are moving the reference or a policy allow entry in a separate PR.\n\nThe recommended fix: class 2 reports a reference only when the diff adds it. For each touched production file, the check reads the same path at the merge base and counts a matched line only when that line is not already in the base file (a line multiset, so a copied or second reference still counts as new). A missing base file (new file, rename, unreadable blob) counts every reference as new, as today. The full-repo audit (`verify:test-boundary`, which reads every tracked file) keeps reporting old references.\n\n## Operator direction (Scott, 2026-11-22; relayed by the coordinator; recorded as constraints)\n- \"fix 7077 first\", chosen instead of a policy allow entry for `drift-gate.ts`.\n- Coordinator constraint for this arc: the fix must not let a diff add a new test-root reference to production code.\n\n## Pains\n- P1 — A production file that already named a test or fixture root at the base cannot be edited at all: any change fails class 2 even when the diff adds no reference, and class checks offer no approve or skip (#7077; blocks #4905 and, behind it, #7025).\n\n## Out of scope (named, not pains)\n- Class 3 (`test-identity-in-infra`, `scanTestIdentityInInfra`) also scans whole content; it is not changed here.\n- Which paths count as production, which roots are forbidden, and the needle regexes in `scanProductionReferences`.\n- `verify:test-boundary`'s own reference scan (`packages/core/src/test-boundary/evaluate.ts`), which stays the full-repo audit.\n- Class 1, class 4, and the same-PR policy-edit check.\n- Removing the `\"tests/**\"` reference from `drift-gate.ts` or adding a policy allow entry for it.\n\n## Evidence\n- #7077 body: `drift-gate.ts` keeps `\"tests/**\"` in its built-in allow list and the #4905 product commit (it edits `scanCorpusToken` only) cannot pass class 2.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/class-checks/evaluate.ts` 58-70 `ClassCheckOptions` (`baseRef`, `changedFiles`, `fileContents`, injected policies). 153-162 `candidateTreeBase` (merge base of base ref and HEAD; falls back to the base ref). 164-249 `changedFilesVsBase` (working tree against the merge base plus untracked files; returns `mergeBase`). 318-323 `readAtRef` (`git show <ref>:<path>`, null on any failure). 624-682 `scanProductionReferences` (skips test files, test/fixture roots and CI harness workflows; production = under a source root or deploy-shaped; builds two regexes per forbidden root and tests them against the whole content; returns one finding per file). 768-785 `readContent` (injected map or working-tree read, capped at 512000 chars). 815 and 856 `candidateMergeBase` (null when `changedFiles` is injected). 951-956 the class 2 call (skips protected globs and base allow-listed paths). 1021-1043 same-PR policy edit that would clear a class 1/2 hit.\n- `packages/core/src/class-checks/evaluate.test.ts` 130-144 (class 2 with injected `changedFiles`/`fileContents` and project root `/tmp/proj`); 492-507, 533-604, 631-701, 721-740 (more injected class 2 cases); 758-849 (git fixture: `master` base, `story` branch, working tree against the merge base).\n- `packages/core/src/presentation-coverage/gates.ts` 157-183: calls `evaluateClassChecks` with `baseRef: mergeBase`, injected `changedFiles`, head `fileContents` and base policies; a `base.read` reader is in scope (102-121).\n- `packages/core/src/pre-pr-controller/controller.ts` 138: calls `evaluateClassChecks(root, { baseRef })` (git-enumerated path).\n- `packages/core/src/test-boundary/evaluate.ts` 1-7, 52-70 (`git ls-files`), 393-420 (reference scan over every tracked file): the full-repo audit.\n- `packages/core/src/xbrief-migrate/drift-gate.ts` 66 (`\"tests/**\"`).\n\n## Recommended mechanism (the thing to critique)\n- D1. Base text. For each changed path that reaches the class 2 call, read the base text once: `readAtRef(root, candidateMergeBase ?? baseRef, path)`, capped like `readContent`. Null (new file, rename target, deleted at base, git failure, no git) means no base text.\n- D2. New lines only. Split head and base text into lines; strip a trailing `\\r` and outer whitespace from each line for the comparison. Build a multiset of base lines. Walk head lines in order; a head line whose text is still in the base multiset consumes one copy and is skipped; every other head line is a candidate line.\n- D3. Scan. Run the existing per-root needle regexes on candidate lines only (same production test, same roots, same skips). Report one finding per file as today, naming the first new matching line number in `detail`. With no base text every head line is a candidate, so behavior equals today's.\n- D4. Seam. Add optional `baseFileContents?: ReadonlyMap<string, string | null>` beside `fileContents`. When present it is the base source (absent key or null = no base text) and no git read happens. `presentation-coverage/gates.ts` passes it from `base.read` for the changed paths. When `fileContents` is injected without `baseFileContents`, the base read falls back to git at `baseRef` (so a non-git project root keeps today's behavior).\n- D5. Audit. No change to `verify:test-boundary`; it keeps reporting old references repo-wide.\n- D6. Tests: pre-existing reference plus an unrelated edit in the same file (pass); a new reference line added to a file that already has one (fail); a copied existing reference line (fail); a re-indented existing line (pass); CRLF working tree against an LF blob (pass); new file (fail as today); injected `baseFileContents` cases; existing tests unchanged.\n- D7. Scope. One PR: `class-checks/evaluate.ts`, `evaluate.test.ts`, `presentation-coverage/gates.ts`, the evaluator-surface disclosure (`xbrief/evaluator-surface-disposition.json`), one `changelog.d/` fragment.\n\nQuestions for the critic:\n1. Line multiset (D2) or a diff hunk parse of added lines? Which one leaves no way to add a new reference unreported, and which is cheaper to keep right on Windows line endings and on injected inputs?\n2. Is trimming outer whitespace safe, or does it open a hole (for example a reference line moved into a different construct)?\n3. Should the base be the merge base, or `baseRef` when the merge base is unknown? Is a git read failure correctly treated as \"no base text\" (fail closed)?\n4. Is D4's fallback (injected head contents, git base read) right, or should injected mode stay hermetic?\n5. Does the presentation-coverage caller need to change in this PR, or can it keep today's whole-file scan?\n6. Does this fit one PR for the next build?\n\n",
+          "id": 7084567590,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084567590",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:38:51Z",
+          "updated_at": "2026-11-22T19:38:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7084569438\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 0bdb3be811f0f46e6ffff21d7da5a005750206f6\ndest: C:/Repos/deft/wt/arc-7077\nverification-path: pin-read git show 0bdb3be811f0f46e6ffff21d7da5a005750206f6: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7084567590\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The parent posts the critic's final message verbatim.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, and the titles of linked issues) and reads code with `git show <dispatch-sha>:<path>`.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7084569438,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084569438",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:39:00Z",
+          "updated_at": "2026-11-22T19:39:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe current check blocks unrelated edits because it treats every old reference as newly introduced. Comparing against the base can fix that, but the proposed line multiset also forgives moving an existing reference into a different construct. It therefore cannot support the stated promise that added references remain reported. The design needs a precise definition of “new” before it binds.\n\n## Answers to Stop 1\n\n1. **Prefer added-line comparison for the stated constraint.** A line multiset detects increased counts but loses location and order. An ordered comparison preserves more information. Neither approach guarantees detection of semantic changes made entirely through surrounding lines; the contract should describe lexical added-line detection.\n2. **Normalize CRLF, but do not generally trim outer whitespace.** Indentation can change meaning in YAML and Python. Movement is a separate problem that exists even without trimming.\n3. **Use the same resolved base that produced the changed-file set.** Treating missing or unreadable base text as no exemption is conservative. Using `baseRef` is appropriate when it explicitly identifies the caller’s comparison snapshot; an unknown merge base is not evidence that an arbitrary branch tip is equivalent.\n4. **Keep injected content hermetic for this comparison.** If injected head text lacks injected base text, scan all head lines. Ambient Git should not silently grant exemptions.\n5. **Change the presentation-coverage caller in this PR.** It already owns both snapshots and should supply the base map. Otherwise the two entry points retain different behavior.\n6. **Yes, one PR**, including caller-level regression coverage. The work is small enough, but the comparison contract needs correction first.\n\n## Findings\n\n### 1. blocks-the-design — A line multiset forgives relocation, not just old references\n\n**Evidence:** Stop 1 D2 consumes matching lines anywhere in the base file. I ran an in-memory Node reproduction of that algorithm:\n\n```text\nBase:                       Head:\nconst docs = [              const docs = [\n  \"tests/fixtures\",          ];\n];                          const shipped = [\nconst shipped = [             \"tests/fixtures\",\n];                          ];\n```\n\nThe candidate-line result was `[]`. A second check copying the reference without deleting the original correctly returned the extra line.\n\nAt the pin, `packages/core/src/class-checks/evaluate.ts:624–677` performs lexical matching without interpreting the surrounding construct. Production classification includes deployment files and pipelines at lines 644–649.\n\n**Failure mode:** Deleting an old occurrence provides credit for adding the same text elsewhere. Trimming extends that exemption to indentation changes, including potentially meaningful YAML nesting changes. D6’s copied-line test does not exercise deletion plus relocation.\n\n**Disposition consequence:** D2 cannot bind under the current no-new-reference claim. Prefer ordered added-line comparison with CRLF normalization and explicit movement/indentation tests. State the guarantee as detecting matching added lines, not detecting every newly effective dependency.\n\nThe strongest case for the multiset is simplicity: it is portable, handles injected strings, and tolerates formatting and reordering. I would accept it if the constraint explicitly allowed relocation and defined “new” as increased normalized-line multiplicity. That is weaker than the current stated constraint.\n\nExisting mechanism: `packages/core/src/forward-coverage/diff-lines.ts:105–161` already exports `parseUnifiedDiffAddedLines` and handles CRLF diff records. It is a parser, not a complete solution for generating diffs between injected strings; that remaining seam must be addressed.\n\n### 2. sharpens-framing — Injected snapshots should own their exemptions\n\n**Evidence:** At the pin, `packages/core/src/class-checks/evaluate.ts:773–775` treats an injected head map as authoritative. Lines 813–817 leave `candidateMergeBase` null for injected changed files. D4 would then obtain exemption text from ambient Git unless a base map is supplied.\n\n`packages/core/src/presentation-coverage/gates.ts:97–118` already holds `base`, `head`, and `mergeBase`; lines 171–180 inject head contents and policies into class checks.\n\n**Failure mode:** Identical injected head inputs can produce different findings depending on the repository behind `projectRoot`. A caller that omitted the new optional map can accidentally receive exemptions from a different snapshot. This is particularly relevant when snapshots and a shared checkout are evaluated at different times.\n\n**Disposition consequence:** The base-map seam is sound, but its default should be conservative: injected head without injected base means no base exemption. The presentation caller should supply its existing base reader’s results. Add a caller-level test showing both an unrelated edit passing and an added reference failing.\n\n### 3. footnote — The envelope ceiling differs from the single-seat rule\n\n**Evidence:** The envelope names ceiling `7084569438`, matching the supplied panel deposit. The pinned contract’s `### Envelope and ceiling` instead specifies the triage write-back as the round-one ceiling when one exists for a single critic. Here that write-back is `7084567590`; spend is N=1.\n\n**Failure mode:** The dispatch record applies the panel-deposit ceiling convention to a single-seat round.\n\n**Disposition consequence:** No product-design consequence. I honored the explicit envelope ceiling and read nothing after it; the deposit contained dispatch metadata rather than sibling findings.\n\n## Verification and limits\n\nI read the supplied snapshot and used SHA-pinned `git show` reads plus `git grep` to inspect the evaluator, snapshot caller, full-repo audit, and existing diff parser. I ran the two in-memory multiset checks above. I did not run repository tests, install dependencies, modify files, or post comments.\n\nThe indentation and surrounding-context arguments are my technical reasoning, not executed language-parser tests. The existing working-tree reader truncates at 512,000 characters (`class-checks/evaluate.ts:779–780`), so any detection guarantee also remains bounded by the existing scan limit. USER.md access was denied; no addressing preference was inferred.",
+          "id": 7084606488,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084606488",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:41:51Z",
+          "updated_at": "2026-11-22T19:41:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7084567590 (round 1: 1 of 1 critic posted, comment 7084606488)\n\n## In plain English\nProblem: class 2 of `verify:class-checks` scans the whole content of every production file a diff touches and never looks at the base. A file that already named a test root (for example `\"tests/**\"` in `drift-gate.ts`) cannot be edited at all, and class checks have no approve or skip (#7077).\n\nWhat the critic found: comparing against the base is right, but the Stop 1 line multiset is not. It forgives a reference that is deleted in one place and added in another, and trimming whitespace forgives a re-indent that can change meaning in YAML or Python. The critic also found that injected inputs must not borrow base text from the git repository behind the project root, and that the presentation-coverage caller must supply its own base so both entry points behave the same.\n\nSolution this lean proposes: class 2 scans only the lines that git's diff against the merge base marks as added. The check gets those line numbers from one `git diff -U0` run, read with the parser Directive already has (`parseUnifiedDiffAddedLines`). Injected callers pass the added lines themselves; a path with no added-line data is scanned on every line, as today. No whitespace or line-matching rules of our own.\n\nWhat this adds: one git diff call, one optional input, and a line filter in front of the existing needle regexes.\n\nWhat it removes: the whole-file scan for files git can diff against the merge base.\n\nWhat it does not do:\n- It does not judge the effect of unchanged lines; the guarantee is lexical: a test-root reference on an added line fails.\n- It does not change which files count as production, the forbidden roots, the needle regexes, class 1, 3 or 4, or the same-PR policy-edit check.\n- It does not change `verify:test-boundary`, which keeps reporting old references across the whole repo.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none.\n\nTarget-digest: sha256:3e494fc07df7782f043bfb88a3ed2401630a2f61e5a7e36027cf4c8fe6b82afe\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\n\n## Bound remedy\n1. Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`).\n2. Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.\n3. Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files absent at the merge base, rename targets (renames are off), files git treats as binary, a failed diff, and injected paths without an entry.\n4. Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.\n5. Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).\n6. No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.\n7. One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.\n\n## Acceptance Criteria\n- Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.\n- Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.\n- Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.\n- Given that file, when the diff only re-indents the reference line, then class 2 fails.\n- Given an untracked or new production file with a test-root reference, then class 2 fails as today.\n- Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).\n- Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.\n- Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.\n- Given a pre-existing reference, `verify:test-boundary` still reports it.\n\n## Reject\n- A line multiset or any whole-file set comparison against the base (comment 7084606488 finding 1).\n- Trimming or normalising whitespace before comparison (finding 1; Stop 1 question 2).\n- Reading base text or a diff from ambient git for injected inputs (finding 2).\n- Leaving the presentation-coverage caller on the whole-file scan (finding 2; question 5).\n- A policy allow entry for `drift-gate.ts`, or moving its reference, in place of this fix.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7084606488 | 1. A line multiset forgives relocation, not just old references | blocks-the-design | accept-into-contract (items 1, 3 and 4 use git's added lines with the existing parser; move and re-indent ACs; \"What it does not do\" states the lexical guarantee) |\n| comment 7084606488 | 2. Injected snapshots should own their exemptions | sharpens-framing | accept-into-contract (items 2, 3 and 5; injected and presentation-coverage ACs) |\n| comment 7084606488 | 3. The envelope ceiling differs from the single-seat rule | footnote | noted; the parent posted a panel-deposit for this single seat and used it as the ceiling; it carried no sibling findings; no ceiling change |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read at the dispatch SHA `forward-coverage/diff-lines.ts` 90-161 (`parseUnifiedDiffAddedLines`: new-side line numbers of `+` lines, `\\r` stripped, `/dev/null` targets skipped), `class-checks/evaluate.ts` 83-110 (`git` helper, 20 MB buffer), 164-249 (`git diff --name-only <mergeBase>` plus untracked files), 768-785, 815-856, and `presentation-coverage/snapshot.ts` 1-60 and `gates.ts` 88-118 (`mergeBase`, `candidate`, `base`, `head`). That `--no-renames` reports a rename as a delete plus an add, that `--no-textconv` keeps textconv drivers out, and that binary files carry no `+++` hunk are git facts from the parent's own knowledge, not executed here. The `relieves` cite stays open until a later critic targets it. This lean adds no premise beyond those git facts, so it records no audit marker.\n\n",
+          "id": 7084625520,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084625520",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:43:21Z",
+          "updated_at": "2026-11-22T19:43:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:9e3be01ca2249e00caf1a7d766afe61c1efa61f55cdb0ffff5fd0b99ebb7ac42\n\n## In plain English\n\nScanning added lines would allow unrelated edits to files with old references. However, the selected parser can mistake added source code for a file header and silently omit a new reference. The lean therefore does not yet preserve the required fence.\n\npain-P1: does not hold - the pinned diff parser can omit an added test-root reference while leaving a present, incomplete added-lines entry.\n\n### 1. blocks-the-design — Added source text can redirect the diff parser\n\n**Evidence:** At the dispatch pin, `packages/core/src/forward-coverage/diff-lines.ts:122–134` recognizes `+++ ` as a file header before checking whether it is inside a hunk. It changes the current path and clears `inHunk`. Lines 142–143 then discard subsequent additions until another hunk header.\n\nI loaded the exact pinned TypeScript through `git show`, stripped types using Node’s `stripTypeScriptTypes`, and executed the exported parser in memory with this patch:\n\n```diff\ndiff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1,3 @@\n-old\n+new\n+++ counter;\n+const p = \"tests/new\";\n```\n\nThe result was:\n\n```text\nsrc/a.ts -> {1}\ncounter; -> {}\n```\n\nThe added source line `++ counter;` becomes `+++ counter;` in unified diff syntax. The new reference is on line 3, which the parser omits. A normal control patch correctly returned both added line numbers.\n\n**Failure mode:** Bound-remedy item 3 falls back only when an entry is absent. Here `src/a.ts` has an entry, so item 4 scans line 1 and misses the reference on line 3. Candidate-controlled source text has been interpreted as parser metadata. This affects both Git mode and the presentation adapter.\n\n**Disposition consequence:** The lean cannot bind with the existing parser unchanged. Include a parser correction that distinguishes file headers from hunk payload, plus a regression proving that a `++ ` source line cannot hide a following reference. The scope must include `forward-coverage/diff-lines.ts` and its tests, or another verified extraction mechanism. Missing-entry fallback alone is insufficient.\n\nReusing the shared parser remains the strongest small design: it avoids duplicate diff logic and supports both callers. Correcting and testing its hunk handling would remove this blocker; returning to a line multiset would not.\n\n### 2. footnote — New files and rename targets normally have added-line entries\n\n**Evidence:** Executing the pinned parser on a new-file patch with `--- /dev/null`, `+++ b/src/a.ts`, and one added reference returned `src/a.ts -> {1}`. The parser skips `/dev/null` **destinations**, not `/dev/null` sources (`diff-lines.ts:122–131`).\n\nI also ran the proposed diff flags between pinned commits `b5ed1ede79d52e704424cacb6350825d39e61307` and `0bdb3be811f0f46e6ffff21d7da5a005750206f6`. The change set contained three additions and one deletion; parsing produced three destination entries.\n\n**Failure mode:** Item 3’s explanation groups new files and rename targets with missing-entry cases. Ordinary textual additions instead receive entries covering all their lines. With rename detection disabled, the added side likewise normally receives an entry.\n\n**Disposition consequence:** No independent mechanism change is needed. The intended full scan of new textual files follows from all lines being added; missing-entry fallback covers cases without usable textual output.\n\n## Verification and limits\n\nThe snapshot pairing is sound: `presentation-coverage/snapshot.ts:74–98` constructs `base` from `mergeBase`, `head` from `candidate`, and changed paths from those same objects. `candidate` can be a commit or the staged tree. The proposed two-object diff therefore matches the bytes injected by `gates.ts:171–180`.\n\nThe parser strips trailing CR from diff records and normally records new-side addition numbers. The claim that it reliably captures every addition is disproved above.\n\nThe statements about `--no-renames`, `--no-textconv`, and binary patches are consistent with my Git knowledge; I did not execute dedicated rename, textconv, or binary fixtures. Likewise, Git’s choice of matching lines does not establish a universal semantic-movement guarantee.\n\nChecks were read-only pinned-source inspection, in-memory execution of the actual parser, and the pinned-commit diff. No repository tests, installs, file changes, or posts were performed. USER.md access was denied; no personal preferences were inferred.",
+          "id": 7084658145,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084658145",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:45:53Z",
+          "updated_at": "2026-11-22T19:45:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7084567590, after pain audit 7084658145 (round 1 critic 7084606488)\n\n**Supersedes:** 7084625520\n\n## In plain English\nProblem: class 2 of `verify:class-checks` scans the whole content of every production file a diff touches and never looks at the base. A file that already named a test root (for example `\"tests/**\"` in `drift-gate.ts`) cannot be edited at all, and class checks have no approve or skip (#7077).\n\nWhat the critic found: comparing against the base is right, but the Stop 1 line multiset is not. It forgives a reference that is deleted in one place and added in another, and trimming whitespace forgives a re-indent that can change meaning in YAML or Python. The critic also found that injected inputs must not borrow base text from the git repository behind the project root, and that the presentation-coverage caller must supply its own base so both entry points behave the same.\n\nWhat the pain audit found (comment 7084658145): P1 did not hold, because the existing diff parser checks for a `+++ ` file header before it checks whether it is inside a hunk. An added source line that starts with `++ ` shows in the diff as `+++ ...`, so the parser switches to a bogus file and drops the following added lines, and a new reference after it goes unscanned while the real file still has an entry. This lean adds a parser fix (item 1) and its test, and corrects item 3: new files and rename targets get a full added-line entry from the diff; the scan-every-line fallback is for paths with no usable text diff. Nothing else changes from lean 7084625520.\n\nSolution this lean proposes: class 2 scans only the lines that git's diff against the merge base marks as added. The check gets those line numbers from one `git diff -U0` run, read with the parser Directive already has (`parseUnifiedDiffAddedLines`), after a fix so that text inside a hunk can never be read as a file header. Injected callers pass the added lines themselves; a path with no added-line data is scanned on every line, as today. No whitespace or line-matching rules of our own.\n\nWhat this adds: one git diff call, one optional input, a line filter in front of the existing needle regexes, and hunk-length tracking in the shared diff parser.\n\nWhat it removes: the whole-file scan for files git can diff against the merge base.\n\nWhat it does not do:\n- It does not judge the effect of unchanged lines; the guarantee is lexical: a test-root reference on an added line fails.\n- It does not change which files count as production, the forbidden roots, the needle regexes, class 1, 3 or 4, or the same-PR policy-edit check.\n- It does not change `verify:test-boundary`, which keeps reporting old references across the whole repo.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none.\n\nTarget-digest: sha256:3e494fc07df7782f043bfb88a3ed2401630a2f61e5a7e36027cf4c8fe6b82afe\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\n\n## Bound remedy\n1. Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`). That parser is fixed in the same PR: it reads the old and new line counts from each `@@` header (a missing count is 1; a no-newline marker line (it starts with a backslash) does not count) and treats every line until both counts are used up as hunk payload, so payload that starts with `+++ `, `--- ` or `diff --git ` never changes the current file or ends the hunk. Headers are recognised only outside a hunk. `verify:forward-coverage`, the parser's other user, gets the same fix.\n2. Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.\n3. Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files git treats as binary, a failed diff, and injected paths without an entry. A file absent at the merge base, and a rename target (renames are off), get an entry that lists every line, so they are fully scanned too.\n4. Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.\n5. Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).\n6. No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.\n7. One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/forward-coverage/diff-lines.ts` and its test, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.\n\n## Acceptance Criteria\n- Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.\n- Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.\n- Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.\n- Given that file, when the diff only re-indents the reference line, then class 2 fails.\n- Given an untracked or new production file with a test-root reference, then class 2 fails as today.\n- Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).\n- Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.\n- Given a diff whose added lines include a line starting with `++ ` followed by an added line with a test-root reference, then class 2 fails; and `parseUnifiedDiffAddedLines` returns both added line numbers for that file and no entry for a bogus path.\n- Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.\n- Given a pre-existing reference, `verify:test-boundary` still reports it.\n\n## Reject\n- A line multiset or any whole-file set comparison against the base (comment 7084606488 finding 1).\n- Trimming or normalising whitespace before comparison (finding 1; Stop 1 question 2).\n- Reading base text or a diff from ambient git for injected inputs (finding 2).\n- Leaving the presentation-coverage caller on the whole-file scan (finding 2; question 5).\n- Using `parseUnifiedDiffAddedLines` without the hunk-length fix (audit 7084658145 finding 1).\n- A policy allow entry for `drift-gate.ts`, or moving its reference, in place of this fix.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7084606488 | 1. A line multiset forgives relocation, not just old references | blocks-the-design | accept-into-contract (items 1, 3 and 4 use git's added lines with the existing parser; move and re-indent ACs; \"What it does not do\" states the lexical guarantee) |\n| comment 7084606488 | 2. Injected snapshots should own their exemptions | sharpens-framing | accept-into-contract (items 2, 3 and 5; injected and presentation-coverage ACs) |\n| comment 7084606488 | 3. The envelope ceiling differs from the single-seat rule | footnote | noted; the parent posted a panel-deposit for this single seat and used it as the ceiling; it carried no sibling findings; no ceiling change |\n| comment 7084658145 | 1. Added source text can redirect the diff parser | blocks-the-design | accept-into-contract (item 1 parser fix; item 7 scope; `++ ` AC) |\n| comment 7084658145 | 2. New files and rename targets normally have added-line entries | footnote | accept (item 3 wording corrected; no mechanism change) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and both leans. The parent re-read `forward-coverage/diff-lines.ts` 105-161 at the pin and confirmed the audit's finding: the `+++ ` test runs before the hunk-state test and clears `inHunk`. The parent also re-read at the dispatch SHA `forward-coverage/diff-lines.ts` 90-161 (`parseUnifiedDiffAddedLines`: new-side line numbers of `+` lines, `\\r` stripped, `/dev/null` targets skipped), `class-checks/evaluate.ts` 83-110 (`git` helper, 20 MB buffer), 164-249 (`git diff --name-only <mergeBase>` plus untracked files), 768-785, 815-856, and `presentation-coverage/snapshot.ts` 1-60 and `gates.ts` 88-118 (`mergeBase`, `candidate`, `base`, `head`). That `--no-renames` reports a rename as a delete plus an add, that `--no-textconv` keeps textconv drivers out, and that binary files carry no `+++` hunk are git facts from the parent's own knowledge, not executed here. The `relieves` cite stays open until a later critic targets it. This lean adds no premise beyond those git facts, so it records no audit marker.\n\n",
+          "id": 7084665877,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084665877",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:46:27Z",
+          "updated_at": "2026-11-22T19:46:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:dfccc2d9c2610de9cbae8001f340f811269dd8c15318cbc03a78250c13ca5f04\n\n## In plain English\n\nThe remedy lets unrelated edits pass while continuing to report test-root references on added lines. The proposed hunk-length tracking closes the previously identified parser hole. Presentation coverage can obtain those lines from the same immutable snapshots it already scans. I found no further design blocker within the stated lexical guarantee.\n\npain-P1: holds\n\n### 1. footnote — The guarantee remains bounded by existing scan coverage\n\n**Evidence:** At dispatch SHA `0bdb3be811f0f46e6ffff21d7da5a005750206f6`, `packages/core/src/class-checks/evaluate.ts:768–784` caps working-tree content at 512,000 characters and returns no content on a read failure. Lines 949–955 skip scanning unavailable content and retain protected-path and policy exemptions.\n\n**Failure mode:** An added reference beyond that existing limit remains unreported. Likewise, added-line detection cannot identify a newly effective dependency caused solely by changing surrounding lines while leaving the reference unchanged. These are limits of the existing scanner and the expressly lexical design, not additional holes introduced by the remedy.\n\n**Disposition consequence:** No Bound remedy or Acceptance Criteria change required. Do not describe this change as guaranteeing detection of every semantic dependency or removing existing scan limits.\n\n## Checks and limits\n\n- **Parser:** Read `forward-coverage/diff-lines.ts:8–161` at the pin. Confirmed that the current parser recognizes `+++ ` before hunk payload and that its regex does not capture the old-side count. The prescribed fix must update both the header capture and payload state. Tracking both counts, excluding no-newline markers, addresses the reported redirection mechanism.\n- **Git behavior:** Ran read-only diffs between pinned commits. The dispatch commit’s new audit JSON produced `--- /dev/null` and `@@ -0,0 +1,13 @@`, covering all 13 added lines. For commit `a2ed300b4c421f790edcb3a7cbf49bb20e776044`, rename detection reported `hook-bin.ts → hook-launcher.ts`; `--no-renames` reported deletion plus addition.\n- **Snapshot consistency:** Read `presentation-coverage/snapshot.ts:64–99` and `gates.ts:93–183`. `mergeBase` is resolved to an object ID; `candidate` is HEAD or the index tree. The changed paths and head contents derive from those objects. Item 5’s two-object diff therefore matches the scanned snapshot, including staged mode.\n- **Fallback and audit:** Confirmed the current whole-content class-2 scan and the independent full-repo scan in `test-boundary/evaluate.ts:393–420`. Missing added-line entries conservatively preserve existing scanning.\n- **Knowledge rather than execution:** The claims that `--no-textconv` disables text conversion and binary diffs lack ordinary text hunks are Git behavior from my technical knowledge; I did not execute dedicated fixtures for them.\n\nThis is design verification, not implementation certification. I did not run repository tests, modify files, install dependencies, or post anything. USER.md access was denied; no addressing preference was inferred.",
+          "id": 7084692409,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084692409",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:48:32Z",
+          "updated_at": "2026-11-22T19:48:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7084692409; bind map stays successor lean 7084665877)\n\nThe audit has one footnote finding (`finding-classes: footnote`), `harvest-changed: false`, and its harvest digest equals the lean's (sha256:dfccc2d9c2610de9cbae8001f340f811269dd8c15318cbc03a78250c13ca5f04). It found `pain-P1` holds. The Bound remedy is unchanged.\n\n- The earlier audit 7084658145 targeted the superseded lean 7084625520; its one blocking finding (the diff parser reads an added `++ ` source line as a `+++ ` file header and drops the following added lines) is taken into item 1, item 7 and one acceptance criterion of lean 7084665877. Its footnote is taken into item 3's wording.\n- Footnote 1 (the guarantee stays lexical and bounded by the existing 512000-character scan cap): accepted; the lean's \"What it does not do\" already states the lexical limit, and the cap is unchanged.\n- No change to the Bound remedy.\n\n",
+          "id": 7084699907,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084699907",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:49:07Z",
+          "updated_at": "2026-11-22T19:49:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7084665877. Dispatch SHA: 0bdb3be811f0f46e6ffff21d7da5a005750206f6. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and both leans. Each row names who read the source at the pin (`git show <sha>:<path>`) or what knowledge it rests on. No tests were run. All three critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Class 2 scans the whole content of every touched production file with per-root needle regexes and never reads the base, so any edit to a file that already names a test root fails | verified | parent read of `class-checks/evaluate.ts` 624-682 and 947-956 |\n| 2 | `drift-gate.ts` holds `\"tests/**\"` in its built-in allow list, and the #4905 change edits another function of that file | verified | parent read of `xbrief-migrate/drift-gate.ts` 66 at the pin and of the #4905 product commit diff |\n| 3 | The git-enumerated change set is the working tree against the merge base plus untracked files, and `candidateMergeBase` is null only for injected `changedFiles` | verified | parent read of `class-checks/evaluate.ts` 153-249 and 815-856 |\n| 4 | `parseUnifiedDiffAddedLines` returns new-side line numbers of `+` lines and strips `\\r`, but checks `+++ ` before hunk state, so an added `++ ` source line redirects it and later added lines are dropped | verified | parent read of `forward-coverage/diff-lines.ts` 105-161; audit 7084658145 finding 1 (in-memory run of the pinned parser) |\n| 5 | Presentation coverage holds `mergeBase` and `candidate` (HEAD or the index tree), builds `base` and `head` from them, and injects head contents into class checks | verified | parent read of `presentation-coverage/snapshot.ts` 1-99 and `gates.ts` 88-183; audit 7084692409 |\n| 6 | `verify:test-boundary` scans every tracked file for test-root references, so it stays the full-repo audit | verified | parent read of `test-boundary/evaluate.ts` 1-7, 52-70, 393-420 |\n| 7 | `--no-renames` reports a rename as a delete plus an add; a new file's diff covers every line | verified by critic | audit 7084692409 (read-only diffs between pinned commits) |\n| 8 | `--no-textconv` keeps textconv drivers out, and binary files carry no text hunk | endorsed, not verified | parent and critic knowledge of git; nothing executed |\n| 9 | The Bound remedy relieves pain P1 | verified as design coverage | audit 7084692409 (`pain-P1` holds; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 10 | The added-line filter, injected `addedLines`, parser fix and presentation-coverage diff behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7084700126,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084700126",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:49:08Z",
+          "updated_at": "2026-11-22T19:49:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: class 2 of `verify:class-checks` scanned the whole content of every production file a diff touched and never looked at the base, so a file that already named a test root (for example `\"tests/**\"` in `drift-gate.ts`) could not be edited at all, and class checks have no approve or skip (#7077).\n\nAccepted solution: class 2 scans only the lines that git's diff against the merge base marks as added. In a normal run the check gets those line numbers from one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv` run against the same merge base that produced the change set, read with the existing diff parser. That parser is fixed so text inside a hunk (for example an added line starting with `++ `) can never be read as a file header. Injected callers pass the added lines themselves through a new optional input, and presentation coverage computes them from its own two snapshots; injected mode never reads from the repository behind the project root. A path with no added-line data (untracked, binary, failed diff, injected without an entry) is scanned on every line, as today. New files and rename targets are fully scanned because every line is added. A moved or re-indented reference line counts as added and fails.\n\nLimits accepted: the guarantee is lexical (a test-root reference on an added line fails); it does not judge the effect of unchanged lines and keeps the existing 512000-character scan cap. Production paths, forbidden roots, needle regexes, classes 1, 3 and 4 and the same-PR policy check do not change. `verify:test-boundary` stays the full-repo audit and keeps reporting old references. It was checked by reading the source at the pinned commit and by read-only git runs; no tests were run. One PR; no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7084665877.\nverified-claims table 7084700126\n\nConfirm conjunct: yolo standing (Stop 1 7084567590, `yolo-standing: on`) on the operator's launch of this arc. Round-1 critic: comment 7084606488, posted by the parent verbatim as disclosed on panel-deposit 7084569438. Earlier audit: 7084658145 (blocking, on superseded lean 7084625520; taken into lean 7084665877). Audit: comment 7084692409 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7084699907. Spend N=1 was resolved by `deft design-critique:spend-resolve` from the parent recommend, as Stop 1 records. Deferred, not part of this contract: none. Critic posts used: 3 of 6.\n\n",
+          "id": 7084701579,
+          "html_url": "https://github.com/deftai/directive/issues/7077#issuecomment-7084701579",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T19:49:15Z",
+          "updated_at": "2026-11-22T19:49:15Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`verify:class-checks` class 2 (`production-references-test-root`) scans the whole content of every production file a diff touches (`scanProductionReferences`, `packages/core/src/class-checks/evaluate.ts` around 624 and 954) and does not compare against the base revision. A file that already named a test root before class checks existed (#4980) cannot be edited at all: any change trips the check, even when the diff adds no new reference. Example: `packages/core/src/xbrief-migrate/drift-gate.ts` keeps `\"tests/**\"` in its built-in allow list (last touched by #4163), which blocks #4905 and, behind it, #7025. Class checks offer no approve or skip, so the only exits are moving the reference or a policy allow entry in a separate PR.\n\n## Acceptance Criteria\n\n- [ ] Class 2 reports a test-root reference only when it is new in the diff (absent from the same file at the base revision, or on an added line).\n- [ ] A reference already present at the base stays reported in the full-repo audit mode, but does not fail a diff that only touches other lines of that file.\n- [ ] Tests cover a pre-existing reference with an unrelated edit (pass) and a newly added reference (fail).\n\nRefs #4980, #4905, #7025.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6545954355,
+        "origin": "deftai/directive#7077",
+        "id": "github.issue.6545954355"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3e494fc07df7782f043bfb88a3ed2401630a2f61e5a7e36027cf4c8fe6b82afe"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7077,
+        "leanCommentId": 7084665877,
+        "harvestDigest": "dfccc2d9c2610de9cbae8001f340f811269dd8c15318cbc03a78250c13ca5f04",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (17), in list order (#6333)",
+      "sentences": [
+        "Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`). That parser is fixed in the same PR: it reads the old and new line counts from each `@@` header (a missing count is 1; a no-newline marker line (it starts with a backslash) does not count) and treats every line until both counts are used up as hunk payload, so payload that starts with `+++ `, `--- ` or `diff --git ` never changes the current file or ends the hunk. Headers are recognised only outside a hunk. `verify:forward-coverage`, the parser's other user, gets the same fix.",
+        "Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.",
+        "Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files git treats as binary, a failed diff, and injected paths without an entry. A file absent at the merge base, and a rename target (renames are off), get an entry that lists every line, so they are fully scanned too.",
+        "Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.",
+        "Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).",
+        "No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.",
+        "One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/forward-coverage/diff-lines.ts` and its test, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.",
+        "Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.",
+        "Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.",
+        "Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.",
+        "Given that file, when the diff only re-indents the reference line, then class 2 fails.",
+        "Given an untracked or new production file with a test-root reference, then class 2 fails as today.",
+        "Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).",
+        "Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.",
+        "Given a diff whose added lines include a line starting with `++ ` followed by an added line with a test-root reference, then class 2 fails; and `parseUnifiedDiffAddedLines` returns both added line numbers for that file and no entry for a bogus path.",
+        "Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.",
+        "Given a pre-existing reference, `verify:test-boundary` still reports it."
+      ],
+      "admitted_source_sentences": [
+        "Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`). That parser is fixed in the same PR: it reads the old and new line counts from each `@@` header (a missing count is 1; a no-newline marker line (it starts with a backslash) does not count) and treats every line until both counts are used up as hunk payload, so payload that starts with `+++ `, `--- ` or `diff --git ` never changes the current file or ends the hunk. Headers are recognised only outside a hunk. `verify:forward-coverage`, the parser's other user, gets the same fix.",
+        "Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.",
+        "Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files git treats as binary, a failed diff, and injected paths without an entry. A file absent at the merge base, and a rename target (renames are off), get an entry that lists every line, so they are fully scanned too.",
+        "Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.",
+        "Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).",
+        "No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.",
+        "One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/forward-coverage/diff-lines.ts` and its test, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.",
+        "Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.",
+        "Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.",
+        "Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.",
+        "Given that file, when the diff only re-indents the reference line, then class 2 fails.",
+        "Given an untracked or new production file with a test-root reference, then class 2 fails as today.",
+        "Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).",
+        "Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.",
+        "Given a diff whose added lines include a line starting with `++ ` followed by an added line with a test-root reference, then class 2 fails; and `parseUnifiedDiffAddedLines` returns both added line numbers for that file and no entry for a bogus path.",
+        "Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.",
+        "Given a pre-existing reference, `verify:test-boundary` still reports it."
+      ],
+      "admitted_source_digest": "ada6fd93ee6730deb741b5003f0a9b4a56d8ba7cb04540708bad0799a45e26ec",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`). That parser is fixed in the same PR: it reads the old and new line counts from each `@@` header (a missing count is 1; a no-newline marker line (it starts with a backslash) does not count) and treats every line until both counts are used up as hunk payload, so payload that starts with `+++ `, `--- ` or `diff --git ` never changes the current file or ends the hunk. Headers are recognised only outside a hunk. `verify:forward-coverage`, the parser's other user, gets the same fix.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files git treats as binary, a failed diff, and injected paths without an entry. A file absent at the merge base, and a rename target (renames are off), get an entry that lists every line, so they are fully scanned too.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).",
+          "artifact_path": "packages/core/src/presentation-coverage/gates.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/forward-coverage/diff-lines.ts` and its test, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given that file, when the diff only re-indents the reference line, then class 2 fails.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given an untracked or new production file with a test-root reference, then class 2 fails as today.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a diff whose added lines include a line starting with `++ ` followed by an added line with a test-root reference, then class 2 fails; and `parseUnifiedDiffAddedLines` returns both added line numbers for that file and no entry for a bogus path.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.",
+          "artifact_path": "packages/core/src/presentation-coverage/gates.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a pre-existing reference, `verify:test-boundary` still reports it.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6545954355",
+    "updated": "2026-11-22T19:53:24Z"
+  }
+}
