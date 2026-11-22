@@ -697,6 +697,15 @@
       }
     },
     "id": "github.issue.6537999296",
-    "updated": "2026-11-22T04:12:24Z"
+    "updated": "2026-11-22T04:12:24Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "120",
+          "unit": "characters",
+          "rejectionScope": "invocation"
+        }
+      ]
+    }
   }
 }
