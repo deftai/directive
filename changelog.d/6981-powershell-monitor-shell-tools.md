@@ -1,0 +1,2 @@
+section: Fixed
+- Claude Code's `PowerShell` and `Monitor` tools are now shell tools, so the kill-switch plant guard, the protected-store write guard and the commit-target gate inspect their commands the way they inspect `Bash`. The shell hook matcher changes, so existing deposits read as drifted, and mutations are refused, until you run `directive install --repair` after upgrading. PowerShell-only command forms (file-writing cmdlets and their aliases, program runners, `-EncodedCommand`, backtick escapes, location control) are tracked in #7050 (#6981).
