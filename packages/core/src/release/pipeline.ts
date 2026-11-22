@@ -781,6 +781,14 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     }
   }
 
+  // #6876: `deft release:run` cuts locally, takes its one approval, then pushes.
+  if (config.stopBeforePush === true) {
+    process.stderr.write(
+      `Release v${version} local cut complete (Steps 1 to 9; nothing pushed).\n`,
+    );
+    return EXIT_OK;
+  }
+
   // #6296 item 2: in place of Steps 10 and 11, push the release branch and open
   // the release PR. Nothing updates the base branch; the finish step tags.
   if (!breakGlass) {

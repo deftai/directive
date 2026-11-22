@@ -42,6 +42,12 @@ export interface ReleaseConfig {
    * changed. Absent: Step 5 prints its own decision only.
    */
   readonly ciReuseAtReadiness?: import("./ci-reuse.js").CiReuseKind | null;
+  /**
+   * #6876 -- set only by `deft release:run` for its local cut: run Steps 1 to
+   * 9 (commit included) and return before any push or release PR. Absent or
+   * false: today's behaviour.
+   */
+  readonly stopBeforePush?: boolean;
 }
 
 /** #6875 -- what a `deft release:run` recorded before the merge. */

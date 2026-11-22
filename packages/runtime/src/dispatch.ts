@@ -121,6 +121,7 @@ export const CLI_MODULE_VERBS = [
   "release-e2e",
   "release-publish",
   "release-rollback",
+  "release-run",
   "release-wait-npm",
   "scope-lifecycle",
   "scope-record-approved-scope",
@@ -592,6 +593,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "scm:readiness": "scm-readiness",
   "scm:sync-default": "scm-sync-default",
   "release:wait-npm": "release-wait-npm",
+  "release:run": "release-run",
 };
 
 /** CLI modules living under verify-source-cli/ or content-validate-cli/ subdirs. */
