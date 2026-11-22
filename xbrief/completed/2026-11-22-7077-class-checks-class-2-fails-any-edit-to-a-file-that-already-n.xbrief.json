@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7077",
-    "updated": "2026-11-22T19:53:24Z"
+    "updated": "2026-11-22T21:47:28Z"
   },
   "plan": {
     "title": "class-checks class 2 fails any edit to a file that already names a test root (compare against base)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "class-checks class 2 fails any edit to a file that already names a test root (compare against base)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7077",
@@ -17,88 +17,207 @@
     "items": [
       {
         "title": "Added lines, git mode. When the change set is git-enumerated, the check runs one `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> -- <paths>` (working tree against the same merge base that produced the change set) over the paths that reach the class 2 scan, and reads the added line numbers with `parseUnifiedDiffAddedLines` (`packages/core/src/forward-coverage/diff-lines.ts`). That parser is fixed in the same PR: it reads the old and new line counts from each `@@` header (a missing count is 1; a no-newline marker line (it starts with a backslash) does not count) and treats every line until both counts are used up as hunk payload, so payload that starts with `+++ `, `--- ` or `diff --git ` never changes the current file or ends the hunk. Headers are recognised only outside a hunk. `verify:forward-coverage`, the parser's other user, gets the same fix.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Added lines, injected mode. When `changedFiles` is injected, the only source is a new optional `ClassCheckOptions.addedLines` (path to the set of 1-based added line numbers). Injected mode never reads base text or diffs from git.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Fail closed. A path with no added-line entry is scanned on every line, as today. This covers untracked files, files git treats as binary, a failed diff, and injected paths without an entry. A file absent at the merge base, and a rename target (renames are off), get an entry that lists every line, so they are fully scanned too.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Scan. Head content is split on `\\n` with one trailing `\\r` stripped per line. The existing roots, skips and needle regexes run on the added lines only. No whitespace normalisation and no line matching: a moved or re-indented reference line is an added line and fails. Still one finding per file; `detail` names the first added line that matches.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Presentation coverage. `presentation-coverage/gates.ts` passes `addedLines` from `git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> -- <changed paths>`, parsed the same way. A failed diff passes no entries (fail closed).",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "No change to `verify:test-boundary`; it stays the full-repo audit and keeps reporting old references.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One PR. Files: `packages/core/src/class-checks/evaluate.ts`, `evaluate.test.ts`, `packages/core/src/forward-coverage/diff-lines.ts` and its test, `packages/core/src/presentation-coverage/gates.ts` and its test, the evaluator-surface disclosure `xbrief/evaluator-surface-disposition.json`, one `changelog.d/` fragment. No new verb, flag, policy field or numeric constant.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a production file whose merge-base copy already holds a test-root reference, when the diff changes only another line of that file, then class 2 reports no finding for that file.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given that file, when the diff adds a new line with a test-root reference, then class 2 fails and names the file.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given that file, when the diff deletes the reference line and adds the same text elsewhere in the file, then class 2 fails.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given that file, when the diff only re-indents the reference line, then class 2 fails.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an untracked or new production file with a test-root reference, then class 2 fails as today.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given injected `changedFiles` and `fileContents` with no `addedLines` entry for a path, then every line of that path is scanned (the existing injected class 2 tests pass unchanged).",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given injected `addedLines` for a path, then class 2 fails only when a reference is on a listed line.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a diff whose added lines include a line starting with `++ ` followed by an added line with a test-root reference, then class 2 fails; and `parseUnifiedDiffAddedLines` returns both added line numbers for that file and no entry for a bogus path.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a presentation-coverage composed run, an unrelated edit to a file whose base already holds a reference gives `verify:class-checks` code 0, and an added reference line gives code 1.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a pre-existing reference, `verify:test-boundary` still reports it.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+          "recorded_at": "2026-11-22T21:47:28Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -482,6 +601,34 @@
         "leanCommentId": 7084665877,
         "harvestDigest": "dfccc2d9c2610de9cbae8001f340f811269dd8c15318cbc03a78250c13ca5f04",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ff5595838c6a59bfff77c812e555404f01cae87d",
+        "prNumber": 7094,
+        "prBase": "master",
+        "mergeCommit": "73edbb19e8577bf3b81c403ff35d681fc448b0c3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "58627a10977f11d723d726fb57e3c88caaa32b9f",
+        "verifiedAt": "2026-11-22T21:47:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7081,
+          7086
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T21:47:28Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T21:47:28Z"
       }
     },
     "acceptance": {
@@ -652,6 +799,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6545954355",
-    "updated": "2026-11-22T19:53:24Z"
+    "updated": "2026-11-22T21:47:28Z"
   }
 }
