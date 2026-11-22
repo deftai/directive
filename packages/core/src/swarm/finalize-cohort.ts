@@ -1593,6 +1593,72 @@ interface CohortMember {
   readonly activePath: string | null;
 }
 
+const ACTIVE_FOLDER_RE = /[\\/](xbrief|vbrief)[\\/]active[\\/]/;
+
+function planIdFromBriefText(text: string): string | null {
+  try {
+    const raw = JSON.parse(text) as { plan?: { id?: unknown } } | null;
+    return typeof raw?.plan?.id === "string" ? raw.plan.id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A terminal brief that matches a cohort token by plan id or file name (#7082),
+ * so a reused cohort list still names a story completed since: an id, an old
+ * active path or a completed path.
+ */
+function terminalCohortMember(projectRoot: string, token: string): CohortMember | null {
+  const tokenName = basename(token.replace(/\\/g, "/"));
+  for (const rootName of ["xbrief", "vbrief"] as const) {
+    for (const folder of ["completed", "cancelled"] as const) {
+      const dir = resolve(projectRoot, rootName, folder);
+      if (!existsSync(dir)) {
+        continue;
+      }
+      for (const name of readdirSync(dir)) {
+        if (!name.endsWith(".json")) {
+          continue;
+        }
+        let text: string;
+        try {
+          text = readFileSync(resolve(dir, name), "utf8");
+        } catch {
+          continue;
+        }
+        if (name === tokenName || planIdFromBriefText(text) === token) {
+          return { token, issue: githubIssueFromBriefText(text), activePath: null };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * True when a member's brief is already in completed/ on the delivery tip (#7082):
+ * a story completed in its product PR while the closer's checkout is stale.
+ */
+function completedOnDeliveryTip(
+  projectRoot: string,
+  activePath: string,
+  deliveryBranch: string,
+  runGit: typeof runText,
+): boolean {
+  const rel = posixProjectRel(projectRoot, activePath).replace(
+    /^(xbrief|vbrief)\/active\//,
+    "$1/completed/",
+  );
+  if (!/^(xbrief|vbrief)\/completed\//.test(rel)) {
+    return false;
+  }
+  const listed = runGit(["git", "ls-tree", "--name-only", `origin/${deliveryBranch}`, "--", rel], {
+    cwd: projectRoot,
+  });
+  return listed.returncode === 0 && listed.stdout.split(/\r?\n/).some((line) => line === rel);
+}
+
 /**
  * Resolve the cohort closer's list (#7082). A member with an active brief may
  * enter the sweep. A member whose issue has only a terminal brief (completed in
@@ -1609,12 +1675,18 @@ function resolveCohortMembers(
     const token = /^#\d+$/.test(raw) ? raw.slice(1) : raw;
     const resolved = resolveStories(projectRoot, [token]);
     const story = resolved.resolved[0];
-    if (story !== undefined) {
+    if (story !== undefined && ACTIVE_FOLDER_RE.test(story.path)) {
       members.push({ token, issue: githubIssueFromBrief(story.path), activePath: story.path });
       continue;
     }
     if (/^\d+$/.test(token) && terminalBriefReferencesIssue(projectRoot, Number(token))) {
       members.push({ token, issue: Number(token), activePath: null });
+      continue;
+    }
+    // Story ids and paths (old active or terminal) keep working after the move.
+    const terminal = terminalCohortMember(projectRoot, token);
+    if (terminal !== null) {
+      members.push(terminal);
       continue;
     }
     const why = resolved.errors.join(" ").trim();
@@ -2347,6 +2419,9 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const leftActive: FinalizeLeftActiveStory[] = [];
   for (const member of cohort.members) {
     if (member.activePath === null || sweptPaths.has(resolve(member.activePath))) {
+      continue;
+    }
+    if (completedOnDeliveryTip(projectRoot, member.activePath, deliveryBranch, runGit)) {
       continue;
     }
     const refused = member.issue !== null && pendingMarkIssues.has(member.issue);

@@ -336,6 +336,57 @@ describe("cohort lifecycle: in-PR completion first (#7082 clauses 1, 5)", () => 
     expect(gh.some((c) => c.includes("pr") && c.includes("create"))).toBe(false);
   });
 
+  it("treats a member completed on the delivery tip as done when the closer's checkout is stale", () => {
+    const project = tempRoot("w7082-stale-");
+    writeStory(project, "active", 7101); // stale: completed in its product PR upstream
+    writeStory(project, "active", 7102);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [102],
+      cohortStories: ["7101", "7102"],
+      repo: REPO,
+      deliveryBranch: "master",
+      noCommit: true,
+      runGh: mockRunGh(
+        { 102: { merged: true, body: "Refs #7102\n\ndeft-story: 7102\n" } },
+        { 7101: "closed", 7102: "open" },
+        [],
+      ),
+      runGit: mockRunGit([`xbrief/completed/${storyName(7101)}`], []),
+      fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.result.left_active).toEqual([]);
+    expect(result.result.story_paths.map((p) => basename(p))).toEqual([storyName(7102)]);
+  });
+
+  it("accepts a reused cohort list naming a completed story by id or path", () => {
+    const project = tempRoot("w7082-reuse-");
+    writeStory(project, "completed", 7101);
+    writeStory(project, "active", 7104);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [101],
+      cohortStories: [
+        "github.issue.7101",
+        join(project, "xbrief", "active", storyName(7101)),
+        join(project, "xbrief", "completed", storyName(7101)),
+        "7104",
+      ],
+      repo: REPO,
+      deliveryBranch: "master",
+      runGh: mockRunGh(
+        { 101: { merged: true, body: "Closes #7101", closingIssues: [7101] } },
+        { 7101: "closed", 7104: "open" },
+        [],
+      ),
+      runGit: mockRunGit([], []),
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.result.left_active).toEqual([{ story: "#7104", issue: 7104, reason: "omitted" }]);
+  });
+
   it("refuses a cohort token with no active or completed brief", () => {
     const project = tempRoot("w7082-unknown-");
     writeStory(project, "active", 7104);
@@ -367,7 +418,7 @@ describe("cohort lifecycle: in-PR completion first (#7082 clauses 1, 5)", () => 
 });
 
 describe("cohort lifecycle: one closer run, one lifecycle PR (#7082 clauses 2, 4, 5, 6)", () => {
-  function cohortRun(project: string) {
+  function cohortRun(project: string, landed: readonly number[] = [7102, 7103]) {
     const gh: string[][] = [];
     const git: string[][] = [];
     const result = finalizeCohort({
@@ -389,7 +440,7 @@ describe("cohort lifecycle: one closer run, one lifecycle PR (#7082 clauses 2, 4
         gh,
       ),
       runGit: mockRunGit(
-        [`xbrief/completed/${storyName(7102)}`, `xbrief/completed/${storyName(7103)}`],
+        landed.map((issue) => `xbrief/completed/${storyName(issue)}`),
         git,
       ),
       fetchPrChangedFiles: productFiles,
@@ -490,7 +541,7 @@ describe("cohort lifecycle: one closer run, one lifecycle PR (#7082 clauses 2, 4
     };
     doc.plan.metadata.productPullRequest = 1111;
     writeFileSync(paths[7103] ?? "", JSON.stringify(doc), "utf8");
-    const { result } = cohortRun(project);
+    const { result } = cohortRun(project, [7102]);
 
     expect(result.result.errors).toEqual([]);
     expect(result.result.left_active).toEqual([
