@@ -4035,7 +4035,9 @@ function pathishMentionsKillSwitch(pathish: string): boolean {
  * continuations joined, `$'...'` and `\xHH` escapes decoded, quote characters, backslash
  * escapes and cmd `^` carets removed, lowercase. A MENTION is a kill-switch name or a token
  * that would match one as a glob. The protected stores are not part of this rule (#6292).
- * A mention is refused unless every command segment is a known plain read.
+ * A mention is refused unless every command segment is a known plain read and the split
+ * into segments is trusted (`splitIsTrusted`), or the whole call is one quoted heredoc
+ * written as data to literal paths (`quotedHereDocDataLine`, #6941).
  * Over-refusal is accepted (`git commit -m "mention <name>"` is refused). Names built at
  * run time (variables, sed, base64) are a known limit and are not covered here.
  */
@@ -4207,6 +4209,14 @@ const PLAIN_READ_BINS = new Set([
   "true",
   "false",
   ":",
+  // Text filters (#6941). `sort` is a read only without its write and run options, and
+  // `sed` only as a line-range print (see `sedIsLineRangePrint`).
+  "cut",
+  "tr",
+  "nl",
+  "jq",
+  "sort",
+  "sed",
 ]);
 const PLAIN_READ_GIT_SUBCOMMANDS = new Set([
   "show",
@@ -4219,9 +4229,22 @@ const PLAIN_READ_GIT_SUBCOMMANDS = new Set([
   "cat-file",
   "blame",
   "describe",
+  "grep",
 ]);
-/** xargs options that take a separate value (lowercased: a value is skipped, never a program). */
-const XARGS_VALUE_OPTIONS = new Set(["-i", "-n", "-l", "-p", "-s", "-e", "-d", "-a", "-j"]);
+/**
+ * The only xargs options a plain read may carry (#6941), matched exactly after
+ * normalization. Any other word that starts with `-` before the program (another option,
+ * a cluster, an abbreviation, `--arg-file`, `-a` or a lone `--`) means the segment is not
+ * a plain read: the guard never guesses whether an unknown option takes a value.
+ */
+const XARGS_PLAIN_FLAGS = new Set(["-0", "--null", "-r", "--no-run-if-empty", "-t", "--verbose"]);
+/** xargs count options; their value is one all-digit word (separate or attached). */
+const XARGS_COUNT_OPTIONS = new Set(["-n", "--max-args"]);
+/**
+ * Readers whose plain-read status depends on their arguments. Behind xargs they never
+ * count as plain reads, because xargs adds arguments the guard cannot see (#6941).
+ */
+const ARGUMENT_SENSITIVE_READ_BINS = new Set(["sort", "sed", "git", "file", "less", "more", "rg"]);
 
 function readBinName(word: string): string {
   const base = word.slice(word.lastIndexOf("/") + 1);
@@ -4232,14 +4255,32 @@ function readBinName(word: string): string {
  * Programs in the plain-read set that have a write or run mode behind a flag. A line
  * that uses one of these flags is not a plain read (flags are lowercased by normalization,
  * so `-C` and `-c` are one flag here: fail closed). `xxd` is not in the set at all:
- * `xxd -r in out` and `xxd in out` write the output file.
+ * `xxd -r in out` and `xxd in out` write the output file. See `usesUnsafeOption` for how
+ * a word matches (#6941).
  */
 const PLAIN_READ_UNSAFE_FLAGS: Readonly<Record<string, readonly string[]>> = {
   file: ["-c", "--compile"],
   less: ["-o", "--log-file", "--lesskey-file", "-k"],
   more: ["-o"],
-  rg: ["--pre"],
+  rg: ["--pre", "--hostname-bin"],
+  sort: ["-o", "--output", "--compress-program"],
 };
+/** `git grep` write and run options (`-o` also catches `-O`, the pager option, #6941). */
+const GIT_GREP_UNSAFE_FLAGS: readonly string[] = ["-o", "--open-files-in-pager", "--textconv"];
+/** `sed` options a line-range print may carry, matched exactly (#6941). */
+const SED_PLAIN_OPTIONS = new Set([
+  "-n",
+  "--quiet",
+  "--silent",
+  "-e",
+  "--expression",
+  "-r",
+  "-z",
+  "-u",
+  "-s",
+]);
+/** A `sed` line-range print script: `N`, `N,M`, `$` or `N,$`, then `p`. */
+const SED_LINE_RANGE_PRINT = /^(?:\d+(?:,(?:\d+|\$))?|\$)p$/;
 
 /** git global options that only change how output is shown or where it runs. */
 const GIT_SAFE_GLOBAL_OPTIONS = new Set([
@@ -4270,30 +4311,203 @@ function wordsAreGitRead(words: readonly string[], at: number): boolean {
   }
   const sub = words[i];
   if (sub === undefined || !PLAIN_READ_GIT_SUBCOMMANDS.has(sub)) return false;
+  if (sub === "grep" && usesUnsafeOption(GIT_GREP_UNSAFE_FLAGS, words.slice(i + 1))) return false;
   return !words.some((w) => w.startsWith("--output"));
 }
 
-function usesUnsafeReadFlag(bin: string, words: readonly string[]): boolean {
-  const flags = PLAIN_READ_UNSAFE_FLAGS[bin];
-  if (flags === undefined) return false;
-  return words.some((w) =>
-    flags.some((f) => w === f || (f.startsWith("--") && w.startsWith(`${f}=`))),
-  );
+/**
+ * One word uses an unsafe option (#6941). A short option `-x` matches any word that starts
+ * with a single `-` and holds `x` anywhere after it, so attached values (`-o<file>`) and
+ * clusters (`-uo<file>`) match. A long option `--name` matches any word that starts with
+ * `--` when the text after `--`, up to the first `=`, is a non-empty prefix of `name`, so
+ * every abbreviation down to one letter (`--o=<file>`) matches.
+ */
+function wordUsesUnsafeOption(word: string, flag: string): boolean {
+  if (flag.startsWith("--")) {
+    if (!word.startsWith("--")) return false;
+    const eq = word.indexOf("=");
+    const typed = eq < 0 ? word.slice(2) : word.slice(2, eq);
+    return typed.length > 0 && flag.slice(2).startsWith(typed);
+  }
+  return word.startsWith("-") && !word.startsWith("--") && word.slice(1).includes(flag.slice(1));
+}
+
+/**
+ * True when any argument word uses one of `flags`. Every word is read, a lone `--` and
+ * every word after it included: there is no end-of-options boundary (fail closed).
+ */
+function usesUnsafeOption(flags: readonly string[], args: readonly string[]): boolean {
+  return args.some((w) => flags.some((f) => wordUsesUnsafeOption(w, f)));
+}
+
+/**
+ * `sed` is a plain read only as a line-range print (#6941): every option word is exactly
+ * one of `SED_PLAIN_OPTIONS`, every `-e` / `--expression` script is a line-range print, and
+ * so is the first word that does not start with `-`. That first word is checked even when
+ * an `-e` is present, because `-E` (extended regex, no value) lowercases to `-e`.
+ */
+function sedIsLineRangePrint(args: readonly string[]): boolean {
+  const first = args.find((w) => !w.startsWith("-"));
+  if (first === undefined || !SED_LINE_RANGE_PRINT.test(first)) return false;
+  for (let i = 0; i < args.length; i++) {
+    const w = args[i] as string;
+    if (!w.startsWith("-")) continue;
+    if (!SED_PLAIN_OPTIONS.has(w)) return false;
+    if (w === "-e" || w === "--expression") {
+      const script = args[i + 1];
+      if (script === undefined || !SED_LINE_RANGE_PRINT.test(script)) return false;
+      i++;
+    }
+  }
+  return true;
+}
+
+/**
+ * Index of the program an xargs segment runs, or -1 (#6941). Every word between `xargs`
+ * and the program must be on the closed list; any other option refuses.
+ */
+function xargsProgramIndex(words: readonly string[]): number {
+  let at = 1;
+  while (at < words.length && (words[at] as string).startsWith("-")) {
+    const w = words[at] as string;
+    if (XARGS_PLAIN_FLAGS.has(w) || /^-n\d+$/.test(w) || /^--max-args=\d+$/.test(w)) {
+      at += 1;
+    } else if (XARGS_COUNT_OPTIONS.has(w) && /^\d+$/.test(words[at + 1] ?? "")) {
+      at += 2;
+    } else {
+      return -1;
+    }
+  }
+  return at < words.length ? at : -1;
 }
 
 /** One command segment is a plain read (xargs feeding a read program counts). */
 function segmentIsPlainRead(words: readonly string[]): boolean {
-  let at = 0;
-  if (readBinName(words[at] as string) === "xargs") {
-    at++;
-    while (at < words.length && (words[at] as string).startsWith("-")) {
-      at += XARGS_VALUE_OPTIONS.has(words[at] as string) ? 2 : 1;
-    }
-    if (at >= words.length) return false;
+  if (readBinName(words[0] as string) === "xargs") {
+    const at = xargsProgramIndex(words);
+    if (at < 0) return false;
+    const bin = readBinName(words[at] as string);
+    return PLAIN_READ_BINS.has(bin) && !ARGUMENT_SENSITIVE_READ_BINS.has(bin);
   }
-  const bin = readBinName(words[at] as string);
-  if (bin === "git") return wordsAreGitRead(words, at);
-  return PLAIN_READ_BINS.has(bin) && !usesUnsafeReadFlag(bin, words);
+  const bin = readBinName(words[0] as string);
+  if (bin === "git") return wordsAreGitRead(words, 0);
+  if (!PLAIN_READ_BINS.has(bin)) return false;
+  const args = words.slice(1);
+  if (bin === "sed") return sedIsLineRangePrint(args);
+  // Windows `sort.exe` writes its output file with `/o` (`/output`): fail closed on any
+  // word that starts with `/o`, a path such as `/opt/x` included.
+  if (bin === "sort" && args.some((w) => w.startsWith("/o"))) return false;
+  const flags = PLAIN_READ_UNSAFE_FLAGS[bin];
+  return flags === undefined || !usesUnsafeOption(flags, args);
+}
+
+/**
+ * True when the guard can trust its own split of the line (#6941). Every `;`, `&`, `|`,
+ * carriage return and line feed in the normalized text must also be an unquoted, unescaped
+ * separator in the raw command. A separator inside single quotes, double quotes or `$'...'`,
+ * after a backslash (or a cmd `^`), or produced by an escape decode makes the split
+ * untrusted: the shell does not split there, so no segment counts as a plain read.
+ */
+function splitIsTrusted(command: string, normalized: string): boolean {
+  const raw = stripLineContinuations(command);
+  const counts = new Map<string, number>();
+  let quote: "'" | '"' | "$'" | null = null;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i] as string;
+    const next = raw[i + 1];
+    if (quote === "'") {
+      if (ch === "'") quote = null;
+      else if (isSplitChar(ch)) return false;
+      continue;
+    }
+    if (ch === "\\") {
+      if (next !== undefined && isSplitChar(next)) return false;
+      i++;
+      continue;
+    }
+    if (quote !== null) {
+      if (ch === (quote === '"' ? '"' : "'")) quote = null;
+      else if (isSplitChar(ch)) return false;
+      continue;
+    }
+    if (ch === "^" && next !== undefined && isSplitChar(next)) return false;
+    if (ch === "$" && next === "'") {
+      quote = "$'";
+      i++;
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      continue;
+    }
+    if (isSplitChar(ch)) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+  }
+  for (const sep of SPLIT_CHARS) {
+    let seen = 0;
+    for (const ch of normalized) if (ch === sep) seen++;
+    if (seen !== (counts.get(sep) ?? 0)) return false;
+  }
+  return true;
+}
+
+const SPLIT_CHARS = [";", "&", "|", "\r", "\n"] as const;
+
+function isSplitChar(ch: string): boolean {
+  return ch === ";" || ch === "&" || ch === "|" || ch === "\r" || ch === "\n";
+}
+
+/**
+ * Heredoc data (#6941). When the whole call is one `cat` or `tee` command that writes a
+ * quoted-delimiter heredoc to literal file paths, return its command line (the first line);
+ * otherwise null. The mention test then reads only that line, not the body. All of these
+ * must hold: exactly one heredoc on the first line, with a quoted delimiter, closed, and
+ * nothing but blank lines after it; the command line has no quote, backslash, `$`, backtick,
+ * separator, parenthesis, other redirect, glob, brace, `~`, `#` or `!` outside the heredoc
+ * operator; the command is `cat` with exactly one `>` or `>>` redirect and no other word,
+ * or `tee` with an optional `-a` and one or more operands; no destination starts with `-`.
+ * An unquoted heredoc body is never data here: the shell expands it.
+ */
+function quotedHereDocDataLine(command: string): string | null {
+  const lines = command.split("\n");
+  const first = lines[0] as string;
+  if (first.includes("\\")) return null;
+  const parsed = zipStripHereDocDeclarationsFromLine(first);
+  if (parsed.specs.length !== 1) return null;
+  const spec = parsed.specs[0] as ZipHereDocSpec;
+  if (!spec.quoted) return null;
+  let end = -1;
+  for (let i = 1; i < lines.length; i++) {
+    let candidate = (lines[i] as string).replace(/\r$/, "");
+    if (spec.stripLeadingTabs) candidate = candidate.replace(/^\t+/, "");
+    if (candidate === spec.delimiter) {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) return null;
+  if (lines.slice(end + 1).some((line) => !/^[ \t]*$/.test(line))) return null;
+  if (/['"\\$`;&|()<*?[\]{}~#!\r\n^]/.test(parsed.sanitized)) return null;
+  const words = parsed.sanitized.split(/[ \t]+/).filter((w) => w.length > 0);
+  return hereDocDataWriteWords(words) ? first : null;
+}
+
+function hereDocDataWriteWords(words: readonly string[]): boolean {
+  const rest = words.slice(1);
+  if (words[0] === "cat") {
+    let dest: string | undefined;
+    if (rest.length === 2 && (rest[0] === ">" || rest[0] === ">>")) dest = rest[1];
+    else if (rest.length === 1) dest = /^>>?([^>]+)$/.exec(rest[0] as string)?.[1];
+    return dest !== undefined && literalDataDestination(dest);
+  }
+  if (words[0] === "tee") {
+    const operands = rest[0] === "-a" ? rest.slice(1) : rest;
+    return operands.length > 0 && operands.every(literalDataDestination);
+  }
+  return false;
+}
+
+function literalDataDestination(dest: string): boolean {
+  return dest.length > 0 && !dest.startsWith("-") && !dest.includes(">");
 }
 
 /** True when every command segment of the line is a known plain read. */
@@ -4316,6 +4530,9 @@ function allSegmentsPlainRead(text: string): boolean {
 function mentionRefused(command: string): boolean {
   const texts = normalizeMentionText(command);
   if (!mentionsKillSwitchText(texts)) return false;
+  const dataLine = quotedHereDocDataLine(command);
+  if (dataLine !== null) return mentionsKillSwitchText(normalizeMentionText(dataLine));
+  if (!splitIsTrusted(command, texts[0])) return true;
   return !allSegmentsPlainRead(texts[0]);
 }
 
