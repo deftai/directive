@@ -170,14 +170,21 @@ describe("completion test floor (#7047)", () => {
     );
   });
 
-  it("clause 9: a declared command the allowlist refuses never runs and the refusal names the safety reason", () => {
+  it("clauses 5 and 9: a declared command the allowlist refuses never runs and the refusal names the safety reason", () => {
     const root = rootWithPolicyTestCommand("make test");
     const rec = recorder(0);
     const walk = evaluateScopeCompleteAcceptanceWalk(clausePlan(), walkOptions(root, rec.runner));
     expect(walk.ok).toBe(false);
     expect(rec.commands).toEqual([]);
-    expect(walk.message).toContain("declared test command refused:");
-    expect(walk.message).toMatch(/declared test command refused: .*make/);
+    // The clause 5 outcome shape, with the safety reason filled in from the allowlist.
+    const shape = "declared test command refused: <safety reason>";
+    const reasonLine = walk.message
+      .split("\n")
+      .find((line) => line.startsWith(shape.replace("<safety reason>", "")));
+    expect(reasonLine).toBeDefined();
+    const reason = (reasonLine ?? "").slice(shape.indexOf("<safety reason>"));
+    expect(reason.trim().length).toBeGreaterThan(0);
+    expect(reason).toMatch(/make/);
     expect(walk.message).toContain("nothing was run");
     expect(walk.message).toContain("--story-ids clause.1,clause.2");
   });
