@@ -7,13 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.131.2
+- [release-line] v0.131.3
 
 ### Added
 
 ### Changed
 
 ### Fixed
+
+### Removed
+
+## [0.131.3] - 2026-11-22
+
+> Follow-up to 0.131.2: PowerShell and Monitor are shell tools for the hooks (run install --repair), cohort in-PR completion, class-check and pre-pr fixes
+
+### Added
+
+- Swarm cohorts now complete with fewer PRs. A cohort story completes in its own product PR when `scope:complete --in-pr` admits it. The parent, as cohort closer, completes the other merged stories in one `swarm:finalize-cohort -- --pr <merged PRs> --cohort <ids>` lifecycle PR with no changelog fragment. The new `--cohort` list names every story the run did not complete (unmerged, left off the list, or refused) and keeps it active for a later run; the run then exits incomplete. The preamble, AGENTS.md rules, agents-entry template and the swarm and build skills say so; a solo story keeps worker-owned completion (#7082).
+
+### Changed
+
+- Complete #6981 after merge of #7084.
+- Complete #7047 after merge of #7067.
+- Complete #7077 after merge of #7086 and #7094.
+- chore(dogfood): pin Directive to 0.131.2.
+- Complete #7082 after merge of #7095.
+- Complete #7085 after merge of #7098.
+- docs+ingest: document sliced leans and the `deft-slice:` child-issue route (commands.md § Sliced leans, design-critique contract, swarm and build skills); the refusal for a fully sliced lean now lists the slice labels and the `deft-slice:` line for each child issue (#7085).
+
+### Fixed
+
+- fix(orphan-active): the pending lifecycle-PR scan of `verify:orphan-active` starts no new forge request once the run deadline (start time plus the existing budget) is reached, keeps every shipped verdict and prints a cut-short line, so many open PRs cannot drag it far past its budget (#6899).
+- `deft pre-pr:run --project-root <dir>` now opens the private store under `<dir>` on every path (start, observe, evaluate, complete), so a run started in a worktree can be recorded from any cwd without `cd`. Relative `--reviewed-file` paths resolve against the same root; `--body-file` paths stay relative to the cwd. Without `--project-root`, nothing changes (#6902).
+- Claude Code's `PowerShell` and `Monitor` tools are now shell tools, so the kill-switch plant guard, the protected-store write guard and the commit-target gate inspect their commands the way they inspect `Bash`. The shell hook matcher changes, so existing deposits read as drifted, and mutations are refused, until you run `directive install --repair` after upgrading. PowerShell-only command forms (file-writing cmdlets and their aliases, program runners, `-EncodedCommand`, backtick escapes, location control) are tracked in #7050 (#6981).
+- fix(class-checks): class 2 of `verify:class-checks` scans only the lines the diff against the merge base adds, so a file that already names a test root can be edited (#7077). Injected callers pass `addedLines`; a path with no added-line data is still scanned on every line.
+- fix(forward-coverage): `parseUnifiedDiffAddedLines` tracks hunk lengths, so an added line starting with `++ ` no longer hides later added lines from `verify:forward-coverage` and class 2 of `verify:class-checks`; presentation coverage passes class 2 the added lines of its own snapshots (#7077).
+- The CHANGELOG entry for 0.131.2 no longer says the hook matcher covers Claude Code's `PowerShell` and `Monitor` tools; that change (#7084) is not in 0.131.2 and ships in this release. It now matches the corrected 0.131.2 release notes (#7093).
 
 ### Removed
 
@@ -8462,7 +8491,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.131.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.131.3...HEAD
+[0.131.3]: https://github.com/deftai/directive/compare/v0.131.2...v0.131.3
 [0.131.2]: https://github.com/deftai/directive/compare/v0.131.1...v0.131.2
 [0.131.1]: https://github.com/deftai/directive/compare/v0.131.0...v0.131.1
 [0.131.0]: https://github.com/deftai/directive/compare/v0.130.2...v0.131.0
