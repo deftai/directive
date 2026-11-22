@@ -10,23 +10,35 @@
     "narratives": {
       "Description": "session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7057",
-      "Overview": "Narrow part of #7021. The managed-body template choice (`.deft/core` vs project-dependency) stays with #6687.\n\n## Acceptance Criteria\n\n- [ ] `deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.\n- [ ] When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.\n- [ ] A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run.\n\nRefs #7021, #6687\n\n"
+      "Overview": "Narrow part of #7021. The managed-body template choice (`.deft/core` vs project-dependency) stays with #6687.\n\n## Acceptance Criteria\n\n- [ ] `deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.\n- [ ] When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.\n- [ ] A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run.\n\nRefs #7021, #6687\n\n",
+      "UserStory": "As an agent starting work in a fresh worktree, I want `deft session:start` to leave tracked files alone when they are current, so that the worktree is clean before I write a line and I never commit Directive's own churn.",
+      "ImplementationPlan": "1. packages/core/src/triage/cache-path.ts: the legacy triage-cache migration (`migrateLegacyTriageCacheFromEval`) no longer handles README.md. It leaves `.eval/README.md` in place and does not create `.triage-cache/README.md`; `triage:bootstrap` still creates the canonical README on request (clause 1).\n2. packages/core/src/triage/cache-path.test.ts: the two README tests change to pin that the legacy README stays and no canonical README is created by the migration (clause 1).\n3. packages/runtime/src/session-start-clean-7057.test.ts (new): a committed fresh install that also tracks `xbrief/.eval/README.md`; run the built runtime `session:start` twice; after each run `git status --porcelain -uall` is empty and AGENTS.md is byte-identical to the committed copy (clauses 2, 3).\n4. changelog.d/7057-session-start-clean-worktree.md.",
+      "Traces": "#7057 is the narrow part of #7021 (Expected: no writes to tracked files; no deleting tracked docs). The template part of #7021 stays with #6687."
     },
     "items": [
       {
         "title": "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place."
+        }
       },
       {
         "title": "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id."
+        }
       },
       {
         "title": "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run."
+        }
       }
     ],
     "references": [
@@ -76,7 +88,8 @@
           "one changelog fragment changelog.d/7057-session-start-clean-worktree.md"
         ],
         "conflict_group": "triage-cache-migration",
-        "model_tier": "high"
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 3 clauses are the 3 Acceptance Criteria of #7057, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -120,7 +133,8 @@
         "github_issue_id": 6544989400,
         "origin": "deftai/directive#7057",
         "id": "github.issue.6544989400"
-      }
+      },
+      "kind": "story"
     },
     "acceptance": {
       "commands": [],
