@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6936",
-    "updated": "2026-11-22T03:59:25Z"
+    "updated": "2026-11-22T06:32:48Z"
   },
   "plan": {
     "title": "[framework-gap] swarm:readiness treats Next.js dynamic-route paths ([id]) in file_scope as globs",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`swarm:readiness` reported real Next.js route files such as `web/src/app/crm/pipeline/[id]/page.tsx` as broad globs because any `[` counted as a glob character, and the scope-provenance fence used the same rule outside the mint exact match (#6936). Readiness also flagged `placeholder`, `todo` and `tbd` anywhere, so file names and domain terms read as placeholder text (#6929). This story adds one shared concrete-path rule (no `*` or `?`; brackets literal) used by readiness, decompose, the fence, the one-PR scope proof and the verify-ac pointer checks, and one shared per-line placeholder predicate.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6936",
@@ -20,82 +20,152 @@
     "items": [
       {
         "title": "Concrete path. `orchestration/pathspec.ts`: `hasGlobMagic` is true only for `*` or `?`, and a new exported `isConcreteScopePath(entry)` is true for a non-empty trimmed entry with no glob magic; `[` and `]` are literal. `isConcreteFileScopeEntry` in `scope-provenance/base-fence.ts` delegates to it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When an entry has no * or ?, then isConcreteScopePath is true and brackets are literal; hasGlobMagic matches only * and ?."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Readiness. `fileScopeIssues` in `vbrief-validation/story-quality.ts` and its copy in `scope/decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When readiness or decompose checks file_scope, then they use isConcreteScopePath and the broad-root checks are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Other consumers. `policy/one-pr-scope-proof.ts` replaces its private `hasGlob` with `hasGlobMagic`; `verify-ac/clauses.ts` keeps calling `hasGlobMagic` and so treats bracket pointers as literal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the one-PR scope proof or verify-ac pointer checks see a bracket entry, then it is literal, not a glob."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its pattern copy. Multi-word phrases stay substring matches. For the markers `placeholder`, `tbd` and `todo`, the text is split into lines and a leading list marker (`-`, `*`, `+`, `1.`, `1)`) is removed. Tokens are split on whitespace and leading and trailing punctuation is removed first; a token that still contains `/`, or `.`, `-` or `_` between word characters, is path-like and never counts. A line is placeholder text when it holds a template token (`<m>`, `{m}`, `{{m}}`, `[m]`), when every word token on it is a marker, when its first token is a marker followed by `:` or a standalone dash, or when `tbd` appears as a word token.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When readiness or decompose checks stub text, then they use the shared marker-text predicate with per-line rules and path-like tokens never count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `file_scope` entries `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/pages/[slug].tsx` and `web/src/app/[...slug]/page.tsx`, when readiness runs, then it reports no broad-file_scope issue for them, and `src/*.ts` and `src/?.ts` are still reported.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When file_scope lists bracket route paths, then readiness reports no broad issue for them, and * or ? entries are still reported."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a base brief whose `file_scope` lists `web/src/app/crm/pipeline/[id]/page.tsx`, when the fence evaluates a change to that file, then the entry counts toward the production allowance, is kept in precommitment and forge-approval membership, and the changed file is admitted, while a change to `web/src/app/crm/pipeline/i/page.tsx` is not admitted by that entry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the fence sees a bracket base entry, then it counts in the allowance and membership and admits that file but not a sibling i path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a brief with no bracket entries, when the forge-approval hash preimage is built, then it is unchanged; given one with a bracket entry, then the entry is now in the preimage.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When a brief has no bracket entries, then the forge hash preimage is unchanged; a bracket entry now appears in it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a head brief with a bracket entry, when the one-PR scope proof runs, then it does not deny with \"head brief file_scope has a glob entry\", and `isDeclaredArtifactPath` accepts a bracket artifact pointer inside the declared scope.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When a head brief has a bracket entry, then the one-PR proof does not deny it as a glob and isDeclaredArtifactPath accepts the pointer."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the #6929 texts (`web/src/components/desk/section-placeholder-widget.tsx`, \"placeholder widgets\", \"repo chip placeholder\"), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no placeholder issue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When readiness checks the #6929 file name and domain terms, then it reports no stub-text issue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `TBD`, `TODO.`, `TODO: write criteria`, `<placeholder>`, `- TODO placeholder\\n- TBD again here now`, or the speckit default acceptance text, when readiness checks them, then each still reports a placeholder issue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When readiness checks TBD, TODO., a TODO: label, a template token, the multi-line TODO/TBD plan or the speckit default, then each is flagged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T06:32:48Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -421,7 +491,36 @@
         "harvestDigest": "17229914875a6ca818c9d4187de3e428921e5a79dd5eaa83798151c24b2659da",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2ecec1fbd808ba28d7e9ebad9c235ecbf81b8f24",
+        "prNumber": 7000,
+        "prBase": "master",
+        "mergeCommit": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+        "verifiedAt": "2026-11-22T06:32:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6980
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T06:32:48Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T06:32:48Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -528,6 +627,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6528658687",
-    "updated": "2026-11-22T03:59:25Z"
+    "updated": "2026-11-22T06:32:48Z"
   }
 }
