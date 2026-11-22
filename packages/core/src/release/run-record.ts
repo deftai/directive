@@ -8,7 +8,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRename, containedWrite } from "../fs/contained-write.js";
 import type { CiReuseKind } from "./ci-reuse.js";
 
 export const RELEASE_RUN_RECORD_SCHEMA = "deft.release-run.v1" as const;
@@ -199,10 +199,16 @@ export function readReleaseRunRecord(projectRoot: string, version: string): Read
 }
 
 export function writeReleaseRunRecord(projectRoot: string, record: ReleaseRunRecord): string {
-  return containedWrite({
+  // Write a sibling temp file, then rename it over the record, so a failed
+  // write never leaves a partial record in place.
+  const target = join(RELEASE_RUN_RECORD_DIR, `${record.version}.json`);
+  const temp = `${target}.tmp`;
+  containedWrite({
     root: projectRoot,
-    target: join(RELEASE_RUN_RECORD_DIR, `${record.version}.json`),
+    target: temp,
     data: `${JSON.stringify(record, null, 2)}\n`,
     mode: "replace",
-  }).path;
+  });
+  containedRename({ root: projectRoot, from: temp, to: target });
+  return releaseRunRecordPath(projectRoot, record.version);
 }

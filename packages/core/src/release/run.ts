@@ -42,7 +42,7 @@ import { runBoundTarget } from "./closed-verb-gate.js";
 import { DEFAULT_BASE_BRANCH, EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
 import { runFinish } from "./finish.js";
 import { checkTagAvailable } from "./gh.js";
-import { runGit } from "./git.js";
+import { releaseCommitSubject, runGit } from "./git.js";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
 import { runPipeline } from "./pipeline.js";
 import { openReleasePr, pushReleaseBranch, releaseBranchName } from "./release-pr.js";
@@ -63,7 +63,7 @@ import {
   writeReleaseRunRecord,
 } from "./run-record.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
-import { validateReleaseChannelVersion } from "./version.js";
+import { isPrereleaseTag, validateReleaseChannelVersion } from "./version.js";
 
 export const RELEASE_RUN_HELP =
   "usage: deft release:run <version> --expires <ISO> [--promote-latest] [--summary <text>]\n" +
@@ -361,8 +361,39 @@ function setupRitual(ctx: Ctx): number {
   return EXIT_OK;
 }
 
+/**
+ * A stop after the Step 9 commit and before the record write leaves R on the
+ * branch with no record of it. True when HEAD is that commit: its parent is B
+ * and its subject is the release commit subject. HEAD at B means no commit yet.
+ */
+function headIsUnrecordedReleaseCommit(ctx: Ctx): { known: boolean; adopt: boolean } {
+  const head = git(ctx, ["rev-parse", "HEAD"]);
+  if (!head.ok) return { known: false, adopt: false };
+  if (head.out === ctx.record.cutBase) return { known: true, adopt: false };
+  const parent = git(ctx, ["rev-parse", "HEAD^"]);
+  const subject = git(ctx, ["log", "-1", "--format=%s", "HEAD"]);
+  const adopt =
+    parent.ok &&
+    subject.ok &&
+    parent.out === ctx.record.cutBase &&
+    subject.out === releaseCommitSubject(ctx.record.version);
+  return { known: adopt, adopt };
+}
+
 function phaseCut(ctx: Ctx): number {
-  if (ctx.record.releaseCommit === null) {
+  const state =
+    ctx.record.releaseCommit === null
+      ? headIsUnrecordedReleaseCommit(ctx)
+      : { known: true, adopt: true };
+  if (!state.known) {
+    line(
+      ctx,
+      "cut",
+      "FAIL (HEAD is neither the cut base B nor a release commit on B; nothing overwritten)",
+    );
+    return EXIT_VIOLATION;
+  }
+  if (!state.adopt) {
     const config: ReleaseConfig = {
       ...releaseConfigOf(ctx.record, ctx.projectRoot),
       stopBeforePush: true,
@@ -373,6 +404,8 @@ function phaseCut(ctx: Ctx): number {
       line(ctx, "cut", `FAIL (local cut exited ${String(code)})`);
       return code;
     }
+  } else if (ctx.record.releaseCommit === null) {
+    line(ctx, "cut", "OK (found the release commit on B from an earlier run; not cut again)");
   }
   const head = git(ctx, ["rev-parse", "HEAD"]);
   const tree = git(ctx, ["rev-parse", "HEAD^{tree}"]);
@@ -584,7 +617,8 @@ function phaseMerge(ctx: Ctx): number {
     return EXIT_VIOLATION;
   }
   const runVerb = ctx.seams.runVerb ?? defaultRunVerb;
-  const code = runVerb(["pr:wait-mergeable-and-merge", String(pr), "--wait"], {
+  const argv = ["pr:wait-mergeable-and-merge", String(pr), "--repo", ctx.record.repo, "--wait"];
+  const code = runVerb(argv, {
     cwd: ctx.projectRoot,
     interactive: false,
   });
@@ -854,6 +888,13 @@ export function cmdReleaseRun(args: readonly string[], seams: ReleaseRunSeams = 
   } catch (err) {
     process.stderr.write(
       `release:run: error: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    return EXIT_CONFIG_ERROR;
+  }
+  // A stable cut only: the npm watch and promote phases accept X.Y.Z alone.
+  if (isPrereleaseTag(flags.version)) {
+    process.stderr.write(
+      `release:run: error: ${flags.version} is a prerelease; release:run cuts stable X.Y.Z versions only (use task release for a prerelease)\n`,
     );
     return EXIT_CONFIG_ERROR;
   }

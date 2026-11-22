@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HumanOriginGrant } from "../authz/types.js";
 import { EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
+import { releaseCommitSubject } from "./git.js";
 import {
   cmdReleaseRun,
   findRunGrants,
@@ -72,12 +73,22 @@ interface Harness {
   grants: HumanOriginGrant[];
 }
 
-function harness(opts: { tty?: boolean; readinessOk?: boolean; parent?: string } = {}): Harness {
+function harness(
+  opts: {
+    tty?: boolean;
+    readinessOk?: boolean;
+    parent?: string;
+    committed?: boolean;
+    subject?: string;
+  } = {},
+): Harness {
   const calls: string[] = [];
   const verbs: Array<{ argv: readonly string[]; interactive: boolean }> = [];
   const configs: Record<string, ReleaseConfig> = {};
   let out = "";
   let branch = "master";
+  // HEAD is B until the local cut commits R on it.
+  let committed = opts.committed ?? false;
   const h: Harness = {
     calls,
     verbs,
@@ -102,9 +113,12 @@ function harness(opts: { tty?: boolean; readinessOk?: boolean; parent?: string }
           if (a[0] === "rev-parse") {
             if (a[1] === "--abbrev-ref") return ok(`${branch}\n`);
             if (a[1] === "origin/master") return ok(`${B}\n`);
-            if (a[1] === "HEAD") return ok(`${R}\n`);
+            if (a[1] === "HEAD") return ok(`${committed ? R : B}\n`);
             if (a[1] === "HEAD^{tree}") return ok(`${T}\n`);
-            if (a[1] === "HEAD^") return ok(`${opts.parent ?? B}\n`);
+            if (a[1] === "HEAD^") return ok(`${committed ? (opts.parent ?? B) : "a".repeat(40)}\n`);
+          }
+          if (a[0] === "log") {
+            return ok(`${opts.subject ?? (committed ? releaseCommitSubject(V) : "older")}\n`);
           }
           if (a[0] === "show") return ok(CHANGELOG_AT_R);
           return { status: 1, stdout: "", stderr: `unexpected git ${a.join(" ")}` };
@@ -140,6 +154,7 @@ function harness(opts: { tty?: boolean; readinessOk?: boolean; parent?: string }
       cut: (c) => {
         configs.cut = c;
         calls.push("cut");
+        committed = true;
         return EXIT_OK;
       },
       pushAndOpenPr: () => {
@@ -541,5 +556,66 @@ describe("release:run phase failures (#6876)", () => {
     const wrongBranch = failingGit(h2, (a) => a[1] === "--abbrev-ref");
     expect(runReleaseRun(options(other, { resume: true }), wrongBranch)).toBe(EXIT_VIOLATION);
     expect(h2.printed()).toContain(`is not on release/v${V}`);
+  });
+});
+
+describe("release:run review fixes (#6876)", () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+  function root(): string {
+    const dir = mkdtempSync(join(tmpdir(), "w6876-fix-"));
+    dirs.push(dir);
+    return dir;
+  }
+
+  it("adopts a release commit on B that an earlier run made but did not record", () => {
+    const dir = root();
+    const h = harness();
+    const base = h.seams.release?.spawnText;
+    let failTree = true;
+    const flaky: ReleaseRunSeams = {
+      ...h.seams,
+      release: {
+        spawnText: (cmd, args, o) =>
+          failTree && args.slice(2)[1] === "HEAD^{tree}"
+            ? { status: 1, stdout: "", stderr: "interrupted" }
+            : (base?.(cmd, args, o) ?? ok()),
+      },
+    };
+    expect(runReleaseRun(options(dir), flaky)).toBe(EXIT_VIOLATION);
+    const before = readReleaseRunRecord(dir, V);
+    expect(before.kind === "ok" && before.record.releaseCommit).toBeNull();
+    failTree = false;
+    h.calls.length = 0;
+    expect(runReleaseRun(options(dir, { resume: true }), flaky)).toBe(EXIT_OK);
+    expect(h.calls).not.toContain("cut");
+    expect(h.printed()).toContain("found the release commit on B from an earlier run");
+  });
+
+  it("stops without cutting when HEAD is neither B nor a release commit on B", () => {
+    const dir = root();
+    const h = harness({ committed: true, subject: "some other commit" });
+    expect(runReleaseRun(options(dir), h.seams)).toBe(EXIT_VIOLATION);
+    expect(h.calls).not.toContain("cut");
+    expect(h.printed()).toContain("HEAD is neither the cut base B nor a release commit on B");
+  });
+
+  it("names the run's repository on the merge verb", () => {
+    const dir = root();
+    const h = harness();
+    expect(runReleaseRun(options(dir), h.seams)).toBe(EXIT_OK);
+    const merge = h.verbs.find((v) => v.argv[0] === "pr:wait-mergeable-and-merge");
+    expect(merge?.argv).toEqual(["pr:wait-mergeable-and-merge", "77", "--repo", "o/r", "--wait"]);
+  });
+
+  it("refuses a prerelease version up front", () => {
+    const err = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(cmdReleaseRun(["2.4.0-rc.1", "--expires", EXPIRES], { now: () => NOW })).toBe(
+      EXIT_CONFIG_ERROR,
+    );
+    expect(String(err.mock.calls[0]?.[0])).toContain("cuts stable X.Y.Z versions only");
   });
 });

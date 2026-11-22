@@ -69,14 +69,9 @@ function fakeGh(
       };
     }
     if (joined.includes("/pulls?")) {
-      return {
-        returncode: 0,
-        stdout: JSON.stringify([
-          { number: 5, auto_merge: { merge_method: "squash" } },
-          { number: 6, auto_merge: null },
-        ]),
-        stderr: "",
-      };
+      // gh api --paginate --jq prints one armed PR number per line across pages.
+      expect(cmd).toContain("--paginate");
+      return { returncode: 0, stdout: "5\n105\n", stderr: "" };
     }
     return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
   };
@@ -115,6 +110,7 @@ describe("release:run readiness (#6876 clause 2)", () => {
     const queue = result.checks.find((c) => c.name.startsWith("Queued PRs"));
     expect(queue?.status).toBe("report");
     expect(queue?.detail).toContain("auto-merge armed on #5");
+    expect(queue?.detail).toContain("auto-merge armed on #5, #105");
     expect(queue?.detail).toContain("queued: #7");
     expect(formatReadiness(result)).toContain("all checks passed; nothing written yet");
   });
@@ -230,13 +226,29 @@ describe("release:run queue report (#6876)", () => {
     );
     const garbage: RunGhFn = () => ({ returncode: 0, stdout: "nope", stderr: "" });
     expect(queueReport(INPUT, garbage)).toBe(
-      "open PRs unreadable (not JSON); merge queue unreadable (not JSON)",
+      "open PRs unreadable (unexpected output); merge queue unreadable (not JSON)",
     );
     const empty: RunGhFn = (cmd) => ({
       returncode: 0,
-      stdout: cmd.join(" ").includes("graphql") ? JSON.stringify({ data: {} }) : "[]",
+      stdout: cmd.join(" ").includes("graphql") ? JSON.stringify({ data: {} }) : "",
       stderr: "",
     });
     expect(queueReport(INPUT, empty)).toBe("no open PR has auto-merge armed; merge queue empty");
+    const long: RunGhFn = (cmd) => ({
+      returncode: 0,
+      stdout: cmd.join(" ").includes("graphql")
+        ? JSON.stringify({
+            data: {
+              repository: {
+                mergeQueue: {
+                  entries: { totalCount: 120, nodes: [{ pullRequest: { number: 9 } }] },
+                },
+              },
+            },
+          })
+        : "",
+      stderr: "",
+    });
+    expect(queueReport(INPUT, long)).toContain("queued: #9 (120 queued in all)");
   });
 });

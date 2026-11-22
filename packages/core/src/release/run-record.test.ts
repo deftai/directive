@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -94,5 +94,20 @@ describe("release:run record (#6876)", () => {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, "{", "utf8");
     expect(readReleaseRunRecord(root, "1.2.0").kind).toBe("invalid");
+  });
+});
+
+describe("release:run record write (#6876)", () => {
+  it("replaces the record through a temp file and leaves no temp file behind", () => {
+    const root = mkdtempSync(join(tmpdir(), "w6876-record-"));
+    try {
+      writeReleaseRunRecord(root, fresh());
+      writeReleaseRunRecord(root, { ...fresh(), pr: 3 });
+      const read = readReleaseRunRecord(root, "1.2.0");
+      expect(read.kind === "ok" && read.record.pr).toBe(3);
+      expect(existsSync(`${releaseRunRecordPath(root, "1.2.0")}.tmp`)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

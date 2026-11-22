@@ -173,23 +173,29 @@ export function readinessCiLines(decision: CiReuseDecision): string[] {
 /** Open PRs with armed auto-merge (REST) and the merge-queue entries (one GraphQL read). */
 export function queueReport(input: ReadinessInput, runGh: RunGhFn): string {
   const parts: string[] = [];
+  // Every page of open PRs: the jq filter prints one armed PR number per line.
   const pulls = ghOk(runGh, [
     "api",
+    "--paginate",
     `repos/${input.repo}/pulls?state=open&base=${input.baseBranch}&per_page=100`,
+    "--jq",
+    ".[] | select(.auto_merge != null) | .number",
   ]);
   if (!pulls.ok) {
     parts.push(`open PRs unreadable (${pulls.out})`);
   } else {
-    try {
-      const list = JSON.parse(pulls.out) as Array<{ number?: number; auto_merge?: unknown }>;
-      const armed = list.filter((p) => p.auto_merge !== null && p.auto_merge !== undefined);
+    const rows = pulls.out
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (!rows.every((l) => /^\d+$/.test(l))) {
+      parts.push("open PRs unreadable (unexpected output)");
+    } else {
       parts.push(
-        armed.length === 0
+        rows.length === 0
           ? "no open PR has auto-merge armed"
-          : `auto-merge armed on ${armed.map((p) => `#${String(p.number)}`).join(", ")}`,
+          : `auto-merge armed on ${rows.map((n) => `#${n}`).join(", ")}`,
       );
-    } catch {
-      parts.push("open PRs unreadable (not JSON)");
     }
   }
   const slash = input.repo.indexOf("/");
@@ -197,7 +203,7 @@ export function queueReport(input: ReadinessInput, runGh: RunGhFn): string {
   const name = input.repo.slice(slash + 1);
   const query =
     "query($owner:String!,$name:String!,$branch:String!){repository(owner:$owner,name:$name)" +
-    "{mergeQueue(branch:$branch){entries(first:50){nodes{pullRequest{number}}}}}}";
+    "{mergeQueue(branch:$branch){entries(first:100){totalCount nodes{pullRequest{number}}}}}}";
   const queue = ghOk(runGh, [
     "api",
     "graphql",
@@ -218,16 +224,22 @@ export function queueReport(input: ReadinessInput, runGh: RunGhFn): string {
         data?: {
           repository?: {
             mergeQueue?: {
-              entries?: { nodes?: Array<{ pullRequest?: { number?: number } }> };
+              entries?: {
+                totalCount?: number;
+                nodes?: Array<{ pullRequest?: { number?: number } }>;
+              };
             } | null;
           };
         };
       };
-      const nodes = data.data?.repository?.mergeQueue?.entries?.nodes ?? [];
+      const entries = data.data?.repository?.mergeQueue?.entries;
+      const nodes = entries?.nodes ?? [];
+      const total = entries?.totalCount ?? nodes.length;
+      const more = total > nodes.length ? ` (${String(total)} queued in all)` : "";
       parts.push(
         nodes.length === 0
           ? "merge queue empty"
-          : `queued: ${nodes.map((n) => `#${String(n.pullRequest?.number)}`).join(", ")}`,
+          : `queued: ${nodes.map((n) => `#${String(n.pullRequest?.number)}`).join(", ")}${more}`,
       );
     } catch {
       parts.push("merge queue unreadable (not JSON)");
