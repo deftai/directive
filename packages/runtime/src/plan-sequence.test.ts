@@ -15,6 +15,44 @@ afterEach(() => {
 });
 
 describe("plan-sequence CLI (#2402)", () => {
+  it("current with no plan file prints the no-sequence line on stdout and exits 0 (#6872)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ps-current-none-"));
+    roots.push(root);
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    try {
+      expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
+      expect(out.join("")).toBe(
+        "No active ordered-plan sequence (.deft/plan-sequence.json missing).\n",
+      );
+      out.length = 0;
+      expect(planSequenceMain(["current", "--project-root", root, "--json"])).toBe(0);
+      expect(JSON.parse(out.join(""))).toEqual({
+        ok: true,
+        skipped: true,
+        reason: "no-active-sequence",
+      });
+      expect(err.join("")).toBe("");
+
+      // A present but malformed or unparseable file keeps a non-zero exit.
+      mkdirSync(join(root, ".deft"), { recursive: true });
+      writeFileSync(join(root, ".deft", "plan-sequence.json"), "{not json", "utf8");
+      expect(planSequenceMain(["current", "--project-root", root])).toBe(1);
+      writeFileSync(join(root, ".deft", "plan-sequence.json"), "{}\n", "utf8");
+      expect(planSequenceMain(["current", "--project-root", root])).toBe(1);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
   it("skips a lone -- separator (#3439)", () => {
     const parsed = parseArgs(["current", "--", "--json"]);
     expect(parsed.error).toBeUndefined();
@@ -122,7 +160,8 @@ describe("plan-sequence CLI (#2402)", () => {
     expect(planSequenceMain(["set", "--project-root"])).toBe(2);
     expect(planSequenceMain(["set", "--file"])).toBe(2);
     expect(planSequenceMain(["set", "--from-json"])).toBe(2);
-    expect(planSequenceMain(["current", "--project-root", root])).toBe(1);
+    // No plan file is a skip, not a failure (#6872).
+    expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
     expect(planSequenceMain(["advance", "--project-root", root])).toBe(2);
     expect(
       planSequenceMain(["advance", "--project-root", root, "--expected-generation", "0"]),

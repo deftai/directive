@@ -3,6 +3,7 @@
  * verify:plan-sequence (#2402) — fail closed unless target matches current entry.
  * The current entry is derived from completed briefs (#6205).
  */
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -11,6 +12,7 @@ import {
   inspectMissingSequenceKind,
   missingSequenceKindPayload,
   type PlanTargetKind,
+  planSequencePath,
   readPlanSequence,
   verifyPlanTarget,
 } from "@deftai/directive-core/plan-sequence";
@@ -22,7 +24,23 @@ export interface Parsed {
   emitJson: boolean;
   /** Typed `--help` / `-h` (#4203); main() prints usage on stdout and exits 0. */
   help?: boolean;
+  /**
+   * Neither `--target-kind` nor `--target` was given (#6872). `error` still
+   * carries the usage text; main() skips with exit 0 only when no plan file exists.
+   */
+  noTarget?: boolean;
   error?: string;
+}
+
+/** The skip output for "no ordered-plan file" (text or `--json`). */
+function writeNoSequenceSkip(emitJson: boolean): void {
+  if (emitJson) {
+    process.stdout.write(
+      `${JSON.stringify({ ok: true, skipped: true, reason: "no-active-sequence" }, null, 2)}\n`,
+    );
+  } else {
+    process.stdout.write("OK verify:plan-sequence skipped (no active ordered-plan sequence)\n");
+  }
 }
 
 const KINDS: readonly PlanTargetKind[] = [
@@ -89,6 +107,9 @@ export function parseArgs(argv: string[]): Parsed {
     }
   }
   if (parsed.help) return parsed;
+  if (parsed.targetKind === null && parsed.target === null) {
+    return { ...parsed, noTarget: true, error: USAGE };
+  }
   if (parsed.targetKind === null || parsed.target === null) {
     return {
       ...parsed,
@@ -102,6 +123,12 @@ export function main(argv: string[] = process.argv.slice(2)): number {
   const parsed = parseArgs(argv);
   if (parsed.help) {
     process.stdout.write(`${USAGE}\n`);
+    return 0;
+  }
+  // No target and no plan file: nothing to verify against, so skip (#6872).
+  // With a plan file present the missing target stays a usage error.
+  if (parsed.noTarget === true && !existsSync(planSequencePath(resolve(parsed.projectRoot)))) {
+    writeNoSequenceSkip(parsed.emitJson);
     return 0;
   }
   if (parsed.error || parsed.targetKind === null || parsed.target === null) {
@@ -121,13 +148,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
   const seq = readPlanSequence(root);
   // No sequence: allow (caller may have explicit operator approval); warn on stderr.
   if (seq === null) {
-    if (parsed.emitJson) {
-      process.stdout.write(
-        `${JSON.stringify({ ok: true, skipped: true, reason: "no-active-sequence" }, null, 2)}\n`,
-      );
-    } else {
-      process.stdout.write("OK verify:plan-sequence skipped (no active ordered-plan sequence)\n");
-    }
+    writeNoSequenceSkip(parsed.emitJson);
     return 0;
   }
   const result = verifyPlanTarget(seq, {

@@ -1,7 +1,5 @@
-import { existsSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { PROJECT_REGISTRY_FOLDERS } from "../render/constants.js";
-import { buildLifecycleItem } from "../render/project-render.js";
 import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import { syncRegistryArtifactAfterScopeMove } from "./registry-artifact-sync.js";
 
@@ -25,15 +23,10 @@ export function syncProjectDefinitionAfterScopeMove(
         vbriefRoot,
         targetStatus,
         {
-          // PROJECT-DEFINITION lists open scopes only (#6648); the specification
-          // registry sync does not pass this policy and keeps patching.
-          openRowsOnly: {
-            openFolders: PROJECT_REGISTRY_FOLDERS,
-            buildRow: () =>
-              existsSync(newPath)
-                ? { ...buildLifecycleItem(newPath, basename(dirname(newPath)), basename(newPath)) }
-                : null,
-          },
+          // PROJECT-DEFINITION lists open scopes only (#6648): a terminal move
+          // removes the row and an open move leaves rows alone (#6872). The
+          // specification registry sync does not pass this policy and keeps patching.
+          openRowsOnly: { openFolders: PROJECT_REGISTRY_FOLDERS },
           loadForMutation: () => [mutation.load(), mutation.artifactPath],
           persist: (path, data) => {
             // The registry sync echoes back the path it was handed, so a

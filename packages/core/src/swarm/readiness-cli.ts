@@ -4,6 +4,7 @@ import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   expandReadinessPaths,
+  READINESS_DEFAULT_PATH_HINT,
   readinessReport,
   SCAFFOLD_LAUNCH_NOTE,
   type ScaffoldItemAcceptanceInput,
@@ -369,7 +370,9 @@ export function readinessMain(argv: string[] = process.argv.slice(2)): number {
   const { exitCode, report } = readinessReport(projectRoot, expanded, {
     soloHeadless,
   });
-  process.stdout.write(`${report}\n`);
+  // With no path the default checks active/ only; name how to check other folders (#6872).
+  const out = paths.length === 0 ? `${report}\n\n${READINESS_DEFAULT_PATH_HINT}` : report;
+  process.stdout.write(`${out}\n`);
   return exitCode;
 }
 

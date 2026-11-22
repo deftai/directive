@@ -319,11 +319,15 @@ describe("project-definition-sync open-only rows (#6648)", () => {
     root = "";
   });
 
-  it("restore inserts one row equal to the row render builds", () => {
+  const readPdText = (vbrief: string) =>
+    readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8");
+
+  it("restore inserts no row (#6872)", () => {
     const vbrief = setup(
       [],
       [["proposed", "2026-01-01-r.xbrief.json", { title: "Restored", status: "proposed" }]],
     );
+    const before = readPdText(vbrief);
     syncProjectDefinitionAfterScopeMove(
       { plan: { title: "Restored" } },
       join(vbrief, "cancelled", "2026-01-01-r.xbrief.json"),
@@ -331,24 +335,16 @@ describe("project-definition-sync open-only rows (#6648)", () => {
       vbrief,
       "proposed",
     );
-    const items = readPd(vbrief).plan.items;
-    expect(items).toHaveLength(1);
-    expect(items[0]).toEqual({
-      id: "2026-01-01-r",
-      title: "Restored",
-      status: "proposed",
-      metadata: {
-        source_path: "proposed/2026-01-01-r.xbrief.json",
-        lifecycle_folder: "proposed",
-      },
-    });
+    expect(readPdText(vbrief)).toBe(before);
+    expect(readPd(vbrief).plan.items).toEqual([]);
   });
 
-  it("promote patches the matched row and adds none", () => {
+  it("promote leaves the matched row unchanged (#6872)", () => {
     const vbrief = setup(
       [row("2026-01-01-p", "P", "proposed")],
       [["pending", "2026-01-01-p.xbrief.json", { title: "P", status: "pending" }]],
     );
+    const before = readPdText(vbrief);
     syncProjectDefinitionAfterScopeMove(
       { plan: { title: "P" } },
       join(vbrief, "proposed", "2026-01-01-p.xbrief.json"),
@@ -356,13 +352,80 @@ describe("project-definition-sync open-only rows (#6648)", () => {
       vbrief,
       "pending",
     );
-    const items = readPd(vbrief).plan.items;
-    expect(items).toHaveLength(1);
-    expect(items[0].status).toBe("pending");
-    expect(items[0].metadata).toEqual({
-      source_path: "pending/2026-01-01-p.xbrief.json",
-      lifecycle_folder: "pending",
-    });
+    expect(readPdText(vbrief)).toBe(before);
+    expect(readPd(vbrief).plan.items).toEqual([row("2026-01-01-p", "P", "proposed")]);
+  });
+
+  it("promote and activate with no reference to the brief leave PROJECT-DEFINITION byte-identical (#6872)", () => {
+    for (const items of [[], [row("2026-01-01-a", "A", "proposed")]]) {
+      const vbrief = setup(items, [
+        ["active", "2026-01-01-a.xbrief.json", { title: "A", status: "running" }],
+      ]);
+      const before = readPdText(vbrief);
+      for (const [from, to, status] of [
+        ["proposed", "pending", "pending"],
+        ["pending", "active", "running"],
+      ] as const) {
+        expect(
+          syncProjectDefinitionAfterScopeMove(
+            { plan: { title: "A" } },
+            join(vbrief, from, "2026-01-01-a.xbrief.json"),
+            join(vbrief, to, "2026-01-01-a.xbrief.json"),
+            vbrief,
+            status,
+          ),
+        ).toBeNull();
+        expect(readPdText(vbrief)).toBe(before);
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+    root = "";
+  });
+
+  it("a top-level reference follows the brief through every move; the row goes at completion (#6872)", () => {
+    for (const prefix of ["", "file://"]) {
+      const vbrief = setup([row("2026-01-01-t", "T", "proposed")], []);
+      const pdPath = join(vbrief, "PROJECT-DEFINITION.xbrief.json");
+      const pd = readPd(vbrief);
+      pd.plan.references = [
+        { type: "x-vbrief/plan", uri: `${prefix}proposed/2026-01-01-t.xbrief.json` },
+      ];
+      writeFileSync(pdPath, formatBriefJson(pd));
+      const steps = [
+        ["proposed", "pending", "pending"],
+        ["pending", "active", "running"],
+        ["active", "completed", "completed"],
+      ] as const;
+      writeFileSync(
+        join(vbrief, "proposed", "2026-01-01-t.xbrief.json"),
+        formatBriefJson({ plan: { title: "T", status: "proposed" } }),
+      );
+      for (const [from, to, status] of steps) {
+        // The transition moves the file before it syncs PROJECT-DEFINITION.
+        writeFileSync(
+          join(vbrief, to, "2026-01-01-t.xbrief.json"),
+          formatBriefJson({ plan: { title: "T", status } }),
+        );
+        rmSync(join(vbrief, from, "2026-01-01-t.xbrief.json"));
+        syncProjectDefinitionAfterScopeMove(
+          { plan: { title: "T" } },
+          join(vbrief, from, "2026-01-01-t.xbrief.json"),
+          join(vbrief, to, "2026-01-01-t.xbrief.json"),
+          vbrief,
+          status,
+        );
+        const after = readPd(vbrief);
+        expect(after.plan.references).toEqual([
+          { type: "x-vbrief/plan", uri: `${prefix}${to}/2026-01-01-t.xbrief.json` },
+        ]);
+        // Open moves insert and patch no row; the terminal move removes it.
+        expect(after.plan.items).toEqual(
+          to === "completed" ? [] : [row("2026-01-01-t", "T", "proposed")],
+        );
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+    root = "";
   });
 
   it("does not remove a row whose id is the dateless remainder and has another source_path", () => {

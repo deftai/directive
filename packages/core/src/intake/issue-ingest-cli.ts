@@ -3,10 +3,31 @@ import { fileURLToPath } from "node:url";
 import { peekRepoFlag } from "../scm/argv.js";
 import { ScmStubError } from "../scm/errors.js";
 import { requireScmReady } from "../scm/readiness.js";
-import { type IngestStatus, issueIngestMain } from "./issue-ingest.js";
+import { INGEST_STATUSES, type IngestStatus, issueIngestMain } from "./issue-ingest.js";
+
+/** Printed on stdout for `--help` / `-h` (#6872). */
+export const ISSUE_INGEST_USAGE = [
+  "usage: deft issue:ingest <N> [--repo owner/name] [--status S] [--dry-run] [--residual]",
+  "       deft issue:ingest --all [--label L] [--status S] [--dry-run] [--repo owner/name]",
+  "",
+  "Ingest GitHub issues as scope xBRIEFs (deduplicates via existing references).",
+  "",
+  "Options:",
+  "  <N>                    issue number to ingest",
+  "  --all                  ingest every open issue (optionally filtered by --label)",
+  "  --label L              label filter for --all",
+  `  --status S             lifecycle folder for the new brief: ${INGEST_STATUSES.join(" | ")} (default proposed)`,
+  "  --dry-run              print what would be written; write nothing",
+  "  --residual, --re-scope residual re-ingest for a reopened shipped issue (#5177); one issue only",
+  "  --repo, -R owner/name  upstream repo (default: the origin remote)",
+  "  --vbrief-dir DIR       lifecycle root to write into",
+  "  --project-root DIR     project root",
+  "  -h, --help             print this help and exit 0",
+].join("\n");
 
 function parseArgs(argv: string[]) {
   const out: {
+    help?: boolean;
     number?: number;
     all?: boolean;
     label?: string;
@@ -19,7 +40,8 @@ function parseArgs(argv: string[]) {
   } = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
-    if (arg === "--all") out.all = true;
+    if (arg === "--help" || arg === "-h") out.help = true;
+    else if (arg === "--all") out.all = true;
     else if (arg === "--dry-run") out.dryRun = true;
     else if (arg === "--residual" || arg === "--re-scope") out.residual = true;
     else if (arg === "--label") out.label = argv[++i];
@@ -40,6 +62,11 @@ function parseArgs(argv: string[]) {
 
 export function mainEntry(argv: string[] = process.argv.slice(2)): number {
   const parsed = parseArgs(argv);
+  // Help before the SCM gate and any GitHub read (#6872).
+  if (parsed.help === true) {
+    process.stdout.write(`${ISSUE_INGEST_USAGE}\n`);
+    return 0;
+  }
   // #2275 / #3858 / #3663: credential-class ban; parse --repo / -R before the gate.
   // Registered workers resolve assignment inside requireScmReady first.
   try {
