@@ -1,0 +1,519 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6869",
+    "updated": "2026-11-22T22:12:47Z"
+  },
+  "plan": {
+    "title": "bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6869",
+      "Overview": "\n1. Resolution order. In `runWaitMergeable` (`packages/core/src/pr-wait-mergeable/main.ts`), `projectRoot` (`--project-root`, else the working directory) is resolved before the repository. The repository is `--repo`, then `GH_REPO`, then the inference of item 2. A non-empty `--repo` or `GH_REPO` is used as today, with no inference and no new output.\n2. Inference. Read `git -C <projectRoot> remote get-url origin`. Parse it only with the anchored `githubOwnerRepoFromRemoteUrl` (`release/closed-verb-gate.ts`), which accepts `https://github.com/<owner>/<name>[.git]` (or `http://`) and `git@github.com:<owner>/<name>[.git]` and nothing else; a bare `owner/name`, a relative or local path, another host or extra path segments give no repository. Then read `repos/<owner>/<name>` once through REST. When `fork` is `false`, use that repository and print to stderr, before any other GitHub read or merge, `pr_wait_mergeable: repo=<owner/name> (from origin)`. The git read and the repository read are one injectable seam on `RunWaitMergeableOptions`.\n3. Refusal. When `origin` is missing or unreadable, does not parse under item 2, the repository is a fork, or the repository read fails, exit 2 (`EXIT_CONFIG_ERROR`) before any merge-path call, with `Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>`, where the reason names the inferred repository when there is one.\n4. Release next step. The release pipeline's next-step text (`release/pipeline.ts`, release-PR branch) prints `task pr:wait-mergeable-and-merge -- <N> --repo <config.repo> --wait`.\n5. Tests. The existing \"main without repo exits two\" and `cmdPrWaitMergeable` delegation tests drive the item 2 seam (no origin) so they do not read the checkout's own remote. New tests use raw remote strings, not pre-parsed slugs.\n6. One PR. No new verb, flag, env, policy field or refusal.\n\n## Acceptance Criteria\n\n- Given no `--repo`, no `GH_REPO` and `origin` `https://github.com/acme/project.git` (or `git@github.com:acme/project.git`) for a repository that is not a fork, then the verb uses `acme/project` and prints `pr_wait_mergeable: repo=acme/project (from origin)` before any merge-path call.\n- Given `--repo` or `GH_REPO`, then the verb uses it, does not read `origin` and prints no inference line.\n- Given an `origin` of `acme/project.git`, `../project`, a local path, `https://gitlab.com/acme/project.git` or `https://github.com/acme/project/extra`, then the verb exits 2 with the item 3 message and makes no GitHub call.\n- Given an `origin` whose repository is a fork, or whose repository read fails, then the verb exits 2 with the item 3 message naming that repository and makes no merge-path call.\n- Given no `origin` remote, then the verb exits 2 with the item 3 message.\n- Given a release cut that opens a release PR, then the next-step text includes `--repo <owner/name>` for the configured release repository.\n\n\n",
+      "Constraint": "- Parsing `origin` with `parseGitHubRemoteRepo` or any parser that accepts a bare `owner/name` (comment 7052375237 finding 1).\n- Using a fork `origin` because a diagnostic line was printed, or switching silently to the upstream repository (comment 7052375237 finding 2).\n- Tests that inject an already-parsed slug in place of the raw remote (comment 7052375237 finding 1).\n- Treating the pnpm half as delivered or as moved without its lockfile test, or without the operator's confirmation (comment 7052375237 finding 3).\n- Leaving the release pipeline's next-step text without the repository it already knows (comment 7052375237 finding 4).\n- Any change to `pr:monitor`, the merge path, or the `release:run` stories.",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Resolution order. In `runWaitMergeable` (`packages/core/src/pr-wait-mergeable/main.ts`), `projectRoot` (`--project-root`, else the working directory) is resolved before the repository. The repository is `--repo`, then `GH_REPO`, then the inference of item 2. A non-empty `--repo` or `GH_REPO` is used as today, with no inference and no new output.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Inference. Read `git -C <projectRoot> remote get-url origin`. Parse it only with the anchored `githubOwnerRepoFromRemoteUrl` (`release/closed-verb-gate.ts`), which accepts `https://github.com/<owner>/<name>[.git]` (or `http://`) and `git@github.com:<owner>/<name>[.git]` and nothing else; a bare `owner/name`, a relative or local path, another host or extra path segments give no repository. Then read `repos/<owner>/<name>` once through REST. When `fork` is `false`, use that repository and print to stderr, before any other GitHub read or merge, `pr_wait_mergeable: repo=<owner/name> (from origin)`. The git read and the repository read are one injectable seam on `RunWaitMergeableOptions`.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Refusal. When `origin` is missing or unreadable, does not parse under item 2, the repository is a fork, or the repository read fails, exit 2 (`EXIT_CONFIG_ERROR`) before any merge-path call, with `Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>`, where the reason names the inferred repository when there is one.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Release next step. The release pipeline's next-step text (`release/pipeline.ts`, release-PR branch) prints `task pr:wait-mergeable-and-merge -- <N> --repo <config.repo> --wait`.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Tests. The existing \"main without repo exits two\" and `cmdPrWaitMergeable` delegation tests drive the item 2 seam (no origin) so they do not read the checkout's own remote. New tests use raw remote strings, not pre-parsed slugs.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "One PR. No new verb, flag, env, policy field or refusal.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Given no `--repo`, no `GH_REPO` and `origin` `https://github.com/acme/project.git` (or `git@github.com:acme/project.git`) for a repository that is not a fork, then the verb uses `acme/project` and prints `pr_wait_mergeable: repo=acme/project (from origin)` before any merge-path call.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given `--repo` or `GH_REPO`, then the verb uses it, does not read `origin` and prints no inference line.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given an `origin` of `acme/project.git`, `../project`, a local path, `https://gitlab.com/acme/project.git` or `https://github.com/acme/project/extra`, then the verb exits 2 with the item 3 message and makes no GitHub call.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given an `origin` whose repository is a fork, or whose repository read fails, then the verb exits 2 with the item 3 message naming that repository and makes no merge-path call.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given no `origin` remote, then the verb exits 2 with the item 3 message.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Given a release cut that opens a release PR, then the next-step text includes `--repo <owner/name>` for the configured release repository.",
+        "status": "proposed",
+        "id": "clause.12"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6869",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6869: bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5854",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5854"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-wait-mergeable/main.ts",
+          "packages/core/src/pr-wait-mergeable/types.ts",
+          "packages/core/src/pr-wait-mergeable/repo-from-origin.ts",
+          "packages/core/src/pr-wait-mergeable/repo-from-origin.test.ts",
+          "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/pipeline.test.ts",
+          "packages/core/src/release/pipeline-branches.test.ts",
+          "changelog.d/6869-pr-wait-repo-from-origin.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6516776509.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-wait-mergeable/main.test.ts packages/core/src/pr-wait-mergeable/repo-from-origin.test.ts packages/core/src/release/pipeline.test.ts packages/core/src/release/pipeline-branches.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": []
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/pr-wait-mergeable/main.ts",
+          "packages/core/src/pr-wait-mergeable/repo-from-origin.ts",
+          "packages/core/src/release/pipeline.ts"
+        ],
+        "module_boundary": "packages/core/src/pr-wait-mergeable"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6869; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because inferring the repository for a verb that merges PRs decides which repository gets merged into, so the inference rule (which remote, which parser, what happens on a fork or a non-GitHub remote) must be stated and tested, and the issue's second half overlaps the release runbook that the `release:run` stories now own.\n\nTarget-digest: sha256:64a8263159003e56a3c108b36731579f5d09924e41cd6326c8462f562ec923c7\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6869 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one repository fallback in one verb and its tests. One critic of a different model family (Codex), then one pain audit of the lean.\ncritic-post cap: 2 (set by the operator for this arc: one round-1 critic and one pain audit)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1\n\n## In plain English\nDuring the 0.130.2 cut, `task pr:wait-mergeable-and-merge -- N --wait` stopped with \"--repo OWNER/REPO is required\". The verb takes the repository only from `--repo` or `GH_REPO` and never reads the clone's `origin` remote, although the release skill, `docs/RELEASING.md` and the release pipeline's own next-step text all print the command without `--repo`. Other release verbs and the triage verbs already read `origin`.\n\nThe issue's second half (the pin-bump lockfile that pnpm refuses until `pnpm update -w @deftai/directive-runtime@<version>` is run) is not code in this repository: the pin bump is a runbook step that an agent prepares and the operator commits. The `release:run` stories own that runbook text: S3 (#6876) prints the pin steps at the end of the run, and S5 (#6878) rewrites the Stable cut runbook and `docs/RELEASING.md`, including \"the post-run pin steps\". The #6845 synthesis keeps the pin PR outside the run (#5771). So this arc takes only the `--repo` half, and recommends that the pnpm half move to S5 as a carry-over, in the same way as the S1 carry-over already on #6878.\n\nThe recommended fix: when neither `--repo` nor `GH_REPO` is given, read the `origin` remote of the project root with the existing strict GitHub parser, say which repository was inferred, and keep the existing refusal when that also fails. One small PR.\n\n## Pains\n- P1 — `pr:wait-mergeable-and-merge` without `--repo` and without `GH_REPO` refuses with exit 2, even in a clone whose `origin` is a GitHub remote, so the command the release skill and the release pipeline print fails as printed.\n\n## Out of scope (named, not pains)\n- The pin-bump lockfile (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`) and the body's second and third criteria for it. Recommended home: S5 (#6878, runbook and `docs/RELEASING.md` post-run pin steps), with S3 (#6876) printing the same step. This needs the operator's confirmation; it is not cited as relieved or deferred on this arc.\n- `pr:monitor` (`packages/core/src/pr-monitor/main.ts` 165-169) has the same refusal. Not in the issue; the critic may say whether it belongs here.\n- Any change to how `pr:watch`, `gh` or the merge path resolve a repository, and any change to the `release:run` stories.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/pr-wait-mergeable/main.ts` 238-242: `repo = args.repo ?? process.env.GH_REPO ?? null`; when null or empty it prints `Error: --repo OWNER/REPO is required (or set $GH_REPO).` and returns `EXIT_CONFIG_ERROR`. 253: `projectRoot = args.projectRoot ?? process.cwd()`, computed after the repo check. 113-121: `--project-root` is parsed.\n- `tasks/pr.yml` 94-100: `pr:wait-mergeable-and-merge` runs the engine with `dir: '{{.USER_WORKING_DIR}}'` and no `--repo`.\n- `packages/core/src/release/pipeline.ts` 825: the release next-step text prints `task pr:wait-mergeable-and-merge -- <N> --wait`. `content/skills/deft-directive-release/SKILL.md` 73 and 97, and `docs/RELEASING.md` 19 and 70, print it without `--repo`.\n- `packages/core/src/triage/queue/repo.ts` 7-25: `inferRepoFromGit(projectRoot)` runs `git remote get-url origin` in the project root and parses it with `parseGitHubRemoteRepo` (`packages/core/src/text/redos-safe.ts` 347-357, strict `github.com` host); `resolveRepo` there is explicit, then env, then origin.\n- `packages/core/src/release/paths.ts` 18-42: the release verbs' `resolveRepo` reads `origin` too.\n- `packages/core/src/pr-monitor/main.ts` 165-169: the same refusal text.\n- Pin step: `content/skills/deft-directive-release/SKILL.md` 104 (Stable cut step 14: the agent prepares the pin PR's four changes and the operator commits it until #5771) and 440-452 (Phase 7: pin PR first, then `task release:local-update`, which runs `pnpm install --frozen-lockfile`). `packages/cli/src/age-exclude.ts` 1-9: Directive never writes `pnpm-workspace.yaml`.\n\n## Recommended mechanism (the thing to critique)\n- R1. One fallback. In `runWaitMergeable`, resolve `projectRoot` first, then the repository: `--repo`, then `GH_REPO`, then the `origin` remote of `projectRoot` through the existing `inferRepoFromGit` (`triage/queue/repo.ts`), behind an injectable `RunWaitMergeableOptions` seam for tests. When the repository came from `origin`, print one line to stderr, `pr_wait_mergeable: repo=<owner/name> (from origin)`, before any read or merge.\n- R2. Same refusal when nothing resolves. When `origin` is missing, unreadable or not a `github.com` remote, keep exit 2, with the message extended to name the third source: `--repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a github.com remote)`.\n- R3. Tests: no flag, no env and a GitHub `origin` gives that repository and the stderr line; `--repo` and `GH_REPO` win over `origin` and print no inference line; no `origin` or a non-GitHub `origin` gives exit 2 with the extended message and no GitHub call.\n- R4. One PR. No new verb, flag, env, policy field or refusal; the release texts that print the command without `--repo` need no change.\n\nQuestions for the critic:\n1. Is `origin` of the project root the right third source for a verb that merges? What happens in a fork clone whose `origin` is the fork and whose upstream holds the PR, and is printing the inferred repository before any read enough, or must the inference refuse in some case?\n2. Is reusing `triage/queue/repo.ts` `inferRepoFromGit` right, or is there a better shared helper (the release `resolveRepo` falls back to `deftai/directive`, which this verb must not do)?\n3. Should `pr:monitor`, with the identical refusal, take the same fallback in this PR, or stay out?\n4. Is the pnpm pin-bump half really S5's runbook step (with S3 printing it), so that #6869 should be scoped to the `--repo` inference only? Is there any code path in this repository that performs the pin bump and should carry the `pnpm update -w` step instead?\n5. Does this collide with S4 (#6877), which will call `pr:wait-mergeable-and-merge --wait` in-process?\n6. Does this fit one PR for the next build?\n\n",
+          "id": 7052342807,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052342807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:39:08Z",
+          "updated_at": "2026-11-20T22:39:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052343122\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6869\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052342807\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052343122,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052343122",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:39:09Z",
+          "updated_at": "2026-11-20T22:39:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe documented merge command fails because it requires a repository that the documentation omits. Inferring one can fix that, but the recommended mechanism is not ready as written: its parser accepts local paths, and its fork behavior can select the wrong PR. Printing the selection does not prevent a merge.\n\nAnswers to the six questions:\n\n1. `origin` is a reasonable candidate, but insufficient evidence of the intended merge target in a fork. Automatic selection should refuse ambiguous targeting and request the existing `--repo` override.\n2. The Git subprocess helper is reusable; its parser does not meet the proposed GitHub-remote-only contract. The release resolver’s hard-coded fallback is unsuitable.\n3. `pr:monitor` can stay outside this PR. Its CLI resolution is separate from the merge command’s internal monitor call.\n4. S5 is a sensible home for the pin-preparation instructions, with S3 printing the same steps. That is a proposed transfer, not evidence that the lockfile problem is already covered. No automatic pin-bump implementation was identified in the inspected release surfaces.\n5. There is no necessary collision with S4 if its merge call passes the repository already associated with the release PR explicitly.\n6. This remains one small PR after repository-selection safety is settled. The pnpm acceptance criterion needs an explicit retained or transferred owner.\n\nAll code references below were read at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. No tests, installs, writes, or posts were performed.\n\n### 1. blocks-the-design — The “strict GitHub remote” parser accepts local paths\n\n**Evidence:** `packages/core/src/triage/queue/repo.ts:7–22` passes the remote directly to `parseGitHubRemoteRepo`. In `packages/core/src/text/redos-safe.ts:347–356`, that function delegates to `parseGitHubRepoSlug`, whose lines 340–341 accept any bare two-component slug. Lines 307–321 also accept URL paths with additional components and do not restrict the URL scheme.\n\n**Failure mode:** A valid relative Git remote such as `acme/project.git` becomes `acme/project`, despite having no GitHub host. The new fallback would operate on that GitHub repository instead of returning the promised configuration error. A test seam returning an already-parsed slug would miss this.\n\n**Disposition:** R1/R2 cannot bind on the assertion that the existing helper rejects every non-GitHub remote. The automatic path needs remote-specific validation and tests using raw remote values, including relative paths and malformed GitHub URLs. General explicit-slug parsing need not change.\n\n### 2. blocks-the-design — A diagnostic cannot resolve fork targeting\n\n**Evidence:** `packages/core/src/pr-wait-mergeable/main.ts:276–315` forwards the selected repository and numeric PR identifier into the cascade. `cascade.ts:710–734` fetches and checks the head in that selected repository; lines 832–835 and 879–881 merge in the same repository.\n\n**Failure mode:** In a fork clone, an upstream PR number can identify an unrelated PR in the fork. If that fork PR satisfies its gates, the cascade can merge it. Head matching protects against changes to the selected PR; it does not establish that the selected repository was intended. The stderr announcement provides no intervention point.\n\n**Disposition:** R1/R4 need a deterministic ambiguity rule. A conservative option is to refuse automatic targeting when the inferred repository is a fork, requiring `--repo`; unavailable fork metadata also cannot establish safety. Silently switching to upstream is not a sound alternative because merging into the fork can be intentional.\n\nThe strongest case for unconditional origin selection is familiar Git behavior and minimal implementation. That would be acceptable only with an explicitly accepted contract that an unqualified number always targets origin, including forks; the current recommendation instead leaves this safety question unresolved.\n\n### 3. sharpens-framing — S5 ownership does not yet carry the lockfile acceptance test\n\n**Evidence:** `content/skills/deft-directive-release/SKILL.md:104` assigns pin preparation to the agent and commitment to the operator. Lines 442–452 require the pin PR before a frozen install. `packages/cli/src/age-exclude.ts:1–8` explicitly describes read-only behavior. The supplied #6878 body assigns post-run pin documentation to S5 but contains no explicit pnpm lockfile regression criterion.\n\n**Failure mode:** Moving this half under “runbook updates” can lose the original requirement that the resulting lockfile actually installs without manual repair. Rewriting the four-file checklist alone could preserve the reported failure.\n\n**Disposition:** The repository-inference slice can bind independently, but transferring the second half needs an explicit carry-over covering pin regeneration and successful frozen installation. The reported `pnpm update -w` remedy remains reported evidence, not a reproduced result from this critique. The supplied snapshot lacks #6845’s canonical current-shape/synthesis comment, so its final ownership decision is not independently verified here.\n\n### 4. sharpens-framing — Generated release commands should preserve known repository identity\n\n**Evidence:** `packages/core/src/release/pipeline.ts:810–825` opens the PR using `config.repo`, then prints a merge command that omits it.\n\n**Failure mode:** When the configured release repository differs from origin or `GH_REPO`, copying the printed command loses the identity of the PR just created. Adding an origin fallback does not repair that case.\n\n**Disposition:** R4’s “release texts need no change” is too broad. Generated next-step text should carry the known repository. S4 can likewise pass that identity explicitly rather than re-resolving it during the merge phase.\n\n### 5. footnote — Verification and thread boundaries\n\nThe existing missing-repository tests at `packages/core/src/pr-wait-mergeable/main.test.ts:146–152,193–198` depend on omission always refusing; fallback tests will need controlled remote discovery to avoid using the checkout accidentally.\n\nThe snapshot contains instruction-shaped proposed requirements, including R1–R4 and linked-story operational steps. They were treated as critique material, not execution authority. The envelope ceiling was honored. USER.md was inaccessible, so personal alignment could not be confirmed.",
+          "id": 7052375237,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052375237",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:41:00Z",
+          "updated_at": "2026-11-20T22:41:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7052342807 (round 1: 1 of 1 critic posted, comment 7052375237)\n\n## In plain English\nProblem: `task pr:wait-mergeable-and-merge -- N --wait` refuses with \"--repo OWNER/REPO is required\" unless `--repo` or `GH_REPO` is given, but the release skill, `docs/RELEASING.md` and the release pipeline's own next-step text print the command without `--repo`. So the command fails as printed.\n\nWhat the critic found: reading `origin` is reasonable, but two parts of the first draft were unsafe. The parser it named accepts a bare `owner/name` remote, so a local remote such as `acme/project.git` would be read as the GitHub repository `acme/project`. And in a fork clone, `origin` is the fork: an upstream PR number can name an unrelated PR in the fork, and printing the chosen repository does not stop a merge. It also asked that the release pipeline print the repository it already knows, and that the pnpm half, if it moves to S5, carry its real test (the lockfile installs without manual repair).\n\nSolution this lean proposes: when neither `--repo` nor `GH_REPO` is given, the verb reads the `origin` remote with a parser that requires a `github.com` URL, then reads that repository once. When it is not a fork, the verb uses it and says so on stderr. When it is a fork, the remote is not a GitHub URL, or the read fails, the verb refuses as today (exit 2) and asks for `--repo`. The release pipeline's next-step text includes `--repo <owner/name>`.\n\nWhat this adds: one inference path with one repository read, one stderr line, one extended refusal message, `--repo` in one printed command.\n\nWhat it removes: the refusal of the printed release merge command in a normal (non-fork) clone.\n\nWhat it does not do:\n- It adds no new refusal. Every case that refuses after this change refuses today.\n- It does not fix the pin-bump lockfile. That half is not relieved here. The parent recommends moving it to S5 (#6878, which rewrites the post-run pin steps, with S3 #6876 printing them) as a carry-over that keeps its test: the pin preparation regenerates the lockfile for the new pin (the reported remedy is `pnpm update -w @deftai/directive-runtime@<version>`), and `pnpm install --frozen-lockfile` passes on the pin branch before the pin PR opens. That move needs the operator's confirmation.\n- It does not change `pr:monitor`, `pr:watch`, the merge path once a repository is chosen, the skill or `docs/RELEASING.md` text, or any `release:run` story. S4 (#6877) should pass the release repository explicitly.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build in this issue.\n\nTarget-digest: sha256:64a8263159003e56a3c108b36731579f5d09924e41cd6326c8462f562ec923c7\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\n\n## Bound remedy\n1. Resolution order. In `runWaitMergeable` (`packages/core/src/pr-wait-mergeable/main.ts`), `projectRoot` (`--project-root`, else the working directory) is resolved before the repository. The repository is `--repo`, then `GH_REPO`, then the inference of item 2. A non-empty `--repo` or `GH_REPO` is used as today, with no inference and no new output.\n2. Inference. Read `git -C <projectRoot> remote get-url origin`. Parse it only with the anchored `githubOwnerRepoFromRemoteUrl` (`release/closed-verb-gate.ts`), which accepts `https://github.com/<owner>/<name>[.git]` (or `http://`) and `git@github.com:<owner>/<name>[.git]` and nothing else; a bare `owner/name`, a relative or local path, another host or extra path segments give no repository. Then read `repos/<owner>/<name>` once through REST. When `fork` is `false`, use that repository and print to stderr, before any other GitHub read or merge, `pr_wait_mergeable: repo=<owner/name> (from origin)`. The git read and the repository read are one injectable seam on `RunWaitMergeableOptions`.\n3. Refusal. When `origin` is missing or unreadable, does not parse under item 2, the repository is a fork, or the repository read fails, exit 2 (`EXIT_CONFIG_ERROR`) before any merge-path call, with `Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>`, where the reason names the inferred repository when there is one.\n4. Release next step. The release pipeline's next-step text (`release/pipeline.ts`, release-PR branch) prints `task pr:wait-mergeable-and-merge -- <N> --repo <config.repo> --wait`.\n5. Tests. The existing \"main without repo exits two\" and `cmdPrWaitMergeable` delegation tests drive the item 2 seam (no origin) so they do not read the checkout's own remote. New tests use raw remote strings, not pre-parsed slugs.\n6. One PR. No new verb, flag, env, policy field or refusal.\n\n## Acceptance Criteria\n- Given no `--repo`, no `GH_REPO` and `origin` `https://github.com/acme/project.git` (or `git@github.com:acme/project.git`) for a repository that is not a fork, then the verb uses `acme/project` and prints `pr_wait_mergeable: repo=acme/project (from origin)` before any merge-path call.\n- Given `--repo` or `GH_REPO`, then the verb uses it, does not read `origin` and prints no inference line.\n- Given an `origin` of `acme/project.git`, `../project`, a local path, `https://gitlab.com/acme/project.git` or `https://github.com/acme/project/extra`, then the verb exits 2 with the item 3 message and makes no GitHub call.\n- Given an `origin` whose repository is a fork, or whose repository read fails, then the verb exits 2 with the item 3 message naming that repository and makes no merge-path call.\n- Given no `origin` remote, then the verb exits 2 with the item 3 message.\n- Given a release cut that opens a release PR, then the next-step text includes `--repo <owner/name>` for the configured release repository.\n\n## Reject\n- Parsing `origin` with `parseGitHubRemoteRepo` or any parser that accepts a bare `owner/name` (comment 7052375237 finding 1).\n- Using a fork `origin` because a diagnostic line was printed, or switching silently to the upstream repository (comment 7052375237 finding 2).\n- Tests that inject an already-parsed slug in place of the raw remote (comment 7052375237 finding 1).\n- Treating the pnpm half as delivered or as moved without its lockfile test, or without the operator's confirmation (comment 7052375237 finding 3).\n- Leaving the release pipeline's next-step text without the repository it already knows (comment 7052375237 finding 4).\n- Any change to `pr:monitor`, the merge path, or the `release:run` stories.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052375237 | 1. The \"strict GitHub remote\" parser accepts local paths | blocks-the-design | accept-into-contract (items 2 and 5) |\n| comment 7052375237 | 2. A diagnostic cannot resolve fork targeting | blocks-the-design | accept-into-contract (items 2 and 3: a fork or an unreadable repository refuses) |\n| comment 7052375237 | 3. S5 ownership does not yet carry the lockfile acceptance test | sharpens-framing | accept-into-contract (\"What it does not do\": the carry-over keeps the lockfile test and needs operator confirmation; P1 only on this arc) |\n| comment 7052375237 | 4. Generated release commands should preserve known repository identity | sharpens-framing | accept-into-contract (item 4) |\n| comment 7052375237 | 5. Verification and thread boundaries | footnote | accept-into-contract (item 5) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence at the dispatch SHA: `text/redos-safe.ts` 307-357 (`parseGitHubRepoSlug` returns a bare `owner/name` unchanged), `release/closed-verb-gate.ts` 41-48 (`githubOwnerRepoFromRemoteUrl` is anchored to the two `github.com` forms with exactly two segments), `release/pipeline.ts` 823-827 and `pr-wait-mergeable/main.test.ts` 146-152 and 193-198. The `relieves` cite stays open until a later critic targets it. This lean adds no new premise, so it records no audit marker.\n\n",
+          "id": 7052407015,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052407015",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:44Z",
+          "updated_at": "2026-11-20T22:42:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:84fa370befd769b4cc1916b25c0a2e5ea2aadc45e76b68825aacb7b37136576d\n\n## In plain English\n\nThe remedy fixes the missing-repository failure in a normal, non-fork GitHub clone. It checks the inferred repository before allowing it into the merge path, and the release pipeline’s printed command preserves the repository already associated with its release PR. I found no blocking or sharpening finding requiring a change to the remedy or acceptance criteria.\n\npain-P1: holds - Implementing items 1–5 removes the missing-repository refusal for the supported non-fork GitHub origins and supplies the configured repository explicitly in the generated release command. Forks and unsuccessful repository reads remain deliberate refusals.\n\nCode re-read at `880c91ed079578e900c1f2ef680efbfa6e6d61af` supports this verdict:\n\n- `packages/core/src/release/closed-verb-gate.ts:41–48` anchors the parser to the literal GitHub HTTP(S) and SCP-style prefixes and exactly two slash-separated components. Bare slugs, local paths, other hosts and extra path segments cannot match those forms.\n- `packages/core/src/pr-wait-mergeable/main.ts:238–253,276–315` resolves one repository before branching into resume or merge processing. Items 2–3 permit inferred use only after `fork === false`; neither downstream branch supplies an alternative inference path that bypasses that prerequisite.\n- `packages/core/src/pr-wait-mergeable/main.ts:238–242` currently refuses every invocation lacking a repository. Consequently, refusing some of those same invocations after attempted inference adds no newly refused invocation. Explicit non-empty repository inputs retain their existing path.\n- `packages/core/src/release/pipeline.ts:810–827` already passes `config.repo` when opening the release PR, then omits it from the printed merge command. Item 4 closes that identity loss directly.\n\n### 1. footnote — Verification and untrusted thread content\n\nThis is a design verdict based on pinned source reads, not verification of an implemented change. No tests, builds, installs, writes or posts were performed.\n\nThe snapshot contains instruction-shaped proposed requirements and operational steps. They were treated as audit material, not execution authority. The pnpm half was outside this audit target.",
+          "id": 7052427067,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052427067",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:43:56Z",
+          "updated_at": "2026-11-20T22:43:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7052427067; bind map stays successor lean 7052407015)\n\nThe audit has one footnote and no blocking or sharpening finding (`finding-classes: footnote`), `harvest-changed: false`, and its harvest digest equals the lean's. It found `pain-P1` holds. The Bound remedy is unchanged.\n\n- Footnote 1 (verification and untrusted thread content): accepted, no change. The verdict is a design read at the pin; nothing was executed.\n\n",
+          "id": 7052430880,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052430880",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:10Z",
+          "updated_at": "2026-11-20T22:44:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7052407015. Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run; every method is a source read. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation; rows that only critics read are marked so.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `runWaitMergeable` takes the repository only from `--repo` or `GH_REPO` and otherwise exits 2 with \"--repo OWNER/REPO is required\"; `projectRoot` is resolved after that check | verified | parent read of `packages/core/src/pr-wait-mergeable/main.ts` 238-242 and 253 |\n| 2 | The release pipeline, the release skill and `docs/RELEASING.md` print the merge command without `--repo` | verified | parent read of `release/pipeline.ts` 823-827, `content/skills/deft-directive-release/SKILL.md` 73 and 97, `docs/RELEASING.md` 19 and 70 |\n| 3 | `tasks/pr.yml` runs the verb in the user's working directory with no `--repo` | verified | parent read of `tasks/pr.yml` 94-100 |\n| 4 | `parseGitHubRemoteRepo` / `parseGitHubRepoSlug` return a bare `owner/name` unchanged, so a local remote such as `acme/project.git` parses as a GitHub repository | verified | parent read of `text/redos-safe.ts` 307-357 |\n| 5 | `githubOwnerRepoFromRemoteUrl` accepts only `http(s)://github.com/<owner>/<name>[.git]` and `git@github.com:<owner>/<name>[.git]` | verified | parent read of `release/closed-verb-gate.ts` 41-48 |\n| 6 | The selected repository and PR number go straight into the head read and the merge, so a fork `origin` can merge an unrelated fork PR | critic-read | critic 7052375237 finding 2 (`pr-wait-mergeable/main.ts` 276-315, `cascade.ts` 710-734, 832-835, 879-881) |\n| 7 | The existing missing-repository tests rely on omission always refusing | verified | parent read of `pr-wait-mergeable/main.test.ts` 146-152 and 193-198 |\n| 8 | The pin bump is a runbook step the agent prepares and the operator commits; Directive never writes `pnpm-workspace.yaml` | verified | parent read of `content/skills/deft-directive-release/SKILL.md` 104 and 440-452, `packages/cli/src/age-exclude.ts` 1-9 |\n| 9 | S5 (#6878) rewrites the post-run pin steps and S3 (#6876) prints them; the #6845 synthesis keeps the pin PR outside the run | verified | parent read of the #6876 and #6878 bodies and #6845 synthesis comment 7032191525 |\n| 10 | The Bound remedy relieves P1 | verified as design coverage | pain audit 7052427067 (`pain-P1: holds`; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 11 | The inference, fork refusal and next-step text behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7052431431,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052431431",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:12Z",
+          "updated_at": "2026-11-20T22:44:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `task pr:wait-mergeable-and-merge -- N --wait` refused with \"--repo OWNER/REPO is required\" unless `--repo` or `GH_REPO` was set, while the release skill, `docs/RELEASING.md` and the release pipeline print the command without `--repo`. So the release merge step failed as printed.\n\nAccepted solution: when neither `--repo` nor `GH_REPO` is given, the verb reads the `origin` remote with the anchored `github.com` parser (a bare `owner/name`, a local path or another host gives nothing), then reads that repository once. When it is not a fork, the verb uses it and prints `pr_wait_mergeable: repo=<owner/name> (from origin)`. When it is a fork, the remote does not parse, or the read fails, the verb refuses as today (exit 2) before any merge-path call and asks for `--repo`. The release pipeline's next-step text now includes `--repo <owner/name>`. No new refusal: every case that refuses afterwards refuses today.\n\nLimits accepted: `pr:monitor`, `pr:watch`, the merge path and the `release:run` stories are unchanged. The pin-bump lockfile half of the issue is not delivered here; the recommended home is S5 (#6878), with S3 (#6876) printing the step, as a carry-over that keeps its test (the pin preparation regenerates the lockfile and `pnpm install --frozen-lockfile` passes before the pin PR opens). That move needs the operator's confirmation. It was checked by reading the source at the pinned commit; no code was run. One PR.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7052407015.\nverified-claims table 7052431431\n\nConfirm conjunct: yolo standing (Stop 1 7052342807, `yolo-standing: on`) on the operator's launch of this arc, with a critic-post cap of 2. Round-1 critic: comment 7052375237, posted by the parent verbatim as disclosed on panel-deposit 7052343122. Pain audit: comment 7052427067 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7052430880. Not part of this contract: the pin-bump lockfile half of the issue (recommended carry-over to S5 #6878, pending the operator's confirmation), `pr:monitor`, and the `release:run` stories. Critic posts used: 2 of 2.\n\n",
+          "id": 7052431698,
+          "html_url": "https://github.com/deftai/directive/issues/6869#issuecomment-7052431698",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:13Z",
+          "updated_at": "2026-11-20T22:44:13Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nTwo release-cut steps fail on a clean master on 2026-11-20 (0.130.2 cut).\n\n1. `task pr:wait-mergeable-and-merge -- N --wait` fails with \"--repo OWNER/REPO is required\". It does not infer the repo from `origin`. Other PR verbs infer it.\n2. Pin bump: after the `minimumReleaseAgeExclude` row is swapped to the new version, pnpm refuses the old lockfile entry with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`. Only `pnpm update -w <pkg>@X` fixes it. The pin step does not run it.\n\n## Acceptance Criteria\n\n- [ ] `pr:wait-mergeable-and-merge` infers `--repo` from `origin` when it is not given.\n- [ ] The pin-bump step leaves a lockfile that pnpm accepts, with no manual `pnpm update`.\n- [ ] A test covers each case.\n\nRefs #5854, #5860, #6845, #6295\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6516776509,
+        "origin": "deftai/directive#6869",
+        "id": "github.issue.6516776509"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "64a8263159003e56a3c108b36731579f5d09924e41cd6326c8462f562ec923c7"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6869,
+        "leanCommentId": 7052407015,
+        "harvestDigest": "84fa370befd769b4cc1916b25c0a2e5ea2aadc45e76b68825aacb7b37136576d",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (12), in list order (#6333)",
+      "sentences": [
+        "Resolution order. In `runWaitMergeable` (`packages/core/src/pr-wait-mergeable/main.ts`), `projectRoot` (`--project-root`, else the working directory) is resolved before the repository. The repository is `--repo`, then `GH_REPO`, then the inference of item 2. A non-empty `--repo` or `GH_REPO` is used as today, with no inference and no new output.",
+        "Inference. Read `git -C <projectRoot> remote get-url origin`. Parse it only with the anchored `githubOwnerRepoFromRemoteUrl` (`release/closed-verb-gate.ts`), which accepts `https://github.com/<owner>/<name>[.git]` (or `http://`) and `git@github.com:<owner>/<name>[.git]` and nothing else; a bare `owner/name`, a relative or local path, another host or extra path segments give no repository. Then read `repos/<owner>/<name>` once through REST. When `fork` is `false`, use that repository and print to stderr, before any other GitHub read or merge, `pr_wait_mergeable: repo=<owner/name> (from origin)`. The git read and the repository read are one injectable seam on `RunWaitMergeableOptions`.",
+        "Refusal. When `origin` is missing or unreadable, does not parse under item 2, the repository is a fork, or the repository read fails, exit 2 (`EXIT_CONFIG_ERROR`) before any merge-path call, with `Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>`, where the reason names the inferred repository when there is one.",
+        "Release next step. The release pipeline's next-step text (`release/pipeline.ts`, release-PR branch) prints `task pr:wait-mergeable-and-merge -- <N> --repo <config.repo> --wait`.",
+        "Tests. The existing \"main without repo exits two\" and `cmdPrWaitMergeable` delegation tests drive the item 2 seam (no origin) so they do not read the checkout's own remote. New tests use raw remote strings, not pre-parsed slugs.",
+        "One PR. No new verb, flag, env, policy field or refusal.",
+        "Given no `--repo`, no `GH_REPO` and `origin` `https://github.com/acme/project.git` (or `git@github.com:acme/project.git`) for a repository that is not a fork, then the verb uses `acme/project` and prints `pr_wait_mergeable: repo=acme/project (from origin)` before any merge-path call.",
+        "Given `--repo` or `GH_REPO`, then the verb uses it, does not read `origin` and prints no inference line.",
+        "Given an `origin` of `acme/project.git`, `../project`, a local path, `https://gitlab.com/acme/project.git` or `https://github.com/acme/project/extra`, then the verb exits 2 with the item 3 message and makes no GitHub call.",
+        "Given an `origin` whose repository is a fork, or whose repository read fails, then the verb exits 2 with the item 3 message naming that repository and makes no merge-path call.",
+        "Given no `origin` remote, then the verb exits 2 with the item 3 message.",
+        "Given a release cut that opens a release PR, then the next-step text includes `--repo <owner/name>` for the configured release repository."
+      ],
+      "admitted_source_sentences": [
+        "Resolution order. In `runWaitMergeable` (`packages/core/src/pr-wait-mergeable/main.ts`), `projectRoot` (`--project-root`, else the working directory) is resolved before the repository. The repository is `--repo`, then `GH_REPO`, then the inference of item 2. A non-empty `--repo` or `GH_REPO` is used as today, with no inference and no new output.",
+        "Inference. Read `git -C <projectRoot> remote get-url origin`. Parse it only with the anchored `githubOwnerRepoFromRemoteUrl` (`release/closed-verb-gate.ts`), which accepts `https://github.com/<owner>/<name>[.git]` (or `http://`) and `git@github.com:<owner>/<name>[.git]` and nothing else; a bare `owner/name`, a relative or local path, another host or extra path segments give no repository. Then read `repos/<owner>/<name>` once through REST. When `fork` is `false`, use that repository and print to stderr, before any other GitHub read or merge, `pr_wait_mergeable: repo=<owner/name> (from origin)`. The git read and the repository read are one injectable seam on `RunWaitMergeableOptions`.",
+        "Refusal. When `origin` is missing or unreadable, does not parse under item 2, the repository is a fork, or the repository read fails, exit 2 (`EXIT_CONFIG_ERROR`) before any merge-path call, with `Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>`, where the reason names the inferred repository when there is one.",
+        "Release next step. The release pipeline's next-step text (`release/pipeline.ts`, release-PR branch) prints `task pr:wait-mergeable-and-merge -- <N> --repo <config.repo> --wait`.",
+        "Tests. The existing \"main without repo exits two\" and `cmdPrWaitMergeable` delegation tests drive the item 2 seam (no origin) so they do not read the checkout's own remote. New tests use raw remote strings, not pre-parsed slugs.",
+        "One PR. No new verb, flag, env, policy field or refusal.",
+        "Given no `--repo`, no `GH_REPO` and `origin` `https://github.com/acme/project.git` (or `git@github.com:acme/project.git`) for a repository that is not a fork, then the verb uses `acme/project` and prints `pr_wait_mergeable: repo=acme/project (from origin)` before any merge-path call.",
+        "Given `--repo` or `GH_REPO`, then the verb uses it, does not read `origin` and prints no inference line.",
+        "Given an `origin` of `acme/project.git`, `../project`, a local path, `https://gitlab.com/acme/project.git` or `https://github.com/acme/project/extra`, then the verb exits 2 with the item 3 message and makes no GitHub call.",
+        "Given an `origin` whose repository is a fork, or whose repository read fails, then the verb exits 2 with the item 3 message naming that repository and makes no merge-path call.",
+        "Given no `origin` remote, then the verb exits 2 with the item 3 message.",
+        "Given a release cut that opens a release PR, then the next-step text includes `--repo <owner/name>` for the configured release repository."
+      ],
+      "admitted_source_digest": "e6de7fd5d4c2c741204dfec4ef4828b935a7c04a1c2002779fe55777688b0e86",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Resolution order. In `runWaitMergeable` (`packages/core/src/pr-wait-mergeable/main.ts`), `projectRoot` (`--project-root`, else the working directory) is resolved before the repository. The repository is `--repo`, then `GH_REPO`, then the inference of item 2. A non-empty `--repo` or `GH_REPO` is used as today, with no inference and no new output.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Inference. Read `git -C <projectRoot> remote get-url origin`. Parse it only with the anchored `githubOwnerRepoFromRemoteUrl` (`release/closed-verb-gate.ts`), which accepts `https://github.com/<owner>/<name>[.git]` (or `http://`) and `git@github.com:<owner>/<name>[.git]` and nothing else; a bare `owner/name`, a relative or local path, another host or extra path segments give no repository. Then read `repos/<owner>/<name>` once through REST. When `fork` is `false`, use that repository and print to stderr, before any other GitHub read or merge, `pr_wait_mergeable: repo=<owner/name> (from origin)`. The git read and the repository read are one injectable seam on `RunWaitMergeableOptions`.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Refusal. When `origin` is missing or unreadable, does not parse under item 2, the repository is a fork, or the repository read fails, exit 2 (`EXIT_CONFIG_ERROR`) before any merge-path call, with `Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>`, where the reason names the inferred repository when there is one.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Release next step. The release pipeline's next-step text (`release/pipeline.ts`, release-PR branch) prints `task pr:wait-mergeable-and-merge -- <N> --repo <config.repo> --wait`.",
+          "artifact_path": "packages/core/src/release/pipeline.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests. The existing \"main without repo exits two\" and `cmdPrWaitMergeable` delegation tests drive the item 2 seam (no origin) so they do not read the checkout's own remote. New tests use raw remote strings, not pre-parsed slugs.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "One PR. No new verb, flag, env, policy field or refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given no `--repo`, no `GH_REPO` and `origin` `https://github.com/acme/project.git` (or `git@github.com:acme/project.git`) for a repository that is not a fork, then the verb uses `acme/project` and prints `pr_wait_mergeable: repo=acme/project (from origin)` before any merge-path call.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given `--repo` or `GH_REPO`, then the verb uses it, does not read `origin` and prints no inference line.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given an `origin` of `acme/project.git`, `../project`, a local path, `https://gitlab.com/acme/project.git` or `https://github.com/acme/project/extra`, then the verb exits 2 with the item 3 message and makes no GitHub call.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given an `origin` whose repository is a fork, or whose repository read fails, then the verb exits 2 with the item 3 message naming that repository and makes no merge-path call.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given no `origin` remote, then the verb exits 2 with the item 3 message.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a release cut that opens a release PR, then the next-step text includes `--repo <owner/name>` for the configured release repository.",
+          "artifact_path": "packages/core/src/release/pipeline.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6516776509",
+    "updated": "2026-11-22T22:12:47Z"
+  }
+}
