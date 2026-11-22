@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7057",
-    "updated": "2026-11-22T16:49:13Z"
+    "updated": "2026-11-22T18:04:57Z"
   },
   "plan": {
     "title": "session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On a clean checkout, `deft session:start` must leave tracked files unchanged when they are current. Today the legacy triage-cache migration deletes a tracked `xbrief/.eval/README.md` on every run. This story stops that deletion and adds a regression test: two `session:start` runs on a committed install leave `git status --porcelain` empty and AGENTS.md byte-identical. The managed-body template choice (`.deft/core` vs project-dependency) is out of scope (#6687).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7057",
@@ -18,26 +18,47 @@
     "items": [
       {
         "title": "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "883820f11d9dc4682088b22978369034864fbb5f",
+          "recorded_at": "2026-11-22T18:00:54Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "883820f11d9dc4682088b22978369034864fbb5f",
+          "recorded_at": "2026-11-22T18:00:54Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "883820f11d9dc4682088b22978369034864fbb5f",
+          "recorded_at": "2026-11-22T18:00:54Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -134,7 +155,34 @@
         "origin": "deftai/directive#7057",
         "id": "github.issue.6544989400"
       },
-      "kind": "story"
+      "kind": "story",
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "792e29e012396a2f4fc6b427a12ee5988c85dded",
+        "prNumber": 7069,
+        "prBase": "master",
+        "mergeCommit": "883820f11d9dc4682088b22978369034864fbb5f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5dba44b764fa3342ae9cee0f6a00677c4d32edfc",
+        "verifiedAt": "2026-11-22T18:04:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7061
+        ]
+      },
+      "completedAt": "2026-11-22T18:04:57Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T18:04:57Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -179,6 +227,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6544989400",
-    "updated": "2026-11-22T16:49:13Z"
+    "updated": "2026-11-22T18:04:57Z"
   }
 }
