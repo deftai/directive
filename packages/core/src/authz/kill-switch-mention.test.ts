@@ -188,6 +188,11 @@ describe("kill-switch mention rule: read and data relief (#6941)", () => {
       `cat > /tmp/b.md <<'EOF'\n${body}`,
       `cat > /tmp/b.md <<'EOF' <<'END'\n${body}\nEOF\nx\nEND`,
       `FOO=1 cat > /tmp/b.md <<'EOF'\n${body}\nEOF`,
+      // Delimiter spellings other than plain 'WORD' / "WORD" are not data (Greptile P1).
+      `cat > /tmp/b.md <<$"EOF"\nEOF\ntouch ${kill}\n$EOF`,
+      `cat > /tmp/b.md <<$'EOF'\nEOF\ntouch ${kill}\n$EOF`,
+      `cat > /tmp/b.md <<E'O'F\nEOF\ntouch ${kill}\nE'O'F`,
+      `cat > /tmp/b.md <<'EOF'x\n${body}\nEOF`,
     ]) {
       expect(hasKillSwitchShellWrite(command), command).toBe(true);
     }

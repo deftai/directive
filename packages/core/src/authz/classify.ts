@@ -4460,7 +4460,8 @@ function isSplitChar(ch: string): boolean {
  * Heredoc data (#6941). When the whole call is one `cat` or `tee` command that writes a
  * quoted-delimiter heredoc to literal file paths, return its command line (the first line);
  * otherwise null. The mention test then reads only that line, not the body. All of these
- * must hold: exactly one heredoc on the first line, with a quoted delimiter, closed, and
+ * must hold: exactly one heredoc on the first line, with a plain `'WORD'` / `"WORD"`
+ * delimiter, closed, and
  * nothing but blank lines after it; the command line has no quote, backslash, `$`, backtick,
  * separator, parenthesis, other redirect, glob, brace, `~`, `#` or `!` outside the heredoc
  * operator; the command is `cat` with exactly one `>` or `>>` redirect and no other word,
@@ -4475,6 +4476,11 @@ function quotedHereDocDataLine(command: string): string | null {
   if (parsed.specs.length !== 1) return null;
   const spec = parsed.specs[0] as ZipHereDocSpec;
   if (!spec.quoted) return null;
+  // Only the plain spelling `<<'WORD'` / `<<"WORD"` (or `<<-`) is data here. Any other
+  // delimiter spelling (`$"EOF"`, `$'EOF'`, `E'O'F`, ...) may close at a line the guard
+  // does not expect, so the body is read as today.
+  const plain = /^[^<]*<<-?[ \t]*(['"])([A-Za-z0-9_.-]+)\1(?=[ \t]|$)/.exec(first);
+  if (plain === null || plain[2] !== spec.delimiter || first.split("<<").length !== 2) return null;
   let end = -1;
   for (let i = 1; i < lines.length; i++) {
     let candidate = (lines[i] as string).replace(/\r$/, "");
