@@ -14,15 +14,16 @@ describe("intent-constraint constants (#4541)", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /Tests and in-scope file paths are not authority/,
     );
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/in-harness ask|parent chat/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
+    // #7031: write the declaration and land it before the product PR; no park for a mint.
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/Write the declaration/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/before the product PR/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/A declaration is not consent/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toContain("scope:record-intent-constraint");
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/legacy repair only/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/park pending a human mint|real TTY/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /Classify the condition|invariant \/ corruption \/ impossible-if-healthy/,
     );
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite solely to clear the gate is forbidden/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/park pending a human mint/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /remaining new hard fact|numeric-const on an otherwise operational path/,
     );

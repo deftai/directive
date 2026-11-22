@@ -532,13 +532,13 @@ feat(phase-2): add REST API endpoints with integration tests
 
 Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 
-### Intent-constraint fail path (#4587 / #5010 / #5574 Prefer-A)
+### Intent-constraint fail path (#4587 / #5574 Prefer-A / #7031)
 
-! When `task check` / `verify:intent-constraint` fails on a new throw/reject/abort or numeric-const without a merge-base record, classify the condition: expected operational deny → returned-failure / filter without throw-reject-abort-numeric-const (free); invariant / corruption / impossible-if-healthy → fail-fast + attended mint (rewrite solely to clear the gate is forbidden). Any remaining new hard fact among the four FACT_KINDS (including numeric-const on an otherwise operational path) still needs attended ask + mint. Attended hard fact: ask the human in the parent chat; on yes land merge-base `.deft/intent-constraint/` with humanApproval (`mintedVia` in-harness-ask). Leave-harness TTY `scope:record-intent-constraint` is legacy repair only, not the primary path.
-! Unattended/C1/operator-gone: operational may rewrite or park; invariant or other new hard fact must park pending a human mint — do not ask an empty room; do not invent substitute approval; do not soften an invariant throw solely to clear the gate.
-⊗ Paste a mint argv into the agent shell.
+! When `task check` / `verify:intent-constraint` fails on a new throw/reject/abort or numeric-const without a merge-base record, classify the condition: expected operational deny → returned-failure / filter without throw-reject-abort-numeric-const (free); invariant / corruption / impossible-if-healthy → fail-fast + a declared record (rewrite solely to clear the gate is forbidden). Any remaining new hard fact among the four FACT_KINDS (including numeric-const on an otherwise operational path) still needs that record.
+! Write the declaration: put the values on `plan["x-directive/intentConstraint"]`, run `scope:record-intent-constraint` from any shell (no terminal step; it writes `kind: "declared"`), and land the record on the merge base before the product PR — a record PR, or the activation PR that adds the brief — then rebase. A declaration is not consent: under human merge the person who merges the record PR reviews it; under bot merge nothing human does. Attended: tell the human in the parent chat what the record declares. Do not soften an invariant throw solely to clear the gate.
+⊗ Ride the record in the product PR (same-PR records are not authoritative).
 ⊗ Recut `evaluateIntentConstraint` or let an approved-scope digest authorize throw sites.
-⊗ Parent-agent auto-approve of hard facts.
+⊗ Treat a declared record as human approval.
 
 ## Anti-Patterns
 

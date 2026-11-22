@@ -48,6 +48,39 @@ describe("observable-scope mint record (#4495)", () => {
     expect(rec).toMatchObject({ error: expect.stringMatching(/human-presence/) });
   });
 
+  it("builds and parses a declared stamp and still parses legacy human stamps (#7031)", () => {
+    const base = {
+      planId: "story",
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      allowedChanges: [{ kind: "control" as const, op: "add" as const, name: "email" }],
+    };
+    const declared = {
+      kind: "declared",
+      actor: "agent:leaf",
+      mintedAt: "2026-11-22T00:00:00Z",
+      mintedVia: "scope:record-observable-scope",
+    };
+    const rec = buildObservableScopeRecord({ ...base, humanApproval: declared });
+    expect("error" in rec).toBe(false);
+    if ("error" in rec) return;
+    expect(parseObservableScopeRecord(JSON.parse(JSON.stringify(rec)))).toMatchObject({
+      humanApproval: { kind: "declared", mintedVia: "scope:record-observable-scope" },
+    });
+    for (const legacy of [human, { ...human, mintedVia: "in-harness-ask" }]) {
+      const old = buildObservableScopeRecord({ ...base, humanApproval: legacy });
+      expect("error" in old).toBe(false);
+      if ("error" in old) return;
+      expect("error" in parseObservableScopeRecord(JSON.parse(JSON.stringify(old)))).toBe(false);
+    }
+    // A declared stamp must name this record's writer.
+    expect(
+      buildObservableScopeRecord({
+        ...base,
+        humanApproval: { ...declared, mintedVia: "scope:record-intent-constraint" },
+      }),
+    ).toMatchObject({ error: expect.stringMatching(/declared stamp/) });
+  });
+
   it("accepts namespaced contract without baselineRef", () => {
     const parsed = parseObservableChangeContract({
       changeKind: "fields-only",

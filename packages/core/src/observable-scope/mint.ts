@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
-import { isHumanApprovalStamp } from "../scope-provenance/digest.js";
+import { isRecordStamp, OBSERVABLE_SCOPE_WRITER_VERB } from "../scope-provenance/record-stamp.js";
 import { classifyPreflightObservableMintDemand } from "./demand.js";
 import {
   type AllowedChange,
@@ -25,6 +25,9 @@ import {
   type ObservableScopeRecord,
   STRUCTURE_KINDS,
 } from "./types.js";
+
+const STAMP_ERROR =
+  "humanApproval must be a declared stamp from scope:record-observable-scope or a human-presence stamp; agent-asserted allowedChanges is not a contract";
 
 export function observableScopeDir(projectRoot: string): string {
   return join(resolve(projectRoot), ...OBSERVABLE_SCOPE_DIR.split("/"));
@@ -147,10 +150,9 @@ export function parseObservableScopeRecord(
     mintedVia:
       typeof raw.humanApproval.mintedVia === "string" ? raw.humanApproval.mintedVia : undefined,
   };
-  if (!isHumanApprovalStamp(stamp)) {
+  if (!isRecordStamp(stamp, OBSERVABLE_SCOPE_WRITER_VERB)) {
     return {
-      error:
-        "humanApproval must be a human-presence stamp; agent-written allowedChanges is not a contract",
+      error: STAMP_ERROR,
     };
   }
   if (typeof raw.contractDigest !== "string" || raw.contractDigest.length === 0) {
@@ -221,10 +223,9 @@ export function buildObservableScopeRecord(input: {
   readonly approvedAt?: string;
   readonly changeKind?: ChangeKind;
 }): ObservableScopeRecord | { error: string } {
-  if (!isHumanApprovalStamp(input.humanApproval)) {
+  if (!isRecordStamp(input.humanApproval, OBSERVABLE_SCOPE_WRITER_VERB)) {
     return {
-      error:
-        "humanApproval must be a human-presence stamp; agent-written allowedChanges is not a contract",
+      error: STAMP_ERROR,
     };
   }
   const approvedAt = input.approvedAt ?? new Date().toISOString().replace(/\.\d{3}Z$/, "Z");

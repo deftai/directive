@@ -153,7 +153,7 @@ describe("agent-marker mint refusal records an operator stop (#6275 limb 2)", ()
     expect(mintArgsAfterVerb(["--xbrief", "a.json"], null)).toEqual(["--xbrief", "a.json"]);
   });
 
-  it("the four mint callers pass argv and project root", () => {
+  it("the kept mint callers pass argv and project root; the declared writers record no stop (#7031)", () => {
     silence();
     const root = mkdtempSync(join(tmpdir(), "hpm-6275-"));
     roots.push(root);
@@ -176,15 +176,11 @@ describe("agent-marker mint refusal records an operator stop (#6275 limb 2)", ()
     );
     const argv = ["xbrief/pending/s.xbrief.json", "--project-root", root, "--actor", "op"];
     expect(runApprovedScope(argv, seams)).toBe(2);
+    // The brief has no contract, so the declared writers fail on input, not on a mint.
     expect(runIntentConstraint(argv, seams)).toBe(2);
     expect(runObservableScope(argv, seams)).toBe(2);
     const verbs = recorded.map((r) => r.contextRefs?.[0]);
-    expect(verbs).toEqual([
-      "authz:grant",
-      "scope:record-approved-scope",
-      "scope:record-intent-constraint",
-      "scope:record-observable-scope",
-    ]);
+    expect(verbs).toEqual(["authz:grant", "scope:record-approved-scope"]);
     expect(recorded[0]?.commands[0]).toContain("--operations edit --surfaces src/a.ts");
     expect(recorded[0]?.projectRoot).toBe(resolve(root));
     for (const r of recorded) expect(r.commands[0]).toMatch(/--confirm$/);

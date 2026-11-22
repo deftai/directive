@@ -2,8 +2,11 @@
 /**
  * CLI for scope:record-intent-constraint (#4541).
  *
- * Human-presence mint of `.deft/intent-constraint/<plan-id>.json` from
- * `plan["x-directive/intentConstraint"]`. --actor is display-only.
+ * Writes `.deft/intent-constraint/<plan-id>.json` from `plan["x-directive/intentConstraint"]` with a declared stamp
+ * (#7031): `{kind: "declared", actor, mintedAt, mintedVia: "scope:record-intent-constraint"}`.
+ * No terminal step: it writes from any shell, an agent's included. A declared
+ * record is a declaration the product check holds the PR to, not an approval.
+ * --actor is an optional declared-by name. The UAT refusal stays.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { basename, relative, resolve } from "node:path";
@@ -14,12 +17,7 @@ import {
   writeIntentConstraintRecord,
 } from "@deftai/directive-core/intent-constraint";
 import { isDirectEntrypoint } from "./entrypoint.js";
-import {
-  mintArgsAfterVerb,
-  refuseMintWhileUatActive,
-  refuseNonInteractiveMint,
-  resolveHumanPresenceMintSeams,
-} from "./human-presence-mint.js";
+import { refuseMintWhileUatActive } from "./human-presence-mint.js";
 import { isPathInsideRoot } from "./scope-record-approved-scope.js";
 import { type RecordCohortSeams, runRecordCohort } from "./scope-record-cohort.js";
 
@@ -30,35 +28,36 @@ export interface ParsedArgs {
   xbriefPaths: string[];
   /** Launch-manifest path for the cohort form (#6937). */
   manifest: string | null;
+  /** Declared-by display name; may name an agent (#7031). */
   actor: string;
-  kind: string;
-  mintedVia: string;
   quiet: boolean;
-  confirm: boolean;
   help?: boolean;
   error?: string;
 }
 
-const DEFAULT_MINTED_VIA = "scope:record-intent-constraint";
-const ALLOWED_MINTED_VIA = new Set([DEFAULT_MINTED_VIA, "in-harness-ask"]);
+/** The verb, recorded as mintedVia on every record it writes (#7031). */
+const WRITER_VERB = "scope:record-intent-constraint";
+/** Declared-by name when --actor is not given (#7031). */
+const DEFAULT_DECLARED_BY = "unspecified";
+/** Flags refused because the stamp is always declared (#7031). */
+const REFUSED_FLAGS = ["--kind", "--minted-via"] as const;
 
 function usage(): string {
   return (
     "usage: scope:record-intent-constraint -- <xbrief-path> [<xbrief-path> ...] | --manifest <launch-manifest> " +
-    "--actor <name> --confirm " +
-    "[--kind operator] [--minted-via in-harness-ask|scope:record-intent-constraint] " +
-    "[--project-root <dir>] [--quiet]\n" +
+    "[--actor <declared-by>] [--project-root <dir>] [--quiet]\n" +
     '  Writes .deft/intent-constraint/<plan-id>.json from plan["x-directive/intentConstraint"].\n' +
-    "  Attended mid-build (#5010): ask in parent chat; on yes the human runs this verb on a real TTY " +
-    "with --minted-via=in-harness-ask (attestation is not an agent-shell bypass). Commit the record on " +
-    "the delivery-branch merge base, then rebase the implementation branch — same-PR working-tree-only " +
-    "records are not authoritative. Unattended/C1: rewrite or park. --actor is display only. Mint still " +
-    "requires a real TTY, controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse.\n" +
+    "  Declared record (#7031): no terminal step; it writes from any shell, an agent's included, " +
+    "with humanApproval {kind: declared, mintedVia: scope:record-intent-constraint}. --kind and --minted-via are " +
+    "refused. --actor is an optional declared-by name and may name an agent. A declared record is " +
+    "a declaration the product check holds the PR to, not consent. Land it on the delivery-branch " +
+    "merge base before the product PR (a record PR, or the activation PR that adds its brief), then " +
+    "rebase the implementation branch; same-PR working-tree-only records are not authoritative. " +
+    "Refused during an active UAT lease.\n" +
     "  Cohort form (#6937): several brief paths or --manifest (launch-manifest xbrief_path entries) " +
-    "print every record first, ask for the typed mint once, and write only new records. A matching " +
-    "record is left as it is; one that would change, or does not parse, refuses the whole set before " +
-    "the prompt (change it with the one-path form). Records may ride in the activation PR when each " +
-    "matches a brief that PR adds. CI cannot tell a mint from a file an agent wrote: the record's " +
+    "print every record first and write only new records. A matching record is left as it is; one " +
+    "that would change, or does not parse, refuses the whole set (change it with the one-path form). " +
+    "Records may ride in the activation PR when each matches a brief that PR adds. The record's " +
     "control is the merge that lands it."
   );
 }
@@ -77,11 +76,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     xbriefPath: "",
     xbriefPaths: [],
     manifest: null,
-    actor: "",
-    kind: "operator",
-    mintedVia: DEFAULT_MINTED_VIA,
+    actor: DEFAULT_DECLARED_BY,
     quiet: false,
-    confirm: false,
   };
   const positionals: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -89,8 +85,16 @@ export function parseArgs(argv: string[]): ParsedArgs {
     if (arg === "--") continue;
     if (arg === "--help" || arg === "-h") return { ...parsed, help: true };
     if (arg === "--quiet") parsed.quiet = true;
-    else if (arg === "--confirm") parsed.confirm = true;
-    else if (arg === "--project-root") {
+    // Accepted and ignored: there is no terminal step to confirm (#7031).
+    else if (arg === "--confirm") continue;
+    else if (REFUSED_FLAGS.some((flag) => arg === flag || arg?.startsWith(`${flag}=`))) {
+      return {
+        ...parsed,
+        error:
+          `argument ${arg?.split("=")[0]} is not accepted: this command always writes kind declared ` +
+          `with mintedVia ${WRITER_VERB} (#7031)\n${usage()}`,
+      };
+    } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined)
         return { ...parsed, error: "argument --project-root: expected one argument" };
@@ -114,22 +118,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--actor=")) {
       parsed.actor = arg.slice("--actor=".length);
-    } else if (arg === "--kind") {
-      const value = argv[i + 1];
-      if (value === undefined)
-        return { ...parsed, error: "argument --kind: expected one argument" };
-      parsed.kind = value;
-      i += 1;
-    } else if (arg?.startsWith("--kind=")) {
-      parsed.kind = arg.slice("--kind=".length);
-    } else if (arg === "--minted-via") {
-      const value = argv[i + 1];
-      if (value === undefined)
-        return { ...parsed, error: "argument --minted-via: expected one argument" };
-      parsed.mintedVia = value;
-      i += 1;
-    } else if (arg?.startsWith("--minted-via=")) {
-      parsed.mintedVia = arg.slice("--minted-via=".length);
     } else if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     } else if (arg !== undefined) {
@@ -145,19 +133,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   }
   parsed.xbriefPaths = positionals;
   parsed.xbriefPath = positionals[0] ?? "";
-  if (parsed.actor.trim().length === 0) {
-    return {
-      ...parsed,
-      error: `argument --actor is required (human operator identity)\n${usage()}`,
-    };
-  }
-  if (!ALLOWED_MINTED_VIA.has(parsed.mintedVia.trim())) {
-    return {
-      ...parsed,
-      error: `argument --minted-via must be one of: ${[...ALLOWED_MINTED_VIA].join(", ")}\n${usage()}`,
-    };
-  }
-  parsed.mintedVia = parsed.mintedVia.trim();
+  parsed.actor = parsed.actor.trim().length > 0 ? parsed.actor.trim() : DEFAULT_DECLARED_BY;
   return parsed;
 }
 
@@ -175,15 +151,11 @@ export function run(argv: string[], seams: RecordCohortSeams = {}): number {
     return runRecordCohort(
       "intent-constraint",
       {
-        argv,
         projectRoot: args.projectRoot,
         briefPaths: args.xbriefPaths,
         manifest: args.manifest,
         actor: args.actor,
-        kind: args.kind,
-        mintedVia: args.mintedVia,
         quiet: args.quiet,
-        confirm: args.confirm,
       },
       seams,
     );
@@ -191,21 +163,6 @@ export function run(argv: string[], seams: RecordCohortSeams = {}): number {
   const projectRoot = resolve(args.projectRoot);
   const uat = refuseMintWhileUatActive("scope:record-intent-constraint", projectRoot);
   if (uat !== null) return uat;
-  const resolved = resolveHumanPresenceMintSeams(seams);
-  const refused = refuseNonInteractiveMint({
-    verb: "scope:record-intent-constraint",
-    confirm: args.confirm,
-    isTty: resolved.isTty,
-    environ: resolved.environ,
-    hasControllingTerminal: resolved.hasControllingTerminal,
-    readInteractiveConfirm: resolved.readInteractiveConfirm,
-    operatorStop: {
-      projectRoot,
-      args: mintArgsAfterVerb(argv, null),
-      record: resolved.recordOperatorStop,
-    },
-  });
-  if (refused !== null) return refused;
   const xbriefAbs = resolve(projectRoot, args.xbriefPath);
   const fullPath = existsSync(xbriefAbs) ? xbriefAbs : resolve(args.xbriefPath);
   if (!existsSync(fullPath)) {
@@ -237,10 +194,10 @@ export function run(argv: string[], seams: RecordCohortSeams = {}): number {
     xbriefRelPath: rel.startsWith("xbrief/pending/") ? `xbrief/active/${basename(rel)}` : rel,
     constraints: contract.constraints,
     humanApproval: {
-      kind: args.kind,
+      kind: "declared",
       actor: args.actor,
       mintedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-      mintedVia: args.mintedVia,
+      mintedVia: WRITER_VERB,
     },
   });
   if ("error" in rec) {
@@ -250,7 +207,9 @@ export function run(argv: string[], seams: RecordCohortSeams = {}): number {
   const path = writeIntentConstraintRecord(projectRoot, rec);
   if (!args.quiet) {
     process.stdout.write(
-      `Wrote ${path}\nCommit this record on the merge base before the implementation change PR.\n` +
+      `Wrote ${path} (kind declared, declared by ${args.actor}).\n` +
+        "A declared record is a declaration, not consent (#7031). Land it on the merge base before " +
+        "the implementation change PR.\n" +
         "Land it in its own authority-record PR with `deft-story-part: N` (not `deft-story: N`); " +
         "that PR is not the story's completing delivery (#6335).\n",
     );

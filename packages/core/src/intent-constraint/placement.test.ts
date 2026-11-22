@@ -1,10 +1,10 @@
 /**
- * Authorship-time placement for intent-constraint (#4587 / #5010).
+ * Authorship-time placement for intent-constraint (#4587 / #5010 / #7031).
  *
  * Does not recut evaluateIntentConstraint. Proves the worker-facing fail
- * string prefers detect + in-harness ask / rewrite-park over leave-harness
- * TTY mint, skills/templates place the operator ask at plan-key authorship,
- * and C1/unattended fail closed without a paste-ready mint argv.
+ * string and the skills/templates say: write the declaration with
+ * `scope:record-intent-constraint` and land it on the merge base before the
+ * product PR (#7031), instead of parking for a human terminal mint.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,13 +18,12 @@ function readRepo(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
-describe("intent-constraint authorship placement (#4587 / #5010)", () => {
-  it("names in-harness ask / rewrite-park as the primary task-check fail path", () => {
+describe("intent-constraint authorship placement (#4587 / #5010 / #7031)", () => {
+  it("names write-the-declaration as the task-check fail path", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toContain("INTENT_CONSTRAINT_MISSING");
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/parent chat|in-harness-ask/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/legacy repair only/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/agent\/CI shells still refuse/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/Write the declaration/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/from any shell/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/before the product PR/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /delivery-branch merge base|rebase the implementation branch/,
     );
@@ -36,26 +35,21 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
       /Classify the condition|invariant \/ corruption \/ impossible-if-healthy/,
     );
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite solely to clear the gate is forbidden/);
-    const named = remedyForGate("verify:intent-constraint", "no merge-base mint");
-    expect(named).toMatch(/parent chat|in-harness-ask/);
-    expect(named).toMatch(/rewrite or park/);
+    const named = remedyForGate("verify:intent-constraint", "no merge-base record");
+    expect(named).toMatch(/Write the declaration/);
     expect(named).toContain("scope:record-intent-constraint");
   });
 
-  it("states unattended fail-closed without a paste-ready mint argv", () => {
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/Unattended\/C1/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/do not ask an empty room/);
+  it("does not park for a human mint and keeps the no-soften rule", () => {
+    expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/park pending a human mint/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/real TTY|agent\/CI shells still refuse/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/A declaration is not consent/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
-      /park pending a human mint|do not soften\/remove that failure solely to clear the gate/,
+      /Do not soften\/remove an invariant failure solely to clear the gate/,
     );
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/--actor/);
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/--confirm/);
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/<xbrief/);
-    const named = remedyForGate("verify:intent-constraint", "no merge-base mint");
-    expect(named).toMatch(/rewrite or park/);
-    expect(named).not.toMatch(/--actor/);
-    expect(named).not.toMatch(/--confirm/);
   });
 
   it("keeps merge-base snapshot authority and does not recut evaluate", () => {
@@ -67,7 +61,7 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
     expect(evaluate).toContain("evaluateIntentConstraint");
   });
 
-  it("places the operator ask at plan-key authorship, not leave-harness TTY mint", () => {
+  it("places the declaration at plan-key authorship, landed before the product PR", () => {
     const setup = readRepo("content/skills/deft-directive-setup/SKILL.md");
     const build = readRepo("content/skills/deft-directive-build/SKILL.md");
     const phase0 = readRepo("content/skills/deft-directive-swarm/references/core-phase-0.md");
@@ -76,7 +70,9 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
 
     for (const text of [setup, build, phase0, preamble, docs]) {
       expect(text).toContain("scope:record-intent-constraint");
-      expect(text).toMatch(/in-harness|parent chat/);
+      expect(text).toMatch(/write the declaration/i);
+      expect(text).toMatch(/before the (implementation|product) PR/);
+      expect(text).not.toMatch(/park pending a human mint/);
     }
 
     expect(setup).toContain('plan["x-directive/intentConstraint"]');
@@ -84,26 +80,15 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
     expect(setup).toMatch(/Fill speculative/);
     expect(preamble).toContain('plan["x-directive/intentConstraint"]');
     expect(docs).toContain("INTENT_CONSTRAINT_MISSING");
-    expect(docs).toMatch(/Unattended|unattended|C1/);
-
-    expect(phase0).toMatch(
-      /Ask for leave-harness TTY .scope:record-intent-constraint|leave-harness TTY .scope:record-intent-constraint/,
-    );
-    expect(build).toMatch(/rewrite or park|legacy repair only/);
-    expect(build).toMatch(/Paste a mint argv/);
     expect(docs).toMatch(/Failure-handling split|#5574 Prefer-A/);
     expect(docs).toMatch(/impossible-if-healthy/);
     expect(docs).toMatch(/returned-failure|operational deny|missing grant/);
-    expect(docs).toMatch(/park pending a human mint|unattended.*park|must park/);
     expect(docs).toMatch(/FACT_KINDS|numeric-const/);
-    expect(preamble).toMatch(/impossible-if-healthy/);
-    expect(preamble).toMatch(/returned-failure|operational deny/);
-    expect(preamble).toMatch(/park pending a human mint|unattended\/C1.*park|park pending/);
-    expect(phase0).toMatch(/impossible-if-healthy/);
-    expect(phase0).toMatch(/returned-failure|operational deny/);
-    expect(phase0).toMatch(/park pending|do not soften/);
-    expect(build).toMatch(/impossible-if-healthy/);
-    expect(build).toMatch(/returned-failure|operational deny/);
-    expect(build).toMatch(/park pending a human mint|must park|do not soften/);
+    for (const text of [preamble, phase0, build]) {
+      expect(text).toMatch(/impossible-if-healthy/);
+      expect(text).toMatch(/returned-failure|operational deny/);
+      expect(text).toMatch(/not consent/);
+      expect(text).toMatch(/[Dd]o not soften|Soften an invariant/);
+    }
   });
 });

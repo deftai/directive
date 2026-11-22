@@ -1,5 +1,5 @@
 /**
- * Human-minted intent-constraint record (#4541).
+ * Intent-constraint record (#4541): declared by scope:record-intent-constraint (#7031) or a legacy human stamp.
  *
  * Authority is git show merge-base of this record. Same-PR rewrite is not a contract.
  * Tests and in-scope paths are not authority.
@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
-import { isHumanApprovalStamp } from "../scope-provenance/digest.js";
+import { INTENT_CONSTRAINT_WRITER_VERB, isRecordStamp } from "../scope-provenance/record-stamp.js";
 import {
   INTENT_CONSTRAINT_DIR,
   INTENT_CONSTRAINT_PLAN_KEY,
@@ -19,6 +19,9 @@ import {
   type MintConstraint,
   REJECTION_SCOPES,
 } from "./types.js";
+
+const STAMP_ERROR =
+  "humanApproval must be a declared stamp from scope:record-intent-constraint or a human-presence stamp; agent-asserted constraints are not a contract";
 
 export function intentConstraintDir(projectRoot: string): string {
   return join(resolve(projectRoot), ...INTENT_CONSTRAINT_DIR.split("/"));
@@ -99,10 +102,9 @@ export function parseIntentConstraintRecord(
     mintedVia:
       typeof raw.humanApproval.mintedVia === "string" ? raw.humanApproval.mintedVia : undefined,
   };
-  if (!isHumanApprovalStamp(stamp)) {
+  if (!isRecordStamp(stamp, INTENT_CONSTRAINT_WRITER_VERB)) {
     return {
-      error:
-        "humanApproval must be a human-presence stamp; agent-written constraints are not a contract",
+      error: STAMP_ERROR,
     };
   }
   if (typeof raw.contractDigest !== "string" || raw.contractDigest.length === 0) {
@@ -148,10 +150,9 @@ export function buildIntentConstraintRecord(input: {
   readonly humanApproval: IntentConstraintHumanApproval;
   readonly approvedAt?: string;
 }): IntentConstraintRecord | { error: string } {
-  if (!isHumanApprovalStamp(input.humanApproval)) {
+  if (!isRecordStamp(input.humanApproval, INTENT_CONSTRAINT_WRITER_VERB)) {
     return {
-      error:
-        "humanApproval must be a human-presence stamp; agent-written constraints are not a contract",
+      error: STAMP_ERROR,
     };
   }
   const approvedAt = input.approvedAt ?? new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
