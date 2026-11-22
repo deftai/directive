@@ -1,0 +1,185 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6965",
+    "updated": "2026-11-22T03:00:55Z"
+  },
+  "plan": {
+    "title": "install: two-pass fixture allowlist drifted from owned-paths (data-schema.json, seed placeholder)",
+    "status": "running",
+    "narratives": {
+      "Description": "The post-publish two-pass fixture (#4271) fails because installerManagedMatchers() does not list .deft/directive/data-schema.json or the xbrief seed marker that install writes. This story adds both as exact matchers in packages/core/src/init-deposit/hygiene.ts, with a hygiene test.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6965",
+      "Overview": "## Problem\n\nThe post-publish two-pass fixture (#4271) failed on v0.131.0 (run 44976831079) and v0.130.1 (run 44678506561): `Pass 2 commit-set includes non-installer-managed paths: .deft/directive/data-schema.json, xbrief/.directive-seed-placeholder`. `installerManagedMatchers()` in `packages/core/src/init-deposit/hygiene.ts` lists neither path.\n\n## Acceptance Criteria\n\n- [ ] `installerManagedMatchers()` lists `.deft/directive/data-schema.json` and `xbrief/.directive-seed-placeholder` as exact paths, and `isPass2CommitPath` accepts both.\n- [ ] A hygiene test covers both paths and a nearby non-owned path that stays rejected.\n\nRefs #4271, #6842, #6860, #5771, #6969.\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As a release operator, I want the post-publish two-pass fixture to accept the two paths install writes, so that a release cut does not fail on allowlist drift.",
+      "ImplementationPlan": "Add two exact matchers to installerManagedMatchers() in packages/core/src/init-deposit/hygiene.ts. Add one hygiene.test.ts case for both paths and a non-owned neighbour. Add one changelog fragment. Do not change what install writes, and do not rewire the classifier to owned-paths.ts (#6969).",
+      "Traces": "#6965 Acceptance Criteria; #4271 Pass 2 commit-set referent."
+    },
+    "items": [
+      {
+        "title": "`installerManagedMatchers()` lists `.deft/directive/data-schema.json` and `xbrief/.directive-seed-placeholder` as exact paths, and `isPass2CommitPath` accepts both.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When isPass2CommitPath runs on the data-schema.json path or the xbrief seed marker path, then it returns true, because both are exact installerManagedMatchers entries."
+        }
+      },
+      {
+        "title": "A hygiene test covers both paths and a nearby non-owned path that stays rejected.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the hygiene test runs, then both paths are installer-managed and a nearby non-owned path is rejected."
+        }
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6965",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6965: install: two-pass fixture allowlist drifted from owned-paths (data-schema.json, seed placeholder)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4271",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4271"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "`installerManagedMatchers()` lists `.deft/directive/data-schema.json` and `xbrief/.directive-seed-placeholder` as exact paths, and `isPass2CommitPath` accepts both.",
+        "A hygiene test covers both paths and a nearby non-owned path that stays rejected."
+      ],
+      "admitted_source_sentences": [
+        "`installerManagedMatchers()` lists `.deft/directive/data-schema.json` and `xbrief/.directive-seed-placeholder` as exact paths, and `isPass2CommitPath` accepts both.",
+        "A hygiene test covers both paths and a nearby non-owned path that stays rejected."
+      ],
+      "admitted_source_digest": "420597841ab4615578190c3b6246762e43aea153757f81932b0257f87096bacc",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`installerManagedMatchers()` lists `.deft/directive/data-schema.json` and `xbrief/.directive-seed-placeholder` as exact paths, and `isPass2CommitPath` accepts both.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A hygiene test covers both paths and a nearby non-owned path that stays rejected.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Narrowed 2026-11-21 (operator decision): this issue now covers only the two exact allowlist entries plus a hygiene test.\n\n- The two install decisions (seed placeholder written when PROJECT-DEFINITION exists; Pass 2 classifier reading `owned-paths.ts`) moved to #6969 for the install/setup owner.\n- The post-publish two-pass fixture proof comes from the next release cut, not from this PR.\n\n",
+          "id": 7073244927,
+          "html_url": "https://github.com/deftai/directive/issues/6965#issuecomment-7073244927",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T02:58:15Z",
+          "updated_at": "2026-11-22T02:58:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: not warranted, because it is a two-line allowlist addition with a test.",
+          "id": 7073253007,
+          "html_url": "https://github.com/deftai/directive/issues/6965#issuecomment-7073253007",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T02:59:03Z",
+          "updated_at": "2026-11-22T02:59:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6537584258,
+        "origin": "deftai/directive#6965",
+        "id": "github.issue.6537584258"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "changelog.d/6965-pass2-allowlist-owned-paths.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/init-deposit/hygiene.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "two exact matchers in installerManagedMatchers (hygiene.ts)",
+          "hygiene.test.ts case: both paths pass isPass2CommitPath; a non-owned neighbour does not",
+          "one changelog fragment changelog.d/6965-pass2-allowlist-owned-paths.md"
+        ],
+        "model_tier": "standard",
+        "conflict_group": "install-hygiene"
+      }
+    },
+    "id": "github.issue.6537584258",
+    "updated": "2026-11-22T03:00:55Z"
+  }
+}
