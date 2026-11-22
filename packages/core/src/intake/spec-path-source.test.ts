@@ -1,13 +1,17 @@
 /**
  * Spec-path harvest, source record and live identities (#6333).
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
+import {
+  hashHarvestIdentity,
+  hashHarvestIdentityPreFold,
+} from "../design-critique/pain-audit-follow-through-gate.js";
 import type { CompletedProcess } from "../scm/call.js";
-import { extractBoundRemedyHarvest, hasWrappedListItem } from "./markdown-scanners.js";
+import { extractBoundRemedyHarvest } from "./markdown-scanners.js";
 import {
   attachSpecPathSourceRecord,
   fetchPlanAdmittedSourceText,
@@ -90,15 +94,16 @@ describe("review fixes (#6333)", () => {
     expect(parent.items.map((item) => item.title)).toEqual(["Same."]);
   });
 
-  it("refuses a lean whose list item wraps onto a continuation line", () => {
+  it("folds a list item that wraps onto a continuation line (#7001)", () => {
     const body =
       `${PLAIN}Spec-path: x\n\n## Bound remedy\n1. Limb.\n\n` +
       "## Acceptance Criteria\n- Reject the request\n  when the token has expired.\n";
-    expect(harvestSpecPathLean(body, { kind: "unlabeled" })).toMatchObject({
-      ok: false,
-      reason: expect.stringContaining("continuation line"),
-    });
-    expect(hasWrappedListItem("- a\n\nprose\n  indented prose\n")).toBe(false);
+    const harvest = harvestSpecPathLean(body, { kind: "unlabeled" });
+    if (!harvest.ok) throw new Error(harvest.reason);
+    expect(harvest.items.map((item) => item.title)).toEqual([
+      "Limb.",
+      "Reject the request when the token has expired.",
+    ]);
   });
 
   it("fails when the lean changed after ingest", () => {
@@ -612,5 +617,29 @@ describe("fetchPlanAdmittedSourceText (#6609 item 7)", () => {
         stderr: "down",
       })),
     ).toMatchObject({ ok: false });
+  });
+});
+
+describe("harvestSpecPathLean on the #6904 lean shape (#7001)", () => {
+  const LEAN_6904 = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "fixtures/lean-6904-7070710091.md"),
+    "utf8",
+  );
+
+  it("harvests, with item 8 carrying sub-items (a) to (f) as one item", () => {
+    const harvest = harvestSpecPathLean(LEAN_6904, { kind: "unlabeled" });
+    if (!harvest.ok) throw new Error(harvest.reason);
+    expect(harvest.items).toHaveLength(18);
+    const item8 = harvest.items[7]?.title ?? "";
+    expect(item8.startsWith("Tests. None needs a built `dist` worker. (a) Through the seam")).toBe(
+      true,
+    );
+    expect(item8.endsWith("asserts that `runSmokeCommand` forwards that plan.")).toBe(true);
+    for (const marker of ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]) {
+      expect(item8).toContain(` ${marker} `);
+    }
+    expect(harvest.harvestDigest).toBe(hashHarvestIdentity(LEAN_6904));
+    expect(harvest.harvestDigest).not.toBe(hashHarvestIdentityPreFold(LEAN_6904));
+    expect(harvest.constraintLines).toHaveLength(3);
   });
 });

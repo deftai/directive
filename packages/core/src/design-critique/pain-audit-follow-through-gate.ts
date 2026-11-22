@@ -12,7 +12,9 @@ import { createHash } from "node:crypto";
 import {
   leanAcceptanceCriteriaItems,
   leanSlicesSectionLines,
+  matchListItemLine,
   parseListItemsByPosition,
+  parseListItemsByPositionFolded,
   sliceBoundRemedySection,
   sliceLeanAcceptanceCriteriaSection,
   stripFencedCodeBlocks,
@@ -212,29 +214,68 @@ export function extractOperativeHarvestChanged(body: string): HarvestChangedCarr
 }
 
 /**
- * Intake-aligned harvest identity: sha256 of Bound-remedy list-item titles
- * (space or hyphen heading). Trailing `relieves:` / non-list prose is excluded
- * so heading spelling and pain-cite churn cannot launder an unchanged remedy.
- * Empty-string hash when the heading or list is absent (still a stable identity).
+ * Bound-remedy item titles, de-duplicated in list order. With `fold`, each
+ * non-blank indented line that is not a list item, directly after an item or
+ * that item's previous continuation line, joins the item's title with one
+ * space (#7001); a blank line or any other line ends the item. A list line the
+ * intake reader opens as an item but `LIST_ITEM_LINE_RE` does not (a bare `-`,
+ * or `-x` with no space) counts only when a continuation line folds into it, so
+ * no continuation text escapes the digest. Without a continuation line both
+ * readings give the same titles.
  */
-export function hashBoundRemedyBytes(body: string): string {
+function boundRemedyTitles(body: string, fold: boolean): string[] {
   // #6265: the same slicer as intake harvest (next H2 or a closed trailer label),
   // so trailer-only lean edits (Reject / Footnotes / takes) do not move the digest.
   const slice = sliceBoundRemedySection(body);
-  const titles: string[] = [];
-  const seen = new Set<string>();
+  const rows: { title: string; counts: boolean }[] = [];
+  let open: { title: string; counts: boolean } | null = null;
   // Fenced examples inside the remedy are sample text, not limbs (same as intake).
   for (const line of stripFencedCodeBlocks(slice ?? "").split(/\r?\n/)) {
     const item = LIST_ITEM_LINE_RE.exec(line);
-    if (item === null) continue;
-    // Match intake parseListItems: strip leading checkbox markers from titles.
-    let title = (item[1] ?? "").trim();
-    title = title.replace(CHECKBOX_PREFIX_RE, "").trim();
-    if (title.length === 0 || seen.has(title)) continue;
+    if (item !== null) {
+      // Match intake parseListItems: strip leading checkbox markers from titles.
+      let title = (item[1] ?? "").trim();
+      title = title.replace(CHECKBOX_PREFIX_RE, "").trim();
+      open = { title, counts: true };
+      rows.push(open);
+      continue;
+    }
+    const intakeItem = fold ? matchListItemLine(line) : null;
+    if (intakeItem !== null) {
+      open = { title: intakeItem.trim().replace(CHECKBOX_PREFIX_RE, "").trim(), counts: false };
+      rows.push(open);
+      continue;
+    }
+    if (fold && open !== null && line.trim().length > 0 && /^[ \t]/.test(line)) {
+      const text = line.trim();
+      open.title = open.title.length === 0 ? text : `${open.title} ${text}`;
+      open.counts = true;
+      continue;
+    }
+    open = null;
+  }
+  const titles: string[] = [];
+  const seen = new Set<string>();
+  for (const { title, counts } of rows) {
+    if (!counts || title.length === 0 || seen.has(title)) continue;
     seen.add(title);
     titles.push(title);
   }
-  return createHash("sha256").update(titles.join("\n"), "utf8").digest("hex");
+  return titles;
+}
+
+/**
+ * Intake-aligned harvest identity: sha256 of Bound-remedy list-item titles
+ * (space or hyphen heading), with continuation lines folded into their item
+ * (#7001). Trailing `relieves:` / non-list prose is excluded so heading
+ * spelling and pain-cite churn cannot launder an unchanged remedy. A remedy
+ * with no continuation line keeps its earlier digest. Empty-string hash when
+ * the heading or list is absent (still a stable identity).
+ */
+export function hashBoundRemedyBytes(body: string): string {
+  return createHash("sha256")
+    .update(boundRemedyTitles(body, true).join("\n"), "utf8")
+    .digest("hex");
 }
 
 /** True when a lean carries an Acceptance Criteria list or a `## Slices` section (#6333). */
@@ -242,33 +283,67 @@ export function leanHasAcceptanceOrSlices(body: string): boolean {
   return leanAcceptanceCriteriaItems(body).length > 0 || leanSlicesSectionLines(body) !== null;
 }
 
-/**
- * Harvest identity (#6333 item 3): the Bound remedy items, the Acceptance
- * Criteria items and the Slices section. A lean with neither of the last two
- * keeps the `hashBoundRemedyBytes` digest, so earlier arcs do not move.
- */
-export function hashHarvestIdentity(body: string): string {
-  if (!leanHasAcceptanceOrSlices(body)) {
-    return hashBoundRemedyBytes(body);
+function dedupeTitles(items: readonly { readonly title: string }[]): string[] {
+  const seen = new Set<string>();
+  const titles: string[] = [];
+  for (const { title } of items) {
+    if (seen.has(title)) continue;
+    seen.add(title);
+    titles.push(title);
   }
+  return titles;
+}
+
+function harvestIdentity(body: string, fold: boolean): string {
+  const boundDigest = createHash("sha256")
+    .update(boundRemedyTitles(body, fold).join("\n"), "utf8")
+    .digest("hex");
+  if (!leanHasAcceptanceOrSlices(body)) {
+    return boundDigest;
+  }
+  const readPositions = fold ? parseListItemsByPositionFolded : parseListItemsByPosition;
   // Every list position is hashed (repeated titles included), because slice
   // references `B<n>` / `A<n>` count positions: a repeated item that shifts a
   // slice's assignment must move the digest.
-  const acSlice = sliceLeanAcceptanceCriteriaSection(body);
+  const acPositions = readPositions(
+    stripFencedCodeBlocks(sliceLeanAcceptanceCriteriaSection(body) ?? ""),
+  );
   const parts = [
-    `bound-remedy:${hashBoundRemedyBytes(body)}`,
+    `bound-remedy:${boundDigest}`,
     "bound-remedy-positions:",
-    ...parseListItemsByPosition(stripFencedCodeBlocks(sliceBoundRemedySection(body) ?? "")).map(
+    ...readPositions(stripFencedCodeBlocks(sliceBoundRemedySection(body) ?? "")).map(
       (item) => item.title,
     ),
     "acceptance-criteria:",
-    ...leanAcceptanceCriteriaItems(body).map((item) => item.title),
+    ...(fold
+      ? dedupeTitles(acPositions)
+      : leanAcceptanceCriteriaItems(body).map((item) => item.title)),
     "acceptance-criteria-positions:",
-    ...parseListItemsByPosition(stripFencedCodeBlocks(acSlice ?? "")).map((item) => item.title),
+    ...acPositions.map((item) => item.title),
     "slices:",
     ...(leanSlicesSectionLines(body) ?? []),
   ];
   return createHash("sha256").update(parts.join("\n"), "utf8").digest("hex");
+}
+
+/**
+ * Harvest identity (#6333 item 3): the Bound remedy items, the Acceptance
+ * Criteria items and the Slices section, each item with its continuation lines
+ * folded in (#7001). A lean with neither of the last two keeps the
+ * `hashBoundRemedyBytes` digest, so earlier arcs do not move, and a lean with
+ * no continuation line keeps its pre-fold digest.
+ */
+export function hashHarvestIdentity(body: string): string {
+  return harvestIdentity(body, true);
+}
+
+/**
+ * Harvest identity before continuation lines were folded (#7001): the identity
+ * audits recorded before that change carry, and the identity of a criteria-only
+ * record, whose item reader does not fold.
+ */
+export function hashHarvestIdentityPreFold(body: string): string {
+  return harvestIdentity(body, false);
 }
 
 const HARVEST_DIGEST_RE = /(?:^|\n)[ \t]*harvest-digest:[ \t]*([^\n]*)/gi;
@@ -343,9 +418,36 @@ export function leanUneditedSinceAudit(input: {
 }
 
 /**
+ * True when an audit's recorded `harvest-digest` is the lean's pre-fold
+ * identity and that audit still counts (#7001): the lean has never been edited
+ * (its REST `updated_at` equals its `created_at`) and the audit's REST
+ * `created_at` is strictly after the lean's `created_at`, so the audit read the
+ * only text the lean has had. An unreadable timestamp does not count. For a
+ * lean with no continuation line the pre-fold identity is the current identity,
+ * which the caller already compares.
+ */
+export function preFoldDigestAuditCounts(input: {
+  readonly recordedDigest: string;
+  readonly leanBody: string;
+  readonly leanCreatedAt?: unknown;
+  readonly leanUpdatedAt?: unknown;
+  readonly auditCreatedAt?: unknown;
+}): boolean {
+  if (input.recordedDigest !== hashHarvestIdentityPreFold(input.leanBody)) return false;
+  const created = readUtcInstant(input.leanCreatedAt);
+  const updated = readUtcInstant(input.leanUpdatedAt);
+  const audit = readUtcInstant(input.auditCreatedAt);
+  if (created === null || updated === null || audit === null) return false;
+  const unedited =
+    !instantIsStrictlyBefore(created, updated) && !instantIsStrictlyBefore(updated, created);
+  return unedited && instantIsStrictlyBefore(created, audit);
+}
+
+/**
  * An audit counts for a lean only when its recorded digest equals the lean's
- * current harvest identity. A digestless audit counts for a lean with no
- * Acceptance Criteria list and no Slices section (#6333 item 3). For a lean
+ * current harvest identity, or is the lean's pre-fold identity under
+ * `preFoldDigestAuditCounts` (#7001). A digestless audit counts for a lean with
+ * no Acceptance Criteria list and no Slices section (#6333 item 3). For a lean
  * with either, a digestless audit counts only when the lean's `updated_at` is
  * strictly before the audit's `created_at`, both from the REST rows of those
  * comments (#6477). A present but invalid digest line never counts.
@@ -355,6 +457,7 @@ export function auditCountsForLean(input: {
   readonly leanBody: string;
   readonly auditCreatedAt?: unknown;
   readonly leanUpdatedAt?: unknown;
+  readonly leanCreatedAt?: unknown;
 }): boolean {
   const carrier = extractOperativeHarvestDigest(input.auditBody);
   if (carrier === null) {
@@ -364,7 +467,17 @@ export function auditCountsForLean(input: {
       auditCreatedAt: input.auditCreatedAt,
     });
   }
-  return carrier.ok && carrier.digest === hashHarvestIdentity(input.leanBody);
+  if (!carrier.ok) return false;
+  return (
+    carrier.digest === hashHarvestIdentity(input.leanBody) ||
+    preFoldDigestAuditCounts({
+      recordedDigest: carrier.digest,
+      leanBody: input.leanBody,
+      leanCreatedAt: input.leanCreatedAt,
+      leanUpdatedAt: input.leanUpdatedAt,
+      auditCreatedAt: input.auditCreatedAt,
+    })
+  );
 }
 
 function commentCitesId(body: string, id: number): boolean {
@@ -425,6 +538,9 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
   const ordered = [...input.comments].sort((a, b) => a.id - b.id);
 
   let currentHarvestDigest: string | null = null;
+  // #7001: the successor lean each audit followed, which is the text it read.
+  let currentLean: ThreadCommentLike | null = null;
+  const leanBeforeAudit = new Map<number, ThreadCommentLike>();
   const targetingOnCitedHarvest: ThreadCommentLike[] = [];
   const priorHarvestChanging: ThreadCommentLike[] = [];
   let staleOnCitedHarvest = 0;
@@ -432,6 +548,7 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
   for (const comment of ordered) {
     if (input.isSuccessorLeanBody(comment.body)) {
       currentHarvestDigest = hashHarvestIdentity(comment.body);
+      currentLean = comment;
       continue;
     }
     if (!CRITIC_ROLE_RE.test(comment.body)) continue;
@@ -441,11 +558,26 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
     if (currentHarvestDigest === citedHarvestDigest) {
       // #6333: an audit that recorded another harvest digest audited an earlier
       // text of this lean; it is not on the cited harvest and does not count.
+      // #7001: the pre-fold identity of a never-edited lean is the same text.
+      // It is read against the lean the audit followed, not the cited lean, so
+      // a byte-identical repost does not turn an earlier audit stale.
+      const read = currentLean ?? cited;
       const recorded = extractOperativeHarvestDigest(comment.body);
-      if (recorded?.ok === true && recorded.digest !== citedHarvestDigest) {
+      if (
+        recorded?.ok === true &&
+        recorded.digest !== citedHarvestDigest &&
+        !preFoldDigestAuditCounts({
+          recordedDigest: recorded.digest,
+          leanBody: read.body,
+          leanCreatedAt: read.created_at,
+          leanUpdatedAt: read.updated_at,
+          auditCreatedAt: comment.created_at,
+        })
+      ) {
         staleOnCitedHarvest += 1;
         continue;
       }
+      leanBeforeAudit.set(comment.id, read);
       targetingOnCitedHarvest.push(comment);
       continue;
     }
@@ -551,14 +683,32 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
   // #6333 item 3: at least one targeting audit must count for this lean.
   const leanNeedsDigest = leanHasAcceptanceOrSlices(cited.body);
   if (leanNeedsDigest || targetingOnCitedHarvest.length > 0 || staleOnCitedHarvest > 0) {
-    const counting = targetingOnCitedHarvest.filter((audit) =>
-      auditCountsForLean({
-        auditBody: audit.body,
-        leanBody: cited.body,
-        auditCreatedAt: audit.created_at,
-        leanUpdatedAt: cited.updated_at,
-      }),
-    );
+    const counting = targetingOnCitedHarvest.filter((audit) => {
+      if (
+        auditCountsForLean({
+          auditBody: audit.body,
+          leanBody: cited.body,
+          auditCreatedAt: audit.created_at,
+          leanUpdatedAt: cited.updated_at,
+          leanCreatedAt: cited.created_at,
+        })
+      ) {
+        return true;
+      }
+      // #7001: a pre-fold digest is read against the lean the audit followed.
+      const read = leanBeforeAudit.get(audit.id) ?? cited;
+      const recorded = extractOperativeHarvestDigest(audit.body);
+      return (
+        recorded?.ok === true &&
+        preFoldDigestAuditCounts({
+          recordedDigest: recorded.digest,
+          leanBody: read.body,
+          leanCreatedAt: read.created_at,
+          leanUpdatedAt: read.updated_at,
+          auditCreatedAt: audit.created_at,
+        })
+      );
+    });
     if (counting.length === 0) {
       return {
         ok: false,
@@ -568,6 +718,9 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
           "; an audit counts only when its operative harvest-digest: line equals the lean's current harvest digest" +
           (leanNeedsDigest
             ? ", and this lean carries an Acceptance Criteria list or a Slices section so a digestless audit counts only when the lean's updated_at is strictly before the audit's created_at"
+            : "") +
+          (hashHarvestIdentityPreFold(cited.body) !== citedHarvestDigest
+            ? "; this lean has continuation lines, so an audit carrying its pre-fold digest counts only when the lean's updated_at equals its created_at and the audit's created_at is later"
             : "") +
           "; expected harvest-digest: sha256:" +
           citedHarvestDigest +

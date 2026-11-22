@@ -51,7 +51,6 @@ import {
   mintIssuePlanId,
   PLAN_ID_ORIGIN_META_KEY,
   provenanceIssueNumber,
-  RecutHarvestRefusedError,
   repairNonterminalIssuePlanIds,
   ScannerHardFailError,
   stripRenderedIssueHeader,
@@ -1542,7 +1541,7 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
     }
   });
 
-  it("refuses when the cited Recut lean has no Bound-remedy list", () => {
+  it("refuses when the cited Recut lean has no Bound-remedy list (unharvestable-lean, #7001)", () => {
     const root = mkdtempSync(join(tmpdir(), "ingest-4258-empty-"));
     const xbriefDir = join(root, "xbrief");
     mkdirSync(xbriefDir, { recursive: true });
@@ -1574,7 +1573,9 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
             scmCall: () => completed("[]", "", 0),
           },
         ),
-      ).toThrow(RecutHarvestRefusedError);
+      ).toThrow(
+        /design-critique unharvestable-lean \(cited lean 5587555346 cannot be harvested: cited successor lean has no Bound-remedy list/,
+      );
       expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -1750,7 +1751,7 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
     }
   });
 
-  it("refuses when Spec-path: is present and the Bound-remedy list is missing", () => {
+  it("refuses when Spec-path: is present and the Bound-remedy list is missing (unharvestable-lean, #7001)", () => {
     const root = mkdtempSync(join(tmpdir(), "ingest-4361-empty-spec-"));
     const xbriefDir = join(root, "xbrief");
     mkdirSync(xbriefDir, { recursive: true });
@@ -1782,7 +1783,9 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
             scmCall: () => completed("[]", "", 0),
           },
         ),
-      ).toThrow(RecutHarvestRefusedError);
+      ).toThrow(
+        /design-critique unharvestable-lean \(cited lean 5587555346 cannot be harvested: cited successor lean has no Bound-remedy list/,
+      );
       expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -3705,10 +3708,11 @@ describe("ingested briefs are launch-ready (#6333)", () => {
   it("refuses other harvest failures without writing a brief", () => {
     withRoot((root, xbriefDir) => {
       const bad = leanBody({ extra: "\n## Slices\n- slice-a: B9\n" });
-      const [result, path, message] = ingest(root, xbriefDir, issue(6338, "Body.", arc(bad)));
-      expect(result).toBe("refused");
-      expect(path).toBeNull();
-      expect(message).toContain("B9");
+      // #7001: a slice reference out of range is refused by the completed-arc reader.
+      expect(() => ingest(root, xbriefDir, issue(6338, "Body.", arc(bad)))).toThrow(
+        /unharvestable-lean .*B9/,
+      );
+      expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
     });
   });
 

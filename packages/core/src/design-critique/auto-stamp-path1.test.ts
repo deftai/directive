@@ -14,6 +14,7 @@ import {
   type ThreadComment,
 } from "./completed-arc-record.js";
 import { evaluateHandoffPrint } from "./handoff.js";
+import { hashHarvestIdentity } from "./pain-audit-follow-through-gate.js";
 
 const STOP1_ID = 5689610059;
 const LEAN_4589 = 5689732726;
@@ -51,7 +52,8 @@ function relievesLean(id: number): ThreadComment {
     id,
     body:
       plainEnglishBlock() +
-      "**Lean:** recut.\n\nSpec-path: next-build contract is not this body.\n\nrelieves: P1\n",
+      "**Lean:** recut.\n\nSpec-path: next-build contract is not this body.\n\nrelieves: P1\n\n" +
+      "## Bound remedy\n1. Fold the reader.\n",
   };
 }
 
@@ -544,5 +546,62 @@ describe("no-issue gate consumer / write-posture (#5486)", () => {
         },
       }),
     ).toEqual({ ok: true, entryPoint: "evaluateNoIssueGateAdmission" });
+  });
+});
+
+describe("path-1 refuses an unharvestable Spec-path lean (#7001)", () => {
+  // Synthetic GitHub PAT-shaped token: the quarantine scanner hard-fails on it.
+  const SECRET = `ghp_${"A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"}`;
+
+  function lean(sections: string, token = "Spec-path: next-build contract is not this body.\n\n") {
+    return {
+      id: LEAN_4590,
+      body: `${plainEnglishBlock()}**Lean:** recut.\n\n${token}relieves: P1\n\n${sections}`,
+    };
+  }
+
+  function path1(sections: string, token?: string) {
+    const bound = lean(sections, token);
+    return evaluateAutoStampPath1Write({
+      comments: [
+        stop1("pain: P1\n"),
+        bound,
+        {
+          id: LEAN_4590 + 1,
+          body:
+            "model: grok-4.6\nrole: critic\n\naudit-targets: pain-P1\n" +
+            "finding-classes: none\nharvest-changed: false\n" +
+            `harvest-digest: sha256:${hashHarvestIdentity(bound.body)}\n`,
+        },
+      ],
+      issueNumber: 4590,
+      plainEnglishSummary: PATH1_SUMMARY,
+    });
+  }
+
+  it("refuses an empty Bound remedy, a bad slice reference, a credential item and a Reject-only credential", () => {
+    for (const sections of [
+      "## Acceptance Criteria\n- Given x, then y.\n",
+      "## Bound remedy\n1. Limb.\n\n## Slices\n- slice-a: B9\n",
+      `## Bound remedy\n1. Use ${SECRET} here.\n`,
+      `## Bound remedy\n1. Limb.\n\n## Reject\n- Paste ${SECRET}.\n`,
+    ]) {
+      const verdict = path1(sections);
+      expect(verdict.writePath1).toBe(false);
+      expect(verdict.writeIngestReadyRemainingSet).toBe(false);
+      expect(verdict.candidate).toMatchObject({ status: "blocked", reason: "unharvestable-lean" });
+    }
+  });
+
+  it("allows a Spec-path lean whose item continues on indented lines", () => {
+    const verdict = path1(
+      "## Bound remedy\n1. Tests.\n   (a) In process.\n   (b) Through the seam.\n",
+    );
+    expect(verdict.writePath1).toBe(true);
+  });
+
+  it("does not check a lean without the Spec-path token", () => {
+    const verdict = path1("## Acceptance Criteria\n- Given x, then y.\n", "");
+    expect(verdict.writePath1).toBe(true);
   });
 });
