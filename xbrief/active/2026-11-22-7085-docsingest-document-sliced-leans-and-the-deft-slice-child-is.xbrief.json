@@ -1,0 +1,205 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7085",
+    "updated": "2026-11-22T20:32:33Z"
+  },
+  "plan": {
+    "title": "docs+ingest: document sliced leans and the deft-slice child-issue route; name it in the refusal",
+    "status": "running",
+    "narratives": {
+      "Description": "Document sliced leans and the deft-slice child-issue route in the design-critique contract, content/commands.md and the swarm/build skills, with a gh issue create recipe for each child issue. Make the ingest refusal for a fully sliced lean list the slice labels and the exact deft-slice line, so the next agent does not have to read the code.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7085",
+      "Overview": "## Problem\n\nWhen an accepted arc lean has a `## Slices` section, `issue:ingest` / `triage:accept` refuses the parent issue (\"every harvested item of the cited lean belongs to a slice label -- nothing written\"). The only route the code allows (#6333 item 6, `resolveSliceIngest` in `packages/core/src/intake/issue-ingest.ts`) is one child issue per slice whose body carries `deft-slice: #<parent> <label>`; each child ingests its slice from the parent's accepted lean and checks the Target-digest against the unedited parent body. None of this is described in `content/` or `docs/`, no verb creates slice issues, and the refusal does not name the remedy. A worker had to find it by reading the code (#7062, 2026-11-22).\n\n## Acceptance Criteria\n\n- [ ] The arc/ingest docs (design-critique contract or skill, and `content/commands.md` for `issue:ingest`) describe slices: when a lean should declare them, the `deft-slice: #<parent> <label>` child-issue line, that the parent body must stay unedited, and how briefs and PRs map to slices.\n- [ ] The ingest refusal for a fully sliced lean names the remedy: file one child issue per slice label with the exact `deft-slice:` line, and lists the slice labels found.\n- [ ] A verb (for example `deft issue:slice -- --parent <N> --label <label>`) or documented `gh issue create` recipe creates a correct child issue body from the lean's slice.\n- [ ] The swarm and build skills mention slices where they describe ingest.\n\nRefs #7062, #6333.\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As an agent ingesting an issue whose accepted lean has a Slices section, I want the docs and the ingest refusal to name the deft-slice child-issue route and give a recipe for each child issue, so that I can ingest each slice without reading the code.",
+      "ImplementationPlan": "1. content/contracts/design-critique.md: describe sliced leans: when a lean declares a `## Slices` section (`- <label>: B<n>, A<n>`), that each label is ingested by one child issue whose body carries the line `deft-slice: #<parent> <label>` outside code, that the parent body stays unedited (Target-digest), that unlabeled items stay with the parent, and that each slice gets its own brief and product PR (clause 1).\n2. content/commands.md: in the `issue:ingest` entry, describe the slice route and a `gh issue create --body-file` recipe for one child issue per slice label (clauses 1 and 3).\n3. packages/core/src/intake/spec-path-source.ts and issue-ingest.ts: the refusal for a fully sliced lean lists the slice labels and the exact `deft-slice: #<parent> <label>` line to put in each child issue; tests in spec-path-source.test.ts and issue-ingest.test.ts (clause 2).\n4. content/packs/skills/skills-pack-0.1.json, then `task packs:render`: swarm and build skill text mention slices where they describe ingest (clause 4).\n5. changelog.d/7085-sliced-leans.md: one fragment.",
+      "Traces": "#7085 Acceptance Criteria. Related: #7062 (first live slice use, children #7082 and #7083), #6333 item 6 (slice ingest route)."
+    },
+    "items": [
+      {
+        "title": "The arc/ingest docs (design-critique contract or skill, and `content/commands.md` for `issue:ingest`) describe slices: when a lean should declare them, the `deft-slice: #<parent> <label>` child-issue line, that the parent body must stay unedited, and how briefs and PRs map to slices.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given the design-critique contract and the issue:ingest entry in content/commands.md, then they describe when a lean declares Slices, the `deft-slice: #<parent> <label>` child line, the unedited parent body, and one brief and one PR per slice."
+        }
+      },
+      {
+        "title": "The ingest refusal for a fully sliced lean names the remedy: file one child issue per slice label with the exact `deft-slice:` line, and lists the slice labels found.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When issue:ingest runs on a parent whose accepted lean assigns every item to a slice, then it rejects the parent with a message that lists the slice labels and the exact `deft-slice: #<parent> <label>` line for each child issue."
+        }
+      },
+      {
+        "title": "A verb (for example `deft issue:slice -- --parent <N> --label <label>`) or documented `gh issue create` recipe creates a correct child issue body from the lean's slice.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a parent with an accepted sliced lean, then the documented `gh issue create` recipe creates a child issue whose body carries the correct `deft-slice:` line that issue:ingest accepts for that slice."
+        }
+      },
+      {
+        "title": "The swarm and build skills mention slices where they describe ingest.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the rendered swarm and build SKILL.md files, then the text where each skill describes ingest shows the slice route and points to the child-issue recipe."
+        }
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7085",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7085: docs+ingest: document sliced leans and the deft-slice child-issue route; name it in the refusal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7062",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7062"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (4), in order (#6333)",
+      "sentences": [
+        "The arc/ingest docs (design-critique contract or skill, and `content/commands.md` for `issue:ingest`) describe slices: when a lean should declare them, the `deft-slice: #<parent> <label>` child-issue line, that the parent body must stay unedited, and how briefs and PRs map to slices.",
+        "The ingest refusal for a fully sliced lean names the remedy: file one child issue per slice label with the exact `deft-slice:` line, and lists the slice labels found.",
+        "A verb (for example `deft issue:slice -- --parent <N> --label <label>`) or documented `gh issue create` recipe creates a correct child issue body from the lean's slice.",
+        "The swarm and build skills mention slices where they describe ingest."
+      ],
+      "admitted_source_sentences": [
+        "The arc/ingest docs (design-critique contract or skill, and `content/commands.md` for `issue:ingest`) describe slices: when a lean should declare them, the `deft-slice: #<parent> <label>` child-issue line, that the parent body must stay unedited, and how briefs and PRs map to slices.",
+        "The ingest refusal for a fully sliced lean names the remedy: file one child issue per slice label with the exact `deft-slice:` line, and lists the slice labels found.",
+        "A verb (for example `deft issue:slice -- --parent <N> --label <label>`) or documented `gh issue create` recipe creates a correct child issue body from the lean's slice.",
+        "The swarm and build skills mention slices where they describe ingest."
+      ],
+      "admitted_source_digest": "595ea2e961053045368e98b12db8cc6ceb21dce68ad417ae69d8e6c7d6fcc952",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The arc/ingest docs (design-critique contract or skill, and `content/commands.md` for `issue:ingest`) describe slices: when a lean should declare them, the `deft-slice: #<parent> <label>` child-issue line, that the parent body must stay unedited, and how briefs and PRs map to slices.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The ingest refusal for a fully sliced lean names the remedy: file one child issue per slice label with the exact `deft-slice:` line, and lists the slice labels found.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A verb (for example `deft issue:slice -- --parent <N> --label <label>`) or documented `gh issue create` recipe creates a correct child issue body from the lean's slice.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The swarm and build skills mention slices where they describe ingest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "arc: not warranted, because the work documents an existing mechanism (#6333 item 6, `resolveSliceIngest`), adds the remedy to one refusal message, and documents a `gh issue create` recipe for child issues. No new verb, gate or data shape, so there is no design fork to critique. Acceptance comes from the issue body's Acceptance Criteria list.\n\n",
+          "id": 7085301103,
+          "html_url": "https://github.com/deftai/directive/issues/7085#issuecomment-7085301103",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T20:29:11Z",
+          "updated_at": "2026-11-22T20:29:11Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6547355899,
+        "origin": "deftai/directive#7085",
+        "id": "github.issue.6547355899"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/commands.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/spec-path-source.ts",
+          "packages/core/src/intake/spec-path-source.test.ts",
+          "changelog.d/7085-sliced-leans.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6547355899.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/intake/spec-path-source.test.ts packages/core/src/intake/issue-ingest.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "design-critique contract describes sliced leans: when to declare a Slices section, the deft-slice child-issue line, the unedited parent body, and brief/PR mapping per slice",
+          "content/commands.md issue:ingest entry describes the slice route and a gh issue create recipe for one child issue per slice label",
+          "the ingest refusal for a fully sliced lean lists the slice labels and the exact deft-slice line to put in each child issue",
+          "swarm and build skill text (pack source plus rendered SKILL.md) mention slices where they describe ingest",
+          "one changelog fragment changelog.d/7085-sliced-leans.md"
+        ],
+        "conflict_group": "issue-ingest",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 4 clauses are the 4 Acceptance Criteria items of issue #7085, ingested after a recorded not-warranted arc decision (comment 7085301103)."
+      },
+      "kind": "story"
+    },
+    "id": "github.issue.6547355899",
+    "updated": "2026-11-22T20:32:33Z"
+  }
+}
