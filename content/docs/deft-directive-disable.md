@@ -100,7 +100,7 @@ A shell command whose text names either flag file is refused unless one of the r
 
 Names built at run time (variables, `sed`, `base64`) are not detected: a known limit.
 
-To edit a scratch file whose text names a flag, use the Edit or Write tool. Those tools check the target's name, not its contents; other write checks still apply.
+To edit a scratch file whose text names a flag, use the Edit or Write tool. Those tools check the target's name, not its contents; other write checks still apply. A shell refusal of this rule says so too.
 
 Related: `policy:allow-bot-merge`, `policy:allow-direct-commits`, and `policy:disable-directive` (peers) are settings under UAT and require a human grant.
 
