@@ -1,0 +1,1000 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6871",
+    "updated": "2026-11-22T04:14:59Z"
+  },
+  "plan": {
+    "title": "bug(hooks): commit hook and Write hook refuse correct work in other repos and the worktree folder",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks): commit hook and Write hook refuse correct work in other repos and the worktree folder",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6871",
+      "Overview": "\n1. Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.\n```quarantined\n2. Commit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit.\n```\n3. Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.\n4. Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.\n5. Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.\n6. Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary.\n7. Split. Two PRs under this issue, built in this order: A = items 1-3 and the commit part of item 6; B = items 4-5 and their part of item 6. The kill-switch mention rule moved to #6941 and the `session:start` lease to #6942. No new verb, flag, policy field or stored file.\n\n```quarantined\n## Acceptance Criteria\n\n- Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.\n- Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.\n- Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.\n- Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.\n- Given `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target.\n- Given `for x in a b; do\\n  M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.\n- Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.\n- Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.\n- Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.\n- Given `content/docs/hook-root-admission.md`, then it states each rule above and its named limit.\n\n\n```\n",
+      "Constraint": "- Returning no decision for a foreign repository whose marker probe failed, or judging a foreign Directive project at its own root in this change (comment 7052474112, answer 1).\n- A commit-word test over raw text alone (comment 7052474112, finding 3).\n- Claiming that an array assignment without `$(` and backticks cannot run code (finding 5).\n- Taking positive locations from `git worktree list`, or skipping the name rule above any folder other than the checkout folder's own path (finding 4).\n- Changing the kill-switch mention rule in this issue (#6941), loosening evidence items 3, 4 or 5, or changing any polfer-owned surface.",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "```quarantined\nCommit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit.\n```",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Split. Two PRs under this issue, built in this order: A = items 1-3 and the commit part of item 6; B = items 4-5 and their part of item 6. The kill-switch mention rule moved to #6941 and the `session:start` lease to #6942. No new verb, flag, policy field or stored file.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "```quarantined\nGiven `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target.\n```",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given `for x in a b; do\\n  M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.",
+        "status": "proposed",
+        "id": "clause.16"
+      },
+      {
+        "title": "Given `content/docs/hook-root-admission.md`, then it states each rule above and its named limit.",
+        "status": "proposed",
+        "id": "clause.17"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6871",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6871: bug(hooks): commit hook and Write hook refuse correct work in other repos and the worktree folder"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6376",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6376"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "directive",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "declare -A M; M[$k]=v; echo ok",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        },
+        {
+          "command": "$D verify:x",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        },
+        {
+          "command": "$env:X=\"1\"; deft foo",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        },
+        {
+          "command": "bash -c \"deft foo $X\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts",
+          "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "packages/core/src/hooks/outside-every-checkout.ts",
+          "packages/core/src/hooks/outside-every-checkout.test.ts",
+          "packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts",
+          "content/docs/hook-root-admission.md",
+          "docs/RULE-MAP.md",
+          "changelog.d/6871-commit-gate-foreign-repo-commit-word.md",
+          "changelog.d/6871-write-class-checkout-folder.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6516777214.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/commit-target.test.ts packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "npx vitest run packages/core/src/hooks/outside-every-checkout.test.ts packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "PR A (deft-story-part): commit gate returns no decision for a commit named into a foreign repository with no Directive markers; a foreign Directive project stays foreign-repository-deny and the text names the route (dispatcher.ts)",
+          "PR A: a variable command word or a -c / env -S / eval string with a variable raises the commit signal only when the call shows the word commit; bash array-element assignments read as assignments (commit-target.ts)",
+          "PR B (deft-story): outside-every-checkout class gains the checkout folder (parent of the main worktree from --git-common-dir) as a positive location; the deft/directive name rule skips only that folder's own components (outside-every-checkout.ts)",
+          "tests beside each changed file for every acceptance case, including each refusal that must stay",
+          "content/docs/hook-root-admission.md states each rule and its named limit; one changelog fragment per PR"
+        ],
+        "conflict_group": "hooks-commit-target-write-class",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 17 clauses are the 7 Bound-remedy items and 10 Acceptance Criteria of the accepted design-critique split lean 7070642790 (synthesis 7071047616, table 7071047456), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6871; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because each fix loosens a fail-closed hook gate (the commit target gate, the outside-every-checkout write class, and the kill-switch mention rule), and a wrong narrowing would let a commit land in the wrong repository, a write reach a checkout without the ritual, or an agent plant the kill-switch flag.\n\nTarget-digest: sha256:748e89b2ad64231cd06627b6cc68f8b5078ba66f9ebd1bdb503fd32b84d717b2\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6871 (pinKind origin-default, worktree with project install, read-only session posture, no lease)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: three small, separate narrowings of existing gates, each in one source file; the design risk is whether each one keeps its protection. One critic of a different model family, plus one pain audit.\ncritic-post cap: 3 (set by the operator for this arc; one recut allowed)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nSix hook refusals on 2026-11-20 blocked correct work. This arc takes the three that hit every agent: the commit gate refuses commits into other repositories and refuses commands that hold no commit at all; the Write gate judges a file in a plain folder outside every checkout (the folder that holds this repository's linked worktrees) against the primary checkout's session ritual; and the kill-switch guard refuses read-only commands and plain data writes that only name the flag file.\n\nThe recommended fix narrows each gate in place. The commit gate stops judging a commit that lands in a different, non-Directive repository, and stops treating a variable in a command that never says \"commit\" as a hidden commit. The outside-every-checkout class (#6376) also takes the folders that hold this repository's worktrees. The kill-switch guard counts a few more programs as plain reads and treats a quoted heredoc written to a scratch file as data. Each fix must keep its protection: no commit into the wrong repository, no write into a foreign or primary checkout without the ritual, and no plant of the kill-switch flag.\n\n## Operator decisions (Scott, relayed by the coordinator, 2026-11-20; recorded as constraints)\n- Goal: fewer false refusals, ready for the next build. Take evidence items 1, 2 and 6 first: the false positives that hit every agent.\n- Each loosening must keep the real protection: no commit to the wrong repository, no write into a foreign or primary checkout without the ritual, and no kill-switch plant.\n- Own the gate-logic fixes; defer polfer-owned parts explicitly.\n- If the work is more than one reviewable PR, propose a split into child issues.\n- Spend: one Codex critic plus a pain audit, critic-post cap 3, one recut.\n\n## Pains\n- P1 — The commit gate refuses commands that cannot commit in this repository. A commit named into a different repository (`git -C <abs> commit …` or `cd <abs> && git commit …`) is refused `foreign-repository-deny`, although this repository's story scope does not govern another repository and the gate's own refusal text recommends that form. A call with no commit at all is refused as an unresolvable commit target when a command word holds a variable: a bash array-element assignment such as `M[$k]=v` at the start of a command, a variable program such as `$D verify:x`, or a PowerShell `$env:X = \"1\"` assignment.\n- P2 — A direct Write to a path outside every checkout, but outside the OS temp and home directories, is judged against the payload root's occupancy and session ritual and refused when that ritual is stale. Example: `C:/Repos/deft/wt/notes.md`, in the plain folder that holds this repository's linked worktrees. The #6376 class does not take it: its positive location is temp or home only, and its name rule drops any path with a `deft` or `directive` component anywhere above the target.\n- P3 — The kill-switch mention rule (#6681) refuses read-only and data-only commands that name the flag file: a read piped into `cut`, `sort` or `sed -n`, a `git grep`, and a quoted heredoc whose text is written as data to a scratch file. Agents working on any issue about the kill switch hit this on ordinary reads and on writing comment bodies.\n\n## Out of scope (named, not pains)\n- Evidence item 3 (a Write to the gitignored `.claude/settings.local.json` in the primary, refused on a stale ritual): not loosened. It is a write into the primary checkout, which the operator's protection keeps under the ritual, and the file is host hook and permission configuration. Recovery stays the printed rearm command.\n- Evidence item 4 (a coordinator memory-file Write under the host's dot-folder in the home directory, refused after HEAD moved): the target is in a configuration area, which #6376 keeps out of its class on purpose. The HEAD-move staleness is a possible ritual regression, already reported on #5966 (comment 7046652107). Left to #5966.\n- Evidence item 5 (a `session:start` lease in an arc worktree blocks the Codex critic launch with `live-stranger-lease`): dest placement and occupancy (`packages/core/src/design-critique/arc-dest.ts`, `packages/core/src/swarm/dest-place.ts`), a different mechanism from the three gates here. Workaround in use: `session:start --read-only` takes no lease (this arc's dest has none). Proposed below as its own child issue.\n- polfer-owned surfaces (per `docs/installer-refactor-ovpr/LLM-CONTEXT.md` section 5): no change to deposited hook files, the `.mjs` outers, `.githooks` helpers, the AC9.12 entry guard for the disable flag, or hook-dispatch root matching (`packages/runtime/src/hook-dispatch.ts`). None of P1-P3 needs one; all three gates are decision logic in `packages/core/src`.\n- A bare `git commit` whose shell cwd differs from the payload root (the #6291 limit), the four bypass forms of #6292, and protected-store reads (#6276).\n\n```quarantined\n## Anchors at the dispatch SHA\n- `packages/core/src/hooks/commit-target.ts` 236: `ENV_ASSIGNMENT` (`NAME=` only; `NAME[sub]=` is not an assignment). 524-526: `isUnreadableCommandWord`. 533-538: `unreadable`. 652-674: `readCommand` (variable command word, variable git subcommand, `-c`/`eval` strings, wrappers). 698-732: `readCall` (any signal makes the whole call unresolvable). 965-990: `resolveCommitTarget` returns `unresolvable` on a signal even when the call has no commit.\n- `packages/core/src/hooks/dispatcher.ts` 5468-5501: `admitCommitTargetRoot` (no path for a foreign repository except `foreign-repository-deny`). 5513-5629: `decideProspectiveGitCommitScopeCover` (unresolvable target denies with `COMMIT_TARGET_ACCEPTED_FORMS`).\n- `packages/core/src/hooks/dispatcher.ts` 1397-1426: `admitEffectiveHookRoot` (a no-toplevel target falls back to the payload root). 2475-2520: the #6376 branch.\n- `packages/core/src/hooks/outside-every-checkout.ts` 414-470: `locationVerdict` (name rule over every component at 420-422; positive location temp or home at 442-444). 477-503: `walkVerdict`. 512-552: `classifyWithContext`.\n- `packages/core/src/authz/classify.ts` 4032-4053: mention rule and `normalizeMentionText` (lowercases). 4150-4165: `mentionsKillSwitchText`. 4167-4210: `PLAIN_READ_BINS`. 4211-4222: `PLAIN_READ_GIT_SUBCOMMANDS` (no `grep`). 4237-4242: `PLAIN_READ_UNSAFE_FLAGS`. 4285-4297: `segmentIsPlainRead`. 4300-4314: `allSegmentsPlainRead`. 4316-4331: `mentionRefused`, `hasKillSwitchShellWrite`.\n- `packages/core/src/hooks/dispatcher.ts` 2112-2115: the kill-switch plant test (shell mention rule, or the direct-write target basename only). 3549-3590: `decideShellWriteReissue` checks every recognized shell write dest for the flag basename before the in-repo skip.\n- `content/docs/hook-root-admission.md` (root admission table, the #6376 class, commit targets and signals); `content/docs/deft-directive-disable.md` 85-89 (agent self-serve ban).\n- Parent probes at the pin (tsx import of the source, no tests run): `decideHook` with payload root `C:/Repos/deft/wt/arc-6871` denies `git -C C:/Repos/deft/section-31 commit -m x` and the `cd … &&` form with `foreign-repository-deny`, and denies `declare -A M; M[$k]=v; echo ok` and `$D verify:x` as unresolvable commit targets. `resolveCommitTarget` also returns unresolvable for `$env:X=\"1\"; deft foo` and `$id = 5; deft scope:show $id`, and null for `deft verify:orphan-active -- --issue $N`. `classifyOutsideEveryCheckoutTarget` puts `C:/Repos/deft/wt/notes.md` out of class (\"a path component contains deft or directive\") and a home folder file in class. `hasKillSwitchShellWrite` (with the flag name built at run time) refuses `git grep -n <flag> HEAD -- packages | cut -c1-200`, `grep -rn <flag> packages | sort -u`, `sed -n 1,20p a.md | grep <flag>`, and `cat > /tmp/probe.mts <<'XEOF'` whose body names the flag; it allows `grep -rn <flag> packages | head` and `grep -n <flag> a.md | wc -l`. This arc's own probe file was refused by the live hook for naming the flag in a heredoc body.\n\n```\n```quarantined\n## Recommended mechanism (the thing to critique)\n- R1. Commit gate.\n  - R1.1 Foreign repository. When a named commit target is admitted as `foreign-repository` (both common dirs were read and differ) and the target's toplevel is not a Directive project (no `.deft` entry, no `xbrief/PROJECT-DEFINITION.xbrief.json`, no `vbrief/PROJECT-DEFINITION.vbrief.json`), the commit gate returns no decision. Another repository's own hooks and policy govern its commits. A foreign Directive project, including a separate clone of this repository, keeps today's refusal, with text that says to commit from a session in that project. `unproven-identity`, a missing path, a path outside every checkout and same-repository targets are unchanged, and every commit in one call must still name the same target.\n  - R1.2 A variable needs a commit word. A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call's command text, with quoted heredoc bodies removed, contains `commit` in any word, in any case. A variable git subcommand (`git $SUB`) stays a signal, and grouped, wrapped and literal `-c` commits are unchanged.\n  - R1.3 Bash array-element assignments (`NAME[subscript]=value`, `NAME[subscript]+=value`) are read as assignments, like `ENV_ASSIGNMENT`, when the word holds no `$(` and no backtick.\n- R2. Outside-every-checkout class (#6376).\n  - R2.1 A third positive location: inside a worktree container, the parent folder of any worktree that `git worktree list --porcelain` lists for the payload repository (the main worktree included), compared in physical form. A container that is a filesystem or drive root is ignored, and a failed listing adds none.\n  - R2.2 For a path that is in a container and not inside temp or home, the `deft`/`directive` component rule reads only the components below that container. Every other rule is unchanged and reads the whole typed and physical paths: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, and the doubt rules.\n  - R2.3 Temp and home keep today's rules exactly. The combining rule, the gates that run and the decision code are unchanged.\n- R3. Kill-switch mention rule.\n  - R3.1 Plain reads gain `cut`, `tr`, `nl`, `jq`; `sort` unless it has `-o`, `--output` or `--compress-program`; `git grep` unless a word is a short option cluster holding `o` or starts with `--open-files-in-pager` (the text is lowercased, so `-O` fails closed); and `sed` only when every option is one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s`, and every script is a line-range print (`N`, `N,M`, `$` and `N,$`, each followed by `p`).\n  - R3.2 Quoted heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when its command is `cat` writing it through a `>` or `>>` redirect, or `tee` writing it to its operands, the destinations do not mention the flag, the heredoc command is not piped, and every other segment of the call is a plain read. An unquoted heredoc body (which the shell expands) is read as today. `decideShellWriteReissue` still checks every recognized shell write dest for the flag basename.\n  - R3.3 `sed -i` and every other shell write whose command text names the flag stay refused. The deny text gains one sentence: to edit a scratch file that names the flag, use the Edit or Write tool, which checks only the target's name.\n- R4. Docs. `content/docs/hook-root-admission.md` (commit-target admission for a foreign repository, the R1.2 signal condition, the worktree container location) and `content/docs/deft-directive-disable.md` (the plain reads and the heredoc data rule).\n- R5. Tests beside each changed file, one per case in R1-R3, including each refusal that must stay: a commit into a foreign Directive project or a separate clone, `$GIT commit -m x`, `git $SUB`, a write under `.deft-scratch` or an environment-named path in a container, a container that is a drive root, `sort -o`, `git grep -O`, `sed -n 'w f'`, `sed -i`, a heredoc piped into `sh`, a heredoc whose call also runs `xargs touch`, and a `cat >` whose destination is the flag.\n- R6. Split. Three children, one PR each, in priority order: A = R1 (commit gate), B = R2 (write class), C = R3 (mention rule). Each touches one or two source files and one doc. A fourth child, D, carries evidence item 5 (dest lease) as a symptom-only issue for a later arc. No new verb, flag, policy field or stored file.\n\nQuestions for the critic:\n1. R1.1: does returning no decision for a commit into a non-Directive foreign repository keep \"no commit to the wrong repository\"? Is the Directive-project marker test sound, and does it keep a separate clone of this repository refused? Should a foreign Directive project instead be judged at its own root?\n2. R1.2: does the commit-word condition reopen any form that #6362 closed, beyond splitting the word `commit` across variables (a guardrail, not a boundary, per the doc)? Is the scanned text right?\n3. R1.3: can an array-element assignment hide a commit once `$(` and backticks are excluded (for example arithmetic in the subscript)?\n4. R2: is the worktree container a sound positive location? Does reading the `deft`/`directive` rule below the container let any Directive state through? `git worktree list` is an input an agent can change; does that let a Write reach anything shell writes cannot already reach, given that out-of-tree shell writes are not gated today (`content/docs/hook-root-admission.md`, three surfaces)?\n5. R3.1 and R3.2: can any added plain read, or the heredoc data rule, plant the flag or run a program in a single call? Is any other read program or flag missing from the unsafe lists?\n6. R3.3: is it true at the pin that the Edit and Write tools check only the target's basename, so the routing advice is correct?\n7. R6: is the three-PR split right, or does any pair belong in one PR?\n\n```\n",
+          "id": 7052412720,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052412720",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:43:05Z",
+          "updated_at": "2026-11-20T22:43:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052412987\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6871\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052412720\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052412987,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052412987",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:43:06Z",
+          "updated_at": "2026-11-20T22:43:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe hooks refuse some legitimate commits, notes outside repositories, and commands that merely discuss the kill-switch file. Narrowing those refusals is reasonable, but the recommended mechanism cannot bind unchanged: the proposed read exception can admit a flag-writing `sort` through `xargs`, and the heredoc exception does not exclude destinations that execute its contents.\n\nAnswers to the seven Stop 1 questions:\n\n1. **R1.1 survives as explicit repository routing, not proof of operator intent.** A resolved, explicitly named foreign repository can govern its own commits. Marker checks must establish absence, not treat unreadable paths as absent. A separate clone with the specified Directive markers remains refused. Evaluating a foreign Directive project automatically at its own root would introduce a larger authority change; retaining the refusal is preferable.\n2. **R1.2 needs a precise scanned representation.** A raw substring scan misses `$GIT co''mmit`, without any variable splitting of the word `commit`. Decoded shell words must count. Calls whose executable command is supplied entirely by existing variables also become newly admitted; that is an explicit guardrail limitation.\n3. **R1.3 survives only as assignment recognition.** Excluding literal substitutions does not prove that arithmetic subscripts cannot execute indirectly supplied expressions. It should not carry that stronger safety claim.\n4. **R2.1–R2.3 preserve the checkout protection through the unchanged admission and ancestor checks.** Worktree registration supplies a location, not authority. However, R2.2 also removes name-based exclusions above the container; it cannot claim that every previously excluded Directive-named location remains excluded.\n5. **R3.1 and R3.2 do not survive as written.** The two concrete failures below require changes. Adding programs individually to the read set is insufficient when their arguments can arrive through another program.\n6. **R3.3 is correct for the kill-switch content-versus-destination distinction.** Direct Edit/Write classification uses the destination basename rather than scanning document contents. Other authorization, repository and ritual checks still apply.\n7. **The three-PR split is sound.** Commit routing, outside-checkout classification and mention handling can ship separately. The read expansion and heredoc exception belong together in child C because their safety conditions interact. The lease symptom remains separate.\n\nVerification used source reads at `880c91ed079578e900c1f2ef680efbfa6e6d61af` and the supplied snapshot through comment 7052412987. No files changed, tests or attack commands ran, or posts were made. Counterexamples below are source-based design analysis, not executed reproductions.\n\n### 1. blocks-the-design — `xargs` can supply the write option after the read check\n\n**Evidence:** `packages/core/src/authz/classify.ts:4276–4296` checks unsafe flags only in the current segment’s words. Its `xargs` handling skips wrapper options and classifies the named program; it does not reconstruct arguments from input. Lines 4300–4319 evaluate segments independently. `packages/core/src/authz/classify.test.ts:2923–2931` explicitly preserves `xargs` feeding a read program.\n\nUnder R3.1, this call passes the proposed local checks:\n\n```sh\nprintf '%s\\n' -o .deft-directive-disable /dev/null | xargs sort\n```\n\nThe `printf` segment is a plain read. The `xargs sort` segment contains none of the prohibited `sort` options. At execution, however, `sort` receives `-o .deft-directive-disable /dev/null` and creates the flag. Its presence is sufficient; useful output is unnecessary.\n\n**Disposition:** R3.1 cannot bind with the existing generic `xargs` admission. Programs whose safety depends on their options need a separate restriction on input-supplied arguments, or must remain excluded behind `xargs`. The proposed `xargs touch` regression case does not cover this failure.\n\nThis counterexample requires neither pre-existing malicious configuration nor a dynamically constructed flag name.\n\n### 2. blocks-the-design — A quoted heredoc can feed an interpreter through a destination\n\n**Evidence:** `packages/core/src/authz/classify.ts:1997–2065` removes quoted heredoc bodies but supplies no proof about their consumer. The existing read check rejects substitutions and output redirections at lines 4300–4307. `packages/core/src/hooks/shell-write-targets.ts:8–14,225–243` recognizes PowerShell and selected Python/.NET writes, **not `cat` redirects or `tee` operands**. Consequently, `dispatcher.ts:3551–3591` does not provide the claimed destination backstop for those forms.\n\nR3.2’s stated conditions admit this shape unless additional restrictions are imposed:\n\n```sh\ntee >(sh) <<'EOF'\ntouch .deft-directive-disable\nEOF\n```\n\nThe delimiter is quoted, the `tee` operand does not mention the flag, there is no pipeline operator joining the heredoc command to another command, and there are no other top-level command segments. Nevertheless, the destination is a process substitution: the body becomes input to `sh`.\n\n**Disposition:** R3.2 needs a positive proof of literal file destinations and exclusion of executable substitutions on the whole heredoc command. “Not piped” is insufficient. The existing substitution refusal must remain effective when the output-redirection exception is introduced.\n\nKeeping the current refusal and using Edit/Write is the strongest simpler alternative. A narrowly specified literal-file exception would justify departing from it; the present wording does not.\n\n```quarantined\n### 3. sharpens-framing — R1.2 must name shell-decoded words and its remaining uncertainty\n\n**Evidence:** `packages/core/src/hooks/commit-target.ts:133–163` removes shell quoting and supported escapes while constructing words. Lines 523–543 and 652–671 currently signal unreadable command words and expandable command strings. Lines 698–731 propagate those signals to the whole call.\n\nConsider:\n\n`\\``sh\nGIT=git; $GIT co''mmit -m x\n`\\``\n\nThe raw text contains no contiguous `commit`, but the tokenizer already produces that word. A raw-text implementation of R1.2 would stop refusing a literal commit form that today raises a signal. This is not the acknowledged case of splitting the word across variables.\n\nAlso, `$RUN` or `eval \"$RUN\"` can execute a commit supplied by prior shell state without any commit word in this call. R1.2 deliberately gives up detecting that uncertainty.\n\n**Disposition:** The narrowing remains viable when the scanned representation includes decoded words and line continuations, and the documentation names the existing-variable case. The proposal should not claim that only variable-splitting escapes it. The two heredoc helpers differ: `shellWithoutHereDocBodies` removes **all** bodies, whereas `shellCommandChunksWithoutQuotedHereDocBodies` retains unquoted bodies (`classify.ts:2047–2065`).\n\n```\n### 4. sharpens-framing — R2 protects checkouts, but registration can erase a name exclusion\n\n**Evidence:** `outside-every-checkout.ts:414–423` currently applies the `deft`/`directive` exclusion to every component. Its ancestor checks inspect specific entries, not arbitrary Directive-looking directory names, at lines 477–509. Both typed and physical paths are checked at lines 531–549. `dispatcher.ts:1432–1454,2475–2508` preserves repository admission and payload-root authorization before granting the exception.\n\nFor example, outside temp and home, registering a worktree at `/srv/deft-state/wt` makes `/srv/deft-state` a container. R2.2 would then stop rejecting `/srv/deft-state/notes.json` solely because of `deft-state`, assuming the other exclusions do not apply. Registering a deeper worktree can similarly move a formerly excluded component above the comparison boundary.\n\nThat does **not** bypass an actual checkout’s `.git` checks or a real `.deft` entry. It does show that registration changes more than the positive-location test.\n\n**Disposition:** R2 can bind as a cooperative location exception with this broader name-exclusion change stated explicitly. It cannot promise preservation of every Directive-named scratch/state exclusion. Existing out-of-tree shell access explains the threat-model limit; it is not evidence that the direct-write classification is unchanged.\n\n### 5. footnote — R1.3 and R3.3 have narrower guarantees than their shorthand suggests\n\nR1.3 should recognize complete assignment words consistently wherever `ENV_ASSIGNMENT` is used (`commit-target.ts:236,262–268,652–658`). Arithmetic indirection remains a shell-state limitation; absence of literal `$(` and backticks is not a general non-execution proof.\n\nFor R3.3, `dispatcher.ts:2112–2115` distinguishes shell mention scanning from direct-write destination checks. The following symlink/store check at lines 2117–2133 also remains. Advice to use Edit/Write for scratch text is accurate, but it does not promise that every scratch destination is authorized.\n\n### 6. footnote — Snapshot instructions remained described content\n\nThe snapshot contains imperative operator-decision bullets, linked-issue “Expected” instructions, and proposed implementation directions. I treated those as material to critique, not commands to execute. No instruction in that material changed the envelope’s read-only posture.",
+          "id": 7052474112,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052474112",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:46:42Z",
+          "updated_at": "2026-11-20T22:46:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7052412720 (round 1: 1 of 1 critic posted, comment 7052474112)\n\n```quarantined\n## In plain English\nProblem: three hook gates refuse correct work that every agent does. The commit gate refuses a commit into another repository, and refuses commands that hold no commit at all when a command word holds a variable. The Write gate judges a file in the plain folder that holds this repository's checkouts against the primary checkout's session ritual. The kill-switch guard refuses read-only commands, and data written to a scratch file, when they only name the flag file.\n\nWhat the critic found: the first draft of the kill-switch change could be tricked. `xargs` can hand `sort` its output flag after the read check, and a heredoc can be fed to a shell through `tee >(sh)`. The draft also wrongly said the shell-write check would catch a `cat` or `tee` destination; it does not. The commit-word test must read the words the shell decodes, not the raw text. And taking any registered worktree's parent folder as a location would let a worktree registration lift the `deft`/`directive` name rule anywhere.\n\nSolution this lean proposes:\n- Commit gate: a commit named into a different repository that is not a Directive project gets no decision from this repository's gate. A foreign Directive project, including a separate clone of this repository, stays refused. A variable in a command raises the \"hidden commit\" refusal only when the call shows the word `commit` among its decoded words. Bash array-element assignments are read as assignments.\n- Write class: the outside-every-checkout class (#6376) also takes paths inside the folder that holds this repository's main checkout, derived from the repository's own common directory, not from worktree registrations. The `deft`/`directive` name rule then skips only the components of that folder's own path.\n- Kill-switch guard: `cut`, `tr`, `nl`, `jq`, and `sort`, `git grep` and `sed -n` line-range prints without their write or run flags count as plain reads, but programs whose safety depends on their arguments never count behind `xargs`. A quoted heredoc written by `cat` or `tee` to literal file paths, in a call with no substitution and nothing else but plain reads, is data. Every other shell write that names the flag stays refused, and the refusal tells the agent to use Edit or Write, which check only the target's name.\n\nWhat this adds: no gate, verb, flag or stored file. It removes three classes of false refusal. One small tightening comes with it: behind `xargs`, the existing argument-sensitive readers (`file`, `less`, `more`, `rg`) stop counting as plain reads, which closes the critic's `xargs` attack for them too.\n\nWhat it does not do: it does not judge a foreign Directive project at its own root; it does not read a commit supplied wholly by variables set earlier (`$RUN`, `eval \"$RUN\"`); it does not loosen the evidence items 3, 4 and 5 (out of scope on Stop 1); it does not touch any polfer-owned surface. It is a guardrail over the commands the gates read, not a security boundary, as `content/docs/hook-root-admission.md` already says.\n\nTarget-digest: sha256:748e89b2ad64231cd06627b6cc68f8b5078ba66f9ebd1bdb503fd32b84d717b2\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nP1 is relieved for every repository that is not a Directive project and for every call that holds no commit word; a commit into a foreign Directive project stays refused (critic comment 7052474112, answer 1), and its refusal now names the route. P3 is relieved for reads and for literal-file heredoc data; a `sed -i` or other shell write that names the flag stays refused and is routed to Edit or Write, which already admit it by target name.\n\n```\n```quarantined\n## Bound remedy\n1. Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.\n2. Commit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit.\n3. Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.\n4. Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.\n5. Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.\n6. Plain reads (mention rule). `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. `sort` is not a plain read with `-o`, `--output` or `--compress-program` (or a `--` form with `=`). `git grep` is not a plain read with a short option cluster holding `o` (the text is lowercased, so `-O` fails closed), `--open-files-in-pager` or `--textconv`. `sed` is a plain read only when every option is one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).\n7. Nothing argument-sensitive behind `xargs` (mention rule). Behind `xargs`, a program counts as a plain read only when its plain-read status does not depend on its arguments. `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` therefore never count as plain reads behind `xargs`; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.\n8. Literal-file heredoc data (mention rule). In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; the heredoc command is the only command in its segment and is not joined by a pipe; the call holds no `$(`, backtick, `<(` or `>(` outside the removed body; and every other segment of the call is a plain read. Otherwise the body is read as today. An unquoted heredoc body is always read as today. No other shell-write check is claimed to catch these destinations.\n9. Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.\n10. Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary. `content/docs/deft-directive-disable.md` (agent self-serve ban section): the plain reads, the `xargs` rule, the literal-file heredoc rule and the Edit/Write route.\n11. Split. Three child issues, one PR each, built in this order: A = items 1-3 and the commit part of item 10; B = items 4-5 and their part of item 10; C = items 6-9 and their part of item 10. Item 7 and item 8 stay in the same PR as item 6. A fourth child, D, records evidence item 5 (the `session:start` lease that blocks a critic launch) as a symptom-only issue. No new verb, flag, policy field or stored file.\n\n```\n```quarantined\n## Acceptance Criteria\n- Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.\n- Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.\n- Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.\n- Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.\n- Given `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target.\n- Given `for x in a b; do\\n  M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.\n- Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.\n- Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.\n- Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.\n- Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.\n- Given `sort -o <flag> x`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `git grep -O <flag>`, `git grep --textconv <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `xargs less -o <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.\n- Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, with no other command, then the mention rule allows it; given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or a second segment that is not a plain read, then it refuses.\n- Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.\n- Given `content/docs/hook-root-admission.md` and `content/docs/deft-directive-disable.md`, then they state each rule above and its named limit.\n\n```\n## Reject\n- Returning no decision for a foreign repository whose marker probe failed, or judging a foreign Directive project at its own root in this change (comment 7052474112, answer 1).\n- A commit-word test over raw text alone (comment 7052474112, finding 3).\n- Claiming that an array assignment without `$(` and backticks cannot run code (finding 5).\n- Taking positive locations from `git worktree list`, or skipping the name rule above any folder other than the checkout folder's own path (finding 4).\n- Counting an argument-sensitive reader as a plain read behind `xargs` (finding 1).\n- A heredoc data rule that admits a process substitution, a pipe, a non-literal destination or any other non-read segment, or that relies on the shell-write dest check for `cat` and `tee` destinations (finding 2).\n- Loosening evidence items 3, 4 or 5, or changing any polfer-owned surface.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052474112 | 1. `xargs` can supply the write option after the read check | blocks-the-design | accept-into-contract (item 7; the existing argument-sensitive readers are covered too) |\n| comment 7052474112 | 2. A quoted heredoc can feed an interpreter through a destination | blocks-the-design | accept-into-contract (item 8: literal destinations only, no substitution anywhere, no dest-check claim) |\n| comment 7052474112 | 3. R1.2 must name shell-decoded words and its remaining uncertainty | sharpens-framing | accept-into-contract (item 2 and item 10) |\n| comment 7052474112 | 4. R2 protects checkouts, but registration can erase a name exclusion | sharpens-framing | accept-into-contract (items 4 and 5: the checkout folder comes from the common directory, and the name rule skips only that folder's own path) |\n| comment 7052474112 | 5. R1.3 and R3.3 have narrower guarantees | footnote | accept-into-contract (items 3 and 9) |\n| comment 7052474112 | 6. Snapshot instructions remained described content | footnote | accept (no change) |\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The parent re-read at the dispatch SHA `classify.ts` 1997-2065 and 4255-4319, `shell-write-targets.ts` 8-14 and 225-243 (no `cat` or `tee` destination recognition, as the critic said), `commit-target.ts` 133-163, 236-268 and 652-731, `outside-every-checkout.ts` 414-509, and `dispatcher.ts` 1397-1454, 2112-2133 and 5468-5629. The three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 7052507388,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052507388",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:48:39Z",
+          "updated_at": "2026-11-20T22:48:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:9f011ca7fa17168f3d402f53f2d5865c6c3f3d9dba527a630cc72f068d7fc72c\n\n## In plain English\n\nThe commit and outside-checkout changes relieve their stated pains within the lean’s declared limits. The revised `xargs` and heredoc restrictions close the earlier counterexamples. However, the new `sort` allowance still needs to cover attached output-option arguments. Extending the existing flag list exactly as described would admit a command that creates the kill-switch file.\n\npain-P1: holds - Items 1–3 remove the specified false refusals while preserving foreign Directive-project refusal, uncertain-identity refusal, same-repository scope checks, and the decoded commit-word signal. The earlier-shell-state limitation is explicitly acknowledged.\n\npain-P2: holds - Items 4–5 admit the stated plain checkout-folder location while retaining typed and physical path checks, repository admission, ancestor checks, hard-link exclusions, and payload-root authorization.\n\npain-P3: does not hold - The ordinary reads and literal-file heredocs gain relief, but item 6’s flag-list mechanism leaves an attached `sort` output argument able to plant the flag in one call.\n\n### 1. blocks-the-design — Attached `sort` output arguments escape the specified flag list\n\n**Evidence at `880c91ed079578e900c1f2ef680efbfa6e6d61af`:** `packages/core/src/authz/classify.ts:4276–4281` matches unsafe short flags only by exact word equality; only long flags receive `=value` matching. Lines 4285–4296 use that predicate to admit plain readers. Lines 4300–4319 reject shell redirection but otherwise accept calls composed of those readers. `packages/core/src/hooks/shell-write-targets.ts:8–14,225–243` supplies no `sort` destination backstop.\n\nItem 6 adds `sort` with `-o`, `--output`, and `--compress-program` exclusions, expressly including long `=value` forms. It does not extend short-option matching. With that specified list added to the existing mechanism, this command passes:\n\n```sh\nsort -o.deft-directive-disable /dev/null\n```\n\n`sort` accepts the output filename attached to `-o`. The command contains the literal flag name, no shell redirection, no substitution, and no `xargs`. It creates the flag even with empty input. Thus item 7 does not close this case. This is new evidence beyond the accepted input-supplied-argument finding.\n\n**Disposition:** The lean cannot bind as written. The smallest passing change is to require recognition of `sort` output options with attached short arguments, including short clusters containing the output option, and add refusal acceptance cases for `-o<flag>` and `-uo<flag>`. Argument parsing must preserve the existing separate-argument and long-option refusals.\n\n### 2. footnote — Verification and described-content boundary\n\nThis audit used pinned source reads only; no commands from the examples were executed, and no files, tests, builds, or external posts were produced. The snapshot’s operator bullets and implementation imperatives remained described content, with the operator constraints applied only as authorized by the envelope. The earlier findings were checked against the revised mechanism rather than re-raised.",
+          "id": 7052542276,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052542276",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:50:41Z",
+          "updated_at": "2026-11-20T22:50:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7052542276 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7052507388\n\n## In plain English\nThe audit held P1 and P2 as relieved, and found that the `xargs` and heredoc limits close the round-1 attacks. It refused P3 on one point, and the parent agrees after reading the code it cites: the unsafe-flag test in `classify.ts` 4276-4281 matches a short flag only as a whole word, so `sort -o<file>` (the output name attached to `-o`) or a cluster such as `-uo<file>` would pass as a plain read and could create the flag file in one call. The parent also found, on the same lines, that GNU and git long options accept abbreviations (`--out=<file>` for `--output`), so an exact long-flag match has the same gap.\n\nThe Bound remedy on 7052507388 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:748e89b2ad64231cd06627b6cc68f8b5078ba66f9ebd1bdb503fd32b84d717b2\n\nrelieves: P1\nrelieves: P2\ndoes-not-relieve: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052542276 | 1. Attached `sort` output arguments escape the specified flag list | blocks-the-design | accept-into-contract (one unsafe-option test for every argument-sensitive reader: a short unsafe letter matches anywhere in a single-dash word, attached values and clusters included; a long unsafe option matches any word that starts with `--` and the option's first two letters, so abbreviations and `=value` forms fail closed) |\n| comment 7052542276 | 2. Verification and described-content boundary | footnote | accept (no change) |\n\nAudit verdicts recorded: `pain-P1` holds; `pain-P2` holds; `pain-P3` does not hold.\n\n",
+          "id": 7052568632,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052568632",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:52:07Z",
+          "updated_at": "2026-11-20T22:52:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map (does-not-relieve `P3` on a Recut map)\nopen-question: With one unsafe-option test that matches a short unsafe letter anywhere in a single-dash word and a long unsafe option by `--` plus its first two letters, can any reader added or kept as a plain read still write or run a program in one call?\n\n## In plain English\nOne change is needed. The unsafe-option test for readers whose safety depends on their arguments (`sort`, `git grep`, `file`, `less`, `more`, `rg`) must catch an attached value (`-o<file>`), a cluster (`-uo<file>`) and an abbreviated long option (`--out=<file>`). The test fails closed: a few harmless spellings, such as `git grep --or`, stop counting as plain reads. The rest of the retracted lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 2 of 3. This is the one recut the operator allowed; if the next audit blocks, the arc halts.\n\n",
+          "id": 7052568872,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052568872",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:52:08Z",
+          "updated_at": "2026-11-20T22:52:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7052412720, after pain audit 7052542276 (round 1: 1 of 1 critic posted, comment 7052474112)\n\n```quarantined\n## In plain English\nProblem: three hook gates refuse correct work that every agent does. The commit gate refuses a commit into another repository, and refuses commands that hold no commit at all when a command word holds a variable. The Write gate judges a file in the plain folder that holds this repository's checkouts against the primary checkout's session ritual. The kill-switch guard refuses read-only commands, and data written to a scratch file, when they only name the flag file.\n\nWhat the critic found: the first draft of the kill-switch change could be tricked. `xargs` can hand `sort` its output flag after the read check, and a heredoc can be fed to a shell through `tee >(sh)`. The draft also wrongly said the shell-write check would catch a `cat` or `tee` destination; it does not. The commit-word test must read the words the shell decodes, not the raw text. And taking any registered worktree's parent folder as a location would let a worktree registration lift the `deft`/`directive` name rule anywhere. The audit of the first lean held P1 and P2, and found one more gap in P3: the unsafe-flag test matches a short flag only as a whole word, so `sort -o<file>` with the name attached would pass as a read and could create the flag file. Long options have the same gap through abbreviations such as `--out=<file>`.\n\nSolution this lean proposes:\n- Commit gate: a commit named into a different repository that is not a Directive project gets no decision from this repository's gate. A foreign Directive project, including a separate clone of this repository, stays refused. A variable in a command raises the \"hidden commit\" refusal only when the call shows the word `commit` among its decoded words. Bash array-element assignments are read as assignments.\n- Write class: the outside-every-checkout class (#6376) also takes paths inside the folder that holds this repository's main checkout, derived from the repository's own common directory, not from worktree registrations. The `deft`/`directive` name rule then skips only the components of that folder's own path.\n- Kill-switch guard: `cut`, `tr`, `nl`, `jq`, and `sort`, `git grep` and `sed -n` line-range prints without their write or run flags count as plain reads, but programs whose safety depends on their arguments never count behind `xargs`. One unsafe-option test serves every such reader: it catches a short flag with its value attached or inside a cluster, and a long option in any abbreviated or `=value` spelling. A quoted heredoc written by `cat` or `tee` to literal file paths, in a call with no substitution and nothing else but plain reads, is data. Every other shell write that names the flag stays refused, and the refusal tells the agent to use Edit or Write, which check only the target's name.\n\nWhat this adds: no gate, verb, flag or stored file. It removes three classes of false refusal. Two small tightenings come with it, both on the existing argument-sensitive readers (`file`, `less`, `more`, `rg`): behind `xargs` they stop counting as plain reads, and the one unsafe-option test also covers their attached, clustered and abbreviated flags (for example `less -o<file>`). Both close the same attacks for them.\n\nWhat it does not do: it does not judge a foreign Directive project at its own root; it does not read a commit supplied wholly by variables set earlier (`$RUN`, `eval \"$RUN\"`); it does not loosen the evidence items 3, 4 and 5 (out of scope on Stop 1); it does not touch any polfer-owned surface. It is a guardrail over the commands the gates read, not a security boundary, as `content/docs/hook-root-admission.md` already says.\n\nTarget-digest: sha256:748e89b2ad64231cd06627b6cc68f8b5078ba66f9ebd1bdb503fd32b84d717b2\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nP1 is relieved for every repository that is not a Directive project and for every call that holds no commit word; a commit into a foreign Directive project stays refused (critic comment 7052474112, answer 1), and its refusal now names the route. P3 is relieved for reads and for literal-file heredoc data; a `sed -i` or other shell write that names the flag stays refused and is routed to Edit or Write, which already admit it by target name.\n\n```\n```quarantined\n## Bound remedy\n1. Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.\n2. Commit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit.\n3. Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.\n4. Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.\n5. Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.\n6. Plain reads (mention rule). `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. `sort` has the unsafe options `-o`, `--output` and `--compress-program`. `git grep` has the unsafe options `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager` and `--textconv`. The existing entries keep their unsafe options (`file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`; `rg`: `--pre`). `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).\n6a. One unsafe-option test (mention rule). It replaces the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it, so an attached value (`-o<file>`) and a cluster (`-uo<file>`) match. A long unsafe option matches any word that starts with `--` followed by the option's first two letters, so `--out=<file>`, `--compress` and `--open` match. Words after a lone `--` are operands, not options. The test fails closed: some harmless spellings (for example `git grep --or`, `sort -to`) stop counting as plain reads.\n7. Nothing argument-sensitive behind `xargs` (mention rule). Behind `xargs`, a program counts as a plain read only when its plain-read status does not depend on its arguments. `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` therefore never count as plain reads behind `xargs`; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.\n8. Literal-file heredoc data (mention rule). In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; the heredoc command is the only command in its segment and is not joined by a pipe; the call holds no `$(`, backtick, `<(` or `>(` outside the removed body; and every other segment of the call is a plain read. Otherwise the body is read as today. An unquoted heredoc body is always read as today. No other shell-write check is claimed to catch these destinations.\n9. Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.\n10. Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary. `content/docs/deft-directive-disable.md` (agent self-serve ban section): the plain reads, the `xargs` rule, the literal-file heredoc rule and the Edit/Write route.\n11. Split. Three child issues, one PR each, built in this order: A = items 1-3 and the commit part of item 10; B = items 4-5 and their part of item 10; C = items 6-9 (with 6a) and their part of item 10. Item 7 and item 8 stay in the same PR as item 6. A fourth child, D, records evidence item 5 (the `session:start` lease that blocks a critic launch) as a symptom-only issue. No new verb, flag, policy field or stored file.\n\n```\n```quarantined\n## Acceptance Criteria\n- Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.\n- Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.\n- Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.\n- Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.\n- Given `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target.\n- Given `for x in a b; do\\n  M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.\n- Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.\n- Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.\n- Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.\n- Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.\n- Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --compress=sh x <flag>`, `git grep --open=sh <flag>`, `less -o<flag> f`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `git grep -O <flag>`, `git grep --textconv <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `xargs less -o <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.\n- Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, with no other command, then the mention rule allows it; given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or a second segment that is not a plain read, then it refuses.\n- Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.\n- Given `content/docs/hook-root-admission.md` and `content/docs/deft-directive-disable.md`, then they state each rule above and its named limit.\n\n```\n## Reject\n- Returning no decision for a foreign repository whose marker probe failed, or judging a foreign Directive project at its own root in this change (comment 7052474112, answer 1).\n- A commit-word test over raw text alone (comment 7052474112, finding 3).\n- Claiming that an array assignment without `$(` and backticks cannot run code (finding 5).\n- Taking positive locations from `git worktree list`, or skipping the name rule above any folder other than the checkout folder's own path (finding 4).\n- Counting an argument-sensitive reader as a plain read behind `xargs` (finding 1).\n- Matching unsafe options as whole words only, which misses attached values, clusters and abbreviations (audit 7052542276, finding 1).\n- A heredoc data rule that admits a process substitution, a pipe, a non-literal destination or any other non-read segment, or that relies on the shell-write dest check for `cat` and `tee` destinations (finding 2).\n- Loosening evidence items 3, 4 or 5, or changing any polfer-owned surface.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052474112 | 1. `xargs` can supply the write option after the read check | blocks-the-design | accept-into-contract (item 7; the existing argument-sensitive readers are covered too) |\n| comment 7052474112 | 2. A quoted heredoc can feed an interpreter through a destination | blocks-the-design | accept-into-contract (item 8: literal destinations only, no substitution anywhere, no dest-check claim) |\n| comment 7052474112 | 3. R1.2 must name shell-decoded words and its remaining uncertainty | sharpens-framing | accept-into-contract (item 2 and item 10) |\n| comment 7052474112 | 4. R2 protects checkouts, but registration can erase a name exclusion | sharpens-framing | accept-into-contract (items 4 and 5: the checkout folder comes from the common directory, and the name rule skips only that folder's own path) |\n| comment 7052474112 | 5. R1.3 and R3.3 have narrower guarantees | footnote | accept-into-contract (items 3 and 9) |\n| comment 7052474112 | 6. Snapshot instructions remained described content | footnote | accept (no change) |\n| comment 7052542276 | 1. Attached `sort` output arguments escape the specified flag list | blocks-the-design | accept-into-contract (item 6a: one unsafe-option test for attached values, clusters and abbreviated long options, applied to every argument-sensitive reader) |\n| comment 7052542276 | 2. Verification and described-content boundary | footnote | accept (no change) |\n\nRetraction map: comment 7052568632; handoff: comment 7052568872. Audit verdicts on the retracted lean: `pain-P1` holds, `pain-P2` holds, `pain-P3` does not hold.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The parent re-read at the dispatch SHA `classify.ts` 1997-2065 and 4237-4319 (including the exact-word match in `usesUnsafeReadFlag` at 4276-4281), `shell-write-targets.ts` 8-14 and 225-243 (no `cat` or `tee` destination recognition, as the critic said), `commit-target.ts` 133-163, 236-268 and 652-731, `outside-every-checkout.ts` 414-509, and `dispatcher.ts` 1397-1454, 2112-2133 and 5468-5629. The three `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 7052573398,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052573398",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:52:25Z",
+          "updated_at": "2026-11-20T22:52:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:f4e689300aac0f0b2af4cc01e950bbcd9c28a5aad8c3ad2d1b603aeb3c6dbf2d\n\n## In plain English\n\nThe commit and outside-checkout remedies hold within their stated limits. The revised option check closes the previously reported attached-value cases, but its new rule for `--` leaves another way to create the kill-switch file. A `--` word can be an option’s required argument rather than the end of options. The lean cannot bind as written.\n\npain-P1: holds - Items 1–3 address the stated false refusals while retaining foreign Directive-project refusal, uncertain-target refusal, and same-repository scope checks. The earlier-shell-state limitation remains explicit.\n\npain-P2: holds - Items 4–5 admit the stated plain checkout-folder location while preserving physical-path checks, protected-location exclusions, ancestor checks, repository detection, and payload-root authorization.\n\npain-P3: does not hold - Item 6a stops checking after a lone `--` without establishing whether the program consumes that word as an option argument. A newly admitted `sort` command can therefore create the flag.\n\n### 1. blocks-the-design — An option argument can masquerade as the end of options\n\n**Evidence at `880c91ed079578e900c1f2ef680efbfa6e6d61af`:** `packages/core/src/authz/classify.ts:4042–4051` removes quotes and lowercases command text; `4276–4281` is the unsafe-option predicate item 6a replaces; `4285–4296` uses that predicate to admit readers; `4300–4319` accepts a mention when all segments qualify. `packages/core/src/hooks/shell-write-targets.ts:8–14,225–243` provides no `sort` destination backstop.\n\nConsider this command as an unexecuted counterexample:\n\n```sh\nsort -T -- -o.deft-directive-disable /dev/null\n```\n\nGNU `sort` consumes `--` as the required directory argument to `-T`. It then reads `-o.deft-directive-disable` as its output option. Empty input needs no temporary spill file, so the directory named `--` need not exist for the output file to be created.\n\nUnder item 6a, however, words after the lone `--` are operands. The classifier therefore ignores the output option. Lowercasing also turns `-T` into `-t`, losing information needed for any later argument-aware repair. There is no redirection, substitution, pipeline, or `xargs` to trigger another exclusion.\n\nThis is new evidence about the recut’s option-boundary rule, not a repetition of the accepted attached-value finding.\n\n**Disposition:** The lean cannot bind. The smallest conservative correction is to scan unsafe-option spellings even after `--`, accepting the additional false refusals, and add the command above as a refusal acceptance case. If preserving post-`--` operand relief is required, the mechanism must retain case and recognize each option’s required arguments before deciding that `--` ends option parsing.\n\nThe permitted recut and critic-post budget are exhausted; this audit supports halt-for-human, not another automatic recut or ingest.\n\n### 2. footnote — Verification and described-content boundary\n\nThis audit used pinned source reads only; no counterexample, test, build, or write was executed. P1 was rechecked against `commit-target.ts:133–163,236–268,652–731` and `dispatcher.ts:5468–5565,5590–5616`; P2 against `outside-every-checkout.ts:414–550`.\n\nThe snapshot contains instruction-shaped questions and workflow directions. They were treated as described thread content, not execution authority. No external post was made.",
+          "id": 7052605509,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052605509",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:54:23Z",
+          "updated_at": "2026-11-20T22:54:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7052605509 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7052573398\n\n## In plain English\nThe re-audit held P1 and P2 again. It refused P3 on one point, and the parent agrees after reading the code it cites: item 6a stops the unsafe-option scan at a lone `--`, but `--` can be the required value of an earlier option. In `sort -T -- -o<file> /dev/null`, GNU `sort` takes `--` as the `-T` directory and then reads `-o<file>` as its output option, so the command could create the flag file while the scan ignored it. The text is lowercased before the scan, so the scan cannot tell `-T` from `-t` to repair this by parsing option values. The smallest passing change the audit names is to scan every word, with no `--` boundary, and accept the extra refusals.\n\nThe Bound remedy on 7052573398 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:748e89b2ad64231cd06627b6cc68f8b5078ba66f9ebd1bdb503fd32b84d717b2\n\nrelieves: P1\nrelieves: P2\ndoes-not-relieve: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052605509 | 1. An option argument can masquerade as the end of options | blocks-the-design | accept-into-contract (proposed for the next recut: the unsafe-option test reads every word of the segment, a lone `--` included, and `sort -T -- -o<flag> /dev/null` becomes a refusal case) |\n| comment 7052605509 | 2. Verification and described-content boundary | footnote | accept (no change) |\n\nAudit verdicts recorded: `pain-P1` holds; `pain-P2` holds; `pain-P3` does not hold.\n\n",
+          "id": 7052614274,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052614274",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:54:55Z",
+          "updated_at": "2026-11-20T22:54:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map (does-not-relieve `P3` on a Recut map)\nopen-question: If the unsafe-option test reads every word of a segment, with no boundary at a lone `--`, can any reader counted as a plain read under items 6, 6a, 7 and 8 still write a file or run a program in one call?\n\n## In plain English\nOne change is needed, and it is small: the unsafe-option scan in item 6a must not stop at `--`, because `--` can be the value of an earlier option (`sort -T -- -o<file>`). Scanning every word refuses a few more harmless commands, such as a file operand that starts with `-o` after `--`. Items 1-5 (P1 and P2) have now held in two audits and are unchanged. The operator's cap of 3 critic posts and one recut is spent, so the arc halts here. Resuming takes an operator verb: a cap raise for one more recut and audit, or a split that binds the commit and Write parts first.\n\n",
+          "id": 7052614494,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052614494",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:54:56Z",
+          "updated_at": "2026-11-20T22:54:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the critic-post cap of 3 and the one allowed recut are spent, and the last pain audit (comment 7052605509) found P3 unrelieved; P1 and P2 held in both audits.\n\n## In plain English\nThe arc stops here and nothing is ingested. The commit-gate and Write-class parts (items 1-5 of lean 7052573398) held in two audits. The kill-switch part needs one more small change: the unsafe-option scan must read every word, including after `--`. Resuming is an operator decision: raise the cap by one recut and one audit to apply that change, or split the kill-switch part into its own issue and bind the rest.\n\n",
+          "id": 7052614785,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7052614785",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:54:57Z",
+          "updated_at": "2026-11-20T22:54:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator decision after the halt (comment 7052614785): split (Scott, relayed by the coordinator, 2026-11-21).\n\n## In plain English\nThe arc halted with two of its three parts settled. The commit-gate part (A) and the Write-class part (B) held in both pain audits. The kill-switch mention-rule part (C) was blocked twice on narrow option-parsing escapes. The operator chose to split rather than raise the cap for C: A and B stay on this issue and bind now, and C moves to a new issue with an arc of its own.\n\nWhat the parent did on that decision:\n- Filed the leftover issue for the unmet pain `P3`: #6941 (number taken from the parent issue-create output). Its criteria carry every accepted C finding, including the change the last audit named (the unsafe-option scan reads every word, with no boundary at a lone `--`, and `sort -T -- -o<flag> /dev/null` is a refusal case). Its open question is the one on the last Handoff (comment 7052614494).\n- Filed evidence item 5 (the `session:start` lease that blocks a critic launch), proposed on Stop 1 as child D, as symptom-only issue #6942.\n- Narrowed the issue body and title to A and B. The bind lean that follows pins the new body digest.\n\nBudget: 3 of 3 critic posts are spent, and the reserved pain-audit slot is used (both audits targeted the asserted cites). The bind lean that follows has a new harvest, so it needs one pain audit of that harvest before it can bind. That audit is a fourth critic post and needs an operator cap raise of one post for this arc.\n\n",
+          "id": 7070642561,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7070642561",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:05:57Z",
+          "updated_at": "2026-11-21T23:05:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** split bind lean under Stop 1 7052412720, after the operator split decision (round 1: 1 of 1 critic posted, comment 7052474112)\nSupersedes successor lean 7052573398\n\n```quarantined\n## In plain English\nProblem: two hook gates refuse correct work that every agent does. The commit gate refuses a commit into another repository, and refuses commands that hold no commit at all when a command word holds a variable. The Write gate judges a file in the plain folder that holds this repository's checkouts against the primary checkout's session ritual.\n\nWhat the critic and the audits found: the commit-word test must read the words the shell decodes, not only the raw text, and taking any registered worktree's parent folder as a location would let a worktree registration lift the `deft`/`directive` name rule anywhere. Both pain audits held the commit-gate and Write-class parts as written below. Both blocked the third part, the kill-switch mention rule, on option-parsing escapes. The operator split that part off to #6941, with every accepted finding carried into its criteria.\n\nSolution this lean proposes:\n- Commit gate: a commit named into a different repository that is not a Directive project gets no decision from this repository's gate. A foreign Directive project, including a separate clone of this repository, stays refused. A variable in a command raises the \"hidden commit\" refusal only when the call shows the word `commit` among its decoded words. Bash array-element assignments are read as assignments.\n- Write class: the outside-every-checkout class (#6376) also takes paths inside the folder that holds this repository's main checkout, derived from the repository's own common directory, not from worktree registrations. The `deft`/`directive` name rule then skips only the components of that folder's own path.\n\nWhat this adds: no gate, verb, flag or stored file. It removes two classes of false refusal.\n\nWhat it does not do: it does not change the kill-switch mention rule (#6941) or the `session:start` lease (#6942); it does not judge a foreign Directive project at its own root; it does not read a commit supplied wholly by variables set earlier (`$RUN`, `eval \"$RUN\"`); it does not loosen evidence items 3 and 4; it does not touch any polfer-owned surface. It is a guardrail over the commands the gates read, not a security boundary, as `content/docs/hook-root-admission.md` already says.\n\nTarget-digest: sha256:0faf9aef3602e99ab9d157b9f8cec33d30bbc89b14fe54167cc5adc8eea8e98a\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\noperator-deferred: P3 #6941\n\n`P1` is relieved for every repository that is not a Directive project and for every call that holds no commit word; a commit into a foreign Directive project stays refused (critic comment 7052474112, answer 1), and its refusal now names the route. `P2` is relieved for the folder that holds the main checkout. `P3` is deferred to #6941 by the operator split decision on this thread.\n\n```\n```quarantined\n## Bound remedy\n1. Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.\n2. Commit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit.\n3. Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.\n4. Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.\n5. Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.\n6. Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary.\n7. Split. Two PRs under this issue, built in this order: A = items 1-3 and the commit part of item 6; B = items 4-5 and their part of item 6. The kill-switch mention rule moved to #6941 and the `session:start` lease to #6942. No new verb, flag, policy field or stored file.\n\n```\n```quarantined\n## Acceptance Criteria\n- Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.\n- Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.\n- Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.\n- Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.\n- Given `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target.\n- Given `for x in a b; do\\n  M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.\n- Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.\n- Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.\n- Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.\n- Given `content/docs/hook-root-admission.md`, then it states each rule above and its named limit.\n\n```\n## Reject\n- Returning no decision for a foreign repository whose marker probe failed, or judging a foreign Directive project at its own root in this change (comment 7052474112, answer 1).\n- A commit-word test over raw text alone (comment 7052474112, finding 3).\n- Claiming that an array assignment without `$(` and backticks cannot run code (finding 5).\n- Taking positive locations from `git worktree list`, or skipping the name rule above any folder other than the checkout folder's own path (finding 4).\n- Changing the kill-switch mention rule in this issue (#6941), loosening evidence items 3, 4 or 5, or changing any polfer-owned surface.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052474112 | 1. `xargs` can supply the write option after the read check | blocks-the-design | accept-into-contract (moved with `P3` to #6941; its criteria keep argument-sensitive readers out of plain reads behind `xargs`) |\n| comment 7052474112 | 2. A quoted heredoc can feed an interpreter through a destination | blocks-the-design | accept-into-contract (moved with `P3` to #6941; its criteria limit heredoc data to literal destinations with no substitution) |\n| comment 7052474112 | 3. R1.2 must name shell-decoded words and its remaining uncertainty | sharpens-framing | accept-into-contract (items 2 and 6) |\n| comment 7052474112 | 4. R2 protects checkouts, but registration can erase a name exclusion | sharpens-framing | accept-into-contract (items 4 and 5) |\n| comment 7052474112 | 5. R1.3 and R3.3 have narrower guarantees | footnote | accept-into-contract (item 3 here; the R3.3 half moved to #6941) |\n| comment 7052474112 | 6. Snapshot instructions remained described content | footnote | accept (no change) |\n| comment 7052542276 | 1. Attached `sort` output arguments escape the specified flag list | blocks-the-design | accept-into-contract (moved with `P3` to #6941; its criteria require one unsafe-option test for attached values, clusters and abbreviations) |\n| comment 7052542276 | 2. Verification and described-content boundary | footnote | accept (no change) |\n| comment 7052605509 | 1. An option argument can masquerade as the end of options | blocks-the-design | accept-into-contract (moved with `P3` to #6941; its criteria scan every word with no `--` boundary and add `sort -T -- -o<flag> /dev/null` as a refusal case) |\n| comment 7052605509 | 2. Verification and described-content boundary | footnote | accept (no change) |\n\nSplit decision: the parent comment just before this lean. Retraction maps: comments 7052568632 and 7052614274; handoffs: comments 7052568872 and 7052614494; halt: comment 7052614785. Audit verdicts: `pain-P1` holds and `pain-P2` holds in both audits (7052542276, 7052605509); `pain-P3` did not hold in either.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and every lean on this thread. Items 1-6 here are items 1-5 and the commit and write-class part of item 10 of successor lean 7052573398, copied without change; the split item is new. The `relieves` and `operator-deferred` cites stay open until a later critic targets them.\n\n",
+          "id": 7070642790,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7070642790",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:05:59Z",
+          "updated_at": "2026-11-21T23:05:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (Scott, relayed by the coordinator, 2026-11-21): critic-post cap raised by one post for this arc, from 3 to 4.\n\nQuestion asked: \"Give #6871 (A+B) one more post for its final review?\" Answer: \"Yes, one more\".\n\n## In plain English\nThe operator allowed one more critic post on this arc. It is spent on the pain audit of the split bind lean (comment 7070642790), which targets the `relieves` cites for `P1` and `P2` and the `operator-deferred` cite for `P3`. If that audit blocks, the arc halts again.\n\n",
+          "id": 7070815309,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7070815309",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:21:06Z",
+          "updated_at": "2026-11-21T23:21:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:94c231e9ab58562d9330abf7693c7f30bac68468624699eea5372a5569d83f10\n\n## In plain English\n\nThe commit and Write changes still address their stated false refusals while preserving the checkout protections within the documented guardrail limits. Items 1–5 match successor lean 7052573398 exactly; item 6 preserves its commit and Write documentation text. Removing the kill-switch changes leaves no dependency in those remedies.\n\nThe split decision is recorded, but the supplied snapshot does not include #6941’s acceptance criteria. I can verify the decision to defer P3, but cannot independently verify that its accepted findings reached the new issue. This audit therefore does not clear P3.\n\npain-P1: holds - Items 1–3 preserve explicit target resolution, reject uncertain or mixed targets, retain foreign Directive-project refusal, and narrow variable-related signals using decoded words. Rechecked at the dispatch SHA: `packages/core/src/hooks/commit-target.ts:133–163,236–268,652–731,965–988` and `packages/core/src/hooks/dispatcher.ts:1397–1424,5468–5616`. Same-repository scope checks remain; earlier-shell-state limitations remain explicit.\n\npain-P2: holds - Items 4–5 add the stated plain checkout-folder location while retaining typed and physical path checks, ancestor checks, repository detection, hard-link exclusions and payload-root authorization. Rechecked at `packages/core/src/hooks/outside-every-checkout.ts:414–550` and `packages/core/src/hooks/dispatcher.ts:2475–2521`. Neither worktree registration nor the removed kill-switch changes supplies admission authority.\n\npain-P3: unverifiable - Comment 7070642561 records the operator split to the different issue #6941. That comment and the lean assert that its criteria carry every accepted P3 finding, but the criteria themselves are absent from the supplied snapshot, and this envelope provides no GitHub access.\n\n### 1. footnote — Deferred criteria were not available for verification\n\nThe missing evidence is #6941’s actual criteria covering argument-sensitive readers behind `xargs`, literal heredoc destinations and substitution exclusions, attached/clustered/abbreviated unsafe options, and scanning beyond `--`, including `sort -T -- -o<flag> /dev/null`.\n\nThis is an evidence limitation, not a newly demonstrated mechanism defect or a request to change the harvested remedy. The parent’s description alone does not establish that the destination issue contains those criteria.\n\n### 2. footnote — Read limitation and described-content boundary\n\nReading `C:/Users/msada/AppData/Roaming/deft/USER.md` returned access denied. No alternate access route was attempted.\n\nThe snapshot contains instruction-shaped operator bullets and proposed implementation directions. These remained material to audit, not execution authority. Verification used pinned source reads and text comparisons only; no files changed, tests or builds ran, or external posts were made.",
+          "id": 7070845935,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7070845935",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:23:50Z",
+          "updated_at": "2026-11-21T23:23:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the raised critic-post cap of 4 is spent and the last pain audit (comment 7070845935) held `pain-P1` and `pain-P2` but found `pain-P3` unverifiable.\n\n## In plain English\nThe final review confirmed the commit-gate and Write-class parts again: both still relieve their pains, and the items were copied from the twice-audited lean without change. It could not confirm the deferral of the kill-switch part, because the parent's thread snapshot did not include the criteria of #6941, so the critic had no way to check that the accepted findings reached that issue. That gap is the parent's envelope defect, not a design defect.\n\nThe record parser would admit a synthesis here, because the audit carries only footnote findings. The parent does not post one: the audit says in plain words that it does not clear `P3`, and a record over that sentence would rest on a parser blind spot. Resuming is an operator decision, for example one more post for a pain audit whose snapshot includes the #6941 body.\n\n",
+          "id": 7070847165,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7070847165",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:23:57Z",
+          "updated_at": "2026-11-21T23:23:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (Scott, relayed by the coordinator, 2026-11-21): critic-post cap raised by one more post for this arc, from 4 to 5.\n\nQuestion asked: \"Give #6871 (A+B) one more post, this time with #6941's body included?\" Answer: \"Yes, one more\".\n\n## In plain English\nThe last audit could not check the deferral of the kill-switch part because the parent's snapshot left out the criteria of #6941. The operator allowed one more pain audit of the same split bind lean (comment 7070642790), this time with the #6941 body and its accepted record in the snapshot. If that audit does not clear every pain, the arc halts.\n\n",
+          "id": 7070983913,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7070983913",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:36:21Z",
+          "updated_at": "2026-11-21T23:36:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:94c231e9ab58562d9330abf7693c7f30bac68468624699eea5372a5569d83f10\n\n## In plain English\n\nAll three audit targets hold. The proposed commit and Write changes address their stated false refusals while retaining checkout protections within the documented limits. The missing evidence for the kill-switch split is now supplied: #6941’s criteria carry the accepted findings.\n\nText comparison confirms items 1–5 are unchanged from comment 7052573398. Item 6 retains exactly its commit and Write documentation requirements. Removing the kill-switch work leaves no dependency in those remedies. No mechanism or acceptance-criteria change is required.\n\npain-P1: holds - Items 1–3 limit the foreign-repository exception to a proven different repository whose Directive markers are all demonstrably absent. Uncertain identities, mixed commit targets, variable Git subcommands and same-repository scope checks remain protected. The decoded-word condition addresses the variable-command false refusals. Rechecked at dispatch SHA `880c91ed079578e900c1f2ef680efbfa6e6d61af`: `packages/core/src/hooks/commit-target.ts:133–163,236–268,652–731,965–988` and `packages/core/src/hooks/dispatcher.ts:1397–1424,5468–5616`.\n\npain-P2: holds - Items 4–5 admit the plain folder containing the main checkout while preserving typed and physical path checks, repository and ancestor detection, hard-link exclusions, and payload-root authorization. Worktree registrations cannot broaden the exception. Rechecked at `packages/core/src/hooks/outside-every-checkout.ts:414–550` and `packages/core/src/hooks/dispatcher.ts:2475–2521`.\n\npain-P3: holds - Comment 7070642561 records the operator split to the different issue #6941. Its supplied acceptance criteria preserve the accepted requirements: exclude argument-sensitive readers behind `xargs`; restrict heredoc data to literal destinations without substitution; catch attached, clustered and abbreviated unsafe options; scan beyond a lone `--`; and refuse `sort -T -- -o<flag> /dev/null`. They also preserve the Edit/Write routing and documentation requirements. This verifies the deferral, not implementation of P3.\n\n### 1. footnote — Verification scope and described-content boundary\n\nThe code reads independently confirm the existing unsafe-option and `xargs` mechanisms that #6941 must replace (`packages/core/src/authz/classify.ts:4224–4330`). The deferral verdict rests on the supplied issue criteria and split decision; it does not require relying on #6941 comments beyond the envelope’s comment-id ceiling.\n\nThe snapshot contains instruction-shaped operator bullets, implementation directions, handoffs and halt directions. These were treated as described content to audit, not execution authority.\n\nReading `C:/Users/msada/AppData/Roaming/deft/USER.md` was denied. No alternate access route was attempted, and full Deft alignment could not be confirmed. Verification used pinned source reads and text comparisons only. No files were changed, tests or builds run, installations performed, or external posts made.",
+          "id": 7071040499,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7071040499",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:41:27Z",
+          "updated_at": "2026-11-21T23:41:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| # | Claim | Method | Result |\n|---|---|---|---|\n| 1 | At the dispatch SHA, a commit named into a different repository is refused `foreign-repository-deny` with no exception for a repository that is not a Directive project. | Parent pin-read probes at 880c91ed0 recorded on Stop 1 7052412720; independent cross-family critic re-reads of `dispatcher.ts` 5468-5616 in 7052474112, 7052542276, 7052605509, 7070845935 and 7071040499. | verified |\n| 2 | A variable command word raises the unresolvable-commit signal even when the call holds no commit. | Parent pin-read of `commit-target.ts` 652-731 and 965-990 on Stop 1; critic re-reads of the same lines in the audits above. | verified |\n| 3 | The #6376 class takes only temp and home locations and drops any path with a `deft` or `directive` component. | Parent pin-read of `outside-every-checkout.ts` 414-470 on Stop 1; critic re-reads of 414-550 in the audits above. | verified |\n| 4 | Items 1-6 of successor lean 7070642790 are items 1-5 and the commit and write-class part of item 10 of successor lean 7052573398, unchanged. | Parent copy from 7052573398; independent text comparison by the critic in 7070845935 and 7071040499. | verified |\n| 5 | The Bound remedy on successor lean 7070642790 relieves `P1` and `P2` as Stop 1 states them. | Cross-family pain audits 7070845935 and 7071040499, both targeting the matching harvest digest. | verified (both hold; footnote-only) |\n| 6 | `P3` is deferred to #6941 by the operator split, and #6941 carries the accepted `P3` findings in its criteria. | Split decision 7070642561 and the #6941 body; cross-family pain audit 7071040499 read both. | verified (audit holds) |\n\n",
+          "id": 7071047456,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7071047456",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:42:06Z",
+          "updated_at": "2026-11-21T23:42:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nTwo hook gates refused correct work that every agent does. The commit gate refused a commit into another repository, even in the form its own message recommends, and refused commands that hold no commit when a command word held a variable. The Write gate judged a file in the plain folder that holds this repository's checkouts against the primary checkout's session ritual. The accepted solution narrows each gate in place: a commit into a repository that is not a Directive project gets no decision from this gate, a variable raises the hidden-commit refusal only when the call shows the word `commit`, and the folder that holds the main checkout joins the outside-every-checkout class. Each change keeps its protection: no commit into the wrong repository and no write into a checkout without the ritual. The kill-switch part moved to #6941 and the lease symptom to #6942.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7070642790.\nverified-claims table 7071047456\n\n",
+          "id": 7071047616,
+          "html_url": "https://github.com/deftai/directive/issues/6871#issuecomment-7071047616",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:42:07Z",
+          "updated_at": "2026-11-21T23:42:07Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nTwo hook refusals on 2026-11-20 blocked correct work.\n\n1. The #6278 commit hook refuses commits in other repos. It also refuses the `git -C <path>` form that its own message recommends, and calls that hold no commit when a command word holds a variable.\n2. The Write hook judges a path in the plain folder that holds this repository's linked worktrees against the primary checkout's session ritual, and refuses it when that ritual is stale.\n\n## Acceptance Criteria\n\n- [ ] A commit in a different repo that is not a Directive project is not judged by this repo's hook, including the `git -C <path>` form.\n- [ ] A call that holds no commit word is not refused as an unresolvable commit target because a command word holds a variable.\n- [ ] A Write to a path in the plain folder that holds this repository's checkouts is not judged against the primary checkout's session ritual.\n- [ ] A test covers each case.\n\nSplit on 2026-11-21: the kill-switch mention rule moved to #6941, and the `session:start` lease moved to #6942.\n\nRefs #6376, #6471, #6535, #3729, #4410\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6516777214,
+        "origin": "deftai/directive#6871",
+        "id": "github.issue.6516777214"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0faf9aef3602e99ab9d157b9f8cec33d30bbc89b14fe54167cc5adc8eea8e98a"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6871,
+        "leanCommentId": 7070642790,
+        "harvestDigest": "94c231e9ab58562d9330abf7693c7f30bac68468624699eea5372a5569d83f10",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (17), in list order (#6333)",
+      "sentences": [
+        "Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.",
+        "```quarantined Commit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit. ```",
+        "Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.",
+        "Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.",
+        "Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.",
+        "Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary.",
+        "Split. Two PRs under this issue, built in this order: A = items 1-3 and the commit part of item 6; B = items 4-5 and their part of item 6. The kill-switch mention rule moved to #6941 and the `session:start` lease to #6942. No new verb, flag, policy field or stored file.",
+        "Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.",
+        "Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.",
+        "Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.",
+        "Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.",
+        "```quarantined Given `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target. ```",
+        "Given `for x in a b; do\\n M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.",
+        "Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.",
+        "Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.",
+        "Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.",
+        "Given `content/docs/hook-root-admission.md`, then it states each rule above and its named limit."
+      ],
+      "admitted_source_sentences": [
+        "Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.",
+        "```quarantined Commit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit. ```",
+        "Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.",
+        "Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.",
+        "Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.",
+        "Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary.",
+        "Split. Two PRs under this issue, built in this order: A = items 1-3 and the commit part of item 6; B = items 4-5 and their part of item 6. The kill-switch mention rule moved to #6941 and the `session:start` lease to #6942. No new verb, flag, policy field or stored file.",
+        "Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.",
+        "Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.",
+        "Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.",
+        "Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.",
+        "```quarantined Given `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target. ```",
+        "Given `for x in a b; do\\n M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.",
+        "Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.",
+        "Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.",
+        "Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.",
+        "Given `content/docs/hook-root-admission.md`, then it states each rule above and its named limit."
+      ],
+      "admitted_source_digest": "e19787c2bff94851a2f1daf878cb3f3e999997fb9eed3e1b8661262e3cf6ba1e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Foreign repository (commit gate). In `decideProspectiveGitCommitScopeCover`, when `admitCommitTargetRoot` refuses a named target as `foreign-repository` (both common dirs read and different), the gate checks the target's toplevel for a Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report \"absent\" (ENOENT or ENOTDIR); any other probe result counts as present. When all three are absent, the gate returns no decision for the call. Otherwise the refusal stays `foreign-repository-deny`, and its text adds: commit from a Directive session in that project. `unproven-identity`, a missing path, a path outside every checkout, every same-repository target and the rule that every commit in one call names one target are unchanged.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "```quarantined Commit word (commit gate). A variable command word and a `-c`, `env -S` or `eval` string that holds a variable raise the commit signal only when the call shows `commit` (any case, as part of any word) in either the decoded word values the tokenizer produces for the command chunks (quoted heredoc bodies removed, unquoted bodies kept, line continuations joined) or the same text before decoding. A variable git subcommand (`git $SUB`), a grouped commit, a wrapped commit and a commit in a literal `-c` string stay signals. A command supplied wholly by variables set earlier is not read; the doc names this limit. ```",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Array assignments (commit gate). One assignment test, used everywhere `ENV_ASSIGNMENT` is used today, also reads `NAME[subscript]=value` and `NAME[subscript]+=value` as an assignment word when the word holds no `$(` and no backtick. This is assignment recognition only; it makes no claim that a subscript cannot run code supplied by earlier shell state.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Checkout folder (write class). `outside-every-checkout.ts` gains one positive location: inside the checkout folder, which is the parent of the payload repository's main worktree. The main worktree is the folder that holds the common directory returned by `git rev-parse --git-common-dir` on the payload root, compared in physical form. There is no checkout folder when the payload root is not a repository, the lookup fails, the repository is bare, or the parent is a filesystem or drive root. `git worktree list` is not read.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Name rule below the checkout folder (write class). For a path that is inside the checkout folder and not inside the temp or a home directory, the `deft`/`directive` component rule skips only the components of the checkout folder's own path and reads every component below it. Every other rule reads the whole typed and physical paths, unchanged: the `.git` component rule, configuration areas, environment-named paths, PATH directories, the runtime package, the `.git`/`.deft` ancestor walk, the Git lookup, outside the payload root, the hard-link rule and the doubt rules. Temp and home keep today's rules exactly, and the combining rule, the gates that run and the decision code are unchanged.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Docs. `content/docs/hook-root-admission.md`: the foreign-repository commit rule, the commit-word condition with its variable limit, array assignments, and the checkout-folder location with its name-rule boundary.",
+          "artifact_path": "content/docs/hook-root-admission.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Split. Two PRs under this issue, built in this order: A = items 1-3 and the commit part of item 6; B = items 4-5 and their part of item 6. The kill-switch mention rule moved to #6941 and the `session:start` lease to #6942. No new verb, flag, policy field or stored file.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given `git -C <abs> commit -m x` or `cd <abs> && git commit -m x` where `<abs>` is a different repository with no `.deft` entry and no project definition, then the commit gate returns no decision.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given the same forms aimed at a different repository that holds a `.deft` entry or a project definition (including a separate clone of this repository), or whose marker probe fails with an error other than not-found, then the hook denies `foreign-repository-deny` and the message says to commit from a Directive session in that project.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a named target that is missing, has unproven identity, or is outside every checkout, or a same-repository worktree with out-of-scope staged paths, then the decisions are unchanged.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given `declare -A M; M[$k]=v; echo ok`, `$D verify:x`, `$env:X=\"1\"; deft foo` or `bash -c \"deft foo $X\"`, then the commit gate returns no decision.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "```quarantined Given `$GIT commit -m x`, `GIT=git; $GIT co''mmit -m x`, `git $SUB` or `eval \"$CMD\"; git commit -m y`, then the gate refuses as an unresolvable commit target. ```",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given `for x in a b; do\\n M[$x]=1\\ndone; git commit -m y`, then the commit is judged at the hook root as a plain commit; given `M[$(git commit -m y)]=1`, then the gate refuses as today.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a payload root whose main worktree is `<P>/main`, a direct Write to `<P>/wt/notes.md` where `<P>/wt` is a plain folder, with a stale ritual on the payload root, then the hook allows it with `write-outside-every-checkout-ready`; the same holds when `<P>` itself has a `deft` component.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given the same setup, a Write to `<P>/.deft-scratch/x`, `<P>/deft-state/x`, a path under a `.git` or `.deft` ancestor, a path inside another repository under `<P>`, a path named by a `DEFT_*` variable, or a path inside the payload root, then the class does not apply and the decision is as today.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a main worktree whose parent is a filesystem or drive root, or a payload root that is not a repository, then no checkout folder exists and the decision is as today.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given `content/docs/hook-root-admission.md`, then it states each rule above and its named limit.",
+          "artifact_path": "content/docs/hook-root-admission.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6516777214",
+    "updated": "2026-11-22T04:14:59Z"
+  }
+}
