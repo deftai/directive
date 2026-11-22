@@ -11,7 +11,13 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { containedWrite, scopeProvenance, slice } from "@deftai/directive-core";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedWrite,
+  scopeProvenance,
+  slice,
+} from "@deftai/directive-core";
 
 const {
   approvedScopeIntentPath,
@@ -362,6 +368,11 @@ export function writeCohortPairs(
         write(story.worktree, target, data);
         created.push(target);
       } catch (err: unknown) {
+        // Exclusive create refused: someone else's file, never touched. Any other
+        // failure after the create may leave our own partial file; remove it too.
+        const foreign =
+          err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS;
+        if (!foreign && existsSync(target)) created.push(target);
         const removed: string[] = [];
         for (const path of created.reverse()) {
           remove(path);

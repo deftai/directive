@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { containedWrite, scopeProvenance } from "@deftai/directive-core";
+import { startUatLease } from "@deftai/directive-core/authz";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./scope-record-approved-scope.js";
 import { parseCohortManifest } from "./scope-record-approved-scope-cohort.js";
@@ -218,6 +219,40 @@ describe("scope:record-approved-scope --manifest (#7083)", () => {
     for (const p of Object.values(pairOf(c.wt("story-a"), "story-a"))) {
       expect(existsSync(p)).toBe(false);
     }
+  });
+
+  it("removes its own partial file when a write fails after the create", () => {
+    const c = cohort([{ id: "story-a" }, { id: "story-b" }]);
+    const b = pairOf(c.wt("story-b"), "story-b");
+    capture();
+    const code = run(
+      c.argv,
+      seams({ n: 0 }),
+      {},
+      {
+        write: (root, target, data) => {
+          if (target === b.intent) {
+            containedWrite({ root, target, data: "{", mode: "create" });
+            throw new Error("write interrupted");
+          }
+          containedWrite({ root, target, data, mode: "create" });
+        },
+      },
+    );
+    expect(code).toBe(1);
+    for (const p of [...Object.values(pairOf(c.wt("story-a"), "story-a")), b.intent, b.record]) {
+      expect(existsSync(p)).toBe(false);
+    }
+  });
+
+  it("refuses when a target worktree holds an active UAT lease", () => {
+    const c = cohort([{ id: "story-a" }, { id: "story-b" }]);
+    startUatLease({ projectRoot: c.wt("story-b"), campaignId: "uat-7083", actor: "op" });
+    const prompts = { n: 0 };
+    capture();
+    expect(run(c.argv, seams(prompts))).not.toBe(0);
+    expect(prompts.n).toBe(0);
+    expect(existsSync(pairOf(c.wt("story-a"), "story-a").record)).toBe(false);
   });
 
   it("keeps the human-presence gate: a non-TTY run writes nothing", () => {

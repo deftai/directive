@@ -724,8 +724,16 @@ function runCohort(
     process.stderr.write(`scope_record_approved_scope: --manifest: ${manifest.error}\n`);
     return 2;
   }
-  const uatBlocked = refuseMintWhileUatActive(verb, projectRoot);
-  if (uatBlocked !== null) return uatBlocked;
+  // Every root that receives a pair is checked for an active UAT lease, not only
+  // the project root.
+  const roots = [
+    projectRoot,
+    ...manifest.entries.map((entry) => resolve(projectRoot, entry.worktreePath)),
+  ];
+  for (const root of new Set(roots)) {
+    const uatBlocked = refuseMintWhileUatActive(verb, root);
+    if (uatBlocked !== null) return uatBlocked;
+  }
   const stamp = {
     kind: args.kind.trim(),
     actor: args.actor.trim(),
