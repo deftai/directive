@@ -11,43 +11,67 @@
       "Description": "leftover(#4916): stop mandating main.md on rapid / identity-only / read-only",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4923",
       "Overview": "\n\n1. Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.\n2. Recut the L20 else-clause so it does not eager `main →`.\n3. Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.\n4. Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.\n5. Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.\n6. `task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.\n7. No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.\n\n",
-      "Labels": "bug, agent-experience, area:skills, design-critique:ingest-ready, core-capabilities, promise:planning"
+      "Labels": "bug, agent-experience, area:skills, design-critique:ingest-ready, core-capabilities, promise:planning",
+      "UserStory": "As an agent starting a read-only or identity-only session, I want the always-on Session routing to load AGENTS.md, USER.md and PROJECT-DEFINITION without main.md, so that the first prompt does not pay for a 37 KB read it does not need.",
+      "ImplementationPlan": "1. content/templates/agents-entry.md Session routing: drop `main.md / ` from the read-only load list and `main → ` from the else-clause. Keep L4 `Full guidelines: .../main.md` as the install-root locator (clauses 1, 2, 4, 7).\n2. content/commands.md Session routing: the read-only line loads AGENTS.md / USER.md / PROJECT-DEFINITION; the #4544 quote of the else-clause matches the recut template (clause 3).\n3. content/contracts/host-lifecycle-duties.md family-1 step 3 stops ordering main.md; content/skills/deft-directive-setup/SKILL.md else-clause quote matches, and content/packs/skills/skills-pack-0.1.json is regenerated if it carries that quote (clause 5).\n4. `task agents:refresh` regenerates AGENTS.md; packages/core/src/content-contracts/skills/agents_entry_contract.test.ts asserts the Session routing read-only load list carries no main.md (clause 6).\n5. xbrief/PROJECT-DEFINITION.xbrief.json: lower agentsMdBudget.absoluteMaxBytes to the measured managed size, never raise it (clause 7; the later of the wave-1 PRs #4923 / #4949 sets the final value).\n6. changelog.d/4923-read-only-main-md-load.md.",
+      "Traces": "#4923 Bound remedy (lean 6174554332, record 6174746630). Wave 1 of #3735 with #4949. Related: #4916, #2176, #4544, #3014."
     },
     "items": [
       {
         "title": "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION."
+        }
       },
       {
         "title": "Recut the L20 else-clause so it does not eager `main →`.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Recut the L20 else-clause so it does not eager `main →`."
+        }
       },
       {
         "title": "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440."
+        }
       },
       {
         "title": "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack."
+        }
       },
       {
         "title": "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit."
+        }
       },
       {
         "title": "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read."
+        }
       },
       {
         "title": "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch."
+        }
       }
     ],
     "tags": [
@@ -733,7 +757,8 @@
         "conflict_group": "agents-md-budget-absolute",
         "model_tier": "medium",
         "acceptance_criteria_justification": "The 7 clauses are the 7 Bound remedy items of the accepted arc lean 6174554332 on #4923, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
-      }
+      },
+      "kind": "story"
     },
     "id": "github.issue.5545361968",
     "updated": "2026-11-22T22:24:05Z"
