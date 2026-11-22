@@ -265,7 +265,11 @@ task swarm:finalize-cohort -- --pr <N1>,<N2> --repo <owner/repo> [--label <cohor
 task swarm:finalize-cohort -- --pr <N1>,<N2> --repo <owner/repo> --dry-run
 # Explicit story list when PR bodies omit Closes #N:
 task swarm:finalize-cohort -- --stories <issue-or-path>... --repo <owner/repo>
+# Cohort closer (#7082): merged post-merge PRs only, plus the whole cohort list:
+task swarm:finalize-cohort -- --pr <merged N1>,<merged N2> --cohort <id1>,<id2>,<id3> --repo <owner/repo>
 ```
+
+! **Cohort closer (#7082):** the parent is the cohort closer for every story that did not complete in its product PR (`scope:complete --in-pr`). It runs one `task swarm:finalize-cohort -- --pr <list> --cohort <ids>` with only the **merged** product PRs of post-merge stories. That opens one lifecycle PR with no changelog fragment. `--cohort` members bind their `deft-story` marks like `--stories`, but complete only when a listed merged PR binds them; the report names every other member under `Left active for a later run` (`omitted` = unmerged or left off the list; `refused` = mark refused) and exits incomplete. A member already completed (named by issue, id or path; in the checkout or on the delivery tip) is a no-op. The closer keeps each named story on its list, finalizes it in a later run, and owns each story through lifecycle-PR merge, then runs `task verify:completed-tracked -- --issue N` and `task verify:orphan-active -- --issue N` for each. ⊗ Pass an unmerged PR to `--pr`. ⊗ Run `scope:complete` per story when one finalize run covers the cohort.
 
 The finalize surface runs the same `completeCohort(...)` engine as `task swarm:complete-cohort`, fast-forwards the local base branch, creates a `swarm/finalize/<label>` feature branch (branch policy #747 safe), commits the `xbrief/` lifecycle moves, and auto-opens the sweep PR. Pass `--no-commit` to sweep only (manual Step 2b), or `--no-open-pr` to commit locally without opening the PR. Gate on exit 0 plus green `task xbrief:validate` before declaring the swarm closed.
 

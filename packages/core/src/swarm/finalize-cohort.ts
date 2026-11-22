@@ -84,6 +84,17 @@ export interface FinalizeRefusedMark {
   readonly detail: string;
 }
 
+/**
+ * A cohort story this run did not complete (#7082). It stays active for a later
+ * run: `omitted` when no listed merged PR binds it (unmerged or left off the
+ * list), `refused` when its `deft-story` mark was refused.
+ */
+export interface FinalizeLeftActiveStory {
+  readonly story: string;
+  readonly issue: number | null;
+  readonly reason: "omitted" | "refused";
+}
+
 export interface FinalizeCohortResult {
   readonly project_root: string;
   readonly dry_run: boolean;
@@ -105,11 +116,19 @@ export interface FinalizeCohortResult {
   readonly pending: FinalizeOriginClosePending | null;
   /** Refused `deft-story` marks whose stories stay pending (#680 P3). Always set by finalize. */
   readonly refused_marks?: readonly FinalizeRefusedMark[];
+  /** Cohort stories left active for a later run (#7082). Always set by finalize. */
+  readonly left_active?: readonly FinalizeLeftActiveStory[];
 }
 
 export interface FinalizeCohortArgs {
   readonly prNumbers?: readonly number[];
   readonly storyTokens?: readonly string[];
+  /**
+   * The cohort closer's story list (#7082). A member binds its `deft-story` mark
+   * as `--stories` does, but enters the sweep only when a listed merged PR binds
+   * it. Members no listed PR binds stay active and are named in `left_active`.
+   */
+  readonly cohortStories?: readonly string[];
   readonly repo?: string | null;
   readonly projectRoot?: string;
   /**
@@ -1568,6 +1587,116 @@ function remapStoriesToCheckout(
   return { ok: true, paths, evidence, alreadyLanded: landedCount > 0 && paths.length === 0 };
 }
 
+interface CohortMember {
+  readonly token: string;
+  readonly issue: number | null;
+  readonly activePath: string | null;
+}
+
+const ACTIVE_FOLDER_RE = /[\\/](xbrief|vbrief)[\\/]active[\\/]/;
+
+function planIdFromBriefText(text: string): string | null {
+  try {
+    const raw = JSON.parse(text) as { plan?: { id?: unknown } } | null;
+    return typeof raw?.plan?.id === "string" ? raw.plan.id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A terminal brief that matches a cohort token by plan id or file name (#7082),
+ * so a reused cohort list still names a story completed since: an id, an old
+ * active path or a completed path.
+ */
+function terminalCohortMember(projectRoot: string, token: string): CohortMember | null {
+  const tokenName = basename(token.replace(/\\/g, "/"));
+  for (const rootName of ["xbrief", "vbrief"] as const) {
+    for (const folder of ["completed", "cancelled"] as const) {
+      const dir = resolve(projectRoot, rootName, folder);
+      if (!existsSync(dir)) {
+        continue;
+      }
+      for (const name of readdirSync(dir)) {
+        if (!name.endsWith(".json")) {
+          continue;
+        }
+        let text: string;
+        try {
+          text = readFileSync(resolve(dir, name), "utf8");
+        } catch {
+          continue;
+        }
+        if (name === tokenName || planIdFromBriefText(text) === token) {
+          return { token, issue: githubIssueFromBriefText(text), activePath: null };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * True when a member's brief is already in completed/ on the delivery tip (#7082):
+ * a story completed in its product PR while the closer's checkout is stale.
+ */
+function completedOnDeliveryTip(
+  projectRoot: string,
+  activePath: string,
+  deliveryBranch: string,
+  runGit: typeof runText,
+): boolean {
+  const rel = posixProjectRel(projectRoot, activePath).replace(
+    /^(xbrief|vbrief)\/active\//,
+    "$1/completed/",
+  );
+  if (!/^(xbrief|vbrief)\/completed\//.test(rel)) {
+    return false;
+  }
+  const listed = runGit(["git", "ls-tree", "--name-only", `origin/${deliveryBranch}`, "--", rel], {
+    cwd: projectRoot,
+  });
+  return listed.returncode === 0 && listed.stdout.split(/\r?\n/).some((line) => line === rel);
+}
+
+/**
+ * Resolve the cohort closer's list (#7082). A member with an active brief may
+ * enter the sweep. A member whose issue has only a terminal brief (completed in
+ * its product PR with `scope:complete --in-pr`, or earlier) is a no-op. Any other
+ * token is a config error.
+ */
+function resolveCohortMembers(
+  projectRoot: string,
+  tokens: readonly string[],
+): { members: CohortMember[]; errors: string[] } {
+  const members: CohortMember[] = [];
+  const errors: string[] = [];
+  for (const raw of tokens) {
+    const token = /^#\d+$/.test(raw) ? raw.slice(1) : raw;
+    const resolved = resolveStories(projectRoot, [token]);
+    const story = resolved.resolved[0];
+    if (story !== undefined && ACTIVE_FOLDER_RE.test(story.path)) {
+      members.push({ token, issue: githubIssueFromBrief(story.path), activePath: story.path });
+      continue;
+    }
+    if (/^\d+$/.test(token) && terminalBriefReferencesIssue(projectRoot, Number(token))) {
+      members.push({ token, issue: Number(token), activePath: null });
+      continue;
+    }
+    // Story ids and paths (old active or terminal) keep working after the move.
+    const terminal = terminalCohortMember(projectRoot, token);
+    if (terminal !== null) {
+      members.push(terminal);
+      continue;
+    }
+    const why = resolved.errors.join(" ").trim();
+    errors.push(
+      `cohort story ${token}: ${why.length > 0 ? why : "no active or completed brief"} (#7082).`,
+    );
+  }
+  return { members, errors };
+}
+
 /** True when any local lifecycle brief references the issue (#4714 R6 expected-scoped). */
 function localBriefReferencesIssue(projectRoot: string, issue: number): boolean {
   for (const folder of ["proposed", "pending", "active", "completed", "cancelled"] as const) {
@@ -1963,6 +2092,15 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       storyTokens,
     ),
   );
+  // Cohort closer list (#7082): members bind their marks as --stories does, but
+  // enter the sweep only when a listed merged PR binds them.
+  const cohort = resolveCohortMembers(projectRoot, splitCsv(args.cohortStories ?? []));
+  errors.push(...cohort.errors);
+  for (const member of cohort.members) {
+    if (member.activePath !== null && member.issue !== null) {
+      operatorStoryIssues.add(member.issue);
+    }
+  }
 
   if (prNumbers.length > 0 && errors.length === 0) {
     if (repo === null || repo.length === 0) {
@@ -2276,7 +2414,26 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         : mark.detail,
     );
   }
-  const markPending = pendingMarkIssues.size > 0;
+  // Cohort members no listed merged PR bound stay active for a later run (#7082).
+  const sweptPaths = new Set(storyPaths.map((p) => resolve(p)));
+  const leftActive: FinalizeLeftActiveStory[] = [];
+  for (const member of cohort.members) {
+    if (member.activePath === null || sweptPaths.has(resolve(member.activePath))) {
+      continue;
+    }
+    if (completedOnDeliveryTip(projectRoot, member.activePath, deliveryBranch, runGit)) {
+      continue;
+    }
+    const refused = member.issue !== null && pendingMarkIssues.has(member.issue);
+    const story = member.issue !== null ? `#${String(member.issue)}` : member.token;
+    leftActive.push({ story, issue: member.issue, reason: refused ? "refused" : "omitted" });
+    if (!refused) {
+      warnings.push(
+        `${story}: no listed merged PR binds this cohort story; left active for a later run (#7082).`,
+      );
+    }
+  }
+  const markPending = pendingMarkIssues.size > 0 || leftActive.length > 0;
 
   const originIssues = collectOriginIssueNumbers(storyPaths, storyTokens, [
     ...fullStoryCloseIssues,
@@ -2320,6 +2477,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         warnings,
         pending,
         refusedMarks,
+        leftActive,
         ok: !originFailed && !originPending,
         emitJson: args.emitJson ?? false,
         exitCode: originFailed ? EXIT_GATE_FAILED : originPending ? EXIT_INCOMPLETE : EXIT_OK,
@@ -2346,6 +2504,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       warnings,
       pending: null,
       refusedMarks,
+      leftActive,
       ok: cleanNoop && !markPending,
       emitJson: args.emitJson ?? false,
       exitCode: cleanNoop
@@ -2378,6 +2537,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       warnings,
       pending: null,
       refusedMarks,
+      leftActive,
       ok: false,
       emitJson: args.emitJson ?? false,
       exitCode: EXIT_GATE_FAILED,
@@ -2480,6 +2640,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       warnings,
       pending: partial.pending ?? null,
       refusedMarks,
+      leftActive,
       emitJson: args.emitJson ?? false,
       ...partial,
     });
@@ -2860,6 +3021,7 @@ function withReportedFailure(
     warnings: [...result.warnings],
     pending: result.pending,
     refusedMarks: result.refused_marks ?? [],
+    leftActive: result.left_active ?? [],
     ok: false,
     emitJson,
     exitCode: EXIT_GATE_FAILED,
@@ -2884,10 +3046,12 @@ function buildResponse(input: {
   warnings: readonly string[];
   pending: FinalizeOriginClosePending | null;
   refusedMarks?: readonly FinalizeRefusedMark[];
+  leftActive?: readonly FinalizeLeftActiveStory[];
   ok: boolean;
   emitJson: boolean;
   exitCode: number;
 }): { exitCode: number; stdout: string; stderr: string; result: FinalizeCohortResult } {
+  const leftActive = input.leftActive ?? [];
   const result: FinalizeCohortResult = {
     project_root: input.projectRoot,
     dry_run: input.dryRun,
@@ -2906,6 +3070,7 @@ function buildResponse(input: {
     warnings: input.warnings,
     pending: input.pending,
     refused_marks: input.refusedMarks ?? [],
+    left_active: leftActive,
     ok: input.ok,
   };
 
@@ -2982,6 +3147,10 @@ function buildResponse(input: {
       );
     }
   }
+  const leftActiveList = leftActive.map((s) => `${oneLine(s.story)} (${s.reason})`).join(", ");
+  if (leftActive.length > 0) {
+    lines.push(`  Left active for a later run: ${leftActiveList}`);
+  }
   lines.push("");
   const skipNote =
     input.warnings.length > 0
@@ -2994,9 +3163,11 @@ function buildResponse(input: {
       ? `Result: FINALIZE CLEAN -- cohort briefs swept to completed/.${skipNote}`
       : input.pending !== null
         ? "Result: FINALIZE INCOMPLETE -- origin-close pending."
-        : input.errors.length === 0 && (input.refusedMarks ?? []).length > 0
-          ? "Result: FINALIZE INCOMPLETE -- refused deft-story mark(s); see warnings above."
-          : "Result: FINALIZE INCOMPLETE -- see errors above.",
+        : input.errors.length === 0 && leftActive.length > 0
+          ? `Result: FINALIZE INCOMPLETE -- cohort stories left active for a later run: ${leftActiveList}.`
+          : input.errors.length === 0 && (input.refusedMarks ?? []).length > 0
+            ? "Result: FINALIZE INCOMPLETE -- refused deft-story mark(s); see warnings above."
+            : "Result: FINALIZE INCOMPLETE -- see errors above.",
   );
 
   return {

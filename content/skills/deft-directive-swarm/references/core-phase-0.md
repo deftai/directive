@@ -16,6 +16,8 @@
 
 ! **Default for story / through-merge dispatch:** `drive-to: merge-ready` — the implementation leaf owns implement → pre-pr → push → PR → Greptile review-cycle → CI → merge-ready (and `scope:complete` when the envelope includes that step) as **one** unit (#1880 Gap C / #3032). **Grok through-merge exception (#4529):** this default does **not** apply. Implement MUST be `stop-at: pr-open`. Named partner is Approach 1 sibling or parent-retained review owner. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained). `swarm:finalize-cohort` is leftover / completed-tracked after merge. This MUST is Grok through-merge only — not a global Envelope SLA recut.
 
+! **Cohort completion (#7082):** in a cohort, completion is in-PR first: each worker tries `task scope:complete -- <active-path> --in-pr` (#6277) and, when it admits, completes the story in its product PR with the closing keyword. A worker whose story the verb refuses stops at product merge with `deft-story: N` and leaves completion to the parent as **cohort closer** (Phase 6 Step 1.5). A solo story keeps worker-owned completion.
+
 ! **Select the envelope at Phase 0 allocation / Phase 3 dispatch prep** (before spawn). Record the choice in the worker prompt unit-of-work line. Re-evaluate only when a leaf returns `BLOCKED` / thin DONE and a **new** continuation is planned — never re-label a live `drive-to: merge-ready` leaf as if it had been `stop-at: pr-open`.
 
 #### Decision tree (concrete triggers)
