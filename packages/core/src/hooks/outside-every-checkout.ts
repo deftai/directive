@@ -2,21 +2,25 @@
  * Outside-every-checkout write class (#6376).
  *
  * A direct Write/Edit target is in this class only when it is proven to land in
- * the OS temp directory, or in an ordinary folder under a home directory, and
- * outside every checkout, Git directory and Directive project. A target that is
- * in the class is allowed without the occupancy lease and the gated session
- * ritual of the payload root (see `inspectMutationGates`). Any doubt keeps the
- * target out of the class, and a target out of the class is judged as before.
+ * the OS temp directory, in an ordinary folder under a home directory, or in the
+ * checkout folder (the folder that holds the payload repository's main
+ * worktree, #6871), and outside every checkout, Git directory and Directive
+ * project. A target that is in the class is allowed without the occupancy lease
+ * and the gated session ritual of the payload root (see `inspectMutationGates`).
+ * Any doubt keeps the target out of the class, and a target out of the class is
+ * judged as before.
  *
  * The test is closed: it reads only the target path, the filesystem, the
- * process environment and one `git rev-parse`. It selects no ritual, lease,
- * story or worktree registration.
+ * process environment, one `git rev-parse` on the target and, for a target
+ * outside temp and home, the payload root's `--git-common-dir`. It selects no
+ * ritual, lease, story or worktree registration.
  *
- * Bound lean: #6376 comment 6908601625. Docs: content/docs/hook-root-admission.md.
+ * Bound leans: #6376 comment 6908601625; #6871 comment 7070642790.
+ * Docs: content/docs/hook-root-admission.md.
  */
 import { lstatSync, realpathSync, type Stats, statSync } from "node:fs";
 import { homedir as osHomedir, tmpdir as osTmpdir } from "node:os";
-import { delimiter, dirname, join, parse, posix, resolve, win32 } from "node:path";
+import { basename, delimiter, dirname, join, parse, posix, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { isOutsideProjectRootWrite } from "./outside-project-root.js";
@@ -83,6 +87,8 @@ interface Context {
   readonly excludedEnv: readonly Anchor[];
   readonly pathDirs: readonly Anchor[];
   readonly runtimeDir: Anchor | null;
+  /** The checkout folder (#6871), read once on first use; null when there is none. */
+  readonly checkoutFolder: () => Anchor | null;
   readonly realpath: (path: string) => string;
   readonly lstat: (path: string) => Stats;
   readonly stat: (path: string) => Stats;
@@ -290,6 +296,38 @@ export function defaultRuntimePackageDir(): string | null {
   return cachedRuntimeDir;
 }
 
+/** True when the path is a filesystem or drive root. */
+function isFilesystemRoot(path: string, platform: NodeJS.Platform): boolean {
+  return platformParts(path, platform).parts.length === 0;
+}
+
+/**
+ * The checkout folder (#6871): the parent of the payload repository's main
+ * worktree, in physical form. The main worktree is the folder that holds the
+ * common directory `git rev-parse --git-common-dir` reports for the payload
+ * root. None when the payload root is not a repository, a lookup fails, the
+ * repository is bare (or its common directory is not a `.git` folder), or the
+ * parent is a filesystem or drive root. Worktree registrations are not read.
+ */
+function resolveCheckoutFolder(
+  payloadRoot: string,
+  platform: NodeJS.Platform,
+  realpath: (p: string) => string,
+  runGit: GitRunner,
+): Anchor | null {
+  const root = resolve(payloadRoot);
+  const common = runGit(root, ["rev-parse", "--git-common-dir"]);
+  const reported = common.code === 0 ? common.stdout.trim() : "";
+  if (reported.length === 0) return null;
+  const physicalCommon = tryRealpath(resolve(root, reported), realpath);
+  if (physicalCommon === null || basename(physicalCommon) !== ".git") return null;
+  const bare = runGit(root, [`--git-dir=${physicalCommon}`, "rev-parse", "--is-bare-repository"]);
+  if (bare.code !== 0 || bare.stdout.trim() !== "false") return null;
+  const folder = dirname(dirname(physicalCommon));
+  if (isFilesystemRoot(folder, platform)) return null;
+  return { forms: [folder] };
+}
+
 function buildContext(
   payloadRoot: string,
   environ: NodeJS.ProcessEnv,
@@ -344,6 +382,18 @@ function buildContext(
   const runtimeValue =
     seams.runtimePackageDir === undefined ? defaultRuntimePackageDir() : seams.runtimePackageDir;
   const runtimeDir = runtimeValue === null ? null : optional(runtimeValue);
+  const runGit = seams.runGit ?? defaultGitRunner;
+  let folder: Anchor | null | undefined;
+  const checkoutFolder = (): Anchor | null => {
+    if (folder === undefined) {
+      try {
+        folder = resolveCheckoutFolder(payloadRoot, platform, realpath, runGit);
+      } catch {
+        folder = null;
+      }
+    }
+    return folder;
+  };
   return {
     platform,
     homes,
@@ -352,10 +402,11 @@ function buildContext(
     excludedEnv,
     pathDirs,
     runtimeDir,
+    checkoutFolder,
     realpath,
     lstat: seams.lstat ?? lstatSync,
     stat: seams.stat ?? statSync,
-    runGit: seams.runGit ?? defaultGitRunner,
+    runGit,
   };
 }
 
@@ -413,15 +464,6 @@ function buildPhysical(typed: string, ctx: Context): Physical | { readonly error
 /** Positive location, configuration areas (innermost decides) and name exclusions. */
 function locationVerdict(path: string, ctx: Context): string | null {
   const { platform } = ctx;
-  for (const part of components(path)) {
-    const doubt = doubtfulComponent(part);
-    if (doubt !== null) return doubt;
-    const lower = part.toLowerCase();
-    if (lower.includes("deft") || lower.includes("directive")) {
-      return "a path component contains deft or directive";
-    }
-    if (lower === ".git") return "a path component is named .git";
-  }
   // Positive location compares native names exactly; configuration areas and
   // exclusions may fold case, which only keeps more paths out.
   const tempDepth = containDepth(path, ctx.temp, platform, true, "exact");
@@ -439,8 +481,32 @@ function locationVerdict(path: string, ctx: Context): string | null {
       }
     }
   }
+  // The checkout folder applies only outside temp and home, which keep their
+  // rules exactly (#6871). Inside it, the deft/directive name rule skips only
+  // the components of the folder's own path.
+  let checkoutInside = false;
+  let nameRuleFrom = 0;
   if (tempDepth < 0 && !homeInside) {
-    return "not inside the OS temp directory or a home directory";
+    const folder = ctx.checkoutFolder();
+    for (const form of folder?.forms ?? []) {
+      const rest = pathInside(path, form, platform, "exact");
+      if (rest === null || rest.length === 0) continue;
+      const depth = components(path).length - rest.length;
+      nameRuleFrom = checkoutInside ? Math.min(nameRuleFrom, depth) : depth;
+      checkoutInside = true;
+    }
+  }
+  for (const [index, part] of components(path).entries()) {
+    const doubt = doubtfulComponent(part);
+    if (doubt !== null) return doubt;
+    const lower = part.toLowerCase();
+    if (index >= nameRuleFrom && (lower.includes("deft") || lower.includes("directive"))) {
+      return "a path component contains deft or directive";
+    }
+    if (lower === ".git") return "a path component is named .git";
+  }
+  if (tempDepth < 0 && !homeInside && !checkoutInside) {
+    return "not inside the OS temp directory or a home directory, nor in the checkout folder";
   }
   for (const area of ctx.configEnvAreas) {
     configDepth = Math.max(configDepth, containDepth(path, area, platform, false, "exclusion"));
