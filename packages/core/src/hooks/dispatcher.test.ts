@@ -8186,6 +8186,20 @@ describe("always-on kill-switch plant deny (#6136)", () => {
     expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant/i);
   });
 
+  it("denies echo into xargs --arg-file cat touch of the kill switch (#6941 current-guard gap)", () => {
+    // Before #6941 the mention rule skipped `--arg-file` as one word and read `cat` as the
+    // program, while xargs consumes `cat` as the argument file and runs `touch`.
+    const decision = shellDecision(
+      ownerRoot(),
+      `echo x | xargs --arg-file cat touch ${kill}`,
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(
+      /kill-switch|opt-out|human-origin|settings grant|protected dest-of-write/i,
+    );
+  });
+
   it("denies out-of-tree Set-Content of kill-switch basename before in-repo skip", () => {
     const root = ownerRoot();
     const outside = join(tmpdir(), kill);

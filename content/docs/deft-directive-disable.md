@@ -86,6 +86,22 @@ rm .deft-directive-disable
 
 Operators plant and remove this flag **outside** an agent session (or with a prior human-origin grant covering **settings**). PreToolUse **always** denies agent Write / Edit / Shell that creates or renames-to `.deft-directive-disable` (and permanent opt-out `.no-deft-directive`) without that grant — not only under active UAT. Shell write reissue checks the protected basename **before** skipping out-of-tree dests, so a plant outside the repo tree cannot fail-open. Agents must not self-serve the kill-switch to bypass Write / push / PR / merge gates.
 
+### Shell mention rule (#6681 / #6941)
+
+A shell command whose text names either flag file is refused unless one of the rules below lets it through. The rule reads the command text; it is a guardrail over the commands the gate reads, not a security boundary.
+
+| Rule | What passes | Limit |
+|---|---|---|
+| Plain reads | Every segment is a plain read: `cat`, `grep`, `rg`, `head`, `ls`, `diff`, … and `cut`, `tr`, `nl`, `jq`, `sort`, `git grep`, and `sed` line-range prints. | No output redirect, substitution or process substitution. `sed` passes only when every option is exactly `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u` or `-s`, and every script (and the first operand) is `N`, `N,M`, `$` or `N,$` followed by `p`. |
+| Unsafe options | A reader with a write or run option is not a plain read: `sort` (`-o`, `--output`, `--compress-program`, Windows `/o`), `git grep` (`-o`/`-O`, `--open-files-in-pager`, `--textconv`), `rg` (`--pre`, `--hostname-bin`), `file` (`-c`, `--compile`), `less` (`-o`, `-k`, `--log-file`, `--lesskey-file`), `more` (`-o`). | Every word is read, after `--` too. A short option matches its letter anywhere in a single-dash word (`-uo<file>`); a long option matches any abbreviation down to one letter (`--o=<file>`). Some harmless spellings are refused on purpose. |
+| Trusted split | The guard splits a line at `;`, `&`, `\|` and line breaks. | When one of those characters is quoted, escaped (backslash or `^`) or decoded from `$'...'` / `\xHH`, no segment counts as a plain read (`grep 'a\|b' f \| sort` beside a flag name is refused). |
+| `xargs` | `xargs` feeding a flag-free reader (`cat`, `grep`, `head`, `cut`, `jq`, …). | Only `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n N` / `-nN` and `--max-args N` / `--max-args=N` may come before the program. Any other option, cluster or abbreviation (`--arg-file`, `-a`, `-0r`, `--nu`, `--`) is refused. `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never pass behind `xargs`. |
+| Heredoc data | A quoted heredoc (`<<'EOF'`) that `cat` (one `>` or `>>` redirect) or `tee` (optional `-a`) writes to literal paths: its body is data, not a mention. | Only when it is the only command in the call: no pipe, `;`, `&&`, `\|\|`, `&` or second line, no `$`, backtick, quote, glob, `<(` / `>(`, and no destination that names a flag. The delimiter must be spelled plainly as `'WORD'` or `"WORD"`; `$"EOF"`, `$'EOF'` and mixed quoting are read as today. An unquoted heredoc body is always read. |
+
+Names built at run time (variables, `sed`, `base64`) are not detected: a known limit.
+
+To edit a scratch file whose text names a flag, use the Edit or Write tool. Those tools check the target's name, not its contents; other write checks still apply.
+
 Related: `policy:allow-bot-merge`, `policy:allow-direct-commits`, and `policy:disable-directive` (peers) are settings under UAT and require a human grant.
 
 ## Non-goals (v1)
