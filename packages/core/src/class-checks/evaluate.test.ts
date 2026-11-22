@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
+import { evaluateTestBoundary } from "../test-boundary/evaluate.js";
 import {
   DEFAULT_TEST_ROOTS,
   defaultTestBoundaryPolicy,
@@ -1022,5 +1023,163 @@ describe("class 4 counts Directive wiring only by what is committed (D-026 / #66
     expect(result.exitCode).toBe(0);
     expect(result.notCounted).toContain(".cursor/hooks.json");
     expect(result.notCounted).toContain(`.cursor/hooks/${outer as string}`);
+  });
+});
+
+describe("class 2 scans only added lines (#7077)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const dir of roots.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  function git(root: string, ...args: string[]): string {
+    return execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@example.com",
+        "-c",
+        "commit.gpgsign=false",
+        "-c",
+        "core.autocrlf=false",
+        ...args,
+      ],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+  }
+
+  function put(root: string, rel: string, text: string): void {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), text);
+  }
+
+  const REF = '  roots: ["tests/**"],';
+  const BASE = ["export const gate = {", REF, "  mode: 1,", "};", ""].join("\n");
+
+  /** master holds src/gate.ts with a test-root reference; branch `story` is checked out. */
+  function seed(): string {
+    const root = mkdtempSync(join(tmpdir(), "class-checks-added-"));
+    roots.push(root);
+    git(root, "init", "-q", "-b", "master");
+    put(root, "src/gate.ts", BASE);
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "base");
+    git(root, "checkout", "-q", "-b", "story");
+    return root;
+  }
+
+  const tb = baseTb({
+    sourceRoots: ["src/**"],
+    testRoots: ["tests/**"],
+    fixtureRoots: [],
+    enforcementMode: "enforce",
+  });
+  const options = {
+    baseRef: "master",
+    baseTestBoundaryPolicy: tb,
+    headTestBoundaryPolicy: null,
+    classChecksPolicy: { ...defaultClassChecksPolicy(), protectedGlobs: ["protected/**"] },
+  };
+
+  function class2(root: string): string[] {
+    return evaluateClassChecks(root, options)
+      .findings.filter((f) => f.kind === "production-references-test-root")
+      .map((f) => f.path);
+  }
+
+  it("passes an edit to another line of a file whose base already holds a reference", () => {
+    const root = seed();
+    put(root, "src/gate.ts", BASE.replace("mode: 1", "mode: 2"));
+    const result = evaluateClassChecks(root, options);
+    expect(result.findings).toEqual([]);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("fails a new line that adds a test-root reference, naming the file and line", () => {
+    const root = seed();
+    put(
+      root,
+      "src/gate.ts",
+      BASE.replace("  mode: 1,", '  mode: 1,\n  extra: "tests/fixtures/x",'),
+    );
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(1);
+    const finding = result.findings.find((f) => f.kind === "production-references-test-root");
+    expect(finding?.path).toBe("src/gate.ts");
+    expect(finding?.detail).toMatch(/on line 4 /);
+  });
+
+  it("fails when the reference line is deleted and the same text added elsewhere", () => {
+    const root = seed();
+    put(root, "src/gate.ts", ["export const gate = {", "  mode: 1,", REF, "};", ""].join("\n"));
+    expect(class2(root)).toEqual(["src/gate.ts"]);
+  });
+
+  it("fails when the reference line is only re-indented", () => {
+    const root = seed();
+    put(root, "src/gate.ts", BASE.replace(REF, `    ${REF.trimStart()}`));
+    expect(class2(root)).toEqual(["src/gate.ts"]);
+  });
+
+  it("fails an untracked production file with a reference", () => {
+    const root = seed();
+    put(root, "src/new.ts", 'export const r = "tests/fixtures/a";\n');
+    expect(class2(root)).toEqual(["src/new.ts"]);
+  });
+
+  it("fails a committed new production file with a reference", () => {
+    const root = seed();
+    put(root, "src/new.ts", 'export const r = "tests/fixtures/a";\n');
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "new file");
+    expect(class2(root)).toEqual(["src/new.ts"]);
+  });
+
+  it("verify:test-boundary still reports the pre-existing reference", () => {
+    const root = seed();
+    put(root, "src/gate.ts", BASE.replace("mode: 1", "mode: 2"));
+    git(root, "commit", "-q", "-am", "unrelated edit");
+    expect(class2(root)).toEqual([]);
+    const tbResult = evaluateTestBoundary(root, { policy: tb });
+    expect(tbResult.findings.map((f) => f.path)).toContain("src/gate.ts");
+  });
+
+  it("injected mode never reads git: no addedLines entry scans every line", () => {
+    const root = seed();
+    put(root, "src/gate.ts", BASE.replace("mode: 1", "mode: 2"));
+    const result = evaluateClassChecks(root, {
+      ...options,
+      changedFiles: ["src/gate.ts"],
+      fileContents: new Map([["src/gate.ts", BASE.replace("mode: 1", "mode: 2")]]),
+    });
+    expect(result.findings.map((f) => f.kind)).toEqual(["production-references-test-root"]);
+  });
+
+  it("injected addedLines: fails only when a reference is on a listed line", () => {
+    const injected = (lines: number[]) =>
+      evaluateClassChecks("/tmp/proj", {
+        ...options,
+        changedFiles: ["src/gate.ts"],
+        fileContents: new Map([["src/gate.ts", BASE]]),
+        addedLines: new Map([["src/gate.ts", new Set(lines)]]),
+      });
+    expect(injected([3]).exitCode).toBe(0);
+    expect(injected([]).exitCode).toBe(0);
+    const hit = injected([2, 3]);
+    expect(hit.exitCode).toBe(1);
+    expect(hit.findings[0]?.detail).toMatch(/on line 2 /);
+  });
+
+  it("strips one trailing CR per line and does not normalise whitespace", () => {
+    const crlf = BASE.split("\n").join("\r\n");
+    const result = evaluateClassChecks("/tmp/proj", {
+      ...options,
+      changedFiles: ["src/gate.ts"],
+      fileContents: new Map([["src/gate.ts", crlf]]),
+      addedLines: new Map([["src/gate.ts", new Set([2])]]),
+    });
+    expect(result.exitCode).toBe(1);
   });
 });

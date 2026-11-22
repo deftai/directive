@@ -1,18 +1,12 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 7031,
+  "issue": 7077,
   "surfaces": [
-    "packages/core/src/intent-constraint/mint.test.ts",
-    "packages/core/src/intent-constraint/mint.ts",
-    "packages/core/src/intent-constraint/placement.test.ts",
-    "packages/core/src/intent-constraint/types.test.ts",
-    "packages/core/src/intent-constraint/types.ts",
-    "packages/core/src/observable-scope/mint.test.ts",
-    "packages/core/src/observable-scope/mint.ts",
-    "packages/core/src/observable-scope/types.test.ts",
-    "packages/core/src/observable-scope/types.ts",
+    "packages/core/src/class-checks/changed-files-enum.test.ts",
+    "packages/core/src/class-checks/evaluate.test.ts",
+    "packages/core/src/class-checks/evaluate.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #7031 (mint audit), a deliberate authority change through issue and PR (#3156) built from the accepted arc (bound lean 7080205053). The observable-scope and intent-constraint record builders and parsers now accept a declared stamp (kind declared, mintedVia the record's own writer command) beside legacy human stamps, through one predicate in packages/core/src/scope-provenance/record-stamp.ts. isHumanApprovalStamp is unchanged, so approved-scope and the one-PR proof still refuse a declared stamp. INTENT_CONSTRAINT_REMEDIATION and OBSERVABLE_SCOPE_REMEDIATION now say write the declaration and land it before the product PR. No merge-base read, same-PR rewrite rule, threshold, fact extraction or exit code changes in verify:observable-scope or verify:intent-constraint. Tests change to pin the new contract. Disclosure only; not #3164 authorization. Refs #7031."
+  "note": "Disclosure for #7077 (class 2 scans only added lines), a deliberate gate change through issue and PR (#3156) built from the accepted arc (bound lean 7084665877). Class 2 of verify:class-checks now scans only the lines that one git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv against the candidate merge base marks as added, read with parseUnifiedDiffAddedLines. Injected callers pass the new optional ClassCheckOptions.addedLines; injected mode never reads git. A path with no added-line entry (untracked, binary, failed diff, injected without an entry) is scanned on every line, as before. No whitespace normalisation or line matching: a moved or re-indented reference line fails. The finding detail now names the first matching line. No change to which files count as production, the roots, needle regexes, class 1, 3 or 4, the same-PR policy-edit check, or verify:test-boundary. Tests change to pin the new contract. Disclosure only; not #3164 authorization. Refs #7077."
 }
