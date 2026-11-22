@@ -1982,14 +1982,6 @@ function realpathExistingParents(absPath: string): string {
 }
 
 /**
- * Route added to a shell kill-switch refusal (#6941). The shell mention rule reads the
- * command text, so a scratch file whose text names the flag is written with Edit or Write.
- */
-const KILL_SWITCH_SHELL_ROUTE_HINT =
-  "To edit a scratch file whose text names the flag, use the Edit or Write tool, which " +
-  "checks the target's name rather than its contents; other write checks still apply.";
-
-/**
  * True when a kill-switch plant path realpath-resolves under `.deft/authz/` or
  * `.deft/approved-scope/` (symlink alias). Does not treat the flag basename
  * itself as an inventoried-store hit (#6136 Greptile).
@@ -2198,10 +2190,6 @@ function authzForMutation(
             "run `deft authz:grant` covering settings for this cohort.",
         };
       }
-    }
-    // #6941: a shell refusal names the route for a scratch file whose text names the flag.
-    if (!decision.allowed && killSwitchPlant && shellCommand !== null) {
-      decision = { ...decision, reason: `${decision.reason} ${KILL_SWITCH_SHELL_ROUTE_HINT}` };
     }
     recordAuthzAudit(projectRoot, decision, state, seams);
     if (!decision.allowed) {
