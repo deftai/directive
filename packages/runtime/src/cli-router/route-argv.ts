@@ -3,7 +3,7 @@
  * Mirrors the `task <namespace>:<verb>` surface one-to-one.
  */
 
-import { resolveCanonicalVerb } from "../dispatch.js";
+import { dropLeadingDoubleDash, resolveCanonicalVerb } from "../dispatch.js";
 
 /** Top-level UX verbs promoted above the namespace layer (#1670). */
 export const TOP_LEVEL_UX_VERBS = [
@@ -394,11 +394,50 @@ function routeThreeToken(
   return null;
 }
 
+/** Routed heads that `routeArgv` returns as given: help and version forms (#6912). */
+const META_HEADS = new Set(["--help", "-h", "help", "--version", "-V"]);
+
+/**
+ * Handlers whose next token may be a subcommand (#6912): the handler of every
+ * SUBCOMMAND_ROUTES value, plus scope-lifecycle.
+ */
+const SUBCOMMAND_HANDLERS: ReadonlySet<string> = new Set([
+  ...Object.values(SUBCOMMAND_ROUTES).map(([handler]) => handler),
+  "scope-lifecycle",
+]);
+
+function isWordToken(token: string | undefined): boolean {
+  return token !== undefined && token.length > 0 && !token.startsWith("-");
+}
+
+/**
+ * #6912 / #6887: drop one lone `--` at the boundary between the routed verb tokens and the
+ * user's arguments. The boundary is after the next token when the head is a subcommand
+ * handler and that token is a word; otherwise it is right after the head. `scm` results
+ * (whose `--` reaches `gh`), meta forms, empty argv and stubs are returned unchanged.
+ */
+function applyDoubleDashBoundary(routed: RoutedArgv): RoutedArgv {
+  if (routed.kind !== "dispatch") return routed;
+  const { argv } = routed;
+  const head = argv[0];
+  if (head === undefined || head === "scm" || META_HEADS.has(head)) return routed;
+  const boundary = SUBCOMMAND_HANDLERS.has(head) && isWordToken(argv[1]) ? 2 : 1;
+  if (argv[boundary] !== "--") return routed;
+  return {
+    ...routed,
+    argv: [...argv.slice(0, boundary), ...dropLeadingDoubleDash(argv.slice(boundary))],
+  };
+}
+
 /**
  * Transform user-facing argv (`directive <ns> <verb>` or top-level UX) into
  * flat dispatcher argv consumed by `dispatch()`.
  */
 export function routeArgv(argv: readonly string[]): RoutedArgv {
+  return applyDoubleDashBoundary(routeArgvTokens(argv));
+}
+
+function routeArgvTokens(argv: readonly string[]): RoutedArgv {
   if (argv.length === 0) {
     return { kind: "dispatch", argv: [] };
   }

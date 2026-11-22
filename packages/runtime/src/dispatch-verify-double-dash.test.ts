@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { dropLeadingDoubleDash, registeredVerbs } from "./dispatch.js";
 
-/** Split a `deft <verb> ...` argv the way `dispatch` does and apply the shared helper. */
+/**
+ * Split a flat `<verb> ...` argv at the head and apply the shared helper, as the router
+ * (`routeArgv`) does at the verb boundary for a single-token verb (#6912).
+ */
 function restAfterDrop(argv: readonly string[]): string[] {
   const [, ...rest] = argv;
   return dropLeadingDoubleDash(rest);
