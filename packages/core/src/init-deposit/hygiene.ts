@@ -154,6 +154,10 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: "pnpm-lock.yaml" },
     { exact: "yarn.lock" },
     { exact: ".deft/GENERATION.json" },
+    // Install writes both (#6965). data-schema.json is whole-file owned in
+    // owned-paths.ts (#6842). Exact paths only; one ownership source is #6969.
+    { exact: ".deft/directive/data-schema.json" },
+    { exact: "xbrief/.directive-seed-placeholder" },
     // Installer-owned root fallback marker (#5245 / #1440). Written when
     // resolveLifecycleRoot throws; must not classify as app beside .deft/core/**.
     { exact: ".deft-version" },

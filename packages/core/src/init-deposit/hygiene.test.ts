@@ -2092,6 +2092,22 @@ describe("Pass 2 commit-set and #1430 peers (#4271)", () => {
     expect(isPass2CommitPath(".githooks/")).toBe(true);
   });
 
+  it("accepts install-written data-schema.json and the seed placeholder (#6965)", () => {
+    expect(installerManagedMatchers()).toContainEqual({
+      exact: ".deft/directive/data-schema.json",
+    });
+    expect(installerManagedMatchers()).toContainEqual({
+      exact: "xbrief/.directive-seed-placeholder",
+    });
+    expect(isPass2CommitPath(".deft/directive/data-schema.json")).toBe(true);
+    expect(isPass2CommitPath("xbrief/.directive-seed-placeholder")).toBe(true);
+    // Nearby paths stay unowned: exact matchers, no directory or prefix claim.
+    expect(isPass2CommitPath(".deft/directive/app-notes.json")).toBe(false);
+    expect(isPass2CommitPath("xbrief/.directive-seed-placeholder.bak")).toBe(false);
+    expect(isPass2CommitPath("xbrief/notes.md")).toBe(false);
+    expect(() => assertInstallerAllowlistHonors1430(installerManagedMatchers())).not.toThrow();
+  });
+
   it("treats the Go denylist as frozen source-only", () => {
     expect(GO_1430_DENYLIST_STATUS).toBe("frozen-source-only");
   });
