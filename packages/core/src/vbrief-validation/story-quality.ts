@@ -68,14 +68,24 @@ export const PLACEHOLDER_MARKER_WORDS = PLACEHOLDER_ACCEPTANCE_PATTERNS.filter(
 );
 
 const LIST_MARKER_RE = /^\s*(?:[-*+]|\d+[.)])\s+/;
-const EDGE_PUNCTUATION_RE = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
+const WORD_CHAR_RE = /[\p{L}\p{N}]/u;
 const PATH_LIKE_RE = /\/|[\p{L}\p{N}][._-][\p{L}\p{N}]/u;
 const TEMPLATE_TOKEN_RE = /^(?:<|\{\{?|\[)\s*(?:placeholder|tbd|todo)\s*(?:>|\}\}?|\])[.,;:!?]*$/i;
-const MARKDOWN_WRAPPER_RE = /^[*_`~]+|[*_`~]+$/g;
+const MARKDOWN_WRAPPER_CHARS = "*_`~";
 const DASH_TOKENS: ReadonlySet<string> = new Set(["-", "--", "\u2013", "\u2014"]);
 
 function isMarkerWord(word: string): boolean {
   return (PLACEHOLDER_MARKER_WORDS as readonly string[]).includes(word);
+}
+
+/** Remove leading and trailing characters that fail `keep`; linear (no regex backtracking). */
+function trimEdges(value: string, keep: (ch: string) => boolean): string {
+  const chars = Array.from(value);
+  let start = 0;
+  let end = chars.length;
+  while (start < end && !keep(chars[start] ?? "")) start += 1;
+  while (end > start && !keep(chars[end - 1] ?? "")) end -= 1;
+  return chars.slice(start, end).join("");
 }
 
 /**
@@ -94,7 +104,7 @@ function isPlaceholderLine(line: string): boolean {
   const words: { readonly raw: string; readonly word: string; readonly pathLike: boolean }[] = [];
   for (const raw of rawTokens) {
     if (TEMPLATE_TOKEN_RE.test(raw)) return true;
-    const word = raw.replace(EDGE_PUNCTUATION_RE, "").toLowerCase();
+    const word = trimEdges(raw, (ch) => WORD_CHAR_RE.test(ch)).toLowerCase();
     words.push({ raw, word, pathLike: word.length > 0 && PATH_LIKE_RE.test(word) });
   }
   const wordTokens = words.filter((w) => w.word.length > 0);
@@ -102,7 +112,9 @@ function isPlaceholderLine(line: string): boolean {
   if (wordTokens.every((w) => !w.pathLike && isMarkerWord(w.word))) return true;
   const [first, second] = words;
   if (first !== undefined && !first.pathLike && isMarkerWord(first.word)) {
-    if (first.raw.replace(MARKDOWN_WRAPPER_RE, "").endsWith(":")) return true;
+    if (trimEdges(first.raw, (ch) => !MARKDOWN_WRAPPER_CHARS.includes(ch)).endsWith(":")) {
+      return true;
+    }
     if (second !== undefined && second.word.length === 0 && DASH_TOKENS.has(second.raw)) {
       return true;
     }
