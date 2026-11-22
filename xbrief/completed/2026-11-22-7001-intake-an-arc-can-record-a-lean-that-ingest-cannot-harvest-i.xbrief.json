@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7001",
-    "updated": "2026-11-22T14:19:49Z"
+    "updated": "2026-11-22T15:33:01Z"
   },
   "plan": {
     "title": "intake: an arc can record a lean that ingest cannot harvest (indented sub-items refuse; #6904)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Ingest refuses a whole Spec-path lean when one of its Bound remedy or Acceptance Criteria items continues on an indented line, as item 8 of #6904 lean 7070710091 does with sub-items (a) to (f). Nothing checks this before the record, so an arc can be audited, recorded and stamped ingest-ready and only fail at ingest. This story builds the accepted design-critique lean 7080365954 (synthesis 7080402953): the harvester folds continuation lines into their item, the harvest digest covers the folded text, an audit carrying the old digest still counts for an unedited lean, and the completed-arc reader returns `unharvestable-lean` for a lean ingest would refuse.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7001",
@@ -20,138 +20,257 @@
     "items": [
       {
         "title": "Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a Bound remedy or Acceptance Criteria item is followed by non-blank indented non-list lines, then the folding reader returns that item with those lines joined to its title by one space; a blank line ends the item, an indented `- x` or `1. x` line stays its own item, and positions do not change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When `harvestSpecPathLean` reads a lean whose items continue on indented lines, then it returns the folded items instead of the wrapped-item refusal, and a lean with no continuation line returns the same items as before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest. The criteria-only record path (#6609) keeps today's digest, because its item reader does not change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a lean has continuation lines, then `hashBoundRemedyBytes` and `hashHarvestIdentity` return a digest over the folded titles, and an edit of only continuation text changes it; a lean with no continuation line returns its old digest, and a criteria-only record keeps its old digest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the tests run, then they show an indented `(a)`-style sub-list folds into its parent item in both lists, an indented `- x` sub-list stays separate, a blank line ends the item, a lean with no continuation line keeps items and digest, and a continuation-only edit changes the digest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When `issue:ingest` runs on the #6904 fixture, unsliced and sliced, then it writes folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and command capture still works from the harvest source."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, a credential-shaped item, and clean lists with a credential-shaped line only under Reject; a lean without the Spec-path token is unaffected.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When a Spec-path lean has an empty Bound remedy, a bad slice reference, a credential-shaped item, or a credential-shaped line only under Reject, then `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean`; a lean without the Spec-path token is unaffected."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When a Spec-path lean's Bound remedy or Acceptance Criteria item continues on indented lines, then the harvest returns that item with each continuation line folded into its title."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When an item is followed by an indented `- x` or `1. x` line or by a blank line, then the harvest returns the same items as before, and a lean with no continuation line returns the same items and the same digest as before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The harvest digest changes when only continuation text changes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When only the continuation text of a lean's item changes, then the harvest digest changes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts for the unedited lean.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "When the fixture copy of #6904 lean 7070710091 is harvested, then it returns item 8 carrying (a) to (f), and its recorded audit digest still counts for the unedited lean."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When a Spec-path lean has an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines, then `evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`unharvestable-lean` is listed in the contract's reason table.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "When a reader opens the `## Citation grammar` reason table in content/contracts/design-critique.md, then it shows a `unharvestable-lean` row with its detail and recovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3aca4329e69f6c77563c792666f823c140516b30",
+          "recorded_at": "2026-11-22T15:33:01Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -544,7 +663,36 @@
         "harvestDigest": "c5077941498c36248a6807382dacf3a5c48b55dfdb1552181f20bd10d6a45e62",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "afa067934ecaa666837e106f3c98efca7ec3c3c4",
+        "prNumber": 7040,
+        "prBase": "master",
+        "mergeCommit": "3aca4329e69f6c77563c792666f823c140516b30",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3aca4329e69f6c77563c792666f823c140516b30",
+        "verifiedAt": "2026-11-22T15:33:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7038
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T15:33:01Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T15:33:01Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -714,6 +862,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6538743717",
-    "updated": "2026-11-22T14:19:49Z"
+    "updated": "2026-11-22T15:33:01Z"
   }
 }
