@@ -47,7 +47,7 @@
         "status": "proposed",
         "id": "clause.4",
         "narrative": {
-          "Acceptance": "Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0."
+          "Acceptance": "When the operator gives no consent, pin and setup work run as today, the runtime migrate entry is not invoked, and the summary shows a Not done block with the file count, vbrief/ left as it is, deft migrate:xbrief and the version-pinned directive upgrade --migrate-xbrief --yes command; when the gated migration is the only work at equal version, upgrade changes nothing and returns exit 0."
         }
       },
       {
@@ -55,7 +55,7 @@
         "status": "proposed",
         "id": "clause.5",
         "narrative": {
-          "Acceptance": "With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration."
+          "Acceptance": "When the operator consents, the runtime migrate entry is invoked exactly as today and the default summary shows that the vbrief to xbrief migration ran."
         }
       },
       {
@@ -63,7 +63,7 @@
         "status": "proposed",
         "id": "clause.6",
         "narrative": {
-          "Acceptance": "The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment."
+          "Acceptance": "When a user runs directive --help, the output shows the --migrate-xbrief upgrade option; the change records a CHANGELOG fragment."
         }
       },
       {
@@ -71,7 +71,7 @@
         "status": "proposed",
         "id": "clause.7",
         "narrative": {
-          "Acceptance": "Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged."
+          "Acceptance": "When the tests run, they show: without the flag migrate is not invoked, vbrief/ stays and the notice prints; with the flag migrate is invoked and the summary names it; --yes alone does not migrate; interactive yes and no work; equal-version migration-only without consent changes nothing; a marker-only vbrief/ gets the notice; a project without vbrief/ is unchanged."
         }
       },
       {
@@ -87,7 +87,7 @@
         "status": "proposed",
         "id": "clause.9",
         "narrative": {
-          "Acceptance": "The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask."
+          "Acceptance": "When upgrade would migrate, the migration runs only with --migrate-xbrief or an interactive yes to a separate migration question; a --yes run neither asks nor migrates."
         }
       },
       {
@@ -95,7 +95,7 @@
         "status": "proposed",
         "id": "clause.10",
         "narrative": {
-          "Acceptance": "Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command."
+          "Acceptance": "When the operator gives no consent, upgrade completes the rest, does not invoke the runtime migrate entry, leaves vbrief/ untouched, and shows the pending migration with deft migrate:xbrief and a version-pinned directive upgrade --migrate-xbrief command."
         }
       },
       {
@@ -103,7 +103,7 @@
         "status": "proposed",
         "id": "clause.11",
         "narrative": {
-          "Acceptance": "With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration."
+          "Acceptance": "When --migrate-xbrief is passed, the runtime migrate entry runs as it does today and the default summary shows the completed migration."
         }
       },
       {
@@ -111,7 +111,7 @@
         "status": "proposed",
         "id": "clause.12",
         "narrative": {
-          "Acceptance": "A project without files under `vbrief/` upgrades exactly as today."
+          "Acceptance": "When a project has no files under vbrief/, directive upgrade shows no migration notice and invokes migrate exactly as today."
         }
       },
       {
@@ -119,7 +119,7 @@
         "status": "proposed",
         "id": "clause.13",
         "narrative": {
-          "Acceptance": "`install` rejects `--migrate-xbrief`."
+          "Acceptance": "When directive install receives --migrate-xbrief, it rejects the argument with a usage error and exit 2."
         }
       }
     ],
