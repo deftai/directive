@@ -151,6 +151,15 @@ describe("completion test floor (#7047)", () => {
     expect(walk.message).toContain("argv split cannot be kept");
   });
 
+  it("clause 2: an argument the shell would change (a backslash filter) is refused and never runs", () => {
+    const root = rootWithPolicyTestCommand(["npx", "vitest", "run", "-t", "\\bcheckout\\b"]);
+    const rec = recorder(0);
+    const walk = evaluateScopeCompleteAcceptanceWalk(clausePlan(), walkOptions(root, rec.runner));
+    expect(walk.ok).toBe(false);
+    expect(rec.commands).toEqual([]);
+    expect(walk.message).toContain("would not reach the shell unchanged");
+  });
+
   it("clause 10: a failed run refuses with the command, source, cwd, exit, last output lines and the grant command", () => {
     const root = rootWithScriptsTest();
     const rec = recorder(1, "running 3 tests\nTests 1 failed\n", "npm ERR! Test failed\n");

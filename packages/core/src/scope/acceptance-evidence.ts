@@ -2091,18 +2091,27 @@ function describeDeclaredTestCommand(declared: DeclaredTestCommand, cwd: string)
 }
 
 /**
+ * Characters an argument may hold and still reach the platform shell
+ * unchanged when the record runs as one command string (#7047).
+ */
+const SHELL_LITERAL_ARGUMENT = /^[A-Za-z0-9_@%+=:,./-]+$/;
+
+/**
  * The declared command as one acceptance record, argv split kept (#7047).
- * An argument holding whitespace cannot stay one argument in a single
- * command string, so that declaration is refused instead of re-split.
+ * The record runs through the platform shell, so an argument that would not
+ * survive it unchanged (whitespace, quotes, backslashes, globs and other
+ * shell syntax) is refused instead of quoted or re-split.
  */
 function declaredTestFloorRecord(
   declared: DeclaredTestCommand,
 ): { readonly record: LiteralAcceptanceCommand } | { readonly refused: string } {
   const argv = [declared.command, ...declared.args];
-  const split = argv.find((part) => /\s/.test(part));
-  if (split !== undefined) {
+  const changed = argv.find((part) => !SHELL_LITERAL_ARGUMENT.test(part));
+  if (changed !== undefined) {
     return {
-      refused: `argument ${JSON.stringify(split)} holds whitespace, so its argv split cannot be kept in one command`,
+      refused:
+        `argument ${JSON.stringify(changed)} would not reach the shell unchanged, ` +
+        "so its argv split cannot be kept in one command",
     };
   }
   return {
