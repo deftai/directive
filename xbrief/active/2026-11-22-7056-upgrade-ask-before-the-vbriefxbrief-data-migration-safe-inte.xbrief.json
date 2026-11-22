@@ -1,0 +1,555 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7056",
+    "updated": "2026-11-22T16:55:14Z"
+  },
+  "plan": {
+    "title": "upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009)",
+    "status": "running",
+    "narratives": {
+      "Description": "directive upgrade names the vbrief to xbrief data migration and runs it only with --migrate-xbrief or an interactive yes. Without that consent it finishes the rest of the upgrade, leaves vbrief/ untouched and names the command to run the migration later.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7056",
+      "Overview": "\n1. Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today.\n2. Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it.\n3. Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag.\n4. Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0.\n5. With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration.\n6. The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.\n7. Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged.\n\n## Acceptance Criteria\n\n- When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents.\n- The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask.\n- Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command.\n- With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration.\n- A project without files under `vbrief/` upgrades exactly as today.\n- `install` rejects `--migrate-xbrief`.\n\n\n",
+      "Constraint": "- Promising that tracked files can be recovered from Git history (comment 7082348620, finding 1).\n- Reporting the file count as records moved, created or deleted (comment 7082348620, finding 2).\n- Asking the migration question in a `--yes` run, TTY or not (comment 7082348620, answer 4).\n- A bare `directive upgrade` in the pending line; it resolves the latest version again (comment 7082348620, answer 5).\n- A runtime-side consent signal in this change (comment 7082348620, answer 1).",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a maintainer upgrading a project that still has a legacy vbrief/ tree, I want directive upgrade to name the vbrief to xbrief migration and run it only when I ask, so that a version bump never moves and deletes my legacy records without my consent.",
+      "ImplementationPlan": "1. packages/cli/src/bookends.ts: in runUpgrade, take --migrate-xbrief out of argv before the shared parseFlags; when needMigrate is true, count files under vbrief/ and the Git-tracked count (read-only, bounded git ls-files, sharing the existing plan-time Git probe); gate the migrate hand-off on the flag or a separate interactive [y/N] question (never asked under --yes); without consent skip handOffMigrate and report the pending migration; equal-version migration-only without consent changes nothing and exits 0.\n2. packages/cli/src/plan-present.ts: the plan notice block (migration name, file count, deletes vbrief/, Git-tracked count, Git restores only committed contents, consent rule), the Not done block with deft migrate:xbrief and the version-pinned directive upgrade --migrate-xbrief command, and a default-verbosity line naming a completed migration.\n3. packages/cli/src/launcher.ts: --help lists --migrate-xbrief.\n4. packages/cli/src/upgrade-vbrief-consent.test.ts (new): the Acceptance Criteria cases.\n5. changelog.d/7056-upgrade-vbrief-migration-consent.md.",
+      "Traces": "#7056 clauses 1-13 trace to the accepted lean 7082357355: Bound remedy items 1-7 and its six Acceptance Criteria (synthesis 7082384753). Refs #7009 (the policy question stays there with the upgrade owner)."
+    },
+    "items": [
+      {
+        "title": "Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today."
+        }
+      },
+      {
+        "title": "Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it."
+        }
+      },
+      {
+        "title": "Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag."
+        }
+      },
+      {
+        "title": "Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the operator gives no consent, pin and setup work run as today, the runtime migrate entry is not invoked, and the summary shows a Not done block with the file count, vbrief/ left as it is, deft migrate:xbrief and the version-pinned directive upgrade --migrate-xbrief --yes command; when the gated migration is the only work at equal version, upgrade changes nothing and returns exit 0."
+        }
+      },
+      {
+        "title": "With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When the operator consents, the runtime migrate entry is invoked exactly as today and the default summary shows that the vbrief to xbrief migration ran."
+        }
+      },
+      {
+        "title": "The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When a user runs directive --help, the output shows the --migrate-xbrief upgrade option; the change records a CHANGELOG fragment."
+        }
+      },
+      {
+        "title": "Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the tests run, they show: without the flag migrate is not invoked, vbrief/ stays and the notice prints; with the flag migrate is invoked and the summary names it; --yes alone does not migrate; interactive yes and no work; equal-version migration-only without consent changes nothing; a marker-only vbrief/ gets the notice; a project without vbrief/ is unchanged."
+        }
+      },
+      {
+        "title": "When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents."
+        }
+      },
+      {
+        "title": "The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When upgrade would migrate, the migration runs only with --migrate-xbrief or an interactive yes to a separate migration question; a --yes run neither asks nor migrates."
+        }
+      },
+      {
+        "title": "Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When the operator gives no consent, upgrade completes the rest, does not invoke the runtime migrate entry, leaves vbrief/ untouched, and shows the pending migration with deft migrate:xbrief and a version-pinned directive upgrade --migrate-xbrief command."
+        }
+      },
+      {
+        "title": "With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "When --migrate-xbrief is passed, the runtime migrate entry runs as it does today and the default summary shows the completed migration."
+        }
+      },
+      {
+        "title": "A project without files under `vbrief/` upgrades exactly as today.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When a project has no files under vbrief/, directive upgrade shows no migration notice and invokes migrate exactly as today."
+        }
+      },
+      {
+        "title": "`install` rejects `--migrate-xbrief`.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "When directive install receives --migrate-xbrief, it rejects the argument with a usage error and exit 2."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7056",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7056: upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7009",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7009"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft migrate:xbrief",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "directive upgrade --target-version <pin> --migrate-xbrief --yes",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/cli/src/launcher.ts",
+          "packages/cli/src/upgrade-vbrief-consent.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts",
+          "packages/cli/src/launcher-smoke.test.ts",
+          "changelog.d/7056-upgrade-vbrief-migration-consent.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6544964592.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/cli/src/upgrade-vbrief-consent.test.ts packages/cli/src/upgrade-bookend.test.ts",
+          "npx vitest run packages/cli/src/launcher-smoke.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "directive upgrade gates the vbrief to xbrief migration behind --migrate-xbrief or an interactive yes; --yes alone does not migrate",
+          "upgrade plan prints a notice naming the migration, the file count under vbrief/, the Git-tracked count and that Git restores only committed contents",
+          "without consent the runtime migrate entry is not invoked, vbrief/ is untouched and the summary names deft migrate:xbrief and a pinned directive upgrade --migrate-xbrief command",
+          "with consent migrate runs as today and the default summary names the completed migration",
+          "one changelog fragment changelog.d/7056-upgrade-vbrief-migration-consent.md"
+        ],
+        "conflict_group": "upgrade-bookend",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 13 clauses are the 7 Bound-remedy items and 6 Acceptance Criteria of the accepted design-critique lean 7082357355 (synthesis 7082384753), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7056; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the change alters what `directive upgrade` does by default for every consumer with a legacy `vbrief/` tree (a run that used to migrate will now leave the tree in place), and the gate has to work across launcher/runtime version skew without changing the runtime contract or the migration itself.\n\nTarget-digest: sha256:387b3876269b6f094abdfe4a499771ce2ea3db36bbad95936428bb3f4b29db18\ndispatch-sha: df13b026ecb8f7bf9a504de1f8d111044add0f14\ndest: C:/Repos/deft/wt/arc-7056 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one consent step in one launcher verb, no change to the runtime contract, the migration, or any other verb; one critic of a different model family, then a pain audit. The operator's words for this work: \"agreed\" and \"Start all four\".\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show df13b026ecb8f7bf9a504de1f8d111044add0f14: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\n`directive upgrade --yes` on a project with a legacy `vbrief/` tree bumps the runtime and then, in the same run, moves every legacy record into `xbrief/` and deletes `vbrief/` (#7009: 210 tracked files deleted on one consumer repo). The plan says only \"run project setup and any needed data updates\", and the summary lists the result as a path count. Approving a version bump also approves a data migration nobody was shown.\n\nThis is a safe interim. Whether upgrade should migrate at all is the upgrade owner's call and stays on #7009. The interim does not change what the migration does. It makes the migration visible and opt-in: upgrade names it and its size, says whether the files can be recovered from Git, and runs it only with `--migrate-xbrief` or an interactive yes. `--yes` alone does not run it. Without consent, upgrade finishes the rest and leaves `vbrief/` untouched, then names the command to run the migration later.\n\n## Pains\n- P1 — `directive upgrade` runs the vbrief→xbrief migration (moving all legacy records and deleting `vbrief/`) under the same approval as the version bump, including `--yes`, with no separate consent.\n- P2 — Neither the plan nor the summary names the migration, how many legacy records it moves and deletes, or whether they can be recovered, so a person or agent cannot tell history was rewritten or how to defer it.\n\n## Constraints (not pains)\n- What the migration does is unchanged (`packages/runtime/src/migrate.ts`, `packages/core/src/xbrief-migrate/`).\n- The policy question (should upgrade migrate at all) stays on #7009 with the upgrade owner.\n- `install`, `install --repair`, `uninstall`, `doctor` and AC8.6 automatic setup are unchanged.\n- The launcher keeps an empty dependency list (`packages/cli/src/launcher-deps.test.ts`).\n- The contract-1 runtime argv (`migrate --from <v> --root <r>`) is unchanged, so the launcher works with any target runtime.\n\n## Anchors at the dispatch SHA\n- `packages/cli/src/bookends.ts` 1207: `runUpgrade`; 1330 and 1354: `needMigrate` (true on every version change, or on `migration_needed` / stale wiring at equal version); 1373: `presentUpgradePlan`; 1402: the single `requireApproval`; 1522 and 1574: `handOffMigrate` on the version-change and equal-version paths; 1540 and 1593: `presentUpgradeSuccess`.\n- `packages/cli/src/bookends.ts` 575-600: `requireApproval` returns at 582 when `--yes` is set; 256: `parseFlags` is shared by install, repair, upgrade and uninstall.\n- `packages/cli/src/bookends.ts` 1094-1123: `handOffMigrate` runs the runtime `migrate` entry built by `migrateArgv` (`packages/cli/src/contract-invoke.ts` 109).\n- `packages/runtime/src/migrate.ts` 78-91: `projectNeedsXbriefMigration` is true for legacy-only, dual-populated, empty-vbrief and xbrief-marker states; 111: the migration runs with `force: true` (\"Upgrade already approved the operation\"); 192: `runMigrate` runs the xbrief migration before the schema-marker write, in one entry.\n- `packages/runtime/src/data-status.ts` 43: equal-version data-status reports `migration_needed` while `projectNeedsXbriefMigration` is true.\n- `packages/cli/src/plan-present.ts` 647: `presentUpgradePlan`; 684: the version-change plan bullet \"run project setup and any needed data updates for that version\"; 734: the `-v` line `migrate: runtime migrate --from …`; 1246: `presentUpgradeSuccess`.\n- `packages/cli/src/launcher.ts` 52: the `upgrade` usage line.\n\n## Recommended mechanism (the thing to critique)\n- K1. Detect. In `runUpgrade`, when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded like `listDeftCoreGitEdits`). One or more files means the migration is gated.\n- K2. Notice. The plan prints a block that names the migration: \"N legacy records under vbrief/ would move into xbrief/, and vbrief/ would be deleted.\" It then says either \"All N are tracked by Git, so you can recover them from Git history\", or how many are not tracked and cannot be recovered from Git (or that Git could not be read). It closes with: \"This runs only with --migrate-xbrief, or if you answer yes to the migration question. --yes alone does not run it.\"\n- K3. Consent. `--migrate-xbrief` is an upgrade-only flag, taken out of argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a second [y/N] question follows the main approval (default No). A `--yes` run without the flag never migrates and asks nothing more.\n- K4. Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked: it runs the migration and the schema-marker write in one call, and the contract-1 argv cannot skip part of it, so skipping the call is the only form that works with every target runtime. The summary adds a \"Not done\" block: the migration and its record count, \"vbrief/ was left as it is\", and the command to run it (`deft migrate:xbrief`, or `directive upgrade --migrate-xbrief`). If the gated migration is the only work at equal version, upgrade prints the notice and the pending line, changes nothing, and exits 0.\n- K5. With consent. `migrate` is invoked exactly as today.\n- K6. Docs. The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.\n- K7. Tests. Without the flag: legacy records stay and the notice prints. With the flag: `migrate` is invoked as today. `--yes` alone: no migrate. Interactive yes or no to the migration question. Equal-version migration-only without consent: no changes, exit 0. A project without `vbrief/`: unchanged.\n\nQuestions for the critic:\n1. Is a launcher-only gate enough for an interim, given that an older global launcher still migrates without asking until it is updated? Or should the runtime `migrate` entry also refuse the vbrief part unless the launcher signals consent, given that it cannot change the contract-1 argv?\n2. K4 skips the schema-marker write along with the migration. Is that acceptable while data-status keeps reporting `migration_needed`?\n3. Is \"files under `vbrief/`\" an honest count of the legacy records the migration moves and deletes, and is the Git-tracked wording accurate?\n4. Should a `--yes` run in a TTY still ask the migration question, or never ask?\n5. Which command should the pending line name? `deft migrate:xbrief` does not write the schema marker; `directive upgrade --migrate-xbrief` does both.\n\n",
+          "id": 7082312662,
+          "html_url": "https://github.com/deftai/directive/issues/7056#issuecomment-7082312662",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:45:00Z",
+          "updated_at": "2026-11-22T16:45:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7082315030\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: df13b026ecb8f7bf9a504de1f8d111044add0f14\ndest: C:/Repos/deft/wt/arc-7056\nverification-path: pin-read git show df13b026ecb8f7bf9a504de1f8d111044add0f14: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7082312662\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, the #7009 body) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7082315030,
+          "html_url": "https://github.com/deftai/directive/issues/7056#issuecomment-7082315030",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:45:11Z",
+          "updated_at": "2026-11-22T16:45:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nBoth pains are real. The launcher’s single approval covers migration, and the runtime explicitly bypasses its Git-clean check because upgrade already approved it. The proposed separate consent fixes P1 for updated launchers without changing the runtime contract.\n\nKeep the launcher-only interim. Correct the recovery promise and the meaning of the count before binding. Also name the migration in the successful summary, not just the plan and deferred summary. Older launchers remain outside this protection.\n\n## Answers to the five questions\n\n1. Yes, for this bounded interim. A runtime refusal would protect callers using older launchers, but it needs a compatible consent signal and cannot protect older target runtimes. That is a larger compatibility change. Revisit it if protection from old launchers becomes required.\n2. Yes. Skipping the whole entry preserves the contract. `data-status` correctly remains `migration_needed`; the summary must say data work remains pending. Do not imply the schema marker was updated.\n3. No. Count these as **files found under `vbrief/`**, not records moved. Some files are omitted, already present, or archived. Git tracking does not prove that current contents exist in Git history.\n4. Never ask with `--yes`. Require `--migrate-xbrief` for migration in that mode, including in a TTY. This gives automation consistent behavior.\n5. Keep `deft migrate:xbrief` as the migration-only command required by the issue. Optionally offer `directive upgrade --target-version <resolved-version> --migrate-xbrief` to finish the schema marker too. Include `--yes` for non-interactive use. Bare `upgrade` resolves latest again and can approve another version bump.\n\nExisting mechanisms inventoried: default-No approval and interactive reader; contract-1 migrate argv; equal-version data-status; migration Git-clean preflight, backups, collision planning, archive handling, contained writes and rollback; upgrade plan and summary presenters.\n\n### 1. blocks-the-design — Tracking is not a recovery guarantee\n\n**Evidence:** At `df13b026ecb8f7bf9a504de1f8d111044add0f14`, `packages/runtime/src/migrate.ts:108` bypasses Git-clean refusal with `force: true`. `packages/core/src/xbrief-migrate/migrate-project.ts:759` implements separate filesystem backups.\n\n**Failure mode:** A tracked file can contain uncommitted edits, or be newly staged without ever appearing in a commit. K2 promises recovery from Git history based only on index membership. The user can consent under a false assurance about the exact contents being removed.\n\n**Disposition consequence:** K2 cannot bind as written. Report tracking counts, but say recovery of current contents was not verified. Do not equate “untracked” with “never recoverable from Git,” either. Existing migration backups are separate protection, not proof of Git recovery.\n\n### 2. sharpens-framing — Source count is not migration output\n\n**Evidence:** At the dispatch SHA, `packages/core/src/xbrief-migrate/migrate-project.ts:1037` skips omitted files and the legacy marker, archives some inputs, and recognizes already-present destinations. Line 1069 nevertheless counts all collected source files.\n\n**Failure mode:** A marker-only tree or a dual-populated tree produces a notice claiming N records will move when fewer—or none—will be written into destination paths.\n\n**Disposition consequence:** Keep the simple launcher inventory. Change K2 to “N files found under vbrief/; migration processes this tree and removes vbrief/.” Do not promise matching moved, created and deleted record counts. Add marker-only and already-present-file cases to K7.\n\n### 3. sharpens-framing — Successful migration still needs a named outcome\n\n**Evidence:** At the dispatch SHA, `packages/cli/src/plan-present.ts:1300` prints collected review paths; migration detail at line 1307 requires verbose output. K4 adds a deferred outcome, while K5 leaves successful invocation unchanged.\n\n**Failure mode:** An agent reading the final successful summary still sees path counts without a clear statement that legacy migration ran. P2 remains partly unresolved.\n\n**Disposition consequence:** Bind with an explicit K5 summary requirement: name successful vbrief→xbrief migration at default verbosity. Test both completed and deferred summaries. Keep observed source-file counts distinct from actual runtime outcomes.\n\nVerification method: Read the supplied snapshot through ceiling 7082315030 and rechecked the listed anchors using only `git show df13b026ecb8f7bf9a504de1f8d111044add0f14:<path>`; no builds, tests, writes or network.",
+          "id": 7082348620,
+          "html_url": "https://github.com/deftai/directive/issues/7056#issuecomment-7082348620",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:47:55Z",
+          "updated_at": "2026-11-22T16:47:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7082312662 (round 1: 1 of 1 critic posted, comment 7082348620)\n\n## In plain English\nProblem: `directive upgrade` runs the vbrief→xbrief data migration under the same approval as the version bump, `--yes` included. The migration processes every file under `vbrief/` and deletes the tree, and the plan and summary never name it (#7009).\n\nWhat the critic found: a launcher-only consent step is right for this interim, and skipping the whole runtime `migrate` call without consent keeps the runtime contract intact. Three corrections. First, Git tracking does not prove the current contents can be restored: a tracked file can carry uncommitted edits, so the notice must not promise recovery. Second, the launcher's number is a count of files found under `vbrief/`, not of records moved, because the migration skips markers, archives some files and recognises files already in `xbrief/`. Third, a run that does migrate must say so in the default summary, not only in verbose output. The critic also said `--yes` must never trigger the migration question, and that a bare `directive upgrade` in the pending line would resolve the latest version again, so the line must pin the version.\n\nSolution this lean proposes: the launcher detects a non-empty `vbrief/` when upgrade would migrate, prints a notice with the file count and the Git-tracked count (with a plain warning that Git restores only committed contents), and runs the migration only with `--migrate-xbrief` or an interactive yes. Without consent it finishes the rest, leaves `vbrief/` alone and names `deft migrate:xbrief` and the pinned `directive upgrade` command. With consent the migration runs as today and the summary names it.\n\nWhat it does not do:\n- It does not change the migration, the runtime `migrate` entry, its argv, or any other verb.\n- It does not protect older global launchers; that needs a runtime-side consent signal, a separate change.\n- It does not decide whether upgrade should migrate at all; that stays on #7009.\nIf confirmed, the synthesis would assert this design. No leftover next-build.\n\nTarget-digest: sha256:387b3876269b6f094abdfe4a499771ce2ea3db36bbad95936428bb3f4b29db18\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7082312662. Sibling count: 1 (comment 7082348620). Panel deposit: comment 7082315030.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today.\n2. Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it.\n3. Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag.\n4. Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0.\n5. With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration.\n6. The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.\n7. Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged.\n\n## Acceptance Criteria\n- When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents.\n- The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask.\n- Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command.\n- With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration.\n- A project without files under `vbrief/` upgrades exactly as today.\n- `install` rejects `--migrate-xbrief`.\n\n## Reject\n- Promising that tracked files can be recovered from Git history (comment 7082348620, finding 1).\n- Reporting the file count as records moved, created or deleted (comment 7082348620, finding 2).\n- Asking the migration question in a `--yes` run, TTY or not (comment 7082348620, answer 4).\n- A bare `directive upgrade` in the pending line; it resolves the latest version again (comment 7082348620, answer 5).\n- A runtime-side consent signal in this change (comment 7082348620, answer 1).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7082348620 | 1. Tracking is not a recovery guarantee | blocks-the-design | accept-into-contract (item 2: tracked count plus \"Git restores only committed contents\"; no recovery promise) |\n| comment 7082348620 | 2. Source count is not migration output | sharpens-framing | accept-into-contract (items 2 and 7: \"files found under vbrief/\"; marker-only case tested) |\n| comment 7082348620 | 3. Successful migration still needs a named outcome | sharpens-framing | accept-into-contract (items 5 and 7: default summary names the completed migration; both summaries tested) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 7082357355,
+          "html_url": "https://github.com/deftai/directive/issues/7056#issuecomment-7082357355",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:48:37Z",
+          "updated_at": "2026-11-22T16:48:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:386b432919d50a5347f2ad2ff288fd793097d0eb3c82152d9065ccaf1898a0ec\n\n## In plain English\n\nBoth relief claims hold for the stated launcher-only interim. The remedy separates migration consent from upgrade approval, explains the source-file count without promising recovery, and names both completed and deferred migration outcomes. Older launchers remain outside its stated protection.\n\nExisting mechanisms checked: default-No approval, both upgrade migration call sites, the combined migration/schema-marker entry, migration file classification, and summary rendering.\n\npain-P1: holds - Separate consent gates the runtime migration call; `--yes` alone leaves legacy files untouched while other upgrade work proceeds.\npain-P2: holds - The notice identifies migration, deletion, file and tracking counts, and recovery limits; the summaries identify completion or deferral and give explicit follow-up commands.\n\nEvidence at dispatch SHA `df13b026ecb8f7bf9a504de1f8d111044add0f14`:\n\n- `packages/cli/src/bookends.ts:582`: existing approval accepts `--yes`; migration calls at lines 1522 and 1574 cover version-change and equal-version paths.\n- `packages/runtime/src/migrate.ts:111`: migration uses `force: true`; lines 192 and 200 couple legacy migration with schema-marker work, supporting deferral of the whole entry.\n- `packages/core/src/xbrief-migrate/migrate-project.ts:1039`: markers and omitted files are skipped; lines 1042 and 1059 distinguish archival and already-present files. The revised source-file count avoids claiming these are all newly moved records.\n- `packages/cli/src/plan-present.ts:1300`: default output lists review paths; line 1304 gates migration detail on verbosity. The bound default-summary requirement addresses that gap.\n\nNo findings.\n\nVerification method: Read the supplied snapshot through comment 7082357355 and rechecked source using only `git show` at the dispatch SHA; no builds, tests, writes or network.",
+          "id": 7082376706,
+          "html_url": "https://github.com/deftai/directive/issues/7056#issuecomment-7082376706",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:50:05Z",
+          "updated_at": "2026-11-22T16:50:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7082357355. Dispatch SHA: df13b026ecb8f7bf9a504de1f8d111044add0f14. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run against the new design. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Upgrade has one approval, and `--yes` satisfies it; the migration runs under that approval on both the version-change and equal-version paths | verified | parent read of `packages/cli/src/bookends.ts` 582, 1402, 1522, 1574; audit 7082376706 |\n| 2 | The runtime `migrate` entry runs the xbrief migration with `force: true` and then writes the schema marker, in one call | verified | parent read of `packages/runtime/src/migrate.ts` 111, 192-215; critic 7082348620 finding 1; audit 7082376706 |\n| 3 | The contract-1 `migrate` argv carries only `--from` and `--root`, so the launcher cannot ask the runtime to skip part of it | verified | parent read of `packages/cli/src/contract-invoke.ts` 109-111 |\n| 4 | Equal-version data-status reports `migration_needed` while legacy `vbrief/` data remains, so a skipped migration stays visible | verified | parent read of `packages/runtime/src/data-status.ts` 43; critic 7082348620 answer 2 |\n| 5 | The migration skips markers and omitted files, archives some and recognises files already present, so the file count under `vbrief/` is not a count of records moved | verified | critic 7082348620 finding 2 (`packages/core/src/xbrief-migrate/migrate-project.ts` 1037-1069); audit 7082376706 |\n| 6 | Git tracking does not prove the current contents can be restored | verified as stated limit | critic 7082348620 finding 1 |\n| 7 | The default upgrade summary lists review paths only; migrate detail needs `-v` | verified | parent read of `packages/cli/src/plan-present.ts` 1300-1309; critic 7082348620 finding 3 |\n| 8 | The consent step, the notice and both summaries behave as designed | endorsed, not verified | the new behaviour was not executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 7082384213,
+          "html_url": "https://github.com/deftai/directive/issues/7056#issuecomment-7082384213",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:50:41Z",
+          "updated_at": "2026-11-22T16:50:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `directive upgrade` ran the vbrief→xbrief data migration under the same approval as the version bump, `--yes` included. The migration processes every file under `vbrief/` and deletes the tree, and neither the plan nor the summary named it (#7009).\n\nAccepted solution: when upgrade would migrate and `vbrief/` holds files, the launcher prints a notice that names the migration, the number of files found under `vbrief/`, that it deletes `vbrief/`, and how many of the files Git tracks, with a warning that Git restores only committed contents. The migration runs only with `--migrate-xbrief` or an interactive yes to a separate question; `--yes` alone neither runs it nor asks. Without consent, upgrade finishes the rest, does not call the runtime `migrate` entry, leaves `vbrief/` alone and names `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command. With consent the migration runs as today, and the summary names it.\n\nLimits accepted: the count is of files found, not records moved; older global launchers still migrate without asking until updated; a skipped migration also skips the schema-marker write, and data-status keeps reporting the data as behind. The migration itself, the runtime contract and every other verb are unchanged, and whether upgrade should migrate at all stays on #7009. No new gate or constant. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7082357355.\nverified-claims table 7082384213\n\nConfirm conjunct: yolo standing (Stop 1 7082312662, `yolo-standing: on`) on the operator's go-ahead for this work, \"agreed\" and \"Start all four\". Round-1 critic: comment 7082348620, posted by the parent verbatim as disclosed on panel-deposit 7082315030; its three classified findings are accepted on the lean. Pain audit 7082376706 targeted `pain-P1` and `pain-P2`, found both hold, and returned no findings. Critic posts used: 2 of 6.\n\n",
+          "id": 7082384753,
+          "html_url": "https://github.com/deftai/directive/issues/7056#issuecomment-7082384753",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:50:43Z",
+          "updated_at": "2026-11-22T16:50:43Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Refs #7009\n\n## Acceptance Criteria\n\n- [ ] When `directive upgrade` would run the vbrief→xbrief data migration on a project with legacy records under `vbrief/`, it prints a notice that names the migration, gives the number of legacy records it moves and deletes, and says whether those files are tracked by Git and can be recovered.\n- [ ] The migration runs only with an explicit `--migrate-xbrief` flag or an interactive yes to the migration question; `--yes` alone does not run it.\n- [ ] Without that consent, `directive upgrade` completes the rest of the upgrade, leaves `vbrief/` untouched, and reports the pending migration with the command to run it (`deft migrate:xbrief`).\n- [ ] With `--migrate-xbrief`, the migration runs as it does today; what the migration does is unchanged.\n- [ ] Tests cover: upgrade without the flag leaves the legacy records in place and prints the notice; upgrade with the flag runs the migration; `--yes` alone does not migrate.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6544964592,
+        "origin": "deftai/directive#7056",
+        "id": "github.issue.6544964592"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "387b3876269b6f094abdfe4a499771ce2ea3db36bbad95936428bb3f4b29db18"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7056,
+        "leanCommentId": 7082357355,
+        "harvestDigest": "386b432919d50a5347f2ad2ff288fd793097d0eb3c82152d9065ccaf1898a0ec",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (13), in list order (#6333)",
+      "sentences": [
+        "Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today.",
+        "Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it.",
+        "Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag.",
+        "Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0.",
+        "With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration.",
+        "The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.",
+        "Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged.",
+        "When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents.",
+        "The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask.",
+        "Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command.",
+        "With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration.",
+        "A project without files under `vbrief/` upgrades exactly as today.",
+        "`install` rejects `--migrate-xbrief`."
+      ],
+      "admitted_source_sentences": [
+        "Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today.",
+        "Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it.",
+        "Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag.",
+        "Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0.",
+        "With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration.",
+        "The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.",
+        "Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged.",
+        "When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents.",
+        "The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask.",
+        "Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command.",
+        "With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration.",
+        "A project without files under `vbrief/` upgrades exactly as today.",
+        "`install` rejects `--migrate-xbrief`."
+      ],
+      "admitted_source_digest": "b60b175a933f64121a9cfc52036b58a1d4203105b0526e54fa36295836be5072",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Detect. In `runUpgrade` (`packages/cli/src/bookends.ts`), when `needMigrate` is true, the launcher counts files under `<root>/vbrief/` (recursive, no symlink follow) and how many of them Git tracks (`git ls-files -z -- vbrief`, read-only and time-bounded). One or more files gates the migration. No `vbrief/`, or an empty one, behaves as today.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Notice. The plan prints a block that names the vbrief→xbrief migration, says \"N files found under vbrief/; the migration processes this tree into xbrief/ and deletes vbrief/\", and gives the Git-tracked count. It warns that Git restores only committed contents, so commit or back up `vbrief/` first; if Git could not be read it says so. It states that the migration runs only with `--migrate-xbrief` or a yes to the migration question, and that `--yes` alone does not run it.",
+          "artifact_path": "packages/cli/src/plan-present.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Consent. `--migrate-xbrief` is upgrade-only and is removed from argv before the shared `parseFlags`, so install still rejects it. In an interactive session without `--yes`, a separate [y/N] migration question (default No) follows the main approval. A `--yes` run never asks it and migrates only with the flag.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Without consent. Pin and setup work run as today. The runtime `migrate` entry is not invoked. The summary adds a \"Not done\" block: the migration, the file count, \"vbrief/ was left as it is; project data is still behind\", and two commands: `deft migrate:xbrief`, and `directive upgrade --target-version <pin> --migrate-xbrief --yes` to also finish the data update. If the gated migration is the only remaining work at equal version, upgrade prints the notice and the \"Not done\" block, changes nothing and exits 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "With consent. `migrate` is invoked exactly as today, and the default summary names the completed vbrief→xbrief migration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The launcher `--help` lists `--migrate-xbrief`; a CHANGELOG fragment.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests: without the flag, `migrate` is not invoked, `vbrief/` stays and the notice prints; with the flag, `migrate` is invoked and the summary names the migration; `--yes` alone does not migrate; interactive yes and no to the migration question; equal-version migration-only without consent changes nothing and exits 0; a marker-only `vbrief/` still gets the notice with its file count; a project without `vbrief/` is unchanged.",
+          "artifact_path": "packages/cli/src/upgrade-vbrief-consent.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "When `directive upgrade` would migrate and `vbrief/` holds files, the plan prints a notice that names the vbrief→xbrief migration, the number of files found under `vbrief/`, that the migration deletes `vbrief/`, and how many of those files Git tracks, with a warning that Git restores only committed contents.",
+          "artifact_path": "packages/cli/src/plan-present.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The migration runs only with `--migrate-xbrief` or an interactive yes to a separate migration question; `--yes` alone does not run it and does not ask.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Without consent, upgrade completes the rest, does not invoke the runtime `migrate` entry, leaves `vbrief/` untouched, and reports the pending migration with `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief` command.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "With `--migrate-xbrief`, the runtime `migrate` entry runs as it does today and the default summary names the completed migration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "A project without files under `vbrief/` upgrades exactly as today.",
+          "artifact_path": "packages/cli/src/bookends.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`install` rejects `--migrate-xbrief`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6544964592",
+    "updated": "2026-11-22T16:55:14Z"
+  }
+}
