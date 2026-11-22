@@ -118,7 +118,23 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
     const diffCalls = spawnSyncMock.mock.calls
       .map((call) => (call[1] as string[]) ?? [])
       .filter((a) => a[0] === "diff");
-    expect(diffCalls).toEqual([["diff", "--name-only", "origin/master"]]);
+    expect(diffCalls.filter((a) => a[1] === "--name-only")).toEqual([
+      ["diff", "--name-only", "origin/master"],
+    ]);
+    // #7077: class 2 added lines come from one -U0 diff against the same base.
+    expect(diffCalls.filter((a) => a[1] === "-U0")).toEqual([
+      [
+        "diff",
+        "-U0",
+        "--no-renames",
+        "--no-color",
+        "--no-ext-diff",
+        "--no-textconv",
+        "origin/master",
+        "--",
+        "src/ok.ts",
+      ],
+    ]);
     expect(result.exitCode).not.toBe(2);
   });
 

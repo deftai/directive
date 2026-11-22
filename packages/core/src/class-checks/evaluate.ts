@@ -8,6 +8,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parseUnifiedDiffAddedLines } from "../forward-coverage/diff-lines.js";
 import { classifyDirectiveOwnedChange } from "../install-health/owned-paths.js";
 import { isLifecycleArtifactPath } from "../layout/resolve.js";
 import { unquoteGitPath } from "../scope-provenance/evaluate.js";
@@ -59,6 +60,12 @@ export interface ClassCheckOptions {
   readonly baseRef?: string | null;
   readonly changedFiles?: readonly string[];
   readonly fileContents?: ReadonlyMap<string, string>;
+  /**
+   * Added line numbers (1-based) per path, for injected callers (#7077). Read
+   * only when `changedFiles` is injected; injected mode never reads git. A path
+   * with no entry is scanned on every line by class 2.
+   */
+  readonly addedLines?: ReadonlyMap<string, ReadonlySet<number>>;
   /** Merge-base test-boundary policy (allow / roots). */
   readonly baseTestBoundaryPolicy?: TestBoundaryPolicy;
   /** Working-tree test-boundary policy (same-PR edit detection). */
@@ -621,10 +628,16 @@ function isCiHarnessGithubWorkflow(relPath: string): boolean {
   );
 }
 
+/**
+ * Class 2 scans only added lines (#7077). `added` undefined means no added-line
+ * data for the path: every line is scanned (fail closed). Lines split on `\n`
+ * with one trailing `\r` stripped; no whitespace normalisation.
+ */
 function scanProductionReferences(
   relPath: string,
   content: string,
   policy: TestBoundaryPolicy,
+  added: ReadonlySet<number> | undefined,
 ): ClassCheckFinding | null {
   if (
     matchesTestFilePattern(relPath, policy.testFilePatterns) ||
@@ -651,6 +664,15 @@ function scanProductionReferences(
     return null;
   }
 
+  const scanned: { readonly lineNo: number; readonly text: string }[] = [];
+  content.split("\n").forEach((raw, i) => {
+    const lineNo = i + 1;
+    if (added !== undefined && !added.has(lineNo)) return;
+    scanned.push({ lineNo, text: raw.endsWith("\r") ? raw.slice(0, -1) : raw });
+  });
+  if (scanned.length === 0) return null;
+
+  const regexes: { readonly needle: string; readonly re: RegExp }[] = [];
   const rootsToForbid = [...policy.testRoots, ...policy.fixtureRoots];
   for (const root of rootsToForbid) {
     if (!root.includes("/") && !root.endsWith("/**")) continue;
@@ -663,18 +685,58 @@ function scanProductionReferences(
       new RegExp(`(?:^|["'\`\\s=,:(])${escapeRegExp(needle)}/`),
       new RegExp(`(?:^|["'\`\\s=,:(])${escapeRegExp(needle.replace(/\//g, "\\\\"))}\\\\`),
     ];
-    for (const re of patterns) {
-      if (re.test(content)) {
+    for (const re of patterns) regexes.push({ needle, re });
+  }
+  for (const { lineNo, text } of scanned) {
+    for (const { needle, re } of regexes) {
+      if (re.test(text)) {
         return {
           path: relPath,
           kind: "production-references-test-root",
-          detail: `references test/fixture root '${needle}/' (class 2)`,
+          detail: `references test/fixture root '${needle}/' on line ${lineNo} (class 2)`,
           remediation: MOVE_OR_REMOVE,
         };
       }
     }
   }
   return null;
+}
+
+/**
+ * Added line numbers per path from one `git diff -U0` of the working tree
+ * against the merge base (#7077). Any failure returns an empty map, so every
+ * path is scanned on every line (fail closed).
+ */
+function gitAddedLines(
+  projectRoot: string,
+  mergeBase: string,
+  paths: readonly string[],
+): ReadonlyMap<string, ReadonlySet<number>> {
+  const out = new Map<string, ReadonlySet<number>>();
+  if (paths.length === 0) return out;
+  const ran = git(
+    [
+      "diff",
+      "-U0",
+      "--no-renames",
+      "--no-color",
+      "--no-ext-diff",
+      "--no-textconv",
+      mergeBase,
+      "--",
+      ...paths,
+    ],
+    projectRoot,
+  );
+  if (!ran.ok || ran.status !== 0) return out;
+  for (const [path, lines] of parseUnifiedDiffAddedLines(ran.stdout)) {
+    out.set(normalizeRepoRelPath(path), lines);
+  }
+  return out;
+}
+
+function isBinaryLikePath(posix: string): boolean {
+  return /\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|woff2?|ttf|eot|bin|exe|dll)$/i.test(posix);
 }
 
 /**
@@ -910,6 +972,31 @@ export function evaluateClassChecks(
     changed.find((p) => TEST_BOUNDARY_POLICY_PATHS.some((k) => normalizeRepoRelPath(p) === k)) ??
     null;
 
+  // Class 2 added lines (#7077): injected callers supply them; git mode reads
+  // one diff against the candidate merge base over the paths class 2 scans.
+  let addedLines: ReadonlyMap<string, ReadonlySet<number>>;
+  if (options.changedFiles) {
+    const injected = new Map<string, ReadonlySet<number>>();
+    for (const [path, lines] of options.addedLines ?? []) {
+      injected.set(normalizeRepoRelPath(path), lines);
+    }
+    addedLines = injected;
+  } else {
+    const class2Paths = changed
+      .map((p) => normalizeRepoRelPath(p))
+      .filter(
+        (p) =>
+          !isExempt(p, baseTb.testRoots) &&
+          !isBinaryLikePath(p) &&
+          !isProtected(p, classPolicy.protectedGlobs) &&
+          isAllowListed(p, baseTb.allow) === null,
+      );
+    addedLines =
+      candidateMergeBase === null
+        ? new Map()
+        : gitAddedLines(root, candidateMergeBase, class2Paths);
+  }
+
   // Class 1 + 2 + 3 over changed files only (diff-scoped).
   for (const rel of changed) {
     const posix = normalizeRepoRelPath(rel);
@@ -922,7 +1009,7 @@ export function evaluateClassChecks(
     const protectedPath = isProtected(posix, classPolicy.protectedGlobs);
 
     // Skip binary-ish for content scans
-    if (/\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|woff2?|ttf|eot|bin|exe|dll)$/i.test(posix)) {
+    if (isBinaryLikePath(posix)) {
       if (isTest && underSource && isAllowListed(posix, baseTb.allow) === null) {
         findings.push({
           path: posix,
@@ -951,7 +1038,7 @@ export function evaluateClassChecks(
     // Class 2: production reference to test root. Skip protected verifier/authz
     // paths — their source legitimately mentions configured test roots.
     if (!protectedPath && isAllowListed(posix, baseTb.allow) === null) {
-      const refFinding = scanProductionReferences(posix, content, baseTb);
+      const refFinding = scanProductionReferences(posix, content, baseTb, addedLines.get(posix));
       if (refFinding !== null) findings.push(refFinding);
     }
 
