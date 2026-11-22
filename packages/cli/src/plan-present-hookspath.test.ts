@@ -161,6 +161,29 @@ describe("detectHooksTakeover (#4960)", () => {
     });
   });
 
+  it("null for another linked worktree's .githooks (#7029)", () => {
+    const root = configuredRepo();
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    execFileSync("git", [
+      "-C",
+      root,
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@example.test",
+      "commit",
+      "-q",
+      "--allow-empty",
+      "--no-verify",
+      "-m",
+      "init",
+    ]);
+    const wt = join(temp("hooks-takeover-wt-"), "wt");
+    execFileSync("git", ["-C", root, "worktree", "add", "-q", "--detach", wt]);
+    execFileSync("git", ["-C", root, "config", "core.hooksPath", join(root, ".githooks")]);
+    expect(detectHooksTakeover(wt)).toBeNull();
+  });
+
   it("names non-sample hooks in Git's default hooks folder", () => {
     const root = configuredRepo();
     writeFileSync(join(root, ".git", "hooks", "commit-msg"), "#!/bin/sh\nexit 0\n");

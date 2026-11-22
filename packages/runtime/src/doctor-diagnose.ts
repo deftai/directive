@@ -4,8 +4,8 @@
  * Covers AC12.3 surfaces via install-health + data-status. Never writes.
  * Hook probes must set DEFT_DOCTOR_HOOK_DIAGNOSTIC (AC9.10).
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import {
   hostHookConfigEntryLines,
   hostHookOuterRelPath,
@@ -36,7 +36,12 @@ import {
 } from "@deftai/directive-core/dist/lifecycle-visible/evaluate.js";
 import { envGitRunner, type GitRunner } from "@deftai/directive-core/dist/session/git.js";
 import { type DataStatusValue, readProjectDataStatus } from "./data-status.js";
-import { describeHooksPathScope, type HooksPathState, readHooksPathState } from "./setup-wiring.js";
+import {
+  describeHooksPathScope,
+  type HooksPathState,
+  isAbsoluteHooksPathValue,
+  readHooksPathState,
+} from "./setup-wiring.js";
 
 export { DEFT_DOCTOR_HOOK_DIAGNOSTIC };
 
@@ -221,6 +226,42 @@ export function formatHiddenDirectiveFileWarning(file: HiddenDirectiveFile): str
   );
 }
 
+// ---------------------------------------------------------------------------
+// Absolute core.hooksPath outside this worktree (#7029)
+//
+// Warning only (exit-exempt): an absolute `core.hooksPath` that points outside
+// the current worktree makes this checkout run another folder's hooks. In a
+// linked worktree that is the primary checkout's hooks, which break when the
+// primary is on an older commit. Read-only: reads Git config, never writes it.
+// ---------------------------------------------------------------------------
+
+function realOrResolved(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return resolve(p);
+  }
+}
+
+function isInsideDir(dir: string, target: string): boolean {
+  const norm = (p: string) => (process.platform === "win32" ? p.toLowerCase() : p);
+  const rel = relative(norm(realOrResolved(dir)), norm(realOrResolved(target)));
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+/** Warning text for an absolute core.hooksPath outside the worktree, else null. */
+export function hooksPathOutsideWorktreeWarning(projectRoot: string): string | null {
+  if (!projectHasGitDir(projectRoot)) return null;
+  const value = readHooksPathState(projectRoot).value;
+  if (value === null || !isAbsoluteHooksPathValue(value)) return null;
+  if (isInsideDir(projectRoot, value)) return null;
+  return (
+    `core.hooksPath is the absolute path '${value}', outside this worktree, so this checkout ` +
+    `runs hooks from that folder (a linked worktree runs another checkout's hooks). ` +
+    `Run directive install --repair to set it to .githooks.`
+  );
+}
+
 /**
  * F-010 / C7 — no-.git partial install: primary recovery is git init then repair,
  * not the generic AC9.7 global reinstall line.
@@ -336,6 +377,11 @@ export interface DoctorDiagnosis {
    * Warnings only (exit-exempt). Null when the check was skipped (no git).
    */
   readonly hiddenFiles: readonly HiddenDirectiveFile[] | null;
+  /**
+   * #7029: absolute core.hooksPath outside this worktree. Warning only
+   * (exit-exempt). Null when not set, relative, inside the worktree, or no git.
+   */
+  readonly hooksPathWarning: string | null;
   readonly info: DoctorDiagnosisInfo;
   readonly exitCode: 0 | 1;
 }
@@ -689,6 +735,7 @@ export function runDoctorDiagnosis(
     },
     hookProbe,
     hiddenFiles,
+    hooksPathWarning: hooksPathOutsideWorktreeWarning(projectRoot),
     info: {
       launcherPresent: options.launcherPresent ?? null,
       newerReleaseAvailable: options.newerReleaseAvailable ?? null,
@@ -732,7 +779,10 @@ export function doctorDiagnosisJson(diag: DoctorDiagnosis): Record<string, unkno
     surfaces: diag.surfaces,
     hook_probe: diag.hookProbe,
     hidden_files: diag.hiddenFiles,
-    warnings: (diag.hiddenFiles ?? []).map(formatHiddenDirectiveFileWarning),
+    warnings: [
+      ...(diag.hiddenFiles ?? []).map(formatHiddenDirectiveFileWarning),
+      ...(diag.hooksPathWarning !== null ? [diag.hooksPathWarning] : []),
+    ],
     info: diag.info,
   };
 }
@@ -803,6 +853,9 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   }
   for (const hidden of diag.hiddenFiles ?? []) {
     lines.push(`  warning: ${formatHiddenDirectiveFileWarning(hidden)}`);
+  }
+  if (diag.hooksPathWarning !== null) {
+    lines.push(`  warning: ${diag.hooksPathWarning}`);
   }
   if (diag.info.launcherPresent !== null) {
     lines.push(`  launcher present: ${diag.info.launcherPresent ? "yes" : "no"} (information)`);
