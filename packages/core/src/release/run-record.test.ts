@@ -84,6 +84,33 @@ describe("release:run record (#6876)", () => {
     }
   });
 
+  it("keeps the re-run count and the enqueue; an older record reads as none used (#6877)", () => {
+    const good = fresh();
+    expect(good.retries).toEqual({ failedCheck: 0 });
+    expect(good.enqueue).toBeNull();
+    const stored = { ...good, retries: { failedCheck: 1 }, enqueue: { head: "h", since: "s" } };
+    expect(parseReleaseRunRecord(JSON.stringify(stored), "1.2.0")).toEqual({
+      kind: "ok",
+      record: stored,
+    });
+    const { retries: _r, enqueue: _e, ...older } = good;
+    const parsed = parseReleaseRunRecord(JSON.stringify(older), "1.2.0");
+    expect(parsed.kind === "ok" && parsed.record.retries).toEqual({ failedCheck: 0 });
+    expect(parsed.kind === "ok" && parsed.record.enqueue).toBeNull();
+    const bad: Array<[unknown, string]> = [
+      [{ ...good, retries: null }, "retries"],
+      [{ ...good, retries: { failedCheck: -1 } }, "retries"],
+      [{ ...good, retries: { failedCheck: 0.5 } }, "retries"],
+      [{ ...good, enqueue: { head: 1, since: "s" } }, "enqueue"],
+      [{ ...good, enqueue: ["h", "s"] }, "enqueue"],
+    ];
+    for (const [record, reason] of bad) {
+      const out = parseReleaseRunRecord(JSON.stringify(record), "1.2.0");
+      expect(out.kind).toBe("invalid");
+      if (out.kind === "invalid") expect(out.reason).toContain(reason);
+    }
+  });
+
   it("reports an unreadable record path as invalid", () => {
     const root = mkdtempSync(join(tmpdir(), "w6876-record-"));
     dirs.push(root);

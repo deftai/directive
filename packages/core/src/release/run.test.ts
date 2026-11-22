@@ -161,6 +161,19 @@ function harness(
         calls.push("push-pr");
         return { ok: true, reason: "opened https://github.com/o/r/pull/77" };
       },
+      merge: {
+        watch: () => {
+          calls.push("pr:watch");
+          return { verdict: "CLEAN", headSha: "h".repeat(40), failedChecks: [] };
+        },
+        readTip: () => ({ ok: true, sha: B }),
+        readQueue: () => ({ ok: true, prs: [], total: 0 }),
+        enqueueAndWait: (pr, repo, _root, beforeEnqueue) => {
+          calls.push(`pr:wait-mergeable-and-merge --wait ${String(pr)} ${repo}`);
+          const refused = beforeEnqueue("h".repeat(40));
+          return refused === null ? { kind: "merged" } : { kind: "other", detail: refused };
+        },
+      },
       finish: (c) => {
         configs.finish = c;
         calls.push("finish");
@@ -224,7 +237,8 @@ describe("deft release:run (#6876)", () => {
       "verb authz:grant",
       "verb authz:grant",
       "push-pr",
-      "verb pr:wait-mergeable-and-merge",
+      "pr:watch",
+      "pr:wait-mergeable-and-merge --wait 77 o/r",
       "finish",
       "node --clear-cut-context",
       "publish-watch",
@@ -322,12 +336,11 @@ describe("deft release:run (#6876)", () => {
     const interactive = h.verbs.filter((v) => v.interactive);
     expect(interactive.every((v) => v.argv[0] === "authz:grant")).toBe(true);
     const lastMint = h.calls.lastIndexOf("verb authz:grant");
-    const after = h.verbs.slice(
-      h.verbs.findIndex((v) => v.argv[0] === "pr:wait-mergeable-and-merge"),
-    );
+    const lastMintVerb = h.verbs.map((v) => v.argv[0]).lastIndexOf("authz:grant");
     expect(lastMint).toBeGreaterThan(0);
-    expect(after.length).toBeGreaterThan(0);
-    expect(after.every((v) => !v.interactive)).toBe(true);
+    // The merge phase runs in-process (#6877) and spawns no verb that could prompt.
+    expect(h.calls.indexOf("pr:watch")).toBeGreaterThan(lastMint);
+    expect(h.verbs.slice(lastMintVerb + 1).every((v) => !v.interactive)).toBe(true);
   });
 
   it("stops at the phase that fails and names the run record", () => {
@@ -518,8 +531,10 @@ describe("release:run phase failures (#6876)", () => {
         "merge",
         (h) => ({
           ...h.seams,
-          runVerb: (argv, o) =>
-            argv[0] === "pr:wait-mergeable-and-merge" ? 1 : (h.seams.runVerb?.(argv, o) ?? 0),
+          merge: {
+            ...h.seams.merge,
+            enqueueAndWait: () => ({ kind: "other", detail: "head-changed" }),
+          },
         }),
         "merge",
       ],
@@ -603,12 +618,42 @@ describe("release:run review fixes (#6876)", () => {
     expect(h.printed()).toContain("HEAD is neither the cut base B nor a release commit on B");
   });
 
-  it("names the run's repository on the merge verb", () => {
+  it("names the run's PR and repository on the merge phase (#6877)", () => {
     const dir = root();
     const h = harness();
     expect(runReleaseRun(options(dir), h.seams)).toBe(EXIT_OK);
-    const merge = h.verbs.find((v) => v.argv[0] === "pr:wait-mergeable-and-merge");
-    expect(merge?.argv).toEqual(["pr:wait-mergeable-and-merge", "77", "--repo", "o/r", "--wait"]);
+    expect(h.calls).toContain("pr:wait-mergeable-and-merge --wait 77 o/r");
+    const saved = readReleaseRunRecord(dir, V);
+    expect(saved.kind === "ok" && saved.record.enqueue?.head).toBe("h".repeat(40));
+  });
+
+  it("keeps the merge phase re-run count across --resume (#6877)", () => {
+    const dir = root();
+    const failed = {
+      verdict: "CI_BLOCKED",
+      headSha: "h".repeat(40),
+      failedChecks: ["Merge gate (task check) (failure)"],
+    };
+    const reruns: string[] = [];
+    const h = harness();
+    const blocked = (): ReleaseRunSeams => ({
+      ...h.seams,
+      merge: {
+        ...h.seams.merge,
+        watch: () => failed,
+        rerunFailedChecks: (_r, sha) => {
+          reruns.push(sha);
+          return { ok: true, runIds: ["1"] };
+        },
+      },
+    });
+    expect(runReleaseRun(options(dir), blocked())).toBe(EXIT_VIOLATION);
+    expect(reruns).toHaveLength(1);
+    const saved = readReleaseRunRecord(dir, V);
+    expect(saved.kind === "ok" && saved.record.retries.failedCheck).toBe(1);
+    expect(runReleaseRun(options(dir, { resume: true }), blocked())).toBe(EXIT_VIOLATION);
+    expect(reruns).toHaveLength(1);
+    expect(h.printed()).toContain("without another re-run");
   });
 
   it("refuses a prerelease version up front", () => {

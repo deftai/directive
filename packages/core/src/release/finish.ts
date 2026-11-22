@@ -10,6 +10,8 @@
  * The grant authorizes the version; it is not evidence about the commit.
  * Under `deft release:run` (#6875, `config.runBinding`) the parent of M must be
  * the cut base, and only the run's grant for `<version>@<tree of M>` counts.
+ * The run also reconciles the tag (#6877): a tag left only local on M is
+ * pushed, a remote tag on M is done, and a tag on any other commit stops.
  */
 import {
   CHANGELOG_FILE_REL,
@@ -279,6 +281,72 @@ export function checkReleaseParent(
   return { ok: true };
 }
 
+/**
+ * #6877 -- the `v<version>` tag under `deft release:run`, read on every finish
+ * (first run and `--resume`): absent; only local and peeling to M (a crash
+ * after the tag and before its push); on origin and peeling to M (pushed); or
+ * anything else, which stops the run so nothing is overwritten.
+ */
+export type RunTagState =
+  | { readonly kind: "absent" }
+  | { readonly kind: "local-only" }
+  | { readonly kind: "pushed" }
+  | { readonly kind: "stop"; readonly reason: string; readonly config: boolean };
+
+export function readRunTagState(
+  projectRoot: string,
+  tag: string,
+  mergeCommit: string,
+  seams: ReleaseSeams = {},
+): RunTagState {
+  const m = mergeCommit.trim().toLowerCase();
+  const short = m.slice(0, 12);
+  const listed = gitOut(projectRoot, ["tag", "-l", tag], seams);
+  if (!listed.ok) return { kind: "stop", reason: listed.err, config: true };
+  let local: string | null = null;
+  if (listed.out.trim() === tag) {
+    const peeled = gitOut(projectRoot, ["rev-parse", `refs/tags/${tag}^{commit}`], seams);
+    if (!peeled.ok) return { kind: "stop", reason: peeled.err, config: true };
+    local = peeled.out.trim().toLowerCase();
+  }
+  const remote = gitOut(
+    projectRoot,
+    ["ls-remote", "--tags", "origin", `refs/tags/${tag}`, `refs/tags/${tag}^{}`],
+    seams,
+  );
+  if (!remote.ok) {
+    return { kind: "stop", reason: remote.err, config: true };
+  }
+  let plain: string | null = null;
+  let deref: string | null = null;
+  for (const row of remote.out.split(/\r?\n/)) {
+    const [sha, ref] = row.trim().split(/\s+/);
+    if (sha === undefined || sha.length === 0) continue;
+    if (ref === `refs/tags/${tag}^{}`) deref = sha.toLowerCase();
+    else if (ref === `refs/tags/${tag}`) plain = sha.toLowerCase();
+  }
+  // An annotated tag lists its peeled commit as `^{}`; a lightweight tag does not.
+  const onOrigin = deref ?? plain;
+  if (local !== null && local !== m) {
+    return {
+      kind: "stop",
+      reason: `local tag ${tag} points to ${local.slice(0, 12)}, not merge commit ${short}; nothing overwritten`,
+      config: false,
+    };
+  }
+  if (onOrigin !== null) {
+    if (onOrigin !== m) {
+      return {
+        kind: "stop",
+        reason: `remote tag ${tag} on origin points to ${onOrigin.slice(0, 12)}, not merge commit ${short}; nothing overwritten`,
+        config: false,
+      };
+    }
+    return { kind: "pushed" };
+  }
+  return local === null ? { kind: "absent" } : { kind: "local-only" };
+}
+
 /** #6875 -- tree of merge commit M, read with git (never from a run record). */
 export function readMergeTree(
   projectRoot: string,
@@ -478,15 +546,33 @@ export function runFinish(config: ReleaseConfig, seams: ReleaseSeams = {}): numb
   }
 
   label = `Tag ${tag} availability`;
-  const checkTag =
-    seams.checkTagAvailable ??
-    ((v: string, r: string, root: string) => checkTagAvailable(v, r, root, seams));
-  const [tagOk, tagReason] = checkTag(version, repo, projectRoot);
-  if (!tagOk) {
-    emitFinish(4, label, `FAIL (${tagReason})`);
-    return EXIT_VIOLATION;
+  // #6877: under the run the tag is reconciled on every finish (first run and
+  // --resume), after the parent-of-M check above: a tag left only local on M is
+  // pushed, a remote tag on M is done, and a tag on any other commit stops.
+  let tagState: "absent" | "local-only" | "pushed" = "absent";
+  if (binding !== null) {
+    const state = readRunTagState(projectRoot, tag, merge, seams);
+    if (state.kind === "stop") {
+      emitFinish(4, label, `FAIL (${state.reason})`);
+      return state.config ? EXIT_CONFIG_ERROR : EXIT_VIOLATION;
+    }
+    tagState = state.kind;
   }
-  emitFinish(4, label, `OK (${tagReason})`);
+  if (tagState === "absent") {
+    const checkTag =
+      seams.checkTagAvailable ??
+      ((v: string, r: string, root: string) => checkTagAvailable(v, r, root, seams));
+    const [tagOk, tagReason] = checkTag(version, repo, projectRoot);
+    if (!tagOk) {
+      emitFinish(4, label, `FAIL (${tagReason})`);
+      return EXIT_VIOLATION;
+    }
+    emitFinish(4, label, `OK (${tagReason})`);
+  } else if (tagState === "local-only") {
+    emitFinish(4, label, `OK (${tag} on ${merge.slice(0, 12)} left only local; pushing it)`);
+  } else {
+    emitFinish(4, label, `OK (${tag} on ${merge.slice(0, 12)} is already on origin)`);
+  }
 
   label = "Named merge gate on the merge commit";
   const namedFn = seams.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
@@ -501,35 +587,45 @@ export function runFinish(config: ReleaseConfig, seams: ReleaseSeams = {}): numb
   }
   emitFinish(5, label, `OK (green on ${merge.slice(0, 12)})`);
 
-  // The release grant authorizes the version (#3527); it is checked last,
-  // after the evidence about the commit.
-  const gate = assertTagPushClosedVerb({ ...config, skipTag: false }, seams, mergeTree);
-  if (gate !== EXIT_OK) return gate;
+  if (tagState === "pushed") {
+    // The tag is published: the tag gate and the push are done.
+    emitFinish(6, `Tag ${tag} on the merge commit`, "SKIP (already on origin)");
+    emitFinish(7, `Push only ${tag}`, "SKIP (already on origin)");
+  } else {
+    // The release grant authorizes the version (#3527); it is checked last,
+    // after the evidence about the commit.
+    const gate = assertTagPushClosedVerb({ ...config, skipTag: false }, seams, mergeTree);
+    if (gate !== EXIT_OK) return gate;
 
-  label = `Tag ${tag} on the merge commit`;
-  const tagged = runGit(projectRoot, ["tag", "-a", tag, "-m", `Release ${tag}`, merge], seams);
-  if (tagged.status !== 0) {
-    emitFinish(6, label, `FAIL (git tag failed: ${tagged.stderr.trim()})`);
-    return EXIT_VIOLATION;
-  }
-  emitFinish(6, label, `OK (${tag} -> ${merge.slice(0, 12)})`);
+    label = `Tag ${tag} on the merge commit`;
+    if (tagState === "local-only") {
+      emitFinish(6, label, `SKIP (${tag} -> ${merge.slice(0, 12)} exists locally)`);
+    } else {
+      const tagged = runGit(projectRoot, ["tag", "-a", tag, "-m", `Release ${tag}`, merge], seams);
+      if (tagged.status !== 0) {
+        emitFinish(6, label, `FAIL (git tag failed: ${tagged.stderr.trim()})`);
+        return EXIT_VIOLATION;
+      }
+      emitFinish(6, label, `OK (${tag} -> ${merge.slice(0, 12)})`);
+    }
 
-  label = `Push only ${tag}`;
-  // A tag-only push must not depend on the checked-out branch: the pre-push
-  // branch gate would refuse it on the base branch (same bypass as the cut).
-  const pushed = runGit(
-    projectRoot,
-    ["push", "origin", `refs/tags/${tag}`],
-    seams,
-    releaseSubprocessEnv(),
-  );
-  if (pushed.status !== 0) {
-    // Drop the unpushed local tag so a retry passes the availability check.
-    runGit(projectRoot, ["tag", "-d", tag], seams);
-    emitFinish(7, label, `FAIL (git push failed: ${pushed.stderr.trim()}; local tag removed)`);
-    return EXIT_VIOLATION;
+    label = `Push only ${tag}`;
+    // A tag-only push must not depend on the checked-out branch: the pre-push
+    // branch gate would refuse it on the base branch (same bypass as the cut).
+    const pushed = runGit(
+      projectRoot,
+      ["push", "origin", `refs/tags/${tag}`],
+      seams,
+      releaseSubprocessEnv(),
+    );
+    if (pushed.status !== 0) {
+      // Drop the unpushed local tag so a retry passes the availability check.
+      runGit(projectRoot, ["tag", "-d", tag], seams);
+      emitFinish(7, label, `FAIL (git push failed: ${pushed.stderr.trim()}; local tag removed)`);
+      return EXIT_VIOLATION;
+    }
+    emitFinish(7, label, `OK (pushed refs/tags/${tag})`);
   }
-  emitFinish(7, label, `OK (pushed refs/tags/${tag})`);
 
   const published = runGithubReleaseSteps(
     config,
