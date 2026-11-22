@@ -1,0 +1,538 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7047",
+    "updated": "2026-11-22T16:47:05Z"
+  },
+  "plan": {
+    "title": "[framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced",
+    "status": "running",
+    "narratives": {
+      "Description": "scope:complete refuses a shipped clause-bearing story whose acceptance carries no command (#4870), and the remedy it names needs a brief edit the story write fence refuses. This story lets completion run the project's declared test command once as a transient floor through the ordinary acceptance walk, and makes every clause-bearing refusal show the clause list and grant command instead of the #5403 historical text.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7047",
+      "Overview": "\n1. Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.\n2. Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.\n3. Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.\n4. Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".\n5. Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.\n6. Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.\n\n## Acceptance Criteria\n\n- `scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.\n- The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.\n- A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.\n- With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.\n- A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.\n- A banked floor run is reused only by a walk whose resolved contract includes the floor record.\n\n\n",
+      "Constraint": "- A side run of the declared command that sets `executable-pass` outside `evaluateVerifyAcFromPlan` (comment 7082143006, finding 1).\n- Reading the declared command at the product merge's first parent; it still runs the checkout's script (comment 7082143006, answer 3).\n- Accepting the delivered PR's CI checks as the oracle in this change (comment 7082143006, answer 4).\n- Admitting the story's own brief to the write fence, a new stamp verb, or ingest stamping a command (Stop 1 7082094468, K3).",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a maintainer completing a shipped issue-first story whose acceptance clauses are behavioural and carry no command, I want scope:complete to run the project's declared test command as a temporary floor, so that the story can leave active/ without a brief edit, and a refusal names what failed and the grant command.",
+      "ImplementationPlan": "1. product-first-done-gate/evaluate.ts: one completion-only option carries a transient floor record; the resolved contract (records, safety, blocking refusal, reuse hash and bank ledger) includes it. No other reader passes it.\n2. scope/acceptance-evidence.ts: in the zero-verified branch of evaluateScopeCompleteAcceptanceWalk, when the brief has clauses and the effective contract has no commands and no refused records, resolve the declared test command (resolveDeclaredTestCommand), keep its argv split, and re-run evaluateVerifyAcFromPlan once with the floor record. Green admits with 'declared test command passed' (command, source, cwd). No, refused or failed floor states which, then the #6644 clause list and grant command.\n3. Clause-bearing refusals no longer select HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION; clause-less historical admission and the none-stated migration are unchanged.\n4. Tests: completion-test-floor.test.ts for every clause; update acceptance-evidence.test.ts cases whose expectations change. Doc line in content/docs/scope-provenance.md; changelog fragment.",
+      "Traces": "#7047 clauses 1-12 trace to the accepted lean 7082159427 Bound remedy items 1-6 and its Acceptance Criteria."
+    },
+    "items": [
+      {
+        "title": "Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the zero-verified walk would refuse a clause-bearing brief with no effective command and no refused record, completion runs the floor; any other walk returns as today."
+        }
+      },
+      {
+        "title": "Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When completion builds the floor, it returns the command from resolveDeclaredTestCommand in the completing checkout with its argv split kept; with no declaration it runs no floor."
+        }
+      },
+      {
+        "title": "Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the floor runs, completion re-runs evaluateVerifyAcFromPlan with one transient floor record, so safety, the blocking refusal, reuse and applyOracle apply, and the brief is not written."
+        }
+      },
+      {
+        "title": "Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the floor admits a completion, the listing shows 'declared test command passed' with the command, its source and the working directory."
+        }
+      },
+      {
+        "title": "Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a clause-bearing zero-verified walk refuses, the message shows the floor outcome first, then the #6644 clause list and grant command, never the #5403 historical text."
+        }
+      },
+      {
+        "title": "Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the test file runs, it validates green, failing, refused and absent floors, the delivered refusal text, unchanged briefs and floor-keyed reuse."
+        }
+      },
+      {
+        "title": "`scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the declared test command runs green through the ordinary walk, scope:complete completes a clause-bearing brief with no commands and writes nothing to the brief."
+        }
+      },
+      {
+        "title": "The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.",
+        "status": "proposed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a story already completes today, completion returns the same result and the floor never runs."
+        }
+      },
+      {
+        "title": "A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.",
+        "status": "proposed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the acceptance allowlist refuses the declared command, it never runs and the refusal shows the safety reason."
+        }
+      },
+      {
+        "title": "With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.",
+        "status": "proposed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When no command is declared or the floor run fails, the refusal shows that outcome and lists each unresolved clause with the acceptance-disposition grant command."
+        }
+      },
+      {
+        "title": "A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.",
+        "status": "proposed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a delivered completion of a clause-bearing brief refuses, it shows the clause list and grant command, not the #5403 historical-closeout text."
+        }
+      },
+      {
+        "title": "A banked floor run is reused only by a walk whose resolved contract includes the floor record.",
+        "status": "proposed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a run was banked with the floor record, reuse returns it only for a walk whose resolved contract includes that record."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7047",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7047: [framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (12), in list order (#6333)",
+      "sentences": [
+        "Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.",
+        "Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.",
+        "Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.",
+        "Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".",
+        "Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.",
+        "Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.",
+        "`scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.",
+        "The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.",
+        "A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.",
+        "With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.",
+        "A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.",
+        "A banked floor run is reused only by a walk whose resolved contract includes the floor record."
+      ],
+      "admitted_source_sentences": [
+        "Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.",
+        "Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.",
+        "Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.",
+        "Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".",
+        "Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.",
+        "Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.",
+        "`scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.",
+        "The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.",
+        "A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.",
+        "With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.",
+        "A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.",
+        "A banked floor run is reused only by a walk whose resolved contract includes the floor record."
+      ],
+      "admitted_source_digest": "cbf477093307c38929c2b104b2770df4a3faa92eda8a35bf47b68edba14ff4d5",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "A banked floor run is reused only by a walk whose resolved contract includes the floor record.",
+          "artifact_path": "packages/core/src/scope/completion-test-floor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7047; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what `scope:complete` accepts as the executable oracle behind the #4870 zero-verified refusal for clause-bearing briefs with no acceptance commands, and the issue's own candidates move authority in different directions (the story write fence, a new stamp verb, ingest stamping a command, forge CI as the oracle); a wrong pick either lets a story set its own oracle or keeps shipped stories stuck in active/.\n\nTarget-digest: sha256:a1512b1c856e28e043c4b3b89537abaa378ebcd0ddf3d43e768f03875f6bc890\ndispatch-sha: cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0\ndest: C:/Repos/deft/wt/arc-7047 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nrefutation-target: the oracle has to be written onto the brief (each fix the issue lists either writes a command into the brief or lets the worker write the brief)\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one refusal on one completion path, an existing resolver reused, no new verb, gate, fence change or constant; one critic of a different model family, then pain audits. The operator's words for this issue: \"yes arc 7047\".\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\nA story ingested from an issue with behavioural acceptance criteria and no stated commands gets clauses bound to files, `plan.acceptance.commands: []` and `none_stated: true`. After the product PR merges, `scope:complete` refuses: the acceptance walk verified 0 clauses and no executable command ran green (#4870). The remedy the code names is to put a command on the brief. A worker bound to the story cannot do that, because the story write fence does not admit the story's own brief. `scope:stamp-evidence` stamps nothing when the clauses already carry a path, and `scope:cancel` is wrong for shipped work. The story cannot leave `active/`.\n\nThere is a second defect. During a delivered completion, `scope:complete` stamps delivered provenance on the plan before the walk, so `isHistoricalShipCloseout` is true for every normal shipped story. For a clause-bearing brief the refusal then prints the #5403 historical-closeout text instead of the #6644 list of clauses and the grant command. The reader gets no remedy it can apply.\n\nProposed fix: when the #4870 refusal would fire on a clause-bearing brief with no acceptance commands, `scope:complete` runs the project's declared test command (the one `verify:consumer-test-lane` already resolves: `plan.policy.testCommand`, else `package.json` `scripts.test`). A green run is the executable pass. Nothing is written to the brief, and nobody stamps anything. If the project declares no test command, or the run fails, the refusal says so and lists the clauses with the existing grant command. The historical text is used only for a genuine historical closeout.\n\n## Pains\n- P1 — A shipped clause-bearing story whose `plan.acceptance.commands` is empty (`none_stated: true`) cannot leave `active/`: `scope:complete` refuses (#4870), and the oracle remedy it names needs a brief edit that the story write fence refuses for the bound worker.\n- P2 — On a delivered completion the #4870 refusal for a clause-bearing brief prints the #5403 historical-closeout text, not the #6644 clause list and grant command, so it names no remedy the reader can apply.\n\n## Constraints (not pains)\n- No new verb, gate, refusal class, policy flag or constant. No change to the story write fence.\n- #4240 stays locked: a bound behavioural clause with no green executable run still blocks completion.\n- #3826 stays: `verify:ac` outside completion is unchanged.\n- Briefs with stated or stamped acceptance commands behave as today.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/check/rapid-zero-verified.ts` 38-39: the #4870 notice; 114-119: `scopeCompleteRejectsZeroVerifiedWalk` admits only predicate `executable-pass`.\n- `packages/core/src/scope/acceptance-evidence.ts` 2073-2193: `evaluateScopeCompleteAcceptanceWalk`; 2114: `historical = isHistoricalShipCloseout(plan)`; 2116-2156: the zero-verified branch; 2144-2147 and 2178-2181: clause-bearing plus `historical` selects `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` (2014-2017) instead of `scopeCompleteRemediation` (2032-2052, the #6644 clause list and grant command).\n- `packages/core/src/scope/acceptance-evidence.ts` 1971-1980: `isHistoricalShipCloseout` is true when `metadata.completionProvenance` has a merge commit, a delivery branch and `disposition: delivered`.\n- `packages/core/src/scope/transition.ts` 909-918: a delivered completion calls `stampDeliveryProvenance` on `planObj` before the acceptance gates; 999-1006: the walk reads that same `planObj`. `packages/core/src/scope/delivery-evidence.ts` 3545-3567 writes `metadata.completionProvenance` with the disposition.\n- `packages/core/src/scope/acceptance-evidence.ts` 2019-2022: the remedy lead names stamping `plan.acceptance.commands` or `plan.metadata.swarm.verify_commands`; `packages/core/src/product-first-done-gate/acceptance-resolver.ts` 107-110: the shipped clause-walk remedy names stamping `npm test` / `pnpm run check`.\n- `packages/core/src/product-first-done-gate/acceptance.ts` 310-325: intake with no stated command writes `none_stated: true`, `source_rung: project_floor`, reason \"floor until agent derives AC\".\n- `packages/core/src/policy/write-fence-budget.ts` 302: the story write fence treats only CHANGELOG entries as free, so the story's own brief is an `other`-class extra and is refused (325-327). `packages/core/src/scope-provenance/base-fence.ts` 204-206 and 436: membership and the production fence treat brief records and the bound brief as free.\n- `packages/core/src/consumer-test-lane/evaluate.ts` 99-122: `resolveDeclaredTestCommand` reads `plan.policy.testCommand` from PROJECT-DEFINITION, else `package.json` `scripts.test` run through the lockfile's package manager; absence returns null (\"do not invent a suite\").\n- `packages/core/src/product-first-done-gate/acceptance-resolver.ts` 565-568: the complete profile uses `reuseMode: \"bank\"`.\n- `packages/core/src/literal-acceptance/safety.ts` 61 and 288: the first-token allowlist and `evaluateCommandSafety` every acceptance command passes.\n- `content/docs/scope-provenance.md` 188: Stage 2 (#4870) says clause-bearing empty-commands are refused \"with an honest remedy (not 'stamp npm test' as the only path)\".\n\n## Recommended mechanism (the thing to critique)\n- K1. Floor at completion. In the #4870 branch of `evaluateScopeCompleteAcceptanceWalk`, when the walk would refuse zero-verified on a brief with acceptance clauses, empty `plan.acceptance.commands` and `none_stated: true`, completion resolves the declared test command with `resolveDeclaredTestCommand` and runs it through `evaluateCommandSafety` and the existing acceptance executor. A green run sets predicate `executable-pass` and completion proceeds; the completion listing names the command and its source. Nothing is written to the brief. No declared command: no run, and the refusal stands.\n- K2. Remedy on refusal. The clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command) whether or not this run stamped delivered provenance. It states the floor result first: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test`)\" or \"declared test command failed\" with the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` stays only for a closeout whose provenance was on the brief before this run.\n- K3. Not changed: the story write fence, ingest, `scope:stamp-evidence`, the grant template, `verify:ac` and `check`.\n- K4. Tests: a clause-bearing brief with empty commands and a green declared command completes with `executable-pass`; the same brief with a failing command refuses and names the failed command; with no declared command it refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the #6644 remedy, not the #5403 text; a brief with stated commands is unchanged.\n\nQuestions for the critic:\n1. Is the project's declared test command an honest #4870 oracle for behavioural clauses, given that a green suite proves no clause in particular (the same limit as the `npm test` stamp the resolver already prints)?\n2. Should K1 sit only on the complete-side #4870 branch, or in the shared walk for every reader, given that `deft check` already runs `verify:consumer-test-lane`?\n3. K1 reads the command from the completing checkout. A story could change `scripts.test` or `plan.policy.testCommand` in its own PR. Is that the same exposure a stamped `npm test` has today, or must K1 read the command at the product merge's first parent?\n4. A completion checkout without installed dependencies fails the run. Is a refusal that names the failed run enough, or should completion accept the delivered PR's required CI checks instead?\n5. How should K2 tell a genuine historical closeout from a run that stamped delivered provenance a moment ago?\n\n",
+          "id": 7082094468,
+          "html_url": "https://github.com/deftai/directive/issues/7047#issuecomment-7082094468",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:27:57Z",
+          "updated_at": "2026-11-22T16:27:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7082099542\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0\ndest: C:/Repos/deft/wt/arc-7047\nverification-path: pin-read git show cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7082094468\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7082099542,
+          "html_url": "https://github.com/deftai/directive/issues/7047#issuecomment-7082099542",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:28:21Z",
+          "updated_at": "2026-11-22T16:28:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe reported problem is real: completion can demand an executable check while the worker cannot edit the brief to supply one. Completion also mistakes newly stamped delivery provenance for historical provenance and selects less useful remediation.\n\nRunning the project’s declared test command is a reasonable way to remove the manual stamping step. It proves that command passed, not that every behavioral criterion was tested. That is already the limit of the suggested `npm test` stamp.\n\nI support the direction, but K1 needs one substantive correction before binding: the fallback must enter the existing acceptance evaluation machinery, including command identity, integrity checks and reuse rules. A separate successful execution followed by assigning `executable-pass` is insufficient. K2 can be simpler: show the existing clause remedies for every clause-bearing refusal, including historical ones.\n\nThe pinned behavioral-clause implementation does reach the proposed #4870 branch: it marks purely behavioral claims non-adjudicable. The narrower problem is missing executable evidence, not a failed static assertion.\n\n## Answers to the five questions\n\n1. **Yes, as a project-level executable oracle.** Describe it as “declared test command passed,” not “behavioral clauses verified.” Preserve failed-clause refusals and the separate item-evidence gate.\n\n2. **Completion-only eligibility, shared execution machinery.** Keep the decision to supply this fallback within completion. Reuse the existing command-resolution and evaluation pipeline rather than changing every reader or creating a second executor path.\n\n3. **The package-script exposure already exists with stamped `npm test`.** Reading that command from the merge’s first parent would still execute the current checkout’s script and dependencies. It therefore does not establish an independent oracle. Keep the existing safety and integrity controls; do not claim the allowlist validates what a package script actually does.\n\n4. **A useful failed-run refusal is sufficient here.** Name the command, source, execution directory and failure details. Required CI checks are an attractive way to avoid rerunning work, but accepting them needs evidence tying the relevant check, command and tested revision to this completion. That is a separate design, not an interchangeable green signal.\n\n5. **Prefer eliminating this distinction from clause-bearing remediation.** Both classes need the clause list and grant command. If historical wording must remain, capture the existing provenance classification before `stampDeliveryProvenance` mutates the plan, solely for selecting wording. Do not change historical admission or migration predicates.\n\nExisting mechanisms inventoried: declared-test resolution; literal-command safety and execution; resolved command contracts; bank-backed acceptance reuse; oracle-integrity evaluation; grant-based clause exclusion; item-evidence checking; and historical clause-less admission.\n\n### 1. blocks-the-design — A successful fallback execution must remain an acceptance evaluation\n\n**Evidence:** At the pin, `packages/core/src/product-first-done-gate/evaluate.ts:1088–1128` rejects blocking command records, attempts contract-aware reuse, and executes the resolved records. Its `applyOracle` pipeline at `1551` onward applies the clause walk, oracle integrity and statement-sentence floor. `packages/core/src/scope/transition.ts:996–1006` explicitly calls for one bank-aware walk. The complete profile selects bank reuse in `packages/core/src/product-first-done-gate/acceptance-resolver.ts:565–568`.\n\nK1 places execution after the original walk and says a green run “sets predicate `executable-pass`.” Calling the existing executor does not, by itself, apply the surrounding evaluation pipeline.\n\n**Failure mode:** The original empty-command walk passes its applicable checks, then a newly introduced command runs green and completion returns success without evaluating that new run’s oracle-integrity consequences. Alternatively, banking a fallback pass without incorporating its command and completion-only eligibility into reuse identity risks offering another reader evidence it would never have selected.\n\n**Disposition consequence:** Revise K1 to feed the transient fallback through the existing resolved-command evaluation, retaining safety, integrity and reuse boundaries. Resolve emptiness against the effective command contract, not merely `plan.acceptance.commands`. Do not persist the command to the brief. Extend K4 with safety rejection, integrity refusal and cross-reader reuse cases. This reuses controls rather than adding a gate.\n\n### 2. sharpens-framing — An operator remedy already exists; delivery provenance hides its instructions\n\n**Evidence:** `packages/core/src/scope/transition.ts:944–953` applies acceptance-disposition grants before the walk. `packages/core/src/product-first-done-gate/evaluate.ts:1443–1453` excludes granted clauses. `packages/core/src/scope/acceptance-evidence.ts:2121–2130` evaluates the remaining rows, while `2032–2052` constructs the grant remedy. Newly stamped provenance selects the historical alternative at `2144–2147` and `2178–2181`.\n\n**Failure mode:** Saying the story “cannot leave active/” obscures the existing operator-authorized exit and makes a new command-authoring mechanism appear necessary. Retaining abbreviated remediation for historical clause-bearing briefs leaves those readers with the same discoverability problem.\n\n**Disposition consequence:** Frame P1 as the absence of an ordinary executable completion path without manual brief editing, and P2 as hidden actionable remediation. Use the existing clause-list/grant remedy for all clause-bearing refusals. This removes the need for a new historical-versus-current distinction in that message path.\n\n### 3. sharpens-framing — A declared command can be refused before it runs\n\n**Evidence:** `packages/core/src/consumer-test-lane/evaluate.ts:74–87` parses arbitrary declared command tokens; `99–122` resolves them. In contrast, `packages/core/src/literal-acceptance/safety.ts:288` onward rejects commands outside its restricted execution grammar. The resolver’s own documentation at `66` also distinguishes argv parsing from shell parsing.\n\n**Failure mode:** A project can declare a legitimate test command that the consumer test lane accepts but literal acceptance refuses. K2’s alternatives—“no declared test command” and “declared test command failed”—would misdescribe that outcome. A careless fallback to the consumer lane’s executor would bypass the safety boundary K1 promises to preserve.\n\n**Disposition consequence:** Keep rejection fail-closed and print the existing safety reason as “declared test command refused,” followed by the clause remedies. Add that case to K4. Preserve argv boundaries when adapting the resolver’s command-plus-arguments result to acceptance records.\n\nVerification method: source inspection using only `git show cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0:<path>` and the supplied ceiling-bounded snapshot; no builds, tests, writes or network access.",
+          "id": 7082143006,
+          "html_url": "https://github.com/deftai/directive/issues/7047#issuecomment-7082143006",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:31:42Z",
+          "updated_at": "2026-11-22T16:31:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7082094468 (round 1: 1 of 1 critic posted, comment 7082143006)\n\n## In plain English\nProblem: an issue-first story with behavioural acceptance clauses and no acceptance commands (`plan.acceptance.commands: []`, `none_stated: true`) ships, and then `scope:complete` refuses because no clause verified and no command ran green (#4870). The ordinary fix the code names, putting a command on the brief, is refused by the story write fence for the bound worker. The operator grant per clause does exist, but on a delivered completion the refusal hides it: completion stamps delivered provenance before the walk, so the refusal picks the old historical-closeout text instead of the clause list and grant command.\n\nWhat the critic found: running the project's declared test command at completion is a fair oracle, with the same limit as the `npm test` stamp the code already suggests: it proves the suite passed, not each clause. But the run must go through the existing acceptance evaluation (command safety, the oracle-integrity checks and the bank reuse rules), not a side run that then sets the verdict. A declared command can also be refused by the acceptance command allowlist before it runs, and the refusal must say so. And every clause-bearing refusal, historical or not, should show the clause list and grant command.\n\nSolution this lean proposes: when the completion walk would refuse for zero verified clauses and the brief has clauses but no effective acceptance command, completion evaluates the walk once more with one extra, transient command record: the project's declared test command (`plan.policy.testCommand`, else `package.json` `scripts.test`), resolved by the same function `verify:consumer-test-lane` uses. That second walk is the ordinary acceptance evaluation, so safety, integrity and reuse apply unchanged, and a green result completes the story. Nothing is written to the brief and no one stamps anything. If no command is declared, the command is refused by the allowlist, or the run fails, the refusal says which, then lists the clauses with the existing grant command. Stories that complete today are unaffected, because the extra walk runs only where the refusal would fire.\n\nWhat it does not do:\n- It does not change the story write fence, ingest, `scope:stamp-evidence`, the grant, `verify:ac` outside completion, or `check`.\n- It does not say a behavioural clause is verified; the listing says the declared test command passed.\n- It does not read forge CI results; that would need evidence tying a check, its command and its tested revision to this completion, a separate design.\nIf confirmed, the synthesis would assert this design. No leftover next-build.\n\nTarget-digest: sha256:a1512b1c856e28e043c4b3b89537abaa378ebcd0ddf3d43e768f03875f6bc890\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7082094468. Sibling count: 1 (comment 7082143006). Panel deposit: comment 7082099542.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.\n2. Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.\n3. Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.\n4. Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".\n5. Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.\n6. Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.\n\n## Acceptance Criteria\n- `scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.\n- The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.\n- A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.\n- With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.\n- A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.\n- A banked floor run is reused only by a walk whose resolved contract includes the floor record.\n\n## Reject\n- A side run of the declared command that sets `executable-pass` outside `evaluateVerifyAcFromPlan` (comment 7082143006, finding 1).\n- Reading the declared command at the product merge's first parent; it still runs the checkout's script (comment 7082143006, answer 3).\n- Accepting the delivered PR's CI checks as the oracle in this change (comment 7082143006, answer 4).\n- Admitting the story's own brief to the write fence, a new stamp verb, or ingest stamping a command (Stop 1 7082094468, K3).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7082143006 | 1. A successful fallback execution must remain an acceptance evaluation | blocks-the-design | accept-into-contract (items 1 and 3: the floor is one transient record in a second ordinary walk; safety, integrity and reuse apply; eligibility reads the effective contract) |\n| comment 7082143006 | 2. An operator remedy already exists; delivery provenance hides its instructions | sharpens-framing | accept-into-contract (item 5: every clause-bearing refusal uses the #6644 clause list and grant command; the summary frames P1 as no ordinary executable path without a brief edit) |\n| comment 7082143006 | 3. A declared command can be refused before it runs | sharpens-framing | accept-into-contract (items 2, 5 and 6: argv kept, the refused case is named with its safety reason and tested) |\n\naudit:A1 sha=cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0 pointer=packages/core/src/product-first-done-gate/evaluate.ts:670-695 reading=measured\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. Marker A1 records the premise item 3 and the last criterion rest on: `tryReuseVerifyAc` passes the resolved contract's command ledger to `resolveAcReuse` as `resolvedAcceptanceContract`, so a run banked with the floor record is not served to a reader whose contract lacks it. The marker stays unresolved until a later critic targets it.\n\n",
+          "id": 7082159427,
+          "html_url": "https://github.com/deftai/directive/issues/7047#issuecomment-7082159427",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:32:58Z",
+          "updated_at": "2026-11-22T16:32:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:819e00b1baf0b88dce30e589cd583d467f37d9d0664b35977d4e5818e11ebce8\n\n## In plain English\n\nThe lean addresses both named pains. It supplies the missing executable check without requiring the worker to edit the brief, and it makes the existing operator grant discoverable when completion refuses. The fallback remains subject to the ordinary acceptance checks; a successful test process alone cannot override an integrity or clause failure.\n\nA1 holds for the claimed separation between an empty command contract and one containing the fallback command. The existing reuse machinery hashes the supplied command ledger and additionally compares banked commands. Implementation must carry the transient contract through both lookup and persistence, as the lean’s reuse requirement entails.\n\nI found no reason the lean cannot bind as written.\n\npain-P1: holds - Bound-remedy items 1–3 provide an ordinary executable path without changing the brief or its write fence, while preserving refusal when no acceptable passing oracle exists.\npain-P2: holds - Item 5 removes historical-message selection from the clause-bearing zero-verified refusal and exposes the existing unresolved-clause list and grant command.\nA1: holds - `tryReuseVerifyAc` supplies the resolved command ledger to the reuse hash; an empty ledger differs from the ledger containing the fallback command.\n\nThe pinned evidence supports these conclusions:\n\n- `packages/core/src/policy/write-fence-budget.ts:296–327` confirms the brief-edit obstacle: only changelog entries are free in this assessment, and unadmitted extra paths refuse.\n- `packages/core/src/consumer-test-lane/evaluate.ts:99–122` supplies the proposed command resolution and returns null when neither declaration exists.\n- `packages/core/src/product-first-done-gate/evaluate.ts:1083–1126` places blocking-record checks before reuse and execution. Its `applyOracle` at `1551–1589` applies clause evaluation, oracle integrity and the statement-sentence floor. The lean explicitly retains this machinery.\n- `packages/core/src/scope/transition.ts:909–918` stamps delivery provenance before the acceptance walk at `999–1006`. `packages/core/src/scope/acceptance-evidence.ts:2144–2147` consequently selects historical wording for the targeted refusal. The replacement remedy already exists at `2032–2052`.\n- `packages/core/src/product-first-done-gate/evaluate.ts:683–694` passes `currentLedger` as `resolvedAcceptanceContract`. `packages/core/src/session/product-state-hash.ts:705–714` includes it in the digest. The bank path also rejects unequal ledgers at `evaluate.ts:721–725`.\n\nNo findings.\n\nVerification method: read the supplied snapshot through comment 7082159427 and inspected source using only `git show cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0:<path>`; no builds, tests, writes or network access.",
+          "id": 7082190510,
+          "html_url": "https://github.com/deftai/directive/issues/7047#issuecomment-7082190510",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:35:22Z",
+          "updated_at": "2026-11-22T16:35:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7082159427. Dispatch SHA: cfe15ea78ab6c1917fdfa3b4bbd2fbca534488c0. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run against the new design. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `scope:complete` refuses a zero-verified clause walk unless the predicate is `executable-pass` (#4870) | verified | parent read of `packages/core/src/check/rapid-zero-verified.ts` 38-39, 114-119 and `packages/core/src/scope/acceptance-evidence.ts` 2116-2156; critic 7082143006 |\n| 2 | A delivered completion stamps `metadata.completionProvenance` with `disposition: delivered` on the plan before the walk, so `isHistoricalShipCloseout` is true and a clause-bearing refusal selects the #5403 text instead of the #6644 clause list and grant command | verified | parent read of `packages/core/src/scope/transition.ts` 909-918, 999-1006, `delivery-evidence.ts` 3545-3567, `acceptance-evidence.ts` 1971-1980, 2014-2052, 2144-2147, 2178-2181; critic 7082143006 finding 2; audit 7082190510 |\n| 3 | The story write fence treats only CHANGELOG entries as free, so the story's own brief is refused as an `other`-class extra | verified | parent read of `packages/core/src/policy/write-fence-budget.ts` 302, 325-327; audit 7082190510 |\n| 4 | `resolveDeclaredTestCommand` reads `plan.policy.testCommand`, else `package.json` `scripts.test`, and returns null when neither exists | verified | parent read of `packages/core/src/consumer-test-lane/evaluate.ts` 99-122; audit 7082190510 |\n| 5 | The acceptance evaluation refuses blocking records before reuse and execution, and `applyOracle` applies the clause walk, oracle integrity and the sentence floor | verified | parent read of `packages/core/src/product-first-done-gate/evaluate.ts` 1083-1128; critic 7082143006 finding 1 |\n| 6 | Reuse is keyed on the resolved command ledger, so a run banked with the floor record is not served to a walk without it (marker A1) | verified | parent read of `evaluate.ts` 670-695; audit 7082190510 (`A1: holds`, also citing `session/product-state-hash.ts` 705-714 and `evaluate.ts` 721-725) |\n| 7 | A declared command can be refused by the acceptance allowlist before it runs | verified | critic 7082143006 finding 3; parent read of `packages/core/src/literal-acceptance/safety.ts` 61, 288 |\n| 8 | A green declared test command proves the suite passed, not that each behavioural clause is tested; this is the same limit as the `npm test` stamp the resolver already prints | verified as stated limit | parent read of `packages/core/src/product-first-done-gate/acceptance-resolver.ts` 107-110; critic 7082143006 answer 1 |\n| 9 | The second walk, the floor listing and the refusal outcomes behave as designed | endorsed, not verified | the new behaviour was not executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 7082195572,
+          "html_url": "https://github.com/deftai/directive/issues/7047#issuecomment-7082195572",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:35:46Z",
+          "updated_at": "2026-11-22T16:35:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: an issue-first story with behavioural acceptance clauses and no acceptance commands shipped, and `scope:complete` then refused because no clause verified and no command ran green (#4870). The fix the code named, a command on the brief, was refused by the story write fence for the bound worker. The per-clause operator grant existed, but a delivered completion hid it: completion stamps delivered provenance before the walk, so the refusal printed the old historical-closeout text instead of the clause list and grant command.\n\nAccepted solution: when the completion walk would refuse for zero verified clauses, and the brief has clauses but no effective acceptance command, completion evaluates the walk once more with one transient command record: the project's declared test command (`plan.policy.testCommand`, else `package.json` `scripts.test`), resolved by the function `verify:consumer-test-lane` already uses. That second walk is the ordinary acceptance evaluation, so command safety, oracle integrity and bank reuse apply, and reuse is keyed on a contract that includes the floor record. A green result completes the story and the listing says \"declared test command passed\". Nothing is written to the brief. With no declared command, a command the allowlist refuses, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command; the historical text is no longer selected for a clause-bearing refusal.\n\nLimits accepted: a green suite does not show each behavioural clause is tested, the same limit as the `npm test` stamp the code already suggested; the command runs the completing checkout's script, as a stamped command does today; forge CI results are not read. The story write fence, ingest, `scope:stamp-evidence`, the grant, `verify:ac` outside completion and `check` are unchanged, and a story that completes today completes the same way. No new verb, gate, flag or constant. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7082159427.\nverified-claims table 7082195572\n\nConfirm conjunct: yolo standing (Stop 1 7082094468, `yolo-standing: on`) on the operator's launch of this arc, \"yes arc 7047\". Round-1 critic: comment 7082143006, posted by the parent verbatim as disclosed on panel-deposit 7082099542; its three classified findings are accepted on the lean. Pain audit 7082190510 targeted `pain-P1`, `pain-P2` and `A1`, found all three hold, and returned no findings. Critic posts used: 2 of 6.\n\n",
+          "id": 7082201248,
+          "html_url": "https://github.com/deftai/directive/issues/7047#issuecomment-7082201248",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:36:13Z",
+          "updated_at": "2026-11-22T16:36:13Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nscope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced\n\n## Context\n\nDirective 0.131.0 (@deftai/directive-runtime pin), Windows 11, Claude Code host. Story brief created issue-first via issue:ingest; derivation stamped 4 behavioral clauses, each bound to one file_scope path (#4008), with plan.acceptance.commands [] and none_stated true. Product PR merged with a deft-story mark. Source: internal benchmark evidence (private).\n\n## Expected behavior\n\nEither scope:complete completes because the bound clauses are covered by the project test suite, or the refusal names a remedy an agent or operator can actually apply to an active brief (for example a deft verb that stamps plan.metadata.swarm.verify_commands, or an operator grant). docs/scope-provenance.md says #4870 refuses clause-bearing empty-commands with an honest remedy.\n\n## Actual behavior / gap\n\n1) scope:complete prints only: scope:complete refused: acceptance walk reported 0 verified clauses without an executable-pass oracle (#4870). No remedy is named. 2) acceptance-resolver.js names the remedy: stamp executable commands on plan.acceptance.commands (or plan.metadata.swarm.verify_commands). 3) Adding npm test to plan.metadata.swarm.verify_commands on the active brief, from a worktree bound with swarm:pre-dispatch, is refused by the write hook: extra-path-not-admitted: xbrief/active/<brief>.json (other: not source, test or fixture) is outside the story file_scope. The brief is not in its own file_scope. 4) scope:stamp-evidence stamps 0 because the clauses already carry artifact_path. 5) scope:cancel is wrong because the work shipped. Net: a shipped issue-first story with behavioral-only criteria cannot leave active/.\n\n## Session notes\n\nRelated, not duplicates: #4240 (closed; bound behavioral clauses with no executable run block scope:complete; locked that it still blocks), #6374 (closed; verify:ac lead wording), #4814 (open; check passes having run nothing), #6408 (open; pre-existing evidence counts as verified). Possible fixes: let issue:ingest stamp the project test floor into verify_commands when the issue names no commands; admit the brief file to its own fence for acceptance metadata; or add a verb (or operator grant template) that promotes a verify command onto an active brief. A second brief in the same run completed only because 2 of 6 clauses verified by token or existence.\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6544583180,
+        "origin": "deftai/directive#7047",
+        "id": "github.issue.6544583180"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a1512b1c856e28e043c4b3b89537abaa378ebcd0ddf3d43e768f03875f6bc890"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7047,
+        "leanCommentId": 7082159427,
+        "harvestDigest": "819e00b1baf0b88dce30e589cd583d467f37d9d0664b35977d4e5818e11ebce8",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/completion-test-floor.test.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts",
+          "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
+          "packages/core/src/product-first-done-gate/ambiguity-attestation.test.ts",
+          "packages/core/src/literal-acceptance/inline-prose-mention.test.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "content/docs/scope-provenance.md",
+          "changelog.d/7047-completion-test-floor.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/completion-test-floor.test.ts packages/core/src/scope/acceptance-evidence.test.ts packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "npx vitest run packages/core/src/product-first-done-gate/bank-aware-complete.test.ts packages/core/src/product-first-done-gate/sentence-floor.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "scope:complete re-runs the zero-verified walk once with the declared test command as a transient floor record through evaluateVerifyAcFromPlan; green completes with 'declared test command passed'",
+          "no, refused or failed floor names which, then lists each unresolved clause with the acceptance-disposition grant command",
+          "clause-bearing refusals no longer print the #5403 historical-closeout text"
+        ],
+        "model_tier": "strong",
+        "conflict_group": "completion-floor-7047",
+        "acceptance_criteria_justification": "Every clause comes from the accepted #7047 lean 7082159427 (bind lean; audit 7082190510, table 7082195572, synthesis 7082201248). All clauses bind to one core test file that exercises the completion walk."
+      }
+    },
+    "id": "github.issue.6544583180",
+    "updated": "2026-11-22T16:47:05Z"
+  }
+}
