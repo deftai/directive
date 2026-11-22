@@ -3,7 +3,8 @@
  *
  * `.deft-scratch/release-run/<version>.json` keeps the cut base B, the release
  * commit R and its tree T, the release PR number, the grant ids the run
- * recorded and the phases already completed. The publish gates never read T
+ * recorded, the re-run count and last enqueue of the merge phase (#6877) and
+ * the phases already completed. The publish gates never read T
  * from this record (#6875); it is the run's memory between `--resume` calls.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -39,6 +40,18 @@ export interface ReleaseRunGrantIds {
   readonly promoteLatest: string | null;
 }
 
+/** Re-runs the run used (#6877): one per run, never reset by `--resume`. */
+export interface ReleaseRunRetries {
+  /** Re-runs of a failed required check or re-enqueues after a failed-check ejection. */
+  readonly failedCheck: number;
+}
+
+/** The merge phase's last enqueue (#6877): the PR head and the time, for a queue wait on resume. */
+export interface ReleaseRunEnqueue {
+  readonly head: string;
+  readonly since: string;
+}
+
 export interface ReleaseRunRecord {
   readonly schema: typeof RELEASE_RUN_RECORD_SCHEMA;
   readonly version: string;
@@ -60,6 +73,8 @@ export interface ReleaseRunRecord {
   readonly grants: ReleaseRunGrantIds;
   /** When approve asked for the mint; grants minted before it do not count. */
   readonly approveRequestedAt: string | null;
+  readonly retries: ReleaseRunRetries;
+  readonly enqueue: ReleaseRunEnqueue | null;
   readonly completed: readonly ReleaseRunPhase[];
   readonly updatedAt: string;
 }
@@ -93,6 +108,8 @@ export function newReleaseRunRecord(input: {
     pr: null,
     grants: { releasePublish: null, promoteLatest: null },
     approveRequestedAt: null,
+    retries: { failedCheck: 0 },
+    enqueue: null,
     completed: [],
     updatedAt: input.now.toISOString(),
   };
@@ -183,7 +200,30 @@ export function parseReleaseRunRecord(raw: string, version: string): ReadRelease
   ) {
     return { kind: "invalid", reason: "completed is not a list of run phases" };
   }
-  return { kind: "ok", record: r as unknown as ReleaseRunRecord };
+  // #6877 fields: a record written before them reads as no re-run used and no enqueue.
+  let retries: ReleaseRunRetries = { failedCheck: 0 };
+  if (r.retries !== undefined) {
+    const raw = r.retries as Record<string, unknown> | null;
+    const used = typeof raw === "object" && raw !== null ? raw.failedCheck : undefined;
+    if (!(typeof used === "number" && Number.isInteger(used) && used >= 0)) {
+      return { kind: "invalid", reason: "retries is not { failedCheck: <count> }" };
+    }
+    retries = { failedCheck: used };
+  }
+  let enqueue: ReleaseRunEnqueue | null = null;
+  if (r.enqueue !== undefined && r.enqueue !== null) {
+    const raw = r.enqueue as Record<string, unknown>;
+    if (
+      typeof raw !== "object" ||
+      Array.isArray(raw) ||
+      typeof raw.head !== "string" ||
+      typeof raw.since !== "string"
+    ) {
+      return { kind: "invalid", reason: "enqueue is not { head, since } or null" };
+    }
+    enqueue = { head: raw.head, since: raw.since };
+  }
+  return { kind: "ok", record: { ...(r as unknown as ReleaseRunRecord), retries, enqueue } };
 }
 
 export function readReleaseRunRecord(projectRoot: string, version: string): ReadReleaseRunRecord {

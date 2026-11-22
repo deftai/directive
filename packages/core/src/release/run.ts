@@ -18,10 +18,14 @@
  * records the grant ids, and the S2 gates (#6875) accept only that grant.
  * After the mint no phase reads stdin, so no later phase can prompt.
  *
- * Out of scope here (later stories): enqueue reads, the in-process review
- * wait and its retry counts (#6877); reconciliation of tag, npm, release and
- * promote state on `--resume`, and the runbook (#6878). This story's `--resume`
- * continues at the first phase the run record has not completed.
+ * The merge phase (#6877, S4) enqueues the release PR only while the origin
+ * tip is still B and the merge queue is empty, waits in-process with
+ * `pr:watch` until CLEAN and then with `pr:wait-mergeable-and-merge --wait`,
+ * and re-runs a failed required check once per run (run-merge.ts). Under the
+ * run the finish step pushes a tag left only local on M and stops on a tag on
+ * any other commit. Still out of scope: reconciliation of npm, release and
+ * promote state on `--resume`, and the runbook (#6878). `--resume` continues
+ * at the first phase the run record has not completed.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -46,6 +50,7 @@ import { releaseCommitSubject, runGit } from "./git.js";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
 import { runPipeline } from "./pipeline.js";
 import { openReleasePr, pushReleaseBranch, releaseBranchName } from "./release-pr.js";
+import { type ReleaseMergeSeams, runMergePhase } from "./run-merge.js";
 import {
   formatReadiness,
   type ReadinessInput,
@@ -81,6 +86,13 @@ export const RELEASE_RUN_HELP =
   "one release-publish grant for <version>@<T> (and, with --promote-latest, one\n" +
   "release-promote-latest grant) through deft authz:grant with typed `mint` on a TTY. Without a TTY\n" +
   "it prints the mint commands and stops; --resume continues. After the mint no phase prompts.\n" +
+  "\n" +
+  "Merge: the run waits on the release PR with pr:watch until CLEAN, then runs\n" +
+  "pr:wait-mergeable-and-merge --wait, enqueueing only while the origin tip is still B and the merge\n" +
+  "queue is empty (otherwise it stops without enqueueing). A failed required check or a queue\n" +
+  "ejection for a failed check is re-run once per run; the count is in the run record and --resume\n" +
+  "keeps it. A second failure or a review finding stops the run. Finish pushes a tag left only local\n" +
+  "on M and stops on a v<version> tag on any other commit.\n" +
   "\n" +
   "  --expires <ISO>     Grant expiry, chosen by the operator (required for a new run).\n" +
   "  --promote-latest    Also mint a release-promote-latest grant at approve.\n" +
@@ -223,6 +235,8 @@ export interface ReleaseRunSeams {
   readonly readiness?: (input: ReadinessInput) => ReadinessResult;
   readonly cut?: (config: ReleaseConfig) => number;
   readonly pushAndOpenPr?: (config: ReleaseConfig) => { ok: boolean; reason: string };
+  /** Seams of the merge phase (#6877): watch, enqueue reads, re-run and queue waits. */
+  readonly merge?: ReleaseMergeSeams;
   readonly finish?: (config: ReleaseConfig) => number;
   readonly waitNpm?: (version: string) => number;
   readonly flip?: (config: ReleaseConfig, grantId: string) => number;
@@ -611,27 +625,18 @@ function phasePushPr(ctx: Ctx): number {
 }
 
 function phaseMerge(ctx: Ctx): number {
-  const pr = ctx.record.pr;
-  if (pr === null) {
-    line(ctx, "merge", "FAIL (the run record has no PR number)");
-    return EXIT_VIOLATION;
-  }
-  const runVerb = ctx.seams.runVerb ?? defaultRunVerb;
-  const argv = ["pr:wait-mergeable-and-merge", String(pr), "--repo", ctx.record.repo, "--wait"];
-  const code = runVerb(argv, {
-    cwd: ctx.projectRoot,
-    interactive: false,
-  });
-  if (code !== 0) {
-    line(
-      ctx,
-      "merge",
-      `FAIL (pr:wait-mergeable-and-merge ${String(pr)} --wait exited ${String(code)})`,
-    );
-    return EXIT_VIOLATION;
-  }
-  line(ctx, "merge", `OK (release PR #${String(pr)} merged)`);
-  return EXIT_OK;
+  // #6877: enqueue reads, the in-process pr:watch wait, the queue wait and the
+  // one re-run per run live in run-merge.ts.
+  return runMergePhase(
+    {
+      projectRoot: ctx.projectRoot,
+      record: () => ctx.record,
+      save: (patch) => save(ctx, patch),
+      line: (status) => line(ctx, "merge", status),
+      now: ctx.now,
+    },
+    { release: ctx.seams.release, runGh: ctx.seams.runGh, ...ctx.seams.merge },
+  );
 }
 
 function phaseFinish(ctx: Ctx): number {
