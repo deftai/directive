@@ -92,7 +92,6 @@ export {
 export {
   clearNoSuiteEnv,
   NO_SUITE_CLEARED_ENV_KEYS,
-  NO_SUITE_MASTER_REFSPEC,
   type NoSuiteEventWriter,
   type NoSuiteGhGetFn,
   type NoSuiteGhGetResult,

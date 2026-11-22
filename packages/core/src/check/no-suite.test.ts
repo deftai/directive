@@ -15,7 +15,6 @@ import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 import { checkGateId, FRAMEWORK_CHECK_GATES, noSuiteGateList } from "./gate-lists.js";
 import {
   clearNoSuiteEnv,
-  NO_SUITE_MASTER_REFSPEC,
   type NoSuiteGhGetFn,
   type NoSuiteGitFn,
   openPullsAtHead,
@@ -25,6 +24,7 @@ import {
 import { dispatchTaskCheck } from "./orchestrator.js";
 
 const HEAD = "abc123def4567890abc123def4567890abc12345";
+const MASTER_REFSPEC = "refs/heads/master:refs/remotes/origin/master";
 const ROOT = "/fw-root-6469";
 
 let stderr: string[] = [];
@@ -58,7 +58,7 @@ function fakeGit(options: { failFetch?: string; remote?: string } = {}): {
   const git: NoSuiteGitFn = (args) => {
     calls.push({ args });
     if (args[0] === "fetch") {
-      return args[2] === options.failFetch
+      return args[args.length - 1] === options.failFetch
         ? { status: 128, stdout: "", stderr: "fatal: could not read from remote" }
         : { status: 0, stdout: "", stderr: "" };
     }
@@ -147,12 +147,14 @@ describe("no-suite helpers (#6469)", () => {
 });
 
 describe("prepareNoSuiteRun (#6469)", () => {
-  it("fetches origin/master with CI's refspec as its first git call", () => {
+  it("fetches the fallback master with the safe refspec when nothing names a branch (#6970)", () => {
     const { git, calls } = fakeGit();
     const prep = prepareNoSuiteRun({ projectRoot: ROOT, env: {}, git, ghGet: fakeGh([]).ghGet });
     expect(prep.ok).toBe(true);
-    expect(calls[0]?.args).toEqual(["fetch", "origin", NO_SUITE_MASTER_REFSPEC]);
-    expect(NO_SUITE_MASTER_REFSPEC).toBe("master:refs/remotes/origin/master");
+    const fetches = calls.filter((c) => c.args[0] === "fetch").map((c) => c.args);
+    expect(fetches).toEqual([["fetch", "origin", "--", MASTER_REFSPEC]]);
+    if (prep.ok)
+      expect(prep.header[0]).toBe("check --no-suite: fetched origin/master (framework fallback)");
   });
 
   it("fetches a non-master PR base branch too", () => {
@@ -165,10 +167,10 @@ describe("prepareNoSuiteRun (#6469)", () => {
       writeEvent: () => ({ path: "/tmp/e.json", cleanup: () => {} }),
     });
     expect(prep.ok).toBe(true);
-    const fetches = calls.filter((c) => c.args[0] === "fetch").map((c) => c.args[2]);
+    const fetches = calls.filter((c) => c.args[0] === "fetch").map((c) => c.args[3]);
     expect(fetches).toEqual([
-      "master:refs/remotes/origin/master",
-      "release/1.2:refs/remotes/origin/release/1.2",
+      "refs/heads/release/1.2:refs/remotes/origin/release/1.2",
+      MASTER_REFSPEC,
     ]);
     expect(calls.find((c) => c.args[0] === "merge-base")?.args).toEqual([
       "merge-base",
@@ -177,7 +179,9 @@ describe("prepareNoSuiteRun (#6469)", () => {
     ]);
     if (prep.ok) {
       expect(prep.env.GITHUB_BASE_REF).toBe("release/1.2");
-      expect(prep.header[0]).toContain("and origin/release/1.2");
+      expect(prep.header[0]).toBe(
+        "check --no-suite: fetched origin/release/1.2 (pull request #42 base) and origin/master (framework fallback)",
+      );
     }
   });
 
@@ -185,24 +189,24 @@ describe("prepareNoSuiteRun (#6469)", () => {
     const master = prepareNoSuiteRun({
       projectRoot: ROOT,
       env: {},
-      git: fakeGit({ failFetch: NO_SUITE_MASTER_REFSPEC }).git,
+      git: fakeGit({ failFetch: MASTER_REFSPEC }).git,
       ghGet: fakeGh([]).ghGet,
     });
     expect(master.ok).toBe(false);
     if (!master.ok) {
       expect(master.exitCode).toBe(2);
-      expect(master.message).toContain("git fetch origin master:refs/remotes/origin/master failed");
+      expect(master.message).toContain(`git fetch origin ${MASTER_REFSPEC} failed`);
       expect(master.message).toContain("no gate ran");
       expect(master.message).toContain("could not read from remote");
     }
     const base = prepareNoSuiteRun({
       projectRoot: ROOT,
       env: {},
-      git: fakeGit({ failFetch: "dev:refs/remotes/origin/dev" }).git,
+      git: fakeGit({ failFetch: "refs/heads/dev:refs/remotes/origin/dev" }).git,
       ghGet: fakeGh([pr(7, "dev")]).ghGet,
     });
     expect(base.ok).toBe(false);
-    if (!base.ok) expect(base.message).toContain("dev:refs/remotes/origin/dev");
+    if (!base.ok) expect(base.message).toContain("refs/heads/dev:refs/remotes/origin/dev");
   });
 
   it("gives CI's pull-request context when exactly one open PR has HEAD", () => {
@@ -617,7 +621,8 @@ describe("dispatchTaskCheck --no-suite (#6469)", () => {
       },
     });
     expect(code).toBe(0);
-    expect(order[0]).toBe("git fetch origin master:refs/remotes/origin/master");
+    expect(order).toContain(`git fetch origin -- ${MASTER_REFSPEC}`);
+    expect(order.some((entry) => entry.startsWith("git fetch origin master"))).toBe(false);
     const firstGate = order.findIndex((entry) => entry.startsWith("gate "));
     expect(order.slice(0, firstGate).every((entry) => entry.startsWith("git "))).toBe(true);
     expect(envs.length).toBe(noSuiteGateList(FRAMEWORK_CHECK_GATES).length);
@@ -642,7 +647,7 @@ describe("dispatchTaskCheck --no-suite (#6469)", () => {
       prepareNoSuite: (input) =>
         prepareNoSuiteRun({
           ...input,
-          git: fakeGit({ failFetch: NO_SUITE_MASTER_REFSPEC }).git,
+          git: fakeGit({ failFetch: MASTER_REFSPEC }).git,
           ghGet: fakeGh([]).ghGet,
         }),
       gateSpawnFn: (gateId) => {
@@ -652,6 +657,6 @@ describe("dispatchTaskCheck --no-suite (#6469)", () => {
     });
     expect(code).toBe(2);
     expect(spawned).toEqual([]);
-    expect(stderr.join("")).toContain("git fetch origin master:refs/remotes/origin/master failed");
+    expect(stderr.join("")).toContain(`git fetch origin ${MASTER_REFSPEC} failed`);
   });
 });

@@ -3,14 +3,21 @@
  *
  * Before any gate, a no-suite run does what CI's merge-gate job does before
  * `task check:merge`:
- *  1. fetch `origin master:refs/remotes/origin/master` (and the PR's base
- *     branch when it has another name); a failed fetch runs no gate (exit 2);
+ *  1. resolve the branches (#6970): the delivery branch (`resolveDeliveryBranch`)
+ *     and the comparison branch (the PR's base, else `resolveBaseBranch`); a
+ *     malformed present `plan.policy.baseBranch` / `plan.policy.deliveryBranch`
+ *     runs no gate (exit 2). When nothing local names a default, ask origin for
+ *     its HEAD branch, fetch it, then point `origin/HEAD` at it;
  *  2. look up the head's open pull request once by REST;
- *  3. build the gate environment: no worker pin (`DEFT_ACTIVE_SCOPE`,
+ *  3. fetch the comparison branch and the delivery branch when it differs,
+ *     through `trackingFetchArgv`; a failed fetch runs no gate (exit 2), and an
+ *     exact `ls-remote` probe tells a missing branch apart from other failures;
+ *  4. build the gate environment: no worker pin (`DEFT_ACTIVE_SCOPE`,
  *     `DEFT_BASE_REF`) and no inherited `GITHUB_*` PR variables, then CI's
  *     pull-request context when the head has exactly one open PR, with a
  *     temporary event payload file holding that PR;
- *  4. print the header lines: the merge base and the PR used, or the no-PR line.
+ *  5. print the header lines: the branches fetched and where each came from,
+ *     the merge base and the PR used, or the no-PR line.
  *
  * Every git, gh and temp-file call goes through a seam so the module is
  * testable without a network or a real repository.
@@ -23,11 +30,17 @@ import { join } from "node:path";
 import { defaultWhich } from "../doctor/which.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ACTIVE_SCOPE_PIN_ENV } from "../hooks/scope.js";
+import { FIELD_BASE_BRANCH, resolveBaseBranch } from "../policy/base-branch.js";
+import {
+  type DeliveryBranchResult,
+  FIELD_DELIVERY_BRANCH,
+  isSafeBranchName,
+  resolveDeliveryBranch,
+  trackingFetchArgv,
+} from "../policy/delivery-branch.js";
 import { runGhApi } from "../scm/gh-rest.js";
+import type { GitRunner } from "../session/git.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
-
-/** CI's merge-gate fetch refspec (`.github/workflows/ci.yml` merge-gate job). */
-export const NO_SUITE_MASTER_REFSPEC = "master:refs/remotes/origin/master";
 
 /** Environment keys a no-suite run never passes to a gate from the caller (#6469 item 4). */
 export const NO_SUITE_CLEARED_ENV_KEYS: readonly string[] = [
@@ -86,6 +99,20 @@ export type NoSuitePrep =
   | { readonly ok: false; readonly exitCode: 2; readonly message: string };
 
 export type PrepareNoSuiteRunFn = (input: NoSuitePrepInput) => NoSuitePrep;
+
+/** Where a fetched branch came from (#6970); the missing-branch fix depends on it. */
+export type NoSuiteBranchSource =
+  | { readonly kind: "base-policy" }
+  | { readonly kind: "delivery-policy" }
+  | { readonly kind: "pull-request"; readonly number: number }
+  | { readonly kind: "local-default" }
+  | { readonly kind: "remote-head" }
+  | { readonly kind: "fallback" };
+
+export interface NoSuiteBranch {
+  readonly branch: string;
+  readonly source: NoSuiteBranchSource;
+}
 
 function defaultGit(args: readonly string[], cwd: string): NoSuiteGitResult {
   const result = spawnSync("git", [...args], {
@@ -184,16 +211,151 @@ export function openPullsAtHead(json: unknown, headSha: string): number[] {
   return numbers;
 }
 
-function fetchFailure(refspec: string, result: NoSuiteGitResult): NoSuitePrep {
-  const detail = result.stderr.trim();
-  return {
-    ok: false,
-    exitCode: 2,
-    message:
-      `check --no-suite: git fetch origin ${refspec} failed (exit ${result.status ?? "none"})` +
-      `${detail.length > 0 ? `: ${detail}` : ""}; no gate ran. ` +
-      "Restore network or remote access, then run again.",
+/** Header and message label for a branch source (#6970). */
+export function noSuiteBranchSourceLabel(source: NoSuiteBranchSource): string {
+  switch (source.kind) {
+    case "base-policy":
+      return FIELD_BASE_BRANCH;
+    case "delivery-policy":
+      return FIELD_DELIVERY_BRANCH;
+    case "pull-request":
+      return `pull request #${source.number} base`;
+    case "local-default":
+      return "origin/HEAD or an existing main/master ref";
+    case "remote-head":
+      return "origin's HEAD branch";
+    case "fallback":
+      return "framework fallback";
+  }
+}
+
+/** The fix a missing-branch message suggests, by source (#6970). */
+function missingBranchFix(source: NoSuiteBranchSource): string {
+  switch (source.kind) {
+    case "base-policy":
+      return `Set ${FIELD_BASE_BRANCH} to a branch origin has, then run again.`;
+    case "delivery-policy":
+      return `Set ${FIELD_DELIVERY_BRANCH} to a branch origin has, then run again.`;
+    case "pull-request":
+      return `Retarget pull request #${source.number} or push its base branch, then run again.`;
+    default:
+      return (
+        `Set ${FIELD_DELIVERY_BRANCH} (and ${FIELD_BASE_BRANCH} if pull requests merge into ` +
+        "another branch) to a branch origin has, then run again."
+      );
+  }
+}
+
+/**
+ * Branch name from `git ls-remote --symref origin HEAD` output
+ * (`ref: refs/heads/<b>\tHEAD`), else null (#6970). String steps, no regex.
+ */
+export function remoteHeadBranchFromLsRemote(stdout: string): string | null {
+  const prefix = "ref: refs/heads/";
+  for (const raw of stdout.split("\n")) {
+    const line = raw.trim();
+    if (!line.startsWith(prefix)) continue;
+    const rest = line.slice(prefix.length);
+    const tab = rest.indexOf("\t");
+    if (tab === -1 || rest.slice(tab + 1).trim() !== "HEAD") continue;
+    const name = rest.slice(0, tab);
+    return isSafeBranchName(name) ? name : null;
+  }
+  return null;
+}
+
+function prepFailure(message: string): NoSuitePrep {
+  return { ok: false, exitCode: 2, message };
+}
+
+/** `GitRunner` over the `NoSuiteGitFn` seam, so the resolvers stay offline in tests. */
+function gitRunnerOver(git: NoSuiteGitFn): GitRunner {
+  return (root, args) => {
+    const result = git(args, root);
+    return { code: result.status ?? 1, stdout: result.stdout, stderr: result.stderr };
   };
+}
+
+function deliverySource(delivery: DeliveryBranchResult, remoteHead: string | null) {
+  if (delivery.source === "typed") return { kind: "delivery-policy" } as const;
+  if (delivery.source === "default-fallback") return { kind: "fallback" } as const;
+  if (remoteHead !== null && delivery.branch === remoteHead) {
+    return { kind: "remote-head" } as const;
+  }
+  return { kind: "local-default" } as const;
+}
+
+type ResolvedBranches =
+  | {
+      readonly ok: true;
+      readonly delivery: NoSuiteBranch;
+      readonly base: NoSuiteBranch;
+      readonly fetched: readonly NoSuiteBranch[];
+    }
+  | { readonly ok: false; readonly prep: NoSuitePrep };
+
+/** Malformed present policy refuses before any fetch (#6970 item 1). */
+function malformedPolicy(projectRoot: string, runGit: GitRunner): NoSuitePrep | null {
+  const delivery = resolveDeliveryBranch(projectRoot, runGit);
+  if (
+    (delivery.source === "typed" && delivery.error !== null) ||
+    delivery.source === "default-on-error"
+  ) {
+    return prepFailure(
+      `check --no-suite: ${FIELD_DELIVERY_BRANCH} is malformed (${delivery.error ?? "invalid"}); ` +
+        `no gate ran. Correct ${FIELD_DELIVERY_BRANCH}, then run again.`,
+    );
+  }
+  const base = resolveBaseBranch(projectRoot, runGit);
+  if ((base.source === "typed" && base.error !== null) || base.source === "default-on-error") {
+    return prepFailure(
+      `check --no-suite: ${FIELD_BASE_BRANCH} is malformed (${base.error ?? "invalid"}); ` +
+        `no gate ran. Correct ${FIELD_BASE_BRANCH}, then run again.`,
+    );
+  }
+  return null;
+}
+
+/**
+ * Resolve the delivery and base branches (#6970 items 1-2). When nothing local
+ * names a default, ask origin for its HEAD branch, fetch it, and only then
+ * point `origin/HEAD` at it so the gates' own resolvers see the same branch.
+ */
+function resolveBranches(
+  projectRoot: string,
+  git: NoSuiteGitFn,
+  fetchBranch: (branch: NoSuiteBranch) => NoSuitePrep | null,
+): ResolvedBranches {
+  const runGit = gitRunnerOver(git);
+  const malformed = malformedPolicy(projectRoot, runGit);
+  if (malformed !== null) return { ok: false, prep: malformed };
+
+  let remoteHead: string | null = null;
+  const fetched: NoSuiteBranch[] = [];
+  if (resolveDeliveryBranch(projectRoot, runGit).source === "default-fallback") {
+    const query = git(["ls-remote", "--symref", "origin", "HEAD"], projectRoot);
+    const name = query.status === 0 ? remoteHeadBranchFromLsRemote(query.stdout) : null;
+    if (name !== null) {
+      const candidate: NoSuiteBranch = { branch: name, source: { kind: "remote-head" } };
+      if (fetchBranch(candidate) === null) {
+        fetched.push(candidate);
+        const setHead = git(["remote", "set-head", "origin", name], projectRoot);
+        if (setHead.status === 0) remoteHead = name;
+      }
+    }
+  }
+
+  const deliveryResult = resolveDeliveryBranch(projectRoot, runGit);
+  const delivery: NoSuiteBranch = {
+    branch: deliveryResult.branch,
+    source: deliverySource(deliveryResult, remoteHead),
+  };
+  const baseResult = resolveBaseBranch(projectRoot, runGit);
+  const base: NoSuiteBranch =
+    baseResult.source === "typed"
+      ? { branch: baseResult.branch, source: { kind: "base-policy" } }
+      : delivery;
+  return { ok: true, delivery, base, fetched };
 }
 
 interface PullLookup {
@@ -237,39 +399,88 @@ function lookupPullRequest(
 }
 
 /**
- * Prepare a `deft check --no-suite` run (#6469 items 4 and 5). On success the
- * caller passes `env` to every gate, prints `header`, and calls `cleanup` after
- * the last gate.
+ * Fetch one branch with `trackingFetchArgv` (#6970 items 3 and 5). Returns null
+ * on success, else the exit-2 prep: an unsafe name, a branch origin does not
+ * have (exact `ls-remote` probe exit 2), a failure while origin has the branch,
+ * or today's network text when the probe is inconclusive.
+ */
+function fetchNoSuiteBranch(
+  git: NoSuiteGitFn,
+  cwd: string,
+  target: NoSuiteBranch,
+): NoSuitePrep | null {
+  const label = noSuiteBranchSourceLabel(target.source);
+  const argv = trackingFetchArgv("origin", target.branch);
+  if (!argv.ok) {
+    return prepFailure(`check --no-suite: ${argv.error} (from ${label}); no gate ran.`);
+  }
+  const result = git(argv.argv, cwd);
+  if (result.status === 0) return null;
+  const detail = result.stderr.trim();
+  const exit = result.status ?? "none";
+  const probe = git(["ls-remote", "--exit-code", "origin", `refs/heads/${target.branch}`], cwd);
+  if (probe.status === 2) {
+    return prepFailure(
+      `check --no-suite: origin has no branch ${target.branch} (from ${label}); no gate ran. ` +
+        missingBranchFix(target.source),
+    );
+  }
+  if (probe.status === 0) {
+    return prepFailure(
+      `check --no-suite: git fetch of ${target.branch} (from ${label}) failed (exit ${exit}) ` +
+        `although origin has that branch${detail.length > 0 ? `: ${detail}` : ""}; no gate ran. ` +
+        "Run again; if it fails again, run the same git fetch by hand to see the cause.",
+    );
+  }
+  const refspec = `refs/heads/${target.branch}:refs/remotes/origin/${target.branch}`;
+  return prepFailure(
+    `check --no-suite: git fetch origin ${refspec} failed (exit ${exit})` +
+      `${detail.length > 0 ? `: ${detail}` : ""}; no gate ran. ` +
+      "Restore network or remote access, then run again.",
+  );
+}
+
+/**
+ * Prepare a `deft check --no-suite` run (#6469 items 4 and 5; #6970). On
+ * success the caller passes `env` to every gate, prints `header`, and calls
+ * `cleanup` after the last gate.
  */
 export function prepareNoSuiteRun(input: NoSuitePrepInput): NoSuitePrep {
   const git = input.git ?? defaultGit;
   const ghGet = input.ghGet ?? defaultGhGet;
   const writeEvent = input.writeEvent ?? defaultWriteEvent;
   const cwd = input.projectRoot;
+  const fetchBranch = (target: NoSuiteBranch) => fetchNoSuiteBranch(git, cwd, target);
 
-  const masterFetch = git(["fetch", "origin", NO_SUITE_MASTER_REFSPEC], cwd);
-  if (masterFetch.status !== 0) {
-    return fetchFailure(NO_SUITE_MASTER_REFSPEC, masterFetch);
-  }
+  const resolved = resolveBranches(cwd, git, fetchBranch);
+  if (!resolved.ok) return resolved.prep;
 
   const headSha = git(["rev-parse", "HEAD"], cwd).stdout.trim();
   const slug = repoSlugFromRemoteUrl(git(["remote", "get-url", "origin"], cwd).stdout);
   const lookup = lookupPullRequest(slug, headSha, ghGet);
 
   const base = asRecord(lookup.pr?.json.base);
-  const baseRef = typeof base?.ref === "string" && base.ref.length > 0 ? base.ref : "master";
-  if (baseRef !== "master") {
-    const refspec = `${baseRef}:refs/remotes/origin/${baseRef}`;
-    const baseFetch = git(["fetch", "origin", refspec], cwd);
-    if (baseFetch.status !== 0) {
-      return fetchFailure(refspec, baseFetch);
-    }
+  const prBase = typeof base?.ref === "string" && base.ref.length > 0 ? base.ref : null;
+  const comparison: NoSuiteBranch =
+    prBase !== null && lookup.pr !== null
+      ? { branch: prBase, source: { kind: "pull-request", number: lookup.pr.number } }
+      : resolved.base;
+
+  const fetched: NoSuiteBranch[] = [...resolved.fetched];
+  for (const target of [comparison, resolved.delivery]) {
+    if (fetched.some((done) => done.branch === target.branch)) continue;
+    const failure = fetchBranch(target);
+    if (failure !== null) return failure;
+    fetched.push(target);
   }
 
+  const baseRef = comparison.branch;
   const mergeBase = git(["merge-base", "HEAD", `origin/${baseRef}`], cwd).stdout.trim();
   const env = clearNoSuiteEnv(input.env);
   const header = [
-    `check --no-suite: fetched origin/master${baseRef !== "master" ? ` and origin/${baseRef}` : ""}`,
+    `check --no-suite: fetched ${fetched
+      .map((b) => `origin/${b.branch} (${noSuiteBranchSourceLabel(b.source)})`)
+      .join(" and ")}`,
     `check --no-suite: merge base ${mergeBase.length > 0 ? mergeBase : "(none found)"} with origin/${baseRef}`,
   ];
 
