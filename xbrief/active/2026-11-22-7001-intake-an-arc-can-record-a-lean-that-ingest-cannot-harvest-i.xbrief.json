@@ -1,0 +1,719 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7001",
+    "updated": "2026-11-22T14:19:49Z"
+  },
+  "plan": {
+    "title": "intake: an arc can record a lean that ingest cannot harvest (indented sub-items refuse; #6904)",
+    "status": "running",
+    "narratives": {
+      "Description": "Ingest refuses a whole Spec-path lean when one of its Bound remedy or Acceptance Criteria items continues on an indented line, as item 8 of #6904 lean 7070710091 does with sub-items (a) to (f). Nothing checks this before the record, so an arc can be audited, recorded and stamped ingest-ready and only fail at ingest. This story builds the accepted design-critique lean 7080365954 (synthesis 7080402953): the harvester folds continuation lines into their item, the harvest digest covers the folded text, an audit carrying the old digest still counts for an unedited lean, and the completed-arc reader returns `unharvestable-lean` for a lean ingest would refuse.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7001",
+      "Overview": "\n1. Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.\n2. Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.\n3. Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest. The criteria-only record path (#6609) keeps today's digest, because its item reader does not change.\n4. Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.\n5. Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it.\n6. Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.\n7. Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.\n8. Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable.\n9. Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.\n10. Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, a credential-shaped item, and clean lists with a credential-shaped line only under Reject; a lean without the Spec-path token is unaffected.\n\n## Acceptance Criteria\n\n- A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.\n- An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.\n- The harvest digest changes when only continuation text changes.\n- An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean.\n- A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts for the unedited lean.\n- `evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines.\n- `unharvestable-lean` is listed in the contract's reason table.\n\n\n",
+      "Constraint": "- Keeping the digest unchanged while folded text is harvested (comment 7080290871, finding 1).\n- Counting an old-digest audit because the lean's last edit precedes the audit post (comment 7080350356, finding 1).\n- Checking only at path-1 and the chip (comment 7080290871, answer 2).\n- Folding across blank lines or merging indented list items into their parent (comment 7080290871, answers 3 and 4, and finding 4).",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a parent running a design arc, I want a Spec-path lean whose list items continue on indented lines (sub-items such as (a) to (f)) to harvest at ingest, and a lean ingest would refuse to be refused before the record, so that an accepted arc never needs a cap raise and a re-bind for a formatting change.",
+      "ImplementationPlan": "1. packages/core/src/intake/markdown-scanners.ts: add a folding position reader; packages/core/src/intake/spec-path-source.ts: use it in harvestSpecPathLean and drop the wrapped-item refusal (items 1-2).\n2. packages/core/src/design-critique/pain-audit-follow-through-gate.ts: hash folded titles in hashBoundRemedyBytes and hashHarvestIdentity, keep a named pre-fold identity, and count a pre-fold-digest audit for a continuation-bearing lean only when the lean shows no edit and the audit is later; packages/core/src/intake/issue-ingest.ts: criteria-only records keep the pre-fold digest (items 3-4).\n3. New module packages/core/src/intake/spec-path-harvest-check.ts: specPathLeanHarvestRefusal (structural checks plus quarantine hard-fail scan of items, sections and Reject / Not proposed text); packages/core/src/design-critique/completed-arc-record.ts: new closed reason unharvestable-lean; content/contracts/design-critique.md: reason table row (items 5-6).\n4. Tests and fixture: markdown-scanners, spec-path-source, spec-path-harvest-check, pain-audit-follow-through-gate, completed-arc-record, auto-stamp-path1 and issue-ingest-fold test files, with the fixture packages/core/src/intake/fixtures/lean-6904-7070710091.md as verification evidence (items 7-10); changelog fragment.",
+      "Traces": "Clauses 1-10 are the Bound remedy items and clauses 11-17 the Acceptance Criteria of design-critique lean 7080365954 on #7001 (synthesis 7080402953, verified-claims table 7080402706, clean audit 7080394550)."
+    },
+    "items": [
+      {
+        "title": "Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a Bound remedy or Acceptance Criteria item is followed by non-blank indented non-list lines, then the folding reader returns that item with those lines joined to its title by one space; a blank line ends the item, an indented `- x` or `1. x` line stays its own item, and positions do not change."
+        }
+      },
+      {
+        "title": "Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When `harvestSpecPathLean` reads a lean whose items continue on indented lines, then it returns the folded items instead of the wrapped-item refusal, and a lean with no continuation line returns the same items as before."
+        }
+      },
+      {
+        "title": "Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest. The criteria-only record path (#6609) keeps today's digest, because its item reader does not change.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a lean has continuation lines, then `hashBoundRemedyBytes` and `hashHarvestIdentity` return a digest over the folded titles, and an edit of only continuation text changes it; a lean with no continuation line returns its old digest, and a criteria-only record keeps its old digest."
+        }
+      },
+      {
+        "title": "Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected."
+        }
+      },
+      {
+        "title": "Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it."
+        }
+      },
+      {
+        "title": "Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest."
+        }
+      },
+      {
+        "title": "Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the tests run, then they show an indented `(a)`-style sub-list folds into its parent item in both lists, an indented `- x` sub-list stays separate, a blank line ends the item, a lean with no continuation line keeps items and digest, and a continuation-only edit changes the digest."
+        }
+      },
+      {
+        "title": "Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable."
+        }
+      },
+      {
+        "title": "Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When `issue:ingest` runs on the #6904 fixture, unsliced and sliced, then it writes folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and command capture still works from the harvest source."
+        }
+      },
+      {
+        "title": "Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, a credential-shaped item, and clean lists with a credential-shaped line only under Reject; a lean without the Spec-path token is unaffected.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When a Spec-path lean has an empty Bound remedy, a bad slice reference, a credential-shaped item, or a credential-shaped line only under Reject, then `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean`; a lean without the Spec-path token is unaffected."
+        }
+      },
+      {
+        "title": "A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "When a Spec-path lean's Bound remedy or Acceptance Criteria item continues on indented lines, then the harvest returns that item with each continuation line folded into its title."
+        }
+      },
+      {
+        "title": "An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When an item is followed by an indented `- x` or `1. x` line or by a blank line, then the harvest returns the same items as before, and a lean with no continuation line returns the same items and the same digest as before."
+        }
+      },
+      {
+        "title": "The harvest digest changes when only continuation text changes.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "When only the continuation text of a lean's item changes, then the harvest digest changes."
+        }
+      },
+      {
+        "title": "An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean."
+        }
+      },
+      {
+        "title": "A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts for the unedited lean.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "When the fixture copy of #6904 lean 7070710091 is harvested, then it returns item 8 carrying (a) to (f), and its recorded audit digest still counts for the unedited lean."
+        }
+      },
+      {
+        "title": "`evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "When a Spec-path lean has an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines, then `evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean`."
+        }
+      },
+      {
+        "title": "`unharvestable-lean` is listed in the contract's reason table.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "When a reader opens the `## Citation grammar` reason table in content/contracts/design-critique.md, then it shows a `unharvestable-lean` row with its detail and recovery."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7001",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7001: intake: an arc can record a lean that ingest cannot harvest (indented sub-items refuse; #6904)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6904",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6904"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "- x",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/markdown-scanners.ts",
+          "packages/core/src/intake/markdown-scanners.test.ts",
+          "packages/core/src/intake/spec-path-source.ts",
+          "packages/core/src/intake/spec-path-source.test.ts",
+          "packages/core/src/intake/spec-path-harvest-check.ts",
+          "packages/core/src/intake/spec-path-harvest-check.test.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest-fold.test.ts",
+          "packages/core/src/intake/fixtures/lean-6904-7070710091.md",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/contracts/design-critique.md",
+          "changelog.d/7001-harvest-folds-continuation-lines.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6538743717.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/intake/markdown-scanners.test.ts packages/core/src/intake/spec-path-source.test.ts packages/core/src/intake/spec-path-harvest-check.test.ts",
+          "npx vitest run packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/design-critique/auto-stamp-path1.test.ts",
+          "npx vitest run packages/core/src/intake/issue-ingest-fold.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "the Spec-path harvester folds indented continuation lines into their item; blank lines and indented list markers keep today's behaviour",
+          "hashBoundRemedyBytes and hashHarvestIdentity hash folded titles; leans with no continuation line keep their digest; criteria-only records keep today's digest",
+          "an audit carrying the pre-fold identity counts for a continuation-bearing lean only when the lean shows no edit and the audit is later",
+          "evaluateCompletedArcRecord returns unharvestable-lean for a Spec-path lean that fails the selection-independent harvest check or the quarantine hard-fail scan",
+          "a fixture copy of #6904 lean 7070710091 harvests and its recorded audit still counts",
+          "one changelog fragment changelog.d/7001-harvest-folds-continuation-lines.md"
+        ],
+        "conflict_group": "intake-spec-path-harvest",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 17 clauses are the 10 Bound-remedy items and 7 Acceptance Criteria of the accepted design-critique lean 7080365954 (synthesis 7080402953), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7001; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what the Spec-path harvester takes from a lean (indented continuation lines fold into their item instead of refusing the lean) and moves a harvest refusal from ingest into the completed-arc reader that path-1, the ingest-ready chip and intake share, and both touch recorded harvest digests that live arcs (#6904) depend on.\n\nTarget-digest: sha256:4f264b4eeac12a4ce55447ed540118e120f8639e5fd28b73558a1a1a87f1a095\ndispatch-sha: 65fc6f74abe90c598b05d720d331626c67743dac\ndest: C:/Repos/deft/wt/arc-7001 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nrefutation-target: the harvest digest can stay unchanged while the harvester starts folding continuation lines, so every recorded pain-audit digest (including #6904 audit 7070727535) stays valid\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one intake reader, one harvest function and one shared record reader, with no new verb; a thin arc with one critic of a different model family, then one pain audit. The operator's words for this issue: \"Fix harvester first\".\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 65fc6f74abe90c598b05d720d331626c67743dac: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\nA Spec-path lean is the comment an arc binds; ingest turns its `## Bound remedy` and `## Acceptance Criteria` list items into the brief's items. The item reader works line by line. Since #6333, if any item continues onto an indented line, the harvester refuses the whole lean instead of dropping that text. On #6904 the bound lean 7070710091 has item 8 with indented sub-items (a) to (f), so ingest refuses it. Nothing checked this before the record: the arc audited, recorded and stamped the lean, and the problem appeared only at ingest. Fixing it now would cost a cap raise and a full re-bind for a formatting change. The operator chose to fix the harvester first.\n\nProposed fix: the harvester folds each indented continuation line into the item above it, so (a) to (f) become part of item 8. The harvest digest does not change, so the audit already recorded on #6904 still counts. The completed-arc reader runs the same harvest check ingest runs, so a lean that ingest would still refuse is refused before the record, at the path-1 check and the chip, with the same reason.\n\n## Pains\n- P1 — A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on an indented line (for example sub-items (a) to (f)) cannot be ingested at all: `harvestSpecPathLean` refuses the whole lean (#6904 lean 7070710091).\n- P2 — A lean that ingest will refuse can still be audited, recorded and stamped `design-critique:ingest-ready`; the refusal is found only at ingest, after the arc's cap is spent.\n\n## Constraints (not pains)\n- A lean that harvests today harvests the same items after the change (no drift for briefs already ingested; `resolveSpecPathLiveIdentities` compares them).\n- Slice references `B<n>` / `A<n>` keep counting list positions.\n- No new verb, flag or constant.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/intake/markdown-scanners.ts` 491-511: `hasWrappedListItem` returns true when a non-blank indented line that is not a list item follows a list item; a blank line ends the item.\n- `packages/core/src/intake/markdown-scanners.ts` 702-725 and 727-752: `parseListItemsByPosition` and `parseListItems` read one line per item; 754-777: `matchListItemLine` accepts leading spaces, so an indented `- x` or `1. x` is its own item, while an indented `(a) ...` line is not a list item.\n- `packages/core/src/intake/spec-path-source.ts` 141-160: `harvestSpecPathLean` refuses when the Bound remedy slice or the Acceptance Criteria slice has a wrapped item; 165-171: rows come from `parseListItemsByPosition`; 174-213: Slices checks; 244-250: the result carries `hashHarvestIdentity(leanBody)`.\n- `packages/core/src/intake/spec-path-source.ts` 263-330: `resolveSpecPathLiveIdentities` re-harvests a recorded brief's lean, compares the harvest digest, then returns item identities.\n- `packages/core/src/design-critique/pain-audit-follow-through-gate.ts` 215-238: `hashBoundRemedyBytes` hashes only the list-item titles of the Bound remedy slice; 245-270: `hashHarvestIdentity` adds positions, Acceptance Criteria titles and Slices lines. Continuation lines are in neither.\n- `packages/core/src/intake/issue-ingest.ts` 2824-2862: ingest harvests a Spec-path lean only after `evaluateCompletedArcRecord` returns complete, and refuses with the harvest reason.\n- `packages/core/src/design-critique/completed-arc-record.ts` 82-98: the closed `COMPLETED_ARC_BLOCK_REASONS`; 1332-1341: `finalizeComplete`; `content/contracts/design-critique.md` 696-728: the reason table each reason must appear in.\n- `packages/core/src/design-critique/auto-stamp-path1.ts` 188-260: `evaluateAutoStampPath1Write`, the parent's check before a path-1 write, evaluates the record on an unpublished candidate.\n- `packages/core/src/scm/design-critique-chip.ts` 318-392: the ingest-ready chip proves the record with `proveLiveThreadCompletedArcForIngestReady` (a pass-through to `evaluateCompletedArcRecord`).\n- #6904 lean 7070710091 harvests to a refusal today, and `hashHarvestIdentity` of it is `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`, equal to the digest on audit 7070727535 (parent ran both at the pin).\n\n## Recommended mechanism (the thing to critique)\n- K1. Fold. A folding variant of the position reader joins each non-blank indented line that is not a list item, and directly follows a list item or its previous continuation line, to that item's title with one space (outside fences). `harvestSpecPathLean` uses it for its Bound remedy and Acceptance Criteria rows and drops the wrapped-item refusal. A blank line still ends an item, and an indented `- x` or `1. x` line stays its own item, so positions, Slices references and the harvest of every lean that harvests today do not change.\n- K2. Digest unchanged. `hashHarvestIdentity` and `hashBoundRemedyBytes` do not change, so every recorded audit digest stays valid (#6904's included). Limit: the folded continuation text is not in the digest, so an in-place edit of only continuation text between the audit and ingest is not caught by the digest. After ingest, `resolveSpecPathLiveIdentities` compares the folded titles, so a later edit shows as a mismatch.\n- K3. Check at record time. A selection-independent check is factored out of `harvestSpecPathLean` (non-empty Bound remedy list; the Slices section parses; each reference is in range and assigned once) into a module both callers can import (`spec-path-source.ts` already imports `completed-arc-record.ts`). On its complete path, `evaluateCompletedArcRecord` runs it when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the harvest reason. The reason is added to the contract's reason table. Path-1, the ingest-ready chip, the stale-ready query and intake then refuse together, before the record for path-1. Refusals that depend on the selected slice stay at ingest. This moves an existing refusal earlier; it adds no new refusal class.\n- K4. Tests: an indented sub-list of `(a)`-style lines folds into its parent item in both lists; an indented `- x` sub-list stays separate items; a copy of the #6904 lean shape harvests, with item 8 carrying (a) to (f), and its `hashHarvestIdentity` stays the value above; a lean that harvests today gives the same items; `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy or a bad Slices reference.\n\nQuestions for the critic:\n1. Is K2 sound: can the digest stay unchanged while continuation text becomes harvested, or must the digest bind the folded text, which would invalidate #6904's recorded audit and force the re-bind the operator chose to avoid?\n2. Is `evaluateCompletedArcRecord` the right place for K3, or should the check sit only in `evaluateAutoStampPath1Write` and the chip?\n3. Should an indented paragraph after a blank line also fold? K1 says no, so today's harvests stay identical.\n4. Is keeping an indented `- x` line as its own item right, given it loses its parent's context?\n5. Does a long folded item (item 8 of #6904 becomes one item of about 2.5 KB) hit any ingest limit, such as the quarantine scanner, clause handling or `verify:ac`?\n\n",
+          "id": 7080233950,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080233950",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:01:30Z",
+          "updated_at": "2026-11-22T14:01:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7080234159\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 65fc6f74abe90c598b05d720d331626c67743dac\ndest: C:/Repos/deft/wt/arc-7001\nverification-path: pin-read git show 65fc6f74abe90c598b05d720d331626c67743dac: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7080233950\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7080234159,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080234159",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:01:31Z",
+          "updated_at": "2026-11-22T14:01:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nAn arc can approve a lean whose requirements ingest cannot read. Folding adjacent continuation lines addresses the reported #6904 failure, and checking harvest structure through the shared completed-arc reader catches structural problems earlier.\n\nThe design cannot bind as written because K2 leaves newly harvested requirements outside the audit digest. An edit to those requirements could retain approval from an audit of different text.\n\nAnswers to Stop 1:\n\n1. **K2 is unsound.** The digest must bind folded text. Existing digests can remain unchanged where folding changes no harvested content; #6904 cannot retain its old digest merely to avoid another audit.\n2. **The shared completed-arc reader is the right location** for selection-independent validation. Checks only in path-1 and the chip would leave other readers inconsistent.\n3. **Keep blank lines as boundaries for this change.** Folding across them would change previously successful harvests. This preserves an existing limitation; it does not support every Markdown continuation.\n4. **Keep indented bullet and numbered items separate for compatibility.** Their parent context remains unresolved, particularly when slices separate parent and child.\n5. **I found no item-length rejection in the inspected scanner, clause construction, or sentence-coverage paths.** Literal command capture has a 500-character command limit, which is different from an item limit. The folded test item becomes one clause, not six independently verified tests.\n\nVerification was source inspection at `65fc6f74abe90c598b05d720d331626c67743dac`. No builds, tests, writes, or live GitHub reads were performed.\n\n### 1. blocks-the-design — K2 permits changed requirements to retain an old audit\n\n**Evidence:** `packages/core/src/design-critique/pain-audit-follow-through-gate.ts:220–237` hashes only list-line titles. Lines `250–271` add position, acceptance-list and slice information, still without continuation text. Lines `359–367` accept a recorded digest by comparing it with this identity. `packages/core/src/intake/spec-path-source.ts:303–330` checks the recorded digest and returns scanned live titles.\n\n**Failure mode:** After an audit, an indented continuation can change from “assert that no process remains” to “skip the survivor assertion.” Under K1+K2, the harvested requirement changes but the audit digest does not. Ingest then records the changed title as its initial baseline. Later identity checks cannot detect that pre-ingest substitution. This is an authority-boundary failure even when the replacement text contains no scanner-detectable injection.\n\n**Disposition consequence:** Reject K2. Harvest and audit identity must use the same folded requirement content, including the Bound-remedy-only fallback. Preserve old values where the effective content is unchanged; require renewed audit evidence where it changes. K4 should assert that continuation-only edits change the digest.\n\nAvoiding a cap raise is the strongest argument for retaining #6904’s digest, but that digest cannot establish what its omitted text said when audited. Independently recorded evidence binding those exact bytes could support a separately specified migration; the proposed mechanism supplies none.\n\n### 2. sharpens-framing — K3 proves structural harvestability, not that ingest will succeed\n\n**Evidence:** `packages/core/src/design-critique/completed-arc-record.ts:1332–1341` centralizes completion checks. `packages/core/src/design-critique/auto-stamp-path1.ts:214–252` evaluates an unpublished candidate through that reader; `packages/core/src/scm/design-critique-chip.ts:318–345` consumes the shared proof. However, `packages/core/src/intake/spec-path-source.ts:197–230` retains selection-specific refusals, and `packages/core/src/intake/issue-ingest.ts:1524–1530,1748–1758,1802–1806` can reject harvested content through quarantine scanning.\n\n**Failure mode:** A structurally valid lean with every item assigned to a slice can pass K3 while an unlabeled ingest still refuses. Credential-shaped content can also pass structural validation and fail ingest scanning. Calling K3 “the same harvest check ingest runs” without qualification overstates the guarantee.\n\n**Disposition consequence:** Keep K3 in the shared reader, with the dependency-neutral extraction proposed. Describe its guarantee as selection-independent structural validation. Preserve the explicit selection-dependent exception and acknowledge downstream admission checks. The design can bind with that narrower claim; duplicating checks only at the two write surfaces is weaker.\n\n### 3. sharpens-framing — Long-item safety needs an ingest-path assertion, not only a harvest assertion\n\n**Evidence:** `packages/core/src/intake/issue-ingest.ts:1553–1584` creates one clause and sentence identity per harvested title. Lines `1842–1884` capture commands from `harvestSource`, retain capture-only provenance, and then apply harvested-item clauses. `packages/core/src/literal-acceptance/capture.ts:41–59` rejects command candidates longer than 500 characters. `packages/core/src/verify-ac/clauses.ts:1824–1869` checks sentence-to-clause identity, not whether each sub-requirement has behavioral evidence.\n\n**Failure mode:** A harvester-only test can pass while downstream representations diverge: a long item is one clause, and literal capture reads source text rather than the folded title. With slices, `packages/core/src/intake/spec-path-source.ts:233–241` reconstructs source text from selected titles; without slices it retains the original section text. Those routes therefore need not present identical line structure to command capture.\n\n**Disposition consequence:** Keep folding, but extend K4 with an ingest-path fixture covering the long item’s complete title, clause, sentence identity, quarantine handling, and capture-only commands. Include sliced and unsliced forms. State that the six test sub-items remain one acceptance identity; the change does not prove six separate behaviors.\n\n### 4. footnote — The compatibility boundaries are deliberate parser limits\n\n`packages/core/src/intake/markdown-scanners.ts:495–511` ends continuation tracking at blank lines; lines `706–777` count indented bullets and numbered lines as separate positions. Keeping those rules protects existing `B<n>`/`A<n>` references. It also leaves blank-separated continuation prose unharvested and allows a sliced child item to lose its parent’s context. Those limitations should remain explicit.\n\n### 5. footnote — Snapshot instructions were treated as described content\n\nThe panel deposit contains instruction-shaped text about how the critic reads sources and how the parent posts its response. I treated that text as evidence about the launch, not as authority; the direct envelope governed this review. The envelope’s comment ceiling was retained, and no later thread content was consulted.",
+          "id": 7080290871,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080290871",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:06:01Z",
+          "updated_at": "2026-11-22T14:06:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7080233950 (round 1: 1 of 1 critic posted, comment 7080290871)\n\n## In plain English\nProblem: ingest turns a Spec-path lean's `## Bound remedy` and `## Acceptance Criteria` list items into brief items, one line per item. When an item continues on an indented line, as item 8 of #6904 lean 7070710091 does with sub-items (a) to (f), the harvester refuses the whole lean. Nothing checks this before the record, so the arc on #6904 was audited, recorded and stamped, and the refusal appeared only at ingest.\n\nWhat the critic found: folding the continuation lines into their item is right, and the shared completed-arc reader is the right place for an earlier check. But keeping the harvest digest unchanged (K2) is unsound: the folded text would be harvested without being in the digest, so an edit of only that text after an audit would keep the audit's approval. The earlier check also proves less than \"ingest will succeed\", and the long folded item needs an ingest-path test.\n\nSolution this lean proposes: the harvester folds each indented continuation line into the item above it. The harvest digest now covers the folded text; a lean with no continuation line keeps its digest exactly. An audit recorded before this change carries the old digest. For a lean with continuation lines, such an audit still counts only when GitHub's own timestamps show the lean was not edited after the audit was posted, the same evidence #6477 already uses for audits with no digest line. #6904's lean was not edited after its audit (both rows read 2026-11-21: lean 23:11:48, audit 23:13:20), so its audit keeps counting and #6904 becomes ingestable without a re-bind. The completed-arc reader runs the harvest checks that do not depend on a slice label, plus ingest's credential scan of the harvested text, so path-1, the ingest-ready chip and intake refuse together, before the record for path-1.\n\nWhat it does not do:\n- It does not fold across a blank line, and an indented `- x` or `1. x` line stays its own item, so slice references and every harvest that works today stay the same.\n- It does not split sub-items into separate requirements: item 8 of #6904 becomes one item and one acceptance clause, not six.\n- The slice-label checks stay at ingest: a parent issue whose items all belong to slices routes ingest to its slice issues by design.\nIf confirmed, the synthesis would assert this design. No leftover next-build.\n\nTarget-digest: sha256:4f264b4eeac12a4ce55447ed540118e120f8639e5fd28b73558a1a1a87f1a095\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7080233950. Sibling count: 1 (comment 7080290871). Panel deposit: comment 7080234159.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.\n2. Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.\n3. Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest.\n4. Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when `leanUneditedSinceAudit` holds for that lean and that audit (the lean's REST `updated_at` strictly before the audit's REST `created_at`). Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.\n5. Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title or on the Bound remedy or Acceptance Criteria slice text. `harvestSpecPathLean` calls it.\n6. Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.\n7. Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.\n8. Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`, and an audit carrying that digest counts when the lean's `updated_at` is before the audit's `created_at` and does not count when it is equal, later or unreadable.\n9. Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.\n10. Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, and a credential-shaped item; a lean without the Spec-path token is unaffected.\n\n## Acceptance Criteria\n- A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.\n- An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.\n- The harvest digest changes when only continuation text changes.\n- An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` is strictly before the audit's `created_at`.\n- A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts when the lean was not edited after the audit.\n- `evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference or a credential hard-fail in its harvest.\n- `unharvestable-lean` is listed in the contract's reason table.\n\n## Reject\n- Keeping the digest unchanged while folded text is harvested (comment 7080290871, finding 1).\n- Checking only at path-1 and the chip (comment 7080290871, answer 2).\n- Folding across blank lines or merging indented list items into their parent (comment 7080290871, answers 3 and 4, and finding 4).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7080290871 | 1. K2 permits changed requirements to retain an old audit | blocks-the-design | accept-into-contract (item 3: the digest binds the folded text; item 4 admits an old digest only on timestamp evidence that the audit read the current bytes) |\n| comment 7080290871 | 2. K3 proves structural harvestability, not that ingest will succeed | sharpens-framing | accept-into-contract (items 5 and 6 name a selection-independent check, add ingest's quarantine hard-fail on the harvested text, and keep slice-label refusals at ingest) |\n| comment 7080290871 | 3. Long-item safety needs an ingest-path assertion, not only a harvest assertion | sharpens-framing | accept-into-contract (item 9, sliced and unsliced; the folded item stays one clause) |\n\nFootnotes in the census, no take: comment 7080290871 findings 4 and 5 (finding 4 is stated under What it does not do).\n\naudit:A1 sha=65fc6f74abe90c598b05d720d331626c67743dac pointer=packages/core/src/design-critique/pain-audit-follow-through-gate.ts:331-343 reading=measured\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. Marker A1 records the premise item 4 rests on: `leanUneditedSinceAudit` (REST `updated_at` of the lean strictly before REST `created_at` of the audit) is enough evidence that the audit read the lean's current bytes, so an audit carrying the pre-fold digest may count for a lean with continuation lines. The critic named recorded evidence of the exact bytes as what could support such a migration (finding 1); this lean picks the timestamp evidence #6477 already uses. The marker stays unresolved until a later critic targets it.\n\n",
+          "id": 7080303705,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080303705",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:07:01Z",
+          "updated_at": "2026-11-22T14:07:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:a8dc043d990813c92fc6a1f2b2ba10be221703dd01d5ffe50c7a2150d1063710\n\n## In plain English\n\nFolding continuation lines fixes the reported harvest failure. The lean cannot bind as written, however: an audit’s posting time does not prove which revision the critic read, and the proposed early credential check omits constraint text that ingest also scans.\n\npain-P1: holds - Items 1–3 remove the continuation-line refusal and preserve the folded requirements in both harvested titles and their digest, covering the supplied #6904 shape.\n\npain-P2: does not hold - Items 5–6 catch the named structural failures, but credential-shaped text under Reject or Not proposed can still pass the early check and fail only at ingest.\n\nA1: does not hold - The timestamp predicate establishes that the last edit preceded audit publication; it does not establish that the last edit preceded the critic’s read.\n\n### 1. blocks-the-design — Audit publication time does not bind the revision read\n\n**Evidence at `65fc6f74abe90c598b05d720d331626c67743dac`:**\n\n- `packages/core/src/design-critique/pain-audit-follow-through-gate.ts:331–367` compares lean `updated_at` with audit `created_at`. It records no critic-read instant or input snapshot identity.\n- `packages/core/src/design-critique/completed-arc-record.ts:62–73,1689–1703` preserves timestamps from each comment’s own row.\n- `packages/core/src/intake/issue-ingest.ts:2064–2108,2180–2195,2256–2268` fetches comment rows and passes their metadata into the completed-arc representation.\n- `packages/core/src/scm/design-critique-chip.ts:196–197,318–326` uses that same fetch and adapter path.\n- `packages/core/src/design-critique/pain-audit-follow-through-gate.ts:220–271` omits continuation text from the pre-fold identity.\n\n**Concrete failure:** A critic reads the lean at 10:00. At 10:01, another actor changes only an indented continuation requirement. The critic posts its audit at 10:02 using the old digest. Item 4 accepts it: the pre-fold identity still matches, and 10:01 is strictly before 10:02. The changed requirement gains approval without being read. This can arise from ordinary concurrent editing; no forged timestamp or malicious instruction is necessary.\n\nThe existing digestless fallback is precedent for this comparison, not evidence that its inference is sufficient for the proposed migration. This finding addresses the successor’s new compatibility mechanism rather than restating the rejected unchanged-digest design.\n\n**Disposition consequence:** Change item 4 and its acceptance tests. The smallest safe change is to require an audit carrying the current folded digest when folding changes identity. Retaining legacy acceptance needs independent evidence binding the critic’s actual input to the current folded content.\n\nThe strongest case for migration is #6904: the parent reports that its lean’s creation and update timestamps are identical and precede the audit. That is stronger than item 4’s general predicate, but I cannot independently verify those REST rows or the audit input. It does not establish the general rule. A regression case covering an edit between critic read and audit publication must refuse.\n\n### 2. blocks-the-design — The early scan omits harvested constraint text\n\n**Evidence at the dispatch SHA:**\n\n- `packages/core/src/intake/markdown-scanners.ts:519–570` extracts Reject / Not proposed list text as `constraintLines`, separately from Bound remedy items.\n- `packages/core/src/intake/spec-path-source.ts:243–248` returns those constraints in the harvest.\n- `packages/core/src/intake/issue-ingest.ts:1760–1767` scans their rendered text before writing `narratives.Constraint`.\n- `packages/core/src/intake/issue-ingest.ts:1524–1530` throws on a credential hard-fail.\n\n**Concrete failure:** A lean has valid Bound remedy and Acceptance Criteria lists, but a Reject bullet contains a credential-shaped string. Item 5 scans row titles and the two named sections, so it misses that bullet. The completed-arc reader and chip can pass; ingest subsequently refuses while scanning constraints. This is selection-independent and survives the successor’s added credential check.\n\n**Disposition consequence:** Extend item 5 to scan the same rendered constraint text ingest consumes, using the existing constraint extractor. Add a fixture with clean requirement lists and a credential hard-fail only in Reject / Not proposed; completed-arc evaluation and path-1 must return `unharvestable-lean`. This closes a concrete omitted harvest surface without revisiting the accepted slice-label exception.\n\n### 3. footnote — Verification and untrusted-content boundaries\n\nVerification used pinned source reads and the supplied snapshot only; no tests, builds, writes, posts, or live GitHub reads occurred. The snapshot’s instruction-shaped launch and posting text was treated as described content, not authority. The parent’s #6904 timestamp observation remains attributed evidence, not an independently reproduced measurement.",
+          "id": 7080350356,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080350356",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:10:46Z",
+          "updated_at": "2026-11-22T14:10:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7080350356 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7080303705\n\n## In plain English\nThe audit found two blocking points, and the parent agrees after reading the code it cites. First, item 4 let an audit carrying the old digest count when the lean's last edit came before the audit was posted. That proves the edit came before the post, not before the critic read the lean: a lean edited between the critic's read and its post would keep an approval for text the critic never saw. Second, the early credential scan in item 5 left out the Reject and Not proposed lines, which ingest also scans before it writes them, so a lean could pass the record check and still be refused at ingest.\n\nThe audit agreed that the rest is sound: folding continuation lines into their item, the digest covering the folded text, and the shared completed-arc reader as the place for the early check.\n\nThe Bound remedy on 7080303705 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:4f264b4eeac12a4ce55447ed540118e120f8639e5fd28b73558a1a1a87f1a095\n\ndoes-not-relieve: P2\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7080350356 | 1. Audit publication time does not bind the revision read | blocks-the-design | accept-into-contract (an old-digest audit may count only for a lean with no edit at all, not for a lean whose last edit precedes the audit post) |\n| comment 7080350356 | 2. The early scan omits harvested constraint text | blocks-the-design | accept-into-contract (the early scan covers the rendered Reject / Not proposed text ingest scans) |\n\nAudit verdicts recorded: `pain-P1` holds, `pain-P2` does not hold, `A1` does not hold.\n\n",
+          "id": 7080353977,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080353977",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:11:04Z",
+          "updated_at": "2026-11-22T14:11:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7080233950, after pain audit 7080350356 and retraction map 7080353977 (round 1: 1 of 1 critic posted, comment 7080290871)\n\n## In plain English\nProblem: ingest turns a Spec-path lean's `## Bound remedy` and `## Acceptance Criteria` list items into brief items, one line per item. When an item continues on an indented line, as item 8 of #6904 lean 7070710091 does with sub-items (a) to (f), the harvester refuses the whole lean. Nothing checks this before the record, so the arc on #6904 was audited, recorded and stamped, and the refusal appeared only at ingest.\n\nWhat the critics found: folding the continuation lines into their item is right, the harvest digest must cover the folded text, and the shared completed-arc reader is the right place for an earlier check. The audit then refused two points of the first lean. An audit carrying the old digest cannot count just because the lean's last edit came before the audit was posted, since the lean could have been edited after the critic read it. And the early credential scan must also cover the Reject and Not proposed lines that ingest scans.\n\nSolution this lean proposes: the harvester folds each indented continuation line into the item above it. The harvest digest covers the folded text; a lean with no continuation line keeps its digest exactly. An audit recorded before this change carries the old digest. For a lean with continuation lines, such an audit still counts only when GitHub shows no edit of the lean at all (its `updated_at` equals its `created_at`) and the audit was posted after the lean. An unedited lean has only ever had one text, so the critic read that text. #6904's lean shows no edit (both timestamps 2026-11-21T23:11:48Z) and its audit came at 23:13:20, so its audit keeps counting and #6904 becomes ingestable without a re-bind. A lean that was edited needs a new audit carrying the new digest. The completed-arc reader runs the harvest checks that do not depend on a slice label, plus ingest's credential scan of every harvested text, so path-1, the ingest-ready chip and intake refuse together, before the record for path-1.\n\nWhat it does not do:\n- It does not fold across a blank line, and an indented `- x` or `1. x` line stays its own item, so slice references and every harvest that works today stay the same.\n- It does not split sub-items into separate requirements: item 8 of #6904 becomes one item and one acceptance clause, not six.\n- The slice-label checks stay at ingest: a parent issue whose items all belong to slices routes ingest to its slice issues by design.\n- GitHub timestamps have one-second precision, so an edit in the same second as the post leaves the two timestamps equal. Only the comment's author or a repository admin can edit a comment, so that case needs the posting account to edit its own lean within a second of posting it, before any critic could read it.\nIf confirmed, the synthesis would assert this design. No leftover next-build.\n\nTarget-digest: sha256:4f264b4eeac12a4ce55447ed540118e120f8639e5fd28b73558a1a1a87f1a095\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 7080303705 (audit 7080350356 blocked it, and retraction map 7080353977 withdrew it). Sibling count: 1 (comment 7080290871). Panel deposit: comment 7080234159.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.\n2. Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.\n3. Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest. The criteria-only record path (#6609) keeps today's digest, because its item reader does not change.\n4. Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.\n5. Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it.\n6. Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.\n7. Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.\n8. Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable.\n9. Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.\n10. Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, a credential-shaped item, and clean lists with a credential-shaped line only under Reject; a lean without the Spec-path token is unaffected.\n\n## Acceptance Criteria\n- A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.\n- An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.\n- The harvest digest changes when only continuation text changes.\n- An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean.\n- A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts for the unedited lean.\n- `evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines.\n- `unharvestable-lean` is listed in the contract's reason table.\n\n## Reject\n- Keeping the digest unchanged while folded text is harvested (comment 7080290871, finding 1).\n- Counting an old-digest audit because the lean's last edit precedes the audit post (comment 7080350356, finding 1).\n- Checking only at path-1 and the chip (comment 7080290871, answer 2).\n- Folding across blank lines or merging indented list items into their parent (comment 7080290871, answers 3 and 4, and finding 4).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7080290871 | 1. K2 permits changed requirements to retain an old audit | blocks-the-design | accept-into-contract (item 3: the digest binds the folded text) |\n| comment 7080290871 | 2. K3 proves structural harvestability, not that ingest will succeed | sharpens-framing | accept-into-contract (items 5 and 6 name a selection-independent check, add ingest's quarantine hard-fail on the harvested text, and keep slice-label refusals at ingest) |\n| comment 7080290871 | 3. Long-item safety needs an ingest-path assertion, not only a harvest assertion | sharpens-framing | accept-into-contract (item 9, sliced and unsliced; the folded item stays one clause) |\n| comment 7080350356 | 1. Audit publication time does not bind the revision read | blocks-the-design | accept-into-contract (item 4: an old-digest audit counts only for a lean with no recorded edit, posted before the audit; an edited lean needs a new audit) |\n| comment 7080350356 | 2. The early scan omits harvested constraint text | blocks-the-design | accept-into-contract (item 5 scans the rendered Reject / Not proposed text; item 10 tests it) |\n\nFootnotes in the census, no take: comment 7080290871 findings 4 and 5 (finding 4 is stated under What it does not do); comment 7080350356 finding 3.\n\naudit:A2 sha=65fc6f74abe90c598b05d720d331626c67743dac pointer=packages/core/src/design-critique/completed-arc-record.ts:62-73 reading=measured\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean. The `relieves` cites stay open until a later critic targets them. Marker A2 records the premise item 4 rests on: a lean comment whose REST `updated_at` equals its `created_at` has had no edit after its creation second, so an audit posted after it read the only text that lean has had, apart from a same-second edit by the posting account that the limits above state. GitHub sets a comment's `updated_at` on edit, and `threadCommentFromRow` copies both timestamps from the comment's own REST row. The parent checked one data point on 2026-11-22: panel deposit 7052299162 on #6904, edited once a second after posting, reads `created_at` 22:36:35 and `updated_at` 22:36:36. Panel deposit 7080234159 on this thread, edited by the parent's script in the same second it was posted, reads equal timestamps (14:01:31), which is the stated limit. A1 is withdrawn (audit 7080350356). The marker stays unresolved until a later critic targets it.\n\n",
+          "id": 7080365954,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080365954",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:12:01Z",
+          "updated_at": "2026-11-22T14:12:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:c5077941498c36248a6807382dacf3a5c48b55dfdb1552181f20bd10d6a45e62\n\n## In plain English\n\nThe recut addresses the reported harvest failure and the two accepted blocking findings. Folding preserves the continuation requirements, the revised digest covers them, and the shared early check includes the harvested constraint text. I found no further design change required within the stated compatibility limits.\n\npain-P1: holds - Items 1–3 remove the continuation refusal while preserving list positions and binding the folded text into the digest. Items 8–9 require the supplied #6904 shape to survive harvest and ingest with its complete item text.\n\npain-P2: holds - Items 5–6 move selection-independent harvest failures and credential hard-fails into the shared completed-arc check, including rendered Reject / Not proposed constraints. Slice-selection refusals remain explicitly outside this guarantee.\n\nA2: holds - Within the explicitly stated same-second-edit limitation, equal REST creation and update timestamps support the no-later-edit premise. The inspected adapters preserve timestamps from the same rows as the bodies; they do not derive them from comment text. The specific #6904 timestamps remain supplied parent observations, not independently re-fetched measurements.\n\nVerification at `65fc6f74abe90c598b05d720d331626c67743dac`:\n\n- `packages/core/src/intake/spec-path-source.ts:141–250` contains the continuation refusal, positional harvest, slice validation and source construction that items 1–6 address.\n- `packages/core/src/design-critique/pain-audit-follow-through-gate.ts:215–271` establishes the existing digest inputs and Bound-remedy-only fallback.\n- `packages/core/src/intake/issue-ingest.ts:1748–1767,1802–1806` scans harvest source, rendered constraints and item titles. The recut covers those harvested surfaces.\n- `packages/core/src/design-critique/completed-arc-record.ts:62–73,1689–1704` preserves each row’s timestamps. `packages/core/src/intake/issue-ingest.ts:2064–2124,2255–2268` fetches REST comment rows and maps their metadata; `packages/core/src/scm/design-critique-chip.ts:196–198` uses that same fetch and mapping path.\n- `packages/core/src/design-critique/auto-stamp-path1.ts:214–252` admits the unpublished record only when the shared evaluator returns complete.\n\nThis is a source-level design verdict. No tests, builds, writes, posts or live GitHub reads were performed.",
+          "id": 7080394550,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080394550",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:14:18Z",
+          "updated_at": "2026-11-22T14:14:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7080365954 (recut of 7080303705 after audit 7080350356 and retraction map 7080353977). Dispatch SHA: 65fc6f74abe90c598b05d720d331626c67743dac. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean. Each row names who read the source at the pin (`git show <sha>:<path>` or the dest at that SHA). No tests were run against the new design. All three critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `harvestSpecPathLean` refuses a whole lean when a Bound remedy or Acceptance Criteria item continues on an indented line, and #6904 lean 7070710091 harvests to that refusal | verified | parent read of `packages/core/src/intake/spec-path-source.ts` 141-160 and `markdown-scanners.ts` 491-511; parent ran `harvestSpecPathLean` on the lean at the pin; critic 7080290871 |\n| 2 | An indented `- x` or `1. x` line is already its own list item, so folding only non-list lines keeps positions and `B<n>` / `A<n>` references | verified | parent read of `markdown-scanners.ts` 702-777; critic 7080290871 answer 4 |\n| 3 | Today's digest hashes only list-item first lines, so folded text must enter the digest to bind an audit to it | verified | parent read of `pain-audit-follow-through-gate.ts` 215-271; critic 7080290871 finding 1 |\n| 4 | #6904 lean's pre-fold identity is `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`, equal to the digest on its audit 7070727535 | verified | parent ran `hashHarvestIdentity` on the lean at the pin |\n| 5 | Comment rows used by the completed-arc reader, the ingest-ready chip and `issue:ingest` carry `created_at` / `updated_at` from the same REST row as the body | verified | parent read of `completed-arc-record.ts` 62-73 and 1689-1704 and `design-critique-chip.ts` 196-197; audits 7080350356 and 7080394550 |\n| 6 | An unedited lean (REST `updated_at` equal to `created_at`) posted before an audit has had one text, apart from a same-second edit by the posting account | verified as design premise (A2) | audit 7080394550 (`A2: holds` within the stated limit); parent REST reads on 2026-11-22: deposit 7052299162 edited a second later shows 22:36:35 / 22:36:36, deposit 7080234159 edited in the same second shows equal timestamps |\n| 7 | #6904 lean 7070710091 shows no edit (both 2026-11-21T23:11:48Z) and its audit 7070727535 was posted at 23:13:20 | parent observation | parent REST read on 2026-11-22; not re-read by a critic |\n| 8 | Ingest also scans the harvest source, the rendered Reject / Not proposed text and each item title for credential hard-fails | verified | audit 7080350356 finding 2; parent read of `issue-ingest.ts` 1520-1530 and 1744-1767 |\n| 9 | The shared completed-arc reader is the place where path-1, the chip and intake refuse together | verified | critic 7080290871 answer 2; parent read of `auto-stamp-path1.ts` 188-260 and `design-critique-chip.ts` 318-392 |\n| 10 | The folding reader, the new digest, the legacy-audit rule and `unharvestable-lean` behave as designed | endorsed, not verified | the new behaviour was not executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 7080402706,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080402706",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:14:58Z",
+          "updated_at": "2026-11-22T14:14:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: ingest turned a Spec-path lean's `## Bound remedy` and `## Acceptance Criteria` list items into brief items one line at a time, and refused the whole lean when an item continued on an indented line, as item 8 of #6904 lean 7070710091 does with sub-items (a) to (f). Nothing checked this before the record, so the #6904 arc was audited, recorded and stamped, and the refusal appeared only at ingest.\n\nAccepted solution: the harvester folds each indented continuation line into the item above it; a blank line still ends an item, and an indented `- x` or `1. x` line stays its own item. The harvest digest covers the folded text, and a lean with no continuation line keeps its digest exactly. An audit recorded with the old digest still counts for a lean with continuation lines only when GitHub shows no edit of that lean (`updated_at` equal to `created_at`) and the audit came after it; #6904's lean meets that, so #6904 becomes ingestable without a re-bind. The completed-arc reader runs the harvest checks that do not depend on a slice label, plus ingest's credential scan of every harvested text including the Reject / Not proposed lines, and returns the new reason `unharvestable-lean`, so path-1, the ingest-ready chip and intake refuse together, before the record for path-1.\n\nLimits accepted: no folding across blank lines; folded sub-items stay one item and one acceptance clause; slice-label refusals stay at ingest; an edit in the same second as the post is not visible in GitHub's one-second timestamps. The criteria-only record path keeps today's digest. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7080365954.\nverified-claims table 7080402706\n\nConfirm conjunct: yolo standing (Stop 1 7080233950, `yolo-standing: on`) plus the operator's live turn for this issue, \"Fix harvester first\". Round-1 critic: comment 7080290871, posted by the parent verbatim as disclosed on panel-deposit 7080234159; its three classified findings are accepted on the lean. Audit 7080350356 blocked lean 7080303705 (retraction map 7080353977). Clean audit of the bound lean: comment 7080394550 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's; `pain-P1`, `pain-P2` and `A2` hold), posted by the parent verbatim. Critic posts used: 3 of the default 6.\n\n",
+          "id": 7080402953,
+          "html_url": "https://github.com/deftai/directive/issues/7001#issuecomment-7080402953",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:15:00Z",
+          "updated_at": "2026-11-22T14:15:00Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nAn arc can record a Spec-path lean as accepted and `design-critique:ingest-ready` even though ingest cannot harvest it. On #6904 (2026-11-22), bound lean 7070710091 has Bound remedy item 8 with indented sub-items (a)-(f). `hasWrappedListItem` (`packages/core/src/intake/markdown-scanners.ts` ~495) treats any indented line after a list item as a wrapped item, and `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts` ~149-160) refuses the whole lean: \"cited lean has a list item that wraps onto a continuation line\". The arc was closed at its cap, so fixing it costs a cap raise and a full re-bind for a formatting-only change.\n\n## Acceptance Criteria\n\n- [ ] Posting or recording a Spec-path lean runs the same harvest check ingest runs, and refuses (or warns) before the record when the lean cannot be harvested.\n- [ ] Either the harvester folds indented sub-items (for example `(a)`-`(f)`) into their parent item, or the refusal names the exact item and line to fix.\n- [ ] Tests cover a lean with an indented sub-list and the #6904 shape.\n\nRefs #6904, #6609, #6964.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6538743717,
+        "origin": "deftai/directive#7001",
+        "id": "github.issue.6538743717"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4f264b4eeac12a4ce55447ed540118e120f8639e5fd28b73558a1a1a87f1a095"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7001,
+        "leanCommentId": 7080365954,
+        "harvestDigest": "c5077941498c36248a6807382dacf3a5c48b55dfdb1552181f20bd10d6a45e62",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (17), in list order (#6333)",
+      "sentences": [
+        "Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.",
+        "Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.",
+        "Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest. The criteria-only record path (#6609) keeps today's digest, because its item reader does not change.",
+        "Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.",
+        "Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it.",
+        "Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.",
+        "Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.",
+        "Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable.",
+        "Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.",
+        "Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, a credential-shaped item, and clean lists with a credential-shaped line only under Reject; a lean without the Spec-path token is unaffected.",
+        "A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.",
+        "An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.",
+        "The harvest digest changes when only continuation text changes.",
+        "An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean.",
+        "A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts for the unedited lean.",
+        "`evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines.",
+        "`unharvestable-lean` is listed in the contract's reason table."
+      ],
+      "admitted_source_sentences": [
+        "Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.",
+        "Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.",
+        "Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest. The criteria-only record path (#6609) keeps today's digest, because its item reader does not change.",
+        "Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.",
+        "Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it.",
+        "Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.",
+        "Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.",
+        "Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable.",
+        "Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.",
+        "Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, a credential-shaped item, and clean lists with a credential-shaped line only under Reject; a lean without the Spec-path token is unaffected.",
+        "A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.",
+        "An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.",
+        "The harvest digest changes when only continuation text changes.",
+        "An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean.",
+        "A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts for the unedited lean.",
+        "`evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines.",
+        "`unharvestable-lean` is listed in the contract's reason table."
+      ],
+      "admitted_source_digest": "1e6cc97b3b6dace044bb52fc658d014c5a8871b9b30188ec154bc7cccf2910f4",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Fold reader. A folding variant of `parseListItemsByPosition` (`packages/core/src/intake/markdown-scanners.ts`) joins each non-blank indented line that is not a list item, and that directly follows a list item or that item's previous continuation line, to the item's title with one space, outside fences. A blank line ends an item. An indented `- x` or `1. x` line stays its own item. Positions do not change, so `B<n>` / `A<n>` slice references do not change.",
+          "artifact_path": "packages/core/src/intake/markdown-scanners.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Harvest. `harvestSpecPathLean` (`packages/core/src/intake/spec-path-source.ts`) reads its Bound remedy and Acceptance Criteria rows with the folding reader and drops the wrapped-item refusal. A lean with no continuation line harvests the same items as today.",
+          "artifact_path": "packages/core/src/intake/spec-path-source.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Digest. `hashBoundRemedyBytes` and `hashHarvestIdentity` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`), including the Bound-remedy-only fallback, hash the folded titles. For a lean with no continuation line the folded titles equal today's titles, so its digest does not change. An edit of only continuation text changes the digest. The criteria-only record path (#6609) keeps today's digest, because its item reader does not change.",
+          "artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Audits recorded before the change. The pre-fold identity is kept as a named function. For a lean with a continuation line, an audit whose `harvest-digest` equals the lean's pre-fold identity counts only when the lean's REST `updated_at` equals its REST `created_at` and the audit's REST `created_at` is strictly after the lean's `created_at`, all read from the same rows as the bodies. An unreadable timestamp does not count. Otherwise the audit does not count, and the refusal names the current digest. A lean with no continuation line is unaffected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Check at record time. A function `specPathLeanHarvestRefusal(leanBody)` in a module that both `spec-path-source.ts` and `completed-arc-record.ts` can import returns the first refusal that does not depend on a slice label: an empty Bound remedy list; a Slices section error; a slice reference out of range or assigned twice; or a quarantine `scan` hard-fail on any harvested row title, on the Bound remedy or Acceptance Criteria slice text, or on the rendered Reject / Not proposed constraint text from `extractLeanConstraintLines`. `harvestSpecPathLean` calls it.",
+          "artifact_path": "packages/core/src/intake/spec-path-harvest-check.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Shared reader. On its complete path, `evaluateCompletedArcRecord` calls that function when the cited lean carries the Spec-path token, and returns `blocked` with a new closed reason `unharvestable-lean` whose detail is the refusal. The reason is added to `COMPLETED_ARC_BLOCK_REASONS` and to the reason table in `content/contracts/design-critique.md`. `evaluateAutoStampPath1Write`, the ingest-ready chip, the stale-ready query and `issue:ingest` then refuse with that reason. Slice-label refusals stay at ingest.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests: an indented `(a)`-style sub-list folds into its parent item in the Bound remedy and in the Acceptance Criteria; an indented `- x` sub-list stays separate items with unchanged positions; a blank line before an indented line still ends the item; a lean with no continuation line keeps its items and its digest; an edit of only continuation text changes the digest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Tests on the #6904 shape: a fixture copying lean 7070710091 harvests, item 8 carries (a) to (f), and its pre-fold identity equals `sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e`. An audit carrying that digest counts when the lean's `updated_at` equals its `created_at` and the audit was posted after it; it does not count when the lean's `updated_at` is later than its `created_at` (including an edit before the audit post), when the audit is not after the lean, or when a timestamp is unreadable.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Tests on the ingest path: with that fixture, unsliced and sliced, `issue:ingest` writes the folded item 8 as one item with its full title, one clause and one sentence identity, passes the quarantine scan, and keeps command capture working from the harvest source.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Tests on the shared reader: `evaluateCompletedArcRecord` and `evaluateAutoStampPath1Write` return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, a credential-shaped item, and clean lists with a credential-shaped line only under Reject; a lean without the Spec-path token is unaffected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "A Spec-path lean whose Bound remedy or Acceptance Criteria item continues on indented lines harvests, with each continuation line folded into its item's title.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "An indented `- x` or `1. x` line stays its own item, a blank line ends an item, and a lean with no continuation line harvests the same items and the same digest as before.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The harvest digest changes when only continuation text changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "An audit carrying a lean's pre-fold identity counts for a lean with continuation lines only when the lean's `updated_at` equals its `created_at` and the audit was posted after the lean.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "A copy of #6904 lean 7070710091 harvests, item 8 carries (a) to (f), and its recorded audit digest still counts for the unedited lean.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`evaluateCompletedArcRecord`, and through it path-1, the ingest-ready chip and `issue:ingest`, return `unharvestable-lean` for a Spec-path lean with an empty Bound remedy, a bad slice reference, or a credential hard-fail in its harvested items, sections or Reject / Not proposed lines.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "`unharvestable-lean` is listed in the contract's reason table.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6538743717",
+    "updated": "2026-11-22T14:19:49Z"
+  }
+}
