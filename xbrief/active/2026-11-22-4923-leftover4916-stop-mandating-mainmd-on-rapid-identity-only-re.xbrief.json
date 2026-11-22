@@ -8,7 +8,7 @@
     "title": "leftover(#4916): stop mandating main.md on rapid / identity-only / read-only",
     "status": "running",
     "narratives": {
-      "Description": "leftover(#4916): stop mandating main.md on rapid / identity-only / read-only",
+      "Description": "The always-on Session routing in agents-entry.md tells read-only and identity-only sessions to load main.md before USER.md and PROJECT-DEFINITION. This story drops main.md from that load list and its else-clause, makes commands.md and host-lifecycle-duties.md match, and keeps the L4 install-root locator.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4923",
       "Overview": "\n\n1. Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.\n2. Recut the L20 else-clause so it does not eager `main →`.\n3. Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.\n4. Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.\n5. Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.\n6. `task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.\n7. No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.\n\n",
       "Labels": "bug, agent-experience, area:skills, design-critique:ingest-ready, core-capabilities, promise:planning",
