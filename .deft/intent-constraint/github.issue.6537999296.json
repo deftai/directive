@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6537999296",
+  "xbriefRelPath": "xbrief/active/2026-11-22-6973-framework-gap-the-agentsmd-header-completion-chokepoint-past.xbrief.json",
+  "approvedAt": "2026-11-22T13:41:19Z",
+  "constraints": [
+    {
+      "value": "120",
+      "unit": "characters",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-22T13:41:19Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "e071cc8f6e221d6393da1a0c6b61cbcf5acbfc6cb200e0e9700d33feb99330cd"
+}
