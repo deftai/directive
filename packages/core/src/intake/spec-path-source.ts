@@ -128,7 +128,16 @@ export type SpecPathHarvestResult =
       /** Every label the lean's Slices section names (empty when none). */
       readonly labels: readonly string[];
     }
-  | { readonly ok: false; readonly reason: string };
+  | {
+      readonly ok: false;
+      readonly reason: string;
+      /** Slice labels of the lean, set when every item belongs to a slice (#7085). */
+      readonly labels?: readonly string[];
+    };
+
+/** harvestSpecPathLean reason when every item belongs to a slice label (#7085). */
+export const ALL_ITEMS_SLICED_REASON =
+  "every harvested item of the cited lean belongs to a slice label";
 
 /**
  * Harvest a Spec-path lean (#6333 items 1 and 6). Bound remedy items come first,
@@ -189,13 +198,10 @@ export function harvestSpecPathLean(
     }
   }
   if (items.length === 0) {
-    return {
-      ok: false,
-      reason:
-        selection.kind === "label"
-          ? `cited lean slice '${selection.label}' has no items`
-          : "every harvested item of the cited lean belongs to a slice label",
-    };
+    if (selection.kind === "label") {
+      return { ok: false, reason: `cited lean slice '${selection.label}' has no items` };
+    }
+    return { ok: false, reason: ALL_ITEMS_SLICED_REASON, labels };
   }
 
   let sourceText: string;
