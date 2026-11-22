@@ -830,6 +830,27 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-11-22-6973-framework-gap-the-agentsmd-header-completion-chokepoint-past",
+        "title": "[framework-gap] The AGENTS.md header completion chokepoint pastes the whole Overview narrative into the one-liner, on any agent write, outside every story file_scope",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-22-6973-framework-gap-the-agentsmd-header-completion-chokepoint-past.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6973",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6973: [framework-gap] The AGENTS.md header completion chokepoint pastes the whole Overview narrative into the one-liner, on any agent write, outside every story file_scope"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1709",
+              "type": "x-xbrief/refs",
+              "title": "Issue #1709"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
