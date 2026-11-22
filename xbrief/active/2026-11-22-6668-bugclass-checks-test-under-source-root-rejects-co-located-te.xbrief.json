@@ -1,0 +1,626 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6668",
+    "updated": "2026-11-22T23:21:26Z"
+  },
+  "plan": {
+    "title": "bug(class-checks): test-under-source-root rejects co-located tests with no waiver; pre-PR cannot pass",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(class-checks): test-under-source-root rejects co-located tests with no waiver; pre-PR cannot pass",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6668",
+      "Overview": "\n1. Co-located name. `packages/core/src/test-boundary/evaluate.ts` exports one predicate, true when the basename ends in `.test.<ext>` or `.spec.<ext>` with `<ext>` one of `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (case-insensitive), or ends in `_test.go`.\n2. Class 1. In `class-checks/evaluate.ts`, a changed path for which that predicate is true is never a `test-under-source-root` finding, by name or by content. `isExempt` and the test roots are unchanged, so the path still goes through class 2 (skipped there as a test file, below), class 3 and class 4 as today.\n3. Class 2 test-file skip. Class 2's skip for test-named files also uses that predicate, so a co-located `.test.mjs` is not scanned as production.\n4. Class 2 import rule. In a file that class 2 scans (non-test, under a source root or deploy-shaped), an added line whose module specifier in `import … from`, `export … from`, bare `import`, `import(` or `require(` has a last path segment matching `<name>.test` or `<name>.spec`, optionally followed by one of the item 1 extensions, is a `production-references-test-root` finding naming the specifier and line. Added lines only (#7077); no module resolution.\n5. Class 1 remediation. The class 1 finding's remediation says: move the path under a test root, or declare it in the merge-base test-boundary policy (`.deft/test-boundary.policy.json` when that file exists on the merge base, else `plan.policy.testBoundary` in `xbrief/PROJECT-DEFINITION.xbrief.json`), preferably as a narrow `allow` entry with a reason; an authored `testRoots` list replaces every default root and must repeat the ones still needed; the policy is read from the merge base, so the policy change lands in an earlier PR. Classes 2 to 4 keep \"move or remove\". `check/named-cause.ts` 89 is reworded so it reads correctly for every class.\n6. Docs. `content/docs/test-boundary.md` states the class 1 co-located exception, the class 2 import rule, and that `verify:test-boundary` still reports co-located tests under source roots (warn by default).\n7. One PR. Files: `packages/core/src/class-checks/evaluate.ts` and its test, `packages/core/src/test-boundary/evaluate.ts` and its test, `packages/core/src/check/named-cause.ts`, `content/docs/test-boundary.md`, one `changelog.d/` fragment. No new `.test.mjs` or other non-`.ts` test file under `packages/core/src`. No change to shared default lists, no new verb, flag, policy field or gate step.\n\n## Acceptance Criteria\n\n- Given default policy, when the change adds `src/ui/A.plan-wide.test.tsx` and edits `src/ui/B.test.ts`, each with describe/it/expect content, then `verify:class-checks` reports no class 1 finding.\n- Given default policy, when the change adds `src/shared/c.test.mjs` with suite content that names `tests/fixtures/x.json`, then there is no class 1 or class 2 finding.\n- Given default policy, when the change adds `src/helpers/smoke.ts` with describe/it/expect content, then class 1 reports `test-under-source-root` with the item 5 remediation.\n- Given default policy, when the change adds `src/test_helpers.py` or `infra/scripts/test_release.py`, then class 1 still reports it.\n- Given default policy, when the change adds `infra/smoke/prod-health.spec.ts` that binds a test-marker identity, then class 1 does not report it and class 3 does.\n- Given default policy, when `src/payments/index.ts` gains `import { Fake } from \"./fakeGateway.test\"` (or `require(\"./x.spec.js\")`, or `import(\"./y.test.mjs\")`), then class 2 reports `production-references-test-root` naming the specifier and line; an unchanged existing import line is not reported.\n- Given a merge-base `.deft/test-boundary.policy.json`, when class 1 fires, then the remediation names that file, not `plan.policy.testBoundary`.\n- Given Directive's own `packages/core/src/x/y.test.ts`, then results are unchanged.\n- Given the scope fence and write fence on default policy, then `src/ui/A.test.tsx` still classes as a production path (no change to `classifyExtraPath`).\n\n\n",
+      "Constraint": "- Adding co-located patterns to `DEFAULT_TEST_ROOTS` (comment 7087338755 finding 1; comment 7087275307 finding 1).\n- Making co-located tests exempt from classes 2 to 4 (comment 7087275307 finding 1).\n- A remediation example that authors a narrow `testRoots` list, or names only `plan.policy.testBoundary` (comment 7087275055 finding 1; comment 7087275307 finding 4; comment 7087338755 finding 3).\n- Additive co-location on authored `testRoots`; an import resolver; a new verb, flag, policy field or waiver step.",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Co-located name. `packages/core/src/test-boundary/evaluate.ts` exports one predicate, true when the basename ends in `.test.<ext>` or `.spec.<ext>` with `<ext>` one of `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (case-insensitive), or ends in `_test.go`.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Class 1. In `class-checks/evaluate.ts`, a changed path for which that predicate is true is never a `test-under-source-root` finding, by name or by content. `isExempt` and the test roots are unchanged, so the path still goes through class 2 (skipped there as a test file, below), class 3 and class 4 as today.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Class 2 test-file skip. Class 2's skip for test-named files also uses that predicate, so a co-located `.test.mjs` is not scanned as production.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Class 2 import rule. In a file that class 2 scans (non-test, under a source root or deploy-shaped), an added line whose module specifier in `import … from`, `export … from`, bare `import`, `import(` or `require(` has a last path segment matching `<name>.test` or `<name>.spec`, optionally followed by one of the item 1 extensions, is a `production-references-test-root` finding naming the specifier and line. Added lines only (#7077); no module resolution.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Class 1 remediation. The class 1 finding's remediation says: move the path under a test root, or declare it in the merge-base test-boundary policy (`.deft/test-boundary.policy.json` when that file exists on the merge base, else `plan.policy.testBoundary` in `xbrief/PROJECT-DEFINITION.xbrief.json`), preferably as a narrow `allow` entry with a reason; an authored `testRoots` list replaces every default root and must repeat the ones still needed; the policy is read from the merge base, so the policy change lands in an earlier PR. Classes 2 to 4 keep \"move or remove\". `check/named-cause.ts` 89 is reworded so it reads correctly for every class.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Docs. `content/docs/test-boundary.md` states the class 1 co-located exception, the class 2 import rule, and that `verify:test-boundary` still reports co-located tests under source roots (warn by default).",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "One PR. Files: `packages/core/src/class-checks/evaluate.ts` and its test, `packages/core/src/test-boundary/evaluate.ts` and its test, `packages/core/src/check/named-cause.ts`, `content/docs/test-boundary.md`, one `changelog.d/` fragment. No new `.test.mjs` or other non-`.ts` test file under `packages/core/src`. No change to shared default lists, no new verb, flag, policy field or gate step.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given default policy, when the change adds `src/ui/A.plan-wide.test.tsx` and edits `src/ui/B.test.ts`, each with describe/it/expect content, then `verify:class-checks` reports no class 1 finding.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given default policy, when the change adds `src/shared/c.test.mjs` with suite content that names `tests/fixtures/x.json`, then there is no class 1 or class 2 finding.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given default policy, when the change adds `src/helpers/smoke.ts` with describe/it/expect content, then class 1 reports `test-under-source-root` with the item 5 remediation.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given default policy, when the change adds `src/test_helpers.py` or `infra/scripts/test_release.py`, then class 1 still reports it.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Given default policy, when the change adds `infra/smoke/prod-health.spec.ts` that binds a test-marker identity, then class 1 does not report it and class 3 does.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given default policy, when `src/payments/index.ts` gains `import { Fake } from \"./fakeGateway.test\"` (or `require(\"./x.spec.js\")`, or `import(\"./y.test.mjs\")`), then class 2 reports `production-references-test-root` naming the specifier and line; an unchanged existing import line is not reported.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given a merge-base `.deft/test-boundary.policy.json`, when class 1 fires, then the remediation names that file, not `plan.policy.testBoundary`.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "Given Directive's own `packages/core/src/x/y.test.ts`, then results are unchanged.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "Given the scope fence and write fence on default policy, then `src/ui/A.test.tsx` still classes as a production path (no change to `classifyExtraPath`).",
+        "status": "proposed",
+        "id": "clause.16"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6668",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6668: bug(class-checks): test-under-source-root rejects co-located tests with no waiver; pre-PR cannot pass"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "Co-located name. `packages/core/src/test-boundary/evaluate.ts` exports one predicate, true when the basename ends in `.test.<ext>` or `.spec.<ext>` with `<ext>` one of `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (case-insensitive), or ends in `_test.go`.",
+        "Class 1. In `class-checks/evaluate.ts`, a changed path for which that predicate is true is never a `test-under-source-root` finding, by name or by content. `isExempt` and the test roots are unchanged, so the path still goes through class 2 (skipped there as a test file, below), class 3 and class 4 as today.",
+        "Class 2 test-file skip. Class 2's skip for test-named files also uses that predicate, so a co-located `.test.mjs` is not scanned as production.",
+        "Class 2 import rule. In a file that class 2 scans (non-test, under a source root or deploy-shaped), an added line whose module specifier in `import … from`, `export … from`, bare `import`, `import(` or `require(` has a last path segment matching `<name>.test` or `<name>.spec`, optionally followed by one of the item 1 extensions, is a `production-references-test-root` finding naming the specifier and line. Added lines only (#7077); no module resolution.",
+        "Class 1 remediation. The class 1 finding's remediation says: move the path under a test root, or declare it in the merge-base test-boundary policy (`.deft/test-boundary.policy.json` when that file exists on the merge base, else `plan.policy.testBoundary` in `xbrief/PROJECT-DEFINITION.xbrief.json`), preferably as a narrow `allow` entry with a reason; an authored `testRoots` list replaces every default root and must repeat the ones still needed; the policy is read from the merge base, so the policy change lands in an earlier PR. Classes 2 to 4 keep \"move or remove\". `check/named-cause.ts` 89 is reworded so it reads correctly for every class.",
+        "Docs. `content/docs/test-boundary.md` states the class 1 co-located exception, the class 2 import rule, and that `verify:test-boundary` still reports co-located tests under source roots (warn by default).",
+        "One PR. Files: `packages/core/src/class-checks/evaluate.ts` and its test, `packages/core/src/test-boundary/evaluate.ts` and its test, `packages/core/src/check/named-cause.ts`, `content/docs/test-boundary.md`, one `changelog.d/` fragment. No new `.test.mjs` or other non-`.ts` test file under `packages/core/src`. No change to shared default lists, no new verb, flag, policy field or gate step.",
+        "Given default policy, when the change adds `src/ui/A.plan-wide.test.tsx` and edits `src/ui/B.test.ts`, each with describe/it/expect content, then `verify:class-checks` reports no class 1 finding.",
+        "Given default policy, when the change adds `src/shared/c.test.mjs` with suite content that names `tests/fixtures/x.json`, then there is no class 1 or class 2 finding.",
+        "Given default policy, when the change adds `src/helpers/smoke.ts` with describe/it/expect content, then class 1 reports `test-under-source-root` with the item 5 remediation.",
+        "Given default policy, when the change adds `src/test_helpers.py` or `infra/scripts/test_release.py`, then class 1 still reports it.",
+        "Given default policy, when the change adds `infra/smoke/prod-health.spec.ts` that binds a test-marker identity, then class 1 does not report it and class 3 does.",
+        "Given default policy, when `src/payments/index.ts` gains `import { Fake } from \"./fakeGateway.test\"` (or `require(\"./x.spec.js\")`, or `import(\"./y.test.mjs\")`), then class 2 reports `production-references-test-root` naming the specifier and line; an unchanged existing import line is not reported.",
+        "Given a merge-base `.deft/test-boundary.policy.json`, when class 1 fires, then the remediation names that file, not `plan.policy.testBoundary`.",
+        "Given Directive's own `packages/core/src/x/y.test.ts`, then results are unchanged.",
+        "Given the scope fence and write fence on default policy, then `src/ui/A.test.tsx` still classes as a production path (no change to `classifyExtraPath`)."
+      ],
+      "admitted_source_sentences": [
+        "Co-located name. `packages/core/src/test-boundary/evaluate.ts` exports one predicate, true when the basename ends in `.test.<ext>` or `.spec.<ext>` with `<ext>` one of `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (case-insensitive), or ends in `_test.go`.",
+        "Class 1. In `class-checks/evaluate.ts`, a changed path for which that predicate is true is never a `test-under-source-root` finding, by name or by content. `isExempt` and the test roots are unchanged, so the path still goes through class 2 (skipped there as a test file, below), class 3 and class 4 as today.",
+        "Class 2 test-file skip. Class 2's skip for test-named files also uses that predicate, so a co-located `.test.mjs` is not scanned as production.",
+        "Class 2 import rule. In a file that class 2 scans (non-test, under a source root or deploy-shaped), an added line whose module specifier in `import … from`, `export … from`, bare `import`, `import(` or `require(` has a last path segment matching `<name>.test` or `<name>.spec`, optionally followed by one of the item 1 extensions, is a `production-references-test-root` finding naming the specifier and line. Added lines only (#7077); no module resolution.",
+        "Class 1 remediation. The class 1 finding's remediation says: move the path under a test root, or declare it in the merge-base test-boundary policy (`.deft/test-boundary.policy.json` when that file exists on the merge base, else `plan.policy.testBoundary` in `xbrief/PROJECT-DEFINITION.xbrief.json`), preferably as a narrow `allow` entry with a reason; an authored `testRoots` list replaces every default root and must repeat the ones still needed; the policy is read from the merge base, so the policy change lands in an earlier PR. Classes 2 to 4 keep \"move or remove\". `check/named-cause.ts` 89 is reworded so it reads correctly for every class.",
+        "Docs. `content/docs/test-boundary.md` states the class 1 co-located exception, the class 2 import rule, and that `verify:test-boundary` still reports co-located tests under source roots (warn by default).",
+        "One PR. Files: `packages/core/src/class-checks/evaluate.ts` and its test, `packages/core/src/test-boundary/evaluate.ts` and its test, `packages/core/src/check/named-cause.ts`, `content/docs/test-boundary.md`, one `changelog.d/` fragment. No new `.test.mjs` or other non-`.ts` test file under `packages/core/src`. No change to shared default lists, no new verb, flag, policy field or gate step.",
+        "Given default policy, when the change adds `src/ui/A.plan-wide.test.tsx` and edits `src/ui/B.test.ts`, each with describe/it/expect content, then `verify:class-checks` reports no class 1 finding.",
+        "Given default policy, when the change adds `src/shared/c.test.mjs` with suite content that names `tests/fixtures/x.json`, then there is no class 1 or class 2 finding.",
+        "Given default policy, when the change adds `src/helpers/smoke.ts` with describe/it/expect content, then class 1 reports `test-under-source-root` with the item 5 remediation.",
+        "Given default policy, when the change adds `src/test_helpers.py` or `infra/scripts/test_release.py`, then class 1 still reports it.",
+        "Given default policy, when the change adds `infra/smoke/prod-health.spec.ts` that binds a test-marker identity, then class 1 does not report it and class 3 does.",
+        "Given default policy, when `src/payments/index.ts` gains `import { Fake } from \"./fakeGateway.test\"` (or `require(\"./x.spec.js\")`, or `import(\"./y.test.mjs\")`), then class 2 reports `production-references-test-root` naming the specifier and line; an unchanged existing import line is not reported.",
+        "Given a merge-base `.deft/test-boundary.policy.json`, when class 1 fires, then the remediation names that file, not `plan.policy.testBoundary`.",
+        "Given Directive's own `packages/core/src/x/y.test.ts`, then results are unchanged.",
+        "Given the scope fence and write fence on default policy, then `src/ui/A.test.tsx` still classes as a production path (no change to `classifyExtraPath`)."
+      ],
+      "admitted_source_digest": "b1f6d619e138414547a0850b2b36a6ac99b3bdbb7e3db0ca559319b9bee20a18",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Co-located name. `packages/core/src/test-boundary/evaluate.ts` exports one predicate, true when the basename ends in `.test.<ext>` or `.spec.<ext>` with `<ext>` one of `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (case-insensitive), or ends in `_test.go`.",
+          "artifact_path": "packages/core/src/test-boundary/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Class 1. In `class-checks/evaluate.ts`, a changed path for which that predicate is true is never a `test-under-source-root` finding, by name or by content. `isExempt` and the test roots are unchanged, so the path still goes through class 2 (skipped there as a test file, below), class 3 and class 4 as today.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Class 2 test-file skip. Class 2's skip for test-named files also uses that predicate, so a co-located `.test.mjs` is not scanned as production.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Class 2 import rule. In a file that class 2 scans (non-test, under a source root or deploy-shaped), an added line whose module specifier in `import … from`, `export … from`, bare `import`, `import(` or `require(` has a last path segment matching `<name>.test` or `<name>.spec`, optionally followed by one of the item 1 extensions, is a `production-references-test-root` finding naming the specifier and line. Added lines only (#7077); no module resolution.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Class 1 remediation. The class 1 finding's remediation says: move the path under a test root, or declare it in the merge-base test-boundary policy (`.deft/test-boundary.policy.json` when that file exists on the merge base, else `plan.policy.testBoundary` in `xbrief/PROJECT-DEFINITION.xbrief.json`), preferably as a narrow `allow` entry with a reason; an authored `testRoots` list replaces every default root and must repeat the ones still needed; the policy is read from the merge base, so the policy change lands in an earlier PR. Classes 2 to 4 keep \"move or remove\". `check/named-cause.ts` 89 is reworded so it reads correctly for every class.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Docs. `content/docs/test-boundary.md` states the class 1 co-located exception, the class 2 import rule, and that `verify:test-boundary` still reports co-located tests under source roots (warn by default).",
+          "artifact_path": "content/docs/test-boundary.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "One PR. Files: `packages/core/src/class-checks/evaluate.ts` and its test, `packages/core/src/test-boundary/evaluate.ts` and its test, `packages/core/src/check/named-cause.ts`, `content/docs/test-boundary.md`, one `changelog.d/` fragment. No new `.test.mjs` or other non-`.ts` test file under `packages/core/src`. No change to shared default lists, no new verb, flag, policy field or gate step.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given default policy, when the change adds `src/ui/A.plan-wide.test.tsx` and edits `src/ui/B.test.ts`, each with describe/it/expect content, then `verify:class-checks` reports no class 1 finding.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given default policy, when the change adds `src/shared/c.test.mjs` with suite content that names `tests/fixtures/x.json`, then there is no class 1 or class 2 finding.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given default policy, when the change adds `src/helpers/smoke.ts` with describe/it/expect content, then class 1 reports `test-under-source-root` with the item 5 remediation.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given default policy, when the change adds `src/test_helpers.py` or `infra/scripts/test_release.py`, then class 1 still reports it.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given default policy, when the change adds `infra/smoke/prod-health.spec.ts` that binds a test-marker identity, then class 1 does not report it and class 3 does.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given default policy, when `src/payments/index.ts` gains `import { Fake } from \"./fakeGateway.test\"` (or `require(\"./x.spec.js\")`, or `import(\"./y.test.mjs\")`), then class 2 reports `production-references-test-root` naming the specifier and line; an unchanged existing import line is not reported.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a merge-base `.deft/test-boundary.policy.json`, when class 1 fires, then the remediation names that file, not `plan.policy.testBoundary`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given Directive's own `packages/core/src/x/y.test.ts`, then results are unchanged.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given the scope fence and write fence on default policy, then `src/ui/A.test.tsx` still classes as a production path (no change to `classifyExtraPath`).",
+          "artifact_path": "packages/core/src/test-boundary/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6668; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix narrows what a fail-closed class gate (`verify:class-checks` class 1, #4980) treats as a test artifact under a production root, and the same default test roots feed the scope-provenance production fence, the write-fence budget, presentation-ceiling and forward-coverage; too wide a rule lets test-only code ship from production roots, too narrow a rule keeps blocking every repo with co-located tests.\n\nTarget-digest: sha256:af3ac3827d6c01052be40276bd73475ccf60a1888c6f833df935e6fd82bd67d3\ndispatch-sha: d491f88e98ba45bd8384ba873ccc4a1945f747d3\ndest: C:/Repos/deft/wt/arc-6668 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: resolved by `deft design-critique:spend-resolve` on the issue's own words (no `n=` or `panel` token) with the parent recommend N≥3. Stop 2 panel permission applies: the solution space is open (the issue itself names three mechanisms: honour test-file patterns anywhere, read the test runner config, or a project policy), and the change edits default test roots that five other gates read.\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\ncritic-post cap: 3 round-1 posts plus the reserved pain-audit slot (contract Dual stop for an N=3 panel)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show d491f88e98ba45bd8384ba873ccc4a1945f747d3: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\n`verify:class-checks` runs inside the pre-PR controller and in the merge gate. Its class 1 fails closed when a test file sits under a production root. A consumer repo keeps its Vitest files next to the source (`src/ui/*.test.tsx`, `src/shared/*.test.mjs`). Every change that adds or edits one of those tests fails class 1, so the agent cannot finish pre-PR and must not push. The failure text says class checks have \"no approve, skip, or phrase\", so the operator waived the check outside the tool.\n\nDirective already calls this layout normal for itself: its default test roots include `packages/*/src/**/*.test.*` and `packages/*/src/**/*.spec.*` with the comment \"Language-idiomatic colocated tests (not production pollution)\", and `CONTRIBUTING.md` asks for a colocated test for every new source file. The same layout under `src/**` in a consumer repo is a class 1 failure. A merge-base `plan.policy.testBoundary` (`testRoots` or `allow`) would clear it today, but the failure text does not say so, and a same-PR policy edit that clears a class 1 hit is itself refused.\n\nThe recommended fix: co-located JS/TS/Go test files count as test paths by default anywhere, not only under `packages/*/src`; `.mjs`/`.cjs`/`.mts`/`.cts` test names are recognised; class 1 still fails closed on test-only code whose file name does not say it is a test; and the class 1 failure names the merge-base policy route. One PR, no new verb, flag or policy field.\n\n## Operator direction (Scott, relayed by the coordinator; recorded as constraints)\n- Prefer fewer gates: recognise co-located tests correctly rather than add a waiver step.\n\n## Pains\n- P1 — A repo that keeps JS/TS tests next to its source under `src/` cannot pass pre-PR for any change that adds or edits a test: class 1 fails closed on `*.test.*` / `*.spec.*` under `src/**`, while Directive treats the same layout under its own `packages/*/src/**` as a test root (#6668).\n- P2 — The class 1 failure says there is no approve, skip or phrase and names only move or remove, so the operator does not learn that a merge-base `plan.policy.testBoundary` (`testRoots` or `allow`) declares a project layout, and falls back to a waiver outside the tool (#6668).\n\n## Out of scope (named, not pains)\n- Class 2 added-line scanning (#7077, merged, not yet released) is unchanged; this arc only changes which paths are test paths.\n- Classes 3 and 4 (test identity in infra, protected globs) keep their rules.\n- Hook refusal or deny text, install, upgrade, doctor and setup (owned elsewhere); nothing here touches them.\n- Detecting a production file that imports a co-located test file (a new class 2 rule); named as a question below, not proposed.\n\n## Evidence\n- #6668 (consumer repo, runtime 0.129.13): adds `src/ui/InterviewAgent.plan-wide.test.tsx` and edits `src/ui/LaunchSessionPanel.test.ts`; `deft verify:class-checks` reports `test-under-source-root` \"test-only artifact under a non-test root (class 1)\", remediation \"Move or remove the path. Class checks have no approve, skip, or phrase.\"; the pre-PR run cannot pass `lint_iteration`.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/class-checks/evaluate.ts` 79 `MOVE_OR_REMOVE`; 421-438 `loadBaseTestBoundaryPolicy` (merge-base `.deft/test-boundary.policy.json`, else merge-base `plan.policy.testBoundary`, else defaults plus `FRAMEWORK_SELF_ALLOW`); 524-545 `isAllowListed` / `isExempt` (exempt = under a test root); 1000-1036 class 1 (skip exempt paths; `isTest` by test-file pattern, recognised basename, or `contentMarksTestOnly`; finding when under a source root and not allow-listed); 1108-1130 same-PR allow or warn flip that clears a class 1/2 hit is a `same-pr-policy-edit` finding.\n- `packages/core/src/test-boundary/policy.ts` 43-57 `DEFAULT_TEST_FILE_PATTERNS` (no `.mjs`/`.cjs`/`.mts`/`.cts`); 59-65 `DEFAULT_SOURCE_ROOTS` (`src/**` first); 67-78 `DEFAULT_TEST_ROOTS` (72-74: co-located tests only under `packages/*/src/**`; `**/*_test.go` already anywhere); 86-112 `FRAMEWORK_SELF_ALLOW`; 161-164 authored non-empty lists replace defaults.\n- `packages/core/src/test-boundary/evaluate.ts` 86-119 `matchPolicyGlob` (no brace expansion); 126-153 `matchesRootGlob`; 192-212 `isRecognizedTestBasename` (no `.mjs`/`.cjs`/`.mts`/`.cts`); 383 verify:test-boundary flags co-located tests under a source root (warn by default).\n- `packages/core/src/check/named-cause.ts` 89 and `packages/core/src/check/gate-lists.ts` 135, 213 (class checks in the merge-gate lists).\n- `content/contracts/test-boundary.md` first MUST (reject recognised test files under source roots unless under test roots or allow-listed).\n- Default test roots are also read by `scope-provenance/base-fence.ts` 93-127, `scope-provenance/extra-path-admission.ts` 116, `presentation-ceiling/evaluate.ts` 1140-1183 and 1377-1400, and `forward-coverage/correspondence.ts` 322-351.\n\n## Recommended mechanism (the thing to critique)\n- D1. Default co-location. `DEFAULT_TEST_ROOTS` replaces `packages/*/src/**/*.test.*` and `packages/*/src/**/*.spec.*` with one entry per code extension anywhere: `**/*.test.<ext>` and `**/*.spec.<ext>` for `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (separate entries; the glob matcher has no braces). `**/*_test.go` stays. Every gate that reads the default roots then treats a co-located JS/TS/Go test as a test path, as it already does for Directive's own packages.\n- D2. Names. `DEFAULT_TEST_FILE_PATTERNS` and `isRecognizedTestBasename` add `.mjs`, `.cjs`, `.mts`, `.cts` for `.test.` and `.spec.`.\n- D3. Class 1 keeps failing closed on test-only content in a file whose path is not a test path (for example `src/helpers/smoke.ts` with `describe`/`it`/`expect`, or `infra/scripts/test_release.py`). Python and C# test names under a source root still fail unless the project declares them.\n- D4. Authored policy. A project that authors non-empty `testRoots` keeps its own list (today's replace rule). The class 1 finding's remediation names the route: move the path under a test root, or declare the layout in the merge-base `plan.policy.testBoundary.testRoots` (for example `src/**/*.test.ts`) in a PR merged first. Classes 2 to 4 keep \"move or remove\"; `named-cause.ts` 89 is updated to match.\n- D5. `content/contracts/test-boundary.md` and `content/docs/test-boundary.md` say co-located JS/TS/Go tests are test paths by default.\n- D6. Tests: a consumer-shaped `src/ui/A.test.tsx` and `src/shared/b.test.mjs` pass class 1 with no policy; `src/helpers/smoke.ts` with suite content still fails; `infra/scripts/test_release.py` still fails; an authored `testRoots` without co-location still fails with the new remediation; Directive's own `packages/*/src/**/*.test.ts` unchanged; scope-provenance counts a co-located consumer test as a test path.\n- D7. One PR. `test-boundary/**` and `class-checks/**` are protected globs, so the PR lands as a protected-only diff plus docs, tests and the named-cause companion.\n\nQuestions for the critics:\n1. Is \"test-named file anywhere\" (D1) the right recognition, or should only class 1 change (honour test-file patterns in class 1 only) and leave the shared default roots alone? Which consumers of the default roots change behaviour, and is each change correct?\n2. Does D1 open a path for test-only code to ship from a production root (for example a production module that imports `./x.test.ts`), and if so is that a blocker, a separate class 2 rule, or acceptable?\n3. Should co-location recognition apply even when a project authors its own `testRoots` (additive), or is the replace rule plus a better message (D4) right?\n4. Is the extension set right? Should Python `test_*.py` co-located under `src/` be included?\n5. Does this fit one PR, given the protected-glob class 4 rule?\n\n",
+          "id": 7087132504,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087132504",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:51:37Z",
+          "updated_at": "2026-11-22T22:51:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 7087139007\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: d491f88e98ba45bd8384ba873ccc4a1945f747d3\ndest: C:/Repos/deft/wt/arc-6668\nverification-path: pin-read git show d491f88e98ba45bd8384ba873ccc4a1945f747d3: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7087132504\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5), itself a dispatched arc worker. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher against the dest.\n- Launch probe under the argv actually used, before this deposit: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method. The Claude seat is a native subagent (model opus) of the parent.\n- Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, thread up to the ceiling) and read code with `git show <dispatch-sha>:<path>` in the dest. The Claude seat reads the same snapshot and returns its body to the parent. For all three seats the parent posts the critic's final message verbatim. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7087139007,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087139007",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:52:10Z",
+          "updated_at": "2026-11-22T22:52:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nDirective has a fail-closed check, class 1 of `verify:class-checks`, that rejects test code placed under production folders such as `src/`. One consumer repo keeps its Vitest tests next to the source (`src/ui/*.test.tsx`), and every change that touches one of those tests fails pre-PR. Directive puts its own tests in the same layout under `packages/*/src` and exempts them. The failure message also says there is no way around the check, even though a merge-base policy route exists.\n\nThe proposed fix: treat JS/TS/Go test-named files as test paths anywhere, recognise `.mjs`/`.cjs`/`.mts`/`.cts` test names, keep failing on test code whose file name hides it, and make the message name the policy route. I re-read every reader of the default test roots at the pinned commit. The fix is sound, and changing the shared default (not only class 1) is the right size. Changing only class 1 would leave the scope fence counting co-located tests as production files.\n\nNothing blocks the design. Four points need fixing before bind:\n1. The example in the new remediation text steers users into a policy shape that quietly weakens class 2.\n2. A test-named file under `src/` could now hold code that production imports, and nothing would catch it.\n3. Test-named files under `infra/**` and `Tools/**` become exempt as well. The lean does not say so.\n4. The reader inventory is incomplete, and P1 is only partly fixed: co-located test helpers and setup files still fail.\n\n## Findings\n\n### 1. `sharpens-framing`: the D4 remediation example tells default-policy users to write a `testRoots` list that replaces every default root and weakens class 2\nEvidence:\n- Authored non-empty `testRoots` replaces the defaults (`packages/core/src/test-boundary/policy.ts` 161-164; `packages/core/src/class-checks/evaluate.ts` 403).\n- Class 2 builds its forbidden needles from `testRoots` plus `fixtureRoots` (`class-checks/evaluate.ts` 676-689). The `tests/` needle exists only because `tests/**` is a default test root. The fixture root gives only `tests/fixtures`.\n- Class-checks reads `.deft/test-boundary.policy.json` first and the PROJECT-DEFINITION policy only when that file is missing (`class-checks/evaluate.ts` 421-429). D4 names only the PROJECT-DEFINITION route.\n- `verify:test-boundary` already has a remediation that names the narrower `allow` route and both policy files (`packages/core/src/test-boundary/evaluate.ts` 223-229). D4 does not reuse it.\n\nAfter D1, the people who still see a class 1 failure are mostly projects on default policy with Python/C# tests or content-marked helpers. Following D4's example (`testRoots: [\"src/**/*.test.ts\"]`) causes three problems:\n- `tests/**`, `**/__tests__/**`, `**/*_test.go` and all D1 entries stop being test roots.\n- A production line such as `path.join(root, \"tests/smoke/run.mjs\")` stops raising class 2.\n- `src/x/__tests__/helper.ts` (content-marked) starts failing class 1.\n\nThe example also does not cover the helper and setup files that still fail (finding 4).\n\nConsequence: change D4 before bind. Point default-policy users to a narrow merge-base `allow` entry in either policy file, or say that `testRoots` replaces the defaults and must keep them. Keep the replace rule (Q3), because additive roots would silently loosen projects that authored a narrow list on purpose.\n\n### 2. `sharpens-framing`: D1 lets a test-named file under a consumer `src/` hold code that production imports, and nothing catches it (Q2)\nEvidence:\n- Class 1 `continue`s on any exempt path before classes 1, 2 and 3 run (`class-checks/evaluate.ts` 1003). The content scan at 1025 never runs on a test-named file.\n- Class 2 skips test-named files (642-647). Its needles match root-prefixed path text only (684-687). For file-shaped roots such as `**/*.test.ts` the needle is a literal glob string, so an `import \"./x.test\"` specifier never matches.\n- Directive accepts this for its own packages because its packer drops test files: `VENDORED_TS_TEST_RE` at `packages/core/src/release/build-dist.ts` 89 / 108. A consumer build has no such guard.\n\nFailure: a story adds `src/payments/fakeGateway.test.ts` that exports a stub and has no cases, and `src/payments/index.ts` adds `import { FakeGateway } from \"./fakeGateway.test\"`. At the SHA, class 1 blocks the first file. After D1, nothing fails.\n\nConsequence: the lean should decide this, not leave it as an open question. The smallest fix is one class 2 added-line rule: in a non-test file under a source root, an import, require or dynamic-import specifier that ends in `.test`/`.spec` (with or without an extension) is a `production-references-test-root` finding. It lives in `class-checks/**`, which this protected PR already touches, adds no verb or step, and is scoped to added lines (#7077). Otherwise, record it as an accepted residual with a follow-up issue.\n\n### 3. `sharpens-framing`: the `**/` breadth also exempts test-named files under `infra/**`, `Tools/**` and `cmd/**`, which #3145 named as production roots\nEvidence:\n- `DEFAULT_SOURCE_ROOTS` includes `infra/**`, `cmd/**` and `Tools/**` (`policy.ts` 59-65).\n- `content/docs/test-boundary.md` 9 names smoke orchestration under `infra/**` and `Tools/**` as the original harm.\n- Under D1, `infra/smoke/prod-health.spec.ts` matches `**/*.spec.ts`. It skips class 1 and also class 3 (test identity in infra), because of the early `continue` at `class-checks/evaluate.ts` 1003.\n\nThe `**/` breadth is useful outside source roots: it lets scope-provenance class an `app/page.test.tsx` as \"test\" rather than \"other\" (`scope-provenance/extra-path-admission.ts` 115-118). So narrowing D1 to `src/**` has a cost.\n\nConsequence: D3 says only that test-only code with a non-test file name keeps failing. It should also say that test-named files under `infra/**` and `Tools/**` now pass class 1, as a decision. D6 should pin the chosen behaviour with one test. If that is not accepted, the narrow change is to keep class 1's source-root check for `infra/**` only. Whether to accept or narrow is the operator's choice. I lean towards accepting, because Go's `**/*_test.go` already behaves this way (`policy.ts` 76).\n\n### 4. `sharpens-framing`: the reader inventory is incomplete, and P1 is only partly closed\nEvery reader at the SHA, and whether D1/D2 change it correctly:\n- `class-checks/evaluate.ts` 1003/1007 (class 1), 559 and 1053 (class 4 story-product and protected-hit filtering), 642-648 (class 2 skip). Co-located tests become exempt. Correct.\n- `test-boundary/evaluate.ts` 373/379 (`verify:test-boundary`, warn by default). Co-located tests are no longer reported. Correct, and contract line 5 still holds literally.\n- `scope-provenance/extra-path-admission.ts` 116/154 and `base-fence.ts` 121-127 and 410, also fed by `scope-provenance/evaluate.ts` 1101, `policy/write-fence-budget.ts` 384 and `presentation-coverage/gates.ts` 86/279. A consumer `src/ui/A.test.tsx` moves from \"production\" (it spends the 2-5 allowance) to \"test\". Correct, and this is why class-1-only is the wrong cut (Q1). Note that these callers load the head-tree policy, while class-checks loads the merge-base policy.\n- `scope/lands-with-product.ts` 112 and `policy/small-change-lane.ts` 296, both through the `isTestOrFixturePath` default parameter at `base-fence.ts` 91-96. Stop 1 does not list them. Both reclassify test-named files as non-production. Correct, but D6 does not test either.\n- `presentation-ceiling/evaluate.ts` 1140 and 1182-1186. No change, because the skip needs a markup/CSS path (105-107).\n- `forward-coverage/correspondence.ts` 22-39 and 351-352. No change: file-shaped roots are skipped (161-170), and `.mjs` is not in `SOURCE_EXTENSIONS` (15).\n\nOn P1: co-located helpers, setup files and mocks that contain `vi.mock(` or a describe/it/expect suite still fail class 1 (`contentMarksTestOnly`, `class-checks/evaluate.ts` around 831-848, lines 31-32 of that function). An example is a Vitest `src/test/setup.ts`. `src/test/**` is not a default test root (only the top-level `test/**`, `policy.ts` 69), and `**/__mocks__/**` is not one either.\n\nConsequence: state P1 as fixed for test-named files only. Name the helper, setup and mock route, which is finding 1's corrected remediation. Optionally add `**/__mocks__/**` beside `**/__tests__/**`. Add lands-with-product and small-change-lane cases to D6.\n\n### 5. `footnote`: D7 fits one PR only if the diff stays inside the protected set\nThe protected globs `packages/core/src/class-checks/**` and `packages/core/src/test-boundary/**` are at `class-checks/policy.ts` 35-36. `named-cause.ts` and `content/` are exempt from story product (`class-checks/evaluate.ts` 566-577), and so are `.test.ts` files (581).\n\nSome parallel test-name lists sit outside that set: `check/walk-test-files.ts` 25, `intent-constraint/extract.ts` 31, `telemetry-coverage/scan-callers.ts` 31, and the comment at `forward-coverage/correspondence.ts` 18-20. Touching any of them makes class 4 fire on the mixed diff. Leave them for later.\n\n`named-cause.ts` 89 is one string for the whole gate, so the D4 update must still read correctly for classes 2 to 4.\n\n### 6. `footnote`: reuse the existing extension regex\n`/\\.(test|spec)\\.(c|m)?[jt]sx?$/i` already exists at `release/build-dist.ts` 89 and `init-deposit/scaffold.ts` 86, with the same eight extensions as D1/D2. D2 would make `isRecognizedTestBasename` a further copy. A shared constant is cheaper.\n\n### 7. `footnote`: D1 narrows Directive's own rule\n`packages/*/src/**/*.test.*` matches any extension, including `x.test.ts.snap` and `x.test.json`. At the SHA all 1661 co-located files are `.ts`, so nothing regresses today.\n\nConsumer Vitest snapshots (`src/**/__snapshots__/*.test.tsx.snap`) do not fail class 1. They will still class as production on the scope fence. A `**/__snapshots__/**` test root would close that.\n\n### Road not taken and steelman\n- Class-1-only change (Q1): the steelman is the smallest blast radius, with five gate families left alone. Rejected: at the SHA, `classifyExtraPath` classes consumer co-located tests as \"production\", so a PR with several new tests can exceed the 2-5 production allowance even after class 1 is fixed. This verdict would flip only if those fences were meant to count tests as production. Directive's own default says they are not (`policy.ts` 72-74).\n- Python `test_*.py` co-located under `src/` (Q4): keep it out. That is not the pytest default layout, and D3 keeps it detectable.\n- No embedded instructions appear in the issue or comments. The injection/swarm lens does not apply: this is a classification change to a deterministic gate made through the deliberate #3156 path.\n\n",
+          "id": 7087275055,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087275055",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:03:10Z",
+          "updated_at": "2026-11-22T23:03:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe gate rejects ordinary tests beside consumer source files while already allowing that layout inside Directive’s packages. Its error message also hides the existing project-policy remedy.\n\nRecognising those tests is justified, but D1–D7 cannot bind as written. The shared test-root list grants exemptions beyond test placement, including infrastructure identity checks. It also permits a test-named module that production imports, because the current reference scanner does not recognise that import. The proposal needs an explicit decision about those consequences; “classes 2–4 unchanged” is not accurate.\n\nAll code evidence below was read at `d491f88e98ba45bd8384ba873ccc4a1945f747d3`. Verification was static pin-read only; no files, tests, builds, or external posts were created.\n\n### 1. blocks-the-design — D1 changes classes 3 and 4, contrary to the stated scope\n\n**Evidence:** `packages/core/src/class-checks/evaluate.ts:541–544` defines exemption through test roots. The early `continue` at lines 1000–1003 precedes all three checks, including class 3 at 1045–1047. Class 4 also excludes exempt paths at 1051–1053 and through `isStoryProductPath` at 552–560.\n\n**Concrete failure:** `infra/deploy.test.ts` containing `const identity = { name: \"smoke\" };` currently reaches the infrastructure identity scanner: the path qualifies at lines 755–760 and the binding matches lines 792–824. D1 makes it exempt before that scanner runs. Likewise, a test-named path newly classified by D1 stops contributing to class 4’s protected/product mixture.\n\nD2 also expands the class 2 scan’s basename exclusions at lines 642–649. Keeping the scanner implementation unchanged does not keep its coverage unchanged.\n\n**Disposition:** Either preserve the independent checks when granting the new placement exemption, or explicitly accept and justify the widened exemptions. D6 needs negative examples covering these consequences; the existing unnamed-smoke example does not exercise them.\n\n### 2. blocks-the-design — A production import can make the newly admitted test code ship\n\n**Evidence:** Class 1 admits D1’s paths through the exemption above. Class 2 builds literal directory-prefix regexes from test roots at `class-checks/evaluate.ts:675–688`; `rootPrefix` at 601–602 does not resolve file globs or imports. The parallel scanner has the same limitation at `test-boundary/evaluate.ts:258–276`.\n\n**Concrete failure:** A diff containing `src/x.test.ts` and an added `import \"./x.test.ts\";` in `src/main.ts` passes these particular checks after D1. The new `**/*.test.ts` root becomes a literal glob-shaped needle, not a matcher for that import. The importing module can bring the test harness into production execution or a bundle. This is static reasoning about the checked code, not a claim that a particular consumer build was executed.\n\nThis gap already exists for the package-local co-location exemption, but D1 extends it to consumer production roots. Existing exposure does not establish that expansion as safe.\n\n**Disposition:** Given the stated anti-shipping purpose, I would not defer this silently as an unrelated class 2 enhancement. The design needs either a bounded production-reference control or explicit acceptance that this gate enforces placement conventions without establishing production isolation. A production-import negative case would distinguish those contracts.\n\n### 3. sharpens-framing — Shared roots are coherent, but the reader effects are neither uniform nor all permissive\n\nThe complete direct runtime-reader inventory for the four named symbols is below. Paths are relative to `packages/core/src/`.\n\n| Reader | Verified effect of D1/D2 | Assessment |\n|---|---|---|\n| `test-boundary/policy.ts:142–184, 234` | Supplies expanded roots/patterns through parsing and default construction. Non-empty authored lists replace defaults. | Correct for D4. |\n| `test-boundary/evaluate.ts:192–212, 231–244, 372–389` | D2 recognises new suffixes; D1 clears placement findings; both affect production-reference scan exclusions. | Placement change correct; isolation limitation is finding 2. |\n| `class-checks/evaluate.ts:350–435, 642–649, 1000–1053` | Default policy feeds merge-base evaluation; basename recognition and root exemptions affect multiple classes. | Correct for P1, incomplete safety account under findings 1–2. |\n| `scope-provenance/base-fence.ts:91–128, 410–412` | Consumer co-located tests cease counting as concrete production scope entries. | Appropriate classification; can reduce the production-extra allowance. |\n| `scope-provenance/extra-path-admission.ts:105–118, 149–162, 174–207` | Newly classified test extras may spend the allowance only for modification of an existing path. Adds/deletes/unknown kinds are refused by the assessment. | Appropriate, but potentially stricter—not blanket admission. |\n| `presentation-ceiling/evaluate.ts:1140–1185, 1375–1401, 1466–1468` | Default/baseline roots change, with exact-string intersection at 247–249. The exemption additionally requires a builtin presentation path. | D1 does not generally admit executable tests under a presentation ceiling. Preserve that condition. |\n| `forward-coverage/correspondence.ts:22–39, 327–353` | The pattern reader extracts only `.js` suffixes. Placement skips file-shaped test roots and already includes co-location. | D1/D2 do not extend forward coverage to the four new module extensions. Correct only if that remains out of scope. |\n| `policy/small-change-lane.ts:293–296` | Uses both default-root classification indirectly and basename recognition directly. D2 adds module-extension tests to the test category. | Sensible for actual tests, but also inherits the production-import ambiguity. This reader was missing from Stop 1. |\n| `test-boundary/index.ts:7, 19–21` | Re-exports the named symbols. | No independent classification logic. |\n\n**Concrete failure:** An implementer could interpret “every gate … treats … as a test path” as forward-coverage support for `.mjs`, or expect a newly added test outside `file_scope` to consume the ordinary production allowance. Neither follows from the code.\n\n**Disposition:** Retain shared classification only with these effects stated accurately and targeted regression coverage. A class-1-only change is smaller mechanically, but leaves `verify:test-boundary` disagreeing and scope accounting treating the same file as production. That is the strongest reason to prefer shared roots. My verdict would favour D1 once findings 1–2 receive an explicit, bounded resolution.\n\n### 4. sharpens-framing — D4 should retain replacement semantics and identify the effective policy source\n\n**Evidence:** `test-boundary/policy.ts:161–164` and `class-checks/evaluate.ts:402–405` retain non-empty authored lists. `class-checks/evaluate.ts:421–428` gives the merge-base `.deft/test-boundary.policy.json` precedence over PROJECT-DEFINITION.\n\n**Concrete failure:** A consumer with an existing policy file follows D4’s proposed PROJECT-DEFINITION remedy, merges that change first, and still receives the same failure because the higher-priority file remains authoritative.\n\n**Disposition:** Replacement is the right answer to question 3: an explicitly restricted layout should not be silently widened. The remediation should name the effective policy source and explain that its `testRoots` list replaces defaults. D4 otherwise addresses P2 well.\n\nAlso, lines 1108–1125 detect same-PR allow additions and warn flips specifically. A same-PR `testRoots` change remains ineffective because evaluation uses the base; it is not necessarily reported as `same-pr-policy-edit`.\n\n### 5. sharpens-framing — The extension list is reasonable, but D1 also removes existing exemptions\n\n**Evidence:** `test-boundary/policy.ts:73–74` currently accepts package-local `.test.*` and `.spec.*` with any extension. D1 replaces these with eight explicit extensions. `forward-coverage/correspondence.ts:15, 86–105, 125–141` separately limits coverage classification and correspondence.\n\n**Concrete failure:** `packages/foo/src/widget.test.py` containing `import pytest` currently falls under a test root. D1 removes that exemption, and the content detector at `class-checks/evaluate.ts:782–784` then produces a class 1 failure.\n\n**Disposition:** The eight JS/TS extensions are appropriate for the stated pain; this is not a reason to add every Python test basename everywhere. Python and C# can remain project-declared in this slice. However, replacing the package wildcard is a compatibility tightening that needs an explicit decision and regression example. Preserving existing package roots while adding the narrow new defaults is the smaller compatibility change.\n\n### 6. footnote — D7 fits one PR under the current protected-glob rules\n\n`class-checks/policy.ts:35–36` protects both implementation directories. `class-checks/evaluate.ts:565–582` admits content/docs, tests, and the exact `check/named-cause.ts` companion; lines 1095–1105 allow the pure protected landing.\n\nThus D7 is viable as described. Adding substantive fixes in unprotected readers such as `forward-coverage/correspondence.ts` would change that assessment.\n\n### 7. footnote — Test-reader inventory and trust handling\n\nThe remaining direct readers are test fixtures/assertions:\n\n- `class-checks/changed-files-enum.test.ts:28`\n- `class-checks/evaluate.test.ts:32, 628`\n- `forward-coverage/correspondence.test.ts:11`\n- `forward-coverage/evaluate.test.ts:76–81, 190`\n- `presentation-ceiling/evaluate.test.ts:283–285`\n- `test-boundary/evaluate-branches.test.ts:18, 50–53`\n- `test-boundary/evaluate.test.ts:17, 27–32, 155`\n- `test-boundary/policy-branches.test.ts:183–186`\n- `test-boundary/policy.test.ts:10–18`\n\nD1/D2 change default-derived fixtures; explicit root overrides remain explicit. These readers provide no additional production mechanism and do not establish that the revised behaviour passes tests.\n\nThe snapshot’s relayed operator direction and launcher/posting instructions were treated as described thread content, not authority. The critique followed the supplied envelope and did not act on those embedded instructions.",
+          "id": 7087275307,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087275307",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:03:11Z",
+          "updated_at": "2026-11-22T23:03:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\n`verify:class-checks` fails closed when a Vitest file sits under `src/`. Directive already treats that same shape under `packages/*/src` as a normal co-located test. A repo that keeps tests beside source cannot finish pre-PR, and the failure text only says to move or remove the file.\n\nThe recommended mechanism puts `**/*.test.<ext>` and `**/*.spec.<ext>` on the shared default test roots. That clears class 1. It also reclassifies those files for the scope fence and the write fence. A new `src/ui/A.test.tsx` that the story does not already name is a production extra today, and the budget admits it. After this change it is a test-path add, and that rule hard-refuses it. The issue's repro is that add. The shared-root change fixes the cited check and blocks the add on any repo that uses the story fence.\n\nThe two pains need a narrower change. Class 1 should accept the JS/TS/Go co-located suffixes and leave the shared default test roots alone. A file whose name does not say it is a test, and that contains suite content, still fails. Python `test_*.py` under `src/` still fails. A project that wants some other layout still authors `testRoots`, and the message has to say that this list replaces the defaults and is read from the merge base.\n\nThat is the proportion the gate can bear. The gate exists to stop harnesses, fixtures, and smoke code under production roots. A conventional `*.test.ts` name is the layout this pain asks to allow. Putting that name on the test roots also skips later checks for every file with that name, and it does not make a production import of `./x.test.ts` visible to class 2.\n\n## 1. blocks-the-design — D1 turns the repro's new file into a hard refuse\n\nEvidence: `packages/core/src/test-boundary/policy.ts` 59-77. `src/**` is a source root. Co-located tests are test roots only under `packages/*/src/**/*.test.*`, `packages/*/src/**/*.spec.*`, and `**/*_test.go`. `packages/core/src/scope-provenance/extra-path-admission.ts` 114-117 classes a path as test before production, using `DEFAULT_TEST_ROOTS`. `packages/core/src/scope-provenance/base-fence.ts` 80-96 matches those roots with `matchPath`, which anchors `**` and a single `*` on one segment, so `**/*.test.tsx` matches `src/ui/A.test.tsx`. `extra-path-admission.ts` 186 admits an undeclared production path by spending the allowance (floor 2, cap 5, `base-fence.ts` 60-70). Lines 190-208 hard-refuse a test path unless the change is a modify of a file already on the merge base. `packages/core/src/policy/write-fence-budget.ts` 285-293 returns `add` when the path is absent on that base, and 303 refuses class `other` as well. Class 1 itself clears because `packages/core/src/class-checks/evaluate.ts` 541-544 and 1003 treat every test root as exempt and skip the file.\n\nFailure mode: the repro adds `src/ui/InterviewAgent.plan-wide.test.tsx`. On a story whose concrete `file_scope` does not name that new file, class 1 goes green and the write fence and the scope fence hard-refuse the add. The edit of an existing `LaunchSessionPanel.test.ts` only spends, so the add half and the edit half of P1 come apart. A glob `file_scope` that already matches the path warns and admits for one release (`write-fence-budget.ts` 328-346). An empty `file_scope` skips the fence. D6's success line, \"scope-provenance counts a co-located consumer test as a test path\", is the condition that triggers the refuse. `packages/*/src/**/*.test.ts` already lives on that strict path. `src/**` does not. Moving `src/**` onto it is a new rule for every consumer story, not a repair of class 1.\n\nDisposition consequence: D1 does not bind. Class 1 accepts the co-located suffixes inside the finding at `class-checks/evaluate.ts` 1006-1034 and `DEFAULT_TEST_ROOTS` stays as it is. D6's scope-provenance assertion comes out. Unnamed suite files still fail through `contentMarksTestOnly` at 1025-1028.\n\n## 2. sharpens-framing — a production import of the co-located file still ships, and test-root exemption skips class 3\n\nEvidence: the class 1 loop continues on `isExempt` at `class-checks/evaluate.ts` 1003, before class 2 at 1040-1042 and class 3 at 1045-1047. `scanProductionReferences` 677-679 keeps any root that contains a slash, then sets the needle to `rootPrefix` of the whole glob (`evaluate.ts` 601 strips only a trailing `/**`). For `**/*.test.ts` the needle is the glob text. The regex at 685 looks for that text followed by `/`. `import \"./x.test.ts\"` does not match. The same needle shape already misses `**/*_test.go` and `packages/*/src/**/*.test.*`. `verify:test-boundary` does the same early-out at `test-boundary/evaluate.ts` 231-244.\n\nFailure mode: once class 1 allows `src/x.test.ts`, a production module can import it and class 2 stays quiet, so the test module can ship inside the production graph. D1 widens that further. The exempt continue also skips class 3, so an `infra/` file whose name ends in `.test.ts` and binds a test-marker identity is no longer scanned. A class-1-only suffix exception still lets the import ship, and it leaves class 3 running on that file.\n\nDisposition consequence: the bound names the import as an accepted residual for a later class 2 rule. It does not claim class 2 already sees `./x.test.ts`, and this change does not grow an import resolver. Recognition is a class 1 finding exception for the suffix set, not an `isExempt` test root, so class 3 still runs.\n\n## 3. sharpens-framing — the replace rule is the right opt-out, and the example list is not\n\nEvidence: `policy.ts` 161-164 replaces defaults whenever the authored `testRoots` array is non-empty. The same replace applies to `testFilePatterns`. `class-checks/evaluate.ts` 421-428 reads merge-base `.deft/test-boundary.policy.json` before `plan.policy.testBoundary`. Class 1 uses that base policy. The same-PR detector at 1114-1116 fires for a new allow entry or an enforce-to-warn flip. A same-PR `testRoots` edit does not clear the class 1 finding and does not emit `same-pr-policy-edit`. `extra-path-admission.ts` 117-118 classes a path that matches neither test nor source roots as `other`, and the write fence refuses `other`.\n\nFailure mode: an operator who copies the example and sets `testRoots` to only `src/**/*.test.ts` drops `tests/**`, `**/__tests__/**`, and `**/*_test.go`. An undeclared edit of `tests/foo.test.ts` is class `other` and hard-refuses. Today that edit spends as a test modify. An edit to `plan.policy.testBoundary` while the `.deft` policy file exists is ignored. A same-PR `testRoots` edit leaves class 1 red, with no finding that says the edit was ignored.\n\nDisposition consequence: D4 stays. Authored `testRoots` keep replacing defaults, which is how a project opts out of co-location without a new field. Additive co-location would remove that opt-out. The remediation says the list replaces the defaults and has to repeat every root the project still needs, names `.deft/test-boundary.policy.json` first and `plan.policy.testBoundary` second, and says the policy is read from the merge base. Classes 2 to 4 keep the move-or-remove text. `named-cause.ts` 89 matches that class 1 text and changes with it.\n\n## 4. footnote — readers, and whether D1 and D2 change each one correctly\n\n`DEFAULT_TEST_ROOTS` (`policy.ts` 67-77) feeds `defaultTestBoundaryPolicy` at 178 and the empty-list fallback at 162. These production readers inherit D1:\n\n- `class-checks/evaluate.ts` 360, 390, and 434, then `isExempt` 541-544, the loop skip 1003, the class 4 filter 1053, and `isStoryProductPath` 559. D1 clears class 1 and also skips class 2 and class 3. Only the class 1 half matches the pain. Finding 1.\n- `scope-provenance/base-fence.ts` 91-96, 121, and 410, and `extra-path-admission.ts` 116 and 154. D1 changes `src/ui/A.test.tsx` from production to test. Incorrect for an undeclared add. Finding 1.\n- `scope-provenance/evaluate.ts` loads the same policy and passes those roots into that classifier. Same refuse.\n- `policy/write-fence-budget.ts` loads roots through `loadTestBoundaryPolicy` and uses the same classifier. Same refuse. `changeKind` add is 293.\n- `presentation-ceiling/evaluate.ts` 1140 intersects code defaults with base roots, and 1182-1184 exempts a path only when it is also markup or css (`isBuiltinPresentationPath` 105). A `.test.tsx` is unchanged. Harmless, and D6 does not need a ceiling assertion.\n\n`isRecognizedTestBasename` (`test-boundary/evaluate.ts` 192-212) is read at `class-checks/evaluate.ts` 644 and 1007, `test-boundary/evaluate.ts` 239 and 373, and `policy/small-change-lane.ts` 296. D2 adds `.mjs`, `.cjs`, `.mts`, and `.cts` for `.test.` and `.spec.`. With D1 those paths are already exempt, so D2 does not change default-policy class 1. Without D1, D2 is what makes a content-quiet `.test.mjs` a class 1 name, which is the right name rule, and the suffix exception in finding 1 then clears it. `.test.ts` is already a small-change lane test via the basename. D2 adding `.test.mjs` there is correct.\n\n`DEFAULT_TEST_FILE_PATTERNS` (`policy.ts` 43-57) feeds the same class 1 and `verify:test-boundary` name checks through `matchesTestFilePattern`. `forward-coverage/correspondence.ts` 15-39 and 86-105 does not start treating `.test.mjs` as a test. `isTestFile` asks only for suffixes whose final extension is `.js`, plus a hardcoded `.ts` / `.tsx` list, and `SOURCE_EXTENSIONS` has no `.mjs`. P1 does not depend on that. `defaultTestBoundaryPolicy` is the bundle both lists travel in. It has the same effects as the two lists.\n\n`verify:test-boundary` (`test-boundary/evaluate.ts` 378-390) stays warn-only on defaults (`content/contracts/test-boundary.md` 5 and 10). After the class-1-only change it still warns on `src/**/*.test.ts`, and class 1 does not fail. That split is acceptable. Agreeing with the two gates by widening the shared roots is the change finding 1 rejects.\n\n## 5. footnote — extension set, Python, and the one-PR shape\n\nThe suffix set for the class 1 exception is `.test.` and `.spec.` on `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, and `cts`, plus the existing `*_test.go`. The consumer's failing names are `.test.tsx`, `.test.ts`, and `.test.mjs`. `matchPolicyGlob` translates `*` to `[^/]*` (`test-boundary/evaluate.ts` 106), so one pattern `**/*.test.*` also matches `notes.test.md` and `schema.test.json`. Separate suffixes, checked with `endsWith` as the basename function already does, keep the match on the code extension.\n\nPython `test_*.py` and C# `*Tests.cs` stay out of that exception. `isRecognizedTestBasename` 196-198 already returns true for them, so class 1 keeps failing `src/test_helpers.py`. Promoting `**/test_*.py` to a test root would exempt production helpers with that prefix. Go is already a default test root anywhere because `*_test.go` is the form D1 was copying. D3 is the right exclusion.\n\nOne PR fits class 4. `DEFAULT_PROTECTED_GLOBS` includes `packages/core/src/class-checks/**` and `packages/core/src/test-boundary/**` (`class-checks/policy.ts` 35-36). `isStoryProductPath` 568, 577, and 581-582 already excludes `content/`, `named-cause.ts`, `.test.ts`, and `.test.tsx`. A protected hit with no story-product path is allowed (`class-checks/evaluate.ts` 1104-1106). The class-1-only change touches those same protected files, the named-cause companion, docs under `content/`, and `*.test.ts`. A new `*.test.mjs` under `packages/core/src` is story product. The endsWith companion list does not include `.mjs`, and without D1 the test-root exemption does not save it.\n\n## Road not taken\n\nThe rejected mechanism is D1: one shared test-root list so class 1, the fence, the write fence, and the ceiling all call `src/ui/A.test.tsx` a test path, matching `packages/*/src` today.\n\nThe strong case for it is one definition, so the gates cannot drift, and framework stories already live with a hard refuse on a new undeclared `packages/*/src/**/*.test.ts`. What would flip this verdict is evidence that the consumer pre-PR runs are story-fenced and that requiring the new test to be named on the merge-base brief is the control the pain wants. The cited failure is class 1 on an add, and the recorded operator direction is to recognise the layout. The fence refuse is a brief-shaped gate on top of that.\n\nThis change touches what a fail-closed gate admits under a production root. The findings above are that authority question. It does not change prompts, identity, or worktree concurrency.\n\n",
+          "id": 7087338755,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087338755",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:08:00Z",
+          "updated_at": "2026-11-22T23:08:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7087132504 (round 1: 3 of 3 siblings posted, comments 7087275055, 7087275307, 7087338755; panel-deposit 7087139007)\n\n## In plain English\nProblem: class 1 of `verify:class-checks` fails closed on a test file under a production root. A consumer repo keeps its Vitest files next to the source under `src/`, so every change that adds or edits a test fails pre-PR. Directive exempts the same layout under its own `packages/*/src`. The failure text says there is no approve, skip or phrase and does not mention the merge-base test-boundary policy (#6668).\n\nWhat the panel found: all three seats agree co-located JS/TS tests should pass. The Stop 1 mechanism (D1: add `**/*.test.<ext>` and `**/*.spec.<ext>` to the shared default test roots) does not bind. The Grok seat showed that the shared roots also feed the scope fence and the write fence, where an undeclared new test-root path is hard-refused while an undeclared production path spends the allowance; so D1 would turn the issue's own new test file into a hard refuse on fenced stories. The Codex seat showed that a test root is exempt before classes 2, 3 and 4 run, so D1 would also stop the infra identity scan on test-named files. Two seats showed that once a test-named file passes, a production module can import it and nothing catches the import. All three found the D4 example (`testRoots: [\"src/**/*.test.ts\"]`) unsafe, because an authored list replaces every default root.\n\nSolution this lean proposes: change class 1 only. A file whose name ends in `.test.` or `.spec.` plus a JS/TS extension, or in `_test.go`, is a co-located test and is not a class 1 finding, wherever it sits. It is not made a test root, so classes 2 to 4, the scope and write fences, the small-change lane, forward-coverage and `verify:test-boundary` see the path exactly as today. Class 2 gains one added-line rule: a production file that imports a co-located test module is a finding. The class 1 message names the merge-base policy route correctly.\n\nWhat this adds: one name predicate, one class 2 import rule, a class 1 remediation text.\n\nWhat it removes: class 1 failures on conventionally named co-located tests, and the \"no approve, skip or phrase\" text on class 1.\n\nWhat it does not do:\n- It does not change `DEFAULT_TEST_ROOTS`, `DEFAULT_TEST_FILE_PATTERNS`, `isRecognizedTestBasename` or `FRAMEWORK_SELF_ALLOW`. A new co-located test that a story's `file_scope` does not name still spends the production allowance, as today.\n- Helpers, setup files and mocks whose names do not say test (for example `src/test/setup.ts` with `vi.mock(`) still fail class 1; the remediation names the narrow `allow` route for them.\n- A test-named JS/TS file under `infra/**`, `Tools/**` or `cmd/**` passes class 1, as `*_test.go` already does anywhere; class 3 still scans it.\n- `verify:test-boundary` (warn by default) keeps reporting co-located tests under `src/**`; the #3145 contract is unchanged.\n- Python and C# test names under a source root still fail class 1.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none.\n\nTarget-digest: sha256:af3ac3827d6c01052be40276bd73475ccf60a1888c6f833df935e6fd82bd67d3\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Co-located name. `packages/core/src/test-boundary/evaluate.ts` exports one predicate, true when the basename ends in `.test.<ext>` or `.spec.<ext>` with `<ext>` one of `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (case-insensitive), or ends in `_test.go`.\n2. Class 1. In `class-checks/evaluate.ts`, a changed path for which that predicate is true is never a `test-under-source-root` finding, by name or by content. `isExempt` and the test roots are unchanged, so the path still goes through class 2 (skipped there as a test file, below), class 3 and class 4 as today.\n3. Class 2 test-file skip. Class 2's skip for test-named files also uses that predicate, so a co-located `.test.mjs` is not scanned as production.\n4. Class 2 import rule. In a file that class 2 scans (non-test, under a source root or deploy-shaped), an added line whose module specifier in `import … from`, `export … from`, bare `import`, `import(` or `require(` has a last path segment matching `<name>.test` or `<name>.spec`, optionally followed by one of the item 1 extensions, is a `production-references-test-root` finding naming the specifier and line. Added lines only (#7077); no module resolution.\n5. Class 1 remediation. The class 1 finding's remediation says: move the path under a test root, or declare it in the merge-base test-boundary policy (`.deft/test-boundary.policy.json` when that file exists on the merge base, else `plan.policy.testBoundary` in `xbrief/PROJECT-DEFINITION.xbrief.json`), preferably as a narrow `allow` entry with a reason; an authored `testRoots` list replaces every default root and must repeat the ones still needed; the policy is read from the merge base, so the policy change lands in an earlier PR. Classes 2 to 4 keep \"move or remove\". `check/named-cause.ts` 89 is reworded so it reads correctly for every class.\n6. Docs. `content/docs/test-boundary.md` states the class 1 co-located exception, the class 2 import rule, and that `verify:test-boundary` still reports co-located tests under source roots (warn by default).\n7. One PR. Files: `packages/core/src/class-checks/evaluate.ts` and its test, `packages/core/src/test-boundary/evaluate.ts` and its test, `packages/core/src/check/named-cause.ts`, `content/docs/test-boundary.md`, one `changelog.d/` fragment. No new `.test.mjs` or other non-`.ts` test file under `packages/core/src`. No change to shared default lists, no new verb, flag, policy field or gate step.\n\n## Acceptance Criteria\n- Given default policy, when the change adds `src/ui/A.plan-wide.test.tsx` and edits `src/ui/B.test.ts`, each with describe/it/expect content, then `verify:class-checks` reports no class 1 finding.\n- Given default policy, when the change adds `src/shared/c.test.mjs` with suite content that names `tests/fixtures/x.json`, then there is no class 1 or class 2 finding.\n- Given default policy, when the change adds `src/helpers/smoke.ts` with describe/it/expect content, then class 1 reports `test-under-source-root` with the item 5 remediation.\n- Given default policy, when the change adds `src/test_helpers.py` or `infra/scripts/test_release.py`, then class 1 still reports it.\n- Given default policy, when the change adds `infra/smoke/prod-health.spec.ts` that binds a test-marker identity, then class 1 does not report it and class 3 does.\n- Given default policy, when `src/payments/index.ts` gains `import { Fake } from \"./fakeGateway.test\"` (or `require(\"./x.spec.js\")`, or `import(\"./y.test.mjs\")`), then class 2 reports `production-references-test-root` naming the specifier and line; an unchanged existing import line is not reported.\n- Given a merge-base `.deft/test-boundary.policy.json`, when class 1 fires, then the remediation names that file, not `plan.policy.testBoundary`.\n- Given Directive's own `packages/core/src/x/y.test.ts`, then results are unchanged.\n- Given the scope fence and write fence on default policy, then `src/ui/A.test.tsx` still classes as a production path (no change to `classifyExtraPath`).\n\n## Reject\n- Adding co-located patterns to `DEFAULT_TEST_ROOTS` (comment 7087338755 finding 1; comment 7087275307 finding 1).\n- Making co-located tests exempt from classes 2 to 4 (comment 7087275307 finding 1).\n- A remediation example that authors a narrow `testRoots` list, or names only `plan.policy.testBoundary` (comment 7087275055 finding 1; comment 7087275307 finding 4; comment 7087338755 finding 3).\n- Additive co-location on authored `testRoots`; an import resolver; a new verb, flag, policy field or waiver step.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7087275055 | 1. D4 remediation example replaces every default root and weakens class 2 | sharpens-framing | accept-into-contract (item 5; policy-file AC) |\n| comment 7087275055 | 2. A test-named file under `src/` can hold code that production imports | sharpens-framing | accept-into-contract (item 4; import AC) |\n| comment 7087275055 | 3. `**/` breadth exempts test-named files under `infra/**`, `Tools/**`, `cmd/**` | sharpens-framing | accept-into-contract (decision stated under \"What it does not do\"; class 3 still runs because nothing becomes a test root; infra AC) |\n| comment 7087275055 | 4. Reader inventory incomplete; P1 only partly closed | sharpens-framing | accept-into-contract (shared lists unchanged, so no reader outside class-checks changes; P1 stated for test-named files; helper route in item 5; fence AC) |\n| comment 7087275055 | 5. One PR only if the diff stays inside the protected set | footnote | accept-into-contract (item 7) |\n| comment 7087275055 | 6. Reuse the existing extension regex | footnote | accept-into-contract (item 1 predicate in protected `test-boundary/evaluate.ts`; no edit to `release/build-dist.ts`, which would mix class 4) |\n| comment 7087275055 | 7. D1 narrows Directive's own rule | footnote | noted; package roots unchanged; snapshot files out of scope |\n| comment 7087275307 | 1. D1 changes classes 3 and 4 | blocks-the-design | accept-into-contract (item 2: exception, not exemption; infra AC) |\n| comment 7087275307 | 2. A production import can make the admitted test code ship | blocks-the-design | accept-into-contract (item 4, a bounded production-reference control) |\n| comment 7087275307 | 3. Shared-root reader effects are neither uniform nor all permissive | sharpens-framing | accept-into-contract (shared roots unchanged; effects limited to class-checks; fence AC) |\n| comment 7087275307 | 4. D4 should keep replacement semantics and name the effective policy source | sharpens-framing | accept-into-contract (item 5) |\n| comment 7087275307 | 5. D1 removes existing package exemptions | sharpens-framing | accept-into-contract (package roots unchanged; Directive AC) |\n| comment 7087275307 | 6. D7 fits one PR | footnote | accept-into-contract (item 7) |\n| comment 7087275307 | 7. Test-reader inventory and trust handling | footnote | noted; no change |\n| comment 7087338755 | 1. D1 turns the repro's new file into a hard refuse | blocks-the-design | accept-into-contract (items 1-2 change class 1 only; fence AC) |\n| comment 7087338755 | 2. Production import still ships; test-root exemption skips class 3 | sharpens-framing | accept-into-contract (item 2 keeps class 3; item 4 adds the import rule asked for by 7087275055 finding 2 and 7087275307 finding 2 in place of a recorded residual) |\n| comment 7087338755 | 3. Replace rule is the right opt-out; the example list is not | sharpens-framing | accept-into-contract (item 5) |\n| comment 7087338755 | 4. Readers and whether D1/D2 change each one | footnote | accept-into-contract (shared lists unchanged; `verify:test-boundary` split stated) |\n| comment 7087338755 | 5. Extension set, Python, one-PR shape | footnote | accept-into-contract (items 1 and 7; Python and C# stay out) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the D1-D7 mechanism and this lean. This lean drops D1 on the evidence of comment 7087338755 finding 1, which the parent re-read at the dispatch SHA (`scope-provenance/extra-path-admission.ts` 105-118 and 149-205: an undeclared production path spends the allowance, an undeclared test-class path is admitted only on a modify; `policy/write-fence-budget.ts` 285-305: a path absent on the base is an `add`). The Claude seat (7087275055) and the Codex seat (7087275307) preferred shared roots in their road-not-taken and assessment text, not as classified findings; neither addressed the add refuse. The parent also re-read `class-checks/evaluate.ts` 1000-1047 (exempt `continue` before classes 1 to 3) and 636-690 (class 2 skip and needles). The `relieves` cites stay open until a later critic targets them. This lean adds no premise beyond those re-reads, so it records no audit marker.\n\n",
+          "id": 7087350365,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087350365",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:08:53Z",
+          "updated_at": "2026-11-22T23:08:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:cc22ca21626e73f521007483df7bdd1fb8637ec19e83846d1a266e035acad231\n\n## In plain English\n\nThe proposed fix relieves both recorded pains. Conventionally named consumer tests stop failing class 1, including `.test.mjs`, without becoming exempt from infrastructure checks. The failure message also exposes the existing policy route. Its description of the policy revision needs a factual wording correction.\n\nI found no mechanism blocker. This verdict covers the stated test-file repro, not an unconditional promise that every change containing tests passes every gate. Verification was pinned code reading at `d491f88e98ba45bd8384ba873ccc4a1945f747d3`; no tests, writes or posts were performed.\n\npain-P1: holds - Items 1–3 remove the class 1 rejection and skip class 2 for all named repro tests. Ordinary `src/ui/` and `src/shared/` test-only changes trigger neither class 3 nor class 4. Unchanged shared lists do not create another default-policy refusal merely because those files are co-located.\n\npain-P2: holds - Item 5 replaces the misleading move-or-remove-only message with the effective policy-file precedence, narrow allow route and list-replacement warning. “Merge-base policy” should say policy at the selected base ref; that correction does not require changing the mechanism.\n\n### 1. footnote — Policy loading uses the selected base ref, not the computed merge base\n\nEvidence: `packages/core/src/class-checks/evaluate.ts:325–329` reads the supplied ref directly with `git show`. Lines 421–428 load the policy file, then PROJECT-DEFINITION, at that ref. Lines 917–918 retain the candidate merge base separately, but line 934 passes `baseRef` to the policy loader.\n\nIf the target branch gains a policy after the candidate branched, class checks can already read that newer policy even though it is absent from the candidate’s merge base. Item 5’s wording describes the wrong revision in that situation.\n\nDisposition: correct the explanatory wording to “policy at the selected base ref,” retaining the earlier-PR advice and existing precedence. Do not change the loader merely to make the wording true.\n\n### 2. footnote — Item 4 requires actual module specifiers, not substring matching\n\nEvidence: `packages/core/src/class-checks/evaluate.ts:667–700` currently filters added lines and applies raw-text root needles. That machinery does not identify module specifiers.\n\nUnder item 4 as written, `// import \"./x.test\"` and `const example = 'import \"./x.test\"'` must not trigger the new rule; neither may `readFile(\"./x.test\")`. Conversely, a multiline import whose added specifier line is `} from \"./x.test\";` must be recognized using surrounding syntax. A regex applied independently to added lines can violate either side.\n\nDisposition: preserve the bound’s existing semantic requirement during implementation and verification. These are implementation cases for “module specifier,” not a request for module resolution or another gate. The unchanged root needles can still flag ordinary production text containing `tests/fixtures/`; item 4 does not promise to remove that existing behavior.\n\n### 3. footnote — Passing the repro does not exempt mixed changes from existing controls\n\nEvidence: `packages/core/src/class-checks/evaluate.ts:581–586` excludes `.test.ts` and `.test.tsx` from story product, but not `.test.mjs`. Lines 1051–1099 require both a protected hit and story product for class 4. Thus a test-only `.mjs` change passes, while adding `.githooks/pre-commit` to that change can still fail class 4. That is consistent with the bound’s explicit decision to retain class 4.\n\nThe other relevant readers do not invalidate relief: `test-boundary/evaluate.ts:436–439` keeps findings non-failing in warn mode; `forward-coverage/correspondence.ts:15,86–105` excludes the TS test names and does not treat `.mjs` as source; `scope-provenance/extra-path-admission.ts:114–118,173–188` keeps these `src/` paths production-class and subject to the existing allowance.\n\nDisposition: retain those controls. The acceptance assertions can be satisfied without widening shared roots or promising immunity from unrelated protected-file, scope-budget or authored-enforcement failures.",
+          "id": 7087395977,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087395977",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:12:14Z",
+          "updated_at": "2026-11-22T23:12:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7087395977; bind map stays successor lean 7087350365)\n\nThe audit has three footnote findings (`finding-classes: footnote`), `harvest-changed: false`, and its harvest digest equals the lean's (sha256:cc22ca21626e73f521007483df7bdd1fb8637ec19e83846d1a266e035acad231). It found `pain-P1` and `pain-P2` hold. The Bound remedy is unchanged.\n\n- Footnote 1 (class checks read the policy at the selected base ref, not the computed merge base): noted for the build; item 5's message says \"the base ref\" in place of \"the merge base\". No mechanism change.\n- Footnote 2 (item 4 must match real module specifiers, including a multi-line `} from \"./x.test\";`, and not comments, strings or `readFile` paths): noted as implementation and test cases for the item 4 module-specifier rule. No mechanism change.\n- Footnote 3 (mixed changes still meet class 4, the scope allowance and authored enforcement): consistent with the lean's \"What it does not do\". No change.\n\n",
+          "id": 7087402554,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087402554",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:12:44Z",
+          "updated_at": "2026-11-22T23:12:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7087350365. Dispatch SHA: d491f88e98ba45bd8384ba873ccc4a1945f747d3. Non-self-arbitration: the parent wrote the Stop 1 write-back, the D1-D7 mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`) or what it rests on. No tests were run. Round 1 had three seats from three families (Claude, Codex, Grok); the pain audit was Codex.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Class 1 reports a test-named or suite-content file under a source root unless it is under a test root or allow-listed; `src/**` is a default source root and co-located tests are default test roots only under `packages/*/src/**` | verified | parent read of `class-checks/evaluate.ts` 1000-1036 and `test-boundary/policy.ts` 59-78; all three round-1 seats |\n| 2 | A test-root path is skipped before classes 1, 2 and 3 run, so adding co-located patterns to the default roots would also stop class 3 on those files | verified | parent read of `class-checks/evaluate.ts` 541-544 and 1000-1047; critic 7087275307 finding 1 |\n| 3 | The scope fence and write fence class a default-root test path as test, admitted only on a modify of a base path, while an undeclared production path spends the allowance; so shared roots would hard-refuse an undeclared new co-located test | verified | parent read of `scope-provenance/extra-path-admission.ts` 105-118 and 149-205 and `policy/write-fence-budget.ts` 285-305; critic 7087338755 finding 1 |\n| 4 | Class 2 skips test-named files and builds needles from root prefixes, so it does not see a production import of `./x.test` | verified | parent read of `class-checks/evaluate.ts` 601-602 and 636-690; critics 7087275055 finding 2, 7087275307 finding 2 |\n| 5 | Class checks load `.deft/test-boundary.policy.json` before `plan.policy.testBoundary`, at the base ref, and an authored non-empty `testRoots` replaces the defaults | verified | parent read of `class-checks/evaluate.ts` 336-438 and `test-boundary/policy.ts` 161-164; audit 7087395977 footnote 1 |\n| 6 | No production file under `packages/*/src` imports a `.test`/`.spec` module today | verified | parent `git grep` at the pin |\n| 7 | The Bound remedy relieves pains P1 and P2 | verified as design coverage | audit 7087395977 (`pain-P1` and `pain-P2` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 8 | The class 1 exception, class 2 import rule and remediation text behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7087405020,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087405020",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:12:56Z",
+          "updated_at": "2026-11-22T23:12:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: class 1 of `verify:class-checks` failed closed on test files under a production root, so a consumer repo that keeps its Vitest files next to the source under `src/` could not pass pre-PR for any change that added or edited a test, while Directive exempts the same layout under its own `packages/*/src`. The failure text said there was no approve, skip or phrase and did not mention the base-ref test-boundary policy (#6668).\n\nAccepted solution: class 1 only changes. A file whose name ends in `.test.` or `.spec.` plus a JS/TS extension (`ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts`), or in `_test.go`, is a co-located test and is never a class 1 finding; it is not made a test root, so classes 2 to 4 and every other gate see the path as before. Class 2 skips those files as tests and gains one added-line rule: a production file that imports a `.test`/`.spec` module is a finding. The class 1 message names the policy route: move the file, or declare it in the base-ref policy (`.deft/test-boundary.policy.json` first, else `plan.policy.testBoundary`), preferably as a narrow `allow` entry, noting that an authored `testRoots` list replaces every default.\n\nLimits accepted: the shared default lists are unchanged, so an undeclared new co-located test still spends the scope allowance as today; helpers and setup files whose names do not say test still fail class 1 and use the `allow` route; test-named JS/TS files under `infra/**` pass class 1 (class 3 still scans them); `verify:test-boundary` keeps warning on co-located tests; Python and C# names still fail. It was checked by reading the source at the pinned commit; no tests were run. One PR; no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7087350365.\nverified-claims table 7087405020\n\nConfirm conjunct: yolo standing (Stop 1 7087132504, `yolo-standing: on`) on the launch of this arc. Round-1 critics: comments 7087275055 (Claude), 7087275307 (Codex), 7087338755 (Grok), posted by the parent verbatim as disclosed on panel-deposit 7087139007. Pain audit: comment 7087395977 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's), reserved Dual-stop slot; follow-through: comment 7087402554. Spend N≥3 was resolved by `deft design-critique:spend-resolve` from the parent recommend, as Stop 1 records. Critic posts used: 3 of 3 plus the reserved pain-audit slot.\n\n",
+          "id": 7087407006,
+          "html_url": "https://github.com/deftai/directive/issues/6668#issuecomment-7087407006",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:13:05Z",
+          "updated_at": "2026-11-22T23:13:05Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`verify:class-checks` (run by the pre-PR controller's `lint_iteration` gate step) rejects every new or edited test file under `src/` as `test-under-source-root` (class 1). It has no approve, skip, or phrase. Repos that keep tests next to their source cannot pass pre-PR for any change that adds or edits a test.\n\n## Repro\n\n- Consumer: deftai/deftvisage (runtime pin `@deftai/directive-runtime` 0.129.13, launcher 0.129.14). 506 Vitest files live beside their source under `src/` (`src/ui/*.test.tsx`, `src/shared/*.test.mjs`); `tests/` holds only fixtures.\n- Branch adds `src/ui/InterviewAgent.plan-wide.test.tsx` and edits `src/ui/LaunchSessionPanel.test.ts`.\n- `deft verify:class-checks` →\n\n```\nsrc/ui/InterviewAgent.plan-wide.test.tsx\n  kind: test-under-source-root\n  detail: test-only artifact under a non-test root (class 1)\n  remediation: Move or remove the path. Class checks have no approve, skip, or phrase.\n```\n\nThe pre-PR run (`ppr_65e6a8daf4732085`) cannot pass `lint_iteration`, so the agent cannot complete pre-PR and must not push (AGENTS.md four-focus rule).\n\n## Expected\n\nCo-located tests are a supported layout (Vitest/Jest default). The class check should honour the project's test roots (e.g. treat `**/*.test.*` / `**/*.spec.*` as test artifacts wherever they live, or read `testRoots` / the test runner config), or offer a project-level policy to declare co-located tests.\n\n## Workaround in use\n\nOperator waived this check for co-located tests in deftai/deftvisage and recorded a decision; all other pre-PR steps still run.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6471933784,
+        "origin": "deftai/directive#6668",
+        "id": "github.issue.6471933784"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "af3ac3827d6c01052be40276bd73475ccf60a1888c6f833df935e6fd82bd67d3"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6668,
+        "leanCommentId": 7087350365,
+        "harvestDigest": "cc22ca21626e73f521007483df7bdd1fb8637ec19e83846d1a266e035acad231",
+        "slice": null
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "packages/core/src/test-boundary/evaluate.ts",
+          "packages/core/src/test-boundary/evaluate.test.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "content/docs/test-boundary.md",
+          "changelog.d/6668-class-checks-co-located-tests.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6471933784.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/class-checks/evaluate.test.ts packages/core/src/test-boundary/evaluate.test.ts packages/core/src/check/named-cause.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "test-boundary/evaluate.ts exports one named co-located test-name predicate (.test./.spec. plus ts, tsx, js, jsx, mjs, cjs, mts, cts, case-insensitive, or _test.go)",
+          "class 1 never reports test-under-source-root for a path that predicate matches; isExempt and the test roots are unchanged, so classes 2 to 4 still see the path",
+          "class 2 skips predicate-matching files as tests and reports production-references-test-root for an added production line that imports a .test/.spec module (import, export from, bare import, import(), require())",
+          "class 1 remediation names the merge-base policy route (.deft/test-boundary.policy.json, else plan.policy.testBoundary), prefers a narrow allow entry, and warns that an authored testRoots list replaces every default",
+          "check/named-cause.ts verify:class-checks line reads correctly for every class",
+          "content/docs/test-boundary.md states the class 1 exception, the class 2 import rule and that verify:test-boundary still reports co-located tests",
+          "one changelog fragment changelog.d/6668-class-checks-co-located-tests.md"
+        ],
+        "conflict_group": "class-checks",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 16 clauses are the 7 Bound remedy items and 9 Acceptance Criteria of the accepted arc lean 7087350365 on #6668 (synthesis 7087407006), harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      }
+    },
+    "id": "github.issue.6471933784",
+    "updated": "2026-11-22T23:21:26Z"
+  }
+}
