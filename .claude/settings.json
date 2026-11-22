@@ -63,7 +63,7 @@
         ]
       },
       {
-        "matcher": "Shell|Bash|BashTool|shell|bash|run_terminal_command|monitor",
+        "matcher": "Shell|Bash|BashTool|shell|bash|run_terminal_command|monitor|PowerShell|Monitor",
         "hooks": [
           {
             "type": "command",

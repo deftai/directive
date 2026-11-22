@@ -100,6 +100,8 @@ A shell command whose text names either flag file is refused unless one of the r
 
 Names built at run time (variables, `sed`, `base64`) are not detected: a known limit.
 
+These rules, the protected-store write rule and the commit-target gate run on every shell tool: `Bash`, Cursor's `Shell`, Codex `shell`, Grok's `run_terminal_command` and `monitor`, and Claude Code's `PowerShell` and `Monitor` (#6981). They read PowerShell text as shell text. PowerShell-only forms are tracked in #7050: file-writing cmdlets and their aliases, program runners, `-EncodedCommand`, backtick escapes, location control and script-block commits. After upgrading, run `directive install --repair` so each host's hook matcher names the new tools; until then existing deposits read as drifted.
+
 To edit a scratch file whose text names a flag, use the Edit or Write tool. Those tools check the target's name, not its contents; other write checks still apply. A shell refusal of this rule says so too.
 
 Related: `policy:allow-bot-merge`, `policy:allow-direct-commits`, and `policy:disable-directive` (peers) are settings under UAT and require a human grant.

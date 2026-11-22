@@ -37,6 +37,10 @@ export const SPAWN_TOOL_NAMES = [
  * `monitor` is Grok Build's second shell surface (#3987 audit): it executes an
  * arbitrary shell command in the background, so leaving it out reproduces the
  * `run_terminal_command` gap one tool over.
+ *
+ * `PowerShell` and `Monitor` are Claude Code's other two shell surfaces (#6981).
+ * The deposited matcher is a case-sensitive literal list, so `Monitor` needs its
+ * own spelling beside Grok's `monitor`. PowerShell-only forms are #7050.
  */
 export const SHELL_TOOL_NAMES = [
   "Shell",
@@ -46,6 +50,8 @@ export const SHELL_TOOL_NAMES = [
   "bash",
   "run_terminal_command",
   "monitor",
+  "PowerShell",
+  "Monitor",
 ] as const;
 
 /**
@@ -354,14 +360,15 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
       "ask_user_question hatch deny-class #5373.",
   },
   claude: {
-    mutation: { directWrite: [], shell: ["Bash"], spawn: [], kill: [] },
+    mutation: { directWrite: [], shell: ["Bash", "PowerShell", "Monitor"], spawn: [], kill: [] },
     nonMutation: {},
     unobservedReason:
-      "Only the shell spelling is established (`Bash`, re-derived from the deposits by the " +
-      "#3987 panel's completing seat 5471374558 F8). No PreToolUse payload for this host has " +
-      "been observed in this tree, so the direct-write and spawn spellings stay unclaimed " +
+      "Only the shell spellings are established (`Bash`, re-derived from the deposits by the " +
+      "#3987 panel's completing seat 5471374558 F8; `PowerShell` and `Monitor`, the host's " +
+      "other command-running tools, observed in #6981). No PreToolUse payload for this host " +
+      "has been observed in this tree, so the direct-write and spawn spellings stay unclaimed " +
       "rather than asserted from the deposit that is supposed to be under test.",
-    source: "Issue #3987 comment 5471374558 finding F8.",
+    source: "Issue #3987 comment 5471374558 finding F8; issue #6981 (PowerShell, Monitor).",
   },
   codex: {
     mutation: { directWrite: [], shell: ["shell", "Bash"], spawn: [], kill: [] },
