@@ -160,6 +160,18 @@ describe("release PR path (#6296 items 1 and 2)", () => {
     expect(printed).toContain(`task release -- --finish ${V}`);
   });
 
+  it("names the configured release repository in the merge next step (#6869 item 4)", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    const out = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const config = { ...prConfig(projectRoot), repo: "acme/project" };
+    expect(runPipeline(config, recording())).toBe(EXIT_OK);
+    const printed = out.mock.calls.map((c) => String(c[0])).join("");
+    expect(printed).toContain(
+      "`task pr:wait-mergeable-and-merge -- <N> --repo acme/project --wait`",
+    );
+  });
+
   it("reports a failed branch push or PR open as a violation", () => {
     for (const failing of ["push", "create"]) {
       const projectRoot = seedReleaseProjectDir();

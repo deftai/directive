@@ -6,7 +6,37 @@ import { prWatchHeartbeatAgentId } from "../pr-watch/main.js";
 import { hasActivePollingHeartbeat } from "../review-monitor/verify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_QUEUE_PENDING } from "./constants.js";
 import { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
+import type { OriginRepoSeam } from "./repo-from-origin.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
+
+/** Origin seam fed a raw remote string (#6869 item 5); `null` means no origin remote. */
+function originSeam(
+  url: string | null,
+  repoRead: { fork: boolean | null; error: string | null } = { fork: false, error: null },
+): { seam: OriginRepoSeam; gitReads: string[]; repoReads: string[] } {
+  const gitReads: string[] = [];
+  const repoReads: string[] = [];
+  return {
+    gitReads,
+    repoReads,
+    seam: {
+      readOriginRemote: (projectRoot) => {
+        gitReads.push(projectRoot);
+        return url === null
+          ? { url: null, error: "error: No such remote 'origin'" }
+          : { url, error: null };
+      },
+      readRepo: (repo) => {
+        repoReads.push(repo);
+        return repoRead;
+      },
+    },
+  };
+}
+
+const REPO_REQUIRED =
+  "Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin " +
+  "is a non-fork github.com repository); origin: ";
 
 function sleepMs(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -146,7 +176,10 @@ describe("runWaitMergeable", () => {
   it("main without repo exits two", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    expect(runWaitMergeable(["1370"])).toBe(EXIT_CONFIG_ERROR);
+    // #6869 item 5: drive the origin seam (no origin), never the checkout's own remote.
+    expect(runWaitMergeable(["1370"], { originRepoSeam: originSeam(null).seam })).toBe(
+      EXIT_CONFIG_ERROR,
+    );
     expect(stderr.mock.calls[0]?.[0]).toContain("--repo");
     stderr.mockRestore();
     stdout.mockRestore();
@@ -193,7 +226,9 @@ describe("runWaitMergeable", () => {
   it("cmdPrWaitMergeable delegates to runWaitMergeable", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    expect(cmdPrWaitMergeable(["1370"])).toBe(EXIT_CONFIG_ERROR);
+    expect(cmdPrWaitMergeable(["1370"], { originRepoSeam: originSeam(null).seam })).toBe(
+      EXIT_CONFIG_ERROR,
+    );
     stderr.mockRestore();
     stdout.mockRestore();
   });
@@ -313,6 +348,156 @@ describe("runWaitMergeable", () => {
     expect(hasActivePollingHeartbeat(root, 5020)).toBe(false);
     stdout.mockRestore();
     stderr.mockRestore();
+  });
+});
+
+describe("runWaitMergeable repo from origin (#6869)", () => {
+  let savedGhRepo: string | undefined;
+  let events: string[];
+
+  beforeEach(() => {
+    savedGhRepo = process.env.GH_REPO;
+    delete process.env.GH_REPO;
+    events = [];
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+      events.push(`stderr:${String(chunk)}`);
+      return true;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (savedGhRepo === undefined) {
+      delete process.env.GH_REPO;
+    } else {
+      process.env.GH_REPO = savedGhRepo;
+    }
+  });
+
+  /** Merge-path seams that record each call, in order, with the repository they got. */
+  function mergePath(): Parameters<typeof runWaitMergeable>[1] {
+    return {
+      protectedFn: (_pr, repo) => {
+        events.push(`protected:${repo}`);
+        return [0, "", ""];
+      },
+      monitorFn: (_pr, repo) => {
+        events.push(`monitor:${repo}`);
+        return [0, JSON.stringify(cleanMonitorPayload(6869), null, 2), ""];
+      },
+      mergeFn: (_pr, repo) => {
+        events.push(`merge:${repo}`);
+        return [0, "merged: squash", ""];
+      },
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
+    };
+  }
+
+  function root(): string {
+    return mkdtempSync(join(tmpdir(), "pr-wait-6869-"));
+  }
+
+  function mergePathEvents(): string[] {
+    return events.filter((e) => !e.startsWith("stderr:"));
+  }
+
+  for (const url of ["https://github.com/acme/project.git", "git@github.com:acme/project.git"]) {
+    it(`infers acme/project from a non-fork origin ${url} and says so first (AC 1)`, () => {
+      const projectRoot = root();
+      const origin = originSeam(url);
+      const code = runWaitMergeable(["6869", "--project-root", projectRoot, "--json"], {
+        ...mergePath(),
+        originRepoSeam: origin.seam,
+      });
+      expect(code).toBe(EXIT_MERGED);
+      expect(origin.gitReads).toEqual([projectRoot]);
+      expect(origin.repoReads).toEqual(["acme/project"]);
+      expect(events[0]).toBe("stderr:pr_wait_mergeable: repo=acme/project (from origin)\n");
+      const merges = mergePathEvents();
+      expect(merges.length).toBeGreaterThan(0);
+      expect(merges.every((e) => e.endsWith(":acme/project"))).toBe(true);
+      expect(merges).toContain("merge:acme/project");
+    });
+  }
+
+  it("uses --repo or GH_REPO without reading origin or printing the inference line (AC 2)", () => {
+    for (const setup of ["flag", "env"] as const) {
+      events.length = 0;
+      const origin = originSeam("https://github.com/acme/project.git");
+      const argv = ["6869", "--project-root", root(), "--json"];
+      if (setup === "flag") argv.push("--repo", "given/repo");
+      else process.env.GH_REPO = "given/repo";
+      const code = runWaitMergeable(argv, { ...mergePath(), originRepoSeam: origin.seam });
+      delete process.env.GH_REPO;
+      expect(code).toBe(EXIT_MERGED);
+      expect(origin.gitReads).toEqual([]);
+      expect(origin.repoReads).toEqual([]);
+      expect(events.some((e) => e.includes("(from origin)"))).toBe(false);
+      expect(mergePathEvents()).toContain("merge:given/repo");
+    }
+  });
+
+  it("refuses an origin that is not a github.com <owner>/<name> URL with no GitHub call (AC 3)", () => {
+    for (const url of [
+      "acme/project.git",
+      "../project",
+      "C:/src/project",
+      "/srv/git/project.git",
+      "https://gitlab.com/acme/project.git",
+      "https://github.com/acme/project/extra",
+    ]) {
+      events.length = 0;
+      const origin = originSeam(url);
+      const code = runWaitMergeable(["6869", "--project-root", root()], {
+        ...mergePath(),
+        originRepoSeam: origin.seam,
+      });
+      expect(code).toBe(EXIT_CONFIG_ERROR);
+      expect(origin.repoReads).toEqual([]);
+      expect(mergePathEvents()).toEqual([]);
+      expect(events).toEqual([
+        `stderr:${REPO_REQUIRED}origin URL ${JSON.stringify(url)} is not a github.com <owner>/<name> URL\n`,
+      ]);
+    }
+  });
+
+  it("refuses a fork origin or a failed repository read, naming the repository (AC 4)", () => {
+    const cases = [
+      { read: { fork: true, error: null }, reason: "acme/project is a fork" },
+      {
+        read: { fork: null, error: "gh api repos/acme/project failed: HTTP 404" },
+        reason: "cannot read repository acme/project (gh api repos/acme/project failed: HTTP 404)",
+      },
+    ];
+    for (const { read, reason } of cases) {
+      events.length = 0;
+      const origin = originSeam("https://github.com/acme/project.git", read);
+      const code = runWaitMergeable(["6869", "--project-root", root()], {
+        ...mergePath(),
+        originRepoSeam: origin.seam,
+      });
+      expect(code).toBe(EXIT_CONFIG_ERROR);
+      expect(origin.repoReads).toEqual(["acme/project"]);
+      expect(mergePathEvents()).toEqual([]);
+      expect(events).toEqual([`stderr:${REPO_REQUIRED}${reason}\n`]);
+    }
+  });
+
+  it("refuses when there is no origin remote (AC 5)", () => {
+    const origin = originSeam(null);
+    const code = runWaitMergeable(["6869", "--project-root", root()], {
+      ...mergePath(),
+      originRepoSeam: origin.seam,
+    });
+    expect(code).toBe(EXIT_CONFIG_ERROR);
+    expect(origin.repoReads).toEqual([]);
+    expect(mergePathEvents()).toEqual([]);
+    expect(events).toEqual([
+      `stderr:${REPO_REQUIRED}cannot read the origin remote (error: No such remote 'origin')\n`,
+    ]);
   });
 });
 

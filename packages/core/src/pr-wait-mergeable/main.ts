@@ -12,6 +12,12 @@ import {
   EXIT_QUEUE_PENDING,
   EXIT_TIMEOUT_OR_ESCALATION,
 } from "./constants.js";
+import {
+  formatInferredRepoLine,
+  formatRepoRequiredError,
+  inferRepoFromOrigin,
+  type OriginRepoSeam,
+} from "./repo-from-origin.js";
 import { toResultDict } from "./result.js";
 
 /** Match Python json.dumps(..., indent=2) default ensure_ascii=True. */
@@ -223,6 +229,15 @@ export interface RunWaitMergeableOptions {
    * Defaults to {@link WAIT_HEARTBEAT_REFRESH_SECONDS}; injectable for tests.
    */
   readonly heartbeatRefreshSeconds?: number;
+  /**
+   * `origin` git read and REST repository read used when neither `--repo` nor
+   * `GH_REPO` is set (#6869 item 2). Live default otherwise.
+   */
+  readonly originRepoSeam?: OriginRepoSeam;
+}
+
+function nonEmpty(value: string | null | undefined): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 export function runWaitMergeable(
@@ -235,10 +250,17 @@ export function runWaitMergeable(
     return EXIT_CONFIG_ERROR;
   }
 
-  const repo = args.repo ?? process.env.GH_REPO ?? null;
-  if (repo === null || repo.length === 0) {
-    process.stderr.write("Error: --repo OWNER/REPO is required (or set $GH_REPO).\n");
-    return EXIT_CONFIG_ERROR;
+  // #6869 item 1: project root first, then --repo, then GH_REPO, then origin.
+  const projectRoot = args.projectRoot ?? process.cwd();
+  let repo = nonEmpty(args.repo) ?? nonEmpty(process.env.GH_REPO);
+  if (repo === null) {
+    const inferred = inferRepoFromOrigin(projectRoot, options.originRepoSeam);
+    if (inferred.repo === null) {
+      process.stderr.write(formatRepoRequiredError(inferred.reason));
+      return EXIT_CONFIG_ERROR;
+    }
+    repo = inferred.repo;
+    process.stderr.write(formatInferredRepoLine(repo));
   }
 
   let protectedIssues: number[];
@@ -250,7 +272,6 @@ export function runWaitMergeable(
     return EXIT_CONFIG_ERROR;
   }
 
-  const projectRoot = args.projectRoot ?? process.cwd();
   const prNumber = args.prNumber as number;
   const hbSink = (line: string): void => {
     process.stderr.write(line.replace(/^pr_watch:/, "pr_wait_mergeable:"));
