@@ -555,17 +555,18 @@ describe("cohort lifecycle: one closer run, one lifecycle PR (#7082 clauses 2, 4
 });
 
 describe("swarm:finalize-cohort --cohort argv (#7082)", () => {
-  it("parses --cohort and --cohort= into the closer list", () => {
+  it("parses repeatable --cohort values into the closer list", () => {
     const parsed = parseFinalizeCohortArgv([
       "--pr",
       "102,103",
       "--cohort",
       "7101,7102",
-      "--cohort=7103",
+      "--cohort",
+      "7103",
     ]);
     expect(parsed.error).toBeNull();
     expect(parsed.cohortStories).toEqual(["7101,7102", "7103"]);
-    expect(parseFinalizeCohortArgv(["--cohort="]).error).toContain("--cohort=");
+    expect(parseFinalizeCohortArgv(["--cohort"]).error).toContain("--cohort");
     expect(parseFinalizeCohortArgv(["--pr", "1"]).cohortStories).toBeUndefined();
   });
 });

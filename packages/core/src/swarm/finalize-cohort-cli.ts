@@ -116,13 +116,6 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
         cohortStories.push(value);
         i += 1;
       }
-    } else if (arg?.startsWith("--cohort=")) {
-      const value = equalsValue(arg, "--cohort");
-      if (value.length === 0) {
-        reject(arg);
-      } else {
-        cohortStories.push(value);
-      }
     } else if (arg === "--repo") {
       const value = takeValue(arg, next);
       if (value !== null) {
