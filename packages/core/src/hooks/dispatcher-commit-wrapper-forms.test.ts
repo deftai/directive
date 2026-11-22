@@ -63,12 +63,25 @@ describe("the commit gate denies commit signals outside the named shapes (#6362 
     "(cd /x && git commit -m x)",
     "cd /y && (cd /x && git commit -m x)",
     "bash -c 'git commit -m x'",
-    'sh -c "$CMD"',
+    'sh -c "$CMD commit"',
     "cd /y && bash -c 'git commit -m x'",
   ])("denies %j before reading any index", (command) => {
     // The hook root has nothing staged, so a hook-root reading would have admitted it.
     const listStagedRelPaths = vi.fn((_root: string): string[] => []);
     expectUnresolvableDeny(decideBash(command, listStagedRelPaths), command);
+    expect(listStagedRelPaths).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "declare -A M; M[$k]=v; echo ok",
+    "$D verify:x",
+    '$env:X="1"; deft foo',
+    'bash -c "deft foo $X"',
+  ])("returns no commit decision for %j, which shows no commit word (#6871)", (command) => {
+    const listStagedRelPaths = vi.fn((_root: string): string[] => []);
+    const decision = decideBash(command, listStagedRelPaths);
+    expect(decision.code, command).not.toBe("prospective-scope-cover-deny");
+    expect(decision.message ?? "", command).not.toMatch(/cannot be resolved to one checkout/);
     expect(listStagedRelPaths).not.toHaveBeenCalled();
   });
 

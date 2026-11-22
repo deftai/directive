@@ -246,6 +246,18 @@ no non-repository fallback: a path outside every checkout, or a payload root tha
 repository, is refused. The payload root stays the identity for authz, the kill-switch and deny
 diagnostics.
 
+**A different repository (#6871).** When the named path is a proven different repository (both
+common directories were read and differ), the gate checks that repository's toplevel for a
+Directive project: a `.deft` entry, `xbrief/PROJECT-DEFINITION.xbrief.json` or
+`vbrief/PROJECT-DEFINITION.vbrief.json`. Each probe must report not-found (`ENOENT` or `ENOTDIR`);
+any other result counts as present. When all three are absent, the commit gate returns no decision
+for the call: that repository's own hooks and policy govern its commits. Otherwise the refusal
+stays `foreign-repository-deny`, and its message says to commit from a Directive session in that
+project. A separate clone of this repository is a Directive project, so it stays refused. The gate
+does not judge a foreign Directive project at its own root. An unproven identity, a missing path, a
+path outside every checkout, every same-repository target and the rule that every commit in one
+call names one target are unchanged.
+
 **Index and story.** Staged paths are listed on the target root, and `resolveWorktreeStoryBinding`
 runs there: `bound` selects that worktree's story and its write fence; `refuse` denies with the
 resolver's reason (never a fallback to another eligible story); `none` keeps the earlier
@@ -266,11 +278,26 @@ several commands (a group that closes first does not move a later commit, so
 `(cd /r/wt) && git commit` is still judged at the hook root); a `git commit` in a literal
 `sh -c` / `bash -c` string, `env -S` string or `eval`; a commit behind a wrapper (`env`,
 `command`, `exec`, `nohup`, `time`, `timeout`, `xargs`, `nice`, `sudo`, `doas`, `stdbuf`,
-`ionice`; only the wrapped command is read, not its arguments); a command word or git subcommand
-that holds a variable (`$GIT commit`, `git $SUB`); and a `-c`, `env -S` or `eval` string that
-holds a variable or substitution. The last two are refused even when they never commit, because
-the gate cannot read them. An unquoted heredoc body raises no signal, and its parentheses open or
-close a group only inside a `$( … )`; only the commits it shows are read.
+`ionice`; only the wrapped command is read, not its arguments); a git subcommand that holds a
+variable (`git $SUB`), refused even when it never commits; and, when the call shows the word
+`commit`, a command word that holds a variable (`$GIT commit`) or a `-c`, `env -S` or `eval`
+string that holds a variable or substitution. An unquoted heredoc body raises no signal, and its
+parentheses open or close a group only inside a `$( … )`; only the commits it shows are read.
+
+**The commit word (#6871).** A variable command word, and a `-c`, `env -S` or `eval` string that
+holds a variable, is a signal only when the call shows `commit` (any case, as part of any word) in
+the decoded word values of its command chunks or in the same text before decoding. Quoted heredoc
+bodies are removed, unquoted bodies kept and line continuations joined, so `$GIT co''mmit` and a
+`commit` split by a backslash-newline still show it. A call such as `$D verify:x`,
+`$env:X = "1"; deft foo` or `bash -c "deft foo $X"` is not a commit. Limit: a command supplied
+wholly by variables set earlier (`$RUN`, `eval "$RUN"`, or the word `commit` split across
+variables) is not read.
+
+**Array assignments (#6871).** A bash array-element assignment, `NAME[subscript]=value` or
+`NAME[subscript]+=value`, is read as an assignment, like `NAME=value`, when the word holds no `$(`
+and no backtick; its variable name without the subscript is checked against the `GIT_DIR`-class
+prefixes above. This is assignment recognition only: it makes no claim that a subscript cannot
+run code supplied by earlier shell state.
 
 **Limits, named and not closed here.** A plain commit is still judged at the hook project root,
 wherever the shell actually is; workers name their worktree in every git command (#6291). A
