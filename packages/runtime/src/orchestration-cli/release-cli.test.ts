@@ -14,6 +14,13 @@ describe("deft-ts release:* dispatcher (#1838 s4)", () => {
     expect(await dispatch(["release-e2e", "--help"], silentIo())).toBe(0);
     expect(await dispatch(["release-wait-npm", "--help"], silentIo())).toBe(0);
     expect(await dispatch(["release:wait-npm", "--help"], silentIo())).toBe(0);
+    expect(await dispatch(["release-run", "--help"], silentIo())).toBe(0);
+    expect(await dispatch(["release:run", "--help"], silentIo())).toBe(0);
+  });
+
+  it("release:run rejects a missing version or an unknown flag with exit 2 (#6876)", async () => {
+    expect(await dispatch(["release:run"], silentIo())).toBe(2);
+    expect(await dispatch(["release:run", "1.0.0", "--bogus"], silentIo())).toBe(2);
   });
 
   it("release rejects invalid version with exit 2", async () => {

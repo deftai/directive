@@ -1,0 +1,923 @@
+/**
+ * `deft release:run <version>` (#6876, S3 of #6845).
+ *
+ * One verb for a stable cut. It runs, in order: readiness; setup (release
+ * branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`,
+ * cut context); the local cut (Steps 1 to 9, no push); approve; push and open
+ * the release PR; review wait and merge; finish (tag, draft release, clear the
+ * cut context); npm publish watch; draft flip; promote only when its grant was
+ * minted. It ends by printing the pin PR, `release:local-update` and `npm i -g`
+ * commands.
+ *
+ * Approve is the single operator act: after the local cut made release commit
+ * R with tree T, the run shows the version, B, T and the promoted CHANGELOG
+ * section, then mints one `release-publish` grant for `<version>@<T>` with the
+ * operator's `--expires` (and optionally one `release-promote-latest` grant)
+ * through the existing `authz:grant` mint path (typed `mint` on a TTY). Without
+ * a TTY it prints the mint commands and stops; `--resume` continues. The run
+ * records the grant ids, and the S2 gates (#6875) accept only that grant.
+ * After the mint no phase reads stdin, so no later phase can prompt.
+ *
+ * Out of scope here (later stories): enqueue reads, the in-process review
+ * wait and its retry counts (#6877); reconciliation of tag, npm, release and
+ * promote state on `--resume`, and the runbook (#6878). This story's `--resume`
+ * continues at the first phase the run record has not completed.
+ */
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { listActiveHumanGrants, loadAuthzState } from "../authz/store.js";
+import type { HumanOriginGrant } from "../authz/types.js";
+import { defaultRunGh } from "../pr-merge-readiness/gh.js";
+import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import {
+  evaluateReleasePromoteLatestGate,
+  evaluateReleasePublishGate,
+  runPromoteLatest,
+  runPublish,
+} from "../release-publish/pipeline.js";
+import { sectionForVersion } from "./changelog.js";
+import { cmdReleaseWaitNpm } from "./cli-drift-report.js";
+import { runBoundTarget } from "./closed-verb-gate.js";
+import { DEFAULT_BASE_BRANCH, EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
+import { runFinish } from "./finish.js";
+import { checkTagAvailable } from "./gh.js";
+import { releaseCommitSubject, runGit } from "./git.js";
+import { resolveProjectRoot, resolveRepo } from "./paths.js";
+import { runPipeline } from "./pipeline.js";
+import { openReleasePr, pushReleaseBranch, releaseBranchName } from "./release-pr.js";
+import {
+  formatReadiness,
+  type ReadinessInput,
+  type ReadinessResult,
+  runReleaseReadiness,
+} from "./run-readiness.js";
+import {
+  markPhaseCompleted,
+  newReleaseRunRecord,
+  nextReleaseRunPhase,
+  type ReleaseRunPhase,
+  type ReleaseRunRecord,
+  readReleaseRunRecord,
+  releaseRunRecordPath,
+  writeReleaseRunRecord,
+} from "./run-record.js";
+import type { ReleaseConfig, ReleaseSeams } from "./types.js";
+import { isPrereleaseTag, validateReleaseChannelVersion } from "./version.js";
+
+export const RELEASE_RUN_HELP =
+  "usage: deft release:run <version> --expires <ISO> [--promote-latest] [--summary <text>]\n" +
+  "                        [--repo owner/name] [--base-branch <branch>] [--project-root <path>]\n" +
+  "       deft release:run <version> --resume\n" +
+  "\n" +
+  "One command for a stable cut (#6845). In order: readiness; setup (release branch from the\n" +
+  "fetched tip B, session:start --primary-claim-exception=release-cut, cut context); the local cut\n" +
+  "(Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish\n" +
+  "(tag, draft release, clear the cut context); npm publish watch; draft flip; promote only when its\n" +
+  "grant was minted. It ends by printing the pin PR, release:local-update and npm i -g commands.\n" +
+  "\n" +
+  "Readiness runs before any write and refuses on a failed check; queued PRs and armed auto-merge\n" +
+  "are reported only. Approve shows the version, B, T and the promoted CHANGELOG section, then mints\n" +
+  "one release-publish grant for <version>@<T> (and, with --promote-latest, one\n" +
+  "release-promote-latest grant) through deft authz:grant with typed `mint` on a TTY. Without a TTY\n" +
+  "it prints the mint commands and stops; --resume continues. After the mint no phase prompts.\n" +
+  "\n" +
+  "  --expires <ISO>     Grant expiry, chosen by the operator (required for a new run).\n" +
+  "  --promote-latest    Also mint a release-promote-latest grant at approve.\n" +
+  "  --resume            Continue the run recorded in .deft-scratch/release-run/<version>.json.\n" +
+  "  --summary <text>    One-line release summary for the CHANGELOG section.\n" +
+  "  --repo owner/name   Default: the origin remote.\n" +
+  "  --base-branch <b>   Default: master.\n" +
+  "  --project-root <p>  Default: $DEFT_PROJECT_ROOT, else the current working directory.\n";
+
+export interface ReleaseRunFlags {
+  readonly help: boolean;
+  readonly version: string | null;
+  readonly expires: string | null;
+  readonly promoteLatest: boolean;
+  readonly resume: boolean;
+  readonly summary: string | null;
+  readonly repo: string | null;
+  readonly baseBranch: string;
+  readonly projectRoot: string | null;
+  readonly unknown: readonly string[];
+}
+
+export function parseReleaseRunFlags(args: readonly string[]): ReleaseRunFlags {
+  let help = false;
+  let version: string | null = null;
+  let expires: string | null = null;
+  let promoteLatest = false;
+  let resume = false;
+  let summary: string | null = null;
+  let repo: string | null = null;
+  let baseBranch = DEFAULT_BASE_BRANCH;
+  let projectRoot: string | null = null;
+  const unknown: string[] = [];
+  const valued = new Set(["--expires", "--summary", "--repo", "--base-branch", "--project-root"]);
+  const set = (flag: string, value: string): void => {
+    if (flag === "--expires") expires = value;
+    else if (flag === "--summary") summary = value;
+    else if (flag === "--repo") repo = value;
+    else if (flag === "--base-branch") baseBranch = value;
+    else projectRoot = value;
+  };
+  for (let i = 0; i < args.length; i += 1) {
+    const token = args[i] ?? "";
+    if (token === "--") continue;
+    if (token === "-h" || token === "--help") {
+      help = true;
+    } else if (token === "--promote-latest") {
+      promoteLatest = true;
+    } else if (token === "--resume") {
+      resume = true;
+    } else if (valued.has(token)) {
+      const value = args[i + 1];
+      if (value === undefined || value.length === 0) {
+        unknown.push(`${token} (missing value)`);
+      } else {
+        set(token, value);
+        i += 1;
+      }
+    } else if (token.includes("=") && valued.has(token.slice(0, token.indexOf("=")))) {
+      const flag = token.slice(0, token.indexOf("="));
+      const value = token.slice(token.indexOf("=") + 1);
+      if (value.length === 0) unknown.push(`${flag}= (empty value)`);
+      else set(flag, value);
+    } else if (token.startsWith("-")) {
+      unknown.push(token);
+    } else if (version === null) {
+      version = token.startsWith("v") ? token.slice(1) : token;
+    } else {
+      unknown.push(token);
+    }
+  }
+  return {
+    help,
+    version,
+    expires,
+    promoteLatest,
+    resume,
+    summary,
+    repo,
+    baseBranch,
+    projectRoot,
+    unknown,
+  };
+}
+
+/** The `deft authz:grant` argv approve uses (and prints without a TTY). */
+export function releaseRunMintArgv(
+  template: "release-publish" | "release-promote-latest",
+  target: string,
+  expires: string,
+): string[] {
+  return [
+    "authz:grant",
+    "--",
+    "--template",
+    template,
+    "--target",
+    target,
+    "--expires",
+    expires,
+    "--confirm",
+  ];
+}
+
+/** The post-run commands (clause 31) plus the #6878 lockfile step. */
+export function releaseRunFinalLines(
+  version: string,
+  baseBranch: string,
+  projectRoot: string,
+): string[] {
+  return [
+    `Release v${version} run complete. Remaining steps for the operator, after the run:`,
+    `  1. Pin PR: on a branch from origin/${baseBranch}, set the @deftai/directive-runtime pin to ${version}` +
+      " in package.json and its minimumReleaseAgeExclude row, run" +
+      ` \`pnpm update -w @deftai/directive-runtime@${version}\` to regenerate the lockfile, check that` +
+      " `pnpm install --frozen-lockfile` passes, add one changelog line, then open the pin PR and merge it" +
+      " through the queue (commit the pin from your own terminal until #5771 lands).",
+    `  2. task release:local-update -- ${version} --checkout ${projectRoot}`,
+    `  3. npm i -g @deftai/directive@${version}`,
+  ];
+}
+
+export interface RunVerbOptions {
+  readonly cwd: string;
+  /** Only the mint reads stdin; every other child gets no stdin, so it cannot prompt. */
+  readonly interactive: boolean;
+}
+
+export interface ReleaseRunSeams {
+  /** Seams handed to the release pipeline, finish and publish steps. */
+  readonly release?: ReleaseSeams;
+  readonly runGh?: RunGhFn;
+  readonly now?: () => Date;
+  readonly isTty?: () => boolean;
+  readonly out?: (text: string) => void;
+  /** Run one `deft` verb. Production re-invokes this CLI with node. */
+  readonly runVerb?: (argv: readonly string[], options: RunVerbOptions) => number;
+  /** Run `node <script> ...args` (the cut-context producer). */
+  readonly runNode?: (args: readonly string[], cwd: string) => number;
+  readonly readiness?: (input: ReadinessInput) => ReadinessResult;
+  readonly cut?: (config: ReleaseConfig) => number;
+  readonly pushAndOpenPr?: (config: ReleaseConfig) => { ok: boolean; reason: string };
+  readonly finish?: (config: ReleaseConfig) => number;
+  readonly waitNpm?: (version: string) => number;
+  readonly flip?: (config: ReleaseConfig, grantId: string) => number;
+  readonly promote?: (config: ReleaseConfig) => number;
+  readonly listGrants?: (projectRoot: string) => readonly HumanOriginGrant[];
+}
+
+function defaultRunVerb(argv: readonly string[], options: RunVerbOptions): number {
+  const entry = process.argv[1];
+  if (entry === undefined) return EXIT_CONFIG_ERROR;
+  const result = spawnSync(process.execPath, [entry, ...argv], {
+    cwd: options.cwd,
+    stdio: options.interactive ? "inherit" : ["ignore", "inherit", "inherit"],
+  });
+  return result.status ?? EXIT_VIOLATION;
+}
+
+function defaultRunNode(args: readonly string[], cwd: string): number {
+  const result = spawnSync(process.execPath, [...args], {
+    cwd,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  return result.status ?? EXIT_VIOLATION;
+}
+
+function defaultIsTty(): boolean {
+  return process.stdin.isTTY === true && process.stdout.isTTY === true;
+}
+
+function releaseConfigOf(record: ReleaseRunRecord, projectRoot: string): ReleaseConfig {
+  return {
+    version: record.version,
+    repo: record.repo,
+    baseBranch: record.baseBranch,
+    projectRoot,
+    dryRun: false,
+    skipTag: false,
+    skipRelease: false,
+    allowDirty: false,
+    draft: true,
+    skipCi: false,
+    skipBuild: false,
+    summary: record.summary,
+    allowVbriefDrift: false,
+    allowCoverageDebtIssue: null,
+    allowSkipCiIssue: null,
+    breakGlass: false,
+    ciReuseAtReadiness: record.ciReuseAtReadiness,
+  };
+}
+
+interface Ctx {
+  record: ReleaseRunRecord;
+  readonly projectRoot: string;
+  readonly seams: ReleaseRunSeams;
+  readonly out: (text: string) => void;
+  readonly now: () => Date;
+}
+
+function git(ctx: Ctx, args: readonly string[]): { ok: boolean; out: string } {
+  const r = runGit(ctx.projectRoot, args, ctx.seams.release ?? {});
+  return { ok: r.status === 0, out: r.status === 0 ? r.stdout.trim() : r.stderr.trim() };
+}
+
+function line(ctx: Ctx, phase: ReleaseRunPhase, status: string): void {
+  ctx.out(`[release:run ${phase}] ${status}\n`);
+}
+
+function save(ctx: Ctx, patch: Partial<ReleaseRunRecord>): void {
+  ctx.record = { ...ctx.record, ...patch, updatedAt: ctx.now().toISOString() };
+  writeReleaseRunRecord(ctx.projectRoot, ctx.record);
+}
+
+function phaseSetup(ctx: Ctx): number {
+  const { baseBranch, version } = ctx.record;
+  if (ctx.record.cutBase !== null) {
+    // Resumed after the branch was made: keep the recorded B, never re-cut it.
+    const branch = git(ctx, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    if (!branch.ok || branch.out !== releaseBranchName(version)) {
+      line(
+        ctx,
+        "setup",
+        `FAIL (B is recorded but the checkout is not on ${releaseBranchName(version)})`,
+      );
+      return EXIT_VIOLATION;
+    }
+    return setupRitual(ctx);
+  }
+  const fetch = git(ctx, ["fetch", "origin", baseBranch]);
+  if (!fetch.ok) {
+    line(ctx, "setup", `FAIL (git fetch origin ${baseBranch}: ${fetch.out})`);
+    return EXIT_VIOLATION;
+  }
+  const tip = git(ctx, ["rev-parse", `origin/${baseBranch}`]);
+  if (!tip.ok || tip.out.length === 0) {
+    line(ctx, "setup", `FAIL (cannot resolve origin/${baseBranch})`);
+    return EXIT_VIOLATION;
+  }
+  const branch = releaseBranchName(version);
+  const sw = git(ctx, ["switch", "-c", branch, tip.out]);
+  if (!sw.ok) {
+    line(ctx, "setup", `FAIL (git switch -c ${branch} ${tip.out.slice(0, 12)}: ${sw.out})`);
+    return EXIT_VIOLATION;
+  }
+  save(ctx, { cutBase: tip.out });
+  line(ctx, "setup", `OK (${branch} at B=${tip.out})`);
+  return setupRitual(ctx);
+}
+
+function setupRitual(ctx: Ctx): number {
+  const runVerb = ctx.seams.runVerb ?? defaultRunVerb;
+  const ritual = runVerb(["session:start", "--primary-claim-exception=release-cut"], {
+    cwd: ctx.projectRoot,
+    interactive: false,
+  });
+  if (ritual !== 0) {
+    line(
+      ctx,
+      "setup",
+      `FAIL (session:start --primary-claim-exception=release-cut exited ${String(ritual)})`,
+    );
+    return EXIT_VIOLATION;
+  }
+  const producer = join(ctx.projectRoot, "tasks", "materialize.cjs");
+  if (ctx.seams.runNode === undefined && !existsSync(producer)) {
+    line(ctx, "setup", `FAIL (cut-context producer not found at ${producer})`);
+    return EXIT_CONFIG_ERROR;
+  }
+  const runNode = ctx.seams.runNode ?? defaultRunNode;
+  const marker = runNode([producer, "--write-cut-context", ctx.projectRoot], ctx.projectRoot);
+  if (marker !== 0) {
+    line(ctx, "setup", `FAIL (cut-context write exited ${String(marker)})`);
+    return EXIT_VIOLATION;
+  }
+  line(ctx, "setup", "OK (session started with release-cut; cut context written)");
+  return EXIT_OK;
+}
+
+/**
+ * A stop after the Step 9 commit and before the record write leaves R on the
+ * branch with no record of it. True when HEAD is that commit: its parent is B
+ * and its subject is the release commit subject. HEAD at B means no commit yet.
+ */
+function headIsUnrecordedReleaseCommit(ctx: Ctx): { known: boolean; adopt: boolean } {
+  const head = git(ctx, ["rev-parse", "HEAD"]);
+  if (!head.ok) return { known: false, adopt: false };
+  if (head.out === ctx.record.cutBase) return { known: true, adopt: false };
+  const parent = git(ctx, ["rev-parse", "HEAD^"]);
+  const subject = git(ctx, ["log", "-1", "--format=%s", "HEAD"]);
+  const adopt =
+    parent.ok &&
+    subject.ok &&
+    parent.out === ctx.record.cutBase &&
+    subject.out === releaseCommitSubject(ctx.record.version);
+  return { known: adopt, adopt };
+}
+
+function phaseCut(ctx: Ctx): number {
+  const state =
+    ctx.record.releaseCommit === null
+      ? headIsUnrecordedReleaseCommit(ctx)
+      : { known: true, adopt: true };
+  if (!state.known) {
+    line(
+      ctx,
+      "cut",
+      "FAIL (HEAD is neither the cut base B nor a release commit on B; nothing overwritten)",
+    );
+    return EXIT_VIOLATION;
+  }
+  if (!state.adopt) {
+    const config: ReleaseConfig = {
+      ...releaseConfigOf(ctx.record, ctx.projectRoot),
+      stopBeforePush: true,
+    };
+    const cut = ctx.seams.cut ?? ((c: ReleaseConfig) => runPipeline(c, ctx.seams.release ?? {}));
+    const code = cut(config);
+    if (code !== EXIT_OK) {
+      line(ctx, "cut", `FAIL (local cut exited ${String(code)})`);
+      return code;
+    }
+  } else if (ctx.record.releaseCommit === null) {
+    line(ctx, "cut", "OK (found the release commit on B from an earlier run; not cut again)");
+  }
+  const head = git(ctx, ["rev-parse", "HEAD"]);
+  const tree = git(ctx, ["rev-parse", "HEAD^{tree}"]);
+  const parent = git(ctx, ["rev-parse", "HEAD^"]);
+  if (!head.ok || !tree.ok || !parent.ok) {
+    line(ctx, "cut", "FAIL (cannot read the release commit, its tree or its parent)");
+    return EXIT_VIOLATION;
+  }
+  if (parent.out !== ctx.record.cutBase) {
+    line(
+      ctx,
+      "cut",
+      `FAIL (release commit parent ${parent.out} is not the cut base B=${String(ctx.record.cutBase)})`,
+    );
+    return EXIT_VIOLATION;
+  }
+  save(ctx, { releaseCommit: head.out, releaseTree: tree.out });
+  line(ctx, "cut", `OK (R=${head.out}, T=${tree.out}; nothing pushed)`);
+  return EXIT_OK;
+}
+
+function mintedAfter(grant: HumanOriginGrant, sinceIso: string): boolean {
+  const minted = Date.parse(grant.origin.mintedAt);
+  const since = Date.parse(sinceIso);
+  // Grant timestamps carry whole seconds; compare at that precision.
+  return (
+    Number.isFinite(minted) &&
+    Number.isFinite(since) &&
+    Math.floor(minted / 1000) >= Math.floor(since / 1000)
+  );
+}
+
+function newest(grants: readonly HumanOriginGrant[]): HumanOriginGrant | null {
+  let best: HumanOriginGrant | null = null;
+  for (const g of grants) {
+    if (best === null || Date.parse(g.origin.mintedAt) >= Date.parse(best.origin.mintedAt))
+      best = g;
+  }
+  return best;
+}
+
+/** Grants minted since approve asked: the run-bound publish grant and the promote grant. */
+export function findRunGrants(
+  record: ReleaseRunRecord,
+  projectRoot: string,
+  grants: readonly HumanOriginGrant[],
+): { releasePublish: string | null; promoteLatest: string | null } {
+  const since = record.approveRequestedAt;
+  const tree = record.releaseTree;
+  if (since === null || tree === null) return { releasePublish: null, promoteLatest: null };
+  const fresh = grants.filter((g) => mintedAfter(g, since));
+  const publish = fresh.filter(
+    (g) =>
+      evaluateReleasePublishGate(record.version, projectRoot, {
+        grants: [g],
+        env: {},
+        repo: record.repo,
+        runGrant: { grantId: g.id, tree },
+      }).allowed,
+  );
+  const promote = record.promoteLatest
+    ? fresh.filter(
+        (g) =>
+          evaluateReleasePromoteLatestGate(record.version, projectRoot, {
+            grants: [g],
+            env: {},
+            repo: record.repo,
+          }).allowed,
+      )
+    : [];
+  return {
+    releasePublish: newest(publish)?.id ?? null,
+    promoteLatest: newest(promote)?.id ?? null,
+  };
+}
+
+function readPromotedSection(ctx: Ctx): string {
+  const show = git(ctx, ["show", "HEAD:CHANGELOG.md"]);
+  if (!show.ok) return "(CHANGELOG.md unreadable at the release commit)";
+  const section = sectionForVersion(show.out, ctx.record.version).trim();
+  return section.length > 0 ? section : "(no promoted section found)";
+}
+
+function phaseApprove(ctx: Ctx): number {
+  const r = ctx.record;
+  if (r.releaseTree === null || r.cutBase === null) {
+    line(ctx, "approve", "FAIL (the run record has no B or T; the local cut did not finish)");
+    return EXIT_VIOLATION;
+  }
+  const target = runBoundTarget(r.version, r.releaseTree);
+  const commands = [releaseRunMintArgv("release-publish", target, r.expires)];
+  if (r.promoteLatest)
+    commands.push(releaseRunMintArgv("release-promote-latest", r.version, r.expires));
+  const listGrants =
+    ctx.seams.listGrants ?? ((root: string) => listActiveHumanGrants(root, loadAuthzState(root)));
+
+  if (r.approveRequestedAt === null) {
+    ctx.out(
+      [
+        `Approve release v${r.version}:`,
+        `  version: ${r.version}`,
+        `  B (cut base): ${r.cutBase}`,
+        `  T (release tree): ${r.releaseTree}`,
+        `  release-publish target: ${target}, expires ${r.expires}`,
+        r.promoteLatest
+          ? `  release-promote-latest target: ${r.version}`
+          : "  release-promote-latest: not requested",
+        "  Promoted CHANGELOG section:",
+        ...readPromotedSection(ctx)
+          .split(/\r?\n/)
+          .map((l) => `    ${l}`),
+        "",
+      ].join("\n"),
+    );
+    save(ctx, { approveRequestedAt: ctx.now().toISOString() });
+    const isTty = (ctx.seams.isTty ?? defaultIsTty)();
+    if (!isTty) {
+      ctx.out(
+        [
+          "No TTY: mint the grant(s) from your own terminal, then resume:",
+          ...commands.map((argv) => `  deft ${argv.join(" ")}`),
+          `  deft release:run ${r.version} --resume`,
+          "",
+        ].join("\n"),
+      );
+      line(ctx, "approve", "STOPPED (waiting for the mint; nothing was pushed)");
+      return EXIT_VIOLATION;
+    }
+    const runVerb = ctx.seams.runVerb ?? defaultRunVerb;
+    for (const argv of commands) {
+      const code = runVerb(argv, { cwd: ctx.projectRoot, interactive: true });
+      if (code !== 0) {
+        line(
+          ctx,
+          "approve",
+          `FAIL (deft ${argv.slice(0, 5).join(" ")} exited ${String(code)}; resume with --resume after a mint)`,
+        );
+        return EXIT_VIOLATION;
+      }
+    }
+  }
+
+  const found = findRunGrants(ctx.record, ctx.projectRoot, listGrants(ctx.projectRoot));
+  const missing: string[][] = [];
+  if (found.releasePublish === null) missing.push(commands[0] ?? []);
+  if (r.promoteLatest && found.promoteLatest === null && commands[1] !== undefined) {
+    missing.push(commands[1]);
+  }
+  if (missing.length > 0) {
+    ctx.out(
+      [
+        "No matching grant minted since approve asked. Mint, then resume:",
+        ...missing.map((argv) => `  deft ${argv.join(" ")}`),
+        `  deft release:run ${r.version} --resume`,
+        "",
+      ].join("\n"),
+    );
+    line(ctx, "approve", "STOPPED (grant not found; nothing was pushed)");
+    return EXIT_VIOLATION;
+  }
+  save(ctx, { grants: found });
+  line(
+    ctx,
+    "approve",
+    `OK (release-publish grant ${String(found.releasePublish)}` +
+      (found.promoteLatest !== null
+        ? `, release-promote-latest grant ${found.promoteLatest})`
+        : ")"),
+  );
+  return EXIT_OK;
+}
+
+function phasePushPr(ctx: Ctx): number {
+  const config = releaseConfigOf(ctx.record, ctx.projectRoot);
+  const pushAndOpen =
+    ctx.seams.pushAndOpenPr ??
+    ((c: ReleaseConfig) => {
+      const seams = ctx.seams.release ?? {};
+      const [pushed, pushReason] = pushReleaseBranch(c.projectRoot, c.version, seams);
+      if (!pushed) return { ok: false, reason: pushReason };
+      const [opened, openReason] = openReleasePr(
+        c.projectRoot,
+        c.version,
+        c.repo,
+        c.baseBranch,
+        seams,
+      );
+      return { ok: opened, reason: openReason };
+    });
+  const result = pushAndOpen(config);
+  if (!result.ok) {
+    line(ctx, "push-pr", `FAIL (${result.reason})`);
+    return EXIT_VIOLATION;
+  }
+  const match = /\/pull\/(\d+)/.exec(result.reason);
+  if (match === null) {
+    line(ctx, "push-pr", `FAIL (no PR number in: ${result.reason})`);
+    return EXIT_VIOLATION;
+  }
+  save(ctx, { pr: Number(match[1]) });
+  line(ctx, "push-pr", `OK (${result.reason})`);
+  return EXIT_OK;
+}
+
+function phaseMerge(ctx: Ctx): number {
+  const pr = ctx.record.pr;
+  if (pr === null) {
+    line(ctx, "merge", "FAIL (the run record has no PR number)");
+    return EXIT_VIOLATION;
+  }
+  const runVerb = ctx.seams.runVerb ?? defaultRunVerb;
+  const argv = ["pr:wait-mergeable-and-merge", String(pr), "--repo", ctx.record.repo, "--wait"];
+  const code = runVerb(argv, {
+    cwd: ctx.projectRoot,
+    interactive: false,
+  });
+  if (code !== 0) {
+    line(
+      ctx,
+      "merge",
+      `FAIL (pr:wait-mergeable-and-merge ${String(pr)} --wait exited ${String(code)})`,
+    );
+    return EXIT_VIOLATION;
+  }
+  line(ctx, "merge", `OK (release PR #${String(pr)} merged)`);
+  return EXIT_OK;
+}
+
+function phaseFinish(ctx: Ctx): number {
+  const { grants, cutBase } = ctx.record;
+  if (grants.releasePublish === null || cutBase === null) {
+    line(ctx, "finish", "FAIL (the run record has no grant id or cut base)");
+    return EXIT_VIOLATION;
+  }
+  const config: ReleaseConfig = {
+    ...releaseConfigOf(ctx.record, ctx.projectRoot),
+    runBinding: { grantId: grants.releasePublish, expectedBase: cutBase },
+  };
+  const finish = ctx.seams.finish ?? ((c: ReleaseConfig) => runFinish(c, ctx.seams.release ?? {}));
+  const code = finish(config);
+  if (code !== EXIT_OK) {
+    line(ctx, "finish", `FAIL (finish exited ${String(code)})`);
+    return code;
+  }
+  const runNode = ctx.seams.runNode ?? defaultRunNode;
+  const producer = join(ctx.projectRoot, "tasks", "materialize.cjs");
+  const cleared = runNode([producer, "--clear-cut-context", ctx.projectRoot], ctx.projectRoot);
+  if (cleared !== 0) {
+    line(ctx, "finish", `FAIL (cut-context clear exited ${String(cleared)})`);
+    return EXIT_VIOLATION;
+  }
+  line(ctx, "finish", "OK (tagged, draft release created, cut context cleared)");
+  return EXIT_OK;
+}
+
+function phasePublishWatch(ctx: Ctx): number {
+  const wait = ctx.seams.waitNpm ?? ((v: string) => cmdReleaseWaitNpm([v]));
+  const code = wait(ctx.record.version);
+  if (code !== EXIT_OK) {
+    line(ctx, "publish-watch", `FAIL (npm publish watch exited ${String(code)})`);
+    return code;
+  }
+  line(ctx, "publish-watch", "OK");
+  return EXIT_OK;
+}
+
+function phaseFlip(ctx: Ctx): number {
+  const grantId = ctx.record.grants.releasePublish;
+  if (grantId === null) {
+    line(ctx, "flip", "FAIL (the run record has no grant id)");
+    return EXIT_VIOLATION;
+  }
+  const config = releaseConfigOf(ctx.record, ctx.projectRoot);
+  const flip =
+    ctx.seams.flip ??
+    ((c: ReleaseConfig, id: string) =>
+      runPublish(
+        { version: c.version, repo: c.repo, projectRoot: c.projectRoot, dryRun: false },
+        ctx.seams.release ?? {},
+        { grantId: id },
+      ));
+  const code = flip(config, grantId);
+  if (code !== EXIT_OK) {
+    line(ctx, "flip", `FAIL (draft flip exited ${String(code)})`);
+    return code;
+  }
+  line(ctx, "flip", "OK (release published)");
+  return EXIT_OK;
+}
+
+function phasePromote(ctx: Ctx): number {
+  if (ctx.record.grants.promoteLatest === null) {
+    line(ctx, "promote", "SKIP (no release-promote-latest grant; latest unchanged)");
+    return EXIT_OK;
+  }
+  const config = releaseConfigOf(ctx.record, ctx.projectRoot);
+  const promote =
+    ctx.seams.promote ??
+    ((c: ReleaseConfig) =>
+      runPromoteLatest(
+        { version: c.version, repo: c.repo, projectRoot: c.projectRoot, dryRun: false },
+        ctx.seams.release ?? {},
+      ));
+  const code = promote(config);
+  if (code !== EXIT_OK) {
+    line(ctx, "promote", `FAIL (promote exited ${String(code)})`);
+    return code;
+  }
+  line(ctx, "promote", "OK");
+  return EXIT_OK;
+}
+
+const PHASES: Readonly<Record<Exclude<ReleaseRunPhase, "readiness">, (ctx: Ctx) => number>> = {
+  setup: phaseSetup,
+  cut: phaseCut,
+  approve: phaseApprove,
+  "push-pr": phasePushPr,
+  merge: phaseMerge,
+  finish: phaseFinish,
+  "publish-watch": phasePublishWatch,
+  flip: phaseFlip,
+  promote: phasePromote,
+};
+
+export interface ReleaseRunOptions {
+  readonly version: string;
+  readonly repo: string;
+  readonly baseBranch: string;
+  readonly projectRoot: string;
+  readonly expires: string | null;
+  readonly promoteLatest: boolean;
+  readonly resume: boolean;
+  readonly summary: string | null;
+}
+
+function defaultReadiness(seams: ReleaseRunSeams, runGh: RunGhFn) {
+  return (input: ReadinessInput): ReadinessResult =>
+    runReleaseReadiness(
+      input,
+      {
+        release: seams.release,
+        tagFree: (v, repo, root) => checkTagAvailable(v, repo, root, seams.release ?? {}),
+        dryRun: (i) =>
+          runPipeline(
+            {
+              version: i.version,
+              repo: i.repo,
+              baseBranch: i.baseBranch,
+              projectRoot: i.projectRoot,
+              dryRun: true,
+              skipTag: true,
+              skipRelease: true,
+              allowDirty: false,
+              draft: true,
+              skipCi: false,
+              skipBuild: false,
+              summary: i.summary,
+              allowVbriefDrift: false,
+              allowCoverageDebtIssue: null,
+              allowSkipCiIssue: null,
+            },
+            seams.release ?? {},
+          ),
+      },
+      runGh,
+    );
+}
+
+/** Run (or resume) the phases. Returns the exit code of the phase that stopped, or 0. */
+export function runReleaseRun(options: ReleaseRunOptions, seams: ReleaseRunSeams = {}): number {
+  const out = seams.out ?? ((text: string) => process.stdout.write(text));
+  const now = seams.now ?? (() => new Date());
+  const { projectRoot, version } = options;
+  const existing = readReleaseRunRecord(projectRoot, version);
+  if (existing.kind === "invalid") {
+    out(
+      `release:run: error: run record ${releaseRunRecordPath(projectRoot, version)} is invalid: ${existing.reason}\n`,
+    );
+    return EXIT_CONFIG_ERROR;
+  }
+  let record: ReleaseRunRecord;
+  if (options.resume) {
+    if (existing.kind === "absent") {
+      out(`release:run: error: no run record for ${version}; start a run without --resume\n`);
+      return EXIT_CONFIG_ERROR;
+    }
+    record = existing.record;
+    out(`release:run: resuming v${version} at phase ${String(nextReleaseRunPhase(record))}\n`);
+  } else {
+    if (existing.kind === "ok") {
+      out(
+        `release:run: error: a run record for ${version} exists (${releaseRunRecordPath(projectRoot, version)}); ` +
+          "pass --resume to continue it\n",
+      );
+      return EXIT_CONFIG_ERROR;
+    }
+    const expires = options.expires;
+    if (expires === null) {
+      out(
+        "release:run: error: --expires <ISO> is required (the operator chooses the grant expiry)\n",
+      );
+      return EXIT_CONFIG_ERROR;
+    }
+    const readiness = seams.readiness ?? defaultReadiness(seams, seams.runGh ?? defaultRunGh);
+    const result = readiness({
+      version,
+      repo: options.repo,
+      baseBranch: options.baseBranch,
+      projectRoot,
+      summary: options.summary,
+    });
+    out(formatReadiness(result));
+    if (!result.ok) return EXIT_VIOLATION;
+    record = markPhaseCompleted(
+      newReleaseRunRecord({
+        version,
+        repo: options.repo,
+        baseBranch: options.baseBranch,
+        expires,
+        promoteLatest: options.promoteLatest,
+        summary: options.summary,
+        ciReuseAtReadiness: result.ci.kind,
+        now: now(),
+      }),
+      "readiness",
+      now(),
+    );
+    writeReleaseRunRecord(projectRoot, record);
+  }
+
+  const ctx: Ctx = { record, projectRoot, seams, out, now };
+  for (
+    let phase = nextReleaseRunPhase(ctx.record);
+    phase !== null;
+    phase = nextReleaseRunPhase(ctx.record)
+  ) {
+    if (phase === "readiness") {
+      out("release:run: error: the run record has no completed readiness; start a new run\n");
+      return EXIT_CONFIG_ERROR;
+    }
+    const code = PHASES[phase](ctx);
+    if (code !== EXIT_OK) {
+      out(
+        `release:run: stopped at ${phase}; run record ${releaseRunRecordPath(projectRoot, version)}\n`,
+      );
+      return code;
+    }
+    ctx.record = markPhaseCompleted(ctx.record, phase, now());
+    writeReleaseRunRecord(projectRoot, ctx.record);
+  }
+  out(`${releaseRunFinalLines(version, ctx.record.baseBranch, projectRoot).join("\n")}\n`);
+  return EXIT_OK;
+}
+
+function validExpiry(value: string, now: Date): string | null {
+  const ms = Date.parse(value);
+  if (!Number.isFinite(ms)) return `--expires ${value} is not an ISO date-time`;
+  if (ms <= now.getTime()) return `--expires ${value} is not in the future`;
+  return null;
+}
+
+export function cmdReleaseRun(args: readonly string[], seams: ReleaseRunSeams = {}): number {
+  const flags = parseReleaseRunFlags(args);
+  if (flags.help) {
+    process.stdout.write(RELEASE_RUN_HELP);
+    return EXIT_OK;
+  }
+  if (flags.unknown.length > 0) {
+    process.stderr.write(
+      `release:run: error: unrecognized arguments: ${flags.unknown.join(" ")}\n`,
+    );
+    return EXIT_CONFIG_ERROR;
+  }
+  if (flags.version === null) {
+    process.stderr.write("release:run: error: the following arguments are required: version\n");
+    return EXIT_CONFIG_ERROR;
+  }
+  try {
+    validateReleaseChannelVersion(flags.version);
+  } catch (err) {
+    process.stderr.write(
+      `release:run: error: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    return EXIT_CONFIG_ERROR;
+  }
+  // A stable cut only: the npm watch and promote phases accept X.Y.Z alone.
+  if (isPrereleaseTag(flags.version)) {
+    process.stderr.write(
+      `release:run: error: ${flags.version} is a prerelease; release:run cuts stable X.Y.Z versions only (use task release for a prerelease)\n`,
+    );
+    return EXIT_CONFIG_ERROR;
+  }
+  if (!flags.resume && flags.expires !== null) {
+    const problem = validExpiry(flags.expires, (seams.now ?? (() => new Date()))());
+    if (problem !== null) {
+      process.stderr.write(`release:run: error: ${problem}\n`);
+      return EXIT_CONFIG_ERROR;
+    }
+  }
+  const projectRoot = resolveProjectRoot(flags.projectRoot);
+  const repo = resolveRepo(flags.repo, projectRoot, seams.release ?? {});
+  return runReleaseRun(
+    {
+      version: flags.version,
+      repo,
+      baseBranch: flags.baseBranch,
+      projectRoot,
+      expires: flags.expires,
+      promoteLatest: flags.promoteLatest,
+      resume: flags.resume,
+      summary: flags.summary,
+    },
+    seams,
+  );
+}
