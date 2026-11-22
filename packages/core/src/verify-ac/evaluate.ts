@@ -18,6 +18,10 @@ import { isSafetyRefusalRun } from "../literal-acceptance/run.js";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import {
+  briefLandHeadReader,
+  isScopeRecordPath,
+} from "../pr-closing-keywords/brief-land-records.js";
+import {
   evaluatePathBActivationAdmit,
   isBriefLandShapedDiff,
   type PrDiffPath,
@@ -492,9 +496,12 @@ function remapInventoryToProjectRoot(
       typeof entry.previousFilename === "string" && entry.previousFilename.length > 0
         ? entry.previousFilename.replace(/\\/g, "/")
         : undefined;
+    // Scope records keep their git-relative path too, so the brief-land shape
+    // check can match them against the briefs by content (#6937).
     if (
-      isBriefLandAllowlistedInventoryPath(gitDest) &&
-      (gitOrigin === undefined || isBriefLandAllowlistedInventoryPath(gitOrigin))
+      (isBriefLandAllowlistedInventoryPath(gitDest) &&
+        (gitOrigin === undefined || isBriefLandAllowlistedInventoryPath(gitOrigin))) ||
+      (isScopeRecordPath(gitDest) && gitOrigin === undefined)
     ) {
       gitRootBrief.push({
         status: entry.status,
@@ -663,7 +670,7 @@ export function evaluatePathBActivationAcDisposition(input: {
   if (files.length === 0) {
     return { apply: false, reason: "empty inventory" };
   }
-  if (!isBriefLandShapedDiff(files)) {
+  if (!isBriefLandShapedDiff(files, briefLandHeadReader(briefReadRoot))) {
     return { apply: false, reason: "not brief-land shaped (product path restores full verify:ac)" };
   }
   const repo = resolveRepo(input.repo ?? null, projectRoot);

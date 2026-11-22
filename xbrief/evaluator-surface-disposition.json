@@ -1,13 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6863,
+  "issue": 6937,
   "surfaces": [
-    "Taskfile.yml",
-    "packages/core/src/check/gate-lists.ts",
-    "tasks/verify.yml",
-    "vitest.config.ts",
+    "packages/core/src/observable-scope/types.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6863 (operator decision: retire Go fully). The verify:go-freeze and verify:bridge-drift gates are removed with the legacy Go-installer bridge they guarded: their tasks in tasks/verify.yml, their entries in the root Taskfile.yml check list and in gate-lists.ts, and the two cited-skip baseline rows for the deleted --legacy-bridge e2e test. The vitest.config.ts alias for the deleted legacy-bridge module is dropped. No other gate, verifier or threshold changes. Disclosure only; not #3164 authorization. Refs #6863."
+  "note": "Disclosure for #6937 (cohort record mint). OBSERVABLE_SCOPE_REMEDIATION gains text that names the cohort form and the activation-PR carry, and states that the merge that lands a record is its control. No check, threshold, verifier logic or exit code changes in verify:observable-scope or verify:intent-constraint. Disclosure only; not #3164 authorization. Refs #6937."
 }
