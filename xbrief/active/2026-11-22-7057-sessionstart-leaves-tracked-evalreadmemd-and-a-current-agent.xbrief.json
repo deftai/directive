@@ -1,0 +1,170 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7057",
+    "updated": "2026-11-22T16:49:13Z"
+  },
+  "plan": {
+    "title": "session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged",
+    "status": "running",
+    "narratives": {
+      "Description": "session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7057",
+      "Overview": "Narrow part of #7021. The managed-body template choice (`.deft/core` vs project-dependency) stays with #6687.\n\n## Acceptance Criteria\n\n- [ ] `deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.\n- [ ] When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.\n- [ ] A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run.\n\nRefs #7021, #6687\n\n"
+    },
+    "items": [
+      {
+        "title": "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run.",
+        "status": "proposed",
+        "id": "clause.3"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7057",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7057: session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7021",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7021"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git status --porcelain",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/cache-path.ts",
+          "packages/core/src/triage/cache-path.test.ts",
+          "packages/runtime/src/session-start-clean-7057.test.ts",
+          "changelog.d/7057-session-start-clean-worktree.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6544989400.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/triage/cache-path.test.ts",
+          "npx vitest run packages/runtime/src/session-start-clean-7057.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "the legacy triage-cache migration leaves .eval/README.md in place and does not create .triage-cache/README.md",
+          "a runtime test runs session:start twice on a committed install that tracks xbrief/.eval/README.md and finds git status --porcelain empty after each run, AGENTS.md byte-identical",
+          "one changelog fragment changelog.d/7057-session-start-clean-worktree.md"
+        ],
+        "conflict_group": "triage-cache-migration",
+        "model_tier": "high"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because the change removes one README branch from the legacy triage-cache migration and adds regression tests; it has no design fork and is fully reversible. spend-resolve on the operator words gave N=1.\n\n",
+          "id": 7082323547,
+          "html_url": "https://github.com/deftai/directive/issues/7057#issuecomment-7082323547",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:45:54Z",
+          "updated_at": "2026-11-22T16:45:54Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6544989400,
+        "origin": "deftai/directive#7057",
+        "id": "github.issue.6544989400"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.",
+        "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.",
+        "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run."
+      ],
+      "admitted_source_sentences": [
+        "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.",
+        "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.",
+        "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run."
+      ],
+      "admitted_source_digest": "d34b0ffc2690a55669d7a6a56504b0c6affc76168ef953868ef3a8cd99456069",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`deft session:start` does not delete a tracked `xbrief/.eval/README.md` (or legacy `vbrief/.eval/README.md`) and does not create `.triage-cache/README.md` in its place.",
+          "artifact_path": "packages/core/src/triage/cache-path.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When the AGENTS.md managed-section body is current, `deft session:start` leaves AGENTS.md byte-identical: no new `refreshed=` timestamp or `session=` id.",
+          "artifact_path": "packages/runtime/src/session-start-clean-7057.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A regression test runs `session:start` twice on a clean committed install that tracks `xbrief/.eval/README.md`, and `git status --porcelain` is empty after each run.",
+          "artifact_path": "packages/runtime/src/session-start-clean-7057.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6544989400",
+    "updated": "2026-11-22T16:49:13Z"
+  }
+}

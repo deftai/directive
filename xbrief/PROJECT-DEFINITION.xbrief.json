@@ -830,6 +830,27 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-11-22-7057-sessionstart-leaves-tracked-evalreadmemd-and-a-current-agent",
+        "title": "session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-22-7057-sessionstart-leaves-tracked-evalreadmemd-and-a-current-agent.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/7057",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #7057: session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/7021",
+              "type": "x-xbrief/refs",
+              "title": "Issue #7021"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
