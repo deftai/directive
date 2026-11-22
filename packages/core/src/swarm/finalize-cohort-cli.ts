@@ -8,13 +8,15 @@ export interface ParsedFinalizeCohortArgv extends FinalizeCohortArgs {
   readonly error: string | null;
 }
 
-export const FINALIZE_COHORT_USAGE = `Usage: task swarm:finalize-cohort -- [--pr <n>[,<n>...]] [--stories <ids|paths>] [options]
+export const FINALIZE_COHORT_USAGE = `Usage: task swarm:finalize-cohort -- [--pr <n>[,<n>...]] [--stories <ids|paths>] [--cohort <ids|paths>] [options]
 
 After cohort PRs merge, sweep story briefs active/ -> completed/ and open the lifecycle PR.
 
 Options:
   --pr <n>[,<n>...]            Merged PR numbers (closing issues map to active stories)
   --stories <ids|paths>        Explicit story tokens (repeatable)
+  --cohort <ids|paths>         Cohort closer list (#7082): a member completes only when a
+                               listed merged PR binds it; the rest stay active, named
   --repo OWNER/REPO            GitHub repo (or $GH_REPO)
   --project-root <path>        Project root (default: cwd)
   --base-branch <name>         Sweep/PR base (default: resolved delivery branch)
@@ -58,6 +60,7 @@ function parsePrList(
 export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalizeCohortArgv {
   const prNumbers: number[] = [];
   const storyTokens: string[] = [];
+  const cohortStories: string[] = [];
   let repo: string | null = null;
   let projectRoot = ".";
   let baseBranch: string | undefined;
@@ -106,6 +109,19 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
         reject(arg);
       } else {
         storyTokens.push(value);
+      }
+    } else if (arg === "--cohort") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        cohortStories.push(value);
+        i += 1;
+      }
+    } else if (arg?.startsWith("--cohort=")) {
+      const value = equalsValue(arg, "--cohort");
+      if (value.length === 0) {
+        reject(arg);
+      } else {
+        cohortStories.push(value);
       }
     } else if (arg === "--repo") {
       const value = takeValue(arg, next);
@@ -190,6 +206,7 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
   return {
     prNumbers,
     storyTokens,
+    ...(cohortStories.length > 0 ? { cohortStories } : {}),
     repo,
     projectRoot,
     ...(baseBranch !== undefined ? { baseBranch } : {}),
