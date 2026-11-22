@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6970",
-    "updated": "2026-11-22T03:23:52Z"
+    "updated": "2026-11-22T04:05:26Z"
   },
   "plan": {
     "title": "[framework-gap] check --no-suite hardcodes origin master, so the merge-chokepoint gate cannot run in a repo whose default branch is main",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`deft check --no-suite` fetched `origin master` with a constant refspec before any gate, so in a repo whose branch is `main` it exited 2, ran no gate, and blamed the network (#6970). This story makes the no-suite prep step resolve the delivery and comparison branches with the existing resolvers, bootstrap `origin/HEAD` from the remote only when nothing local names a default, fetch the comparison and delivery branches through the safe fetch helper, and tell a missing branch apart from other fetch failures with a source-matched fix.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6970",
@@ -20,138 +20,257 @@
     "items": [
       {
         "title": "Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a present baseBranch or deliveryBranch value is malformed, then prep exits 2 before any fetch naming the key; a missing PROJECT-DEFINITION or key does not refuse."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git ls-remote --symref origin HEAD` and takes `<b>` from its `ref: refs/heads/<b>` line. When `<b>` passes `trackingFetchArgv`'s name check, prep fetches it with `trackingFetchArgv(\"origin\", <b>)`, and only after that fetch succeeds runs `git remote set-head origin <b>` (which writes only `refs/remotes/origin/HEAD`), then resolves both branches again, so the gates that find the default through `origin/HEAD` see the same branch. If the query, the name check, the fetch or `set-head` fails, prep keeps the fallback and goes on (item 5 then reports a missing fallback branch).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When nothing local names a default, then prep queries origin HEAD, fetches that branch, and only then sets origin/HEAD and resolves again; any failure keeps the fallback."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs (a branch already fetched in item 2 is not fetched twice), each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When prep runs, then it fetches the comparison branch and the delivery branch when it differs through trackingFetchArgv, and computes the merge base against the comparison branch."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, `origin's HEAD branch`, or `framework fallback`. The header names each fetched branch with its source.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When prep prints its header, then each fetched branch is named with its source."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When a fetch fails, then prep probes refs/heads/<b> exactly and reports a missing branch with a source-matched fix, a present branch without a network claim, or otherwise the network text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the change lands, then NO_SUITE_MASTER_REFSPEC no longer exists in no-suite.ts or check/index.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the PR opens, then it touches only no-suite.ts, its tests, check/index.ts and one changelog fragment, with no new verb, flag, constant or policy field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the fetch fails and the probe fails for another reason, then the message is today's network text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given the fetch fails and the probe fails for another reason, then the message is today's network text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e32afe45c15bc56edc800616014487ad749cc45a",
+          "recorded_at": "2026-11-22T04:05:26Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -531,7 +650,36 @@
         "harvestDigest": "e703da231eeee0f7c38f1805655619e2d38d34e0af3ba1af50b2debaf154aff0",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "94519cc1491fbc59078a045515dbbb2c82d808bd",
+        "prNumber": 6977,
+        "prBase": "master",
+        "mergeCommit": "e32afe45c15bc56edc800616014487ad749cc45a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e32afe45c15bc56edc800616014487ad749cc45a",
+        "verifiedAt": "2026-11-22T04:05:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6972
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T04:05:26Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T04:05:26Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -701,6 +849,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6537648394",
-    "updated": "2026-11-22T03:23:52Z"
+    "updated": "2026-11-22T04:05:26Z"
   }
 }
