@@ -440,3 +440,82 @@ describe("folded harvest identity and pre-fold audits (#7001)", () => {
     }
   });
 });
+
+describe("review fixes (#7001)", () => {
+  const wrapped =
+    "**Lean:** bind.\n\n## Bound remedy\n\n1. Tests.\n   (a) assert that no process remains.\n\n" +
+    "## Acceptance Criteria\n- Given x,\n  then y.\n\nrelieves: P1\n";
+
+  it("keeps continuation text under a bare or unspaced bullet in the digest", () => {
+    for (const bullet of ["-", "-x"]) {
+      const lean = `**Lean:** bind.\n\n## Bound remedy\n\n${bullet}\n  Enforce the check.\n\nrelieves: P1\n`;
+      const edited = lean.replace("Enforce the check.", "Skip the check.");
+      expect(hashBoundRemedyBytes(edited)).not.toBe(hashBoundRemedyBytes(lean));
+      expect(hashHarvestIdentity(edited)).not.toBe(hashHarvestIdentity(lean));
+    }
+  });
+
+  it("keeps the digest of an unspaced bullet with no continuation line", () => {
+    const lean = "**Lean:** bind.\n\n## Bound remedy\n\n1. Limb.\n-x\n\nrelieves: P1\n";
+    expect(hashBoundRemedyBytes(lean)).toBe(hashHarvestIdentityPreFold(lean));
+  });
+
+  it("does not drop a blocking pre-fold audit when the same lean is reposted", () => {
+    const blocking =
+      "role: critic\n\naudit-targets: pain-P1\nfinding-classes: blocking\nharvest-changed: false\n" +
+      `harvest-digest: sha256:${hashHarvestIdentityPreFold(wrapped)}\n`;
+    const clean =
+      "role: critic\n\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n" +
+      `harvest-digest: sha256:${hashHarvestIdentity(wrapped)}\n`;
+    const gate = evaluateAccumulatedPainAuditFollowThrough({
+      comments: [
+        {
+          id: 10,
+          body: wrapped,
+          created_at: "2026-11-21T10:00:00Z",
+          updated_at: "2026-11-21T10:00:00Z",
+        },
+        { id: 11, body: blocking, created_at: "2026-11-21T10:05:00Z" },
+        {
+          id: 12,
+          body: wrapped,
+          created_at: "2026-11-21T10:10:00Z",
+          updated_at: "2026-11-21T10:10:00Z",
+        },
+        { id: 13, body: clean, created_at: "2026-11-21T10:15:00Z" },
+      ],
+      citedLeanId: 12,
+      assertedPainIds: ["P1"],
+      isSuccessorLeanBody,
+    });
+    expect(gate.ok).toBe(false);
+    if (!gate.ok) expect(gate.recovery).toBe("retraction-handoff");
+  });
+
+  it("counts a clean pre-fold audit of an unedited lean that was reposted unchanged", () => {
+    const clean =
+      "role: critic\n\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n" +
+      `harvest-digest: sha256:${hashHarvestIdentityPreFold(wrapped)}\n`;
+    const gate = evaluateAccumulatedPainAuditFollowThrough({
+      comments: [
+        {
+          id: 10,
+          body: wrapped,
+          created_at: "2026-11-21T10:00:00Z",
+          updated_at: "2026-11-21T10:00:00Z",
+        },
+        { id: 11, body: clean, created_at: "2026-11-21T10:05:00Z" },
+        {
+          id: 12,
+          body: wrapped,
+          created_at: "2026-11-21T10:10:00Z",
+          updated_at: "2026-11-21T10:10:00Z",
+        },
+      ],
+      citedLeanId: 12,
+      assertedPainIds: ["P1"],
+      isSuccessorLeanBody,
+    });
+    expect(gate).toEqual({ ok: true });
+  });
+});
