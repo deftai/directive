@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6937",
-    "updated": "2026-11-21T23:48:23Z"
+    "updated": "2026-11-22T00:38:46Z"
   },
   "plan": {
     "title": "[framework-gap] observable-scope mints need one human approval per cohort, not one terminal command per story",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Today scope:record-observable-scope and scope:record-intent-constraint mint one record per brief, so a cohort of N UI or intent stories costs N typed mints on a real TTY. This story lets both verbs take several brief paths or a launch manifest, show the whole frozen set of records, ask for the typed mint once, and write exactly those records without ever overwriting an existing record. Records that match a brief added by the same activation PR may ride in that PR and keep it brief-land shaped. The docs say that the merge that lands a record is its real control.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6937",
@@ -20,106 +20,197 @@
     "items": [
       {
         "title": "Cohort form. `scope:record-observable-scope` and `scope:record-intent-constraint` accept one or more brief paths, or `--manifest <path>` (the `swarm:launch` launch-manifest JSON; its `xbrief_path` entries). One path keeps today's behaviour byte for byte.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When either record verb gets two or more brief paths or --manifest <launch-manifest>, then it runs the cohort form; with exactly one path it runs today's single-story code path unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Frozen set before the prompt. The verb loads and validates every selected brief first, then prints each record it will write (plan id, record path, brief path, `changeKind`, `allowedChanges`, `mustPreserve` or the intent facts), then runs today's `refuseNonInteractiveMint` once, then writes exactly those records. With explicit paths, a named brief with no valid contract refuses the whole set before the prompt. With `--manifest`, briefs with no contract of that kind are listed as skipped. Two plan ids that sanitize to one file name refuse before the prompt. If a target's record file already exists, the verb compares its plan id, brief path, `changeKind` and contract digest with the record it would write: when they all match, the existing file is left untouched and listed as already recorded (stamp and timestamps are not compared, since each mint writes fresh ones); when any differs, or the file does not parse, the whole set refuses before the prompt, names each such target and says to change an approved record with the single-story form (`scope:record-observable-scope -- <brief>` or `scope:record-intent-constraint -- <brief>`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a cohort run starts, then every brief is loaded, validated and built before the prompt, the frozen set is printed, refusals (missing contract, collision, changed or unparseable existing record) happen before the prompt, and matching existing records are listed as already recorded."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Write. A cohort run writes only records whose files did not exist before the run. Each is written to a temporary file and renamed into place; on a failure the verb removes the records it newly created in this run, leaves every pre-existing file untouched, and exits nonzero. Each record carries `cohortDigest`: sha256 of the canonical sorted list of record kind, plan id, brief path, `changeKind` and full contract payload, plus the repository slug. It is bookkeeping that ties the records to one approval, not proof of a human.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the cohort run writes, then it creates only records whose files did not exist, with an exclusive create, and on failure removes only the records it created and exits nonzero; each record carries cohortDigest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Activation PR carry. One shared check, used by `isBriefLandShapedDiff` (and so by `pr-closing-keywords` and the `verify-ac` Path B activation exemption), admits `.deft/observable-scope/<f>.json` and `.deft/intent-constraint/<f>.json` in an activation PR only when the record parses, its `xbriefRelPath` names a nonremoved brief the same PR adds or changes, that brief's `plan.id` equals the record's `planId`, `<f>` is the sanitized plan id, and the record's `changeKind` and contract digest equal the brief's contract. Any unmatched or ambiguous record leaves the PR not brief-land shaped, exactly as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When an activation PR carries .deft/observable-scope or .deft/intent-constraint records, then it stays brief-land shaped only when each record parses and matches a nonremoved brief the PR adds or changes by path, plan id, file name, changeKind and contract digest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Honest claim. `OBSERVABLE_SCOPE_REMEDIATION`, both verbs' usage text and `content/commands.md` name the cohort form and the activation-PR carry, and state that CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it (the wording of `packages/core/src/policy/one-pr-scope-proof.ts` 14-20).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When an operator reads OBSERVABLE_SCOPE_REMEDIATION, either verb's usage or content/commands.md, then the cohort form and the activation-PR carry are named and the merge that lands a record is stated as its control."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests beside each changed file: one path unchanged; several paths and `--manifest` write N records after one prompt; a refused prompt writes nothing; a named brief without a contract refuses before the prompt; a sanitize collision refuses; an existing matching record is left byte-identical and listed; an existing record with a different contract, brief path or `changeKind`, or one that does not parse, refuses the whole set before the prompt with the single-story hint and writes nothing; with one pre-existing record A and new records B and C, a forced failure on C removes B and leaves A byte-identical; `cohortDigest` is stable across input order; the brief-land check admits a matching record and refuses a record for another brief, a record with no brief in the PR, a wrong file name and a contract mismatch.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the targeted tests run, then they cover one path unchanged, N records after one prompt, refused prompt, missing contract, collision, matching and changed existing records, failure cleanup, stable cohortDigest and the brief-land record check."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`scope:record-observable-scope` and `scope:record-intent-constraint` accept several brief paths or `--manifest <launch-manifest>`, print every record they will write, ask for the typed mint once, and write exactly the printed records; a single path behaves as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When several brief paths or --manifest are given, then both verbs print every record they will write, ask once, and write exactly those records."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A refused or interrupted cohort mint writes no records; a failed write removes only the records that run newly created and leaves every pre-existing record byte-identical.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When a cohort prompt is refused or a write fails, then no record from that run remains and every pre-existing record is byte-identical."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A cohort mint never overwrites an existing record: a matching one is left untouched, and one that would change refuses the whole set before the prompt and names the single-story form.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When a cohort target already has a record, then a matching record is left untouched and a record that would change refuses the whole set before the prompt naming the single-story form."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A named brief without a valid contract, or two plan ids that map to one file name, refuse before the prompt; with `--manifest`, briefs without a contract are listed as skipped.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When a named brief has no valid contract or two plan ids map to one file name, then the run refuses before the prompt; with --manifest a brief without that contract is listed as skipped."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Each cohort record carries a `cohortDigest` over record kind, plan id, brief path, `changeKind`, full contract and repository slug.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When a cohort record is written, then it carries cohortDigest over record kind, plan id, brief path, changeKind, full contract and repository slug, stable across input order."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "An activation PR that carries records stays brief-land shaped only when every record matches a brief the PR adds or changes (path, plan id, file name, `changeKind` and contract digest); otherwise it is not brief-land shaped, as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When an activation PR carries a record that does not match a brief in that PR, then the PR is not brief-land shaped, as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The remediation text, both verbs' usage and `content/commands.md` name the cohort form and state that the record's control is the merge that lands it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When an operator reads the remediation, usage or commands.md, then each names the cohort form and states that the record's control is the merge that lands it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+          "recorded_at": "2026-11-22T00:38:46Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -829,9 +920,38 @@
         "conflict_group": "record-mint",
         "model_tier": "high",
         "acceptance_criteria_justification": "The recorded arc synthesis (comment 7071014972) binds six Bound remedy items and seven Acceptance Criteria from lean 7070984701; ingest harvested all 13 as clauses and each maps to a named test or doc change."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6ed9a644cf22aa4d223f6d06fef7b0c55953a5c5",
+        "prNumber": 6951,
+        "prBase": "master",
+        "mergeCommit": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c2928f39e9a372d765df2ee9037db2c3e0970926",
+        "verifiedAt": "2026-11-22T00:38:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6947
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T00:38:46Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T00:38:46Z"
       }
     },
     "id": "github.issue.6528789467",
-    "updated": "2026-11-21T23:48:23Z"
+    "updated": "2026-11-22T00:38:46Z"
   }
 }
