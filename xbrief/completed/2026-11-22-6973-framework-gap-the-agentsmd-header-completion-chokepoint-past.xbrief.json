@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6973",
-    "updated": "2026-11-22T04:12:24Z"
+    "updated": "2026-11-22T17:15:49Z"
   },
   "plan": {
     "title": "[framework-gap] The AGENTS.md header completion chokepoint pastes the whole Overview narrative into the one-liner, on any agent write, outside every story file_scope",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] The AGENTS.md header completion chokepoint pastes the whole Overview narrative into the one-liner, on any agent write, outside every story file_scope",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6973",
@@ -17,63 +17,147 @@
     "items": [
       {
         "title": "Derivation. `oneLinerFromConfirmedOverview` returns the first sentence of the first Overview line that is not a heading and not a `Source:` line, split so that closed abbreviations (`e.g.`, `i.e.`, `etc.`, `vs.`) do not end a sentence. It returns no line when that sentence is longer than one named constant (`CONSUMER_HEADER_ONELINER_MAX_CHARS`, 120), contains `<!--` or a newline, or is empty. It never truncates.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "No automatic write. No chokepoint writes AGENTS.md. The markWrite path records the product-mutation marker (also on the fresh-lease return when the marker is absent) and evaluates; occupancy release, `scope:complete`, `deft check` and the cached check evaluate only. The evaluate path treats dirty product paths as product work for that call without stamping the marker. Every refusal site and the #4544 refusal stay as they are, linked worktrees included.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One writer. `deft project:write-header-line [--line <text>] [--project-root <p>]` takes `--line` or the item 1 derivation and applies the item 1 checks to either; when no line qualifies it writes nothing, prints the candidate sentence and the `--line` form, and exits 1. Otherwise it runs the placeholder-only compare-and-set with the existing re-read guard and prints the file, the exact line and the next step (commit AGENTS.md on a feature branch). It does not commit. In a linked worktree it writes nothing and exits 1 naming the primary checkout and the delivery branch.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Landing. One shared predicate (`isConsumerHeaderOneLinerOnlyChange`) is true when the only difference between the HEAD and staged AGENTS.md is the scaffold line replaced by a line that passes the item 1 checks. Prospective scope-cover leaves a staged AGENTS.md that satisfies it out of the paths that need a running scope or a `file_scope` entry; any other AGENTS.md change stays a product path. Branch policy and the branch gate are unchanged. No ownership classifier changes.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Remedy text. The refusal remedy constants (`CONSUMER_HEADER_COMPLETION_CHOKEPOINT_REMEDY`, `FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY`, the named-cause row) name `deft project:write-header-line` and, in a linked worktree, the primary checkout plus rebase. `content/commands.md` lists the command.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests: a multi-sentence one-paragraph Overview gives one sentence; a heading-only first line, a leading `Source:` line, `e.g.` inside the first sentence, a sentence over the cap and a `<!--` line; an ordinary product write, `deft check` (both orchestrators), occupancy release and `scope:complete` leave AGENTS.md unchanged and still refuse on the scaffold line; a linked worktree refuses and writes nothing; a reverted header is not rewritten; the command writes and prints, never commits, and refuses in a linked worktree; prospective scope-cover admits the exact change with no running scope and with an active story whose `file_scope` excludes AGENTS.md, and refuses an AGENTS.md change that touches anything else; the branch gate still refuses that commit on a protected delivery branch; a fresh-lease product write records the marker; and the reported sequence (several-sentence Overview, product write, header filled with the whole paragraph) fails before the fix.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The header line derived from an Overview is one sentence of at most 120 characters, never a truncated fragment, a heading, a `Source:` line or a line with `<!--`.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "An ordinary agent write, `deft check`, occupancy release and `scope:complete` never write AGENTS.md, in the primary checkout or a linked worktree.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Product work with the scaffold line still refuses at the same sites, and the refusal names `deft project:write-header-line`.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`deft project:write-header-line` prints the line it wrote and the next step, never commits, and writes nothing in a linked worktree.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Prospective scope-cover admits an AGENTS.md change that is only the scaffold line replaced by a qualifying line, without a running scope or a `file_scope` entry, and treats any other AGENTS.md change as a product path; branch policy is unchanged.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A header the operator reverted is not rewritten by any automatic path.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+          "recorded_at": "2026-11-22T17:15:49Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -694,10 +778,39 @@
         ],
         "model_tier": "standard",
         "conflict_group": "consumer-header"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a4c7f25b9b878936d3c31d5e2bd10743a3050832",
+        "prNumber": 7052,
+        "prBase": "master",
+        "mergeCommit": "f21ff629bf3cda69d00a70a16ae14992b4c43939",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5d6da322fc8a38a516dec8488cfd824e0b4787e",
+        "verifiedAt": "2026-11-22T17:15:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6985,
+          6995,
+          7049
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T17:15:49Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T17:15:49Z"
       }
     },
     "id": "github.issue.6537999296",
-    "updated": "2026-11-22T04:12:24Z",
+    "updated": "2026-11-22T17:15:49Z",
     "x-directive/intentConstraint": {
       "constraints": [
         {
