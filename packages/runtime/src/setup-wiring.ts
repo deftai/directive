@@ -1637,12 +1637,14 @@ export function ensureGitHooks(
       // rewrite it to the relative value without the takeover approval. Repository
       // config only (P20): a worktree-scoped value is replaced where it lives.
       const where = state.scope === "worktree" ? "--worktree" : "--local";
+      let wrote = false;
       try {
         execFileSync(
           "git",
           ["-C", projectRoot, "config", where, "--replace-all", "core.hooksPath", ".githooks"],
           { stdio: ["ignore", "ignore", "ignore"] },
         );
+        wrote = true;
       } catch {
         /* verified below */
       }
@@ -1653,11 +1655,13 @@ export function ensureGitHooks(
       } else if (isOurHooksPathValue(projectRoot, state.value)) {
         // Not rewritten, but it still names this checkout's own .githooks.
         hooksPathActive = true;
-      } else {
+      } else if (!wrote) {
         inactiveDisclosure =
-          after.kind === "foreign"
-            ? formatHooksPathStillForeign(projectRoot, after)
-            : `Git hooks inactive: could not set core.hooksPath=.githooks (it is '${state.value}', another checkout's .githooks). Try directive install --repair again.`;
+          "Git hooks inactive: could not set core.hooksPath=.githooks (the repository's Git config is locked or not writable). Try directive install --repair again.";
+      } else {
+        // The write landed but another source (an included config file or the
+        // command line) still wins. Repeating repair cannot fix that; name it.
+        inactiveDisclosure = formatHooksPathStillForeign(projectRoot, after);
       }
     } else if (state.kind === "ours") {
       hooksPathActive = true;

@@ -363,8 +363,6 @@ function gitOut(projectRoot: string, args: readonly string[]): string | null {
 
 function samePath(a: string, b: string): boolean {
   if (a === b) return true;
-  // Windows paths are case-insensitive; Git may print another drive-letter case.
-  if (process.platform === "win32" && a.toLowerCase() === b.toLowerCase()) return true;
   try {
     return realpathSync(a) === realpathSync(b);
   } catch {
@@ -373,24 +371,9 @@ function samePath(a: string, b: string): boolean {
 }
 
 /**
- * #7029: true when `target` is the `.githooks` of another checkout (linked
- * worktree) of this repository. Setup rewrites such a value to the relative
- * `.githooks` without a takeover, so the plan must not ask to replace it.
- */
-function isOtherCheckoutGithooks(projectRoot: string, target: string): boolean {
-  const raw = gitOut(projectRoot, ["worktree", "list", "--porcelain"]);
-  if (raw === null) return false;
-  return raw
-    .split(/\r?\n/)
-    .filter((l) => l.startsWith("worktree "))
-    .some((l) => samePath(target, resolve(l.slice("worktree ".length).trim(), ".githooks")));
-}
-
-/**
  * #4960 / ledger Problem 20 — read-only check, before the install/repair plan, for
  * Git hooks that `.githooks` would replace in this repository. Returns null when
- * nothing would be replaced (no `.git`, hooks already Directive's — this or another
- * checkout's `.githooks` (#7029) — or nothing set).
+ * nothing would be replaced (no `.git`, hooks already Directive's, or nothing set).
  * Never writes Git config (safe for `--dry-run`).
  */
 export function detectHooksTakeover(projectRoot: string): HooksTakeover | null {
@@ -405,7 +388,6 @@ export function detectHooksTakeover(projectRoot: string): HooksTakeover | null {
     if (value !== "") {
       if (value === ".githooks" || value === ".githooks/") return null;
       if (samePath(resolve(projectRoot, value), ours)) return null;
-      if (isOtherCheckoutGithooks(projectRoot, resolve(projectRoot, value))) return null;
       return { previous: value, scope: scope === "" ? null : scope, hooks: [] };
     }
   }
