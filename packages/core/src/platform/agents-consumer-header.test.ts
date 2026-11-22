@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -258,6 +258,15 @@ describe("header one-liner derivation and checks (#6973)", () => {
     );
   });
 
+  it("ends a sentence after a closing quote or bracket", () => {
+    expect(oneLinerFromConfirmedOverview('A tool called "Garden." It tracks beds.')).toBe(
+      'A tool called "Garden."',
+    );
+    expect(oneLinerFromConfirmedOverview("A tool (for plots.) It tracks beds.")).toBe(
+      "A tool (for plots.)",
+    );
+  });
+
   it("keeps a decimal or a version inside the sentence", () => {
     expect(oneLinerFromConfirmedOverview("Runs on Node 24.1 and SQLite. Second.")).toBe(
       "Runs on Node 24.1 and SQLite.",
@@ -388,5 +397,12 @@ describe("writeConsumerHeaderLineAtRoot (#6973)", () => {
     expect(
       writeConsumerHeaderLineAtRoot(root(scaffold), { line: null, readOverview: () => null }).kind,
     ).toBe("no-overview");
+  });
+
+  it("reports an unreadable AGENTS.md as a failure, not as a missing file", () => {
+    const r = root(null);
+    mkdirSync(join(r, "AGENTS.md"));
+    const result = writeConsumerHeaderLineAtRoot(r, { line: "A tool.", readOverview: () => null });
+    expect(result.kind).toBe("failed");
   });
 });

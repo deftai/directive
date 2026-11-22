@@ -631,6 +631,15 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(gate.allow).toBe(false);
     expect(gate.message).toContain("deft project:write-header-line");
     expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(scaffold);
+    // A retried write after the refusal (marker now present) is refused again.
+    const retry = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: new Date(claimedAt.getTime() + 2000),
+      refresh: true,
+      persistProductMutationMarker: true,
+    });
+    expect(retry.allow).toBe(false);
+    expect(retry.message).toContain("deft project:write-header-line");
   });
 
   it("Process-only fresh-lease write records no marker (#6973)", () => {

@@ -70,18 +70,26 @@ function isSourceLine(line: string): boolean {
   return /^source\s*:/i.test(line);
 }
 
-/** First sentence of one line: up to the first `.`/`!`/`?` that ends a word, skipping closed abbreviations. */
+/** Closing quotes and brackets that may follow a sentence-ending mark (#6973). */
+const SENTENCE_CLOSERS = new Set(['"', "'", ")", "]", "”", "’", "`"]);
+
+/**
+ * First sentence of one line: up to the first `.`/`!`/`?` (plus any closing
+ * quotes or brackets) that ends a word, skipping closed abbreviations.
+ */
 function firstSentence(line: string): string {
   for (let i = 0; i < line.length; i += 1) {
     const ch = line[i];
     if (ch !== "." && ch !== "!" && ch !== "?") continue;
-    const next = line[i + 1];
+    let end = i + 1;
+    while (end < line.length && SENTENCE_CLOSERS.has(line[end] ?? "")) end += 1;
+    const next = line[end];
     if (next !== undefined && !/\s/.test(next)) continue;
     if (ch === ".") {
       const word = (line.slice(0, i).match(/(\S+)$/)?.[1] ?? "").toLowerCase();
       if (NON_TERMINAL_ABBREVIATIONS.has(word.replace(/^[("'`]+/, ""))) continue;
     }
-    return line.slice(0, i + 1).trim();
+    return line.slice(0, end).trim();
   }
   return line.trim();
 }
@@ -255,14 +263,19 @@ export function writeConsumerHeaderLineAtRoot(
 ): WriteConsumerHeaderLineResult {
   const root = resolve(projectRoot);
   const path = join(root, "AGENTS.md");
-  const read = (): string | null => {
+  // Missing and unreadable stay apart: a read error is a failure, not "no file".
+  const read = (): { readonly text: string | null } | { readonly error: string } => {
+    if (!existsSync(path)) return { text: null };
     try {
-      return existsSync(path) ? readFileSync(path, "utf8") : null;
-    } catch {
-      return null;
+      return { text: readFileSync(path, "utf8") };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) };
     }
   };
-  const before = read();
+  const first = read();
+  if ("error" in first)
+    return { kind: "failed", path, detail: `cannot read AGENTS.md (${first.error})` };
+  const before = first.text;
   if (before === null) return { kind: "no-agents-md", path };
   const current = unmanagedHeaderOneLiner(before.replace(/\r\n/g, "\n"));
   if (current !== CONSUMER_HEADER_PLACEHOLDER_ONELINER) {
@@ -287,7 +300,8 @@ export function writeConsumerHeaderLineAtRoot(
   );
   if (replaced === null) return { kind: "not-placeholder", path, current };
   // Re-read at write time so a concurrent AGENTS.md edit is not overwritten (#4544).
-  if (read() !== before) {
+  const again = read();
+  if ("error" in again || again.text !== before) {
     return { kind: "failed", path, detail: "AGENTS.md changed while the line was derived; re-run" };
   }
   // Keep the file's line endings so the diff is the one line only.
