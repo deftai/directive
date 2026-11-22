@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7082",
-    "updated": "2026-11-22T20:29:22Z"
+    "updated": "2026-11-22T22:03:57Z"
   },
   "plan": {
     "title": "feat(swarm): cohort lifecycle - in-PR completion first, one cohort lifecycle PR (slice of #7062)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Slice cohort-lifecycle of the accepted #7062 lean (comment 7082701528). In a cohort, a story that scope:complete --in-pr admits completes inside its product PR, and the parent, as cohort closer, completes the other merged stories in one swarm:finalize-cohort lifecycle PR with no changelog fragment. The closer passes only merged PRs, names and keeps every unmerged, omitted or refused story for a later run, and owns each story until verify:completed-tracked and verify:orphan-active pass. The preamble, AGENTS.md, the agents-entry template and the swarm and build skill sources say so; a solo story keeps today's worker-owned completion.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7082",
@@ -19,58 +19,107 @@
     "items": [
       {
         "title": "In-PR completion first. In a cohort, a worker whose story `scope:complete -- <active-path> --in-pr` admits (#6277) completes it in its product PR with the closing keyword that verb requires; that story needs no lifecycle PR. A worker whose story the verb refuses stops at product merge with `deft-story: N` and leaves completion to the cohort closer. A solo story keeps today's worker-owned completion.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a cohort worker's story is admitted by scope:complete --in-pr, it completes in its product PR and no lifecycle PR is opened for it; a refused story stops at merge with deft-story: N; a solo story completes as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f1076484790d3be2c648bb8c58553034b65d52f",
+          "recorded_at": "2026-11-22T22:03:57Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Cohort closer. The parent runs `swarm:finalize-cohort -- --pr <list>` with only the merged product PRs of post-merge stories, which opens one lifecycle PR with no changelog fragment (#680 / #6764). It reports each unmerged, omitted or refused story by id, keeps it on its list and finalizes it in a later run. It owns each story through lifecycle-PR merge, then runs `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` for each.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the closer runs swarm:finalize-cohort over merged post-merge PRs, one lifecycle PR with no changelog fragment is opened, each unmerged, omitted or refused story is named by id and stays active, and completed-tracked and orphan-active pass for each completed story."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f1076484790d3be2c648bb8c58553034b65d52f",
+          "recorded_at": "2026-11-22T22:03:57Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Lifecycle rule texts change together: the DONE reservation and completion rules in `content/templates/agent-prompt-preamble.md`, the cohort-closer carve-out in `content/templates/agents-entry.md` (DONE rule) and `AGENTS.md` (post-merge scope lifecycle), mirrored per #1309, and in `content/packs/skills/skills-pack-0.1.json` (regenerated) the swarm skill and the build skill, whose swarm-cohort text sends post-merge completion to the cohort closer instead of a `scope:complete` after each story.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the preamble, agents-entry template, AGENTS.md and the swarm and build skill sources are read, each sends cohort post-merge completion to the cohort closer, the pack source and rendered skills agree, and agents:refresh reports no drift."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f1076484790d3be2c648bb8c58553034b65d52f",
+          "recorded_at": "2026-11-22T22:03:57Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Lifecycle tests: an admitted in-PR completion in a cohort opens no lifecycle PR; one `finalizeCohort` run over several `deft-story` PRs completes them in one PR with no fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and closing-keywords; an unmerged PR left off the list stays active and is named in the report.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the lifecycle tests run, an in-PR-completed story opens no lifecycle PR, one finalizeCohort run over several deft-story PRs makes one PR that passes verify:changelog-unreleased, #5656 scope-cover and closing-keywords, and an unlisted unmerged PR stays active and is named."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f1076484790d3be2c648bb8c58553034b65d52f",
+          "recorded_at": "2026-11-22T22:03:57Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A cohort story that `scope:complete --in-pr` admits completes in its product PR; the other merged stories complete in one `swarm:finalize-cohort` lifecycle PR with no changelog fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and the closing-keywords check.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When a cohort finishes, an in-PR-admitted story is completed by its product PR and the other merged stories are completed by one fragment-free lifecycle PR that passes the changelog, scope-cover and closing-keywords checks."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f1076484790d3be2c648bb8c58553034b65d52f",
+          "recorded_at": "2026-11-22T22:03:57Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The cohort closer passes only merged PRs, names every unmerged or refused story, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` pass for every story it completes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the closer runs, only merged PRs are completed, every unmerged or refused story is named in the report, and verify:completed-tracked and verify:orphan-active exit 0 for every story it completed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f1076484790d3be2c648bb8c58553034b65d52f",
+          "recorded_at": "2026-11-22T22:03:57Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The preamble, `AGENTS.md`, the agents-entry template and the swarm and build skill sources send a cohort's post-merge completion to the cohort closer, and a solo story keeps the unbatched path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the rule texts are read, the preamble, AGENTS.md, agents-entry template and swarm and build skill sources route cohort post-merge completion to the cohort closer and leave the solo path unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f1076484790d3be2c648bb8c58553034b65d52f",
+          "recorded_at": "2026-11-22T22:03:57Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -183,7 +232,34 @@
         "harvestDigest": "5b6020381d230a41ed3bea3538be539db8e6a473ee8b805ebf6cf5313e71116c",
         "slice": "cohort-lifecycle"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f17df0a53f595a66d01a294b15323329a59e7bce",
+        "prNumber": 7095,
+        "prBase": "master",
+        "mergeCommit": "1f1076484790d3be2c648bb8c58553034b65d52f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f",
+        "verifiedAt": "2026-11-22T22:03:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7088
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T22:03:57Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T22:03:57Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -263,6 +339,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6547311015",
-    "updated": "2026-11-22T20:29:22Z"
+    "updated": "2026-11-22T22:03:57Z"
   }
 }
