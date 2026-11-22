@@ -58,6 +58,7 @@ export {
   requiredPhases,
 } from "./phases.js";
 export {
+  clearDefaultPrePrStore,
   FileBackedPrePrStore,
   getDefaultPrePrStore,
   InProcessPrePrStore,

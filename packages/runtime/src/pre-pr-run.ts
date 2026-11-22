@@ -76,7 +76,10 @@ Options:
   --skill-open            always refuses; opening the skill is not completion
   --evaluate              evaluate live binding against the private store
   --push-admit            enrolled push admission (#5804); reads pre-push stdin
-  --project-root <path>   project root for --push-admit / store resolution
+  --project-root <path>   project root (default: the cwd) for the private store,
+                          the gate checks, relative --reviewed-file paths,
+                          --complete and --push-admit (#6902). --body-file
+                          paths stay relative to the cwd.
   --body-file <path>      PR body file: before start, append the story line
                           (deft-story: N) for the branch's running story (#6316);
                           alone, runs only that step. With start, the run binds
@@ -454,8 +457,10 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     process.stderr.write("pre_pr_run: --part requires --body-file\n");
     return 2;
   }
+  // #6902: one project root for every path (store, gate checks, reviewed files,
+  // complete, push-admit, story line). --body-file stays cwd-relative.
+  const projectRoot = args.projectRoot?.trim() || process.cwd();
   if (args.pushAdmit) {
-    const projectRoot = args.projectRoot?.trim() || process.cwd();
     let rawStdin = "";
     try {
       rawStdin = readFileSync(0, "utf8");
@@ -477,7 +482,7 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     emit(args.json, d, d.message, true);
     return 1;
   }
-  const store = getDefaultPrePrStore();
+  const store = getDefaultPrePrStore(projectRoot);
   if (args.markComplete) {
     const d = markComplete(store, args.runId ?? "");
     emit(args.json, d, d.message, true);
@@ -511,8 +516,7 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
         return 2;
       }
       const spec = phaseSpec(phase);
-      // Same root rule as push-admit: one report path for observe and satisfy.
-      const projectRoot = args.projectRoot?.trim() || process.cwd();
+      // Same root as push-admit: one report path for observe and satisfy.
       // #6336 item 4: lint_iteration also runs verify:class-checks and
       // verify:evaluator-surface on the candidate tree and records both results.
       const gateChecks =
@@ -543,7 +547,11 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
       process.stderr.write("pre_pr_run: --observe-semantic requires --reviewed-file\n");
       return 2;
     }
-    const observed = computeControllerObservedHash({ reviewedFiles: args.reviewedFiles });
+    // #6902: relative reviewed files resolve against the root, as completeRun re-hashes them.
+    const observed = computeControllerObservedHash({
+      reviewedFiles: args.reviewedFiles,
+      cwd: projectRoot,
+    });
     if (observed === null) {
       process.stderr.write(
         "pre_pr_run: --observe-semantic could not hash reviewed-file contents\n",
@@ -632,7 +640,6 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     }
     // #5804 / #5994: projectRoot is required so completeRun can stamp
     // pushBinding.reviewedDeletedPaths from base..head.
-    const projectRoot = args.projectRoot?.trim() || process.cwd();
     // #6888: --complete runs verify:ac itself on every call; the caller's
     // --verify-ac-disposition is only a claim that must match the result.
     const verifyAcResult = (
@@ -659,7 +666,7 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     const writer = options.writeStoryLine ?? writeStoryLineToBodyFile;
     const written = writer({
       bodyFile: args.bodyFile,
-      projectRoot: args.projectRoot?.trim() || process.cwd(),
+      projectRoot,
       repo: args.repo.length > 0 ? args.repo : null,
       part: args.part,
     });

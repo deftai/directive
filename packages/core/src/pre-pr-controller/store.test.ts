@@ -9,12 +9,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import * as containedWriteMod from "../fs/contained-write.js";
 import { startControllerRun } from "./controller.js";
 import { digestApprovedCriteria } from "./criteria.js";
 import {
+  clearDefaultPrePrStore,
   FileBackedPrePrStore,
   getDefaultPrePrStore,
   InProcessPrePrStore,
@@ -55,6 +56,44 @@ describe("pre-pr private store", () => {
     setDefaultPrePrStore(other);
     expect(getDefaultPrePrStore()).toBe(other);
     resetDefaultPrePrStore();
+  });
+
+  it("#6902: the default store follows the absolute root; injection wins until cleared", () => {
+    const a = mkdtempSync(join(tmpdir(), "pre-pr-root-a-"));
+    const b = mkdtempSync(join(tmpdir(), "pre-pr-root-b-"));
+    const prevCwd = process.cwd();
+    try {
+      clearDefaultPrePrStore();
+      const storeA = getDefaultPrePrStore(a);
+      expect(storeA).toBeInstanceOf(FileBackedPrePrStore);
+      expect((storeA as FileBackedPrePrStore).projectRoot).toBe(resolve(a));
+      expect(getDefaultPrePrStore(a)).toBe(storeA);
+      const storeB = getDefaultPrePrStore(b);
+      expect((storeB as FileBackedPrePrStore).projectRoot).toBe(resolve(b));
+      const storeA2 = getDefaultPrePrStore(a);
+      expect((storeA2 as FileBackedPrePrStore).projectRoot).toBe(resolve(a));
+      // A relative root resolves against the cwd at call time.
+      process.chdir(b);
+      expect((getDefaultPrePrStore(".") as FileBackedPrePrStore).projectRoot).toBe(resolve(b));
+      process.chdir(a);
+      expect((getDefaultPrePrStore(".") as FileBackedPrePrStore).projectRoot).toBe(resolve(a));
+      // An injected store wins for any root until cleared.
+      const injected = new InProcessPrePrStore();
+      setDefaultPrePrStore(injected);
+      expect(getDefaultPrePrStore(a)).toBe(injected);
+      expect(getDefaultPrePrStore(b)).toBe(injected);
+      const reset = resetDefaultPrePrStore();
+      expect(getDefaultPrePrStore(b)).toBe(reset);
+      clearDefaultPrePrStore();
+      const fresh = getDefaultPrePrStore(b);
+      expect(fresh).toBeInstanceOf(FileBackedPrePrStore);
+      expect((fresh as FileBackedPrePrStore).projectRoot).toBe(resolve(b));
+    } finally {
+      process.chdir(prevCwd);
+      clearDefaultPrePrStore();
+      rmSync(a, { recursive: true, force: true });
+      rmSync(b, { recursive: true, force: true });
+    }
   });
 
   it("indexes by PR node id after put", () => {
