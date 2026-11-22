@@ -122,8 +122,8 @@ export const RELEASE_HELP =
   "                        `git remote get-url origin`, falling back to\n" +
   "                        'deftai/directive').\n" +
   "  --base-branch BRANCH  Expected base branch for releases (default: master).\n" +
-  "  --project-root PATH   Repository root (default: $DEFT_PROJECT_ROOT or the\n" +
-  "                        parent of the scripts/ directory).\n" +
+  "  --project-root PATH   Repository root (default: $DEFT_PROJECT_ROOT, else the\n" +
+  "                        current working directory).\n" +
   "  --summary TEXT        Optional one-line summary to inject as a Markdown\n" +
   "                        blockquote at the top of the promoted CHANGELOG\n" +
   "                        section. Flows through to the GitHub release body and\n" +

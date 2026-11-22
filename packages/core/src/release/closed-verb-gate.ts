@@ -183,7 +183,8 @@ export function assertTagPushClosedVerb(
     emitGate(label, `FAIL (${gate.code}: ${gate.reason})`);
     process.stderr.write(
       `[release] denied code=${gate.code} — set ${bypassKey}=1 or ` +
-        `mint \`deft authz:grant -- --template ${TAG_PUSH_CLOSED_VERB} --target ${mintTarget}\`\n`,
+        `mint \`deft authz:grant -- --template ${TAG_PUSH_CLOSED_VERB} --target ${mintTarget}\`` +
+        ` projectRoot=${config.projectRoot}\n`,
     );
     return EXIT_VIOLATION;
   }
