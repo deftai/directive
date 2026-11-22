@@ -8,9 +8,14 @@
  *
  * Enqueue reads, no hold: before every enqueue the run reads the origin tip
  * (it must still be the cut base B) and the merge queue (it must be empty).
- * Otherwise it stops without enqueueing. The reads do not hold other merges;
- * a PR that still lands first is caught by the finish step, which refuses
- * unless the sole parent of M is B (#6875).
+ * Otherwise it stops without enqueueing. The reads run once before the merge
+ * engine starts and again at its enqueue call, after the engine's own waits
+ * and gates, so the enqueue never rests on an old read. They do not hold
+ * other merges; a PR that still lands first is caught by the finish step,
+ * which refuses unless the sole parent of M is B (#6875). An enqueue the run
+ * recorded is read back before any new one: merged is done, still queued is
+ * waited on, a removal is judged like an ejection, and only a PR that never
+ * entered the queue is enqueued again.
  *
  * One re-run per run: a failed required check (pr:watch CI_BLOCKED) or a queue
  * ejection for a failed check uses the run's single re-run, kept in the run
@@ -27,6 +32,7 @@ import {
   probeGraphqlRemaining,
 } from "../pr-wait-mergeable/merge-queue.js";
 import type { WaitMergeableResult } from "../pr-wait-mergeable/types.js";
+import { runGhMerge } from "../pr-wait-mergeable/wrappers.js";
 import {
   VERDICT_CI_BLOCKED,
   VERDICT_CLEAN,
@@ -57,6 +63,18 @@ export type QueueOutcome =
   | { readonly kind: "ejected"; readonly reason: string }
   | { readonly kind: "other"; readonly detail: string };
 
+/** One read of an enqueue the run recorded earlier (its head and time). */
+export type PreviousEnqueue =
+  | QueueOutcome
+  | { readonly kind: "queued" }
+  | { readonly kind: "never-enqueued" };
+
+/**
+ * Called by the merge engine right before it enqueues, with the head it pins.
+ * Returns null when the enqueue may go ahead, else the reason it may not.
+ */
+export type BeforeEnqueue = (head: string | null) => string | null;
+
 export interface ReleaseMergeSeams {
   readonly watch?: (pr: number, repo: string, projectRoot: string) => MergeWatchOutcome;
   readonly readTip?: (
@@ -73,7 +91,19 @@ export interface ReleaseMergeSeams {
     headSha: string,
     failedChecks: readonly string[],
   ) => ReadResult<{ readonly runIds: readonly string[] }>;
-  readonly enqueueAndWait?: (pr: number, repo: string, projectRoot: string) => QueueOutcome;
+  readonly enqueueAndWait?: (
+    pr: number,
+    repo: string,
+    projectRoot: string,
+    beforeEnqueue: BeforeEnqueue,
+  ) => QueueOutcome;
+  readonly readPrevious?: (
+    pr: number,
+    repo: string,
+    projectRoot: string,
+    expectHead: string,
+    since: string,
+  ) => PreviousEnqueue;
   readonly waitQueued?: (
     pr: number,
     repo: string,
@@ -258,7 +288,12 @@ export function rerunFailedRequiredChecks(
   return { ok: true, runIds: [...ids] };
 }
 
-function defaultEnqueueAndWait(pr: number, repo: string, projectRoot: string): QueueOutcome {
+function defaultEnqueueAndWait(
+  pr: number,
+  repo: string,
+  projectRoot: string,
+  beforeEnqueue: BeforeEnqueue,
+): QueueOutcome {
   // The CLI's own --cap-minutes default, read from its parser.
   const args = parseWaitMergeableArgs([String(pr), "--repo", repo, "--wait"]);
   return queueOutcomeOf(
@@ -267,8 +302,34 @@ function defaultEnqueueAndWait(pr: number, repo: string, projectRoot: string): Q
       protected: [],
       projectRoot,
       wait: true,
+      // The enqueue reads run again here, at the enqueue call itself.
+      mergeFn: (n, r, options) => {
+        const refused = beforeEnqueue(options?.matchHeadCommit ?? null);
+        if (refused !== null) return [1, "", `release:run enqueue reads: ${refused}; not enqueued`];
+        return runGhMerge(n, r, options);
+      },
     }),
   );
+}
+
+/** Map one queue read of a recorded enqueue onto {@link PreviousEnqueue}. */
+export function previousEnqueueOf(result: WaitMergeableResult): PreviousEnqueue {
+  const kind = result.outcome;
+  if (kind === "merged") return { kind: "merged" };
+  if (kind === "queued" || kind === "awaiting-admission") return { kind: "queued" };
+  // No queue entry and no removal since the recorded time: it never entered the queue.
+  if (kind === "inactive") return { kind: "never-enqueued" };
+  return queueOutcomeOf(result);
+}
+
+function defaultReadPrevious(
+  pr: number,
+  repo: string,
+  projectRoot: string,
+  expectHead: string,
+  since: string,
+): PreviousEnqueue {
+  return previousEnqueueOf(resumeMergeQueueRead(pr, repo, { expectHead, since, projectRoot }));
 }
 
 function defaultWaitQueued(
@@ -314,7 +375,34 @@ export function runMergePhase(ctx: MergePhaseContext, seams: ReleaseMergeSeams =
     ((r: string, sha: string, failed: readonly string[]) =>
       rerunFailedRequiredChecks(r, sha, failed, runGh));
   const enqueueAndWait = seams.enqueueAndWait ?? defaultEnqueueAndWait;
+  const readPrevious = seams.readPrevious ?? defaultReadPrevious;
   const waitQueued = seams.waitQueued ?? defaultWaitQueued;
+
+  /** The enqueue reads: the live origin tip against B, then the merge-queue entries. */
+  const enqueueReads = (): {
+    readonly refused: string | null;
+    readonly queuedPrs: readonly number[];
+    readonly queuedTotal: number;
+  } => {
+    const none = { queuedPrs: [], queuedTotal: 0 };
+    const tip = readTip(repo, baseBranch, ctx.projectRoot);
+    if (!tip.ok) return { ...none, refused: `cannot read the origin tip: ${tip.reason}` };
+    if (tip.sha.toLowerCase() !== cutBase.toLowerCase()) {
+      return {
+        ...none,
+        refused:
+          `origin/${baseBranch} is ${tip.sha.slice(0, 12)}, ` +
+          `not the cut base B=${cutBase.slice(0, 12)}`,
+      };
+    }
+    const queue = readQueue(repo, baseBranch);
+    if (!queue.ok) return { ...none, refused: `cannot read the merge queue: ${queue.reason}` };
+    return {
+      refused: null,
+      queuedPrs: queue.prs,
+      queuedTotal: Math.max(queue.total, queue.prs.length),
+    };
+  };
 
   /** Spend the run's one re-run, or stop when it is spent. True when spent now. */
   const spendRerun = (what: string): boolean => {
@@ -344,6 +432,8 @@ export function runMergePhase(ctx: MergePhaseContext, seams: ReleaseMergeSeams =
         return EXIT_VIOLATION;
       }
       if (!spendRerun(`a queue ejection for a failed check (${reason})`)) return EXIT_VIOLATION;
+      // This enqueue is judged; the re-enqueue records its own.
+      ctx.save({ enqueue: null });
       ctx.line(
         `RE-RUN (queue ejection for a failed check: ${reason}; re-enqueue under the same reads)`,
       );
@@ -387,47 +477,58 @@ export function runMergePhase(ctx: MergePhaseContext, seams: ReleaseMergeSeams =
     }
 
     // Enqueue reads: the origin tip must still be B and the merge queue empty.
-    const tip = readTip(repo, baseBranch, ctx.projectRoot);
-    if (!tip.ok) {
-      ctx.line(`FAIL (cannot read the origin tip: ${tip.reason}; not enqueued)`);
+    const early = enqueueReads();
+    if (early.refused !== null) {
+      ctx.line(`FAIL (${early.refused}; not enqueued)`);
       return EXIT_VIOLATION;
     }
-    if (tip.sha.toLowerCase() !== cutBase.toLowerCase()) {
+
+    // An enqueue recorded by an earlier pass or run is read back before any new one.
+    const recorded = ctx.record().enqueue;
+    if (recorded !== null) {
+      const previous = readPrevious(pr, repo, ctx.projectRoot, recorded.head, recorded.since);
+      if (previous.kind === "queued") {
+        ctx.line(`WAIT (release PR #${String(pr)} is still in the merge queue)`);
+        const settled = settle(
+          waitQueued(pr, repo, ctx.projectRoot, recorded.head, recorded.since),
+        );
+        if (settled !== null) return settled;
+        continue;
+      }
+      if (previous.kind !== "never-enqueued") {
+        const settled = settle(previous);
+        if (settled !== null) return settled;
+        continue;
+      }
+      // It never entered the queue: the recorded enqueue did not happen.
+      ctx.save({ enqueue: null });
+    }
+    if (early.queuedPrs.includes(pr)) {
       ctx.line(
-        `FAIL (origin/${baseBranch} is ${tip.sha.slice(0, 12)}, not the cut base B=${cutBase.slice(0, 12)}; ` +
-          "not enqueued)",
+        `FAIL (release PR #${String(pr)} is in the merge queue but the run recorded no enqueue)`,
       );
       return EXIT_VIOLATION;
     }
-    const queue = readQueue(repo, baseBranch);
-    if (!queue.ok) {
-      ctx.line(`FAIL (cannot read the merge queue: ${queue.reason}; not enqueued)`);
-      return EXIT_VIOLATION;
-    }
-    if (queue.prs.includes(pr)) {
-      // Enqueued by an earlier pass of this run: wait on it, do not enqueue again.
-      const enqueue = ctx.record().enqueue;
-      if (enqueue === null) {
-        ctx.line(
-          `FAIL (release PR #${String(pr)} is in the merge queue but the run recorded no enqueue)`,
-        );
-        return EXIT_VIOLATION;
-      }
-      ctx.line(`WAIT (release PR #${String(pr)} is already in the merge queue)`);
-      const settled = settle(waitQueued(pr, repo, ctx.projectRoot, enqueue.head, enqueue.since));
-      if (settled !== null) return settled;
-      continue;
-    }
-    if (queue.total > 0) {
-      const named = queue.prs.map((n) => `#${String(n)}`).join(", ");
+    if (early.queuedTotal > 0) {
+      const named = early.queuedPrs.map((n) => `#${String(n)}`).join(", ");
       ctx.line(`FAIL (merge queue is not empty: ${named}; not enqueued)`);
       return EXIT_VIOLATION;
     }
-    if (watched.headSha !== null) {
-      ctx.save({ enqueue: { head: watched.headSha, since: ctx.now().toISOString() } });
-    }
-    ctx.line(`ENQUEUE (origin tip is B and the merge queue is empty)`);
-    const settled = settle(enqueueAndWait(pr, repo, ctx.projectRoot));
+
+    ctx.line("ENQUEUE (origin tip is B and the merge queue is empty; read again at the enqueue)");
+    const settled = settle(
+      enqueueAndWait(pr, repo, ctx.projectRoot, (head) => {
+        const boundary = enqueueReads();
+        if (boundary.refused !== null) return boundary.refused;
+        if (boundary.queuedTotal > 0) {
+          const named = boundary.queuedPrs.map((n) => `#${String(n)}`).join(", ");
+          return `merge queue is not empty: ${named}`;
+        }
+        if (head === null) return "the merge engine named no head to pin";
+        ctx.save({ enqueue: { head, since: ctx.now().toISOString() } });
+        return null;
+      }),
+    );
     if (settled !== null) return settled;
   }
 }

@@ -168,9 +168,10 @@ function harness(
         },
         readTip: () => ({ ok: true, sha: B }),
         readQueue: () => ({ ok: true, prs: [], total: 0 }),
-        enqueueAndWait: (pr, repo) => {
+        enqueueAndWait: (pr, repo, _root, beforeEnqueue) => {
           calls.push(`pr:wait-mergeable-and-merge --wait ${String(pr)} ${repo}`);
-          return { kind: "merged" };
+          const refused = beforeEnqueue("h".repeat(40));
+          return refused === null ? { kind: "merged" } : { kind: "other", detail: refused };
         },
       },
       finish: (c) => {

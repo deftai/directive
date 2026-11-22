@@ -9,6 +9,8 @@ import {
   failedCheckName,
   isFailedCheckRemoval,
   type MergeWatchOutcome,
+  type PreviousEnqueue,
+  previousEnqueueOf,
   type QueueOutcome,
   queueOutcomeOf,
   type ReleaseMergeSeams,
@@ -70,6 +72,8 @@ function drive(
     tip?: string;
     queue?: number[];
     outcomes?: QueueOutcome[];
+    previous?: PreviousEnqueue[];
+    tips?: string[];
     rerunOk?: boolean;
     root?: string;
   } = {},
@@ -79,6 +83,8 @@ function drive(
   const lines: string[] = [];
   const watches = [...(opts.watches ?? [clean])];
   const outcomes = [...(opts.outcomes ?? [{ kind: "merged" } as QueueOutcome])];
+  const previous = [...(opts.previous ?? [])];
+  const tips = [...(opts.tips ?? [])];
   const seams: ReleaseMergeSeams = {
     watch: () => {
       calls.push("pr:watch");
@@ -86,7 +92,7 @@ function drive(
     },
     readTip: () => {
       calls.push("read tip");
-      return { ok: true, sha: opts.tip ?? B };
+      return { ok: true, sha: tips.shift() ?? opts.tip ?? B };
     },
     readQueue: () => {
       calls.push("read queue");
@@ -97,9 +103,16 @@ function drive(
       calls.push(`rerun ${sha.slice(0, 4)} ${failed.join(",")}`);
       return opts.rerunOk === false ? { ok: false, reason: "no run" } : { ok: true, runIds: ["9"] };
     },
-    enqueueAndWait: () => {
+    enqueueAndWait: (_p, _r, _root, beforeEnqueue) => {
       calls.push("pr:wait-mergeable-and-merge --wait");
+      // The engine calls the boundary reads right before its enqueue.
+      const refused = beforeEnqueue(HEAD);
+      if (refused !== null) return { kind: "other", detail: `enqueue-failed: ${refused}` };
       return outcomes.shift() ?? { kind: "merged" };
+    },
+    readPrevious: (_p, _r, _root, head, since) => {
+      calls.push(`read previous ${head.slice(0, 4)} ${since}`);
+      return previous.shift() ?? { kind: "never-enqueued" };
     },
     waitQueued: (_p, _r, _root, head, since) => {
       calls.push(`wait queued ${head.slice(0, 4)} ${since}`);
@@ -136,6 +149,8 @@ describe("release:run merge phase (#6877)", () => {
       "read tip",
       "read queue",
       "pr:wait-mergeable-and-merge --wait",
+      "read tip",
+      "read queue",
     ]);
     expect(run.record.enqueue).toEqual({ head: HEAD, since: NOW.toISOString() });
     expect(run.lines.at(-1)).toContain("merged");
@@ -215,10 +230,14 @@ describe("release:run merge phase (#6877)", () => {
       "read tip",
       "read queue",
       "pr:wait-mergeable-and-merge --wait",
+      "read tip",
+      "read queue",
       "pr:watch",
       "read tip",
       "read queue",
       "pr:wait-mergeable-and-merge --wait",
+      "read tip",
+      "read queue",
     ]);
     expect(run.record.retries.failedCheck).toBe(1);
   });
@@ -241,12 +260,16 @@ describe("release:run merge phase (#6877)", () => {
         watch: () => clean,
         readTip: () => {
           tipReads += 1;
-          return { ok: true, sha: tipReads === 1 ? B : OTHER };
+          // Early and boundary reads of the first pass see B; the re-enqueue sees a moved tip.
+          return { ok: true, sha: tipReads <= 2 ? B : OTHER };
         },
         readQueue: () => ({ ok: true, prs: [], total: 0 }),
-        enqueueAndWait: () => {
-          calls.push("enqueue");
-          return { kind: "ejected", reason: "failed checks" };
+        enqueueAndWait: (_p, _r, _root, beforeEnqueue) => {
+          const refused = beforeEnqueue(HEAD);
+          calls.push(refused === null ? "enqueue" : "refused");
+          return refused === null
+            ? { kind: "ejected", reason: "failed checks" }
+            : { kind: "other", detail: refused };
         },
       },
     );
@@ -262,9 +285,95 @@ describe("release:run merge phase (#6877)", () => {
 
   it("waits on the release PR when an earlier pass already enqueued it", () => {
     const record = { ...baseRecord(), enqueue: { head: HEAD, since: "2026-11-22T01:59:00Z" } };
-    const run = drive({ record, queue: [PR] });
+    const run = drive({ record, queue: [PR], previous: [{ kind: "queued" }] });
     expect(run.code).toBe(EXIT_OK);
-    expect(run.calls.at(-1)).toBe("wait queued hhhh 2026-11-22T01:59:00Z");
+    expect(run.calls.slice(-2)).toEqual([
+      "read previous hhhh 2026-11-22T01:59:00Z",
+      "wait queued hhhh 2026-11-22T01:59:00Z",
+    ]);
+    expect(run.calls).not.toContain("pr:wait-mergeable-and-merge --wait");
+  });
+
+  it("clause 1: the reads run again at the enqueue call; a tip that moved meanwhile is not enqueued", () => {
+    const run = drive({ tips: [B, OTHER] });
+    expect(run.code).toBe(EXIT_VIOLATION);
+    expect(run.record.enqueue).toBeNull();
+    expect(run.lines.at(-1)).toContain("not the cut base");
+  });
+
+  it("clause 1: a PR queued during the engine's wait stops the enqueue at the boundary", () => {
+    let queueReads = 0;
+    let record = baseRecord();
+    const code = runMergePhase(
+      {
+        projectRoot: "/p",
+        record: () => record,
+        save: (patch) => {
+          record = { ...record, ...patch };
+        },
+        line: () => {},
+        now: () => NOW,
+      },
+      {
+        watch: () => clean,
+        readTip: () => ({ ok: true, sha: B }),
+        readQueue: () => {
+          queueReads += 1;
+          return queueReads === 1
+            ? { ok: true, prs: [], total: 0 }
+            : { ok: true, prs: [41], total: 1 };
+        },
+        enqueueAndWait: (_p, _r, _root, beforeEnqueue) => {
+          const refused = beforeEnqueue(HEAD);
+          return refused === null ? { kind: "merged" } : { kind: "other", detail: refused };
+        },
+      },
+    );
+    expect(code).toBe(EXIT_VIOLATION);
+    expect(record.enqueue).toBeNull();
+  });
+
+  it("on --resume a recorded enqueue that merged is done", () => {
+    const record = { ...baseRecord(), enqueue: { head: HEAD, since: "2026-11-22T01:59:00Z" } };
+    const run = drive({ record, previous: [{ kind: "merged" }] });
+    expect(run.code).toBe(EXIT_OK);
+    expect(run.calls).not.toContain("pr:wait-mergeable-and-merge --wait");
+  });
+
+  it("on --resume a recorded enqueue removed by hand stops without a new enqueue", () => {
+    const record = { ...baseRecord(), enqueue: { head: HEAD, since: "2026-11-22T01:59:00Z" } };
+    const run = drive({ record, previous: [{ kind: "ejected", reason: "MANUAL" }] });
+    expect(run.code).toBe(EXIT_VIOLATION);
+    expect(run.calls).not.toContain("pr:wait-mergeable-and-merge --wait");
+    expect(run.record.retries.failedCheck).toBe(0);
+  });
+
+  it("clause 6: on --resume a failed-check ejection during the gap uses the run's one re-run", () => {
+    const record = { ...baseRecord(), enqueue: { head: HEAD, since: "2026-11-22T01:59:00Z" } };
+    const run = drive({ record, previous: [{ kind: "ejected", reason: "FAILED_CHECKS" }] });
+    expect(run.code).toBe(EXIT_OK);
+    expect(run.record.retries.failedCheck).toBe(1);
+    expect(run.calls.filter((c) => c === "pr:wait-mergeable-and-merge --wait")).toHaveLength(1);
+    const spent = drive({
+      record: { ...record, retries: { failedCheck: 1 } },
+      previous: [{ kind: "ejected", reason: "FAILED_CHECKS" }],
+    });
+    expect(spent.code).toBe(EXIT_VIOLATION);
+    expect(spent.calls).not.toContain("pr:wait-mergeable-and-merge --wait");
+  });
+
+  it("on --resume a recorded enqueue that never entered the queue is enqueued again", () => {
+    const record = { ...baseRecord(), enqueue: { head: HEAD, since: "2026-11-22T01:59:00Z" } };
+    const run = drive({ record, previous: [{ kind: "never-enqueued" }] });
+    expect(run.code).toBe(EXIT_OK);
+    expect(run.calls).toContain("pr:wait-mergeable-and-merge --wait");
+    expect(run.record.enqueue).toEqual({ head: HEAD, since: NOW.toISOString() });
+  });
+
+  it("on --resume an unreadable recorded enqueue stops", () => {
+    const record = { ...baseRecord(), enqueue: { head: HEAD, since: "2026-11-22T01:59:00Z" } };
+    const run = drive({ record, previous: [{ kind: "other", detail: "queue-read-unavailable" }] });
+    expect(run.code).toBe(EXIT_VIOLATION);
     expect(run.calls).not.toContain("pr:wait-mergeable-and-merge --wait");
   });
 
@@ -380,6 +489,20 @@ describe("merge phase helpers (#6877)", () => {
       kind: "other",
       detail: "queued: cap",
     });
+    expect(previousEnqueueOf(result({ exitCode: 0, outcome: "merged" }))).toEqual({
+      kind: "merged",
+    });
+    expect(previousEnqueueOf(result({ outcome: "queued" }))).toEqual({ kind: "queued" });
+    expect(previousEnqueueOf(result({ outcome: "awaiting-admission" }))).toEqual({
+      kind: "queued",
+    });
+    expect(previousEnqueueOf(result({ outcome: "inactive" }))).toEqual({ kind: "never-enqueued" });
+    expect(
+      previousEnqueueOf(
+        result({ outcome: "removed", mergeQueue: { result: "removed", removal_reason: "x" } }),
+      ),
+    ).toEqual({ kind: "ejected", reason: "x" });
+    expect(previousEnqueueOf(result({ outcome: "head-changed" })).kind).toBe("other");
   });
 
   it("reads the live origin tip with git ls-remote", () => {
