@@ -479,7 +479,9 @@ describe("smoke command under the timed-child supervisor (#6904)", () => {
       "setTimeout(() => {}, 60000);",
     ].join(" ");
 
-  async function runHungSmoke(scanFails: boolean): Promise<{ text: string; recorded: number[] }> {
+  async function runHungSmoke(
+    scanFails: boolean,
+  ): Promise<{ text: string; recorded: number[]; leftRunning: number[] }> {
     const dir = mkdtempSync(join(tmpdir(), "smoke-tree-"));
     const pidFile = join(dir, "pids.txt");
     const readPids = (): [number, number] | null => {
@@ -515,9 +517,11 @@ describe("smoke command under the timed-child supervisor (#6904)", () => {
         ...(plans[0] as TimedChildPlan),
         ...(listDirect !== undefined ? { listDirect } : {}),
       });
-      const pids = readPids();
-      expect(pids).not.toBeNull();
-      return { text: describeSmokeFailure("smoke", result) ?? "", recorded: pids ?? [] };
+      const recorded = readPids() ?? [];
+      // Sample liveness before the fallback cleanup below, so a leaked
+      // descendant fails the test instead of being killed by the test.
+      const leftRunning = recorded.filter((pid) => isPidRunning(pid));
+      return { text: describeSmokeFailure("smoke", result) ?? "", recorded, leftRunning };
     } finally {
       for (const pid of readPids() ?? []) {
         if (isPidRunning(pid)) process.kill(pid, "SIGKILL");
@@ -527,16 +531,16 @@ describe("smoke command under the timed-child supervisor (#6904)", () => {
   }
 
   it("stops a child that outlives the deadline and reports the tree stopped", async () => {
-    const { text, recorded } = await runHungSmoke(false);
+    const { text, recorded, leftRunning } = await runHungSmoke(false);
     expect(recorded).toHaveLength(2);
-    for (const pid of recorded) expect(isPidRunning(pid)).toBe(false);
+    expect(leftRunning).toEqual([]);
     expect(text).toMatch(/its process tree was stopped/);
   }, 20_000);
 
   it("still stops the child but reports unverified when the scan fails", async () => {
-    const { text, recorded } = await runHungSmoke(true);
+    const { text, recorded, leftRunning } = await runHungSmoke(true);
     expect(recorded).toHaveLength(2);
-    for (const pid of recorded) expect(isPidRunning(pid)).toBe(false);
+    expect(leftRunning).toEqual([]);
     expect(text).toMatch(/cleanup could not be checked/);
     expect(text).not.toMatch(/tree was stopped/);
   }, 20_000);
