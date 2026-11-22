@@ -528,14 +528,22 @@ function emptyBasis(budgetMs: number): OrphanActiveBasis {
   };
 }
 
-/** Every page of one forge listing; a failed page or a stuck cursor fails closed (#6645). */
+/**
+ * Every page of one forge listing; a failed page or a stuck cursor fails closed
+ * (#6645). `admit` runs before each page request; when it returns false no
+ * request starts and the result is a cut (#6899).
+ */
 function collectLifecyclePages<T>(
   fetchPage: (after: string | null) => ForgePage<T>,
   label: string,
-): { ok: true; nodes: T[] } | { ok: false; error: string } {
+  admit: () => boolean,
+): { ok: true; nodes: T[] } | { ok: false; error: string; cut?: true } {
   const nodes: T[] = [];
   let after: string | null = null;
   for (;;) {
+    if (!admit()) {
+      return { ok: false, error: `${label}: cut short at the run deadline`, cut: true };
+    }
     let page: ForgePage<T>;
     try {
       page = fetchPage(after);
@@ -587,20 +595,44 @@ export function diffMovesBriefToCompleted(
  * `active/` to `completed/`. The issue number in a PR body is not the
  * selector. Any failed, unparseable or incomplete read fails the whole check,
  * so the caller keeps every shipped verdict.
+ *
+ * Run deadline (#6899): before each forge request (each open-PR list page and
+ * each changed-files page) the scan reads `nowMs()`. Once `nowMs() >= deadlineMs`
+ * it starts no new request and fails with `cutShort`, so the caller keeps every
+ * shipped verdict, including one whose lifecycle PR was already found. The
+ * guarantee is only that: a request already running may end after the deadline,
+ * and the reads before and after the scan are not bounded here.
  */
 export function findPendingLifecyclePrs(input: {
   readonly repo: string;
   readonly shippedPaths: readonly string[];
   readonly forge: LifecycleForge;
-}): { ok: true; pending: Map<string, number> } | { ok: false; error: string } {
-  const { repo, forge } = input;
+  /** The run's deadline: its start time plus its `budgetMs`. */
+  readonly deadlineMs: number;
+  /** The run's budget, named in the cut-short error. */
+  readonly budgetMs: number;
+  /** The run's clock. */
+  readonly nowMs: () => number;
+}):
+  | { ok: true; pending: Map<string, number> }
+  | { ok: false; error: string; cutShort?: { readInFull: number } } {
+  const { repo, forge, deadlineMs, nowMs } = input;
   const listOpen = forge.listOpenPrsPage;
   if (listOpen === undefined) {
     return { ok: false, error: "open-PR list is unavailable" };
   }
-  const open = collectLifecyclePages((after) => listOpen(repo, after), "open-PR list");
+  const admit = (): boolean => nowMs() < deadlineMs;
+  let readInFull = 0;
+  const cutShort = () => ({
+    ok: false as const,
+    error:
+      `cut short at the run deadline (${formatAge(input.budgetMs)} budget) after ` +
+      `${readInFull} same-repository open PR(s) read in full`,
+    cutShort: { readInFull },
+  });
+  const open = collectLifecyclePages((after) => listOpen(repo, after), "open-PR list", admit);
   if (!open.ok) {
-    return open;
+    return open.cut === true ? cutShort() : { ok: false, error: open.error };
   }
   const pending = new Map<string, number>();
   const wanted = input.shippedPaths.map((p) => p.replace(/\\/g, "/"));
@@ -612,9 +644,10 @@ export function findPendingLifecyclePrs(input: {
     const files = collectLifecyclePages(
       (after) => forge.fetchPrFilesPage(repo, node.number, after),
       `PR #${node.number} changed files`,
+      admit,
     );
     if (!files.ok) {
-      return files;
+      return files.cut === true ? cutShort() : { ok: false, error: files.error };
     }
     if (files.nodes.length >= PR_FILES_LISTING_CAP) {
       return {
@@ -622,6 +655,7 @@ export function findPendingLifecyclePrs(input: {
         error: `PR #${node.number} changed files: listing truncated at the ${PR_FILES_LISTING_CAP}-file cap`,
       };
     }
+    readInFull += 1;
     for (const path of wanted) {
       if (!pending.has(path) && diffMovesBriefToCompleted(files.nodes, path)) {
         pending.set(path, node.number);
@@ -789,10 +823,14 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         pendingNote =
           "pending lifecycle check skipped: reads go through the ghx cache; shipped verdicts kept";
       } else {
+        // #6899: the scan starts no new request once the run deadline is reached.
         const found = findPendingLifecyclePrs({
           repo: defaultRepo,
           shippedPaths,
           forge: options.lifecycleForge ?? defaultMergeTimeForge(runGh),
+          deadlineMs: startedMs + budgetMs,
+          budgetMs,
+          nowMs: clock,
         });
         if (found.ok) {
           const kept = orphans.filter((o) => {
@@ -803,6 +841,10 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
           });
           orphans.length = 0;
           orphans.push(...kept);
+        } else if (found.cutShort !== undefined) {
+          pendingNote =
+            `pending lifecycle check cut short at the run deadline, shipped verdicts kept: ` +
+            `${formatAge(budgetMs)} budget, ${found.cutShort.readInFull} same-repository open PR(s) read in full`;
         } else {
           pendingNote = `pending lifecycle check failed, shipped verdicts kept: ${found.error}`;
         }
