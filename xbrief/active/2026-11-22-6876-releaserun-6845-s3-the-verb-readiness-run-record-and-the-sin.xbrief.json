@@ -1,0 +1,235 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6876",
+    "updated": "2026-11-22T05:03:43Z"
+  },
+  "plan": {
+    "title": "release:run (#6845 S3): the verb, readiness, run record and the single up-front approval",
+    "status": "running",
+    "narratives": {
+      "Description": "release:run (#6845 S3): the verb, readiness, run record and the single up-front approval",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6876",
+      "Overview": "A stable cut has no single command: the operator runs about 15 runbook steps and is pulled back in to cut and to mint after the release PR merges. This story adds the `deft release:run <version>` verb with readiness, the run record and the single up-front approval (#6845). In the clauses, B is the cut base (the fetched delivery-branch tip), T is the tree of the release commit and M is the merged release commit.\n\n## Acceptance Criteria\n\n- [ ] One verb. `deft release:run <version>` runs in order: readiness; setup (release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, cut context); the local cut (Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish (tag, draft release, clear the cut context); npm publish watch; draft flip and closeout; promote only when its grant was minted. It ends by printing the pin PR, `release:local-update` and `npm i -g` commands.\n- [ ] Readiness before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule of item 3. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.\n- [ ] Approve. After the local cut made release commit R with tree T, the run shows the version, B, T and the promoted CHANGELOG section, then mints one `release-publish` grant with target `<version>@<T>` and an operator-chosen `--expires`, and optionally one `release-promote-latest` grant. On a TTY it uses the existing mint path (typed `mint`). Without a TTY it stops and prints the mint commands; `--resume` continues. The run records the grant ids. No new template and no new default expiry.\n- [ ] Given readiness, then it prints that CI reuse is provisional and about how long the full local check takes; given a latest required check attempt that failed or is missing at readiness, then readiness says before the mint that the full local check will run.\n- [ ] Given readiness and the dry run pass and the operator mints once, when the run continues, then no later phase prompts the operator unless a phase fails.\n- [ ] Given the run ends, then it prints the pin PR, `release:local-update` and `npm i -g` commands.\n\nRefs #6845\n\nDepends on: S1 (#6791) and S2 (#6875).\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "framework-gap"
+    },
+    "items": [
+      {
+        "title": "One verb. `deft release:run <version>` runs in order: readiness; setup (release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, cut context); the local cut (Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish (tag, draft release, clear the cut context); npm publish watch; draft flip and closeout; promote only when its grant was minted. It ends by printing the pin PR, `release:local-update` and `npm i -g` commands.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Readiness before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule of item 3. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Approve. After the local cut made release commit R with tree T, the run shows the version, B, T and the promoted CHANGELOG section, then mints one `release-publish` grant with target `<version>@<T>` and an operator-chosen `--expires`, and optionally one `release-promote-latest` grant. On a TTY it uses the existing mint path (typed `mint`). Without a TTY it stops and prints the mint commands; `--resume` continues. The run records the grant ids. No new template and no new default expiry.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Given readiness, then it prints that CI reuse is provisional and about how long the full local check takes; given a latest required check attempt that failed or is missing at readiness, then readiness says before the mint that the full local check will run.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Given readiness and the dry run pass and the operator mints once, when the run continues, then no later phase prompts the operator unless a phase fails.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Given the run ends, then it prints the pin PR, `release:local-update` and `npm i -g` commands.",
+        "status": "proposed",
+        "id": "clause.6"
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6876",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6876: release:run (#6845 S3): the verb, readiness, run record and the single up-front approval"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6845",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6845"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft release:run <version>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "session:start --primary-claim-exception=release-cut",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "npm i -g",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/run.ts",
+          "packages/core/src/release/run-readiness.ts",
+          "packages/core/src/release/run-record.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/types.ts",
+          "packages/runtime/src/release-run.ts",
+          "packages/runtime/src/dispatch.ts",
+          "packages/core/src/release/run.test.ts",
+          "packages/core/src/release/run-readiness.test.ts",
+          "packages/core/src/release/run-record.test.ts",
+          "packages/core/src/release/pipeline-stop-before-push.test.ts",
+          "packages/runtime/src/release-run.test.ts",
+          "packages/runtime/src/orchestration-cli/release-cli.test.ts",
+          "changelog.d/6876-release-run.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/release/run.test.ts packages/core/src/release/run-readiness.test.ts packages/core/src/release/run-record.test.ts packages/core/src/release/pipeline-stop-before-push.test.ts",
+          "npx vitest run packages/runtime/src/release-run.test.ts packages/runtime/src/orchestration-cli/release-cli.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "deft release:run <version> (alias of the release-run stem) runs the phases in order: readiness, setup, local cut (Steps 1 to 9, no push), approve, push and open the release PR, review wait and merge, finish, npm publish watch, draft flip, promote only with its grant; it ends by printing the pin PR, release:local-update and npm i -g commands",
+          "readiness runs before any write: Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI reuse rule; a failed check refuses; queued PRs and armed auto-merge are reported only",
+          "approve shows version, B, T and the promoted CHANGELOG section, then mints one release-publish grant for <version>@<T> with the operator's --expires (and an optional release-promote-latest grant) through deft authz:grant on a TTY; without a TTY it prints the mint commands and stops; --resume continues and records the grant ids",
+          "run record at .deft-scratch/release-run/<version>.json keeps B, T, the PR number, the grant ids and the completed phases",
+          "S4 (#6877) and S5 (#6878) parts stay out: no enqueue reads, retry counts, tag or npm reconciliation, promote look-up or runbook rewrite",
+          "changelog fragment changelog.d/6876-release-run.md"
+        ],
+        "model_tier": "standard",
+        "conflict_group": "release-verbs"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because the #6845 arc already designed this split; S3 is one of its five stories.",
+          "id": 7074477967,
+          "html_url": "https://github.com/deftai/directive/issues/6876#issuecomment-7074477967",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T04:58:03Z",
+          "updated_at": "2026-11-22T04:58:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6517858126,
+        "origin": "deftai/directive#6876",
+        "id": "github.issue.6517858126"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (6), in order (#6333)",
+      "sentences": [
+        "One verb. `deft release:run <version>` runs in order: readiness; setup (release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, cut context); the local cut (Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish (tag, draft release, clear the cut context); npm publish watch; draft flip and closeout; promote only when its grant was minted. It ends by printing the pin PR, `release:local-update` and `npm i -g` commands.",
+        "Readiness before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule of item 3. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.",
+        "Approve. After the local cut made release commit R with tree T, the run shows the version, B, T and the promoted CHANGELOG section, then mints one `release-publish` grant with target `<version>@<T>` and an operator-chosen `--expires`, and optionally one `release-promote-latest` grant. On a TTY it uses the existing mint path (typed `mint`). Without a TTY it stops and prints the mint commands; `--resume` continues. The run records the grant ids. No new template and no new default expiry.",
+        "Given readiness, then it prints that CI reuse is provisional and about how long the full local check takes; given a latest required check attempt that failed or is missing at readiness, then readiness says before the mint that the full local check will run.",
+        "Given readiness and the dry run pass and the operator mints once, when the run continues, then no later phase prompts the operator unless a phase fails.",
+        "Given the run ends, then it prints the pin PR, `release:local-update` and `npm i -g` commands."
+      ],
+      "admitted_source_sentences": [
+        "One verb. `deft release:run <version>` runs in order: readiness; setup (release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, cut context); the local cut (Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish (tag, draft release, clear the cut context); npm publish watch; draft flip and closeout; promote only when its grant was minted. It ends by printing the pin PR, `release:local-update` and `npm i -g` commands.",
+        "Readiness before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule of item 3. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.",
+        "Approve. After the local cut made release commit R with tree T, the run shows the version, B, T and the promoted CHANGELOG section, then mints one `release-publish` grant with target `<version>@<T>` and an operator-chosen `--expires`, and optionally one `release-promote-latest` grant. On a TTY it uses the existing mint path (typed `mint`). Without a TTY it stops and prints the mint commands; `--resume` continues. The run records the grant ids. No new template and no new default expiry.",
+        "Given readiness, then it prints that CI reuse is provisional and about how long the full local check takes; given a latest required check attempt that failed or is missing at readiness, then readiness says before the mint that the full local check will run.",
+        "Given readiness and the dry run pass and the operator mints once, when the run continues, then no later phase prompts the operator unless a phase fails.",
+        "Given the run ends, then it prints the pin PR, `release:local-update` and `npm i -g` commands."
+      ],
+      "admitted_source_digest": "17edc3748383b3f703e5f884060b44c50a37b16de3c83a1832b8899a61ecba22",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One verb. `deft release:run <version>` runs in order: readiness; setup (release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, cut context); the local cut (Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish (tag, draft release, clear the cut context); npm publish watch; draft flip and closeout; promote only when its grant was minted. It ends by printing the pin PR, `release:local-update` and `npm i -g` commands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Readiness before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule of item 3. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Approve. After the local cut made release commit R with tree T, the run shows the version, B, T and the promoted CHANGELOG section, then mints one `release-publish` grant with target `<version>@<T>` and an operator-chosen `--expires`, and optionally one `release-promote-latest` grant. On a TTY it uses the existing mint path (typed `mint`). Without a TTY it stops and prints the mint commands; `--resume` continues. The run records the grant ids. No new template and no new default expiry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given readiness, then it prints that CI reuse is provisional and about how long the full local check takes; given a latest required check attempt that failed or is missing at readiness, then readiness says before the mint that the full local check will run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given readiness and the dry run pass and the operator mints once, when the run continues, then no later phase prompts the operator unless a phase fails.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given the run ends, then it prints the pin PR, `release:local-update` and `npm i -g` commands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6517858126",
+    "updated": "2026-11-22T05:03:43Z"
+  }
+}
