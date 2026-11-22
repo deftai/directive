@@ -3513,9 +3513,10 @@ const RETIRED_INSTALL_DISPATCH_VERBS = new Set([
 ]);
 
 /**
- * #6647 / #6887: drop one leading lone `--` from a verb's arguments, for every runtime verb.
- * `dispatch` calls it after `routeAndDispatch` has routed colon, namespace and alias spellings.
- * It removes at most one token; later `--` tokens are kept for the verb's own parser.
+ * #6647 / #6887 / #6912: drop one leading lone `--` from a verb's arguments.
+ * The router (`routeArgv`) calls it at the boundary between the routed verb tokens and the
+ * user's arguments; `dispatch` does not drop. It removes at most one token; later `--`
+ * tokens are kept for the verb's own parser.
  */
 export function dropLeadingDoubleDash(args: readonly string[]): string[] {
   return args[0] === "--" ? args.slice(1) : [...args];
@@ -3532,9 +3533,8 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     return 0;
   }
 
-  const [verb, ...rawRest] = argv;
-  // #6647 / #6887: `deft <verb> -- <args>` and `deft <verb> <args>` take the same args.
-  const rest = dropLeadingDoubleDash(rawRest);
+  // #6912: the router drops a lone `--` at the verb boundary; dispatch passes args as given.
+  const [verb, ...rest] = argv;
 
   if (verb !== undefined && RETIRED_INSTALL_DISPATCH_VERBS.has(verb)) {
     const suggestion =
