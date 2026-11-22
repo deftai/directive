@@ -51,7 +51,14 @@ export function readRepoFork(
   repo: string,
   runGh: QueueRunGhFn = makeGateRunner().runGh,
 ): RepoForkRead {
-  const rc = runGh(["gh", "api", `repos/${repo}`]);
+  let rc: ReturnType<QueueRunGhFn>;
+  try {
+    // The runner throws when neither `gh` nor `ghx` is on PATH; that is a failed read.
+    rc = runGh(["gh", "api", `repos/${repo}`]);
+  } catch (err: unknown) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { fork: null, error: `gh api repos/${repo} failed: ${detail}` };
+  }
   if (rc.returncode !== 0) {
     return { fork: null, error: `gh api repos/${repo} failed: ${rc.stderr.trim()}` };
   }

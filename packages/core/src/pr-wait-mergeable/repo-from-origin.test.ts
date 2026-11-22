@@ -37,6 +37,13 @@ describe("readRepoFork (#6869 item 2)", () => {
       fork: null,
       error: "gh api repos/acme/project failed: HTTP 404",
     });
+    const missingCli = () => {
+      throw new Error("neither 'ghx' nor 'gh' found on PATH");
+    };
+    expect(readRepoFork("acme/project", missingCli)).toEqual({
+      fork: null,
+      error: "gh api repos/acme/project failed: neither 'ghx' nor 'gh' found on PATH",
+    });
     expect(readRepoFork("acme/project", gh(0, "not json").runGh).error).toBe(
       "repos/acme/project is not JSON",
     );
