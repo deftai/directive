@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -262,6 +270,44 @@ describe("record cohort form (#6937)", () => {
     expect(readFileSync(obsRecord(dir, "story-a")).equals(before)).toBe(true);
     expect(existsSync(obsRecord(dir, "story-b"))).toBe(false);
     expect(readFileSync(obsRecord(dir, "story-c"), "utf8")).toBe("foreign");
+  });
+
+  it("rollback leaves a record another writer replaced after this run published it", () => {
+    const dir = root();
+    const b = brief(dir, "b", "story-b");
+    const c = brief(dir, "c", "story-c");
+    const io = capture();
+    const code = runObservable(args(dir, b, c), {
+      ...human({ count: 0 }),
+      beforePublish: (abs: string) => {
+        if (abs !== obsRecord(dir, "story-c")) return;
+        writeFileSync(obsRecord(dir, "story-b"), "other writer", "utf8");
+        writeFileSync(abs, "foreign", "utf8");
+      },
+    });
+    expect(code).not.toBe(0);
+    expect(io.err()).toContain("removed the 0 record(s)");
+    expect(readFileSync(obsRecord(dir, "story-b"), "utf8")).toBe("other writer");
+    expect(readFileSync(obsRecord(dir, "story-c"), "utf8")).toBe("foreign");
+  });
+
+  it("falls back to an exclusive create where hard links are missing", () => {
+    const dir = root();
+    const a = brief(dir, "a", "story-a");
+    const b = brief(dir, "b", "story-b");
+    capture();
+    const noLink = () => {
+      throw Object.assign(new Error("hard links not supported"), { code: "EPERM" });
+    };
+    expect(runObservable(args(dir, a, b), { ...human({ count: 0 }), link: noLink })).toBe(0);
+    const rec = JSON.parse(readFileSync(obsRecord(dir, "story-b"), "utf8")) as {
+      cohortDigest: string;
+    };
+    expect(rec.cohortDigest).toMatch(/^sha256:/);
+    const leftovers = readdirSync(join(dir, ".deft", "observable-scope")).filter((f) =>
+      f.endsWith(".tmp"),
+    );
+    expect(leftovers).toEqual([]);
   });
 
   it("keeps cohortDigest stable across input order", () => {

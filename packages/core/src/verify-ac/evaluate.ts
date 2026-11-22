@@ -17,7 +17,10 @@ import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { isSafetyRefusalRun } from "../literal-acceptance/run.js";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
-import { briefLandHeadReader } from "../pr-closing-keywords/brief-land-records.js";
+import {
+  briefLandHeadReader,
+  isScopeRecordPath,
+} from "../pr-closing-keywords/brief-land-records.js";
 import {
   evaluatePathBActivationAdmit,
   isBriefLandShapedDiff,
@@ -493,9 +496,12 @@ function remapInventoryToProjectRoot(
       typeof entry.previousFilename === "string" && entry.previousFilename.length > 0
         ? entry.previousFilename.replace(/\\/g, "/")
         : undefined;
+    // Scope records keep their git-relative path too, so the brief-land shape
+    // check can match them against the briefs by content (#6937).
     if (
-      isBriefLandAllowlistedInventoryPath(gitDest) &&
-      (gitOrigin === undefined || isBriefLandAllowlistedInventoryPath(gitOrigin))
+      (isBriefLandAllowlistedInventoryPath(gitDest) &&
+        (gitOrigin === undefined || isBriefLandAllowlistedInventoryPath(gitOrigin))) ||
+      (isScopeRecordPath(gitDest) && gitOrigin === undefined)
     ) {
       gitRootBrief.push({
         status: entry.status,

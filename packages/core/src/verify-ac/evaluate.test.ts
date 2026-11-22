@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
+import { buildObservableScopeRecord } from "../observable-scope/mint.js";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
@@ -1590,6 +1591,94 @@ describe("brief-land inventory changelog entry paths (#6314)", () => {
       const nestedListed =
         nestedInventory.ok && nestedInventory.files.some((file) => file.path === nested);
       expect(nestedListed).toBe(false);
+    } finally {
+      rmSync(gitRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("brief-land inventory scope records from a subdirectory cwd (#6937)", () => {
+  it("keeps a matching repo-root record git-relative so the activation deferral holds", () => {
+    const gitRoot = mkdtempSync(join(tmpdir(), "deft-6937-record-subdir-"));
+    const projectRoot = join(gitRoot, "packages", "core");
+    mkdirSync(projectRoot, { recursive: true });
+    const brief = "xbrief/active/story-6937.xbrief.json";
+    const record = ".deft/observable-scope/github.issue.6937.json";
+    const contract = {
+      changeKind: "fields-only" as const,
+      allowedChanges: [{ kind: "control" as const, op: "add" as const, name: "email" }],
+    };
+    try {
+      mkdirSync(join(gitRoot, "xbrief", "active"), { recursive: true });
+      writeFileSync(
+        join(gitRoot, ...brief.split("/")),
+        JSON.stringify({
+          plan: {
+            id: "github.issue.6937",
+            title: "activation",
+            status: "running",
+            "x-directive/observableChange": contract,
+            references: [
+              {
+                uri: "https://github.com/deftai/directive/issues/6937",
+                type: "x-xbrief/github-issue",
+              },
+            ],
+          },
+        }),
+        "utf8",
+      );
+      const rec = buildObservableScopeRecord({
+        planId: "github.issue.6937",
+        xbriefRelPath: brief,
+        allowedChanges: contract.allowedChanges,
+        changeKind: "fields-only",
+        humanApproval: {
+          kind: "operator",
+          actor: "scott",
+          mintedAt: "2026-11-21T00:00:00Z",
+          mintedVia: "scope:record-observable-scope",
+        },
+      });
+      if ("error" in rec) throw new Error(rec.error);
+      mkdirSync(join(gitRoot, ".deft", "observable-scope"), { recursive: true });
+      writeFileSync(join(gitRoot, ...record.split("/")), JSON.stringify(rec), "utf8");
+      const runGit = (_cwd: string, args: readonly string[]) => {
+        const joined = args.join(" ");
+        if (joined.includes("is-inside-work-tree"))
+          return { code: 0, stdout: "true\n", stderr: "" };
+        if (joined.includes("show-toplevel"))
+          return { code: 0, stdout: `${gitRoot}\n`, stderr: "" };
+        if (joined.includes("rev-parse") && joined.includes("verify")) {
+          return { code: 0, stdout: "abc\n", stderr: "" };
+        }
+        if (joined.includes("diff") && joined.includes("...")) {
+          return { code: 0, stdout: `A\0${brief}\0A\0${record}\0`, stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      };
+      const inventory = collectBriefLandInventoryAsPrDiffPaths({
+        projectRoot,
+        baseRef: "origin/master",
+        runGit,
+      });
+      expect(inventory.ok).toBe(true);
+      if (!inventory.ok) return;
+      expect(inventory.files.some((file) => file.path === record)).toBe(true);
+      const args = {
+        projectRoot,
+        bodyText: null,
+        repo: "deftai/directive",
+        runGit,
+        baseRef: "origin/master",
+      };
+      expect(evaluatePathBActivationAcDisposition(args).apply).toBe(true);
+      writeFileSync(
+        join(gitRoot, ...record.split("/")),
+        JSON.stringify({ ...rec, xbriefRelPath: "xbrief/active/other.xbrief.json" }),
+        "utf8",
+      );
+      expect(evaluatePathBActivationAcDisposition(args).apply).toBe(false);
     } finally {
       rmSync(gitRoot, { recursive: true, force: true });
     }

@@ -12,7 +12,18 @@
  * from a file an agent wrote, so the record's control is the merge that lands it.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, linkSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  fsyncSync,
+  linkSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
 import { containedWrite, resolveContainedTarget } from "@deftai/directive-core";
 import { resolveRepo } from "@deftai/directive-core/dist/triage/queue/repo.js";
@@ -49,6 +60,8 @@ export interface RecordCohortSeams extends HumanPresenceMintSeams {
   readonly beforePublish?: (recordAbs: string) => void;
   /** Repository slug for `cohortDigest` (default: origin remote). */
   readonly repo?: string | null;
+  /** Hard-link publish step (tests simulate a file system without hard links). */
+  readonly link?: (from: string, to: string) => void;
 }
 
 export interface RecordCohortArgs {
@@ -303,13 +316,88 @@ function errorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+/** A record this run published: its bytes and file identity at publish time. */
+interface PublishedRecord {
+  readonly path: string;
+  readonly data: string;
+  readonly ino: bigint | null;
+}
+
+function fileIno(path: string): bigint | null {
+  try {
+    return lstatSync(path, { bigint: true }).ino;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Rollback removes a published record only while it is still this run's file:
+ * same file identity and the same bytes. A record another writer replaced or
+ * rewrote since is left alone.
+ */
+function removeIfStillOurs(rec: PublishedRecord): boolean {
+  try {
+    const st = lstatSync(rec.path, { bigint: true });
+    if (!st.isFile() || (rec.ino !== null && st.ino !== rec.ino)) return false;
+    if (readFileSync(rec.path, "utf8") !== rec.data) return false;
+    unlinkSync(rec.path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isExistsError(err: unknown): boolean {
+  return (err as NodeJS.ErrnoException).code === "EEXIST";
+}
+
+/**
+ * O_EXCL create for file systems without hard links. A file this call opened
+ * and then failed to fill is removed; a file another writer created is never
+ * touched, because the open itself fails for it.
+ */
+function createExclusive(target: string, data: string): string | null {
+  let fd: number;
+  try {
+    fd = openSync(target, "wx", 0o644);
+  } catch (err: unknown) {
+    return isExistsError(err) ? `${target} already exists` : errorText(err);
+  }
+  let failure: string | null = null;
+  try {
+    writeFileSync(fd, data, "utf8");
+    fsyncSync(fd);
+  } catch (err: unknown) {
+    failure = errorText(err);
+  }
+  try {
+    closeSync(fd);
+  } catch (err: unknown) {
+    failure ??= errorText(err);
+  }
+  if (failure !== null) {
+    try {
+      unlinkSync(target);
+    } catch {
+      // already gone
+    }
+  }
+  return failure;
+}
+
 /**
  * Exclusive publish: write a temp file, then link it into place. The link
  * fails when the target exists, so the never-overwrite rule holds in the write
  * itself. Where the file system has no hard links, an O_EXCL create keeps it.
  * Returns an error text, or null when this call created the target.
  */
-function publishExclusive(root: string, targetAbs: string, data: string): string | null {
+function publishExclusive(
+  root: string,
+  targetAbs: string,
+  data: string,
+  link: (from: string, to: string) => void,
+): string | null {
   let tmp: string | null = null;
   try {
     mkdirSync(dirname(targetAbs), { recursive: true });
@@ -317,10 +405,10 @@ function publishExclusive(root: string, targetAbs: string, data: string): string
     tmp = `${target}.${randomBytes(6).toString("hex")}.next.tmp`;
     containedWrite({ root, target: tmp, data, mode: "create", mutation: false });
     try {
-      linkSync(tmp, target);
+      link(tmp, target);
     } catch (err: unknown) {
-      if ((err as NodeJS.ErrnoException).code === "EEXIST") return `${targetAbs} already exists`;
-      containedWrite({ root, target, data, mode: "create" });
+      if (isExistsError(err)) return `${targetAbs} already exists`;
+      return createExclusive(target, data);
     }
     return null;
   } catch (err: unknown) {
@@ -530,33 +618,25 @@ export function runRecordCohort(
   });
   if (refused !== null) return refused;
 
-  const created: string[] = [];
+  const created: PublishedRecord[] = [];
   for (const t of fresh) {
+    const data = `${JSON.stringify({ ...t.record, cohortDigest }, null, 2)}\n`;
     let failure: string | null;
     try {
       seams.beforePublish?.(t.recordAbs);
-      failure = publishExclusive(
-        projectRoot,
-        t.recordAbs,
-        `${JSON.stringify({ ...t.record, cohortDigest }, null, 2)}\n`,
-      );
+      failure = publishExclusive(projectRoot, t.recordAbs, data, seams.link ?? linkSync);
     } catch (err: unknown) {
       failure = errorText(err);
     }
     if (failure === null) {
-      created.push(t.recordAbs);
+      created.push({ path: t.recordAbs, data, ino: fileIno(t.recordAbs) });
       continue;
     }
-    for (const path of created) {
-      try {
-        unlinkSync(path);
-      } catch {
-        // already gone
-      }
-    }
+    const removed = created.filter(removeIfStillOurs).length;
     process.stderr.write(
       `${spec.errPrefix}: writing ${t.recordRel} failed (${failure}); removed the ` +
-        `${String(created.length)} record(s) this run created; pre-existing records are untouched.\n`,
+        `${String(removed)} record(s) this run created and still owned; ` +
+        "pre-existing records are untouched.\n",
     );
     return 1;
   }
