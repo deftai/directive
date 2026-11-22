@@ -84,7 +84,7 @@ import {
   type WriteWorkerAuthAssignmentResult,
   writeWorkerAuthAssignment,
 } from "./worker-auth-assignment.js";
-import { resolveWorktreeMap, type WorktreeRecord } from "./worktrees.js";
+import { compareKey, resolveWorktreeMap, type WorktreeRecord } from "./worktrees.js";
 
 export interface ResolvedStory {
   token: string;
@@ -454,7 +454,7 @@ export type WorktreeResolverFn = (
   mapping: readonly Record<string, unknown>[],
   baseBranch: string,
   createMissing?: boolean,
-  options?: { repoRoot?: string; rowBases?: ReadonlySet<string> },
+  options?: { repoRoot?: string },
 ) => WorktreeRecord[];
 
 /**
@@ -481,6 +481,60 @@ export function worktreeMapRowBases(mapPath: string | null | undefined): Map<str
     if (id.length > 0 && base.length > 0) out.set(id, base);
   }
   return out;
+}
+
+/**
+ * Group worktree-map rows by the base each one resolves against (#7083): a row
+ * whose `base_branch` is a pinned one-PR commit other than the cohort base forms
+ * its own group; every other row stays with the cohort base. Empty groups are
+ * dropped, except that an empty map keeps the cohort base group.
+ */
+export function groupRowsByPinnedBase(
+  mapping: readonly Record<string, unknown>[],
+  base: string,
+  pins: ReadonlySet<string>,
+): Map<string, Record<string, unknown>[]> {
+  const groups = new Map<string, Record<string, unknown>[]>([[base, []]]);
+  for (const row of mapping) {
+    const rowBase =
+      row !== null && typeof row === "object" && typeof row.base_branch === "string"
+        ? row.base_branch.trim()
+        : "";
+    const key = rowBase !== base && pins.has(rowBase) ? rowBase : base;
+    const rows = groups.get(key) ?? [];
+    rows.push(row);
+    groups.set(key, rows);
+  }
+  if (groups.size > 1 && (groups.get(base)?.length ?? 0) === 0) groups.delete(base);
+  return groups;
+}
+
+/**
+ * Story-id and worktree-path clashes across the whole map (#7083). Each group is
+ * resolved on its own, so a clash between two groups is caught here; malformed
+ * rows are left for the resolver to report.
+ */
+function crossGroupClash(
+  mapping: readonly Record<string, unknown>[],
+  projectRoot: string,
+): string | null {
+  const ids = new Set<string>();
+  const paths = new Map<string, string>();
+  for (const row of mapping) {
+    if (row === null || typeof row !== "object") continue;
+    const id = typeof row.story_id === "string" ? row.story_id.trim() : "";
+    const raw = typeof row.worktree_path === "string" ? row.worktree_path.trim() : "";
+    if (id.length === 0 || raw.length === 0) continue;
+    if (ids.has(id)) return `duplicate story_id '${id}'`;
+    ids.add(id);
+    const key = compareKey(resolve(projectRoot, raw));
+    const prior = paths.get(key);
+    if (prior !== undefined) {
+      return `worktree path collision: stories '${prior}' and '${id}' both map to '${raw}'`;
+    }
+    paths.set(key, id);
+  }
+  return null;
 }
 export type RuntimeAuthProbeFn = () => [string, string];
 export type OccupancyReleaseFn = typeof releaseOccupancy;
@@ -2166,19 +2220,34 @@ export function swarmLaunch(args: LaunchArgs): {
             return pin !== undefined ? { ...row, base_branch: pin } : row;
           });
           const createMissing = !(args.noCreateWorktrees ?? false);
-          const opts = { repoRoot: projectRoot, rowBases: new Set(onePrPins.values()) };
-          let records: WorktreeRecord[];
-          if (args.worktreeResolver !== undefined) {
-            records = args.worktreeResolver(mapping, base, createMissing, opts);
-          } else {
-            const resolved = resolveWorktreeMap(mapping, base, createMissing, opts);
+          const opts = { repoRoot: projectRoot };
+          // #7083: rows on another admitted branch resolve as their own group against
+          // that branch's pin; every other row resolves against the cohort base, so a
+          // row naming an unadmitted base still raises the mismatch as today.
+          const groups = groupRowsByPinnedBase(mapping, base, new Set(onePrPins.values()));
+          if (groups.size > 1) {
+            const clash = crossGroupClash(mapping, projectRoot);
+            if (clash !== null) {
+              return failAfterClaim(
+                EXIT_CONFIG_ERROR,
+                `Error: worktree map resolution failed: ${clash}\n`,
+              );
+            }
+          }
+          const records: WorktreeRecord[] = [];
+          for (const [groupBase, rows] of groups) {
+            if (args.worktreeResolver !== undefined) {
+              records.push(...args.worktreeResolver(rows, groupBase, createMissing, opts));
+              continue;
+            }
+            const resolved = resolveWorktreeMap(rows, groupBase, createMissing, opts);
             if (!resolved.ok) {
               return failAfterClaim(
                 EXIT_CONFIG_ERROR,
                 `Error: worktree map resolution failed: ${resolved.message}\n`,
               );
             }
-            records = resolved.records;
+            records.push(...resolved.records);
           }
           worktreeRecordMap = new Map(records.map((r) => [r.story_id, r]));
         } catch (exc: unknown) {

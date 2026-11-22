@@ -16,8 +16,7 @@ import { evaluateScopeProvenance } from "../scope-provenance/evaluate.js";
 import { extractIntentFromRaw } from "../scope-provenance/extract-intent.js";
 import { computeAuthHashV1 } from "../scope-provenance/forge-approval.js";
 import { computeIntentDigest } from "../scope-provenance/intent-digest.js";
-import { swarmLaunch } from "./launch.js";
-import { resolveWorktreeMap } from "./worktrees.js";
+import { groupRowsByPinnedBase, swarmLaunch } from "./launch.js";
 
 const REPO = "deftai/directive";
 const STORIES = [
@@ -147,17 +146,19 @@ function launch(
   root: string,
   rows: { story_id: string; base_branch: string }[],
   baseBranch?: string,
+  samePath = false,
 ) {
   const mapPath = join(root, "worktree-map.json");
   writeFileSync(
     mapPath,
-    JSON.stringify(rows.map((r) => ({ ...r, worktree_path: join(root, `wt-${r.story_id}`) }))),
+    JSON.stringify(
+      rows.map((r) => ({
+        ...r,
+        worktree_path: join(root, `wt-${samePath ? "shared" : r.story_id}`),
+      })),
+    ),
   );
-  const seen: { base: string; rows: string[]; rowBases: string[] } = {
-    base: "",
-    rows: [],
-    rowBases: [],
-  };
+  const seen: { base: string; rows: string[] }[] = [];
   const result = swarmLaunch({
     stories: STORIES.map((s) => briefRel(s.id)),
     projectRoot: root,
@@ -166,16 +167,16 @@ function launch(
     batchingRationale: "two one-PR stories, one branch each",
     ...(baseBranch !== undefined ? { baseBranch } : {}),
     worktreeMap: mapPath,
-    // Stand-in for resolveWorktreeMap: build each dest from the base its row is handed.
-    worktreeResolver: (mapping, base, _create, opts) => {
-      seen.base = base;
-      seen.rows = mapping.map((row) => String(row.base_branch));
-      seen.rowBases = [...(opts?.rowBases ?? [])];
+    // Stand-in for resolveWorktreeMap: build each dest from the base its group is handed.
+    worktreeResolver: (mapping, base) => {
+      seen.push({ base, rows: mapping.map((row) => String(row.base_branch)) });
       return mapping.map((row) => {
         execFileSync(
           "git",
-          ["worktree", "add", "-q", "--detach", String(row.worktree_path), String(row.base_branch)],
-          { cwd: root },
+          ["worktree", "add", "-q", "--detach", String(row.worktree_path), base],
+          {
+            cwd: root,
+          },
         );
         return {
           story_id: String(row.story_id),
@@ -200,31 +201,28 @@ function launch(
   return { result, seen };
 }
 
-describe("resolveWorktreeMap row bases (#7083)", () => {
-  const rows = [
-    { story_id: "a", worktree_path: "wt-a", base_branch: "a".repeat(40) },
-    { story_id: "b", worktree_path: "wt-b", base_branch: "master" },
-  ];
-  it("refuses a differing row base that is not listed, as today", () => {
-    expect(() => resolveWorktreeMap(rows, "master", false, { repoRoot: tmpdir() })).toThrow(
-      /declares base_branch/,
-    );
+describe("groupRowsByPinnedBase (#7083)", () => {
+  const pinA = "a".repeat(40);
+  const pinB = "b".repeat(40);
+  it("groups rows on admitted branches by their pin and keeps the rest on the cohort base", () => {
+    const rows = [
+      { story_id: "a", base_branch: pinA },
+      { story_id: "b", base_branch: pinB },
+      { story_id: "c", base_branch: "other" },
+      { story_id: "d" },
+    ];
+    const groups = groupRowsByPinnedBase(rows, "master", new Set([pinA, pinB]));
+    expect([...groups.keys()]).toEqual(["master", pinA, pinB]);
+    // An unadmitted base stays with the cohort base, where the resolver raises as today.
+    expect(groups.get("master")?.map((r) => r.story_id)).toEqual(["c", "d"]);
   });
-  it("checks a listed row base against its own commit", () => {
-    const revParsed: string[] = [];
-    const git = (args: readonly string[]) => {
-      if (args[0] === "rev-parse") revParsed.push(String(args[args.length - 1]));
-      const stdout = args[0] === "rev-parse" ? "f".repeat(40) : "";
-      return { returncode: 0, stdout, stderr: "" };
-    };
-    expect(() =>
-      resolveWorktreeMap(rows, "master", false, {
-        repoRoot: tmpdir(),
-        git,
-        rowBases: new Set(["a".repeat(40)]),
-      }),
-    ).toThrow(/story 'a' maps to/);
-    expect(revParsed).toEqual([`${"a".repeat(40)}^{commit}`]);
+  it("keeps one group for a cohort on one base, as today", () => {
+    const rows = [
+      { story_id: "a", base_branch: pinA },
+      { story_id: "b", base_branch: pinA },
+    ];
+    expect([...groupRowsByPinnedBase(rows, pinA, new Set([pinA])).keys()]).toEqual([pinA]);
+    expect([...groupRowsByPinnedBase([], "master", new Set()).keys()]).toEqual(["master"]);
   });
 });
 
@@ -240,8 +238,10 @@ describe("swarm:launch per-story one-PR base (#7083)", { timeout: 120_000 }, () 
       STORIES.map((s) => ({ story_id: s.id, base_branch: s.branch })),
     );
     expect(result.exitCode, result.stderr).toBe(0);
-    expect(seen.rows).toEqual([pin("one-pr-a"), pin("one-pr-b")]);
-    expect(seen.rowBases.sort()).toEqual([pin("one-pr-a"), pin("one-pr-b")].sort());
+    expect(seen).toEqual([
+      { base: pin("one-pr-a"), rows: [pin("one-pr-a")] },
+      { base: pin("one-pr-b"), rows: [pin("one-pr-b")] },
+    ]);
     for (const s of STORIES) {
       const dest = join(root, `wt-${s.id}`);
       const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dest }).toString().trim();
@@ -290,5 +290,15 @@ describe("swarm:launch per-story one-PR base (#7083)", { timeout: 120_000 }, () 
     expect(shared.result.stderr).toContain(
       `origin/one-pr-a has no active brief ${briefRel("story-b7083")}`,
     );
+    // Two branches, one worktree path: refused before any dest is built.
+    const clash = launch(
+      root,
+      STORIES.map((s) => ({ story_id: s.id, base_branch: s.branch })),
+      undefined,
+      true,
+    );
+    expect(clash.result.exitCode).not.toBe(0);
+    expect(clash.result.stderr).toContain("worktree path collision");
+    expect(clash.seen).toEqual([]);
   });
 });
