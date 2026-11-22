@@ -3,10 +3,9 @@
   "kind": "disclosure",
   "issue": 7077,
   "surfaces": [
-    "packages/core/src/class-checks/changed-files-enum.test.ts",
-    "packages/core/src/class-checks/evaluate.test.ts",
-    "packages/core/src/class-checks/evaluate.ts",
+    "packages/core/src/presentation-coverage/gates.test.ts",
+    "packages/core/src/presentation-coverage/gates.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #7077 (class 2 scans only added lines), a deliberate gate change through issue and PR (#3156) built from the accepted arc (bound lean 7084665877). Class 2 of verify:class-checks now scans only the lines that one git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv against the candidate merge base marks as added, read with parseUnifiedDiffAddedLines. Injected callers pass the new optional ClassCheckOptions.addedLines; injected mode never reads git. A path with no added-line entry (untracked, binary, failed diff, injected without an entry) is scanned on every line, as before. No whitespace normalisation or line matching: a moved or re-indented reference line fails. The finding detail now names the first matching line. No change to which files count as production, the roots, needle regexes, class 1, 3 or 4, the same-PR policy-edit check, or verify:test-boundary. Tests change to pin the new contract. Disclosure only; not #3164 authorization. Refs #7077."
+  "note": "Disclosure for #7077 part 2 (product PR), a deliberate gate change through issue and PR (#3156) built from the accepted arc (bound lean 7084665877). The presentation-coverage composed run now passes verify:class-checks the added lines from git diff -U0 --no-renames --no-color --no-ext-diff --no-textconv <mergeBase> <candidate> over its changed paths, parsed with parseUnifiedDiffAddedLines; a failed diff passes no entries, so class 2 scans every line (fail closed). parseUnifiedDiffAddedLines (forward-coverage/diff-lines.ts, not an evaluator surface) now tracks hunk lengths, so payload that starts with +++, --- or diff --git never changes the current file. No change to the composed gate set, other gate adapters, policies, exit codes or verify:test-boundary. Tests pin the new contract. Disclosure only; not #3164 authorization. Refs #7077."
 }
