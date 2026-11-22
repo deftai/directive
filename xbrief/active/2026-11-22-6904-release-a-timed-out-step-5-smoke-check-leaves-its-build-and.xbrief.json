@@ -1,0 +1,960 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6904",
+    "updated": "2026-11-22T22:13:22Z"
+  },
+  "plan": {
+    "title": "release: a timed-out Step 5 smoke check leaves its build and vitest processes running",
+    "status": "running",
+    "narratives": {
+      "Description": "release: a timed-out Step 5 smoke check leaves its build and vitest processes running",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6904",
+      "Overview": "\n1. Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.\n2. Scan completeness. The descendant scan reports whether it completed. A sibling of `listDescendantPids` returns `{ pids, complete }`; `listDescendantPids` keeps returning only the list for its other callers. `complete` is false when the scan budget runs out before the walk ends, or when any listing call fails: a spawn error (for example a missing `wmic` or `pgrep`), a timeout, or an exit status other than success or the command's no-match status (`pgrep` exit 1). The injected `listDirect` seam may return `null` to mean a failed listing. `killTreeAndProveEmpty` returns `{ remaining, scanComplete }`; callers that read only `remaining` do not change.\n3. Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the result of `killTreeAndProveEmpty`: a non-empty `remaining` gives `survivors` with those PIDs; an empty `remaining` with `scanComplete` gives `stopped`; an empty `remaining` without `scanComplete` gives `unverified`. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or the plan's `killTree` test seam is used, the result is `unverified`. A result without a timeout has no `treeCleanup` field.\n4. Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle, as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }` before it notifies, as today. Suite mode keeps its untagged message. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.\n5. Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.\n6. Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.\n7. Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.\n8. Tests. None needs a built `dist` worker.\n   (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 5.\n   (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, that the recorded PID is not running, on win32 and POSIX, and that the result is `stopped` when the scan completed and `unverified` when it did not.\n   (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted.\n   (d) Scan completeness, in-process with the `listDirect` seam: a listing that returns `null` (failed) gives `complete: false`; a budget that expires before the walk ends gives `complete: false`; a full walk gives `complete: true`. With those seams, `killTreeAndProveEmpty` and `superviseTimedChild` give `unverified` for a failed listing and for an expired budget when no PID is left alive, and `survivors` when a known PID is still alive. The existing budget test keeps its list result and also asserts `complete: false`.\n   (e) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam.\n   (f) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.\n\n## Acceptance Criteria\n\n- Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running, on win32 and POSIX.\n- Given that case with a completed descendant scan and no process left, then the result carries `treeCleanup: stopped` and the failure says the process tree was stopped.\n- Given a timed-out command where a known process survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.\n- Given a descendant listing that fails (for example a missing `wmic` or `pgrep`) or a scan budget that expires, with no known survivor, then the result carries `treeCleanup: unverified`, never `stopped`.\n- Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then the calling thread kills no process, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.\n- Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.\n- `runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.\n- The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.\n- The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.\n- Each smoke command prints a start line, and its captured output is written when it ends.\n\n\n",
+      "Constraint": "- A test that needs a built `dist` worker (comment 7052343840, finding 3: no test in the suite depends on `dist` today; the message handling, scan and cleanup are tested in-process instead).\n- A new logging or tee for smoke output (comment 7052343840, finding 4).\n- A kill from the calling thread after a backstop expiry or worker failure (comment 7052396207, findings 1 and 2: a missing exit message does not prove the PID is still the smoke command, and a root exit does not cover the descendants).",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Scan completeness. The descendant scan reports whether it completed. A sibling of `listDescendantPids` returns `{ pids, complete }`; `listDescendantPids` keeps returning only the list for its other callers. `complete` is false when the scan budget runs out before the walk ends, or when any listing call fails: a spawn error (for example a missing `wmic` or `pgrep`), a timeout, or an exit status other than success or the command's no-match status (`pgrep` exit 1). The injected `listDirect` seam may return `null` to mean a failed listing. `killTreeAndProveEmpty` returns `{ remaining, scanComplete }`; callers that read only `remaining` do not change.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the result of `killTreeAndProveEmpty`: a non-empty `remaining` gives `survivors` with those PIDs; an empty `remaining` with `scanComplete` gives `stopped`; an empty `remaining` without `scanComplete` gives `unverified`. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or the plan's `killTree` test seam is used, the result is `unverified`. A result without a timeout has no `treeCleanup` field.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle, as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }` before it notifies, as today. Suite mode keeps its untagged message. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Tests. None needs a built `dist` worker. (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 5. (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, that the recorded PID is not running, on win32 and POSIX, and that the result is `stopped` when the scan completed and `unverified` when it did not. (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted. (d) Scan completeness, in-process with the `listDirect` seam: a listing that returns `null` (failed) gives `complete: false`; a budget that expires before the walk ends gives `complete: false`; a full walk gives `complete: true`. With those seams, `killTreeAndProveEmpty` and `superviseTimedChild` give `unverified` for a failed listing and for an expired budget when no PID is left alive, and `survivors` when a known PID is still alive. The existing budget test keeps its list result and also asserts `complete: false`. (e) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam. (f) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running, on win32 and POSIX.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given that case with a completed descendant scan and no process left, then the result carries `treeCleanup: stopped` and the failure says the process tree was stopped.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given a timed-out command where a known process survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Given a descendant listing that fails (for example a missing `wmic` or `pgrep`) or a scan budget that expires, with no known survivor, then the result carries `treeCleanup: unverified`, never `stopped`.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then the calling thread kills no process, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "`runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.",
+        "status": "proposed",
+        "id": "clause.16"
+      },
+      {
+        "title": "The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.",
+        "status": "proposed",
+        "id": "clause.17"
+      },
+      {
+        "title": "Each smoke command prints a start line, and its captured output is written when it ends.",
+        "status": "proposed",
+        "id": "clause.18"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6904",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6904: release: a timed-out Step 5 smoke check leaves its build and vitest processes running"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6791",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6791"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "shell: false",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L29"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/ci-reuse.ts",
+          "packages/core/src/release/ci-reuse.test.ts",
+          "packages/core/src/check/suite-gate-supervisor.ts",
+          "packages/core/src/check/suite-gate-supervisor.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-worker.ts",
+          "packages/core/src/check/suite-gate-supervisor-worker.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.test.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "changelog.d/6904-smoke-check-tree-kill.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6519687670.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/release/ci-reuse.test.ts",
+          "npx vitest run packages/core/src/check/suite-gate-supervisor.test.ts packages/core/src/check/suite-gate-supervisor-worker.test.ts packages/core/src/check/suite-gate-supervisor-lib.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "runSmokeCommand runs each smoke command through runTimedChild with the smoke spawn plan, sanitized env and the time left on the shared RELEASE_CHECK_TIMEOUT_MS deadline",
+          "the descendant scan reports completeness; killTreeAndProveEmpty returns { remaining, scanComplete }",
+          "SupervisedGateResult carries treeCleanup (stopped | survivors | unverified), survivorPids and lastReportedPid; only the worker kills",
+          "runTimedChild drains tagged spawned/result messages and returns unverified with the last reported PID on backstop expiry or worker failure",
+          "smoke failures name the cleanup outcome; each command prints a start line and its captured output when it ends",
+          "one changelog fragment changelog.d/6904-smoke-check-tree-kill.md"
+        ],
+        "conflict_group": "release-smoke-supervisor",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 18 clauses are the 8 Bound remedy items and 10 Acceptance Criteria of the accepted arc lean 7070710091 on #6904, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6904; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes how release Step 5 runs and stops child processes on a reused cut (process-tree kill on win32 and POSIX, captured instead of inherited output, and a new failure when the supervisor worker is missing), and the issue's premise that the supervisor is async only needs checking against the sync wrapper that already exists.\n\nTarget-digest: sha256:b9f3fe820a3de4f785d700cc7595b322eddf853f7bc96f6e8f69ff8a27fb793d\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6904 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one function in one release module reusing one existing runner; a thin arc with one critic of a different model family, then one pain audit.\ncritic-post cap: 2 (set by the operator for this arc: one round-1 critic and one pain audit; no recut audit)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1\n\n## In plain English\nOn a reused cut, release Step 5 runs a short host smoke check: `pnpm run build`, then a few vitest files. Each command runs through `spawnSync` with a `timeout`. When the time runs out, Node kills only the direct child (`cmd.exe` on win32, `pnpm` elsewhere). The `tsc`, bundle and vitest processes under it keep running after Step 5 has failed.\n\nThe issue says the process-tree supervisor is async and Step 5 is sync. Reading the code at the pin, a sync wrapper already exists: `runTimedChild` in `check/suite-gate-supervisor.ts` runs `superviseTimedChild` in a worker thread and blocks with `Atomics.wait`. It starts the child in its own process group on POSIX, and at the deadline it kills the whole tree (`taskkill /T /F` on win32, a group `SIGKILL` on POSIX), then kills any listed process that is still alive. Release Step 5 already uses it for its hygiene gates (`cached-orchestrator.ts`). So a clean one-PR fix looks possible: run each smoke command through `runTimedChild` instead of `spawnSync`, with the same spawn plan, environment and shared deadline.\n\n## Pains\n- P1 — When the host smoke check's deadline passes, release Step 5 kills only the direct child of the timed-out smoke command; its build, bundle and vitest descendants keep running and holding files after Step 5 reports the failure.\n\n## Constraints (not pains)\n- One shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both smoke commands; no new timeout constant (issue AC 2).\n- The shell-free spawn plan stays (`smokeSpawnPlan`, #6791 SLizard P1): no `shell: true`, the project root only as cwd.\n- The environment stays `sanitizeTsLaneEnv(process.env)`.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/release/ci-reuse.ts` 271-287: `runSmokeCommand` uses `spawnSync` with `stdio: \"inherit\"` and `timeout`.\n- `packages/core/src/release/ci-reuse.ts` 295-330: `runHostSmokeCheck` computes one deadline and passes the time left to each command through the `runner` seam.\n- `packages/core/src/release/pipeline.ts` 454-465: Step 5 on a reused cut calls `runHostSmokeCheck` and fails with its reason.\n- `packages/core/src/check/suite-gate-supervisor.ts` 1-9 and 145-219: `runTimedChild`, the sync Worker plus `Atomics.wait` wrap of `superviseTimedChild`; it returns a failure result, not a throw, when the compiled worker is missing; the wait has a 15-second backstop past `timeoutMs`.\n- `packages/core/src/check/suite-gate-supervisor-worker.ts` 24-35 and 130-222: `TimedChildPlan` and `superviseTimedChild` (process group on POSIX when a timeout is set; `killTreeAndProveEmpty` at the deadline; stdout and stderr captured, not inherited).\n- `packages/core/src/check/suite-gate-supervisor-worker.ts` 94-127: `killTreeAndProveEmpty` snapshots the tree, kills the root or group, then kills survivors.\n- `packages/core/src/check/suite-gate-supervisor-lib.ts` 37-58: captured output keeps the last 256 KiB.\n- `packages/core/src/check/cached-orchestrator.ts` 650-680: Step 5 hygiene gates already run through `runTimedChild` with `cliSpawnPlan` and write the captured output after the child ends.\n- `packages/core/src/release/ci-reuse.test.ts` 245-360: smoke tests use the `runner` seam, and one test runs `runSmokeCommand` for real in a directory named with shell metacharacters.\n\n## Recommended mechanism (the thing to critique)\n- K1. `runSmokeCommand` runs its command through `runTimedChild` instead of `spawnSync`, with the same `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It keeps a seam for the timed runner so tests do not need the compiled worker.\n- K2. Result mapping keeps the `{ status, error }` shape `runHostSmokeCheck` reads. A timed-out run returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. A spawn error or a missing worker returns `status: null` and that error, so Step 5 fails closed with the reason. Otherwise `status` is the exit code.\n- K3. The captured stdout and stderr are written to the release output after the command ends, as the Step 5 hygiene gates do. Output is no longer streamed live.\n- K4. No new constant. `runHostSmokeCheck` and its shared deadline do not change.\n- K5. Tests: (a) with the timed runner seam, `runSmokeCommand` passes the plan, env and time left, and maps a timed-out result to a failure; (b) an in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline shows that, after it returns, that child is no longer running (win32 and POSIX); (c) the metacharacter-cwd test keeps passing.\n\nQuestions for the critic:\n1. Does `runTimedChild` (worker thread plus `Atomics.wait`) work from the release CLI as shipped, or does the worker path resolution (`resolveWorkerPath`) fail in the packaged runtime, which would turn every reused-cut smoke check into a failure?\n2. Is losing live output (K3) acceptable for a smoke check that can run for minutes, given that the full Step 5 suite and the hygiene gates already capture?\n3. Is test (b) enough to prove \"no child left running\", or must `runSmokeCommand` itself report the survivors that `killTreeAndProveEmpty` computes (today `superviseTimedChild` drops that list)?\n4. Should the metacharacter-cwd test (which runs the real command) move to the seam or to the in-process runner, so the suite does not depend on a built `dist` worker?\n\n",
+          "id": 7052298808,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052298808",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:36:34Z",
+          "updated_at": "2026-11-20T22:36:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052299162\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6904\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052298808\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052299162,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052299162",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:36:35Z",
+          "updated_at": "2026-11-20T22:36:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nA timed-out release smoke check can leave its build and test descendants running. Reusing the existing synchronous supervisor is a sound direction, but K1–K5 do not yet support the promise that the whole tree has stopped before Step 5 returns. The runner discards known survivors, and its backstop can return without completing cleanup.\n\nAnswers to the four questions:\n\n1. **The packaged worker path appears sound by inspection.** Only the launcher is bundled into one file (`packages/cli/scripts/bundle.mjs:25–33`). Runtime staging copies the core `dist` tree intact and ships `vendor/**` (`packages/runtime/scripts/stage-bundle.mjs:121–125,360–366`). Consequently, the supervisor and worker retain the sibling layout expected by `resolveWorkerPath` (`packages/core/src/check/suite-gate-supervisor.ts:60–68`). This is source-level verification, not an executed package check.\n2. **Delayed output is acceptable as an explicit tradeoff**, but K3 also loses older output, not just live streaming. A command-start notice would help distinguish a running check from a stalled release.\n3. **Test (b) is necessary but insufficient.** Cleanup results need to reach the caller, and the synchronous worker/backstop path needs coverage. Reporting survivors makes failure honest; it does not itself satisfy the requirement to stop them.\n4. **Keep a real metacharacter-cwd execution through the in-process runner**, alongside a seam test proving `runSmokeCommand` forwards the safe spawn plan. Moving everything to a fake runner would weaken the existing security regression test.\n\nVerification used pinned source at `880c91ed079578e900c1f2ef680efbfa6e6d61af`; no builds or tests ran.\n\n### 1. blocks-the-design — A timeout result does not establish successful cleanup\n\n**Evidence:** `packages/core/src/check/suite-gate-supervisor-worker.ts:94–126` returns surviving PIDs after two kill passes. Lines 161–165 discard that result, and lines 181–189 return an ordinary timeout result. The result type has no cleanup field (`packages/core/src/check/suite-gate-supervisor-lib.ts:109–118`).\n\n**Failure mode:** The root exits while a descendant survives the kill attempts. The worker returns `timedOut: true`; K2 then reports that its process tree “was stopped,” despite the helper having observed otherwise. Step 5 fails, but the original resource leak remains.\n\n**Disposition consequence:** K2 cannot bind as written. The shared runner needs to preserve cleanup outcome and distinguish confirmed cleanup from surviving or unverified processes. Known survivors need bounded cleanup handling; an unsuccessful cleanup must remain an explicit failure without the “tree was stopped” assertion.\n\n### 2. blocks-the-design — The synchronous backstop can abandon the cleanup owner\n\n**Evidence:** `packages/core/src/check/suite-gate-supervisor.ts:187–200` returns a timeout after the worker’s deadline plus 15 seconds; lines 216–218 request worker termination without child-tree cleanup. Meanwhile, Windows tree termination uses synchronous `taskkill` without a timeout (`packages/core/src/check/suite-gate-supervisor-lib.ts:170–179`).\n\n**Failure mode:** If cleanup stalls or the worker stops producing results after spawning its child, the parent’s backstop returns and requests termination of the worker. That branch neither kills the command tree nor verifies it is empty. K2 would describe this supervisor timeout as completed tree cleanup.\n\n**Disposition consequence:** Merely exposing `remaining` does not close this branch. The design needs a cleanup ownership/recovery path for worker failure and backstop expiry, with an explicit unverified-cleanup outcome when recovery fails. Reusing the wrapper unchanged cannot establish AC1.\n\n### 3. sharpens-framing — The proposed tests bypass the production boundary that matters\n\n**Evidence:** Production `runTimedChild` resolves a compiled worker, transfers the plan, blocks, receives a result, and terminates the worker (`packages/core/src/check/suite-gate-supervisor.ts:150–218`). The existing real cwd test calls `runSmokeCommand` (`packages/core/src/release/ci-reuse.test.ts:336–350`). K5’s fake timed runner and in-process supervisor exercise neither production worker transport nor the backstop.\n\n**Failure mode:** Both proposed tests can pass while the real synchronous path fails to load its worker, mishandles cleanup results, or returns before descendants stop.\n\n**Disposition consequence:** Keep the fast seam and in-process tests, but add a built-runtime integration case crossing the synchronous boundary and independently checking recorded descendant PIDs after return on Windows and POSIX. Include cleanup-failure/backstop coverage. The metacharacter test can remain independent of `dist` through real in-process execution plus adapter assertions.\n\n### 4. footnote — Captured output is truncated as well as delayed\n\n`packages/core/src/check/suite-gate-supervisor-lib.ts:20–21,41–58` retains only the last 256 KiB per stream. The timed runner creates no tee (`packages/core/src/check/suite-gate-supervisor-worker.ts:178–188`), whereas the suite runner writes one (`packages/core/src/check/suite-gate-supervisor-lib.ts:302–308`).\n\nK3 therefore trades away earlier diagnostics and stream interleaving, not merely progress visibility. That is acceptable for this scope if stated accurately; it does not require a new logging subsystem.",
+          "id": 7052343840,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052343840",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:39:12Z",
+          "updated_at": "2026-11-20T22:39:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7052298808 (round 1: 1 of 1 critic posted, comment 7052343840)\n\n## In plain English\nProblem: on a reused cut, release Step 5 runs a short host smoke check (`pnpm run build`, then a few vitest files) through `spawnSync` with a timeout. When the time runs out, Node kills only the direct child, and the build and vitest processes under it keep running after Step 5 has failed.\n\nWhat the critic found: the sync wrapper `runTimedChild` that Step 5 already uses for its hygiene gates is the right tool, and its worker path works in the shipped runtime by inspection. But two gaps stop it from proving the tree is gone. First, the worker computes which processes survived the kill and then drops that list, so a timeout always looks like a clean stop. Second, when the wrapper's own backstop fires (or the worker fails), the wrapper returns without killing the command's tree at all. The critic also asked for honest tests across the sync boundary and an honest note that captured output is truncated as well as delayed.\n\nSolution this lean proposes: `runSmokeCommand` runs each command through `runTimedChild` with the same safe spawn plan, environment and shared deadline. The shared runner is fixed in two places so its result tells the truth: the worker returns the cleanup outcome (stopped, survivors with their PIDs, or unverified), and the worker reports the child PID as soon as it starts, so that when the backstop fires or the worker fails, the calling thread kills that tree itself and reports the outcome. Step 5 says \"process tree stopped\" only when the cleanup outcome is `stopped`.\n\nWhat this adds: one result field on the shared timed-child runner, one early PID message from its worker, one recovery step in the calling thread, and a start line per smoke command. No new constant and no new gate.\n\nWhat it does not do:\n- It does not stream smoke output live. Output is written when each command ends, and only the last 256 KiB of each stream is kept, as for the Step 5 hygiene gates.\n- It does not add a test that needs a built `dist` worker. The sync wrapper's recovery logic is tested in-process through seams; no test in the suite depends on `dist` today.\n- It does not bound a `taskkill` call that itself hangs.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:b9f3fe820a3de4f785d700cc7595b322eddf853f7bc96f6e8f69ff8a27fb793d\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7052298808. Sibling count: 1 (comment 7052343840). Panel deposit: comment 7052299162.\n\nrelieves: P1\n\n## Bound remedy\n1. Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.\n2. Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, and an optional `survivorPids` list. `superviseTimedChild` keeps the `remaining` list that `killTreeAndProveEmpty` returns: an empty list gives `stopped`; a non-empty list gives `survivors` with those PIDs. A result without a timeout carries no `treeCleanup` field.\n3. Early PID and recovery in the calling thread. `superviseTimedChild` takes an optional spawn callback; the timed worker uses it to post the child PID on the port as soon as the child starts, and posts again when the child exits. `runTimedChild` reads every message on the port, not only the first. When its backstop wait expires, or the worker fails before posting a result, and the worker reported a PID with no exit, `runTimedChild` calls `killTreeAndProveEmpty` on that PID in the calling thread and sets `treeCleanup` to `stopped` or `survivors` from its result. When no PID was reported, or the child had already exited, it sets `unverified` and kills nothing.\n4. Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs; with `unverified`, it says the cleanup could not be checked. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.\n5. Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.\n6. Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and backstop recovery through `runTimedChild`; they do not change how they read the result.\n7. Tests. (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value and a spawn error as in item 4. (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, `treeCleanup: stopped` and that the recorded PID is not running, on win32 and POSIX. (c) With a fake kill seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. (d) The recovery step of `runTimedChild`, factored so it takes the drained port messages and a kill seam, kills the reported PID on a backstop expiry, does nothing and returns `unverified` when no PID or an exit was reported, and reports `survivors` from the kill result. (e) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.\n\n## Acceptance Criteria\n- Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running and the failure says the process tree was stopped, on win32 and POSIX.\n- Given a timed-out command where a descendant survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.\n- Given the backstop of `runTimedChild` expires after the worker reported a child PID and no exit, then the calling thread kills that tree and reports `stopped` or `survivors` from the kill result.\n- Given the backstop expires or the worker fails with no reported child PID, or after a reported exit, then no kill is attempted and the result carries `treeCleanup: unverified`.\n- The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.\n- The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.\n- Each smoke command prints a start line, and its captured output is written when it ends.\n\n## Reject\n- A test that needs a built `dist` worker (comment 7052343840, finding 3: no test in the suite depends on `dist` today; the recovery logic is tested in-process through seams instead).\n- A new logging or tee for smoke output (comment 7052343840, finding 4).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052343840 | 1. A timeout result does not establish successful cleanup | blocks-the-design | accept-into-contract (items 2 and 4) |\n| comment 7052343840 | 2. The synchronous backstop can abandon the cleanup owner | blocks-the-design | accept-into-contract (item 3; a hanging `taskkill` stays out of scope and is stated) |\n| comment 7052343840 | 3. The proposed tests bypass the production boundary that matters | sharpens-framing | accept-into-contract (item 7 (c), (d) and (e); the built-`dist` case is rejected with its reason) |\n\nFootnote in the census, no take: comment 7052343840 finding 4 (stated in item 5).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cite stays open until a later critic targets it. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 7052365772,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052365772",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:40:28Z",
+          "updated_at": "2026-11-20T22:40:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: blocking, sharpening\nharvest-changed: true\nharvest-digest: sha256:8e6d7d9daf43c2247e5385c4a57f1f367c12d9cbb4a128706546bed6b9257736\n\n## In plain English\n\nThe revision fixes the discarded-survivor result and makes timeout messages more honest. However, its recovery rule can kill a recycled PID, and its “child exited” branch can still leave descendants running. Reporting those descendants as unverified does not relieve the original pain.\n\nThe changes remain plausibly one PR. The proposed in-process tests are buildable without a compiled worker, but their coverage needs to include message draining and final-result selection.\n\npain-P1: does not hold - item 3 treats missing exit notification as permission to kill and recorded root exit as permission to abandon cleanup; neither establishes safe cleanup of the original process tree.\n\nAll source evidence below was read at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. No builds or tests ran.\n\n### 1. blocks-the-design — Missing exit notification is not a PID-reuse guard\n\n**Evidence:** `packages/core/src/check/suite-gate-supervisor-worker.ts:37–41,152–156` checks the worker’s local child handle before killing. The proposed calling-thread recovery instead has only historical port messages. `packages/core/src/check/suite-gate-supervisor-lib.ts:170–190` kills by numeric PID or process-group ID, without checking process identity. The caller blocks in `Atomics.wait` at `suite-gate-supervisor.ts:187–189`.\n\n**Failure mode:** The worker reports the PID, then stalls or fails. The child subsequently exits without an exit message reaching the caller. Its PID is reused. Item 3 then directs the caller to kill that PID and potentially an unrelated process tree. Draining every queued message cannot supply an exit notification that was never produced.\n\n**Disposition consequence:** Item 3 and its acceptance criterion cannot bind as written. The smallest safe correction is to require an identity-safe cleanup target or ownership mechanism; absence of an exit message alone must never authorize a numeric-PID kill. If identity cannot be established, recovery must return `unverified` without killing that PID. Add a stale-PID/no-exit-message regression case. That safety correction alone does not establish full P1 relief.\n\n### 2. blocks-the-design — Root exit still permits abandonment of surviving descendants\n\n**Evidence:** `suite-gate-supervisor-worker.ts:115–124` explicitly snapshots descendants before killing because discovery from a dead root cannot find reparented descendants. Its timeout cleanup and result construction are separate operations at lines 152–189. The caller terminates the worker on return at `suite-gate-supervisor.ts:215–218`.\n\n**Failure mode:** Cleanup kills the root but leaves a descendant alive. The worker reports root exit, then fails before delivering the cleanup result. Item 3 expressly requires the caller to kill nothing and return `unverified`. Step 5 consequently returns while the descendant still holds files—the original P1. The new exit-message branch makes this an explicit permitted outcome, rather than closing the earlier backstop gap.\n\n**Disposition consequence:** Honest reporting closes the misleading-message problem, but not the cleanup obligation. The smallest passing change must retain recovery ownership of descendants independently of root liveness, using identity-safe targets, until cleanup completes or its surviving targets are reported. Add a root-exited/result-missing case with a surviving descendant. Otherwise the relief claim must explicitly leave this portion of P1 unresolved.\n\n### 3. sharpens-framing — Test the message protocol before the recovery helper\n\n**Evidence:** `suite-gate-supervisor.ts:201–214` currently reads exactly one port message and casts it directly to `SupervisedGateResult`. The worker currently posts one result before notifying at `suite-gate-supervisor-worker.ts:234–237`. Item 3 introduces multiple message kinds, but item 7(d) starts with already-drained messages.\n\n**Failure mode:** Recovery-helper tests pass while production still selects the initial PID message as the result, loses the terminal result, or mishandles an exit message. The seam bypasses the newly changed boundary.\n\n**Disposition consequence:** Expand item 7 to exercise the actual drain-and-select implementation with spawn, exit and terminal-result messages, plus incomplete sequences and backstop expiry. A fake receiver or in-process `MessageChannel` can cover this without a built `dist` worker. Keep the proposed real in-process descendant and metacharacter-cwd tests; a compiled-worker dependency is unnecessary for this additional coverage.",
+          "id": 7052396207,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052396207",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:09Z",
+          "updated_at": "2026-11-20T22:42:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7052396207 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7052365772\n\n## In plain English\nThe audit found that P1 is not relieved, on two points, and the parent agrees after reading the code it cites. First, the recovery in item 3 lets the calling thread kill a numeric PID because no exit message arrived. A missing message is not proof that the PID still belongs to the smoke command; if the worker stalls and the PID is reused, the calling thread could kill an unrelated process tree. Second, item 3 tells the calling thread to kill nothing once the root has exited, so a descendant that survived can still be left running when the worker fails before it reports. The audit also asked that the tests cover the real message drain and the choice of the final result, not only a helper that starts from already drained messages.\n\nThe audit agreed that the rest is sound: the worker-owned kill at the deadline (snapshot, then kill, then kill survivors), the `treeCleanup` field with the survivor list, the honest smoke messages, and that the change fits one PR with tests that need no built `dist` worker.\n\nThe Bound remedy on 7052365772 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:b9f3fe820a3de4f785d700cc7595b322eddf853f7bc96f6e8f69ff8a27fb793d\n\ndoes-not-relieve: P1\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052396207 | 1. Missing exit notification is not a PID-reuse guard | blocks-the-design | accept-into-contract (the calling thread never kills by a numeric PID it cannot prove it owns) |\n| comment 7052396207 | 2. Root exit still permits abandonment of surviving descendants | blocks-the-design | accept-into-contract (the worker-stall case cannot be closed safely from the calling thread with what Node offers; it must be reported as `unverified` and stated as a limit, or moved to its own issue) |\n| comment 7052396207 | 3. Test the message protocol before the recovery helper | sharpens-framing | accept-into-contract (tests drive the real drain-and-select code with an in-process `MessageChannel`) |\n\nAudit verdicts recorded: `pain-P1` does not hold.\n\n",
+          "id": 7052400431,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052400431",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:23Z",
+          "updated_at": "2026-11-20T22:42:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 7052400431 (blocking pain audit 7052396207 on a `Spec-path` lean)\nopen-question: If the calling thread never kills anything, the worker alone kills the tree at the deadline from its own child handle and reports `stopped` or `survivors`, and a backstop expiry or worker failure returns `treeCleanup: unverified` with the last reported PID shown for the operator, does that relieve P1 with the worker-stall case stated as a limit, or must that case move to its own issue?\n\n## In plain English\nThe smallest safe step is to drop the calling-thread kill. At the deadline the worker, which still holds the live child handle, snapshots the tree, kills it and kills any survivor, then reports `stopped` or `survivors` with their PIDs (items 1, 2 and 4 to 7 of the retracted lean, unchanged). If the worker itself stalls past the 15-second backstop or fails before it reports, the calling thread kills nothing: it returns `treeCleanup: unverified`, Step 5 fails, and the message names the last PID the worker reported so the operator can check it. Tests drive the real message drain and result choice with an in-process `MessageChannel`. This fixes the normal timeout, which is the case the issue reports, and states the rare worker-stall case honestly instead of risking a kill of an unrelated process. A fully safe cleanup after a worker stall needs process ownership that Node does not offer directly (a Windows job object, or a POSIX process-group check), and would be its own issue.\n\nCritic posts used: 2 of 2. The operator set the cap at 2 for this arc, so the parent does not post that recut without an operator decision.\n\n",
+          "id": 7052404448,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052404448",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:36Z",
+          "updated_at": "2026-11-20T22:42:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the pain audit (comment 7052396207) returned two blocking findings against the backstop recovery and the operator-set cap of 2 critic posts for this arc is spent.\n\nRetraction map: comment 7052400431. Handoff with the open question and the smallest safe next remedy: comment 7052404448. No lean on this thread is bound. Resume is an operator verb.\n\n",
+          "id": 7052404746,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7052404746",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:37Z",
+          "updated_at": "2026-11-20T22:42:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-21) after the halt in comment 7052404746. The operator raised this arc's critic-post cap from 2 to 3, in his words: \"Yes, one more\".\n- One recut lean takes the smallest safe step named in Handoff 7052404448: the calling thread never kills anything. The worker alone kills the tree at the deadline from its own child handle and reports `stopped` or `survivors`. A backstop expiry or a worker failure returns `treeCleanup: unverified` and kills nothing.\n- The operator did not rule separately on the Handoff's second question (a stated limit, or its own issue). The recut states the worker-stall case as a limit of this story. It is not cited `operator-deferred`. The audit decides whether P1 holds with that limit.\n- One pain audit follows; it is critic post 3 of 3. If it blocks, the arc halts with no fourth post.\n\nThe arc continues under Stop 1 7052298808.\n\n",
+          "id": 7070574560,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070574560",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:00:15Z",
+          "updated_at": "2026-11-21T23:00:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7052298808, after pain audit 7052396207 and the operator cap raise in comment 7070574560 (round 1: 1 of 1 critic posted, comment 7052343840)\n\n## In plain English\nProblem: on a reused cut, release Step 5 runs a short host smoke check (`pnpm run build`, then a few vitest files) through `spawnSync` with a timeout. When the time runs out, Node kills only the direct child, and the build and vitest processes under it keep running after Step 5 has failed.\n\nWhat the critics found: the sync wrapper `runTimedChild`, which Step 5 already uses for its hygiene gates, is the right tool. But its worker drops the list of processes that survived the kill, and its backstop returns without saying the tree may still run. The first recut let the calling thread kill the tree after a backstop expiry. The audit refused that: the calling thread cannot prove a numeric PID still belongs to the smoke command, so it could kill a reused PID, and its \"root exited\" branch could still leave descendants running.\n\nSolution this lean proposes: `runSmokeCommand` runs each command through `runTimedChild` with the same safe spawn plan, environment and shared deadline. Only the worker kills, as today: at the deadline it holds the live child handle, snapshots the tree, kills it and kills any survivor. The worker now reports that outcome as `stopped`, or `survivors` with their PIDs. The calling thread never kills anything. If the worker stalls past the backstop or fails before it reports, the result is `unverified`, Step 5 fails, and the message names the PID the worker reported at spawn, for the operator to check. Step 5 says \"process tree stopped\" only when the outcome is `stopped`.\n\nWhat this adds: one result field on the shared timed-child runner, one spawn message from its worker, a loop that reads every message on the port, and a start line per smoke command. No new constant and no new gate.\n\nWhat it does not do:\n- It does not clean up after a worker that stalls or fails before it reports (including a cleanup still running when the 15-second backstop expires). That case is reported as `unverified` and nothing is killed. A safe kill from the calling thread needs process ownership that Node does not offer across threads (a Windows job object, or a POSIX process-group identity check). This is a stated limit of this story.\n- It does not stream smoke output live. Output is written when each command ends, and only the last 256 KiB of each stream is kept, as for the Step 5 hygiene gates.\n- It does not add a test that needs a built `dist` worker, and it does not bound a `taskkill` call that itself hangs.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:b9f3fe820a3de4f785d700cc7595b322eddf853f7bc96f6e8f69ff8a27fb793d\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 7052365772 (its item 3 failed audit 7052396207, and retraction map 7052400431 withdrew it). Sibling count: 1 (comment 7052343840). Panel deposit: comment 7052299162.\n\nrelieves: P1\n\n## Bound remedy\n1. Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.\n2. Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the `remaining` list that `killTreeAndProveEmpty` returns: an empty list gives `stopped`; a non-empty list gives `survivors` with those PIDs. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or when the plan's `killTree` test seam is used, nothing proves the tree is empty and the result carries `unverified`. A result without a timeout carries no `treeCleanup` field.\n3. Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle (`confirmChildHandleForKill`, then `killTreeAndProveEmpty`), as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }`. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function; the PID is shown to the operator only. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.\n4. Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.\n5. Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.\n6. Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.\n7. Tests. None needs a built `dist` worker.\n   (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 4.\n   (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, `treeCleanup: stopped` and that the recorded PID is not running, on win32 and POSIX.\n   (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted.\n   (d) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam, so no sequence can lead to a kill.\n   (e) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.\n\n## Acceptance Criteria\n- Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running and the failure says the process tree was stopped, on win32 and POSIX.\n- Given a timed-out command where a descendant survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.\n- Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then no process is killed by the calling thread, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.\n- Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.\n- `runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.\n- The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.\n- The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.\n- Each smoke command prints a start line, and its captured output is written when it ends.\n\n## Reject\n- A test that needs a built `dist` worker (comment 7052343840, finding 3: no test in the suite depends on `dist` today; the message handling and cleanup are tested in-process instead).\n- A new logging or tee for smoke output (comment 7052343840, finding 4).\n- A kill from the calling thread after a backstop expiry or worker failure (comment 7052396207, findings 1 and 2: a missing exit message does not prove the PID is still the smoke command, and a root exit does not cover the descendants).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052343840 | 1. A timeout result does not establish successful cleanup | blocks-the-design | accept-into-contract (items 2 and 4) |\n| comment 7052343840 | 2. The synchronous backstop can abandon the cleanup owner | blocks-the-design | accept-into-contract (item 3 reports the backstop and worker-failure cases as `unverified`; the cleanup itself is a stated limit) |\n| comment 7052343840 | 3. The proposed tests bypass the production boundary that matters | sharpens-framing | accept-into-contract (item 7 (c), (d) and (e); the built-`dist` case is rejected with its reason) |\n\n| comment 7052396207 | 1. Missing exit notification is not a PID-reuse guard | blocks-the-design | accept-into-contract (item 3: the calling thread never kills; the reported PID is shown only) |\n| comment 7052396207 | 2. Root exit still permits abandonment of surviving descendants | blocks-the-design | accept-into-contract (items 2 and 3: the worker kills the snapshot of the tree at the deadline whatever the root does; a worker that fails before it reports gives `unverified`, a stated limit) |\n| comment 7052396207 | 3. Test the message protocol before the recovery helper | sharpens-framing | accept-into-contract (item 7 (d): a real in-process `MessageChannel` drives the message handling) |\n\nFootnote in the census, no take: comment 7052343840 finding 4 (stated in item 5).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean; the cap raise is the operator's decision (comment 7070574560). The `relieves` cite stays open until a later critic targets it. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critics did not contest, so it records no audit marker.\n\n",
+          "id": 7070575852,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070575852",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:00:21Z",
+          "updated_at": "2026-11-21T23:00:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: blocking\nharvest-changed: true\nharvest-digest: sha256:9c6608f9ae4820eb4bdb9a3b11e5857febb474f229fa28ef070db6991ca4b5ed\n\n## In plain English\n\nThe recut safely removes the calling-thread kill and improves failure reporting. Its message-draining design and in-process tests are sound by inspection and fit one PR without a built `dist` worker.\n\nP1 still does not hold in full. The stated worker-stall limit permits Step 5 to return while smoke descendants remain running; the operator has not accepted that scope reduction. There is also a newly verified reporting gap: the existing cleanup helper can return an empty survivor list after an incomplete scan, which item 2 would incorrectly label `stopped`.\n\npain-P1: does not hold - the remedy explicitly leaves worker-stall cleanup unresolved, and an incomplete descendant scan can still produce a false “process tree stopped” report.\n\nEvidence below is from `880c91ed079578e900c1f2ef680efbfa6e6d61af`. No files changed, builds or tests ran, or posts were made.\n\n### 1. blocks-the-design — The stated limit does not discharge P1\n\n**Evidence:** `packages/core/src/check/suite-gate-supervisor.ts:187–218` bounds the wait and terminates the worker on return. Cleanup belongs to that worker at `packages/core/src/check/suite-gate-supervisor-worker.ts:152–165`. Windows termination invokes synchronous `taskkill` without a timeout at `packages/core/src/check/suite-gate-supervisor-lib.ts:170–179`.\n\n**Failure mode:** The worker stalls before or during cleanup. Item 3 returns `unverified`, requests worker termination, and performs no recovery. Descendants can remain running and holding files after Step 5 fails—the outcome named by P1. This is an assessment of the recut’s explicit limit, not a request to restore the rejected numeric-PID kill.\n\n**Disposition consequence:** Honest reporting is valuable, but cannot support full relief under the unchanged Stop 1. The smallest scope resolution is an explicit operator-approved split for the unmet cleanup case, recorded through the existing leftover-pain mechanism with corresponding acceptance scope. Without that decision, full relief requires identity-safe cleanup ownership that survives worker failure. Merely stating the limit cannot substitute for either resolution.\n\n### 2. blocks-the-design — An empty survivor list does not prove a complete scan\n\n**Evidence:** `packages/core/src/check/suite-gate-supervisor-worker.ts:44–68` parses discovery output without preserving command failure or timeout. Lines 71–91 can return a partial descendant list when the traversal budget expires. Lines 105–126 check only the resulting snapshot and return `{ remaining }`, without scan-completeness information. The existing test at `packages/core/src/check/suite-gate-supervisor.test.ts:330–332` explicitly expects an empty list after budget exhaustion.\n\n**Failure mode:** Discovery fails or exhausts its budget and omits a descendant. The root and all recorded descendants die, but an omitted descendant survives—for example, outside the root’s POSIX process group. `remaining` is empty, so item 2 reports `stopped` and item 4 asserts that the process tree stopped. This new evidence concerns the proposed interpretation of the helper’s result, rather than the previously accepted finding that its result was discarded.\n\n**Disposition consequence:** Item 2 needs a small mechanism change: preserve incomplete or failed discovery as uncertainty. Known live PIDs warrant `survivors`; an incomplete scan with no known survivors warrants `unverified`, unless independent evidence establishes complete cleanup. Add in-process cases for discovery failure and budget exhaustion. These changes remain compatible with one PR and the prohibition on built-worker tests.\n\nThe message-protocol correction itself passes this audit by inspection: draining the receiving port with `receiveMessageOnPort` can select the tagged result after spawn notifications, and item 7(d) exercises that actual boundary. The existing worker posts before notifying (`suite-gate-supervisor-worker.ts:234–237`); retaining that ordering and limiting tagged messages to timed mode preserves the separate suite-mode consumer.",
+          "id": 7070598709,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070598709",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:02:17Z",
+          "updated_at": "2026-11-21T23:02:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7070598709 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7070575852\n\n## In plain English\nThe audit found that P1 is still not relieved, on two points, and the parent agrees after reading the code it cites. First, the stated worker-stall limit lets Step 5 return while smoke descendants may still run, which is the outcome P1 names; a limit stated on the lean is not an operator decision to split that case out. Second, an empty survivor list does not prove the tree is gone: the descendant scan drops listing failures and can stop early when its budget runs out (`suite-gate-supervisor-worker.ts` 44-91; the existing test at `suite-gate-supervisor.test.ts` 330-332 expects an empty list after the budget expires). A descendant the scan missed can survive while the lean would report `stopped`.\n\nThe audit agreed that the rest is sound: the calling thread no longer kills anything, the tagged message handling with `receiveMessageOnPort` and its in-process `MessageChannel` test are correct by inspection, and the change fits one PR with no built `dist` worker.\n\nThe Bound remedy on 7070575852 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:b9f3fe820a3de4f785d700cc7595b322eddf853f7bc96f6e8f69ff8a27fb793d\n\ndoes-not-relieve: P1\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070598709 | 1. The stated limit does not discharge P1 | blocks-the-design | accept-into-contract (the worker-stall cleanup needs an operator-approved split to its own issue, cited `operator-deferred`, or identity-safe cleanup ownership in this story) |\n| comment 7070598709 | 2. An empty survivor list does not prove a complete scan | blocks-the-design | accept-into-contract (a listing failure or an expired scan budget with no known survivor gives `unverified`, not `stopped`; add in-process cases for both) |\n\nAudit verdicts recorded: `pain-P1` does not hold.\r\n\n",
+          "id": 7070601738,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070601738",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:02:32Z",
+          "updated_at": "2026-11-21T23:02:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 7070601738 (blocking pain audit 7070598709 on a `Spec-path` lean)\nopen-question: Does the operator split the worker-stall cleanup (backstop expiry or worker failure before a result) into its own issue, cited `operator-deferred`, and raise this arc's critic-post cap from 3 to 4, so one recut lean can add the scan-completeness rule and one more audit can check it?\n\n## In plain English\nTwo decisions are needed, and both are the operator's. First, the case where the supervisor worker stalls or fails before it reports cannot be cleaned up safely from the calling thread with what Node offers; a safe fix needs process ownership (a Windows job object, or a POSIX process-group identity check). The audit will not accept that case as a limit stated on the lean; it needs an operator split to its own issue, cited `operator-deferred`. Second, the recut needs one more critic post for its audit.\n\nThe recommended recut keeps lean 7070575852 and changes one thing in item 2: the descendant scan records whether it completed. A listing command that fails or times out, or a scan whose budget runs out, marks the scan incomplete. Known live PIDs still give `survivors`; an incomplete scan with no known survivor gives `unverified`, never `stopped`. Tests add in-process cases for a listing failure and an expired budget. Everything else stays: the worker alone kills, the calling thread never kills, and the tagged message handling and its `MessageChannel` test are unchanged.\n\nCritic posts used: 3 of 3. The operator set the cap at 3 for this arc, so the parent does not post that recut without an operator decision.\r\n\n",
+          "id": 7070604213,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070604213",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:02:45Z",
+          "updated_at": "2026-11-21T23:02:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the pain audit (comment 7070598709) returned two blocking findings against the recut lean and the operator cap of 3 critic posts for this arc is spent.\n\nRetraction map: comment 7070601738. Handoff with the open question and the recommended recut: comment 7070604213. No lean on this thread is bound. Resume is an operator verb.\r\n\n",
+          "id": 7070605670,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070605670",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:02:52Z",
+          "updated_at": "2026-11-21T23:02:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator decision (live turn 2026-11-21) on Handoff 7070604213, after the halt in comment 7070605670. In his words: \"Split it\".\n- The worker-stall cleanup (a backstop expiry, or a worker failure before it posts a result) leaves this arc. It is filed as #6943. On any recut lean of this arc, that case is cited `operator-deferred` to #6943.\n- The operator did not raise the critic-post cap. It stays at 3, and all 3 posts are used.\n- Finding 2 of audit 7070598709 (an empty survivor list after a failed or cut-short descendant scan is not proof that the tree stopped) stays with this arc. It is about how the normal deadline path reports its result, not about cleanup after a worker stall.\n\nThe arc stays halted. A recut lean that cites the split and adds the scan-completeness rule would need one more pain audit, which is a fourth critic post. No lean on this thread is bound.\r\n\n",
+          "id": 7070629610,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070629610",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:04:51Z",
+          "updated_at": "2026-11-21T23:04:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (live turn 2026-11-21) after the halt in comment 7070605670 and the operator split in comment 7070629610. Asked whether to allow a fourth critic post for this arc, the operator raised its critic-post cap from 3 to 4, in his words: \"Yes, both\".\n- One recut lean keeps lean 7070575852, cites the worker-stall case `operator-deferred` to #6943 under the operator split, and adds the scan-completeness rule from finding 2 of audit 7070598709: a failed listing or an expired scan budget with no known survivor gives `unverified`, never `stopped`.\n- One pain audit follows; it is critic post 4 of 4. If it blocks, the arc halts with no fifth post.\n\nThe arc continues under Stop 1 7052298808.\r\n\n",
+          "id": 7070690915,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070690915",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:10:08Z",
+          "updated_at": "2026-11-21T23:10:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7052298808, after pain audit 7070598709, the operator split in comment 7070629610 and the operator cap raise in comment 7070690915 (round 1: 1 of 1 critic posted, comment 7052343840)\n\n## In plain English\nProblem: on a reused cut, release Step 5 runs a short host smoke check (`pnpm run build`, then a few vitest files) through `spawnSync` with a timeout. When the time runs out, Node kills only the direct child, and the build and vitest processes under it keep running after Step 5 has failed.\n\nWhat the critics found: the sync wrapper `runTimedChild`, which Step 5 already uses for its hygiene gates, is the right tool, but its result must tell the truth. Only the worker that holds the live child handle may kill; the calling thread cannot prove a numeric PID is still the smoke command. The last audit added two points: a worker stall left as a limit on the lean does not relieve the pain, and an empty survivor list proves nothing when the descendant scan failed or ran out of time.\n\nSolution this lean proposes: `runSmokeCommand` runs each command through `runTimedChild` with the same safe spawn plan, environment and shared deadline. At the deadline the worker snapshots the tree, kills it and kills any survivor, as today, and now reports the outcome. It reports `stopped` only when the scan of the tree completed and no process is left; `survivors` with their PIDs when a known process is still alive; and `unverified` when the scan failed or ran out of time and no survivor is known. The calling thread never kills. A backstop expiry or a worker failure before the result gives `unverified` and names the PID the worker reported at spawn. Cleanup after such a worker stall is split to #6943 by the operator.\n\nWhat this adds: one result field on the shared timed-child runner, a completeness flag on the descendant scan, one spawn message from the worker, a loop that reads every message on the port, and a start line per smoke command. No new constant and no new gate.\n\nWhat it does not do:\n- It does not clean up after a worker that stalls or fails before it reports. That case is reported as `unverified` with no kill, and its cleanup is #6943 (operator split, comment 7070629610).\n- It does not change how the tree is listed. On win32 the listing uses `wmic`, which is missing on current Windows 11 builds (it is missing on the release host checked by the parent). There the scan fails, so a timed-out smoke command reports `unverified`, while `taskkill /T` still kills the tree.\n- It does not stream smoke output live. Output is written when each command ends, and only the last 256 KiB of each stream is kept.\n- It does not add a test that needs a built `dist` worker.\nIf confirmed, the synthesis would assert this design. The leftover next-build is #6943.\n\nTarget-digest: sha256:b9f3fe820a3de4f785d700cc7595b322eddf853f7bc96f6e8f69ff8a27fb793d\n**Spec-path:** Bound remedy on this lean\nSupersedes: successor lean 7070575852 (audit 7070598709 blocked it, and retraction map 7070601738 withdrew it). Sibling count: 1 (comment 7052343840). Panel deposit: comment 7052299162.\n\nPain cite: the Bound remedy stops the tree on the deadline path P1 names, and the operator split moved the worker-stall cleanup to #6943. One pain id takes one disposition, so P1 is cited as an operator-deferred leftover rather than as plain relief, as the contract asks for a partly relieved pain.\n\noperator-deferred: P1 #6943\n\n## Bound remedy\n1. Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.\n2. Scan completeness. The descendant scan reports whether it completed. A sibling of `listDescendantPids` returns `{ pids, complete }`; `listDescendantPids` keeps returning only the list for its other callers. `complete` is false when the scan budget runs out before the walk ends, or when any listing call fails: a spawn error (for example a missing `wmic` or `pgrep`), a timeout, or an exit status other than success or the command's no-match status (`pgrep` exit 1). The injected `listDirect` seam may return `null` to mean a failed listing. `killTreeAndProveEmpty` returns `{ remaining, scanComplete }`; callers that read only `remaining` do not change.\n3. Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the result of `killTreeAndProveEmpty`: a non-empty `remaining` gives `survivors` with those PIDs; an empty `remaining` with `scanComplete` gives `stopped`; an empty `remaining` without `scanComplete` gives `unverified`. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or the plan's `killTree` test seam is used, the result is `unverified`. A result without a timeout has no `treeCleanup` field.\n4. Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle, as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }` before it notifies, as today. Suite mode keeps its untagged message. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.\n5. Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.\n6. Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.\n7. Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.\n8. Tests. None needs a built `dist` worker.\n   (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 5.\n   (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, that the recorded PID is not running, on win32 and POSIX, and that the result is `stopped` when the scan completed and `unverified` when it did not.\n   (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted.\n   (d) Scan completeness, in-process with the `listDirect` seam: a listing that returns `null` (failed) gives `complete: false`; a budget that expires before the walk ends gives `complete: false`; a full walk gives `complete: true`. With those seams, `killTreeAndProveEmpty` and `superviseTimedChild` give `unverified` for a failed listing and for an expired budget when no PID is left alive, and `survivors` when a known PID is still alive. The existing budget test keeps its list result and also asserts `complete: false`.\n   (e) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam.\n   (f) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.\n\n## Acceptance Criteria\n- Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running, on win32 and POSIX.\n- Given that case with a completed descendant scan and no process left, then the result carries `treeCleanup: stopped` and the failure says the process tree was stopped.\n- Given a timed-out command where a known process survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.\n- Given a descendant listing that fails (for example a missing `wmic` or `pgrep`) or a scan budget that expires, with no known survivor, then the result carries `treeCleanup: unverified`, never `stopped`.\n- Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then the calling thread kills no process, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.\n- Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.\n- `runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.\n- The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.\n- The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.\n- Each smoke command prints a start line, and its captured output is written when it ends.\n\n## Reject\n- A test that needs a built `dist` worker (comment 7052343840, finding 3: no test in the suite depends on `dist` today; the message handling, scan and cleanup are tested in-process instead).\n- A new logging or tee for smoke output (comment 7052343840, finding 4).\n- A kill from the calling thread after a backstop expiry or worker failure (comment 7052396207, findings 1 and 2: a missing exit message does not prove the PID is still the smoke command, and a root exit does not cover the descendants).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052343840 | 1. A timeout result does not establish successful cleanup | blocks-the-design | accept-into-contract (items 2, 3 and 5) |\n| comment 7052343840 | 2. The synchronous backstop can abandon the cleanup owner | blocks-the-design | accept-into-contract (item 4 reports the backstop and worker-failure cases as `unverified`; their cleanup is #6943 by the operator split) |\n| comment 7052343840 | 3. The proposed tests bypass the production boundary that matters | sharpens-framing | accept-into-contract (item 8 (c), (d), (e) and (f); the built-`dist` case is rejected with its reason) |\n\n| comment 7052396207 | 1. Missing exit notification is not a PID-reuse guard | blocks-the-design | accept-into-contract (item 4: the calling thread never kills; the reported PID is shown only) |\n| comment 7052396207 | 2. Root exit still permits abandonment of surviving descendants | blocks-the-design | accept-into-contract (items 3 and 4: the worker kills the snapshot of the tree at the deadline; a worker that fails before it reports gives `unverified`, and its cleanup is #6943) |\n| comment 7052396207 | 3. Test the message protocol before the recovery helper | sharpens-framing | accept-into-contract (item 8 (e): a real in-process `MessageChannel` drives the message handling) |\n\n| comment 7070598709 | 1. The stated limit does not discharge P1 | blocks-the-design | accept-into-contract (operator split to #6943 in comment 7070629610; P1 cited `operator-deferred` to #6943) |\n| comment 7070598709 | 2. An empty survivor list does not prove a complete scan | blocks-the-design | accept-into-contract (items 2 and 3, tests in item 8 (d)) |\n\nFootnote in the census, no take: comment 7052343840 finding 4 (stated in item 6).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean; the split and the cap raises are the operator's decisions (comments 7070629610 and 7070690915). The `operator-deferred` cite stays open until a later critic targets it. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critics did not contest, so it records no audit marker. The note that `wmic` is missing on the release host is a parent observation (`where wmic` found nothing on 2026-11-21), not a premise of the Bound remedy.\r\n\n",
+          "id": 7070710091,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070710091",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:11:48Z",
+          "updated_at": "2026-11-21T23:11:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e\n\n## In plain English\n\nThe recut passes this design audit. It replaces the smoke check’s direct-child timeout with the existing worker-owned tree cleanup and reports uncertainty honestly. Worker-stall recovery remains explicitly deferred to #6943 under the recorded operator split. I found no new defect requiring a change to the remedy or acceptance criteria.\n\npain-P1: holds - the cite honestly describes partial relief: the deadline path gains tree cleanup and accurate cleanup reporting; worker-stall recovery remains assigned to #6943.\n\nRe-verified against `880c91ed079578e900c1f2ef680efbfa6e6d61af`:\n\n- **Scan completeness:** `packages/core/src/check/suite-gate-supervisor-worker.ts:44–91` currently loses listing failures and traversal exhaustion; lines 94–126 check only the collected snapshot. Items 2 and 3 close that reporting gap explicitly: known survivors take precedence; `stopped` requires a completed scan and no survivors; failed or incomplete discovery otherwise yields `unverified`. Item 8(d) exercises those distinctions.\n- **Cleanup ownership:** The deadline kill remains with the worker’s child handle (`suite-gate-supervisor-worker.ts:152–165`). The underlying Windows tree kill and POSIX group kill are at `suite-gate-supervisor-lib.ts:170–190`. Item 4 adds no calling-thread kill and treats the reported PID as diagnostic information only.\n- **Message handling:** The existing caller reads one message (`suite-gate-supervisor.ts:202–215`); the worker posts before notifying (`suite-gate-supervisor-worker.ts:234–237`). Draining tagged timed-mode messages preserves that ordering and selects the terminal result after spawn notifications. Item 8(e)’s real in-process `MessageChannel` exercises the changed receiving boundary, including missing-result cases. Suite-mode messages remain unchanged.\n- **Scope and tests:** The adapter preserves the safe spawn plan and shared deadline (`packages/core/src/release/ci-reuse.ts:248–286,295–322`). The proposed seams, in-process descendant test, and real metacharacter-cwd execution fit one PR without requiring a built `dist` worker.\n\nThis is a source-level design verdict, not implementation validation. No files changed, builds or tests ran, or posts were made.",
+          "id": 7070727535,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070727535",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:13:20Z",
+          "updated_at": "2026-11-21T23:13:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7070710091 (recut of 7070575852 and 7052365772 after audits 7052396207 and 7070598709, the operator cap raises in comments 7070574560 and 7070690915, and the operator split in comment 7070629610). Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run. All four critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation; rows that only critics read are marked so.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `runSmokeCommand` uses `spawnSync` with `stdio: \"inherit\"` and a `timeout`, which kills only the direct child | verified | parent read of `packages/core/src/release/ci-reuse.ts` 271-287; critic 7052343840 |\n| 2 | `runTimedChild` already wraps `superviseTimedChild` synchronously (Worker plus `Atomics.wait`, 15-second backstop) and Step 5 hygiene gates use it | verified | parent read of `packages/core/src/check/suite-gate-supervisor.ts` 145-219 and `cached-orchestrator.ts` 650-680; critic 7052343840 question 1 |\n| 3 | At the deadline the worker checks its live child handle, snapshots the tree, kills the root or group, then kills survivors; it drops the `remaining` list today | verified | parent read of `suite-gate-supervisor-worker.ts` 94-127 and 130-189; critic 7052343840 finding 1 |\n| 4 | `runTimedChild` reads one port message and, on a backstop expiry, returns without any tree cleanup | verified | parent read of `suite-gate-supervisor.ts` 186-218; critic 7052343840 finding 2; audit 7052396207 finding 3 |\n| 5 | A calling-thread kill by numeric PID after a missing exit message is unsafe (PID reuse), and a root exit does not cover descendants | verified | audit 7052396207 findings 1 and 2; parent read of `suite-gate-supervisor-lib.ts` 170-190 |\n| 6 | The packaged runtime keeps the worker beside the supervisor, so `resolveWorkerPath` finds it | verified by the critic only | critic 7052343840 question 1 (`bundle.mjs` 25-33, `stage-bundle.mjs` 121-125, 360-366); not executed |\n| 7 | An empty survivor list is not proof of a complete scan: listing failures are dropped and the walk stops when its budget expires | verified | audit 7070598709 finding 2; parent read of `suite-gate-supervisor-worker.ts` 44-91 and `suite-gate-supervisor.test.ts` 330-332 |\n| 8 | The Bound remedy stops the tree on the deadline path P1 names; the worker-stall cleanup is the operator-deferred leftover #6943 | verified as design coverage | audit 7070727535 (`pain-P1: holds` as cited, `finding-classes: none`, `harvest-changed: false`, digest equal to the lean's); split recorded in comment 7070629610 |\n| 9 | `wmic` is missing on the release host, so a win32 scan there reports `unverified` | parent observation | parent `where wmic` on 2026-11-21 found nothing; not executed against the new code |\n| 10 | The new result field, message handling and smoke mapping behave as designed | endorsed, not verified | the new behaviour was not executed; the implementer covers it with the tests the Acceptance Criteria name |\r\n\n",
+          "id": 7070731238,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070731238",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:13:39Z",
+          "updated_at": "2026-11-21T23:13:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: on a reused cut, release Step 5 runs a short host smoke check (`pnpm run build`, then a few vitest files) through `spawnSync` with a timeout. When the time ran out, Node killed only the direct child, and the build and vitest processes under it kept running after Step 5 had failed.\n\nAccepted solution: each smoke command runs through `runTimedChild`, the sync wrapper Step 5 already uses for its hygiene gates, with the same safe spawn plan, environment and one shared `RELEASE_CHECK_TIMEOUT_MS` deadline. At the deadline the worker, which holds the live child handle, snapshots the tree, kills it and kills any survivor, and now reports the outcome: `stopped` only when the scan of the tree completed and nothing is left, `survivors` with their PIDs when a known process is still alive, and `unverified` when the scan failed or ran out of time. The calling thread never kills. A backstop expiry or a worker failure before its result gives `unverified` and names the PID the worker reported at spawn. Each command prints a start line; its captured output is written when it ends. No new constant or gate.\n\nLimits accepted: cleanup after a worker stall or failure is split to #6943 by the operator. On win32 hosts without `wmic`, including the release host, the scan fails, so a timed-out smoke command reports `unverified` while `taskkill /T` still kills the tree. Output is delayed and only the last 256 KiB of each stream is kept. The design was checked by reading the source at the pinned commit; no code was run. The leftover next-build is #6943.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7070710091.\nverified-claims table 7070731238\n\nConfirm conjunct: yolo standing (Stop 1 7052298808, `yolo-standing: on`) plus the operator's live turns: the cap raise to 3 in comment 7070574560 (\"Yes, one more\"), the split of the worker-stall cleanup to #6943 in comment 7070629610 (\"Split it\"), which cites `P1` as `operator-deferred` to #6943, and the cap raise to 4 in comment 7070690915 (\"Yes, both\"). Round-1 critic: comment 7052343840, posted by the parent verbatim as disclosed on panel-deposit 7052299162; its three classified findings are accepted on the lean. Audit 7052396207 blocked lean 7052365772 (retraction map 7052400431, Handoff 7052404448, halt 7052404746). Audit 7070598709 blocked lean 7070575852 (retraction map 7070601738, Handoff 7070604213, halt 7070605670). Clean audit of the bound lean: comment 7070727535 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 4 of 4.\n\n",
+          "id": 7070731403,
+          "html_url": "https://github.com/deftai/directive/issues/6904#issuecomment-7070731403",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:13:40Z",
+          "updated_at": "2026-11-21T23:13:40Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nOn a reused cut, release Step 5 runs the host smoke check through `spawnSync` with a `timeout` (`runHostSmokeCheck` in `packages/core/src/release/ci-reuse.ts`, #6791). When that timeout fires, Node kills only the direct child: `cmd.exe` on win32, `pnpm` elsewhere. The `tsc -b`, bundle and vitest processes under it can keep running after Step 5 has failed. They use the release host and hold files open.\n\nThe full Step 5 path does not have this gap. It runs under the process-tree supervisor in `packages/core/src/check/suite-gate-supervisor-lib.ts` (`superviseChild`, `killDescendantTree`), which stops the whole tree. That supervisor is async and the release pipeline's Step 5 is sync, so the smoke check cannot reuse it as written.\n\n## Acceptance Criteria\n\n- [ ] When the host smoke check's deadline passes, Step 5 stops the whole process tree of the running smoke command (build, bundle and vitest children), on win32 and POSIX, before it reports the failure.\n- [ ] The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, with no new timeout constant.\n- [ ] A test shows that a smoke command whose child outlives the deadline leaves no child process running after Step 5 returns.\n\n## Background\n\nGreptile found this on #6898 (P2, \"Hung tests keep running\"). It was kept out of #6791 because the fix needs the async supervisor, or a sync wrapper around it, in the release pipeline.\n\nRefs #6791, #6845\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6519687670,
+        "origin": "deftai/directive#6904",
+        "id": "github.issue.6519687670"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b9f3fe820a3de4f785d700cc7595b322eddf853f7bc96f6e8f69ff8a27fb793d"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6904,
+        "leanCommentId": 7070710091,
+        "harvestDigest": "c8feae2fa24fd34d05871f578c15b545930ea36890ea0460b53821041afc73b1",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (18), in list order (#6333)",
+      "sentences": [
+        "Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.",
+        "Scan completeness. The descendant scan reports whether it completed. A sibling of `listDescendantPids` returns `{ pids, complete }`; `listDescendantPids` keeps returning only the list for its other callers. `complete` is false when the scan budget runs out before the walk ends, or when any listing call fails: a spawn error (for example a missing `wmic` or `pgrep`), a timeout, or an exit status other than success or the command's no-match status (`pgrep` exit 1). The injected `listDirect` seam may return `null` to mean a failed listing. `killTreeAndProveEmpty` returns `{ remaining, scanComplete }`; callers that read only `remaining` do not change.",
+        "Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the result of `killTreeAndProveEmpty`: a non-empty `remaining` gives `survivors` with those PIDs; an empty `remaining` with `scanComplete` gives `stopped`; an empty `remaining` without `scanComplete` gives `unverified`. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or the plan's `killTree` test seam is used, the result is `unverified`. A result without a timeout has no `treeCleanup` field.",
+        "Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle, as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }` before it notifies, as today. Suite mode keeps its untagged message. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.",
+        "Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.",
+        "Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.",
+        "Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.",
+        "Tests. None needs a built `dist` worker. (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 5. (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, that the recorded PID is not running, on win32 and POSIX, and that the result is `stopped` when the scan completed and `unverified` when it did not. (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted. (d) Scan completeness, in-process with the `listDirect` seam: a listing that returns `null` (failed) gives `complete: false`; a budget that expires before the walk ends gives `complete: false`; a full walk gives `complete: true`. With those seams, `killTreeAndProveEmpty` and `superviseTimedChild` give `unverified` for a failed listing and for an expired budget when no PID is left alive, and `survivors` when a known PID is still alive. The existing budget test keeps its list result and also asserts `complete: false`. (e) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam. (f) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.",
+        "Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running, on win32 and POSIX.",
+        "Given that case with a completed descendant scan and no process left, then the result carries `treeCleanup: stopped` and the failure says the process tree was stopped.",
+        "Given a timed-out command where a known process survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.",
+        "Given a descendant listing that fails (for example a missing `wmic` or `pgrep`) or a scan budget that expires, with no known survivor, then the result carries `treeCleanup: unverified`, never `stopped`.",
+        "Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then the calling thread kills no process, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.",
+        "Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.",
+        "`runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.",
+        "The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.",
+        "The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.",
+        "Each smoke command prints a start line, and its captured output is written when it ends."
+      ],
+      "admitted_source_sentences": [
+        "Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.",
+        "Scan completeness. The descendant scan reports whether it completed. A sibling of `listDescendantPids` returns `{ pids, complete }`; `listDescendantPids` keeps returning only the list for its other callers. `complete` is false when the scan budget runs out before the walk ends, or when any listing call fails: a spawn error (for example a missing `wmic` or `pgrep`), a timeout, or an exit status other than success or the command's no-match status (`pgrep` exit 1). The injected `listDirect` seam may return `null` to mean a failed listing. `killTreeAndProveEmpty` returns `{ remaining, scanComplete }`; callers that read only `remaining` do not change.",
+        "Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the result of `killTreeAndProveEmpty`: a non-empty `remaining` gives `survivors` with those PIDs; an empty `remaining` with `scanComplete` gives `stopped`; an empty `remaining` without `scanComplete` gives `unverified`. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or the plan's `killTree` test seam is used, the result is `unverified`. A result without a timeout has no `treeCleanup` field.",
+        "Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle, as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }` before it notifies, as today. Suite mode keeps its untagged message. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.",
+        "Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.",
+        "Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.",
+        "Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.",
+        "Tests. None needs a built `dist` worker. (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 5. (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, that the recorded PID is not running, on win32 and POSIX, and that the result is `stopped` when the scan completed and `unverified` when it did not. (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted. (d) Scan completeness, in-process with the `listDirect` seam: a listing that returns `null` (failed) gives `complete: false`; a budget that expires before the walk ends gives `complete: false`; a full walk gives `complete: true`. With those seams, `killTreeAndProveEmpty` and `superviseTimedChild` give `unverified` for a failed listing and for an expired budget when no PID is left alive, and `survivors` when a known PID is still alive. The existing budget test keeps its list result and also asserts `complete: false`. (e) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam. (f) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.",
+        "Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running, on win32 and POSIX.",
+        "Given that case with a completed descendant scan and no process left, then the result carries `treeCleanup: stopped` and the failure says the process tree was stopped.",
+        "Given a timed-out command where a known process survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.",
+        "Given a descendant listing that fails (for example a missing `wmic` or `pgrep`) or a scan budget that expires, with no known survivor, then the result carries `treeCleanup: unverified`, never `stopped`.",
+        "Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then the calling thread kills no process, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.",
+        "Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.",
+        "`runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.",
+        "The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.",
+        "The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.",
+        "Each smoke command prints a start line, and its captured output is written when it ends."
+      ],
+      "admitted_source_digest": "9e019cd3f0c1b2aa7b09faba9ace1f255e6024f2c12d2a76c3cdf0a38e7638ce",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.",
+          "artifact_path": "packages/core/src/release/ci-reuse.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Scan completeness. The descendant scan reports whether it completed. A sibling of `listDescendantPids` returns `{ pids, complete }`; `listDescendantPids` keeps returning only the list for its other callers. `complete` is false when the scan budget runs out before the walk ends, or when any listing call fails: a spawn error (for example a missing `wmic` or `pgrep`), a timeout, or an exit status other than success or the command's no-match status (`pgrep` exit 1). The injected `listDirect` seam may return `null` to mean a failed listing. `killTreeAndProveEmpty` returns `{ remaining, scanComplete }`; callers that read only `remaining` do not change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the result of `killTreeAndProveEmpty`: a non-empty `remaining` gives `survivors` with those PIDs; an empty `remaining` with `scanComplete` gives `stopped`; an empty `remaining` without `scanComplete` gives `unverified`. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or the plan's `killTree` test seam is used, the result is `unverified`. A result without a timeout has no `treeCleanup` field.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle, as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }` before it notifies, as today. Suite mode keeps its untagged message. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.",
+          "artifact_path": "packages/core/src/check/cached-orchestrator.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Tests. None needs a built `dist` worker. (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 5. (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, that the recorded PID is not running, on win32 and POSIX, and that the result is `stopped` when the scan completed and `unverified` when it did not. (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted. (d) Scan completeness, in-process with the `listDirect` seam: a listing that returns `null` (failed) gives `complete: false`; a budget that expires before the walk ends gives `complete: false`; a full walk gives `complete: true`. With those seams, `killTreeAndProveEmpty` and `superviseTimedChild` give `unverified` for a failed listing and for an expired budget when no PID is left alive, and `survivors` when a known PID is still alive. The existing budget test keeps its list result and also asserts `complete: false`. (e) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam. (f) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running, on win32 and POSIX.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given that case with a completed descendant scan and no process left, then the result carries `treeCleanup: stopped` and the failure says the process tree was stopped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a timed-out command where a known process survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a descendant listing that fails (for example a missing `wmic` or `pgrep`) or a scan budget that expires, with no known survivor, then the result carries `treeCleanup: unverified`, never `stopped`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then the calling thread kills no process, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "`runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Each smoke command prints a start line, and its captured output is written when it ends.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6519687670",
+    "updated": "2026-11-22T22:13:22Z"
+  }
+}
