@@ -7,16 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.130.2
+- [release-line] v0.131.0
 
 ### Added
 
 ### Changed
-- chore(dogfood): pin Directive to 0.130.2.
 
 ### Fixed
 
 ### Removed
+
+## [0.131.0] - 2026-11-22
+
+> One mint per swarm, completion finds deft-story PRs by itself, web acceptance command, Go retired
+
+### Added
+
+- `scope:record-observable-scope` and `scope:record-intent-constraint` take several brief paths or `--manifest <launch-manifest>`: they show every record first, ask for the typed `mint` once, and write only new records. A record that would change refuses the whole set (use the one-path form to change it). An activation PR may carry records that match the briefs it adds. The merge that lands a record stays its real control (#6937).
+
+### Changed
+- chore(dogfood): pin Directive to 0.130.2.
+- Complete #5771 after merge of #6879; item 8 deferred to #6874.
+- Widen the #5771 story scope for the hook-host import fix.
+- Complete #6645 after merge of #6896.
+- Complete #6791 after merge of #6898.
+- Release Step 5 reuses green CI, with no flag or citation, when the clean release tree is identical to the fetched delivery-branch tip and the latest required checks on that tip succeeded; it prints the tip SHA and check-run URLs and runs only a short host smoke check, with no host coverage (#6791).
+- Complete #6862 after merge of #6867.
+- Complete #6863 after merge of #6900.
+- Widen the #6863 story scope for its evaluator-surface disclosure.
+- Widen the #6863 story scope for the generated rule map and stale Go references.
+- Complete #6873 after merge of #6953.
+- `release:publish` accepts a run binding for the coming `deft release:run` (#6845): with it, the draft flip accepts only the run's own grant for the tree the remote release tag points to (#6875).
+- Complete #6875 after merge of #6894 and #6892.
+- The release finish step accepts a run binding for the coming `deft release:run` (#6845): with it, the tag gate accepts only the run's own grant for the exact merged tree, and the step refuses unless the release merge sits directly on the cut base. The finish step now reads the upgrade banner from the merged commit (#6875).
+- Complete #6886 after merge of #6924.
+- Complete #6887 after merge of #6910.
+- Complete #6888 after merge of #6913.
+- Complete #6934 after merge of #6952.
+- Complete #6937 after merge of #6951.
+
+### Fixed
+
+- The commit gate no longer needs a running scope for a commit made only of Directive's own install, repair or upgrade changes (including a pin bump), and its refusal names each path that still needs cover with one reason instead of suggesting a new brief (#5771).
+- `scope:complete` can now complete a story whose only product PR carries `deft-story-part: N`, through an operator attestation after a sibling check; refusals print the attestation command only when a grant would work, `verify:orphan-active` reports a shipped brief as pending while its lifecycle PR is open, and the swarm worker template names each task's story line (#6645).
+- The release-names test no longer runs the real release task chain, so it can no longer hang the merge gate: it checks the #2547 quoting path against a small go-task fixture, and every go-task call in it has a 30 s limit (#6862).
+- `scope:complete` with no `--pr` or `--merge-commit` now finds a two-PR-path story's product PR: when the brief has no `productPullRequest` and no merged PR closes the issue, delivery discovery picks the one merged PR whose merge-time body carries the sole mark `deft-story: N`, counted on every base as the identity join counts it, and only when it merged into the delivery branch. Zero, several, an off-base PR or an unfinished scan refuse, and each message says what was searched and which flags to pass. Discovery and the delivery gate now read PR payloads live, so a `ghx` copy cached before merge no longer reads as unmerged (#6873).
+- A JS workspace test runner now has one acceptance command that both activation and `verify:ac` accept: `npx vitest run <path>` or `pnpm exec vitest run <path>` with a `cwd`, or exactly `task <name>:test`. Activation and `verify:ac` read the same command list; activation only warns about commands `verify:ac` would refuse. New refusal, shipped without a warn release because an acceptance command must not be spawned outside the repository: `verify:ac` exits 2 and runs nothing when a command's working directory is missing or outside the repository (#6886).
+- Every runtime verb now accepts a lone `--` right after the verb, so `deft review-monitor:register -- --pr N` and `deft occupancy:release -- --session-id ...` work like the forms without `--` (#6887).
+- `pre-pr:run --complete` now runs `verify:ac` itself and refuses when it fails, so a pre-PR pass can no longer outlive a failed acceptance check: a failed retry also revokes an earlier pass for the same HEAD. Operator acceptance-disposition grants still apply and `--verify-ac-disposition` is optional (#6888).
+- `swarm:readiness`, `xbrief:preflight` and `swarm:launch` now warn when two open story briefs share one completion issue (each brief's first GitHub issue reference), and say how to fix it; exit codes do not change. The worker envelope names each story issue and leaves write `deft-story: N`; `--part` is only for a story the envelope marks as split. The story-line writer notes a `deft-story-part: N` line on a product branch, and `pre-pr:run` prints that note on stderr in every mode, `--json` included (#6934).
+
+### Removed
+
+- Go is retired from master: no Go module or sources, no Go toolchain probe in the maintainer check or doctor, no Go setup step in CI, no Go release workflow, and no bridge freeze or drift gate; the frozen bridge binaries stay on the published v0.58.0 release (#6863).
 
 ## [0.130.2] - 2026-11-20
 ### Added
@@ -8344,7 +8387,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.130.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.131.0...HEAD
+[0.131.0]: https://github.com/deftai/directive/compare/v0.130.2...v0.131.0
 [0.130.2]: https://github.com/deftai/directive/compare/v0.130.1...v0.130.2
 [0.130.1]: https://github.com/deftai/directive/compare/v0.130.0...v0.130.1
 [0.130.0]: https://github.com/deftai/directive/compare/v0.129.15...v0.130.0

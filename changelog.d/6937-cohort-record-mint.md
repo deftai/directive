@@ -1,2 +1,0 @@
-section: Added
-- `scope:record-observable-scope` and `scope:record-intent-constraint` take several brief paths or `--manifest <launch-manifest>`: they show every record first, ask for the typed `mint` once, and write only new records. A record that would change refuses the whole set (use the one-path form to change it). An activation PR may carry records that match the briefs it adds. The merge that lands a record stays its real control (#6937).

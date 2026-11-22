@@ -1,2 +1,0 @@
-section: Fixed
-- `swarm:readiness`, `xbrief:preflight` and `swarm:launch` now warn when two open story briefs share one completion issue (each brief's first GitHub issue reference), and say how to fix it; exit codes do not change. The worker envelope names each story issue and leaves write `deft-story: N`; `--part` is only for a story the envelope marks as split. The story-line writer notes a `deft-story-part: N` line on a product branch, and `pre-pr:run` prints that note on stderr in every mode, `--json` included (#6934).
